@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mube - Documentação Conceitual MVP</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #D40055;
+            --bg-dark: #0E0E0E;
+            --bg-gray: #161718;
+            --text-white: #FFFFFF;
+            --text-gray: #BEBEBE;
+            --border: #2A2A2A;
+            --radius: 16px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .document-container {
+            max-width: 900px;
+            width: 100%;
+            background-color: var(--bg-dark);
+        }
+
+        header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 0 8px 0;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-gray);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-white);
+            margin-top: 60px;
+            margin-bottom: 24px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: 32px;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: var(--text-gray);
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            color: var(--text-gray);
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        strong {
+            color: var(--text-white);
+            font-weight: 600;
+        }
+
+        .card {
+            background-color: var(--bg-gray);
+            padding: 24px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+
+        .section-separator {
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+            margin: 80px 0;
+        }
+
+        footer {
+            margin-top: 100px;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-gray);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .data-table th,
+        .data-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            color: var(--primary);
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                color: #000;
+                padding: 20px;
+            }
+
+            .document-container {
+                max-width: 100%;
+            }
+
+            .card {
+                border: 1px solid #ddd;
+                background: #f9f9f9;
+            }
+
+            h1,
+            h2,
+            h3 {
+                color: #D40055;
+            }
+
+            p,
+            li,
+            td {
+                color: #333;
+            }
+
+            strong {
+                color: #000;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="document-container">
+        <header>
+            <h1>Mube</h1>
+            <div class="subtitle">Documentação Conceitual Holística — MVP v2.0</div>
+        </header>
+
+        <!-- PARTE 1: MODELO CONCEITUAL -->
+        <section id="modelo-conceitual">
+            <h2>1. Modelo Conceitual do Domínio</h2>
+            <div class="card">
+                <p>O <strong>Mube</strong> é uma plataforma que conecta quatro perfis distintos através de mecanismos de
+                    descoberta passiva (Feed), ativa (Busca) e algorítmica (Matchpoint). O foco está no <strong>contato
+                        e negociação direta via chat</strong> e na formação de bandas.</p>
+            </div>
+
+            <h3>Entidades e Responsabilidades</h3>
+            <ul>
+                <li><strong>Usuário (Abstract):</strong> Base para credenciais, localização obrigatória e tipo de conta.
+                </li>
+                <li><strong>Profissional:</strong> Indivíduo com portfólio. Único no Matchpoint. Gerencia bandas.</li>
+                <li><strong>Banda:</strong> Coletivo gerenciado por Administradores (Profissionais). Ativa após 2
+                    aceites.</li>
+                <li><strong>Estúdio:</strong> Perfil de espaço físico e serviços.</li>
+                <li><strong>Contratante:</strong> Perfil focado em busca e contato. Invisível publicamente.</li>
+                <li><strong>Match:</strong> Afinidade mútua definitiva no MVP entre Profissionais.</li>
+                <li><strong>Chat:</strong> Canal 1-1 aberto por Match ou diretamente pelo Contratante.</li>
+            </ul>
+
+            <h3>Estados Operacionais (Ciclo de Vida)</h3>
+            <ul>
+                <li><strong>Banda Ativa:</strong> Admin + 2 integrantes aceitos. Visível no sistema.</li>
+                <li><strong>Perfil Ativo:</strong> Cadastro completo e validado.</li>
+                <li><strong>Perfil Pausado:</strong> Usuário oculto do Matchpoint; chats e matches são preservados em
+                    modo leitura.</li>
+                <li><strong>Perfil Suspenso:</strong> 7 dias após 10 denúncias. Visibilidade zerada; chat apenas
+                    leitura.</li>
+            </ul>
+
+            <h3>Fluxos e Interação</h3>
+            <ul>
+                <li><strong>Matchpoint:</strong> Cards 1-1 com ordenação: <strong>Hashtags > Proximidade >
+                        Gêneros</strong>.</li>
+                <li><strong>Cadastro:</strong> Incompletos não acessam o app; localização é bloqueante.</li>
+                <li><strong>Chat:</strong> Novas mensagens permitidas apenas em perfis ativos.</li>
+            </ul>
+        </section>
+
+        <div class="section-separator"></div>
+
+        <!-- PARTE 2: MODELO DE DADOS -->
+        <section id="modelo-dados">
+            <h2>2. Modelagem Conceitual de Dados</h2>
+            <div class="card">
+                <p>Orientado à performance em leituras (Feed/Pilha), utilizando <strong>denormalização
+                        estratégica</strong> de localização e resumos de perfil.</p>
+            </div>
+
+            <h3>Entidades Persistentes e Campos</h3>
+
+            <div class="card">
+                <h3>Usuário / Perfil</h3>
+                <ul>
+                    <li><strong>Geral (Obrigatórios):</strong> ID (Auth), Tipo, Nome, Email, Telefone, Foto, Localização
+                        (Lat/Long), Cidade (Denorm), Estado (Denorm).</li>
+                    <li><strong>Específico Profissional:</strong> <strong>Idade, Gênero</strong>, Gêneros Musicais,
+                        Instrumentos, Funções, Galeria.</li>
+                    <li><strong>Específico Contratante:</strong> Nome, Localização. <em>Opcionais Internos: Idade,
+                            Gênero (não públicos).</em></li>
+                    <li><strong>Específico Estúdio:</strong> Endereço Fixo, Equipamentos/Serviços, Galeria.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Banda</h3>
+                <ul>
+                    <li><strong>Campos:</strong> Nome, ID Admin, Gênero, Localização, Status (Draft/Ativa).</li>
+                    <li><strong>Opcionais:</strong> Descrição.</li>
+                    <li><strong>Denormalizados:</strong> Lista IDs Integrantes, Resumo de Fotos.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Comunicação e Interação</h3>
+                <ul>
+                    <li><strong>Match:</strong> Participante A, Participante B, Data. (Definitivo no MVP).</li>
+                    <li><strong>Interação Matchpoint:</strong> Registro interno de controle (limite diário e
+                        reaparecimento).</li>
+                    <li><strong>Chat:</strong> IDs Participantes, Contador Não Lidas, Dados Resumidos (Nome/Foto),
+                        Última Mensagem.</li>
+                    <li><strong>Mensagem:</strong> ID Chat, Autor, Conteúdo Textual, Estado (Enviada/Lida).</li>
+                </ul>
+            </div>
+
+            <h3>Regras de Consistência e Privacidade</h3>
+            <ul>
+                <li><strong>Localização:</strong> Lat/Long para cálculos; Cidade/Estado para exibição e filtros.</li>
+                <li><strong>Privacidade:</strong> Dados sensíveis (Email, Dados Internos) nunca são expostos.</li>
+                <li><strong>Chat MVP:</strong> Proibido status "online", "visto por último" ou "digitando".</li>
+                <li><strong>Integridade:</strong> Sincronia imediata entre coordenadas e nomes geográficos
+                    (Cidade/Estado).</li>
+            </ul>
+        </section>
+
+        <footer>
+            Mube MVP • Documentação Unificada • 19/12/2025
+        </footer>
+    </div>
+
+</body>
+
+</html>
