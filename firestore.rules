@@ -1,9 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que o usuário leia e edite apenas o seu próprio documento na coleção 'users'
+    
+    // Users collection
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow read for any authenticated user (needed for feed/search)
+      allow read: if request.auth != null;
+      // Allow write only for account owner
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Favorites collection
+    match /favorites/{favoriteId} {
+      // Allow read/write if the document belongs to the user
+      // Assuming document ID format: "userId_targetId" or checks field "userId"
+      // But safer to check resource.data.userId or request.resource.data.userId
+      
+      allow read: if request.auth != null;
+      
+      // Allow create if user is setting themselves as the owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Allow delete if user owns the favorite
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     match /deleted_users/{userId} {

@@ -161,4 +161,4 @@ final class SearchResultsProvider
   }
 }
 
-String _$searchResultsHash() => r'3b4f74140680eed077a464d7f0d3ea1ad74a72a0';
+String _$searchResultsHash() => r'73b271ce1f0d3de9e74ec9da5fca0c90931148a0';

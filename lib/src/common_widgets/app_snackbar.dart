@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../design_system/foundations/app_colors.dart';
 import '../design_system/foundations/app_radius.dart';
 import '../design_system/foundations/app_spacing.dart';
 
@@ -24,10 +25,10 @@ class AppSnackBar {
   const AppSnackBar._();
 
   // ---------------------------------------------------------------------------
-  // Semantic Colors
+  // Semantic Colors - Using Design System
   // ---------------------------------------------------------------------------
-  static const Color _successColor = Color(0xFF4CAF50);
-  static const Color _errorColor = Color(0xFFCF6679);
+  static const Color _successColor = AppColors.success;
+  static const Color _errorColor = AppColors.error;
   static const Color _infoColor = Color(0xFF2196F3);
   static const Color _warningColor = Color(0xFFFF9800);
 

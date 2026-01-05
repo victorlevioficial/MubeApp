@@ -8,11 +8,18 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
+import '../features/feed/presentation/feed_list_screen.dart';
+import '../features/feed/domain/feed_section.dart';
+import '../features/search/presentation/search_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/addresses_screen.dart';
+import '../features/settings/presentation/edit_address_screen.dart';
+import '../features/settings/domain/saved_address.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
@@ -95,6 +102,21 @@ List<RouteBase> _buildRoutes() {
                 key: state.pageKey,
                 child: const FeedScreen(),
               ),
+              routes: [
+                GoRoute(
+                  path: 'list',
+                  pageBuilder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final type =
+                        extra?['type'] as FeedSectionType? ??
+                        FeedSectionType.artists;
+                    return NoTransitionPage(
+                      key: state.pageKey,
+                      child: FeedListScreen(sectionType: type),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -119,7 +141,45 @@ List<RouteBase> _buildRoutes() {
             ),
           ],
         ),
+        // Settings tab
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RoutePaths.settings,
+              pageBuilder: (context, state) => NoTransitionPage(
+                key: state.pageKey,
+                child: const SettingsScreen(),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'addresses',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const AddressesScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'address',
+                  pageBuilder: (context, state) {
+                    final address = state.extra as SavedAddress?;
+                    return NoTransitionPage(
+                      key: state.pageKey,
+                      child: EditAddressScreen(existingAddress: address),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ],
+    ),
+
+    // Search screen
+    GoRoute(
+      path: '/search',
+      pageBuilder: (context, state) =>
+          NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
     ),
 
     // Dev gallery (design system showcase)

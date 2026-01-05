@@ -258,18 +258,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   Future<void> _handleAddPhoto(AppUser user) async {
     // Check limits before opening picker
     if (_galleryItems.length >= _maxTotal) {
-      AppSnackBar.show(
-        context,
-        'Limite máximo da galeria atingido.',
-        isError: true,
-      );
+      AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
       return;
     }
     if (_photoCount >= _maxPhotos) {
-      AppSnackBar.show(
+      AppSnackBar.warning(
         context,
         'Você já atingiu o limite de $_maxPhotos fotos.',
-        isError: true,
       );
       return;
     }
@@ -323,7 +318,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         _uploadProgress = 0.0;
       });
       if (mounted) {
-        AppSnackBar.show(context, 'Erro ao adicionar foto: $e', isError: true);
+        AppSnackBar.error(context, 'Erro ao adicionar foto: $e');
       }
     }
   }
@@ -331,18 +326,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   Future<void> _handleAddVideo(AppUser user) async {
     // Check limits before opening picker
     if (_galleryItems.length >= _maxTotal) {
-      AppSnackBar.show(
-        context,
-        'Limite máximo da galeria atingido.',
-        isError: true,
-      );
+      AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
       return;
     }
     if (_videoCount >= _maxVideos) {
-      AppSnackBar.show(
+      AppSnackBar.warning(
         context,
         'Você já atingiu o limite de $_maxVideos vídeos.',
-        isError: true,
       );
       return;
     }
@@ -409,7 +399,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         _uploadProgress = 0.0;
       });
       if (mounted) {
-        AppSnackBar.show(context, 'Erro ao adicionar vídeo: $e', isError: true);
+        AppSnackBar.error(context, 'Erro ao adicionar vídeo: $e');
       }
     }
   }
@@ -501,7 +491,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         .updateProfile(currentUser: user, updates: updates);
 
     if (mounted) {
-      AppSnackBar.show(context, 'Perfil atualizado!');
+      AppSnackBar.success(context, 'Perfil atualizado!');
       context.pop();
     }
   }

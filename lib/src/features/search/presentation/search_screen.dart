@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../features/auth/domain/user_type.dart';
+import '../../auth/domain/user_type.dart';
 import '../data/search_repository.dart';
 import 'widgets/user_card.dart';
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../common_widgets/app_text_field.dart';
+import '../../../design_system/foundations/app_colors.dart';
+import '../../../design_system/foundations/app_spacing.dart';
+import '../../../design_system/foundations/app_typography.dart';
 
 /// Main search screen with text input and filterable results.
 class SearchScreen extends ConsumerStatefulWidget {
@@ -29,7 +29,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filters = ref.watch(searchFiltersNotifierProvider);
+    final filters = ref.watch(searchFiltersProvider);
     final resultsAsync = ref.watch(searchResultsProvider);
 
     return Scaffold(
@@ -55,9 +55,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               onChanged: (value) {
                 _debounce.run(() {
-                  ref
-                      .read(searchFiltersNotifierProvider.notifier)
-                      .updateQuery(value);
+                  ref.read(searchFiltersProvider.notifier).updateQuery(value);
                 });
               },
             ),
@@ -73,9 +71,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 _FilterChip(
                   label: 'Todos',
                   selected: filters.type == null,
-                  onSelected: (_) => ref
-                      .read(searchFiltersNotifierProvider.notifier)
-                      .updateType(null),
+                  onSelected: (_) =>
+                      ref.read(searchFiltersProvider.notifier).updateType(null),
                 ),
                 const SizedBox(width: 8),
                 ...AppUserType.values.map(
@@ -85,7 +82,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       label: type.label,
                       selected: filters.type == type,
                       onSelected: (_) => ref
-                          .read(searchFiltersNotifierProvider.notifier)
+                          .read(searchFiltersProvider.notifier)
                           .updateType(type),
                     ),
                   ),

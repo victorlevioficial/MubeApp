@@ -16,6 +16,11 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   foto: json['foto'] as String?,
   bio: json['bio'] as String?,
   location: json['location'] as Map<String, dynamic>?,
+  addresses:
+      (json['addresses'] as List<dynamic>?)
+          ?.map((e) => SavedAddress.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
   dadosProfissional: json['profissional'] as Map<String, dynamic>?,
   dadosBanda: json['banda'] as Map<String, dynamic>?,
   dadosEstudio: json['estudio'] as Map<String, dynamic>?,
@@ -33,6 +38,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'foto': instance.foto,
   'bio': instance.bio,
   'location': instance.location,
+  'addresses': instance.addresses,
   'profissional': instance.dadosProfissional,
   'banda': instance.dadosBanda,
   'estudio': instance.dadosEstudio,

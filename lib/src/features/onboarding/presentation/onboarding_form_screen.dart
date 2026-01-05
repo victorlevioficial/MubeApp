@@ -301,10 +301,9 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                             setState(() {
                               _fotoUrl = 'https://placeholder.com/user.jpg';
                             });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Foto "enviada" com sucesso!'),
-                              ),
+                            AppSnackBar.success(
+                              context,
+                              'Foto "enviada" com sucesso!',
                             );
                           },
                           child: Container(

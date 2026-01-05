@@ -23,8 +23,9 @@ mixin _$AppUser {
  String get status;/// User's display name.
  String? get nome;/// Profile photo URL.
  String? get foto;/// Short biography.
- String? get bio;/// Location data: cidade, estado, lat, long.
- Map<String, dynamic>? get location;/// Professional-specific data (musicians, DJs, crew).
+ String? get bio;/// Location data: cidade, estado, lat, long. (Legacy - kept for backward compatibility)
+ Map<String, dynamic>? get location;/// List of saved addresses (up to 5). One should be marked as primary.
+ List<SavedAddress> get addresses;/// Professional-specific data (musicians, DJs, crew).
 @JsonKey(name: 'profissional') Map<String, dynamic>? get dadosProfissional;/// Band-specific data (musical groups).
 @JsonKey(name: 'banda') Map<String, dynamic>? get dadosBanda;/// Studio-specific data (recording studios).
 @JsonKey(name: 'estudio') Map<String, dynamic>? get dadosEstudio;/// Contractor-specific data (venues, organizers).
@@ -42,16 +43,16 @@ $AppUserCopyWith<AppUser> get copyWith => _$AppUserCopyWithImpl<AppUser>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.email, email) || other.email == email)&&(identical(other.cadastroStatus, cadastroStatus) || other.cadastroStatus == cadastroStatus)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&(identical(other.status, status) || other.status == status)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.bio, bio) || other.bio == bio)&&const DeepCollectionEquality().equals(other.location, location)&&const DeepCollectionEquality().equals(other.dadosProfissional, dadosProfissional)&&const DeepCollectionEquality().equals(other.dadosBanda, dadosBanda)&&const DeepCollectionEquality().equals(other.dadosEstudio, dadosEstudio)&&const DeepCollectionEquality().equals(other.dadosContratante, dadosContratante)&&const DeepCollectionEquality().equals(other.createdAt, createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.email, email) || other.email == email)&&(identical(other.cadastroStatus, cadastroStatus) || other.cadastroStatus == cadastroStatus)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&(identical(other.status, status) || other.status == status)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.bio, bio) || other.bio == bio)&&const DeepCollectionEquality().equals(other.location, location)&&const DeepCollectionEquality().equals(other.addresses, addresses)&&const DeepCollectionEquality().equals(other.dadosProfissional, dadosProfissional)&&const DeepCollectionEquality().equals(other.dadosBanda, dadosBanda)&&const DeepCollectionEquality().equals(other.dadosEstudio, dadosEstudio)&&const DeepCollectionEquality().equals(other.dadosContratante, dadosContratante)&&const DeepCollectionEquality().equals(other.createdAt, createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uid,email,cadastroStatus,tipoPerfil,status,nome,foto,bio,const DeepCollectionEquality().hash(location),const DeepCollectionEquality().hash(dadosProfissional),const DeepCollectionEquality().hash(dadosBanda),const DeepCollectionEquality().hash(dadosEstudio),const DeepCollectionEquality().hash(dadosContratante),const DeepCollectionEquality().hash(createdAt));
+int get hashCode => Object.hash(runtimeType,uid,email,cadastroStatus,tipoPerfil,status,nome,foto,bio,const DeepCollectionEquality().hash(location),const DeepCollectionEquality().hash(addresses),const DeepCollectionEquality().hash(dadosProfissional),const DeepCollectionEquality().hash(dadosBanda),const DeepCollectionEquality().hash(dadosEstudio),const DeepCollectionEquality().hash(dadosContratante),const DeepCollectionEquality().hash(createdAt));
 
 @override
 String toString() {
-  return 'AppUser(uid: $uid, email: $email, cadastroStatus: $cadastroStatus, tipoPerfil: $tipoPerfil, status: $status, nome: $nome, foto: $foto, bio: $bio, location: $location, dadosProfissional: $dadosProfissional, dadosBanda: $dadosBanda, dadosEstudio: $dadosEstudio, dadosContratante: $dadosContratante, createdAt: $createdAt)';
+  return 'AppUser(uid: $uid, email: $email, cadastroStatus: $cadastroStatus, tipoPerfil: $tipoPerfil, status: $status, nome: $nome, foto: $foto, bio: $bio, location: $location, addresses: $addresses, dadosProfissional: $dadosProfissional, dadosBanda: $dadosBanda, dadosEstudio: $dadosEstudio, dadosContratante: $dadosContratante, createdAt: $createdAt)';
 }
 
 
@@ -62,7 +63,7 @@ abstract mixin class $AppUserCopyWith<$Res>  {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) _then) = _$AppUserCopyWithImpl;
 @useResult
 $Res call({
- String uid, String email,@JsonKey(name: 'cadastro_status') String cadastroStatus,@JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil, String status, String? nome, String? foto, String? bio, Map<String, dynamic>? location,@JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,@JsonKey(name: 'banda') Map<String, dynamic>? dadosBanda,@JsonKey(name: 'estudio') Map<String, dynamic>? dadosEstudio,@JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,@JsonKey(name: 'created_at') dynamic createdAt
+ String uid, String email,@JsonKey(name: 'cadastro_status') String cadastroStatus,@JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil, String status, String? nome, String? foto, String? bio, Map<String, dynamic>? location, List<SavedAddress> addresses,@JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,@JsonKey(name: 'banda') Map<String, dynamic>? dadosBanda,@JsonKey(name: 'estudio') Map<String, dynamic>? dadosEstudio,@JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,@JsonKey(name: 'created_at') dynamic createdAt
 });
 
 
@@ -79,7 +80,7 @@ class _$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? email = null,Object? cadastroStatus = null,Object? tipoPerfil = freezed,Object? status = null,Object? nome = freezed,Object? foto = freezed,Object? bio = freezed,Object? location = freezed,Object? dadosProfissional = freezed,Object? dadosBanda = freezed,Object? dadosEstudio = freezed,Object? dadosContratante = freezed,Object? createdAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? email = null,Object? cadastroStatus = null,Object? tipoPerfil = freezed,Object? status = null,Object? nome = freezed,Object? foto = freezed,Object? bio = freezed,Object? location = freezed,Object? addresses = null,Object? dadosProfissional = freezed,Object? dadosBanda = freezed,Object? dadosEstudio = freezed,Object? dadosContratante = freezed,Object? createdAt = freezed,}) {
   return _then(_self.copyWith(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
@@ -90,7 +91,8 @@ as String,nome: freezed == nome ? _self.nome : nome // ignore: cast_nullable_to_
 as String?,foto: freezed == foto ? _self.foto : foto // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,location: freezed == location ? _self.location : location // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,dadosProfissional: freezed == dadosProfissional ? _self.dadosProfissional : dadosProfissional // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,addresses: null == addresses ? _self.addresses : addresses // ignore: cast_nullable_to_non_nullable
+as List<SavedAddress>,dadosProfissional: freezed == dadosProfissional ? _self.dadosProfissional : dadosProfissional // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosBanda: freezed == dadosBanda ? _self.dadosBanda : dadosBanda // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosEstudio: freezed == dadosEstudio ? _self.dadosEstudio : dadosEstudio // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosContratante: freezed == dadosContratante ? _self.dadosContratante : dadosContratante // ignore: cast_nullable_to_non_nullable
@@ -180,10 +182,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location,  List<SavedAddress> addresses, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
+return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.addresses,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
   return orElse();
 
 }
@@ -201,10 +203,10 @@ return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location,  List<SavedAddress> addresses, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _AppUser():
-return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
+return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.addresses,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +223,10 @@ return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String email, @JsonKey(name: 'cadastro_status')  String cadastroStatus, @JsonKey(name: 'tipo_perfil')  AppUserType? tipoPerfil,  String status,  String? nome,  String? foto,  String? bio,  Map<String, dynamic>? location,  List<SavedAddress> addresses, @JsonKey(name: 'profissional')  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda')  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio')  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante')  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at')  dynamic createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
+return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_that.status,_that.nome,_that.foto,_that.bio,_that.location,_that.addresses,_that.dadosProfissional,_that.dadosBanda,_that.dadosEstudio,_that.dadosContratante,_that.createdAt);case _:
   return null;
 
 }
@@ -236,7 +238,7 @@ return $default(_that.uid,_that.email,_that.cadastroStatus,_that.tipoPerfil,_tha
 @JsonSerializable()
 
 class _AppUser extends AppUser {
-  const _AppUser({required this.uid, required this.email, @JsonKey(name: 'cadastro_status') this.cadastroStatus = 'tipo_pendente', @JsonKey(name: 'tipo_perfil') this.tipoPerfil, this.status = 'ativo', this.nome, this.foto, this.bio, final  Map<String, dynamic>? location, @JsonKey(name: 'profissional') final  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda') final  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio') final  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante') final  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at') this.createdAt}): _location = location,_dadosProfissional = dadosProfissional,_dadosBanda = dadosBanda,_dadosEstudio = dadosEstudio,_dadosContratante = dadosContratante,super._();
+  const _AppUser({required this.uid, required this.email, @JsonKey(name: 'cadastro_status') this.cadastroStatus = 'tipo_pendente', @JsonKey(name: 'tipo_perfil') this.tipoPerfil, this.status = 'ativo', this.nome, this.foto, this.bio, final  Map<String, dynamic>? location, final  List<SavedAddress> addresses = const [], @JsonKey(name: 'profissional') final  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda') final  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio') final  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante') final  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at') this.createdAt}): _location = location,_addresses = addresses,_dadosProfissional = dadosProfissional,_dadosBanda = dadosBanda,_dadosEstudio = dadosEstudio,_dadosContratante = dadosContratante,super._();
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 
 /// Unique identifier (matches Firebase Auth UID).
@@ -255,15 +257,24 @@ class _AppUser extends AppUser {
 @override final  String? foto;
 /// Short biography.
 @override final  String? bio;
-/// Location data: cidade, estado, lat, long.
+/// Location data: cidade, estado, lat, long. (Legacy - kept for backward compatibility)
  final  Map<String, dynamic>? _location;
-/// Location data: cidade, estado, lat, long.
+/// Location data: cidade, estado, lat, long. (Legacy - kept for backward compatibility)
 @override Map<String, dynamic>? get location {
   final value = _location;
   if (value == null) return null;
   if (_location is EqualUnmodifiableMapView) return _location;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(value);
+}
+
+/// List of saved addresses (up to 5). One should be marked as primary.
+ final  List<SavedAddress> _addresses;
+/// List of saved addresses (up to 5). One should be marked as primary.
+@override@JsonKey() List<SavedAddress> get addresses {
+  if (_addresses is EqualUnmodifiableListView) return _addresses;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_addresses);
 }
 
 /// Professional-specific data (musicians, DJs, crew).
@@ -326,16 +337,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.email, email) || other.email == email)&&(identical(other.cadastroStatus, cadastroStatus) || other.cadastroStatus == cadastroStatus)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&(identical(other.status, status) || other.status == status)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.bio, bio) || other.bio == bio)&&const DeepCollectionEquality().equals(other._location, _location)&&const DeepCollectionEquality().equals(other._dadosProfissional, _dadosProfissional)&&const DeepCollectionEquality().equals(other._dadosBanda, _dadosBanda)&&const DeepCollectionEquality().equals(other._dadosEstudio, _dadosEstudio)&&const DeepCollectionEquality().equals(other._dadosContratante, _dadosContratante)&&const DeepCollectionEquality().equals(other.createdAt, createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.email, email) || other.email == email)&&(identical(other.cadastroStatus, cadastroStatus) || other.cadastroStatus == cadastroStatus)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&(identical(other.status, status) || other.status == status)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.bio, bio) || other.bio == bio)&&const DeepCollectionEquality().equals(other._location, _location)&&const DeepCollectionEquality().equals(other._addresses, _addresses)&&const DeepCollectionEquality().equals(other._dadosProfissional, _dadosProfissional)&&const DeepCollectionEquality().equals(other._dadosBanda, _dadosBanda)&&const DeepCollectionEquality().equals(other._dadosEstudio, _dadosEstudio)&&const DeepCollectionEquality().equals(other._dadosContratante, _dadosContratante)&&const DeepCollectionEquality().equals(other.createdAt, createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,uid,email,cadastroStatus,tipoPerfil,status,nome,foto,bio,const DeepCollectionEquality().hash(_location),const DeepCollectionEquality().hash(_dadosProfissional),const DeepCollectionEquality().hash(_dadosBanda),const DeepCollectionEquality().hash(_dadosEstudio),const DeepCollectionEquality().hash(_dadosContratante),const DeepCollectionEquality().hash(createdAt));
+int get hashCode => Object.hash(runtimeType,uid,email,cadastroStatus,tipoPerfil,status,nome,foto,bio,const DeepCollectionEquality().hash(_location),const DeepCollectionEquality().hash(_addresses),const DeepCollectionEquality().hash(_dadosProfissional),const DeepCollectionEquality().hash(_dadosBanda),const DeepCollectionEquality().hash(_dadosEstudio),const DeepCollectionEquality().hash(_dadosContratante),const DeepCollectionEquality().hash(createdAt));
 
 @override
 String toString() {
-  return 'AppUser(uid: $uid, email: $email, cadastroStatus: $cadastroStatus, tipoPerfil: $tipoPerfil, status: $status, nome: $nome, foto: $foto, bio: $bio, location: $location, dadosProfissional: $dadosProfissional, dadosBanda: $dadosBanda, dadosEstudio: $dadosEstudio, dadosContratante: $dadosContratante, createdAt: $createdAt)';
+  return 'AppUser(uid: $uid, email: $email, cadastroStatus: $cadastroStatus, tipoPerfil: $tipoPerfil, status: $status, nome: $nome, foto: $foto, bio: $bio, location: $location, addresses: $addresses, dadosProfissional: $dadosProfissional, dadosBanda: $dadosBanda, dadosEstudio: $dadosEstudio, dadosContratante: $dadosContratante, createdAt: $createdAt)';
 }
 
 
@@ -346,7 +357,7 @@ abstract mixin class _$AppUserCopyWith<$Res> implements $AppUserCopyWith<$Res> {
   factory _$AppUserCopyWith(_AppUser value, $Res Function(_AppUser) _then) = __$AppUserCopyWithImpl;
 @override @useResult
 $Res call({
- String uid, String email,@JsonKey(name: 'cadastro_status') String cadastroStatus,@JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil, String status, String? nome, String? foto, String? bio, Map<String, dynamic>? location,@JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,@JsonKey(name: 'banda') Map<String, dynamic>? dadosBanda,@JsonKey(name: 'estudio') Map<String, dynamic>? dadosEstudio,@JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,@JsonKey(name: 'created_at') dynamic createdAt
+ String uid, String email,@JsonKey(name: 'cadastro_status') String cadastroStatus,@JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil, String status, String? nome, String? foto, String? bio, Map<String, dynamic>? location, List<SavedAddress> addresses,@JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,@JsonKey(name: 'banda') Map<String, dynamic>? dadosBanda,@JsonKey(name: 'estudio') Map<String, dynamic>? dadosEstudio,@JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,@JsonKey(name: 'created_at') dynamic createdAt
 });
 
 
@@ -363,7 +374,7 @@ class __$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? email = null,Object? cadastroStatus = null,Object? tipoPerfil = freezed,Object? status = null,Object? nome = freezed,Object? foto = freezed,Object? bio = freezed,Object? location = freezed,Object? dadosProfissional = freezed,Object? dadosBanda = freezed,Object? dadosEstudio = freezed,Object? dadosContratante = freezed,Object? createdAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? email = null,Object? cadastroStatus = null,Object? tipoPerfil = freezed,Object? status = null,Object? nome = freezed,Object? foto = freezed,Object? bio = freezed,Object? location = freezed,Object? addresses = null,Object? dadosProfissional = freezed,Object? dadosBanda = freezed,Object? dadosEstudio = freezed,Object? dadosContratante = freezed,Object? createdAt = freezed,}) {
   return _then(_AppUser(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
@@ -374,7 +385,8 @@ as String,nome: freezed == nome ? _self.nome : nome // ignore: cast_nullable_to_
 as String?,foto: freezed == foto ? _self.foto : foto // ignore: cast_nullable_to_non_nullable
 as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non_nullable
 as String?,location: freezed == location ? _self._location : location // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,dadosProfissional: freezed == dadosProfissional ? _self._dadosProfissional : dadosProfissional // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,addresses: null == addresses ? _self._addresses : addresses // ignore: cast_nullable_to_non_nullable
+as List<SavedAddress>,dadosProfissional: freezed == dadosProfissional ? _self._dadosProfissional : dadosProfissional // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosBanda: freezed == dadosBanda ? _self._dadosBanda : dadosBanda // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosEstudio: freezed == dadosEstudio ? _self._dadosEstudio : dadosEstudio // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,dadosContratante: freezed == dadosContratante ? _self._dadosContratante : dadosContratante // ignore: cast_nullable_to_non_nullable

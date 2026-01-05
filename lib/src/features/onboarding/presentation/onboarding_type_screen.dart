@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../common_widgets/responsive_center.dart';
 import '../../auth/data/auth_repository.dart';
@@ -52,9 +53,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
             currentUser: currentUser,
           );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, selecione uma opção.')),
-      );
+      AppSnackBar.warning(context, 'Por favor, selecione uma opção.');
     }
   }
 

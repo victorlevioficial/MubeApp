@@ -28,6 +28,9 @@ class AppTypography {
       GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600);
 
   // Body
+  static TextStyle get bodyLarge =>
+      GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500);
+
   static TextStyle get bodyMedium =>
       GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500);
 

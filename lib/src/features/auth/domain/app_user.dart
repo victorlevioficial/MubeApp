@@ -1,4 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import '../../settings/domain/saved_address.dart';
 import 'user_type.dart';
 
 part 'app_user.freezed.dart';
@@ -53,8 +55,11 @@ abstract class AppUser with _$AppUser {
     /// Short biography.
     String? bio,
 
-    /// Location data: cidade, estado, lat, long.
+    /// Location data: cidade, estado, lat, long. (Legacy - kept for backward compatibility)
     Map<String, dynamic>? location,
+
+    /// List of saved addresses (up to 5). One should be marked as primary.
+    @Default([]) List<SavedAddress> addresses,
 
     /// Professional-specific data (musicians, DJs, crew).
     @JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,
@@ -86,4 +91,14 @@ abstract class AppUser with _$AppUser {
 
   /// Whether the user needs to complete their profile form.
   bool get isPerfilPendente => cadastroStatus == 'perfil_pendente';
+
+  /// Converts to Firestore-compatible Map, properly serializing addresses.
+  Map<String, dynamic> toFirestore() {
+    final json = toJson();
+    // Convert SavedAddress objects to Maps for Firestore
+    if (addresses.isNotEmpty) {
+      json['addresses'] = addresses.map((a) => a.toJson()).toList();
+    }
+    return json;
+  }
 }

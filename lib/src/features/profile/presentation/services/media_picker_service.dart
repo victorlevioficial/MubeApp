@@ -4,6 +4,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:video_compress/video_compress.dart';
+import '../../../../common_widgets/app_snackbar.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 
 /// Service for picking, cropping and compressing media files.
@@ -73,13 +74,9 @@ class MediaPickerService {
     if (durationSeconds > maxVideoDurationSeconds) {
       // Duration exceeds limit - show error
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Vídeo muito longo! Máximo de $maxVideoDurationSeconds segundos.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.error(
+          context,
+          'Vídeo muito longo! Máximo de $maxVideoDurationSeconds segundos.',
         );
       }
       return null;

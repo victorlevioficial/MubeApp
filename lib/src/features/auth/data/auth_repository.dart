@@ -97,7 +97,7 @@ class AuthRepository {
     await _firestore
         .collection('users')
         .doc(user.uid)
-        .set(user.toJson(), SetOptions(merge: true));
+        .set(user.toFirestore(), SetOptions(merge: true));
   }
 
   /// Deletes the user account permanently.

@@ -199,7 +199,7 @@ class SearchFiltersNotifier extends _$SearchFiltersNotifier {
 /// Provides search results based on current filters.
 @riverpod
 Future<List<AppUser>> searchResults(Ref ref) async {
-  final filters = ref.watch(searchFiltersNotifierProvider);
+  final filters = ref.watch(searchFiltersProvider);
   final repository = ref.watch(searchRepositoryProvider);
 
   // Don't search if no filters active

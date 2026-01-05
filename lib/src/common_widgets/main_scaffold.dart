@@ -33,6 +33,11 @@ class MainScaffold extends StatelessWidget {
             selectedIcon: Icon(Icons.person),
             label: 'Perfil',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Config',
+          ),
         ],
       ),
     );
