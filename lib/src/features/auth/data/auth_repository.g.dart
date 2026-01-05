@@ -8,13 +8,17 @@ part of 'auth_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Provides a singleton [AuthRepository] instance.
 
 @ProviderFor(authRepository)
 const authRepositoryProvider = AuthRepositoryProvider._();
 
+/// Provides a singleton [AuthRepository] instance.
+
 final class AuthRepositoryProvider
     extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
     with $Provider<AuthRepository> {
+  /// Provides a singleton [AuthRepository] instance.
   const AuthRepositoryProvider._()
     : super(
         from: null,
@@ -50,12 +54,17 @@ final class AuthRepositoryProvider
 
 String _$authRepositoryHash() => r'51a78addf747af9435875852da980da4ae23e96f';
 
+/// Stream provider for Firebase Auth state changes.
+
 @ProviderFor(authStateChanges)
 const authStateChangesProvider = AuthStateChangesProvider._();
+
+/// Stream provider for Firebase Auth state changes.
 
 final class AuthStateChangesProvider
     extends $FunctionalProvider<AsyncValue<User?>, User?, Stream<User?>>
     with $FutureModifier<User?>, $StreamProvider<User?> {
+  /// Stream provider for Firebase Auth state changes.
   const AuthStateChangesProvider._()
     : super(
         from: null,
@@ -83,13 +92,24 @@ final class AuthStateChangesProvider
 
 String _$authStateChangesHash() => r'346b4034b145750aef0a6f0135919eb8e0c35d34';
 
+/// Stream provider for the current user's profile data from Firestore.
+///
+/// Returns `null` if the user is not authenticated or profile doesn't exist.
+
 @ProviderFor(currentUserProfile)
 const currentUserProfileProvider = CurrentUserProfileProvider._();
+
+/// Stream provider for the current user's profile data from Firestore.
+///
+/// Returns `null` if the user is not authenticated or profile doesn't exist.
 
 final class CurrentUserProfileProvider
     extends
         $FunctionalProvider<AsyncValue<AppUser?>, AppUser?, Stream<AppUser?>>
     with $FutureModifier<AppUser?>, $StreamProvider<AppUser?> {
+  /// Stream provider for the current user's profile data from Firestore.
+  ///
+  /// Returns `null` if the user is not authenticated or profile doesn't exist.
   const CurrentUserProfileProvider._()
     : super(
         from: null,

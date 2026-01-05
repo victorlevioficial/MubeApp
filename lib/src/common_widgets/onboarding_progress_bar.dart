@@ -37,7 +37,7 @@ class OnboardingProgressBar extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Etapa $currentStep de $totalSteps',
-          style: TextStyle(
+          style: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 10,
             fontWeight: FontWeight.w400,

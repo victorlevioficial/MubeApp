@@ -46,4 +46,69 @@ class StorageRepository {
       // Ignore if not found or already deleted
     }
   }
+
+  /// Uploads a gallery media file (photo or video).
+  /// Returns the download URL.
+  Future<String> uploadGalleryMedia({
+    required String userId,
+    required File file,
+    required String mediaId,
+    required bool isVideo,
+  }) async {
+    try {
+      final folder = isVideo ? 'gallery_videos' : 'gallery_photos';
+      final ext = isVideo ? 'mp4' : 'jpg';
+      final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
+
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask;
+
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception('Erro ao fazer upload da mídia: $e');
+    }
+  }
+
+  /// Uploads a video thumbnail.
+  Future<String> uploadVideoThumbnail({
+    required String userId,
+    required String mediaId,
+    required File thumbnail,
+  }) async {
+    try {
+      final ref = _storage.ref().child(
+        'gallery_thumbnails/$userId/$mediaId.jpg',
+      );
+
+      final uploadTask = ref.putFile(thumbnail);
+      final snapshot = await uploadTask;
+
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception('Erro ao fazer upload do thumbnail: $e');
+    }
+  }
+
+  /// Deletes all files for a gallery item.
+  Future<void> deleteGalleryItem({
+    required String userId,
+    required String mediaId,
+    required bool isVideo,
+  }) async {
+    try {
+      final folder = isVideo ? 'gallery_videos' : 'gallery_photos';
+      final ext = isVideo ? 'mp4' : 'jpg';
+      final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
+      await ref.delete();
+
+      if (isVideo) {
+        final thumbRef = _storage.ref().child(
+          'gallery_thumbnails/$userId/$mediaId.jpg',
+        );
+        await thumbRef.delete();
+      }
+    } catch (e) {
+      // Ignore if not found
+    }
+  }
 }

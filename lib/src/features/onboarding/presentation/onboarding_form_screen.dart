@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../../../design_system/foundations/app_typography.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../common_widgets/primary_button.dart';
@@ -339,8 +339,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                         if (_fotoUrl == null)
                           Text(
                             'Toque para enviar (Opcional)',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
+                            style: AppTypography.bodySmall.copyWith(
                               color: Theme.of(context).colorScheme.error,
                             ),
                           ),

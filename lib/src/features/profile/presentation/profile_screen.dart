@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../../common_widgets/app_shimmer.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
@@ -158,7 +159,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ProfileCardSkeleton(),
         error: (err, stack) => Center(child: Text('Erro: $err')),
       ),
     );

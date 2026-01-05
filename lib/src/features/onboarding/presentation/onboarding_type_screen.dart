@@ -98,7 +98,6 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(
-                            fontSize: 28,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),

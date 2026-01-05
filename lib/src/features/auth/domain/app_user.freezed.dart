@@ -15,16 +15,20 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppUser {
 
- String get uid; String get email;// Status do Cadastro (Controla o fluxo de Onboarding)
-// Valores: 'tipo_pendente', 'perfil_pendente', 'concluido'
-@JsonKey(name: 'cadastro_status') String get cadastroStatus;// Tipo de Perfil (Só preenchido após seleção)
-@JsonKey(name: 'tipo_perfil') AppUserType? get tipoPerfil;// Status do Perfil (Visibilidade)
- String get status;// Dados Comuns / Específicos Mapeados
- String? get nome; String? get foto; String? get bio;// Localização (Obrigatório para todos)
-// Armazenado como Map: { 'cidade': '...', 'estado': '...', 'lat': 0.0, 'long': 0.0 }
- Map<String, dynamic>? get location;// Dados Específicos (achatados ou em maps, conforme Spec diz "Maps Tipados" no security rules)
-// Para simplificar e manter compatibilidade com Security Rules:
-@JsonKey(name: 'profissional') Map<String, dynamic>? get dadosProfissional;@JsonKey(name: 'banda') Map<String, dynamic>? get dadosBanda;@JsonKey(name: 'estudio') Map<String, dynamic>? get dadosEstudio;@JsonKey(name: 'contratante') Map<String, dynamic>? get dadosContratante;// Metadata
+/// Unique identifier (matches Firebase Auth UID).
+ String get uid;/// User's email address.
+ String get email;/// Registration status: 'tipo_pendente', 'perfil_pendente', or 'concluido'.
+@JsonKey(name: 'cadastro_status') String get cadastroStatus;/// Profile type, set after initial type selection.
+@JsonKey(name: 'tipo_perfil') AppUserType? get tipoPerfil;/// Account visibility status: 'ativo', 'inativo', 'suspenso'.
+ String get status;/// User's display name.
+ String? get nome;/// Profile photo URL.
+ String? get foto;/// Short biography.
+ String? get bio;/// Location data: cidade, estado, lat, long.
+ Map<String, dynamic>? get location;/// Professional-specific data (musicians, DJs, crew).
+@JsonKey(name: 'profissional') Map<String, dynamic>? get dadosProfissional;/// Band-specific data (musical groups).
+@JsonKey(name: 'banda') Map<String, dynamic>? get dadosBanda;/// Studio-specific data (recording studios).
+@JsonKey(name: 'estudio') Map<String, dynamic>? get dadosEstudio;/// Contractor-specific data (venues, organizers).
+@JsonKey(name: 'contratante') Map<String, dynamic>? get dadosContratante;/// Document creation timestamp.
 @JsonKey(name: 'created_at') dynamic get createdAt;
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
@@ -235,24 +239,25 @@ class _AppUser extends AppUser {
   const _AppUser({required this.uid, required this.email, @JsonKey(name: 'cadastro_status') this.cadastroStatus = 'tipo_pendente', @JsonKey(name: 'tipo_perfil') this.tipoPerfil, this.status = 'ativo', this.nome, this.foto, this.bio, final  Map<String, dynamic>? location, @JsonKey(name: 'profissional') final  Map<String, dynamic>? dadosProfissional, @JsonKey(name: 'banda') final  Map<String, dynamic>? dadosBanda, @JsonKey(name: 'estudio') final  Map<String, dynamic>? dadosEstudio, @JsonKey(name: 'contratante') final  Map<String, dynamic>? dadosContratante, @JsonKey(name: 'created_at') this.createdAt}): _location = location,_dadosProfissional = dadosProfissional,_dadosBanda = dadosBanda,_dadosEstudio = dadosEstudio,_dadosContratante = dadosContratante,super._();
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 
+/// Unique identifier (matches Firebase Auth UID).
 @override final  String uid;
+/// User's email address.
 @override final  String email;
-// Status do Cadastro (Controla o fluxo de Onboarding)
-// Valores: 'tipo_pendente', 'perfil_pendente', 'concluido'
+/// Registration status: 'tipo_pendente', 'perfil_pendente', or 'concluido'.
 @override@JsonKey(name: 'cadastro_status') final  String cadastroStatus;
-// Tipo de Perfil (Só preenchido após seleção)
+/// Profile type, set after initial type selection.
 @override@JsonKey(name: 'tipo_perfil') final  AppUserType? tipoPerfil;
-// Status do Perfil (Visibilidade)
+/// Account visibility status: 'ativo', 'inativo', 'suspenso'.
 @override@JsonKey() final  String status;
-// Dados Comuns / Específicos Mapeados
+/// User's display name.
 @override final  String? nome;
+/// Profile photo URL.
 @override final  String? foto;
+/// Short biography.
 @override final  String? bio;
-// Localização (Obrigatório para todos)
-// Armazenado como Map: { 'cidade': '...', 'estado': '...', 'lat': 0.0, 'long': 0.0 }
+/// Location data: cidade, estado, lat, long.
  final  Map<String, dynamic>? _location;
-// Localização (Obrigatório para todos)
-// Armazenado como Map: { 'cidade': '...', 'estado': '...', 'lat': 0.0, 'long': 0.0 }
+/// Location data: cidade, estado, lat, long.
 @override Map<String, dynamic>? get location {
   final value = _location;
   if (value == null) return null;
@@ -261,11 +266,9 @@ class _AppUser extends AppUser {
   return EqualUnmodifiableMapView(value);
 }
 
-// Dados Específicos (achatados ou em maps, conforme Spec diz "Maps Tipados" no security rules)
-// Para simplificar e manter compatibilidade com Security Rules:
+/// Professional-specific data (musicians, DJs, crew).
  final  Map<String, dynamic>? _dadosProfissional;
-// Dados Específicos (achatados ou em maps, conforme Spec diz "Maps Tipados" no security rules)
-// Para simplificar e manter compatibilidade com Security Rules:
+/// Professional-specific data (musicians, DJs, crew).
 @override@JsonKey(name: 'profissional') Map<String, dynamic>? get dadosProfissional {
   final value = _dadosProfissional;
   if (value == null) return null;
@@ -274,7 +277,9 @@ class _AppUser extends AppUser {
   return EqualUnmodifiableMapView(value);
 }
 
+/// Band-specific data (musical groups).
  final  Map<String, dynamic>? _dadosBanda;
+/// Band-specific data (musical groups).
 @override@JsonKey(name: 'banda') Map<String, dynamic>? get dadosBanda {
   final value = _dadosBanda;
   if (value == null) return null;
@@ -283,7 +288,9 @@ class _AppUser extends AppUser {
   return EqualUnmodifiableMapView(value);
 }
 
+/// Studio-specific data (recording studios).
  final  Map<String, dynamic>? _dadosEstudio;
+/// Studio-specific data (recording studios).
 @override@JsonKey(name: 'estudio') Map<String, dynamic>? get dadosEstudio {
   final value = _dadosEstudio;
   if (value == null) return null;
@@ -292,7 +299,9 @@ class _AppUser extends AppUser {
   return EqualUnmodifiableMapView(value);
 }
 
+/// Contractor-specific data (venues, organizers).
  final  Map<String, dynamic>? _dadosContratante;
+/// Contractor-specific data (venues, organizers).
 @override@JsonKey(name: 'contratante') Map<String, dynamic>? get dadosContratante {
   final value = _dadosContratante;
   if (value == null) return null;
@@ -301,7 +310,7 @@ class _AppUser extends AppUser {
   return EqualUnmodifiableMapView(value);
 }
 
-// Metadata
+/// Document creation timestamp.
 @override@JsonKey(name: 'created_at') final  dynamic createdAt;
 
 /// Create a copy of AppUser

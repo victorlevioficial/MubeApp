@@ -445,10 +445,9 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Ajustar no mapa',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: AppTypography.bodySmall.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -508,7 +507,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
               },
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.s24),
         ],
       ],
     );

@@ -4,51 +4,86 @@ import 'user_type.dart';
 part 'app_user.freezed.dart';
 part 'app_user.g.dart';
 
+/// Represents a user in the MubeApp system.
+///
+/// This model maps to the Firestore `users` collection document.
+/// It contains both common fields and type-specific data stored in nested maps.
+///
+/// ## Registration Flow
+/// Users progress through these statuses:
+/// 1. `tipo_pendente` - Just registered, needs to select profile type
+/// 2. `perfil_pendente` - Type selected, needs to complete profile
+/// 3. `concluido` - Registration complete
+///
+/// ## Profile Types
+/// - [AppUserType.professional] - Musicians, singers, DJs, crew
+/// - [AppUserType.band] - Musical groups
+/// - [AppUserType.studio] - Recording studios
+/// - [AppUserType.contractor] - Event organizers, venues
+///
+/// See also:
+/// - [AppUserType] for profile type enum
+/// - [AuthRepository] for data operations
 @freezed
 abstract class AppUser with _$AppUser {
   const factory AppUser({
+    /// Unique identifier (matches Firebase Auth UID).
     required String uid,
+
+    /// User's email address.
     required String email,
 
-    // Status do Cadastro (Controla o fluxo de Onboarding)
-    // Valores: 'tipo_pendente', 'perfil_pendente', 'concluido'
+    /// Registration status: 'tipo_pendente', 'perfil_pendente', or 'concluido'.
     @Default('tipo_pendente')
     @JsonKey(name: 'cadastro_status')
     String cadastroStatus,
 
-    // Tipo de Perfil (Só preenchido após seleção)
+    /// Profile type, set after initial type selection.
     @JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil,
 
-    // Status do Perfil (Visibilidade)
+    /// Account visibility status: 'ativo', 'inativo', 'suspenso'.
     @Default('ativo') String status,
 
-    // Dados Comuns / Específicos Mapeados
+    /// User's display name.
     String? nome,
+
+    /// Profile photo URL.
     String? foto,
+
+    /// Short biography.
     String? bio,
 
-    // Localização (Obrigatório para todos)
-    // Armazenado como Map: { 'cidade': '...', 'estado': '...', 'lat': 0.0, 'long': 0.0 }
+    /// Location data: cidade, estado, lat, long.
     Map<String, dynamic>? location,
 
-    // Dados Específicos (achatados ou em maps, conforme Spec diz "Maps Tipados" no security rules)
-    // Para simplificar e manter compatibilidade com Security Rules:
+    /// Professional-specific data (musicians, DJs, crew).
     @JsonKey(name: 'profissional') Map<String, dynamic>? dadosProfissional,
+
+    /// Band-specific data (musical groups).
     @JsonKey(name: 'banda') Map<String, dynamic>? dadosBanda,
+
+    /// Studio-specific data (recording studios).
     @JsonKey(name: 'estudio') Map<String, dynamic>? dadosEstudio,
+
+    /// Contractor-specific data (venues, organizers).
     @JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,
 
-    // Metadata
-    @JsonKey(name: 'created_at') dynamic createdAt, // Timestamp
+    /// Document creation timestamp.
+    @JsonKey(name: 'created_at') dynamic createdAt,
   }) = _AppUser;
 
+  /// Creates an [AppUser] from a Firestore document JSON.
   factory AppUser.fromJson(Map<String, dynamic> json) =>
       _$AppUserFromJson(json);
 
   const AppUser._();
 
-  // Helper para Router
+  /// Whether the user still needs to select a profile type.
   bool get isCadastroConcluido => cadastroStatus == 'concluido';
+
+  /// Whether the user has completed the type selection.
   bool get isTipoPendente => cadastroStatus == 'tipo_pendente';
+
+  /// Whether the user needs to complete their profile form.
   bool get isPerfilPendente => cadastroStatus == 'perfil_pendente';
 }
