@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../../common_widgets/app_date_picker_field.dart';
 import '../../../common_widgets/app_dropdown_field.dart';
 import '../../../common_widgets/app_filter_chip.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/onboarding_progress_bar.dart';
+import '../../../common_widgets/or_divider.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../common_widgets/secondary_button.dart';
 import '../../../common_widgets/social_login_button.dart';
@@ -12,7 +14,6 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_radius.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
-import '../../../common_widgets/or_divider.dart';
 
 class DesignSystemGalleryScreen extends StatefulWidget {
   const DesignSystemGalleryScreen({super.key});

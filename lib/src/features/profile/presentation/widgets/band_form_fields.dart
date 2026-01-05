@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
+
 import '../../../../common_widgets/app_filter_chip.dart';
+import '../../../../common_widgets/app_selection_modal.dart';
 import '../../../../common_widgets/secondary_button.dart';
+import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
-import '../../../../constants/app_constants.dart';
 
 class BandFormFields extends StatefulWidget {
   final List<String> selectedGenres;

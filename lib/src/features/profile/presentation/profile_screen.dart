@@ -1,16 +1,17 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../../common_widgets/user_avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
-import '../../auth/data/auth_repository.dart';
-import '../../auth/domain/app_user.dart';
-import '../../auth/domain/user_type.dart';
+
 import '../../../common_widgets/app_shimmer.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/app_user.dart';
+import '../../auth/domain/user_type.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -32,7 +33,6 @@ class ProfileScreen extends ConsumerWidget {
             precacheImage(CachedNetworkImageProvider(user.foto!), context);
           }
 
-          // Extract Data safely
           // Helper to format categories
           String formatCategory(String cat) {
             switch (cat) {
@@ -66,7 +66,11 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       const SizedBox(height: AppSpacing.s32),
-                      _buildAvatarImage(user.foto),
+                      UserAvatar(
+                        size: 100,
+                        photoUrl: user.foto,
+                        name: _getDisplayName(user),
+                      ),
                       const SizedBox(height: AppSpacing.s12),
                       Text(
                         _getDisplayName(user),
@@ -136,7 +140,6 @@ class ProfileScreen extends ConsumerWidget {
                   onPressed: () => context.go('/profile/edit'),
                 ),
                 const SizedBox(height: AppSpacing.s48),
-                // Add padding for bottom nav bar
                 const SizedBox(height: 40),
                 Align(
                   child: IconButton(
@@ -260,7 +263,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               backgroundColor: AppColors.surface,
-              side: BorderSide(color: AppColors.surfaceHighlight),
+              side: const BorderSide(color: AppColors.surfaceHighlight),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -269,43 +272,6 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.s24),
       ],
-    );
-  }
-
-  Widget _buildAvatarImage(String? photoUrl) {
-    if (photoUrl == null || photoUrl.isEmpty) {
-      return const CircleAvatar(
-        radius: 50,
-        backgroundColor: AppColors.surface,
-        child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
-      );
-    }
-
-    return ClipOval(
-      child: SizedBox(
-        width: 100,
-        height: 100,
-        child: CachedNetworkImage(
-          imageUrl: photoUrl,
-          fit: BoxFit.cover,
-          memCacheHeight: 200,
-          memCacheWidth: 200,
-          fadeInDuration: const Duration(milliseconds: 150),
-          placeholder: (_, __) => Shimmer.fromColors(
-            baseColor: AppColors.surface,
-            highlightColor: AppColors.surface.withOpacity(0.5),
-            child: Container(color: AppColors.surface),
-          ),
-          errorWidget: (_, __, ___) => Container(
-            color: AppColors.surface,
-            child: const Icon(
-              Icons.person,
-              size: 50,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

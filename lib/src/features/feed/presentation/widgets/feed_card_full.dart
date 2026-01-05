@@ -35,12 +35,7 @@ class FeedCardFull extends StatelessWidget {
         child: Row(
           children: [
             // Avatar
-            UserAvatar(
-              photoUrl: item.foto,
-              name: item.displayName,
-              size: 80,
-              borderRadius: 12,
-            ),
+            UserAvatar(photoUrl: item.foto, name: item.displayName, size: 80),
             const SizedBox(width: AppSpacing.s12),
             // Info
             Expanded(

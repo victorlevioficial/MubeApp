@@ -1,6 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../design_system/foundations/app_colors.dart';
@@ -172,17 +172,24 @@ class _FilledSlot extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
+                color: AppColors.background.withOpacity(0.7),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.play_arrow, color: Colors.white, size: 14),
+                  Icon(
+                    Icons.play_arrow,
+                    color: AppColors.textPrimary,
+                    size: 14,
+                  ),
                   SizedBox(width: 2),
                   Text(
                     'Vídeo',
-                    style: TextStyle(color: Colors.white, fontSize: 10),
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -199,10 +206,14 @@ class _FilledSlot extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
+                color: AppColors.background.withOpacity(0.6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, color: Colors.white, size: 16),
+              child: const Icon(
+                Icons.close,
+                color: AppColors.textPrimary,
+                size: 16,
+              ),
             ),
           ),
         ),
@@ -289,15 +300,18 @@ class _EmptySlot extends StatelessWidget {
                   },
                 )
               else
-                ListTile(
-                  leading: Icon(Icons.videocam, color: Colors.grey.shade600),
+                const ListTile(
+                  leading: Icon(
+                    Icons.videocam,
+                    color: AppColors.textSecondary,
+                  ),
                   title: Text(
                     'Vídeo',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                   subtitle: Text(
                     'Limite de vídeos atingido',
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ),
             ],
@@ -331,7 +345,11 @@ class _UploadingSlot extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 28),
+          const Icon(
+            Icons.cloud_upload_outlined,
+            color: AppColors.primary,
+            size: 28,
+          ),
           const SizedBox(height: 8),
           // Progress bar
           ClipRRect(

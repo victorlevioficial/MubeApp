@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../common_widgets/app_filter_chip.dart';
 import '../../../../common_widgets/app_selection_modal.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/app_snackbar.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../common_widgets/onboarding_header.dart';
 import '../../../../common_widgets/onboarding_section_card.dart';
 import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
+import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
-
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
-import '../steps/onboarding_address_step.dart';
 import '../onboarding_form_provider.dart';
+import '../steps/onboarding_address_step.dart';
 
 class OnboardingStudioFlow extends ConsumerStatefulWidget {
   final AppUser user;
@@ -130,7 +128,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
 
   void _finishOnboarding() {
     // Prepare Data
-    Map<String, dynamic> studioData = {
+    final Map<String, dynamic> studioData = {
       'nomeArtistico': _nomeController.text, // Studio Name
       'celular': _celularController.text,
       'studioType': _studioType,

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/domain/user_type.dart';
-import '../data/search_repository.dart';
-import 'widgets/user_card.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../auth/domain/user_type.dart';
+import '../data/search_repository.dart';
+import 'widgets/user_card.dart';
 
 /// Main search screen with text input and filterable results.
 class SearchScreen extends ConsumerStatefulWidget {

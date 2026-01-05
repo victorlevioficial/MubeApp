@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/feed_item.dart';
+import '../domain/paginated_feed_response.dart';
 
 /// Provider for FeedRepository
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {
@@ -24,32 +25,14 @@ class FeedRepository {
     required String currentUserId,
     int limit = 10,
   }) async {
-    print('DEBUG: getNearbyUsers called');
-    print(
-      'DEBUG: Params - lat: $lat, long: $long, radius: $radiusKm, user: $currentUserId',
-    );
-
     try {
-      // DEBUG: Check if any users exist at all and dump them to console
-      // This helps verify if 'cadastro_status' or 'tipoPerfil' match what we expect
-      final debugSnapshot = await _firestore.collection('users').limit(5).get();
-      print('DEBUG: RAW SAMPLE of ${debugSnapshot.docs.length} users from DB:');
-      for (var d in debugSnapshot.docs) {
-        print(
-          'DEBUG: User ${d.id} -> cadastro_status: "${d.data()['cadastro_status']}", tipoPerfil: "${d.data()['tipoPerfil']}", nome: "${d.data()['nome']}"',
-        );
-      }
-
       final query = _firestore
           .collection('users')
           .where('cadastro_status', isEqualTo: 'concluido')
           .where('tipo_perfil', whereIn: ['profissional', 'banda', 'estudio'])
           .limit(limit * 2);
 
-      print('DEBUG: Executing getNearbyUsers Firestore query...');
       final snapshot = await query.get();
-      print('DEBUG: Snapshot received. Docs count: ${snapshot.docs.length}');
-
       final items = <FeedItem>[];
 
       for (final doc in snapshot.docs) {
@@ -61,45 +44,25 @@ class FeedRepository {
 
           if (item.location != null) {
             final itemLat = item.location!['lat'] as double?;
-            final itemLong = item.location!['long'] as double?;
+            final itemLng = item.location!['lng'] as double?;
 
-            if (itemLat != null && itemLong != null) {
-              item.distanceKm = _calculateDistance(
-                lat,
-                long,
-                itemLat,
-                itemLong,
-              );
-              print(
-                'DEBUG: Item ${item.displayName} distance: ${item.distanceKm?.toStringAsFixed(2)} km',
-              );
-
+            if (itemLat != null && itemLng != null) {
+              item.distanceKm = _calculateDistance(lat, long, itemLat, itemLng);
               if (item.distanceKm! <= radiusKm) {
                 items.add(item);
-              } else {
-                print(
-                  'DEBUG: Filtered out ${item.displayName} (distance > radius)',
-                );
               }
             }
-          } else {
-            print('DEBUG: Filtered out ${item.displayName} (no location)');
           }
-        } catch (e) {
-          print('DEBUG: Error parsing item ${doc.id}: $e');
+        } catch (_) {
+          // Skip invalid items
         }
       }
 
       items.sort(
         (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
       );
-
-      print(
-        'DEBUG: Returning ${items.take(limit).length} items from getNearbyUsers',
-      );
       return items.take(limit).toList();
-    } catch (e) {
-      print('DEBUG: Error in getNearbyUsers query: $e');
+    } catch (_) {
       rethrow;
     }
   }
@@ -113,7 +76,6 @@ class FeedRepository {
     int limit = 10,
     DocumentSnapshot? startAfter,
   }) async {
-    print('DEBUG: getUsersByType called for $type');
     try {
       var query = _firestore
           .collection('users')
@@ -125,13 +87,48 @@ class FeedRepository {
         query = query.startAfterDocument(startAfter);
       }
 
-      print('DEBUG: Executing getUsersByType query...');
       final snapshot = await query.get();
-      print('DEBUG: getUsersByType result: ${snapshot.docs.length} docs');
-
       return _processSnapshot(snapshot, currentUserId, userLat, userLong);
-    } catch (e) {
-      print('DEBUG: Error in getUsersByType: $e');
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  /// Fetches users by profile type with pagination support.
+  /// Returns a [PaginatedFeedResponse] with items and cursor for next page.
+  Future<PaginatedFeedResponse> getUsersByTypePaginated({
+    required String type,
+    required String currentUserId,
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      var query = _firestore
+          .collection('users')
+          .where('cadastro_status', isEqualTo: 'concluido')
+          .where('tipo_perfil', isEqualTo: type)
+          .limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+      final items = _processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
+      );
+
+      return PaginatedFeedResponse(
+        items: items,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        hasMore: snapshot.docs.length >= limit,
+      );
+    } catch (_) {
       rethrow;
     }
   }
@@ -145,7 +142,6 @@ class FeedRepository {
     int limit = 10,
     DocumentSnapshot? startAfter,
   }) async {
-    print('DEBUG: getUsersByCategory called for $category');
     try {
       var query = _firestore
           .collection('users')
@@ -159,11 +155,8 @@ class FeedRepository {
       }
 
       final snapshot = await query.get();
-      print('DEBUG: getUsersByCategory result: ${snapshot.docs.length} docs');
-
       return _processSnapshot(snapshot, currentUserId, userLat, userLong);
-    } catch (e) {
-      print('DEBUG: Error in getUsersByCategory: $e');
+    } catch (_) {
       rethrow;
     }
   }
@@ -175,7 +168,6 @@ class FeedRepository {
     double? userLong,
     int limit = 10,
   }) async {
-    print('DEBUG: getArtists called');
     try {
       final query = _firestore
           .collection('users')
@@ -184,8 +176,6 @@ class FeedRepository {
           .limit(limit * 2);
 
       final snapshot = await query.get();
-      print('DEBUG: getArtists query result: ${snapshot.docs.length} docs');
-
       final items = _processSnapshot(
         snapshot,
         currentUserId,
@@ -194,15 +184,11 @@ class FeedRepository {
       );
 
       // Filter out technical crew
-      final filtered = items
+      return items
           .where((item) => item.categoria != 'Equipe Técnica')
           .take(limit)
           .toList();
-
-      print('DEBUG: getArtists filtered result: ${filtered.length} items');
-      return filtered;
-    } catch (e) {
-      print('DEBUG: Error in getArtists: $e');
+    } catch (_) {
       rethrow;
     }
   }
@@ -299,14 +285,14 @@ class FeedRepository {
       // Calculate distance if we have user location
       if (userLat != null && userLong != null && item.location != null) {
         final itemLat = item.location!['lat'] as double?;
-        final itemLong = item.location!['long'] as double?;
+        final itemLng = item.location!['lng'] as double?;
 
-        if (itemLat != null && itemLong != null) {
+        if (itemLat != null && itemLng != null) {
           item.distanceKm = _calculateDistance(
             userLat,
             userLong,
             itemLat,
-            itemLong,
+            itemLng,
           );
         }
       }
@@ -399,5 +385,125 @@ class FeedRepository {
     }
 
     return report.toString();
+  }
+
+  /// ONE-TIME MIGRATION: Rename 'long' to 'lng' in all user location fields.
+  /// This should be called once to fix existing data to the new standard.
+  Future<String> migrateLocationLongToLng() async {
+    final report = StringBuffer();
+    report.writeln('=== MIGRAÇÃO: long -> lng ===');
+
+    int updated = 0;
+    int skipped = 0;
+
+    try {
+      final snapshot = await _firestore.collection('users').get();
+      report.writeln('Total de usuários: ${snapshot.docs.length}');
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final location = data['location'] as Map<String, dynamic>?;
+
+        if (location != null &&
+            location['long'] != null &&
+            location['lng'] == null) {
+          // Create new location map with 'lng' instead of 'long'
+          final newLocation = Map<String, dynamic>.from(location);
+          newLocation['lng'] = newLocation['long'];
+          newLocation.remove('long');
+
+          await _firestore.collection('users').doc(doc.id).update({
+            'location': newLocation,
+          });
+
+          report.writeln('✅ Atualizado: ${doc.id.substring(0, 8)}...');
+          updated++;
+        } else {
+          skipped++;
+        }
+      }
+
+      report.writeln('');
+      report.writeln('Migração concluída!');
+      report.writeln('Atualizados: $updated');
+      report.writeln('Ignorados: $skipped');
+    } catch (e) {
+      report.writeln('❌ ERRO: $e');
+    }
+
+    return report.toString();
+  }
+
+  /// Fetches the main feed with optional filtering and pagination.
+  ///
+  /// [filterType]: Optional. If provided, filters by 'tipo_perfil' (e.g., 'profissional', 'banda', 'estudio').
+  /// If null, returns all valid profile types.
+  Future<PaginatedFeedResponse> getMainFeedPaginated({
+    required String currentUserId,
+    String? filterType,
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      var query = _firestore
+          .collection('users')
+          .where('cadastro_status', isEqualTo: 'concluido');
+
+      // Apply filter if selected, otherwise fetch all relevant types
+      if (filterType != null && filterType.isNotEmpty) {
+        if (filterType == 'Perto de mim' &&
+            userLat != null &&
+            userLong != null) {
+          // Geo-query simulation: fetch larger batch and filter locally or use geohash
+          // For MVP without Geofire: fetch all valid types and sort by distance locally (heavy)
+          // OR: Just return 'profissional' sorted by created_at for now as per plan
+          query = query.where(
+            'tipo_perfil',
+            whereIn: ['profissional', 'banda', 'estudio'],
+          );
+        } else {
+          query = query.where('tipo_perfil', isEqualTo: filterType);
+        }
+      } else {
+        query = query.where(
+          'tipo_perfil',
+          whereIn: ['profissional', 'banda', 'estudio'],
+        );
+      }
+
+      // Order by generic field (e.g. created_at)
+      // Note: This requires an index compound with filters.
+      // For now, let's rely on default ordering or add simplistic ordering if index exists.
+      // query = query.orderBy('created_at', descending: true);
+
+      query = query.limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+      var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+
+      // Post-processing for "Perto de mim" specific filter
+      if (filterType == 'Perto de mim' && userLat != null && userLong != null) {
+        items = items
+            .where((i) => i.distanceKm != null && i.distanceKm! <= 50)
+            .toList();
+        items.sort(
+          (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+        );
+      }
+
+      return PaginatedFeedResponse(
+        items: items,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+        hasMore: snapshot.docs.length >= limit,
+      );
+    } catch (_) {
+      rethrow;
+    }
   }
 }

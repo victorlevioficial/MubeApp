@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../../../common_widgets/app_filter_chip.dart';
+import '../../../../common_widgets/app_checkbox.dart';
 import '../../../../common_widgets/app_date_picker_field.dart';
 import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../common_widgets/app_snackbar.dart';
+import '../../../../common_widgets/app_filter_chip.dart';
 import '../../../../common_widgets/app_selection_modal.dart';
+import '../../../../common_widgets/app_snackbar.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../common_widgets/onboarding_header.dart';
 import '../../../../common_widgets/onboarding_section_card.dart';
 import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
-import '../../../../common_widgets/app_checkbox.dart';
+import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_radius.dart';
@@ -22,8 +22,8 @@ import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
-import '../steps/onboarding_address_step.dart';
 import '../onboarding_form_provider.dart';
+import '../steps/onboarding_address_step.dart';
 
 class OnboardingProfessionalFlow extends ConsumerStatefulWidget {
   final AppUser user;
@@ -207,7 +207,7 @@ class _OnboardingProfessionalFlowState
 
   void _finishOnboarding() {
     // Prepare Data based on selections
-    Map<String, dynamic> professionalData = {
+    final Map<String, dynamic> professionalData = {
       'nomeArtistico': _nomeArtisticoController.text,
       'celular': _celularController.text,
       'dataNascimento': _dataNascimentoController.text,
@@ -488,12 +488,14 @@ class _OnboardingProfessionalFlowState
 
     // 3. If 'instrumentalist', must select at least one instrument
     if (_selectedCategories.contains('instrumentalist') &&
-        _selectedInstruments.isEmpty)
+        _selectedInstruments.isEmpty) {
       return false;
+    }
 
     // 4. If 'crew', must select at least one role
-    if (_selectedCategories.contains('crew') && _selectedRoles.isEmpty)
+    if (_selectedCategories.contains('crew') && _selectedRoles.isEmpty) {
       return false;
+    }
 
     return true;
   }
@@ -645,12 +647,15 @@ class _OnboardingProfessionalFlowState
 
                 // Update Provider based on which list is being modified
                 final notifier = ref.read(onboardingFormProvider.notifier);
-                if (selected == _selectedGenres)
+                if (selected == _selectedGenres) {
                   notifier.updateSelectedGenres(selected);
-                if (selected == _selectedInstruments)
+                }
+                if (selected == _selectedInstruments) {
                   notifier.updateSelectedInstruments(selected);
-                if (selected == _selectedRoles)
+                }
+                if (selected == _selectedRoles) {
                   notifier.updateSelectedRoles(selected);
+                }
               });
             }
           },
@@ -671,12 +676,15 @@ class _OnboardingProfessionalFlowState
                   setState(() {
                     selected.remove(opt);
                     final notifier = ref.read(onboardingFormProvider.notifier);
-                    if (selected == _selectedGenres)
+                    if (selected == _selectedGenres) {
                       notifier.updateSelectedGenres(selected);
-                    if (selected == _selectedInstruments)
+                    }
+                    if (selected == _selectedInstruments) {
                       notifier.updateSelectedInstruments(selected);
-                    if (selected == _selectedRoles)
+                    }
+                    if (selected == _selectedRoles) {
                       notifier.updateSelectedRoles(selected);
+                    }
                   });
                 },
               );

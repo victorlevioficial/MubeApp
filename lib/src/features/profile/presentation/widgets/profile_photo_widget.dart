@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
+import '../../../../common_widgets/user_avatar.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 
 class ProfilePhotoWidget extends StatelessWidget {
@@ -22,16 +21,23 @@ class ProfilePhotoWidget extends StatelessWidget {
         onTap: onTap,
         child: Stack(
           children: [
-            _buildAvatar(),
+            UserAvatar(
+              size: 100,
+              photoUrl: photoUrl,
+              // Como não temos o nome aqui, usamos uma string vazia para o fallback de ícone
+              name: '',
+            ),
             if (isLoading)
               Positioned.fill(
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: Colors.black45,
+                    color: AppColors.background,
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: CircularProgressIndicator(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ),
@@ -47,50 +53,12 @@ class ProfilePhotoWidget extends StatelessWidget {
                 ),
                 child: const Icon(
                   Icons.camera_alt,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   size: 16,
                 ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar() {
-    if (photoUrl == null || photoUrl!.isEmpty) {
-      return const CircleAvatar(
-        radius: 50,
-        backgroundColor: AppColors.surface,
-        child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
-      );
-    }
-
-    return ClipOval(
-      child: SizedBox(
-        width: 100,
-        height: 100,
-        child: CachedNetworkImage(
-          imageUrl: photoUrl!,
-          fit: BoxFit.cover,
-          memCacheHeight: 200,
-          memCacheWidth: 200,
-          fadeInDuration: const Duration(milliseconds: 150),
-          fadeOutDuration: const Duration(milliseconds: 150),
-          placeholder: (_, __) => Shimmer.fromColors(
-            baseColor: AppColors.surface,
-            highlightColor: AppColors.surface.withOpacity(0.5),
-            child: Container(color: AppColors.surface),
-          ),
-          errorWidget: (_, __, ___) => Container(
-            color: AppColors.surface,
-            child: const Icon(
-              Icons.person,
-              size: 50,
-              color: AppColors.textSecondary,
-            ),
-          ),
         ),
       ),
     );

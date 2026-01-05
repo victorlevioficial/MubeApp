@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import '../../../../common_widgets/app_text_field.dart';
+
 import '../../../../common_widgets/app_date_picker_field.dart';
 import '../../../../common_widgets/app_dropdown_field.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 
 class ContractorFormFields extends StatefulWidget {

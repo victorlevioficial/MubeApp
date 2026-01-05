@@ -24,12 +24,7 @@ class FeedCardCompact extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Avatar with initials fallback
-            UserAvatar(
-              photoUrl: item.foto,
-              name: item.displayName,
-              size: 140,
-              borderRadius: 12,
-            ),
+            UserAvatar(photoUrl: item.foto, name: item.displayName, size: 140),
             const SizedBox(height: AppSpacing.s8),
             // Name
             Text(

@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:image/image.dart' as img;
 
 void main() async {
-  final inputPath = 'assets/images/logos_png/logo_vertical.png';
-  final outputPath = 'assets/images/logos_png/logo_vertical_square.png';
+  const inputPath = 'assets/images/logos_png/logo_vertical.png';
+  const outputPath = 'assets/images/logos_png/logo_vertical_square.png';
 
   print('Reading $inputPath...');
   final bytes = await File(inputPath).readAsBytes();
@@ -23,7 +23,7 @@ void main() async {
       12 ~/
       10; // 20% padding
 
-  print('Creating square canvas: ${size}x${size}');
+  print('Creating square canvas: ${size}x$size');
   final mergedImage = img.Image(width: size, height: size, numChannels: 4);
 
   // Center the image

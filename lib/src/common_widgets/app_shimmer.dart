@@ -25,7 +25,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
@@ -40,7 +40,7 @@ class AppShimmer extends StatelessWidget {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           shape: BoxShape.circle,
         ),
       ),
@@ -59,7 +59,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           borderRadius: BorderRadius.circular(4),
         ),
       ),

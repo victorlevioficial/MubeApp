@@ -1,15 +1,18 @@
 import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../common_widgets/app_text_field.dart';
+
 import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../common_widgets/primary_button.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/location_service.dart';
-import '../onboarding_form_provider.dart';
 import '../../../../common_widgets/or_divider.dart';
+import '../../../../common_widgets/primary_button.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
+import '../onboarding_form_provider.dart';
 
 class OnboardingAddressStep extends ConsumerStatefulWidget {
   final Future<void> Function() onNext;
@@ -148,8 +151,9 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
         });
         _persistAddress(lat: details['lat'], lng: details['lng']);
       } else {
-        if (mounted)
+        if (mounted) {
           AppSnackBar.show(context, 'Erro ao obter detalhes.', isError: true);
+        }
       }
     }
   }
@@ -173,20 +177,22 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           });
           _persistAddress(lat: details['lat'], lng: details['lng']);
         } else {
-          if (mounted)
+          if (mounted) {
             AppSnackBar.show(
               context,
               'Endereço não encontrado.',
               isError: true,
             );
+          }
         }
       } else {
-        if (mounted)
+        if (mounted) {
           AppSnackBar.show(
             context,
             'Não foi possível obter localização.',
             isError: true,
           );
+        }
       }
     } catch (e) {
       if (mounted) AppSnackBar.show(context, 'Erro: $e', isError: true);
@@ -421,10 +427,10 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
             margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: Colors.grey.shade100,
+              color: AppColors.surfaceHighlight,
               image: DecorationImage(
-                image: NetworkImage(
-                  'https://maps.googleapis.com/maps/api/staticmap?center=${_selectedLat ?? -23.55},${_selectedLng ?? -46.63}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C${_selectedLat},${_selectedLng}&key=${LocationService.googleApiKey}',
+                image: CachedNetworkImageProvider(
+                  'https://maps.googleapis.com/maps/api/staticmap?center=${_selectedLat ?? -23.55},${_selectedLng ?? -46.63}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
                 ),
                 fit: BoxFit.cover,
               ),
@@ -442,14 +448,14 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         'Ajustar no mapa',
                         style: AppTypography.bodySmall.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: AppColors.background,
                         ),
                       ),
                     ),

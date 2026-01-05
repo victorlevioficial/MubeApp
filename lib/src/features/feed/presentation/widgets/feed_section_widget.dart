@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../common_widgets/app_shimmer.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
@@ -91,23 +92,13 @@ class FeedSectionWidget extends StatelessWidget {
           margin: const EdgeInsets.only(right: AppSpacing.s12),
           child: Column(
             children: [
-              Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+              // Shimmer image placeholder
+              AppShimmer.box(width: 140, height: 140, borderRadius: 12),
               const SizedBox(height: AppSpacing.s8),
-              Container(
-                width: 80,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+              // Shimmer text placeholder
+              AppShimmer.text(width: 100, height: 14),
+              const SizedBox(height: 4),
+              AppShimmer.text(width: 60, height: 12),
             ],
           ),
         );

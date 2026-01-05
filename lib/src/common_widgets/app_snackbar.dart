@@ -29,8 +29,8 @@ class AppSnackBar {
   // ---------------------------------------------------------------------------
   static const Color _successColor = AppColors.success;
   static const Color _errorColor = AppColors.error;
-  static const Color _infoColor = Color(0xFF2196F3);
-  static const Color _warningColor = Color(0xFFFF9800);
+  static const Color _infoColor = AppColors.info;
+  static const Color _warningColor = AppColors.warning;
 
   // ---------------------------------------------------------------------------
   // Public API - Semantic Methods
@@ -91,7 +91,7 @@ class AppSnackBar {
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),

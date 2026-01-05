@@ -1,39 +1,24 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../design_system/foundations/app_colors.dart';
 import '../design_system/foundations/app_typography.dart';
 
-/// Avatar widget that shows user photo or initials with random color.
+/// Avatar widget that shows user photo or initials with a modern professional design.
+/// Features a thick border and modern pastel colors for initials fallback.
 class UserAvatar extends StatelessWidget {
   final String? photoUrl;
   final String? name;
   final double size;
-  final double? borderRadius;
 
-  const UserAvatar({
-    super.key,
-    this.photoUrl,
-    this.name,
-    this.size = 80,
-    this.borderRadius,
-  });
+  const UserAvatar({super.key, this.photoUrl, this.name, this.size = 80});
 
-  /// List of pleasant background colors for initials avatar.
-  static const List<Color> _avatarColors = [
-    Color(0xFF5C6BC0), // Indigo
-    Color(0xFF26A69A), // Teal
-    Color(0xFF42A5F5), // Blue
-    Color(0xFF66BB6A), // Green
-    Color(0xFFAB47BC), // Purple
-    Color(0xFFEC407A), // Pink
-    Color(0xFFFF7043), // Deep Orange
-    Color(0xFF8D6E63), // Brown
-    Color(0xFF78909C), // Blue Grey
-    Color(0xFFFFCA28), // Amber
-  ];
+  /// List of modern pastel background colors.
+  static const List<Color> _avatarColors = AppColors.avatarColors;
 
   /// Get deterministic color based on name hash.
   Color _getColorForName(String name) {
+    if (name.isEmpty) return AppColors.surfaceHighlight;
     final hash = name.hashCode.abs();
     return _avatarColors[hash % _avatarColors.length];
   }
@@ -49,37 +34,44 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = borderRadius ?? size / 6;
+    const borderWidth = 2.5;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: SizedBox(width: size, height: size, child: _buildContent()),
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.surfaceHighlight,
+          width: borderWidth,
+        ),
+      ),
+      child: ClipOval(
+        child: Container(
+          color: AppColors.surface, // Background for the image area
+          child: _buildContent(),
+        ),
+      ),
     );
   }
 
   Widget _buildContent() {
     // If photo URL exists and is not empty, show image
     if (photoUrl != null && photoUrl!.isNotEmpty) {
-      return Image.network(
-        photoUrl!,
+      return CachedNetworkImage(
+        imageUrl: photoUrl!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildInitialsAvatar(),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Container(
-            color: AppColors.surface,
-            child: Center(
-              child: CircularProgressIndicator(
-                value: progress.expectedTotalBytes != null
-                    ? progress.cumulativeBytesLoaded /
-                          progress.expectedTotalBytes!
-                    : null,
-                strokeWidth: 2,
-                color: AppColors.textSecondary,
-              ),
+        placeholder: (context, url) => Center(
+          child: SizedBox(
+            width: size * 0.3,
+            height: size * 0.3,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.textSecondary,
             ),
-          );
-        },
+          ),
+        ),
+        errorWidget: (context, url, error) => _buildInitialsAvatar(),
       );
     }
 
@@ -89,23 +81,30 @@ class UserAvatar extends StatelessWidget {
 
   Widget _buildInitialsAvatar() {
     final displayName = name ?? '';
-    final bgColor = displayName.isNotEmpty
-        ? _getColorForName(displayName)
-        : AppColors.surface;
+    final bgColor = _getColorForName(displayName);
     final initials = displayName.isNotEmpty ? _getInitials(displayName) : '?';
 
     // Calculate font size based on avatar size
-    final fontSize = size * 0.4;
+    final fontSize = size * 0.38;
 
     return Container(
-      color: bgColor,
+      decoration: BoxDecoration(
+        color: bgColor,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [bgColor, bgColor.withOpacity(0.9)],
+        ),
+      ),
       child: Center(
         child: Text(
           initials,
           style: AppTypography.titleMedium.copyWith(
-            color: Colors.white,
+            // Use a dark tonal color for text to look more professional with pastels
+            color: Colors.black.withOpacity(0.65),
             fontSize: fontSize,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
       ),

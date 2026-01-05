@@ -1,9 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:video_compress/video_compress.dart';
+
 import '../../../../common_widgets/app_snackbar.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 
@@ -62,7 +64,9 @@ class MediaPickerService {
   ) async {
     final XFile? picked = await _picker.pickVideo(
       source: ImageSource.gallery,
-      maxDuration: Duration(seconds: maxVideoDurationSeconds + 5), // buffer
+      maxDuration: const Duration(
+        seconds: maxVideoDurationSeconds + 5,
+      ), // buffer
     );
 
     if (picked == null) return null;

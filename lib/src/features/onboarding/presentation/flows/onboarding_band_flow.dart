@@ -9,8 +9,8 @@ import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../common_widgets/onboarding_header.dart';
 import '../../../../common_widgets/onboarding_section_card.dart';
 import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
+import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
@@ -93,7 +93,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   void _finishOnboarding() {
     // Prepare Data
     // Band specific data
-    Map<String, dynamic> bandData = {
+    final Map<String, dynamic> bandData = {
       'nome': _nomeController.text.trim(),
       'generosMusicais': _selectedGenres,
       'statusBanda': 'draft', // Critical requirement

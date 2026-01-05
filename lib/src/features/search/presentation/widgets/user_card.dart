@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../../common_widgets/user_avatar.dart';
 
-import '../../../../features/auth/domain/app_user.dart';
-import '../../../../features/auth/domain/user_type.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../features/auth/domain/app_user.dart';
+import '../../../../features/auth/domain/user_type.dart';
 
 /// Displays a user profile card in search results.
 class UserCard extends StatelessWidget {
@@ -17,7 +18,7 @@ class UserCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: AppColors.surface,
-      margin: EdgeInsets.symmetric(
+      margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s16,
         vertical: AppSpacing.s8,
       ),
@@ -33,19 +34,10 @@ class UserCard extends StatelessWidget {
           child: Row(
             children: [
               // Avatar
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: AppColors.surfaceHighlight,
-                backgroundImage: user.foto != null && user.foto!.isNotEmpty
-                    ? NetworkImage(user.foto!)
-                    : null,
-                child: user.foto == null || user.foto!.isEmpty
-                    ? Icon(
-                        _getIconForType(user.tipoPerfil),
-                        color: AppColors.textSecondary,
-                        size: 28,
-                      )
-                    : null,
+              UserAvatar(
+                size: 56,
+                photoUrl: user.foto,
+                name: _getDisplayName(user),
               ),
               const SizedBox(width: AppSpacing.s16),
 
@@ -110,16 +102,6 @@ class UserCard extends StatelessWidget {
       AppUserType.studio =>
         user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '',
       _ => user.nome ?? '',
-    };
-  }
-
-  IconData _getIconForType(AppUserType? type) {
-    return switch (type) {
-      AppUserType.professional => Icons.person,
-      AppUserType.band => Icons.groups,
-      AppUserType.studio => Icons.headphones,
-      AppUserType.contractor => Icons.business,
-      null => Icons.person,
     };
   }
 }

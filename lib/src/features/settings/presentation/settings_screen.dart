@@ -153,7 +153,7 @@ class SettingsScreen extends ConsumerWidget {
               Navigator.pop(context);
               await ref.read(authRepositoryProvider).signOut();
             },
-            child: Text('Sair', style: TextStyle(color: AppColors.error)),
+            child: const Text('Sair', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -186,7 +186,10 @@ class SettingsScreen extends ConsumerWidget {
                 }
               }
             },
-            child: Text('Desativar', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Desativar',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),

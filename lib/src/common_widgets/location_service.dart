@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
+
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
@@ -44,13 +45,13 @@ class LocationService {
         if (data['status'] == 'OK') {
           return List<Map<String, dynamic>>.from(data['predictions']);
         } else {
-          print(
+          debugPrint(
             'Google API Error: ${data['status']} - ${data['error_message']}',
           );
         }
       }
     } catch (e) {
-      print('Erro busca Google: $e');
+      debugPrint('Erro busca Google: $e');
     }
     return [];
   }
@@ -77,7 +78,7 @@ class LocationService {
         }
       }
     } catch (e) {
-      print('Erro details Google: $e');
+      debugPrint('Erro details Google: $e');
     }
     return null;
   }
@@ -110,7 +111,7 @@ class LocationService {
         }
       }
     } catch (e) {
-      print('Erro geocode Google: $e');
+      debugPrint('Erro geocode Google: $e');
     }
     return null;
   }
@@ -132,11 +133,13 @@ class LocationService {
       if (types.contains('route')) logradouro = val;
       if (types.contains('street_number')) numero = val;
       if (types.contains('sublocality') ||
-          types.contains('sublocality_level_1'))
+          types.contains('sublocality_level_1')) {
         bairro = val;
+      }
       if (types.contains('administrative_area_level_2')) cidade = val;
-      if (types.contains('administrative_area_level_1'))
+      if (types.contains('administrative_area_level_1')) {
         estado = shortVal; // SP, RJ...
+      }
       if (types.contains('postal_code')) cep = val;
     }
 
@@ -153,7 +156,7 @@ class LocationService {
   Future<Position?> getCurrentPosition() async {
     // Mesma lógica de antes...
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return null;
 
       LocationPermission permission = await Geolocator.checkPermission();

@@ -1,9 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
@@ -440,7 +440,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
-    Map<String, dynamic> updates = {'nome': _nomeController.text.trim()};
+    final Map<String, dynamic> updates = {'nome': _nomeController.text.trim()};
 
     switch (user.tipoPerfil) {
       case AppUserType.professional:

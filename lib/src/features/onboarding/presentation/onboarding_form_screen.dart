@@ -1,18 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/app_snackbar.dart';
+import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import 'flows/onboarding_band_flow.dart';
 import 'flows/onboarding_contractor_flow.dart';
 import 'flows/onboarding_professional_flow.dart';
 import 'flows/onboarding_studio_flow.dart';
-import 'flows/onboarding_band_flow.dart';
 import 'onboarding_controller.dart';
 import 'onboarding_form_provider.dart';
 
@@ -318,7 +319,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                               borderRadius: BorderRadius.circular(12),
                               image: _fotoUrl != null
                                   ? const DecorationImage(
-                                      image: NetworkImage(
+                                      image: CachedNetworkImageProvider(
                                         'https://via.placeholder.com/150',
                                       ),
                                       fit: BoxFit.cover,

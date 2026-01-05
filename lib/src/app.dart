@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'design_system/foundations/app_scroll_behavior.dart';
 import 'design_system/theme/app_theme.dart';
 import 'routing/app_router.dart';
-import 'design_system/foundations/app_scroll_behavior.dart';
 
 class MubeApp extends ConsumerWidget {
   const MubeApp({super.key});

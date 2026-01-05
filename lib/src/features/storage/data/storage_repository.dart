@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../domain/image_compressor.dart';
+import '../domain/upload_validator.dart';
 
 part 'storage_repository.g.dart';
 
@@ -17,19 +19,27 @@ class StorageRepository {
 
   /// Uploads a profile image for the given user ID.
   /// Returns the download URL.
+  ///
+  /// Throws [UploadValidationException] if file is invalid.
   Future<String> uploadProfileImage({
     required String userId,
     required File file,
   }) async {
+    // Validar arquivo antes do upload
+    await UploadValidator.validateImage(file);
+
+    // Comprimir imagem antes do upload
+    final compressedFile = await ImageCompressor.compressProfilePhoto(file);
+
     try {
       final ref = _storage.ref().child('profile_photos/$userId.jpg');
       final metadata = SettableMetadata(contentType: 'image/jpeg');
-      final uploadTask = ref.putFile(file, metadata);
+      final uploadTask = ref.putFile(compressedFile, metadata);
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
-    } catch (e) {
-      throw Exception('Erro ao fazer upload da imagem: $e');
+    } on FirebaseException catch (e) {
+      throw Exception('Erro ao fazer upload da imagem: ${e.message}');
     }
   }
 
@@ -45,6 +55,8 @@ class StorageRepository {
 
   /// Uploads a gallery media file (photo or video).
   /// Returns the download URL.
+  ///
+  /// Throws [UploadValidationException] if file is invalid.
   Future<String> uploadGalleryMedia({
     required String userId,
     required File file,
@@ -52,13 +64,21 @@ class StorageRepository {
     required bool isVideo,
     void Function(double progress)? onProgress,
   }) async {
+    // Validar arquivo antes do upload
+    await UploadValidator.validateMedia(file, isVideo: isVideo);
+
+    // Comprimir imagem antes do upload (vídeos não são comprimidos aqui)
+    final fileToUpload = isVideo
+        ? file
+        : await ImageCompressor.compressGalleryPhoto(file);
+
     try {
       final folder = isVideo ? 'gallery_videos' : 'gallery_photos';
       final ext = isVideo ? 'mp4' : 'jpg';
       final contentType = isVideo ? 'video/mp4' : 'image/jpeg';
       final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
       final metadata = SettableMetadata(contentType: contentType);
-      final uploadTask = ref.putFile(file, metadata);
+      final uploadTask = ref.putFile(fileToUpload, metadata);
 
       // Listen to progress updates
       if (onProgress != null) {
@@ -70,27 +90,37 @@ class StorageRepository {
 
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      throw Exception('Erro ao fazer upload da mídia: $e');
+    } on FirebaseException catch (e) {
+      throw Exception('Erro ao fazer upload da mídia: ${e.message}');
     }
   }
 
   /// Uploads a video thumbnail.
+  ///
+  /// Throws [UploadValidationException] if file is invalid.
   Future<String> uploadVideoThumbnail({
     required String userId,
     required String mediaId,
     required File thumbnail,
   }) async {
+    // Validar thumbnail antes do upload
+    await UploadValidator.validateImage(thumbnail);
+
+    // Comprimir thumbnail antes do upload
+    final compressedThumbnail = await ImageCompressor.compressThumbnail(
+      thumbnail,
+    );
+
     try {
       final ref = _storage.ref().child(
         'gallery_thumbnails/$userId/$mediaId.jpg',
       );
       final metadata = SettableMetadata(contentType: 'image/jpeg');
-      final uploadTask = ref.putFile(thumbnail, metadata);
+      final uploadTask = ref.putFile(compressedThumbnail, metadata);
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      throw Exception('Erro ao fazer upload do thumbnail: $e');
+    } on FirebaseException catch (e) {
+      throw Exception('Erro ao fazer upload do thumbnail: ${e.message}');
     }
   }
 

@@ -90,7 +90,7 @@ class AddressCard extends StatelessWidget {
                             child: Text(
                               'Principal',
                               style: AppTypography.bodySmall.copyWith(
-                                color: Colors.white,
+                                color: AppColors.background,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -117,7 +117,7 @@ class AddressCard extends StatelessWidget {
               // Actions
               PopupMenuButton<String>(
                 elevation: 16,
-                shadowColor: Colors.black,
+                shadowColor: AppColors.background,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: const BorderSide(

@@ -1,15 +1,17 @@
 import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../common_widgets/app_back_button.dart';
-import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/primary_button.dart';
+import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/location_service.dart';
 import '../../../common_widgets/or_divider.dart';
+import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
@@ -394,7 +396,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
               ),
               alignment: Alignment.center,
               child: _isLoadingLocation
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: AppSpacing.s20,
                       height: AppSpacing.s20,
                       child: CircularProgressIndicator(
@@ -402,7 +404,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                         color: AppColors.primary,
                       ),
                     )
-                  : Icon(
+                  : const Icon(
                       Icons.my_location,
                       color: AppColors.primary,
                       size: AppSpacing.s20,
@@ -427,7 +429,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                       padding: const EdgeInsets.only(top: AppSpacing.s4),
                       child: Row(
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: AppSpacing.s12,
                             height: AppSpacing.s12,
                             child: CircularProgressIndicator(
@@ -458,7 +460,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: AppColors.primary),
+            const Icon(Icons.chevron_right, color: AppColors.primary),
           ],
         ),
       ),
@@ -511,7 +513,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         color: AppColors.surface,
         image: (_selectedLat != null && _selectedLng != null)
             ? DecorationImage(
-                image: NetworkImage(
+                image: CachedNetworkImageProvider(
                   'https://maps.googleapis.com/maps/api/staticmap?center=$_selectedLat,$_selectedLng&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
                 ),
                 fit: BoxFit.cover,
@@ -539,14 +541,14 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'Ajustar no mapa',
                   style: AppTypography.bodySmall.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: AppColors.background,
                   ),
                 ),
               ),

@@ -6,14 +6,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
+import '../../../common_widgets/or_divider.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../common_widgets/responsive_center.dart';
 import '../../../common_widgets/social_login_button.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../utils/auth_exception_handler.dart';
 import '../../../design_system/foundations/app_colors.dart';
+import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
-import '../../../common_widgets/or_divider.dart';
+import '../../../utils/auth_exception_handler.dart';
 import '../data/auth_repository.dart';
 
 part 'login_screen.g.dart';

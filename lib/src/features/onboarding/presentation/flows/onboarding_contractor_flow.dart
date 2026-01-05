@@ -4,20 +4,19 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../common_widgets/app_date_picker_field.dart';
 import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/app_snackbar.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../common_widgets/onboarding_header.dart';
 import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
-import '../../../auth/domain/app_user.dart';
-import '../onboarding_controller.dart';
-import '../onboarding_form_provider.dart';
-
-import '../steps/onboarding_address_step.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
+import '../../../auth/domain/app_user.dart';
+import '../onboarding_controller.dart';
+import '../onboarding_form_provider.dart';
+import '../steps/onboarding_address_step.dart';
 
 class OnboardingContractorFlow extends ConsumerStatefulWidget {
   final AppUser user;

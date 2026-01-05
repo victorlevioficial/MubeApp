@@ -92,3 +92,7 @@ flutter_native_splash:
   android_12:
     image: "assets/images/app_icon/playstore.png"
     icon_background_color: "#0E0E0E"
+  # Adicionado para evitar que a logo fique gigante em telas grandes
+  ios_content_mode: center
+  android_gravity: center
+  fullscreen: false

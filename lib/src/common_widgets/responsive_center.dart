@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 /// A widget that centers its child horizontally and constrains its maximum width.
 /// This is used to ensure layouts look good on larger screens (Web, Tablet).
 class ResponsiveCenter extends StatelessWidget {

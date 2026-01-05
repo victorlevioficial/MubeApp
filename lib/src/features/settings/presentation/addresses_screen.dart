@@ -173,7 +173,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
           ? FloatingActionButton.extended(
               onPressed: _addAddress,
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textPrimary,
               icon: const Icon(Icons.add),
               label: const Text('Adicionar'),
             )
@@ -215,7 +215,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
               label: const Text('Adicionar Endereço'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textPrimary,
               ),
             ),
           ],

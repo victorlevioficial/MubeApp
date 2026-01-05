@@ -47,7 +47,7 @@ class SettingsItem extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
+                const Icon(
                   AppIcons.arrowForward,
                   color: AppColors.textSecondary,
                   size: 16,

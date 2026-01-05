@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
-import '../../../../common_widgets/app_text_field.dart';
+
 import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
 import '../../../../common_widgets/app_filter_chip.dart';
+import '../../../../common_widgets/app_selection_modal.dart';
+import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/secondary_button.dart';
+import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
-import '../../../../constants/app_constants.dart';
 
 class StudioFormFields extends StatefulWidget {
   final TextEditingController celularController;
