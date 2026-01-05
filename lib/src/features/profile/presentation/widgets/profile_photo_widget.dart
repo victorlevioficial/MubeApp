@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 
 class ProfilePhotoWidget extends StatelessWidget {
@@ -20,20 +22,7 @@ class ProfilePhotoWidget extends StatelessWidget {
         onTap: onTap,
         child: Stack(
           children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.surface,
-              backgroundImage: (photoUrl != null && photoUrl!.isNotEmpty)
-                  ? NetworkImage(photoUrl!)
-                  : null,
-              child: (photoUrl == null || photoUrl!.isEmpty)
-                  ? const Icon(
-                      Icons.person,
-                      size: 50,
-                      color: AppColors.textSecondary,
-                    )
-                  : null,
-            ),
+            _buildAvatar(),
             if (isLoading)
               Positioned.fill(
                 child: Container(
@@ -64,6 +53,44 @@ class ProfilePhotoWidget extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    if (photoUrl == null || photoUrl!.isEmpty) {
+      return const CircleAvatar(
+        radius: 50,
+        backgroundColor: AppColors.surface,
+        child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 100,
+        height: 100,
+        child: CachedNetworkImage(
+          imageUrl: photoUrl!,
+          fit: BoxFit.cover,
+          memCacheHeight: 200,
+          memCacheWidth: 200,
+          fadeInDuration: const Duration(milliseconds: 150),
+          fadeOutDuration: const Duration(milliseconds: 150),
+          placeholder: (_, __) => Shimmer.fromColors(
+            baseColor: AppColors.surface,
+            highlightColor: AppColors.surface.withOpacity(0.5),
+            child: Container(color: AppColors.surface),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            color: AppColors.surface,
+            child: const Icon(
+              Icons.person,
+              size: 50,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
       ),
     );

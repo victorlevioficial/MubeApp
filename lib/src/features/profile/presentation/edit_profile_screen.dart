@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
@@ -68,6 +69,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   // Gallery
   List<MediaItem> _galleryItems = [];
   bool _isUploadingMedia = false;
+  double _uploadProgress = 0.0;
+  String _uploadStatus = '';
+
+  // Gallery limits
+  static const int _maxPhotos = 6;
+  static const int _maxVideos = 3;
+  static const int _maxTotal = 9;
+
+  int get _photoCount =>
+      _galleryItems.where((i) => i.type == MediaType.photo).length;
+  int get _videoCount =>
+      _galleryItems.where((i) => i.type == MediaType.video).length;
 
   bool _hasChanges = false;
   bool _isInitialized = false;
@@ -145,6 +158,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
     _nomeController.text = user.nome ?? '';
 
+    // Pre-cache avatar photo for instant display
+    if (user.foto != null && user.foto!.isNotEmpty) {
+      precacheImage(CachedNetworkImageProvider(user.foto!), context);
+    }
+
     // Initialize type-specific data
     switch (user.tipoPerfil) {
       case AppUserType.professional:
@@ -202,6 +220,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       );
     }).toList();
     _galleryItems.sort((a, b) => a.order.compareTo(b.order));
+
+    // Pre-cache gallery images for instant display
+    _precacheGalleryImages();
+  }
+
+  void _precacheGalleryImages() {
+    for (final item in _galleryItems) {
+      final imageUrl = item.type == MediaType.video
+          ? item.thumbnailUrl ?? item.url
+          : item.url;
+      if (imageUrl.isNotEmpty) {
+        precacheImage(CachedNetworkImageProvider(imageUrl), context);
+      }
+    }
   }
 
   List<Map<String, dynamic>> _galleryToJson() {
@@ -224,7 +256,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   Future<void> _handleAddPhoto(AppUser user) async {
-    setState(() => _isUploadingMedia = true);
+    // Check limits before opening picker
+    if (_galleryItems.length >= _maxTotal) {
+      AppSnackBar.show(
+        context,
+        'Limite máximo da galeria atingido.',
+        isError: true,
+      );
+      return;
+    }
+    if (_photoCount >= _maxPhotos) {
+      AppSnackBar.show(
+        context,
+        'Você já atingiu o limite de $_maxPhotos fotos.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploadingMedia = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'Processando foto...';
+    });
 
     try {
       final file = await _mediaPickerService.pickAndCropPhoto(context);
@@ -232,6 +286,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         setState(() => _isUploadingMedia = false);
         return;
       }
+
+      setState(() => _uploadStatus = 'Enviando foto...');
 
       final mediaId = const Uuid().v4();
       final storage = ref.read(storageRepositoryProvider);
@@ -241,6 +297,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         file: file,
         mediaId: mediaId,
         isVideo: false,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _uploadProgress = progress);
+          }
+        },
       );
 
       setState(() {
@@ -254,9 +315,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         );
         _hasChanges = true;
         _isUploadingMedia = false;
+        _uploadProgress = 0.0;
       });
     } catch (e) {
-      setState(() => _isUploadingMedia = false);
+      setState(() {
+        _isUploadingMedia = false;
+        _uploadProgress = 0.0;
+      });
       if (mounted) {
         AppSnackBar.show(context, 'Erro ao adicionar foto: $e', isError: true);
       }
@@ -264,7 +329,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   Future<void> _handleAddVideo(AppUser user) async {
-    setState(() => _isUploadingMedia = true);
+    // Check limits before opening picker
+    if (_galleryItems.length >= _maxTotal) {
+      AppSnackBar.show(
+        context,
+        'Limite máximo da galeria atingido.',
+        isError: true,
+      );
+      return;
+    }
+    if (_videoCount >= _maxVideos) {
+      AppSnackBar.show(
+        context,
+        'Você já atingiu o limite de $_maxVideos vídeos.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploadingMedia = true;
+      _uploadProgress = 0.0;
+      _uploadStatus = 'Processando vídeo...';
+    });
 
     try {
       final result = await _mediaPickerService.pickAndProcessVideo(context);
@@ -277,13 +364,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       final mediaId = const Uuid().v4();
       final storage = ref.read(storageRepositoryProvider);
 
+      setState(() => _uploadStatus = 'Enviando vídeo...');
+
       // Upload video
       final videoUrl = await storage.uploadGalleryMedia(
         userId: user.uid,
         file: videoFile,
         mediaId: mediaId,
         isVideo: true,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() => _uploadProgress = progress * 0.9); // 90% for video
+          }
+        },
       );
+
+      setState(() => _uploadStatus = 'Enviando thumbnail...');
 
       // Upload thumbnail
       final thumbUrl = await storage.uploadVideoThumbnail(
@@ -293,6 +389,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       );
 
       setState(() {
+        _uploadProgress = 1.0;
         _galleryItems.add(
           MediaItem(
             id: mediaId,
@@ -304,9 +401,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         );
         _hasChanges = true;
         _isUploadingMedia = false;
+        _uploadProgress = 0.0;
       });
     } catch (e) {
-      setState(() => _isUploadingMedia = false);
+      setState(() {
+        _isUploadingMedia = false;
+        _uploadProgress = 0.0;
+      });
       if (mounted) {
         AppSnackBar.show(context, 'Erro ao adicionar vídeo: $e', isError: true);
       }
@@ -518,7 +619,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             // Name
             AppTextField(
               controller: _nomeController,
-              label: 'Nome',
+              label: 'Nome Completo',
               textCapitalization: TextCapitalization.words,
               validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
               onChanged: (_) => _markChanged(),
@@ -610,38 +711,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     return Column(
       children: [
         Expanded(
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.s24),
-                child: GalleryGrid(
-                  items: _galleryItems,
-                  maxSlots: 9,
-                  maxVideos: 2,
-                  onAddPhoto: () => _handleAddPhoto(user),
-                  onAddVideo: () => _handleAddVideo(user),
-                  onRemove: (index) => _handleRemoveMedia(index, user),
-                  onReorder: _handleReorder,
-                ),
-              ),
-              if (_isUploadingMedia)
-                Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(color: AppColors.primary),
-                        SizedBox(height: AppSpacing.s16),
-                        Text(
-                          'Processando mídia...',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: GalleryGrid(
+              items: _galleryItems,
+              maxSlots: 9,
+              maxVideos: 3,
+              onAddPhoto: () => _handleAddPhoto(user),
+              onAddVideo: () => _handleAddVideo(user),
+              onRemove: (index) => _handleRemoveMedia(index, user),
+              onReorder: _handleReorder,
+              isUploading: _isUploadingMedia,
+              uploadProgress: _uploadProgress,
+              uploadStatus: _uploadStatus,
+            ),
           ),
         ),
         // Bottom CTA button

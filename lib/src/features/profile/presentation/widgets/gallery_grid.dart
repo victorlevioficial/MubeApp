@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
@@ -16,6 +17,9 @@ class GalleryGrid extends StatelessWidget {
   final VoidCallback onAddVideo;
   final ValueChanged<int> onRemove;
   final void Function(int oldIndex, int newIndex) onReorder;
+  final bool isUploading;
+  final double uploadProgress;
+  final String uploadStatus;
 
   const GalleryGrid({
     super.key,
@@ -26,11 +30,14 @@ class GalleryGrid extends StatelessWidget {
     required this.onAddVideo,
     required this.onRemove,
     required this.onReorder,
+    this.isUploading = false,
+    this.uploadProgress = 0.0,
+    this.uploadStatus = '',
   });
 
   int get _videoCount => items.where((i) => i.type == MediaType.video).length;
   bool get _canAddVideo => _videoCount < maxVideos;
-  bool get _canAddMore => items.length < maxSlots;
+  bool get _canAddMore => items.length < maxSlots && !isUploading;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +89,13 @@ class GalleryGrid extends StatelessWidget {
                 onRemove: () => onRemove(items.indexOf(item)),
               ),
             ),
+            // Upload progress slot
+            if (isUploading)
+              _UploadingSlot(
+                key: const ValueKey('uploading_slot'),
+                progress: uploadProgress,
+                status: uploadStatus,
+              ),
             // Empty slots
             if (_canAddMore)
               _EmptySlot(
@@ -95,7 +109,7 @@ class GalleryGrid extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.s16),
         Text(
-          'Segure e arraste para reordenar. A primeira mídia é a foto principal.',
+          'Segure e arraste para reordenar.',
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
             fontStyle: FontStyle.italic,
@@ -133,12 +147,13 @@ class _FilledSlot extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Container(
-              color: AppColors.surface,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
+            placeholder: (_, __) => Shimmer.fromColors(
+              baseColor: AppColors.surface,
+              highlightColor: AppColors.surface.withOpacity(0.5),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -288,6 +303,60 @@ class _EmptySlot extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A slot showing upload progress.
+class _UploadingSlot extends StatelessWidget {
+  final double progress;
+  final String status;
+
+  const _UploadingSlot({
+    super.key,
+    required this.progress,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 28),
+          const SizedBox(height: 8),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress > 0 ? progress : null,
+              backgroundColor: AppColors.surfaceHighlight,
+              color: AppColors.primary,
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Percentage text
+          Text(
+            progress > 0 ? '${(progress * 100).toInt()}%' : status,
+            style: AppTypography.bodySmall.copyWith(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+              fontWeight: progress > 0 ? FontWeight.bold : FontWeight.normal,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

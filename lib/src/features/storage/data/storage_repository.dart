@@ -22,14 +22,10 @@ class StorageRepository {
     required File file,
   }) async {
     try {
-      // 1. Create a reference to the location you want to upload to
-      final ref = _storage.ref().child('profile_photos/$userId');
-
-      // 2. Upload the file
-      final uploadTask = ref.putFile(file);
+      final ref = _storage.ref().child('profile_photos/$userId.jpg');
+      final metadata = SettableMetadata(contentType: 'image/jpeg');
+      final uploadTask = ref.putFile(file, metadata);
       final snapshot = await uploadTask;
-
-      // 3. Get the download URL
       final downloadUrl = await snapshot.ref.getDownloadURL();
       return downloadUrl;
     } catch (e) {
@@ -54,15 +50,25 @@ class StorageRepository {
     required File file,
     required String mediaId,
     required bool isVideo,
+    void Function(double progress)? onProgress,
   }) async {
     try {
       final folder = isVideo ? 'gallery_videos' : 'gallery_photos';
       final ext = isVideo ? 'mp4' : 'jpg';
+      final contentType = isVideo ? 'video/mp4' : 'image/jpeg';
       final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
+      final metadata = SettableMetadata(contentType: contentType);
+      final uploadTask = ref.putFile(file, metadata);
 
-      final uploadTask = ref.putFile(file);
+      // Listen to progress updates
+      if (onProgress != null) {
+        uploadTask.snapshotEvents.listen((snapshot) {
+          final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+          onProgress(progress);
+        });
+      }
+
       final snapshot = await uploadTask;
-
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       throw Exception('Erro ao fazer upload da mídia: $e');
@@ -79,10 +85,9 @@ class StorageRepository {
       final ref = _storage.ref().child(
         'gallery_thumbnails/$userId/$mediaId.jpg',
       );
-
-      final uploadTask = ref.putFile(thumbnail);
+      final metadata = SettableMetadata(contentType: 'image/jpeg');
+      final uploadTask = ref.putFile(thumbnail, metadata);
       final snapshot = await uploadTask;
-
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
       throw Exception('Erro ao fazer upload do thumbnail: $e');

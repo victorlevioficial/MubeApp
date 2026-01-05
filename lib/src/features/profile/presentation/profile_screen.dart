@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -23,6 +25,11 @@ class ProfileScreen extends ConsumerWidget {
         data: (user) {
           if (user == null) {
             return const Center(child: Text('Usuário não encontrado'));
+          }
+
+          // Pre-cache avatar for faster loading on edit screen
+          if (user.foto != null && user.foto!.isNotEmpty) {
+            precacheImage(CachedNetworkImageProvider(user.foto!), context);
           }
 
           // Extract Data safely
@@ -59,49 +66,33 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       const SizedBox(height: AppSpacing.s32),
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.surface,
-                        backgroundImage:
-                            (user.foto != null && user.foto!.isNotEmpty)
-                            ? NetworkImage(user.foto!)
-                            : null,
-                        child: (user.foto == null || user.foto!.isEmpty)
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: AppColors.textSecondary,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: AppSpacing.s16),
+                      _buildAvatarImage(user.foto),
+                      const SizedBox(height: AppSpacing.s12),
                       Text(
-                        // Display Artictic/Brand name if available, otherwise User name
                         _getDisplayName(user),
                         style: AppTypography.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.s4),
-                      const SizedBox(height: AppSpacing.s4),
                       Text(
                         user.tipoPerfil?.label.toUpperCase() ?? '',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.primary,
+                          color: AppColors.accent,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.s8),
-                      // Display Real Name if different from Display Name (for context)
-                      if (_getDisplayName(user) != user.nome)
+                      if (_getDisplayName(user) != user.nome) ...[
+                        const SizedBox(height: AppSpacing.s4),
                         Text(
                           user.nome ?? '',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
-                      const SizedBox(height: AppSpacing.s8),
-                      if (user.location != null)
+                      ],
+                      if (user.location != null) ...[
+                        const SizedBox(height: AppSpacing.s8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -112,13 +103,14 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${user.location?['cidade'] ?? '-'} - ${user.location?['estado'] ?? '-'}',
+                              '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
                               ),
                             ),
                           ],
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -277,6 +269,43 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.s24),
       ],
+    );
+  }
+
+  Widget _buildAvatarImage(String? photoUrl) {
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return const CircleAvatar(
+        radius: 50,
+        backgroundColor: AppColors.surface,
+        child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 100,
+        height: 100,
+        child: CachedNetworkImage(
+          imageUrl: photoUrl,
+          fit: BoxFit.cover,
+          memCacheHeight: 200,
+          memCacheWidth: 200,
+          fadeInDuration: const Duration(milliseconds: 150),
+          placeholder: (_, __) => Shimmer.fromColors(
+            baseColor: AppColors.surface,
+            highlightColor: AppColors.surface.withOpacity(0.5),
+            child: Container(color: AppColors.surface),
+          ),
+          errorWidget: (_, __, ___) => Container(
+            color: AppColors.surface,
+            child: const Icon(
+              Icons.person,
+              size: 50,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

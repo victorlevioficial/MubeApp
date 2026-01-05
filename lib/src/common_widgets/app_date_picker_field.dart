@@ -52,7 +52,10 @@ class _AppDatePickerFieldState extends State<AppDatePickerField> {
               onPrimary: Theme.of(context).colorScheme.onPrimary,
               surface: Theme.of(context).colorScheme.surface,
               onSurface: Theme.of(context).colorScheme.onSurface,
-            ), dialogTheme: DialogThemeData(backgroundColor: Theme.of(context).colorScheme.surface),
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+            ),
           ),
           child: child!,
         );
@@ -82,8 +85,7 @@ class _AppDatePickerFieldState extends State<AppDatePickerField> {
         TextFormField(
           controller: widget.controller,
           validator: widget.validator,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w400,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
           ),
           keyboardType: TextInputType.number,
