@@ -301,10 +301,7 @@ class _EmptySlot extends StatelessWidget {
                 )
               else
                 const ListTile(
-                  leading: Icon(
-                    Icons.videocam,
-                    color: AppColors.textSecondary,
-                  ),
+                  leading: Icon(Icons.videocam, color: AppColors.textSecondary),
                   title: Text(
                     'Vídeo',
                     style: TextStyle(color: AppColors.textSecondary),

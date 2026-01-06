@@ -1,4 +1,4 @@
-package com.mubeapp.mube
+package com.mube.mubeoficial
 
 import io.flutter.embedding.android.FlutterActivity
 

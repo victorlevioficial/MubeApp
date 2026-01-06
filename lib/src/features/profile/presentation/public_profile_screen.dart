@@ -12,6 +12,7 @@ import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../feed/data/favorites_provider.dart';
 import '../domain/media_item.dart';
 import 'widgets/public_gallery_grid.dart';
 
@@ -30,7 +31,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   AppUser? _user;
   List<MediaItem> _galleryItems = [];
   bool _isLoading = true;
-  bool _isLiked = false;
   String? _error;
 
   @override
@@ -99,9 +99,24 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
   }
 
-  void _toggleLike() {
-    setState(() => _isLiked = !_isLiked);
-    // TODO: Implement actual like/favorite persistence
+  Future<void> _toggleLike() async {
+    final notifier = ref.read(favoritesProvider.notifier);
+    final isFavorited = await notifier.toggleFavorite(widget.uid);
+
+    if (mounted) {
+      final message = isFavorited
+          ? 'Adicionado aos favoritos ❤️'
+          : 'Removido dos favoritos';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _openChat() {
@@ -155,6 +170,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   /// Fixed bottom bar with Chat and Like buttons
   Widget _buildBottomActionBar() {
+    final isFavorited = ref.watch(isFavoritedProvider(widget.uid));
+
     return Container(
       padding: EdgeInsets.only(
         left: AppSpacing.s16,
@@ -194,14 +211,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           // Like Button (Secondary action)
           Container(
             decoration: BoxDecoration(
-              color: _isLiked ? AppColors.primary : AppColors.surfaceHighlight,
+              color: isFavorited
+                  ? AppColors.primary
+                  : AppColors.surfaceHighlight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
               onPressed: _toggleLike,
               icon: Icon(
-                _isLiked ? Icons.favorite : Icons.favorite_border,
-                color: _isLiked ? Colors.white : AppColors.textPrimary,
+                isFavorited ? Icons.favorite : Icons.favorite_border,
+                color: isFavorited ? Colors.white : AppColors.textPrimary,
               ),
               padding: const EdgeInsets.all(14),
             ),

@@ -267,6 +267,66 @@ class FeedRepository {
     return snapshot.docs.map((doc) => doc.data()['targetId'] as String).toSet();
   }
 
+  /// Gets list of favorited feed items for a user
+  Future<List<FeedItem>> getFavoriteItems({
+    required String userId,
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+  }) async {
+    // Get favorite IDs
+    final favoriteIds = await getUserFavorites(userId);
+
+    if (favoriteIds.isEmpty) {
+      return [];
+    }
+
+    // Firestore 'whereIn' supports max 10 items, so we batch
+    final batches = <Future<QuerySnapshot<Map<String, dynamic>>>>[];
+    final idBatches = _chunk(favoriteIds.toList(), 10);
+
+    for (final batch in idBatches) {
+      batches.add(
+        _firestore
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get(),
+      );
+    }
+
+    final results = await Future.wait(batches);
+    final items = <FeedItem>[];
+
+    for (final snapshot in results) {
+      items.addAll(_processSnapshot(snapshot, userId, userLat, userLong));
+    }
+
+    // Sort by favoriteCount (most popular first) or distance
+    if (userLat != null && userLong != null) {
+      items.sort(
+        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+      );
+    } else {
+      items.sort((a, b) => b.favoriteCount.compareTo(a.favoriteCount));
+    }
+
+    return items.take(limit).toList();
+  }
+
+  /// Helper to chunk a list into batches
+  List<List<T>> _chunk<T>(List<T> list, int chunkSize) {
+    final chunks = <List<T>>[];
+    for (var i = 0; i < list.length; i += chunkSize) {
+      chunks.add(
+        list.sublist(
+          i,
+          i + chunkSize > list.length ? list.length : i + chunkSize,
+        ),
+      );
+    }
+    return chunks;
+  }
+
   // Helper to process query snapshot
   List<FeedItem> _processSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
@@ -432,6 +492,49 @@ class FeedRepository {
     }
 
     return report.toString();
+  }
+
+  /// Fetches ALL users sorted by distance from closest to farthest.
+  /// This is an Option B approach that loads everything and sorts locally.
+  /// Suitable for apps with < 10,000 users.
+  Future<List<FeedItem>> getAllUsersSortedByDistance({
+    required String currentUserId,
+    required double userLat,
+    required double userLong,
+    String? filterType,
+  }) async {
+    try {
+      var query = _firestore
+          .collection('users')
+          .where('cadastro_status', isEqualTo: 'concluido');
+
+      // Apply type filter if provided
+      if (filterType != null && filterType.isNotEmpty) {
+        query = query.where('tipo_perfil', isEqualTo: filterType);
+      } else {
+        query = query.where(
+          'tipo_perfil',
+          whereIn: ['profissional', 'banda', 'estudio'],
+        );
+      }
+
+      final snapshot = await query.get();
+      final items = _processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
+      );
+
+      // Sort by distance (closest first)
+      items.sort(
+        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+      );
+
+      return items;
+    } catch (_) {
+      rethrow;
+    }
   }
 
   /// Fetches the main feed with optional filtering and pagination.

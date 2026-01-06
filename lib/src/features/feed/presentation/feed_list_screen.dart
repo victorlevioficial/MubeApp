@@ -10,6 +10,7 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
+import '../data/favorites_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -28,7 +29,6 @@ class FeedListScreen extends ConsumerStatefulWidget {
 class _FeedListScreenState extends ConsumerState<FeedListScreen> {
   final _scrollController = ScrollController();
   final _items = <FeedItem>[];
-  Set<String> _favorites = {};
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -38,7 +38,6 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
   void initState() {
     super.initState();
     _loadItems();
-    _loadFavorites();
     _scrollController.addListener(_onScroll);
   }
 
@@ -52,18 +51,6 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
-    }
-  }
-
-  Future<void> _loadFavorites() async {
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
-
-    final feedRepo = ref.read(feedRepositoryProvider);
-    final favorites = await feedRepo.getUserFavorites(user.uid);
-
-    if (mounted) {
-      setState(() => _favorites = favorites);
     }
   }
 
@@ -216,36 +203,9 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
   }
 
   Future<void> _toggleFavorite(FeedItem item) async {
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
-
-    final feedRepo = ref.read(feedRepositoryProvider);
-    final wasFavorited = _favorites.contains(item.uid);
-
-    // Optimistic update
-    setState(() {
-      if (wasFavorited) {
-        _favorites.remove(item.uid);
-      } else {
-        _favorites.add(item.uid);
-      }
-    });
-
-    try {
-      await feedRepo.toggleFavorite(userId: user.uid, targetId: item.uid);
-
-      // Refresh to get updated count
-      _loadItems();
-    } catch (e) {
-      // Revert on error
-      setState(() {
-        if (wasFavorited) {
-          _favorites.add(item.uid);
-        } else {
-          _favorites.remove(item.uid);
-        }
-      });
-    }
+    final notifier = ref.read(favoritesProvider.notifier);
+    // Optimistic update handles UI, no need to await or reload list
+    await notifier.toggleFavorite(item.uid);
   }
 
   String _getTitle() {
@@ -295,9 +255,11 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
                   }
 
                   final item = _items[index];
+                  final isFavorited = ref.watch(isFavoritedProvider(item.uid));
+
                   return FeedCardVertical(
                     item: item,
-                    isFavorited: _favorites.contains(item.uid),
+                    isFavorited: isFavorited,
                     onTap: () => context.push('/user/${item.uid}'),
                     onFavorite: () => _toggleFavorite(item),
                   );

@@ -3,6 +3,7 @@ import '../../../../common_widgets/user_avatar.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../domain/feed_item.dart';
+import 'animated_favorite_button.dart';
 
 class FeedCardVertical extends StatelessWidget {
   final FeedItem item;
@@ -119,16 +120,12 @@ class FeedCardVertical extends StatelessWidget {
             // Right: Like Button (Top Aligned)
             Column(
               children: [
-                IconButton(
-                  onPressed: onFavorite,
-                  icon: Icon(
-                    _isFavorited ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorited ? AppColors.primary : Colors.white54,
-                    size: 20,
-                  ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  visualDensity: VisualDensity.compact,
+                AnimatedFavoriteButton(
+                  isFavorited: _isFavorited,
+                  onTap: onFavorite,
+                  size: 24,
+                  favoriteColor: AppColors.primary,
+                  defaultColor: Colors.white54,
                 ),
                 if (item.favoriteCount > 0) ...[
                   const SizedBox(height: 2),
