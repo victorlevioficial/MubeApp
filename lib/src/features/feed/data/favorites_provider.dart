@@ -74,7 +74,7 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
 
     final wasFavorited = state.isFavorited(targetId);
 
-    // Optimistic update
+    // Optimistic update for favorites set
     final newFavorites = Set<String>.from(state.favoriteIds);
     if (wasFavorited) {
       newFavorites.remove(targetId);
@@ -82,6 +82,9 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
       newFavorites.add(targetId);
     }
     state = state.copyWith(favoriteIds: newFavorites);
+
+    // NOTE: FeedItemsNotifier listens to this provider and will sync automatically
+    // DO NOT call feedItemsProvider here to avoid circular dependency
 
     try {
       final feedRepository = ref.read(feedRepositoryProvider);

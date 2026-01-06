@@ -9,6 +9,7 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
+import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -180,6 +181,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         limit: 10,
       );
 
+      // Register all items in the centralized provider
+      final allItems = items.values.expand((list) => list).toList();
+      ref.read(feedItemsProvider.notifier).loadItems(allItems);
+
       if (mounted) {
         setState(() {
           _sectionItems = items;
@@ -240,6 +245,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       if (mounted) {
         // Precache new items' images before showing
         await _precacheNewItems(newItems);
+
+        // Register items in centralized provider for reactive updates
+        ref.read(feedItemsProvider.notifier).loadItems(newItems);
 
         setState(() {
           if (reset) {
@@ -356,14 +364,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       return FeedCardVertical(
                         item: item,
                         onTap: () => _onItemTap(item),
-                        onFavorite: () async {
-                          await ref
-                              .read(feedRepositoryProvider)
-                              .toggleFavorite(
-                                userId: userAsync.value!.uid,
-                                targetId: item.uid,
-                              );
-                        },
                       );
                     }, childCount: _mainItems.length + 1),
                   ),

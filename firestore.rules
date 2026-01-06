@@ -13,7 +13,8 @@ service cloud.firestore {
       // - Autenticado: Pode escrever na própria conta.
       // - Não-Autenticado: Pode criar/editar usuários de teste (isMock == true).
       allow write: if (request.auth != null && request.auth.uid == userId) || 
-                   (request.resource.data.isMock == true);
+                   (request.resource.data.isMock == true) ||
+                   (request.auth != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favoriteCount']));
 
       // 3. DELEÇÃO:
       // - Autenticado: Pode deletar própria conta.

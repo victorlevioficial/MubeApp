@@ -10,6 +10,7 @@ class FeedItem {
   final Map<String, dynamic>? location;
   final int favoriteCount;
   final List<String> skills;
+  final bool isFavorited;
 
   /// Calculated at runtime based on user's location
   double? distanceKm;
@@ -25,8 +26,40 @@ class FeedItem {
     this.location,
     this.favoriteCount = 0,
     this.skills = const [],
+    this.isFavorited = false,
     this.distanceKm,
   });
+
+  /// Creates a copy of this FeedItem with the given fields replaced.
+  FeedItem copyWith({
+    String? uid,
+    String? nome,
+    String? nomeArtistico,
+    String? foto,
+    String? categoria,
+    List<String>? generosMusicais,
+    String? tipoPerfil,
+    Map<String, dynamic>? location,
+    int? favoriteCount,
+    List<String>? skills,
+    bool? isFavorited,
+    double? distanceKm,
+  }) {
+    return FeedItem(
+      uid: uid ?? this.uid,
+      nome: nome ?? this.nome,
+      nomeArtistico: nomeArtistico ?? this.nomeArtistico,
+      foto: foto ?? this.foto,
+      categoria: categoria ?? this.categoria,
+      generosMusicais: generosMusicais ?? this.generosMusicais,
+      tipoPerfil: tipoPerfil ?? this.tipoPerfil,
+      location: location ?? this.location,
+      favoriteCount: favoriteCount ?? this.favoriteCount,
+      skills: skills ?? this.skills,
+      isFavorited: isFavorited ?? this.isFavorited,
+      distanceKm: distanceKm ?? this.distanceKm,
+    );
+  }
 
   /// Display name (artistic name if available, otherwise real name)
   String get displayName =>

@@ -220,29 +220,56 @@ class FeedRepository {
 
     final targetRef = _firestore.collection('users').doc(targetId);
 
-    return _firestore.runTransaction((transaction) async {
-      final favoriteDoc = await transaction.get(favoriteRef);
+    print(
+      'DEBUG: Iniciando toggleFavorite para user: $userId, target: $targetId',
+    );
+    try {
+      final result = await _firestore.runTransaction((transaction) async {
+        // First, verify target document exists
+        final targetDoc = await transaction.get(targetRef);
+        if (!targetDoc.exists) {
+          print('DEBUG: ERRO - Documento do target não existe: $targetId');
+          throw Exception('Target user does not exist');
+        }
 
-      if (favoriteDoc.exists) {
-        // Remove favorite
-        transaction.delete(favoriteRef);
-        transaction.update(targetRef, {
-          'favoriteCount': FieldValue.increment(-1),
-        });
-        return false;
-      } else {
-        // Add favorite
-        transaction.set(favoriteRef, {
-          'userId': userId,
-          'targetId': targetId,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        transaction.update(targetRef, {
-          'favoriteCount': FieldValue.increment(1),
-        });
-        return true;
-      }
-    });
+        final favoriteDoc = await transaction.get(favoriteRef);
+        final currentCount = targetDoc.data()?['favoriteCount'] ?? 0;
+
+        if (favoriteDoc.exists) {
+          print('DEBUG: Removendo favorito... (count atual: $currentCount)');
+          transaction.delete(favoriteRef);
+          // Use set with merge to ensure field exists
+          transaction.set(targetRef, {
+            'favoriteCount': (currentCount - 1).clamp(0, 999999),
+          }, SetOptions(merge: true));
+          return false;
+        } else {
+          print('DEBUG: Adicionando favorito... (count atual: $currentCount)');
+          transaction.set(favoriteRef, {
+            'userId': userId,
+            'targetId': targetId,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          // Use set with merge to ensure field exists
+          transaction.set(targetRef, {
+            'favoriteCount': currentCount + 1,
+          }, SetOptions(merge: true));
+          return true;
+        }
+      });
+      print('DEBUG: toggleFavorite sucesso. Resultado: $result');
+
+      // Verificação pós-scrita (apenas debug)
+      final checkDoc = await targetRef.get();
+      print(
+        'DEBUG: Valor atual no banco para $targetId favoriteCount: ${checkDoc.data()?['favoriteCount']}',
+      );
+
+      return result;
+    } catch (e) {
+      print('DEBUG: ERRO em toggleFavorite: $e');
+      rethrow;
+    }
   }
 
   /// Checks if user has favorited a target.

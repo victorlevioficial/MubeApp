@@ -10,7 +10,7 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
-import '../data/favorites_provider.dart';
+import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -132,6 +132,9 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
       }
 
       if (mounted) {
+        // Register items in centralized provider for reactive updates
+        ref.read(feedItemsProvider.notifier).loadItems(newItems);
+
         setState(() {
           _items.clear();
           _items.addAll(newItems);
@@ -202,12 +205,6 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
     }
   }
 
-  Future<void> _toggleFavorite(FeedItem item) async {
-    final notifier = ref.read(favoritesProvider.notifier);
-    // Optimistic update handles UI, no need to await or reload list
-    await notifier.toggleFavorite(item.uid);
-  }
-
   String _getTitle() {
     final section = FeedSection.homeSections.firstWhere(
       (s) => s.type == widget.sectionType,
@@ -255,13 +252,10 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
                   }
 
                   final item = _items[index];
-                  final isFavorited = ref.watch(isFavoritedProvider(item.uid));
 
                   return FeedCardVertical(
                     item: item,
-                    isFavorited: isFavorited,
                     onTap: () => context.push('/user/${item.uid}'),
-                    onFavorite: () => _toggleFavorite(item),
                   );
                 },
               ),
