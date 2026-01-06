@@ -8,13 +8,21 @@ class FeedCardVertical extends StatelessWidget {
   final FeedItem item;
   final VoidCallback onTap;
   final VoidCallback? onFavorite;
+  final bool? isFavorited;
 
   const FeedCardVertical({
     super.key,
     required this.item,
     required this.onTap,
     this.onFavorite,
+    this.isFavorited,
   });
+
+  /// Returns true if favorited: uses explicit prop if provided, else checks count.
+  bool get _isFavorited => isFavorited ?? (item.favoriteCount > 0);
+
+  /// Returns true if there's distance info to display.
+  bool get _hasLocationInfo => item.distanceText.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +64,8 @@ class FeedCardVertical extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // 2. Row: Only Distance
-                  if (item.distanceText.isNotEmpty)
+                  // 2. Location Row: Distance + City/State
+                  if (_hasLocationInfo)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -68,12 +76,16 @@ class FeedCardVertical extends StatelessWidget {
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 2),
-                          Text(
-                            item.distanceText,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Text(
+                              item.distanceText,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -82,27 +94,23 @@ class FeedCardVertical extends StatelessWidget {
                   else
                     const SizedBox(height: 4),
 
-                  // 3. Skills Chips (Solid gray background)
+                  // 3. Skills Chips (Solid gray background) - Single line
                   if (item.skills.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
-                      child: Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: item.skills.take(3).map((skill) {
-                          return _buildSkillChip(skill);
-                        }).toList(),
+                      child: _SingleLineChipList(
+                        items: item.skills,
+                        chipBuilder: _buildSkillChip,
+                        overflowBuilder: (count) => _buildSkillChip('+$count'),
                       ),
                     ),
 
-                  // 4. Genres Chips (Solid primary color)
+                  // 4. Genres Chips (Solid primary color) - Single line
                   if (item.generosMusicais.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: item.generosMusicais.take(3).map((genre) {
-                        return _buildGenreChip(genre);
-                      }).toList(),
+                    _SingleLineChipList(
+                      items: item.generosMusicais,
+                      chipBuilder: _buildGenreChip,
+                      overflowBuilder: (count) => _buildGenreChip('+$count'),
                     ),
                 ],
               ),
@@ -114,12 +122,8 @@ class FeedCardVertical extends StatelessWidget {
                 IconButton(
                   onPressed: onFavorite,
                   icon: Icon(
-                    item.favoriteCount > 0
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: item.favoriteCount > 0
-                        ? AppColors.primary
-                        : Colors.white54,
+                    _isFavorited ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorited ? AppColors.primary : Colors.white54,
                     size: 20,
                   ),
                   padding: EdgeInsets.zero,
@@ -176,6 +180,102 @@ class FeedCardVertical extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+}
+
+/// A widget that displays chips in a single line, showing an overflow indicator
+/// (e.g., "+2") if not all items fit. Uses layout measurement to determine fit.
+class _SingleLineChipList extends StatelessWidget {
+  final List<String> items;
+  final Widget Function(String label) chipBuilder;
+  final Widget Function(int count) overflowBuilder;
+
+  const _SingleLineChipList({
+    required this.items,
+    required this.chipBuilder,
+    required this.overflowBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        if (maxWidth == double.infinity || maxWidth <= 0) {
+          // Fallback: show first item only
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [chipBuilder(items.first)],
+          );
+        }
+
+        // Estimate chip widths. This is an approximation.
+        // Formula: ~8px per character + 20px padding
+        double estimateChipWidth(String label) {
+          return (label.length * 7.0) + 24.0;
+        }
+
+        const double overflowChipWidth = 40.0; // "+XX" is roughly this wide
+
+        final List<Widget> visibleChips = [];
+        double usedWidth = 0.0;
+        int visibleCount = 0;
+
+        for (int i = 0; i < items.length; i++) {
+          final chipWidth = estimateChipWidth(items[i]);
+
+          // Reserve space for overflow chip if there are more items after this
+          final bool needsOverflowSpace = (i < items.length - 1);
+          final double reservedSpace = needsOverflowSpace
+              ? overflowChipWidth + 6.0
+              : 0.0;
+
+          // Check if this chip fits
+          final potentialWidth =
+              usedWidth +
+              chipWidth +
+              (visibleChips.isNotEmpty ? 6.0 : 0.0) +
+              reservedSpace;
+
+          if (potentialWidth <= maxWidth) {
+            // This chip fits
+            if (visibleChips.isNotEmpty) {
+              visibleChips.add(const SizedBox(width: 6.0));
+            }
+            visibleChips.add(chipBuilder(items[i]));
+            usedWidth += chipWidth + (visibleChips.length > 1 ? 6.0 : 0.0);
+            visibleCount++;
+          } else {
+            // This chip doesn't fit - add overflow indicator
+            final overflowCount = items.length - visibleCount;
+            if (overflowCount > 0) {
+              if (visibleChips.isNotEmpty) {
+                visibleChips.add(const SizedBox(width: 6.0));
+              }
+              visibleChips.add(overflowBuilder(overflowCount));
+            }
+            break;
+          }
+
+          // If this is the last item and it fit, no overflow needed
+          if (i == items.length - 1) {
+            break;
+          }
+        }
+
+        // Edge case: if nothing fit, at least show the overflow indicator
+        if (visibleChips.isEmpty && items.isNotEmpty) {
+          visibleChips.add(overflowBuilder(items.length));
+        }
+
+        return SizedBox(
+          height: 24.0,
+          child: Row(mainAxisSize: MainAxisSize.min, children: visibleChips),
+        );
+      },
     );
   }
 }

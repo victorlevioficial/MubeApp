@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -14,6 +15,7 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../utils/seed_database.dart';
 import '../data/auth_repository.dart';
 
 part 'login_screen.g.dart';
@@ -236,15 +238,115 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+                const SizedBox(height: 24),
                 Center(
-                  child: TextButton(
-                    onPressed: () => context.push('/gallery'),
-                    child: Text(
-                      'Ver Galeria (Debug)',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  child: Column(
+                    children: [
+                      TextButton(
+                        onPressed: () => context.push('/gallery'),
+                        child: Text(
+                          'Ver Galeria (Debug)',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (kDebugMode)
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              AppSnackBar.show(
+                                context,
+                                'Testando conexão...',
+                                isError: false,
+                              );
+                              await DatabaseSeeder.testConnection();
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  'Conexão OK!',
+                                  isError: false,
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  'Erro de Conexão: $e',
+                                  isError: true,
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('TESTAR CONEXÃO'),
+                        ),
+                      if (kDebugMode)
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              AppSnackBar.show(
+                                context,
+                                'Gerando usuários...',
+                                isError: false,
+                              );
+                              await DatabaseSeeder.seedUsers(count: 50);
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  '50 usuários gerados!',
+                                  isError: false,
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  'Erro no Seed: $e',
+                                  isError: true,
+                                );
+                              }
+                            }
+                          },
+                          child: const Text(
+                            'SEED DATABASE (50)',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      if (kDebugMode)
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              AppSnackBar.show(
+                                context,
+                                'Limpando usuários mock...',
+                                isError: false,
+                              );
+                              await DatabaseSeeder.clearMockUsers();
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  'Limpeza concluída!',
+                                  isError: false,
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                AppSnackBar.show(
+                                  context,
+                                  'Erro na Limpeza: $e',
+                                  isError: true,
+                                );
+                              }
+                            }
+                          },
+                          child: const Text(
+                            'LIMPAR MOCKS',
+                            style: TextStyle(color: Colors.orange),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],

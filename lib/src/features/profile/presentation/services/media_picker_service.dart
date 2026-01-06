@@ -20,7 +20,10 @@ class MediaPickerService {
 
   /// Pick and crop a photo with 1:1 aspect ratio.
   /// Returns null if user cancels.
-  Future<File?> pickAndCropPhoto(BuildContext context) async {
+  Future<File?> pickAndCropPhoto(
+    BuildContext context, {
+    bool lockAspectRatio = true,
+  }) async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 2000,
@@ -32,7 +35,9 @@ class MediaPickerService {
     // Crop to 1:1 square
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: picked.path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      aspectRatio: lockAspectRatio
+          ? const CropAspectRatio(ratioX: 1, ratioY: 1)
+          : null,
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Ajustar Foto',
@@ -40,12 +45,31 @@ class MediaPickerService {
           toolbarWidgetColor: AppColors.textPrimary,
           backgroundColor: AppColors.background,
           activeControlsWidgetColor: AppColors.primary,
-          lockAspectRatio: true,
+          lockAspectRatio: lockAspectRatio,
+          initAspectRatio: CropAspectRatioPreset.square,
+          aspectRatioPresets: lockAspectRatio
+              ? [CropAspectRatioPreset.square]
+              : [
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.square,
+                  CropAspectRatioPreset.ratio3x2,
+                  CropAspectRatioPreset.ratio4x3,
+                  CropAspectRatioPreset.ratio16x9,
+                ],
         ),
         IOSUiSettings(
           title: 'Ajustar Foto',
-          aspectRatioLockEnabled: true,
-          resetAspectRatioEnabled: false,
+          aspectRatioLockEnabled: lockAspectRatio,
+          resetAspectRatioEnabled: !lockAspectRatio,
+          aspectRatioPresets: lockAspectRatio
+              ? [CropAspectRatioPreset.square]
+              : [
+                  CropAspectRatioPreset.original,
+                  CropAspectRatioPreset.square,
+                  CropAspectRatioPreset.ratio3x2,
+                  CropAspectRatioPreset.ratio4x3,
+                  CropAspectRatioPreset.ratio16x9,
+                ],
         ),
       ],
     );

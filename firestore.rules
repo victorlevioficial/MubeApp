@@ -4,10 +4,22 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Allow read for any authenticated user (needed for feed/search)
-      allow read: if request.auth != null;
-      // Allow write only for account owner
-      allow write: if request.auth != null && request.auth.uid == userId;
+      // 1. LEITURA:
+      // - Autenticado: Pode ler qualquer usuário (para feed/busca).
+      // - Não-Autenticado: Pode ler APENAS usuários de teste (isMock == true).
+      allow read: if request.auth != null || resource.data.isMock == true;
+      
+      // 2. ESCRITA (Create/Update):
+      // - Autenticado: Pode escrever na própria conta.
+      // - Não-Autenticado: Pode criar/editar usuários de teste (isMock == true).
+      allow write: if (request.auth != null && request.auth.uid == userId) || 
+                   (request.resource.data.isMock == true);
+
+      // 3. DELEÇÃO:
+      // - Autenticado: Pode deletar própria conta.
+      // - Não-Autenticado: Pode deletar usuários de teste (isMock == true).
+      allow delete: if (request.auth != null && request.auth.uid == userId) || 
+                    (resource.data.isMock == true);
     }
 
     // Favorites collection
@@ -27,6 +39,11 @@ service cloud.firestore {
 
     match /deleted_users/{userId} {
        allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Collection for connectivity testing
+    match /test_connection/{document} {
+      allow read, write: if true;
     }
   }
 }

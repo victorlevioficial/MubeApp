@@ -184,7 +184,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   void _onItemTap(FeedItem item) {
-    context.push('/profile/${item.uid}');
+    context.push('/user/${item.uid}');
   }
 
   void _onSeeAllTap(FeedSectionType type) {

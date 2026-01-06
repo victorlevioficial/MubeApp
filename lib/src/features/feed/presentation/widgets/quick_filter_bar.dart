@@ -6,10 +6,10 @@ class QuickFilterBar extends StatelessWidget {
   final Function(String) onFilterSelected;
 
   const QuickFilterBar({
-    Key? key,
+    super.key,
     required this.selectedFilter,
     required this.onFilterSelected,
-  }) : super(key: key);
+  });
 
   final List<String> _filters = const [
     'Todos',

@@ -276,7 +276,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     });
 
     try {
-      final file = await _mediaPickerService.pickAndCropPhoto(context);
+      final file = await _mediaPickerService.pickAndCropPhoto(
+        context,
+        lockAspectRatio: false,
+      );
       if (file == null) {
         setState(() => _isUploadingMedia = false);
         return;

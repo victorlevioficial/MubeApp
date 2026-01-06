@@ -14,6 +14,7 @@ import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/domain/saved_address.dart';
 import '../features/settings/presentation/addresses_screen.dart';
@@ -188,6 +189,18 @@ List<RouteBase> _buildRoutes() {
         key: state.pageKey,
         child: const DesignSystemGalleryScreen(),
       ),
+    ),
+
+    // Public profile view
+    GoRoute(
+      path: '/user/:uid',
+      pageBuilder: (context, state) {
+        final uid = state.pathParameters['uid']!;
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: PublicProfileScreen(uid: uid),
+        );
+      },
     ),
   ];
 }

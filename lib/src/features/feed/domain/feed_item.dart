@@ -51,7 +51,7 @@ class FeedItem {
     final List<String> extractedSkills = [];
     List<String> extractedGenres = [];
 
-    final tipoPerfil = data['tipoPerfil'] as String? ?? 'profissional';
+    final tipoPerfil = data['tipo_perfil'] as String? ?? 'profissional';
 
     if (tipoPerfil == 'profissional') {
       // Professional: nomeArtistico, instrumentos, funcoes, generosMusicais

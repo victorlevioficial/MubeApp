@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/app_refresh_indicator.dart';
 import '../../../common_widgets/app_shimmer.dart';
@@ -12,7 +13,7 @@ import '../../auth/data/auth_repository.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
-import 'widgets/feed_card_full.dart';
+import 'widgets/feed_card_vertical.dart';
 
 /// Full-screen list view for a feed section with pagination.
 class FeedListScreen extends ConsumerStatefulWidget {
@@ -75,7 +76,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
 
     final feedRepo = ref.read(feedRepositoryProvider);
     final userLat = user.location?['lat'] as double?;
-    final userLong = user.location?['long'] as double?;
+    final userLong = user.location?['lng'] as double?;
 
     try {
       List<FeedItem> newItems;
@@ -169,7 +170,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
 
     final feedRepo = ref.read(feedRepositoryProvider);
     final userLat = user.location?['lat'] as double?;
-    final userLong = user.location?['long'] as double?;
+    final userLong = user.location?['lng'] as double?;
 
     try {
       String? type;
@@ -294,13 +295,11 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
                   }
 
                   final item = _items[index];
-                  return FeedCardFull(
+                  return FeedCardVertical(
                     item: item,
                     isFavorited: _favorites.contains(item.uid),
-                    onTap: () {
-                      // TODO: Navigate to public profile
-                    },
-                    onFavoriteTap: () => _toggleFavorite(item),
+                    onTap: () => context.push('/user/${item.uid}'),
+                    onFavorite: () => _toggleFavorite(item),
                   );
                 },
               ),

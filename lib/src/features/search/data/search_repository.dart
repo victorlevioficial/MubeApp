@@ -129,7 +129,7 @@ class SearchRepository {
 
     return allUsers.where((user) {
       final userLat = user.location?['lat'] as double?;
-      final userLng = user.location?['long'] as double?;
+      final userLng = user.location?['lng'] as double?;
       if (userLat == null || userLng == null) return false;
 
       // Approximate distance (Haversine would be more accurate)
