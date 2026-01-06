@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/data/auth_repository.dart';
 import 'feed_repository.dart';
@@ -30,36 +31,67 @@ class FavoritesState {
   bool isFavorited(String itemId) => favoriteIds.contains(itemId);
 }
 
-/// Notifier for managing favorites with Firebase integration
+/// Notifier for managing favorites with local cache + Firebase sync
 class FavoritesNotifier extends Notifier<FavoritesState> {
+  static const String _favoritesKey = 'user_favorites';
+
   @override
   FavoritesState build() {
-    // Auto-initialize when user is available
-    ref.listen(currentUserProfileProvider, (previous, next) {
-      if (next.value != null && previous?.value?.uid != next.value?.uid) {
-        initialize();
-      }
-    });
+    // CRITICAL: Load from cache FIRST - immediate
+    _loadFromCache();
+
+    // Sync with Firebase in BACKGROUND
+    _initializeFromFirebase();
 
     return const FavoritesState();
   }
 
-  /// Initialize favorites for the current user
-  Future<void> initialize() async {
+  /// Load favorites from local cache (SharedPreferences)
+  Future<void> _loadFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getStringList(_favoritesKey) ?? [];
+
+      if (cached.isNotEmpty) {
+        // CRITICAL: Update state immediately with cache
+        state = state.copyWith(favoriteIds: cached.toSet());
+      }
+    } catch (e) {
+      // Silent fail - cache is optional
+      print('Error loading favorites from cache: $e');
+    }
+  }
+
+  /// Save favorites to local cache
+  Future<void> _saveToCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_favoritesKey, state.favoriteIds.toList());
+    } catch (e) {
+      // Silent fail - cache is optional
+      print('Error saving favorites to cache: $e');
+    }
+  }
+
+  /// Initialize favorites from Firebase (background sync)
+  Future<void> _initializeFromFirebase() async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
-
-    state = state.copyWith(isLoading: true);
 
     try {
       final feedRepository = ref.read(feedRepositoryProvider);
       final favorites = await feedRepository.getUserFavorites(user.uid);
+
+      // Update state AND cache
       state = state.copyWith(
         favoriteIds: favorites,
         isLoading: false,
         error: null,
       );
+
+      await _saveToCache();
     } catch (e) {
+      // KEEP cache if Firebase fails - offline support
       state = state.copyWith(
         isLoading: false,
         error: 'Erro ao carregar favoritos: $e',
@@ -67,7 +99,7 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
     }
   }
 
-  /// Toggle favorite status for an item with optimistic update
+  /// Toggle favorite status with optimistic update + cache persistence
   Future<bool> toggleFavorite(String targetId) async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return false;
@@ -81,10 +113,12 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
     } else {
       newFavorites.add(targetId);
     }
+
+    // Update state IMMEDIATELY
     state = state.copyWith(favoriteIds: newFavorites);
 
-    // NOTE: FeedItemsNotifier listens to this provider and will sync automatically
-    // DO NOT call feedItemsProvider here to avoid circular dependency
+    // Always save to cache - ensures persistence
+    await _saveToCache();
 
     try {
       final feedRepository = ref.read(feedRepositoryProvider);
@@ -102,10 +136,11 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
       }
 
       state = state.copyWith(favoriteIds: confirmedFavorites, error: null);
+      await _saveToCache();
 
       return isFavorited;
     } catch (e) {
-      // Revert on error
+      // Revert on error but keep cache updated
       final revertedFavorites = Set<String>.from(state.favoriteIds);
       if (wasFavorited) {
         revertedFavorites.add(targetId);
@@ -117,6 +152,7 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
         favoriteIds: revertedFavorites,
         error: 'Erro ao favoritar: $e',
       );
+      await _saveToCache();
 
       return wasFavorited;
     }
@@ -126,12 +162,14 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
   void addFavorite(String itemId) {
     final newFavorites = Set<String>.from(state.favoriteIds)..add(itemId);
     state = state.copyWith(favoriteIds: newFavorites);
+    _saveToCache(); // Always save
   }
 
   /// Remove a favorite (used for external updates)
   void removeFavorite(String itemId) {
     final newFavorites = Set<String>.from(state.favoriteIds)..remove(itemId);
     state = state.copyWith(favoriteIds: newFavorites);
+    _saveToCache(); // Always save
   }
 
   /// Clear error
@@ -141,7 +179,7 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
 
   /// Refresh favorites from server
   Future<void> refresh() async {
-    await initialize();
+    await _initializeFromFirebase();
   }
 }
 

@@ -115,12 +115,16 @@ class FeedRepository {
         query = query.startAfterDocument(startAfter);
       }
 
+      // Load user's favorites FIRST
+      final favoriteIds = await _getUserFavoritesQuiet(currentUserId);
+
       final snapshot = await query.get();
       final items = _processSnapshot(
         snapshot,
         currentUserId,
         userLat,
         userLong,
+        favoriteIds: favoriteIds,
       );
 
       return PaginatedFeedResponse(
@@ -130,6 +134,16 @@ class FeedRepository {
       );
     } catch (_) {
       rethrow;
+    }
+  }
+
+  /// Helper to get user favorites without throwing errors
+  Future<Set<String>> _getUserFavoritesQuiet(String userId) async {
+    try {
+      return await getUserFavorites(userId);
+    } catch (e) {
+      print('DEBUG: Error loading favorites (non-fatal): $e');
+      return {};
     }
   }
 
@@ -354,20 +368,26 @@ class FeedRepository {
     return chunks;
   }
 
-  // Helper to process query snapshot
+  // Helper to process query snapshot with favorite status
   List<FeedItem> _processSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
     String currentUserId,
     double? userLat,
-    double? userLong,
-  ) {
+    double? userLong, {
+    Set<String>? favoriteIds,
+  }) {
     final items = <FeedItem>[];
 
     for (final doc in snapshot.docs) {
       if (doc.id == currentUserId) continue;
 
       final data = doc.data();
-      final item = FeedItem.fromFirestore(data, doc.id);
+      var item = FeedItem.fromFirestore(data, doc.id);
+
+      // Mark as favorited if in the favorites set
+      if (favoriteIds != null && favoriteIds.contains(item.uid)) {
+        item = item.copyWith(isFavorited: true);
+      }
 
       // Calculate distance if we have user location
       if (userLat != null && userLong != null && item.location != null) {
@@ -577,6 +597,9 @@ class FeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     try {
+      // Load user's favorites FIRST for proper isFavorited status
+      final favoriteIds = await _getUserFavoritesQuiet(currentUserId);
+
       var query = _firestore
           .collection('users')
           .where('cadastro_status', isEqualTo: 'concluido');
@@ -615,7 +638,13 @@ class FeedRepository {
       }
 
       final snapshot = await query.get();
-      var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+      var items = _processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
+        favoriteIds: favoriteIds,
+      );
 
       // Post-processing for "Perto de mim" specific filter
       if (filterType == 'Perto de mim' && userLat != null && userLong != null) {
