@@ -14,8 +14,9 @@ import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import 'widgets/feed_card_vertical.dart';
+import 'widgets/quick_filter_bar.dart';
 
-/// Screen displaying user's favorited profiles
+/// Screen displaying user's favorited profiles with quick filters
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -24,9 +25,11 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 }
 
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
-  List<FeedItem> _items = [];
+  List<FeedItem> _allItems = []; // All favorites
+  List<FeedItem> _filteredItems = []; // Filtered favorites
   bool _isLoading = false;
   String? _error;
+  String _currentFilter = 'Todos';
 
   @override
   void initState() {
@@ -58,15 +61,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         userId: user.uid,
         userLat: userLat,
         userLong: userLong,
-        limit: 50,
+        limit: 100,
       );
 
       if (mounted) {
-        // Register items in centralized provider for reactive updates
         ref.read(feedItemsProvider.notifier).loadItems(items);
 
         setState(() {
-          _items = items;
+          _allItems = items;
+          _applyFilter();
           _isLoading = false;
         });
       }
@@ -77,6 +80,36 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _onFilterChanged(String filter) {
+    if (_currentFilter == filter) return;
+    setState(() {
+      _currentFilter = filter;
+      _applyFilter();
+    });
+  }
+
+  void _applyFilter() {
+    if (_currentFilter == 'Todos') {
+      _filteredItems = List.from(_allItems);
+    } else {
+      _filteredItems = _allItems.where((item) {
+        switch (_currentFilter) {
+          case 'Músicos':
+            return item.tipoPerfil == 'profissional';
+          case 'Bandas':
+            return item.tipoPerfil == 'banda';
+          case 'Estúdios':
+            return item.tipoPerfil == 'estudio';
+          case 'Perto de mim':
+            // Show items with distance <= 50km
+            return item.distanceKm != null && item.distanceKm! <= 50;
+          default:
+            return true;
+        }
+      }).toList();
     }
   }
 
@@ -91,12 +124,28 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             ? 'Meus Favoritos ($favoritesCount)'
             : 'Meus Favoritos',
       ),
-      body: AppRefreshIndicator(onRefresh: _loadFavorites, child: _buildBody()),
+      body: Column(
+        children: [
+          // Quick Filter Bar
+          QuickFilterBar(
+            selectedFilter: _currentFilter,
+            onFilterSelected: _onFilterChanged,
+          ),
+
+          // Content
+          Expanded(
+            child: AppRefreshIndicator(
+              onRefresh: _loadFavorites,
+              child: _buildBody(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBody() {
-    if (_isLoading && _items.isEmpty) {
+    if (_isLoading && _allItems.isEmpty) {
       return _buildLoadingSkeleton();
     }
 
@@ -132,7 +181,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       );
     }
 
-    if (_items.isEmpty) {
+    if (_allItems.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -179,14 +228,44 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       );
     }
 
+    // Filtered empty state
+    if (_filteredItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_list,
+              size: 64,
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            Text(
+              'Nenhum favorito nesta categoria',
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            Text(
+              'Tente outro filtro',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      itemCount: _items.length,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: _filteredItems.length,
       itemBuilder: (context, index) {
-        final item = _items[index];
+        final item = _filteredItems[index];
 
         return FeedCardVertical(
           item: item,
@@ -198,20 +277,20 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   Widget _buildLoadingSkeleton() {
     return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.s16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: 6,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: AppSpacing.s16),
-          padding: const EdgeInsets.all(AppSpacing.s16),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
-              AppShimmer.circle(size: 56),
-              const SizedBox(width: AppSpacing.s16),
+              AppShimmer.circle(size: 80),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,12 +298,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     AppShimmer.text(width: 140, height: 16),
                     const SizedBox(height: 8),
                     AppShimmer.text(width: 100, height: 12),
-                    const SizedBox(height: 4),
-                    AppShimmer.text(width: 80, height: 12),
+                    const SizedBox(height: 6),
+                    AppShimmer.text(width: 180, height: 24),
                   ],
                 ),
               ),
-              AppShimmer.circle(size: 32),
+              AppShimmer.circle(size: 24),
             ],
           ),
         );

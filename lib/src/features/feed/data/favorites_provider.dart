@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../auth/data/auth_repository.dart';
+import 'feed_items_provider.dart';
 import 'feed_repository.dart';
 
 /// State for favorites management
@@ -31,145 +32,141 @@ class FavoritesState {
   bool isFavorited(String itemId) => favoriteIds.contains(itemId);
 }
 
-/// Notifier for managing favorites with local cache + Firebase sync
+/// Notifier with CACHE-FIRST approach - cache is the absolute truth
 class FavoritesNotifier extends Notifier<FavoritesState> {
-  static const String _favoritesKey = 'user_favorites';
+  String _cacheKey(String userId) => 'favorites_$userId';
 
   @override
   FavoritesState build() {
-    // CRITICAL: Load from cache FIRST - immediate
+    // Load from cache immediately - this is the source of truth
     _loadFromCache();
-
-    // Sync with Firebase in BACKGROUND
-    _initializeFromFirebase();
-
+    // Sync to Firebase in background (fire and forget)
+    _syncToFirebase();
     return const FavoritesState();
   }
 
-  /// Load favorites from local cache (SharedPreferences)
+  /// Load from cache - this is the ONLY source of truth for UI
   Future<void> _loadFromCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cached = prefs.getStringList(_favoritesKey) ?? [];
+      final user = ref.read(currentUserProfileProvider).value;
+      if (user == null) return;
 
-      if (cached.isNotEmpty) {
-        // CRITICAL: Update state immediately with cache
-        state = state.copyWith(favoriteIds: cached.toSet());
-      }
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getStringList(_cacheKey(user.uid)) ?? [];
+
+      state = state.copyWith(favoriteIds: cached.toSet(), isLoading: false);
     } catch (e) {
-      // Silent fail - cache is optional
-      print('Error loading favorites from cache: $e');
+      print('Error loading favorites cache: $e');
+      state = state.copyWith(isLoading: false);
     }
   }
 
-  /// Save favorites to local cache
-  Future<void> _saveToCache() async {
+  /// Save to cache - immediate and synchronous
+  Future<void> _saveToCache(Set<String> favorites) async {
     try {
+      final user = ref.read(currentUserProfileProvider).value;
+      if (user == null) return;
+
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_favoritesKey, state.favoriteIds.toList());
+      await prefs.setStringList(_cacheKey(user.uid), favorites.toList());
     } catch (e) {
-      // Silent fail - cache is optional
-      print('Error saving favorites to cache: $e');
+      print('Error saving to cache: $e');
     }
   }
 
-  /// Initialize favorites from Firebase (background sync)
-  Future<void> _initializeFromFirebase() async {
+  /// Sync to Firebase in background - never overwrites cache
+  Future<void> _syncToFirebase() async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
 
     try {
       final feedRepository = ref.read(feedRepositoryProvider);
-      final favorites = await feedRepository.getUserFavorites(user.uid);
 
-      // Update state AND cache
-      state = state.copyWith(
-        favoriteIds: favorites,
-        isLoading: false,
-        error: null,
-      );
+      // Get Firebase favorites
+      final firebaseFavorites = await feedRepository.getUserFavorites(user.uid);
 
-      await _saveToCache();
+      // Merge with cache (cache wins on conflicts)
+      final merged = Set<String>.from(state.favoriteIds)
+        ..addAll(firebaseFavorites);
+
+      // Only update if we found NEW favorites in Firebase
+      if (merged.length > state.favoriteIds.length) {
+        state = state.copyWith(favoriteIds: merged);
+        await _saveToCache(merged);
+      }
     } catch (e) {
-      // KEEP cache if Firebase fails - offline support
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Erro ao carregar favoritos: $e',
-      );
+      print('Firebase sync failed (non-fatal): $e');
+      // Don't update state - cache is truth
     }
   }
 
-  /// Toggle favorite status with optimistic update + cache persistence
+  /// Toggle favorite - cache first, Firebase second
   Future<bool> toggleFavorite(String targetId) async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return false;
 
     final wasFavorited = state.isFavorited(targetId);
-
-    // Optimistic update for favorites set
     final newFavorites = Set<String>.from(state.favoriteIds);
+
+    // 1. Update cache FIRST
     if (wasFavorited) {
       newFavorites.remove(targetId);
     } else {
       newFavorites.add(targetId);
     }
 
-    // Update state IMMEDIATELY
+    // 2. Update state immediately
     state = state.copyWith(favoriteIds: newFavorites);
 
-    // Always save to cache - ensures persistence
-    await _saveToCache();
+    // 3. Save to cache immediately
+    await _saveToCache(newFavorites);
 
+    // 4. Update feed_items_provider counter for real-time UI
+    try {
+      ref
+          .read(feedItemsProvider.notifier)
+          .updateItemFavoriteStatus(
+            targetId,
+            isFavorited: !wasFavorited,
+            incrementCount: wasFavorited ? -1 : 1,
+          );
+    } catch (e) {
+      print('Error updating feed item counter: $e');
+    }
+
+    // 5. Sync to Firebase in background (fire and forget)
+    _syncSingleToFirebase(targetId, !wasFavorited, user.uid);
+
+    return !wasFavorited;
+  }
+
+  /// Sync single item to Firebase - background only
+  Future<void> _syncSingleToFirebase(
+    String targetId,
+    bool shouldFavorite,
+    String userId,
+  ) async {
     try {
       final feedRepository = ref.read(feedRepositoryProvider);
-      final isFavorited = await feedRepository.toggleFavorite(
-        userId: user.uid,
-        targetId: targetId,
-      );
-
-      // Confirm the state matches server response
-      final confirmedFavorites = Set<String>.from(state.favoriteIds);
-      if (isFavorited && !confirmedFavorites.contains(targetId)) {
-        confirmedFavorites.add(targetId);
-      } else if (!isFavorited && confirmedFavorites.contains(targetId)) {
-        confirmedFavorites.remove(targetId);
-      }
-
-      state = state.copyWith(favoriteIds: confirmedFavorites, error: null);
-      await _saveToCache();
-
-      return isFavorited;
+      await feedRepository.toggleFavorite(userId: userId, targetId: targetId);
     } catch (e) {
-      // Revert on error but keep cache updated
-      final revertedFavorites = Set<String>.from(state.favoriteIds);
-      if (wasFavorited) {
-        revertedFavorites.add(targetId);
-      } else {
-        revertedFavorites.remove(targetId);
-      }
-
-      state = state.copyWith(
-        favoriteIds: revertedFavorites,
-        error: 'Erro ao favoritar: $e',
-      );
-      await _saveToCache();
-
-      return wasFavorited;
+      print('Firebase sync failed (non-fatal): $e');
+      // Don't revert - cache is truth
     }
   }
 
-  /// Add a favorite (used for external updates)
+  /// Add favorite (cache first)
   void addFavorite(String itemId) {
     final newFavorites = Set<String>.from(state.favoriteIds)..add(itemId);
     state = state.copyWith(favoriteIds: newFavorites);
-    _saveToCache(); // Always save
+    _saveToCache(newFavorites);
   }
 
-  /// Remove a favorite (used for external updates)
+  /// Remove favorite (cache first)
   void removeFavorite(String itemId) {
     final newFavorites = Set<String>.from(state.favoriteIds)..remove(itemId);
     state = state.copyWith(favoriteIds: newFavorites);
-    _saveToCache(); // Always save
+    _saveToCache(newFavorites);
   }
 
   /// Clear error
@@ -177,9 +174,9 @@ class FavoritesNotifier extends Notifier<FavoritesState> {
     state = state.copyWith(error: null);
   }
 
-  /// Refresh favorites from server
+  /// Force refresh from cache (never from Firebase)
   Future<void> refresh() async {
-    await _initializeFromFirebase();
+    await _loadFromCache();
   }
 }
 

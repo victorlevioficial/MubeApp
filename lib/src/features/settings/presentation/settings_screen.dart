@@ -47,6 +47,12 @@ class SettingsScreen extends ConsumerWidget {
           ),
 
           SettingsItem(
+            icon: Icons.favorite_outline,
+            title: 'Meus Favoritos',
+            onTap: () => context.push('/favorites'),
+          ),
+
+          SettingsItem(
             icon: Icons.lock_outline,
             title: 'Alterar Senha',
             onTap: () {

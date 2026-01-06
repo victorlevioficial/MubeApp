@@ -6,136 +6,52 @@ import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../data/favorites_provider.dart';
-import '../../data/feed_repository.dart';
+import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'animated_favorite_button.dart';
 
 /// A vertical feed card that reactively updates its favorite status.
-/// Uses ConsumerWidget with ref.select() for granular rebuilds.
-/// A vertical feed card that manages its own favorite state locally.
-class FeedCardVertical extends ConsumerStatefulWidget {
+/// Fully reactive - watches favoritesProvider for real-time updates.
+class FeedCardVertical extends ConsumerWidget {
   final FeedItem item;
   final VoidCallback onTap;
 
   const FeedCardVertical({super.key, required this.item, required this.onTap});
 
-  @override
-  ConsumerState<FeedCardVertical> createState() => _FeedCardVerticalState();
-}
-
-class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
-  late bool _isFavorited;
-  late int _favoriteCount;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize state from the passed item
-    _isFavorited = widget.item.isFavorited;
-    _favoriteCount = widget.item.favoriteCount;
-  }
-
-  @override
-  void didUpdateWidget(FeedCardVertical oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // If the parent passes a new item with DIFFERENT favorite status, sync it.
-    // This handles scenarios where the parent list refreshes from server.
-    if (widget.item.isFavorited != oldWidget.item.isFavorited ||
-        widget.item.favoriteCount != oldWidget.item.favoriteCount) {
-      // Only update if we are not currently toggling to avoid glitches
-      if (!_isLoading) {
-        _isFavorited = widget.item.isFavorited;
-        _favoriteCount = widget.item.favoriteCount;
-      }
-    }
-  }
-
-  /// Toggle favorite status locally and sync with server
-  Future<void> _toggleFavorite() async {
-    if (_isLoading) return;
-
+  /// Toggle favorite status
+  Future<void> _toggleFavorite(WidgetRef ref, BuildContext context) async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
 
-    // 1. Optimistic Update
-    setState(() {
-      _isLoading = true;
-      _isFavorited = !_isFavorited;
-      _favoriteCount += _isFavorited ? 1 : -1;
-      // Clamp to prevent negative counts
-      if (_favoriteCount < 0) _favoriteCount = 0;
-    });
-
     try {
-      // 2. Server Sync
-      final feedRepository = ref.read(feedRepositoryProvider);
-
-      // We don't need the result bool because we trust our optimistic update
-      // unless it throws an error.
-      await feedRepository.toggleFavorite(
-        userId: user.uid,
-        targetId: widget.item.uid,
-      );
-
-      // Also update the centralized favorites provider list so other screens allow consistency
-      // (Like the favorites screen list)
-      final favoritesNotifier = ref.read(favoritesProvider.notifier);
-      if (_isFavorited) {
-        favoritesNotifier.addFavorite(widget.item.uid);
-      } else {
-        favoritesNotifier.removeFavorite(widget.item.uid);
-      }
+      // Toggle using favorites provider
+      await ref.read(favoritesProvider.notifier).toggleFavorite(item.uid);
     } catch (e) {
-      // 3. Revert on Error
-      print('DEBUG: Erro ao favoritar, revertendo UI: $e');
-      if (mounted) {
-        setState(() {
-          _isFavorited = !_isFavorited; // Flip back
-          _favoriteCount += _isFavorited ? 1 : -1; // Revert count
-        });
-
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Erro ao atualizar favorito. Tente novamente.'),
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
   /// Returns true if there's distance info to display.
-  bool get _hasLocationInfo => widget.item.distanceText.isNotEmpty;
+  bool get _hasLocationInfo => item.distanceText.isNotEmpty;
 
   @override
-  Widget build(BuildContext context) {
-    // We intentionally IGNORE generic providers here to avoid the complexity that caused bugs.
-    // This widget is now self-contained for its interaction logic.
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ✅ WATCH favorites provider - rebuilds when favorites change
+    final isFavorited = ref.watch(
+      favoritesProvider.select((state) => state.isFavorited(item.uid)),
+    );
 
-    // However, we initial check if the global favorites provider knows this item status
-    // This is useful for initial load consistency if the item came from a non-user-specific query
-    final globalIsFavorited = ref
-        .read(favoritesProvider)
-        .isFavorited(widget.item.uid);
-    if (!_isLoading &&
-        _isFavorited != globalIsFavorited &&
-        widget.item.isFavorited != globalIsFavorited) {
-      // If local state differs from global source of truth, and we aren't loading, sync once.
-      // This handles the "Hot Reload" case where global favorites load late.
-      _isFavorited = globalIsFavorited;
-
-      // Note: We can't easily sync count from global provider as it only stores IDs,
-      // so we rely on the item's count or our local modifications.
-    }
+    // ✅ WATCH favoriteCount from feed_items_provider - updates in real-time
+    final favoriteCount = ref.watch(feedItemFavoriteCountProvider(item.uid));
 
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(12),
@@ -151,11 +67,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Left: Large Avatar
-            UserAvatar(
-              photoUrl: widget.item.foto,
-              name: widget.item.displayName,
-              size: 80,
-            ),
+            UserAvatar(photoUrl: item.foto, name: item.displayName, size: 80),
             const SizedBox(width: 12),
 
             // Middle: Info Column
@@ -165,7 +77,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                 children: [
                   // 1. Name (Bold White) - TOP Priority
                   Text(
-                    widget.item.displayName,
+                    item.displayName,
                     style: AppTypography.bodyLarge.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -190,7 +102,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                           const SizedBox(width: 2),
                           Expanded(
                             child: Text(
-                              widget.item.distanceText,
+                              item.distanceText,
                               style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
@@ -207,20 +119,20 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                     const SizedBox(height: 4),
 
                   // 3. Skills Chips (Solid gray background) - Single line
-                  if (widget.item.skills.isNotEmpty)
+                  if (item.skills.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: _SingleLineChipList(
-                        items: widget.item.skills,
+                        items: item.skills,
                         chipBuilder: _buildSkillChip,
                         overflowBuilder: (count) => _buildSkillChip('+$count'),
                       ),
                     ),
 
                   // 4. Genres Chips (Solid primary color) - Single line
-                  if (widget.item.generosMusicais.isNotEmpty)
+                  if (item.generosMusicais.isNotEmpty)
                     _SingleLineChipList(
-                      items: widget.item.generosMusicais,
+                      items: item.generosMusicais,
                       chipBuilder: _buildGenreChip,
                       overflowBuilder: (count) => _buildGenreChip('+$count'),
                     ),
@@ -228,20 +140,20 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
               ),
             ),
 
-            // Right: Like Button (Top Aligned) - Uses local state
+            // Right: Like Button (Top Aligned) - Reactive to provider
             Column(
               children: [
                 AnimatedFavoriteButton(
-                  isFavorited: _isFavorited,
-                  onTap: _toggleFavorite,
+                  isFavorited: isFavorited,
+                  onTap: () => _toggleFavorite(ref, context),
                   size: 24,
                   favoriteColor: AppColors.primary,
                   defaultColor: Colors.white54,
                 ),
-                if (_favoriteCount > 0) ...[
+                if (favoriteCount > 0) ...[
                   const SizedBox(height: 2),
                   Text(
-                    '$_favoriteCount',
+                    '$favoriteCount',
                     style: const TextStyle(color: Colors.white54, fontSize: 10),
                   ),
                 ],

@@ -13,10 +13,10 @@ import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
-import 'widgets/feed_card_vertical.dart';
 import 'widgets/feed_section_widget.dart';
 import 'widgets/feed_skeleton.dart';
 import 'widgets/quick_filter_bar.dart';
+import 'widgets/vertical_feed_list.dart';
 
 /// Main feed/home screen with horizontal sections and vertical infinite list.
 class FeedScreen extends ConsumerStatefulWidget {
@@ -326,47 +326,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   ),
                 ),
 
-                // Vertical Main Feed
-                if (_mainItems.isEmpty && _isLoadingMain)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  )
-                else if (_mainItems.isEmpty && !_isLoadingMain)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Center(
-                        child: Text(
-                          'Nenhum resultado encontrado.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      if (index == _mainItems.length) {
-                        // Bottom loader
-                        return _hasMoreMain
-                            ? const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              )
-                            : const SizedBox(height: 80); // Bottom padding
-                      }
-                      final item = _mainItems[index];
-                      return FeedCardVertical(
-                        item: item,
-                        onTap: () => _onItemTap(item),
-                      );
-                    }, childCount: _mainItems.length + 1),
-                  ),
+                // Vertical Main Feed - Using reusable widget
+                VerticalFeedList(
+                  items: _mainItems,
+                  isLoading: _isLoadingMain,
+                  hasMore: _hasMoreMain,
+                  onLoadMore: _loadMoreMainFeed,
+                  useSliverMode: true,
+                  onItemTap: _onItemTap,
+                ),
               ],
             ],
           ),

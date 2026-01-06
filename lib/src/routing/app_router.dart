@@ -7,6 +7,7 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/feed/domain/feed_section.dart';
+import '../features/feed/presentation/favorites_screen.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
@@ -180,6 +181,13 @@ List<RouteBase> _buildRoutes() {
       path: '/search',
       pageBuilder: (context, state) =>
           NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
+    ),
+
+    // Favorites screen
+    GoRoute(
+      path: '/favorites',
+      pageBuilder: (context, state) =>
+          NoTransitionPage(key: state.pageKey, child: const FavoritesScreen()),
     ),
 
     // Dev gallery (design system showcase)
