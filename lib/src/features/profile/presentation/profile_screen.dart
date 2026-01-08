@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/app_shimmer.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../design_system/foundations/app_colors.dart';
@@ -22,6 +23,11 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: MubeAppBar(
+        title: 'Meu Perfil',
+        showBackButton: true,
+        onBackPressed: () => context.go('/feed'),
+      ),
       body: userAsync.when(
         data: (user) {
           if (user == null) {

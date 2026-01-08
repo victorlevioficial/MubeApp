@@ -7,6 +7,8 @@ import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/feed/domain/feed_section.dart';
+import '../features/chat/presentation/chat_screen.dart';
+import '../features/chat/presentation/conversations_screen.dart';
 import '../features/feed/presentation/favorites_screen.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
@@ -121,24 +123,15 @@ List<RouteBase> _buildRoutes() {
             ),
           ],
         ),
-        // Profile tab
+        // Chat tab (substituiu Perfil)
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: RoutePaths.profile,
+              path: RoutePaths.chat,
               pageBuilder: (context, state) => NoTransitionPage(
                 key: state.pageKey,
-                child: const ProfileScreen(),
+                child: const ConversationsScreen(),
               ),
-              routes: [
-                GoRoute(
-                  path: 'edit',
-                  pageBuilder: (context, state) => NoTransitionPage(
-                    key: state.pageKey,
-                    child: const EditProfileScreen(),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -199,6 +192,22 @@ List<RouteBase> _buildRoutes() {
       ),
     ),
 
+    // Own profile view
+    GoRoute(
+      path: '/profile',
+      pageBuilder: (context, state) =>
+          NoTransitionPage(key: state.pageKey, child: const ProfileScreen()),
+      routes: [
+        GoRoute(
+          path: 'edit',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const EditProfileScreen(),
+          ),
+        ),
+      ],
+    ),
+
     // Public profile view
     GoRoute(
       path: '/user/:uid',
@@ -207,6 +216,33 @@ List<RouteBase> _buildRoutes() {
         return NoTransitionPage(
           key: state.pageKey,
           child: PublicProfileScreen(uid: uid),
+        );
+      },
+    ),
+
+    // Chat screen with conversation
+    GoRoute(
+      path: '/chat/:conversationId',
+      pageBuilder: (context, state) {
+        final conversationId = state.pathParameters['conversationId']!;
+        final extraData = state.extra;
+
+        // Safe casting with fallback
+        String otherUserId = '';
+        String otherUserName = '';
+
+        if (extraData is Map<String, dynamic>) {
+          otherUserId = extraData['otherUserId'] as String? ?? '';
+          otherUserName = extraData['otherUserName'] as String? ?? '';
+        }
+
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: ChatScreen(
+            conversationId: conversationId,
+            otherUserId: otherUserId,
+            otherUserName: otherUserName,
+          ),
         );
       },
     ),

@@ -161,3 +161,11 @@ Stream<AppUser?> currentUserProfile(Ref ref) {
     error: (_, __) => const Stream.empty(),
   );
 }
+
+/// Stream provider for any user's profile data by UID.
+///
+/// Returns `null` if the profile doesn't exist.
+@riverpod
+Stream<AppUser?> userProfile(Ref ref, String uid) {
+  return ref.watch(authRepositoryProvider).watchUser(uid);
+}

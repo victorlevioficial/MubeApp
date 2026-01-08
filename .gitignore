@@ -48,6 +48,6 @@ app.*.map.json
 *.zip
 
 # Sensitive Credential Files
-lib/firebase_options.dart
+# lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist

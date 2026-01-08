@@ -10,8 +10,11 @@ import '../../../common_widgets/user_avatar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../routing/route_paths.dart';
+import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../chat/data/chat_providers.dart';
 import '../../feed/data/favorites_provider.dart';
 import '../domain/media_item.dart';
 import 'widgets/public_gallery_grid.dart';
@@ -119,14 +122,70 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
   }
 
-  void _openChat() {
-    // TODO: Implement chat navigation
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chat em breve!'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
+  String _getDisplayName(AppUser user) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return user.dadosProfissional?['nomeArtistico'] as String? ??
+            user.nome ??
+            'Usuário';
+      case AppUserType.band:
+        return user.dadosBanda?['nome'] as String? ?? user.nome ?? 'Banda';
+      case AppUserType.studio:
+        return user.dadosEstudio?['nome'] as String? ?? user.nome ?? 'Estúdio';
+      case AppUserType.contractor:
+        return user.dadosContratante?['nome'] as String? ??
+            user.nome ??
+            'Contratante';
+      default:
+        return user.nome ?? 'Usuário';
+    }
+  }
+
+  Future<void> _openChat() async {
+    final user = _user;
+    if (user == null) return;
+
+    try {
+      final otherUserName = _getDisplayName(user);
+      final currentUserProfile = ref.read(currentUserProfileProvider).value;
+
+      // Debug logs para diagnosticar problemas de permissão
+      final authUid = ref.read(authRepositoryProvider).currentUser?.uid;
+      print('DEBUG PublicProfileScreen: currentUser uid = $authUid');
+      print('DEBUG PublicProfileScreen: starting conversation with otherUserId=${widget.uid}, otherUserName=$otherUserName');
+
+      final conversationId = await ref
+          .read(chatRepositoryProvider)
+          .getOrCreateConversation(
+            otherUserId: widget.uid,
+            otherUserName: otherUserName,
+            otherUserPhoto: user.foto,
+            currentUserName: currentUserProfile?.nome ?? 'Usuário Mube',
+            currentUserPhoto: currentUserProfile?.foto,
+          );
+
+      print('DEBUG PublicProfileScreen: getOrCreateConversation returned conversationId=$conversationId');
+
+      if (mounted) {
+        context.push(
+          '${RoutePaths.chat}/$conversationId',
+          extra: {
+            'otherUserId': widget.uid,
+            'otherUserName': otherUserName,
+            'otherUserPhoto': user.foto,
+          }.cast<String, String?>(),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao iniciar conversa: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -560,19 +619,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       builder: (context) =>
           _MediaViewerDialog(items: _galleryItems, initialIndex: initialIndex),
     );
-  }
-
-  String _getDisplayName(AppUser user) {
-    switch (user.tipoPerfil) {
-      case AppUserType.professional:
-        return user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '';
-      case AppUserType.band:
-        return user.dadosBanda?['nomeBanda'] ?? user.nome ?? '';
-      case AppUserType.studio:
-        return user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '';
-      default:
-        return user.nome ?? '';
-    }
   }
 }
 

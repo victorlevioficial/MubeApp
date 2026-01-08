@@ -5,6 +5,9 @@
     "storage": {
         "rules": "storage.rules"
     },
+    "database": {
+        "rules": "firebase-rtdb-rules.json"
+    },
     "flutter": {
         "platforms": {
             "android": {

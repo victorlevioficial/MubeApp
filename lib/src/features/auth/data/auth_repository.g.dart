@@ -137,3 +137,92 @@ final class CurrentUserProfileProvider
 
 String _$currentUserProfileHash() =>
     r'f6ed12318d1ba006626db2c5dc3f01503cfbef19';
+
+/// Stream provider for any user's profile data by UID.
+///
+/// Returns `null` if the profile doesn't exist.
+
+@ProviderFor(userProfile)
+const userProfileProvider = UserProfileFamily._();
+
+/// Stream provider for any user's profile data by UID.
+///
+/// Returns `null` if the profile doesn't exist.
+
+final class UserProfileProvider
+    extends
+        $FunctionalProvider<AsyncValue<AppUser?>, AppUser?, Stream<AppUser?>>
+    with $FutureModifier<AppUser?>, $StreamProvider<AppUser?> {
+  /// Stream provider for any user's profile data by UID.
+  ///
+  /// Returns `null` if the profile doesn't exist.
+  const UserProfileProvider._({
+    required UserProfileFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'userProfileProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$userProfileHash();
+
+  @override
+  String toString() {
+    return r'userProfileProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<AppUser?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<AppUser?> create(Ref ref) {
+    final argument = this.argument as String;
+    return userProfile(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is UserProfileProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$userProfileHash() => r'571e15b91605d7d1d378d77ba6e5de5f06920adb';
+
+/// Stream provider for any user's profile data by UID.
+///
+/// Returns `null` if the profile doesn't exist.
+
+final class UserProfileFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<AppUser?>, String> {
+  const UserProfileFamily._()
+    : super(
+        retry: null,
+        name: r'userProfileProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Stream provider for any user's profile data by UID.
+  ///
+  /// Returns `null` if the profile doesn't exist.
+
+  UserProfileProvider call(String uid) =>
+      UserProfileProvider._(argument: uid, from: this);
+
+  @override
+  String toString() => r'userProfileProvider';
+}
