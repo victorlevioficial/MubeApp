@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_back_button.dart';
 import '../../../common_widgets/app_snackbar.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
@@ -141,23 +141,13 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        leading: const AppBackButton(),
-        title: Text(
-          'Meus Endereços',
-          style: AppTypography.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-      ),
+      appBar: const MubeAppBar(title: 'Meus Endereços'),
       body: addresses.isEmpty
           ? _buildEmptyState()
           : ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.s16),
               itemCount: addresses.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (context, index) =>
                   const SizedBox(height: AppSpacing.s12),
               itemBuilder: (context, index) {
                 final address = addresses[index];
@@ -191,7 +181,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
             Icon(
               Icons.location_off_outlined,
               size: 64,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: AppSpacing.s16),
             Text(

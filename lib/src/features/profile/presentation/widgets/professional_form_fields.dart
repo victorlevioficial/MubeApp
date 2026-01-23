@@ -114,7 +114,7 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
         // --- Categories and Specific Questions ---
         _buildTagSelector(
           'Categorias',
-          PROFESSIONAL_CATEGORIES.map((e) => e['id'] as String).toList(),
+          professionalCategories.map((e) => e['id'] as String).toList(),
           widget.selectedCategories,
         ),
 
@@ -154,7 +154,7 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
           const SizedBox(height: AppSpacing.s24),
           _buildTagSelector(
             'Instrumentos',
-            INSTRUMENTS,
+            instruments,
             widget.selectedInstruments,
           ),
           const SizedBox(height: AppSpacing.s16),
@@ -201,13 +201,13 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
           const SizedBox(height: AppSpacing.s24),
           _buildTagSelector(
             'Funções Técnicas',
-            CREW_ROLES,
+            crewRoles,
             widget.selectedRoles,
           ),
         ],
 
         const SizedBox(height: AppSpacing.s24),
-        _buildTagSelector('Gêneros Musicais', GENRES, widget.selectedGenres),
+        _buildTagSelector('Gêneros Musicais', genres, widget.selectedGenres),
       ],
     );
   }
@@ -243,7 +243,7 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
                   selectedItems: selected,
                   allowMultiple: true,
                   itemLabelBuilder: (item) {
-                    final cat = PROFESSIONAL_CATEGORIES.firstWhere(
+                    final cat = professionalCategories.firstWhere(
                       (e) => e['id'] == item,
                       orElse: () => <String, Object>{'label': item},
                     );
@@ -267,7 +267,7 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
               runSpacing: 6,
               children: selected.map((item) {
                 String display = item;
-                final cat = PROFESSIONAL_CATEGORIES.firstWhere(
+                final cat = professionalCategories.firstWhere(
                   (e) => e['id'] == item,
                   orElse: () => <String, Object>{'label': item},
                 );

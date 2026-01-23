@@ -6,6 +6,8 @@ import '../domain/app_user.dart';
 
 part 'auth_repository.g.dart';
 
+import '../../../constants/firestore_constants.dart';
+
 /// Manages user authentication and Firestore profile data.
 ///
 /// This repository handles:
@@ -64,11 +66,11 @@ class AuthRepository {
       final appUser = AppUser(
         uid: user.uid,
         email: email,
-        cadastroStatus: 'tipo_pendente',
+        cadastroStatus: RegistrationStatus.pending,
         createdAt: FieldValue.serverTimestamp(),
       );
 
-      await _firestore.collection('users').doc(user.uid).set(appUser.toJson());
+      await _firestore.collection(FirestoreCollections.users).doc(user.uid).set(appUser.toJson());
     }
   }
 
@@ -82,7 +84,7 @@ class AuthRepository {
   /// Returns a stream that emits [AppUser] when data changes,
   /// or `null` if the document doesn't exist.
   Stream<AppUser?> watchUser(String uid) {
-    return _firestore.collection('users').doc(uid).snapshots().map((snapshot) {
+    return _firestore.collection(FirestoreCollections.users).doc(uid).snapshots().map((snapshot) {
       if (snapshot.exists && snapshot.data() != null) {
         return AppUser.fromJson(snapshot.data()!);
       }
@@ -95,7 +97,7 @@ class AuthRepository {
   /// Uses merge mode to only update provided fields.
   Future<void> updateUser(AppUser user) async {
     await _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(user.uid)
         .set(user.toFirestore(), SetOptions(merge: true));
   }
@@ -115,15 +117,15 @@ class AuthRepository {
     if (user == null) return;
 
     // Archive user data
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userDoc = await _firestore.collection(FirestoreCollections.users).doc(user.uid).get();
     if (userDoc.exists && userDoc.data() != null) {
       final userData = userDoc.data()!;
-      userData['deletedAt'] = FieldValue.serverTimestamp();
-      await _firestore.collection('deleted_users').doc(user.uid).set(userData);
+      userData[FirestoreFields.deletedAt] = FieldValue.serverTimestamp();
+      await _firestore.collection(FirestoreCollections.deletedUsers).doc(user.uid).set(userData);
     }
 
     // Delete from active collection
-    await _firestore.collection('users').doc(user.uid).delete();
+    await _firestore.collection(FirestoreCollections.users).doc(user.uid).delete();
 
     // Delete auth account (may throw requires-recent-login)
     await user.delete();
@@ -158,14 +160,6 @@ Stream<AppUser?> currentUserProfile(Ref ref) {
       return ref.watch(authRepositoryProvider).watchUser(user.uid);
     },
     loading: () => const Stream.empty(),
-    error: (_, __) => const Stream.empty(),
+    error: (_, _) => const Stream.empty(),
   );
-}
-
-/// Stream provider for any user's profile data by UID.
-///
-/// Returns `null` if the profile doesn't exist.
-@riverpod
-Stream<AppUser?> userProfile(Ref ref, String uid) {
-  return ref.watch(authRepositoryProvider).watchUser(uid);
 }

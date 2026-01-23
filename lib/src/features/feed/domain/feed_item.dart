@@ -1,65 +1,27 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'feed_item.freezed.dart';
+
 /// Model representing a user profile item in the feed.
-class FeedItem {
-  final String uid;
-  final String nome;
-  final String? nomeArtistico;
-  final String? foto;
-  final String? categoria;
-  final List<String> generosMusicais;
-  final String tipoPerfil;
-  final Map<String, dynamic>? location;
-  final int favoriteCount;
-  final List<String> skills;
-  final bool isFavorited;
+@freezed
+class FeedItem with _$FeedItem {
+  const FeedItem._(); // Private constructor for custom methods
 
-  /// Calculated at runtime based on user's location
-  double? distanceKm;
-
-  FeedItem({
-    required this.uid,
-    required this.nome,
-    this.nomeArtistico,
-    this.foto,
-    this.categoria,
-    this.generosMusicais = const [],
-    required this.tipoPerfil,
-    this.location,
-    this.favoriteCount = 0,
-    this.skills = const [],
-    this.isFavorited = false,
-    this.distanceKm,
-  });
-
-  /// Creates a copy of this FeedItem with the given fields replaced.
-  FeedItem copyWith({
-    String? uid,
-    String? nome,
+  const factory FeedItem({
+    required String uid,
+    required String nome,
     String? nomeArtistico,
     String? foto,
     String? categoria,
-    List<String>? generosMusicais,
-    String? tipoPerfil,
+    @Default([]) List<String> generosMusicais,
+    required String tipoPerfil,
     Map<String, dynamic>? location,
-    int? favoriteCount,
-    List<String>? skills,
-    bool? isFavorited,
+    @Default(0) int favoriteCount,
+    @Default([]) List<String> skills,
+    @Default([]) List<String> subCategories,
+    @Default(false) bool isFavorited,
     double? distanceKm,
-  }) {
-    return FeedItem(
-      uid: uid ?? this.uid,
-      nome: nome ?? this.nome,
-      nomeArtistico: nomeArtistico ?? this.nomeArtistico,
-      foto: foto ?? this.foto,
-      categoria: categoria ?? this.categoria,
-      generosMusicais: generosMusicais ?? this.generosMusicais,
-      tipoPerfil: tipoPerfil ?? this.tipoPerfil,
-      location: location ?? this.location,
-      favoriteCount: favoriteCount ?? this.favoriteCount,
-      skills: skills ?? this.skills,
-      isFavorited: isFavorited ?? this.isFavorited,
-      distanceKm: distanceKm ?? this.distanceKm,
-    );
-  }
+  }) = _FeedItem;
 
   /// Display name (artistic name if available, otherwise real name)
   String get displayName =>
@@ -82,6 +44,7 @@ class FeedItem {
     String? artisticName;
     String? category;
     final List<String> extractedSkills = [];
+    final List<String> extractedSubCategories = [];
     List<String> extractedGenres = [];
 
     final tipoPerfil = data['tipo_perfil'] as String? ?? 'profissional';
@@ -96,6 +59,11 @@ class FeedItem {
       // Extract skills: instruments + roles
       if (profData['instrumentos'] != null) {
         extractedSkills.addAll(List<String>.from(profData['instrumentos']));
+      }
+      if (profData['categorias'] != null) {
+        extractedSubCategories.addAll(
+          List<String>.from(profData['categorias']),
+        );
       }
       if (profData['funcoes'] != null) {
         extractedSkills.addAll(List<String>.from(profData['funcoes']));
@@ -139,6 +107,7 @@ class FeedItem {
       location: data['location'] as Map<String, dynamic>?,
       favoriteCount: data['favoriteCount'] ?? 0,
       skills: extractedSkills,
+      subCategories: extractedSubCategories,
     );
   }
 }

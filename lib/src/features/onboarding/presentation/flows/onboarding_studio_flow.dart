@@ -291,7 +291,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           children: [
             Radio<String>(
               value: value,
+              // ignore: deprecated_member_use
               groupValue: _studioType,
+              // ignore: deprecated_member_use
               onChanged: (v) {
                 if (v != null) {
                   setState(() => _studioType = v);
@@ -392,7 +394,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Serviços do Estúdio',
-                      items: STUDIO_SERVICES,
+                      items: studioServices,
                       selectedItems: _selectedServices,
                       allowMultiple: true,
                     ),

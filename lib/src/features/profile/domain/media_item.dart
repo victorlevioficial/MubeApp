@@ -1,7 +1,10 @@
+import 'package:meta/meta.dart';
+
 /// Types of media that can be in the gallery.
 enum MediaType { photo, video }
 
 /// Represents a single media item in the user's gallery.
+@immutable
 class MediaItem {
   /// Unique identifier for this media item.
   final String id;

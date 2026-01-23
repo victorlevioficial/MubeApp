@@ -13,6 +13,7 @@ import '../../../../common_widgets/responsive_center.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -169,7 +170,7 @@ class _OnboardingContractorFlowState
         } catch (e) {
           // If parsing fails, let it pass or handle error?
           // Validator usually catches format issues, but being safe:
-          // print('Date Parse Error: $e');
+          AppLogger.warning('Date Parse Error', e);
         }
       }
 

@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/app_text_field.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
-import '../../auth/domain/user_type.dart';
-import '../data/search_repository.dart';
-import 'widgets/user_card.dart';
+import '../../feed/domain/feed_item.dart';
+import '../../feed/presentation/widgets/feed_card_vertical.dart';
+import '../../feed/presentation/widgets/feed_skeleton.dart';
+import '../domain/search_filters.dart';
+import 'search_controller.dart' as ctrl;
+import 'widgets/category_tabs.dart';
+import 'widgets/filter_chips_row.dart';
+import 'widgets/filter_modal.dart';
 
-/// Main search screen with text input and filterable results.
+/// Main search screen with category tabs, dynamic filters, and results list.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -19,197 +25,213 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
-  final _debounce = Debouncer(milliseconds: 400);
+  final _scrollController = ScrollController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final filters = ref.watch(searchFiltersProvider);
-    final resultsAsync = ref.watch(searchResultsProvider);
+    final state = ref.watch(ctrl.searchControllerProvider);
+    final controller = ref.read(ctrl.searchControllerProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        title: Text('Buscar', style: AppTypography.headlineMedium),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Search Input
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.s16),
-            child: AppTextField(
-              controller: _searchController,
-              label: 'Buscar',
-              hint: 'Buscar músicos, bandas...',
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.textSecondary,
-              ),
-              onChanged: (value) {
-                _debounce.run(() {
-                  ref.read(searchFiltersProvider.notifier).updateQuery(value);
-                });
-              },
-            ),
-          ),
-
-          // Type Filters
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-              children: [
-                _FilterChip(
-                  label: 'Todos',
-                  selected: filters.type == null,
-                  onSelected: (_) =>
-                      ref.read(searchFiltersProvider.notifier).updateType(null),
-                ),
-                const SizedBox(width: 8),
-                ...AppUserType.values.map(
-                  (type) => Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _FilterChip(
-                      label: type.label,
-                      selected: filters.type == type,
-                      onSelected: (_) => ref
-                          .read(searchFiltersProvider.notifier)
-                          .updateType(type),
+      body: SafeArea(
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // Search Header
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search Bar
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: AppTextField(
+                            controller: _searchController,
+                            label: '',
+                            hint: 'Buscar por nome...',
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: AppColors.textSecondary,
+                            ),
+                            onChanged: controller.setTerm,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        // Filter Button
+                        _buildFilterButton(context, state, controller),
+                      ],
                     ),
-                  ),
+
+                    const SizedBox(height: AppSpacing.s16),
+
+                    // Category Tabs
+                    CategoryTabs(
+                      selectedCategory: state.filters.category,
+                      onCategoryChanged: controller.setCategory,
+                    ),
+
+                    const SizedBox(height: AppSpacing.s12),
+
+                    // Dynamic Filter Chips
+                    FilterChipsRow(
+                      filters: state.filters,
+                      onSubcategoryChanged:
+                          controller.setProfessionalSubcategory,
+                      onGenresChanged: controller.setGenres,
+                      onInstrumentsChanged: controller.setInstruments,
+                      onRolesChanged: controller.setRoles,
+                      onServicesChanged: controller.setServices,
+                      onStudioTypeChanged: controller.setStudioType,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.s16),
-
-          // Results
-          Expanded(
-            child: resultsAsync.when(
-              data: (users) {
-                if (!filters.hasActiveFilters) {
-                  return const _EmptyState(
-                    icon: Icons.search,
-                    message: 'Digite algo para buscar',
-                  );
-                }
-
-                if (users.isEmpty) {
-                  return const _EmptyState(
-                    icon: Icons.search_off,
-                    message: 'Nenhum resultado encontrado',
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: users.length,
-                  itemBuilder: (context, index) => UserCard(
-                    user: users[index],
-                    onTap: () {
-                      // TODO: Navigate to profile view
-                    },
-                  ),
-                );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-              error: (error, _) => _EmptyState(
-                icon: Icons.error_outline,
-                message: 'Erro: $error',
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-/// Filter chip for type selection.
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final ValueChanged<bool> onSelected;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FilterChip(
-      label: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(
-          color: selected ? AppColors.background : AppColors.textPrimary,
+            // Results
+            _buildResultsSliver(state),
+          ],
         ),
       ),
-      selected: selected,
-      onSelected: onSelected,
-      backgroundColor: AppColors.surface,
-      selectedColor: AppColors.primary,
-      checkmarkColor: AppColors.background,
-      side: BorderSide(
-        color: selected ? AppColors.primary : AppColors.surfaceHighlight,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
-}
 
-/// Empty state placeholder.
-class _EmptyState extends StatelessWidget {
-  final IconData icon;
-  final String message;
+  Widget _buildFilterButton(
+    BuildContext context,
+    ctrl.SearchState state,
+    ctrl.SearchController controller,
+  ) {
+    final hasActiveFilters = state.filters.hasActiveFilters;
 
-  const _EmptyState({required this.icon, required this.message});
+    return GestureDetector(
+      onTap: () => _showFilterModal(context, state.filters, controller),
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: hasActiveFilters ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          Icons.tune,
+          color: hasActiveFilters ? Colors.white : AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  void _showFilterModal(
+    BuildContext context,
+    SearchFilters filters,
+    ctrl.SearchController controller,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FilterModal(
+        filters: filters,
+        onApply: (newFilters) {
+          controller.setGenres(newFilters.genres);
+          controller.setInstruments(newFilters.instruments);
+          controller.setRoles(newFilters.roles);
+          controller.setServices(newFilters.services);
+          if (newFilters.studioType != filters.studioType) {
+            controller.setStudioType(newFilters.studioType);
+          }
+          if (newFilters.canDoBackingVocal != filters.canDoBackingVocal) {
+            controller.setBackingVocalFilter(newFilters.canDoBackingVocal);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildResultsSliver(ctrl.SearchState state) {
+    return state.results.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return SliverFillRemaining(child: _buildEmptyState());
+        }
+        return SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final item = items[index];
+            // FeedCardVertical already has internal margin (16h, 8v)
+            return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
+          }, childCount: items.length),
+        );
+      },
+      loading: () => SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => const FeedCardSkeleton(),
+          childCount: 5,
+        ),
+      ),
+      error: (error, _) => SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: AppSpacing.s16),
+              Text('Erro ao buscar', style: AppTypography.titleMedium),
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                error.toString(),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: AppColors.textSecondary),
+          const Icon(
+            Icons.search_off,
+            size: 64,
+            color: AppColors.textSecondary,
+          ),
           const SizedBox(height: AppSpacing.s16),
           Text(
-            message,
-            style: AppTypography.bodyMedium.copyWith(
+            'Nenhum resultado encontrado',
+            style: AppTypography.titleMedium.copyWith(
               color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            'Tente ajustar os filtros',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
             ),
           ),
         ],
       ),
     );
   }
-}
 
-/// Simple debouncer for search input.
-class Debouncer {
-  final int milliseconds;
-  VoidCallback? _action;
-
-  Debouncer({required this.milliseconds});
-
-  void run(VoidCallback action) {
-    _action = action;
-    Future.delayed(Duration(milliseconds: milliseconds), () {
-      if (_action == action) {
-        action();
-      }
-    });
+  void _onItemTap(FeedItem item) {
+    context.push('/user/${item.uid}');
   }
 }

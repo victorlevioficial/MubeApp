@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui'; // For PlatformDispatcher
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
+import 'src/common_widgets/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 
 void main() {
@@ -18,23 +20,42 @@ void main() {
           WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
+      // 1. Configure Global Error Handlers for pure Dart errors & Platform errors
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.presentError(details); // Calls ErrorWidget.builder
+        AppLogger.error(
+          'Flutter Framework Error',
+          details.exception,
+          details.stack,
+        );
+      };
+
+      PlatformDispatcher.instance.onError = (error, stack) {
+        AppLogger.error('Platform Dispatcher Error', error, stack);
+        return true;
+      };
+
+      // 2. Replace the "Red Screen of Death"
+      ErrorWidget.builder = (FlutterErrorDetails details) {
+        return ErrorBoundary.buildErrorWidget(details);
+      };
+
       try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
 
         // Enable Firestore offline persistence for better caching
-        // This helps with rapid like + refresh scenarios
         FirebaseFirestore.instance.settings = const Settings(
           persistenceEnabled: true,
           cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
         );
+
+        // === SCRIPT DE MANUTENÇÃO REMOVIDO ===
+        AppLogger.info('🔧 Sistema de likes legado removido.');
+        // ============================================
       } catch (e, stack) {
-        AppLogger.error(
-          'Erro ao inicializar Firebase',
-          error: e,
-          stackTrace: stack,
-        );
+        AppLogger.error('Erro ao inicializar Firebase', e, stack);
         // Remove splash to show error
         FlutterNativeSplash.remove();
       }
@@ -54,11 +75,7 @@ void main() {
       runApp(const ProviderScope(child: MubeApp()));
     },
     (error, stack) {
-      AppLogger.error(
-        'Erro não tratado no app',
-        error: error,
-        stackTrace: stack,
-      );
+      AppLogger.error('Erro não tratado no Zone Guarded', error, stack);
     },
   );
 }

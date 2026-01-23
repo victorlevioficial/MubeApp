@@ -259,7 +259,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Gêneros Musicais',
-                      items: GENRES,
+                      items: genres,
                       selectedItems: _selectedGenres,
                       allowMultiple: true,
                     ),

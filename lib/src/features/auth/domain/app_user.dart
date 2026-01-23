@@ -55,8 +55,13 @@ abstract class AppUser with _$AppUser {
     /// Short biography.
     String? bio,
 
-    /// Location data: cidade, estado, lat, long. (Legacy - kept for backward compatibility)
+    /// Location data: cidade, estado, lat, lng. (Legacy - kept for backward compatibility)
     Map<String, dynamic>? location,
+
+    /// Geohash for efficient location-based queries (precision 5 = ~5km squares).
+    /// Generated from location.lat and location.lng.
+    /// Optional for backward compatibility with existing users.
+    String? geohash,
 
     /// List of saved addresses (up to 5). One should be marked as primary.
     @Default([]) List<SavedAddress> addresses,

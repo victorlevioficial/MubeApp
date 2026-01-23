@@ -11,12 +11,12 @@ abstract final class RoutePaths {
 
   // Main app routes (inside shell)
   static const String feed = '/feed';
+  static const String search = '/search';
   static const String chat = '/chat';
-  static const String profile = '/profile';
-  static const String profileEdit = '/profile/edit';
   static const String settings = '/settings';
   static const String addresses = '/settings/addresses';
   static const String editAddress = '/settings/address';
+  static const String maintenance = '/settings/maintenance';
 
   // Dev routes
   static const String gallery = '/gallery';
@@ -25,5 +25,10 @@ abstract final class RoutePaths {
   static const Set<String> publicRoutes = {splash, login, register, gallery};
 
   /// Check if a path is a public route.
+  // Profile routes
+  static const String profile = '/profile';
+  static const String profileEdit = '/profile/edit';
+  static const String conversation = '/conversation';
+
   static bool isPublic(String path) => publicRoutes.contains(path);
 }

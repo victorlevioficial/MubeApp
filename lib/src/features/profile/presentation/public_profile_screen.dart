@@ -1,204 +1,42 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:video_player/video_player.dart';
 
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
+import '../../../constants/app_constants.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
-import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
-import '../../chat/data/chat_providers.dart';
-import '../../feed/data/favorites_provider.dart';
+
 import '../domain/media_item.dart';
+import 'public_profile_controller.dart';
+import 'widgets/gallery_video_player.dart';
 import 'widgets/public_gallery_grid.dart';
 
 /// Screen to view another user's public profile.
-class PublicProfileScreen extends ConsumerStatefulWidget {
+class PublicProfileScreen extends ConsumerWidget {
   final String uid;
 
   const PublicProfileScreen({super.key, required this.uid});
 
   @override
-  ConsumerState<PublicProfileScreen> createState() =>
-      _PublicProfileScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stateAsync = ref.watch(publicProfileControllerProvider(uid));
 
-class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
-  AppUser? _user;
-  List<MediaItem> _galleryItems = [];
-  bool _isLoading = true;
-  String? _error;
+    final user = stateAsync.value?.user;
+    final title = user != null ? _getDisplayName(user) : 'Perfil';
 
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .get();
-
-      if (!doc.exists) {
-        setState(() {
-          _error = 'Perfil não encontrado';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final data = doc.data()!;
-      data['uid'] = doc.id;
-
-      final user = AppUser.fromJson(data);
-
-      // Load gallery items based on user type
-      List<dynamic> galleryData = [];
-      switch (user.tipoPerfil) {
-        case AppUserType.professional:
-          galleryData =
-              user.dadosProfissional?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.band:
-          galleryData = user.dadosBanda?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.studio:
-          galleryData = user.dadosEstudio?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.contractor:
-          galleryData =
-              user.dadosContratante?['gallery'] as List<dynamic>? ?? [];
-          break;
-        default:
-          galleryData = [];
-      }
-
-      final gallery =
-          galleryData
-              .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
-              .toList()
-            ..sort((a, b) => a.order.compareTo(b.order));
-
-      setState(() {
-        _user = user;
-        _galleryItems = gallery;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar perfil: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _toggleLike() async {
-    final notifier = ref.read(favoritesProvider.notifier);
-    final isFavorited = await notifier.toggleFavorite(widget.uid);
-
-    if (mounted) {
-      final message = isFavorited
-          ? 'Adicionado aos favoritos ❤️'
-          : 'Removido dos favoritos';
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: AppColors.primary,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  String _getDisplayName(AppUser user) {
-    switch (user.tipoPerfil) {
-      case AppUserType.professional:
-        return user.dadosProfissional?['nomeArtistico'] as String? ??
-            user.nome ??
-            'Usuário';
-      case AppUserType.band:
-        return user.dadosBanda?['nome'] as String? ?? user.nome ?? 'Banda';
-      case AppUserType.studio:
-        return user.dadosEstudio?['nome'] as String? ?? user.nome ?? 'Estúdio';
-      case AppUserType.contractor:
-        return user.dadosContratante?['nome'] as String? ??
-            user.nome ??
-            'Contratante';
-      default:
-        return user.nome ?? 'Usuário';
-    }
-  }
-
-  Future<void> _openChat() async {
-    final user = _user;
-    if (user == null) return;
-
-    try {
-      final otherUserName = _getDisplayName(user);
-      final currentUserProfile = ref.read(currentUserProfileProvider).value;
-
-      // Debug logs para diagnosticar problemas de permissão
-      final authUid = ref.read(authRepositoryProvider).currentUser?.uid;
-      print('DEBUG PublicProfileScreen: currentUser uid = $authUid');
-      print('DEBUG PublicProfileScreen: starting conversation with otherUserId=${widget.uid}, otherUserName=$otherUserName');
-
-      final conversationId = await ref
-          .read(chatRepositoryProvider)
-          .getOrCreateConversation(
-            otherUserId: widget.uid,
-            otherUserName: otherUserName,
-            otherUserPhoto: user.foto,
-            currentUserName: currentUserProfile?.nome ?? 'Usuário Mube',
-            currentUserPhoto: currentUserProfile?.foto,
-          );
-
-      print('DEBUG PublicProfileScreen: getOrCreateConversation returned conversationId=$conversationId');
-
-      if (mounted) {
-        context.push(
-          '${RoutePaths.chat}/$conversationId',
-          extra: {
-            'otherUserId': widget.uid,
-            'otherUserName': otherUserName,
-            'otherUserPhoto': user.foto,
-          }.cast<String, String?>(),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao iniciar conversa: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
-        ),
+      appBar: MubeAppBar(
+        title: title,
+        onBackPressed: () => context.pop(),
         actions: [
           IconButton(
             icon: const Icon(Icons.share, color: AppColors.textPrimary),
@@ -208,28 +46,107 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const _ProfileSkeleton()
-          : _error != null
-          ? Center(
+      body: stateAsync.when(
+        data: (state) {
+          if (state.isLoading) return const _ProfileSkeleton();
+
+          if (state.error != null) {
+            return Center(
               child: Text(
-                _error!,
+                state.error!,
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
-            )
-          : _buildProfileContent(),
-      // Fixed bottom action bar
-      bottomNavigationBar: _isLoading || _error != null
-          ? null
-          : _buildBottomActionBar(),
+            );
+          }
+
+          if (state.user == null) {
+            return const Center(child: Text('Usuário não encontrado'));
+          }
+
+          return _buildProfileContent(context, state.user!, state.galleryItems);
+        },
+        loading: () => const _ProfileSkeleton(),
+        error: (err, stack) => Center(child: Text('Erro: $err')),
+      ),
+      bottomNavigationBar: stateAsync.value?.user != null
+          ? _buildBottomActionBar(context, ref, stateAsync.value!.user!)
+          : null,
     );
   }
 
   /// Fixed bottom bar with Chat and Like buttons
-  Widget _buildBottomActionBar() {
-    final isFavorited = ref.watch(isFavoritedProvider(widget.uid));
+  Widget _buildBottomActionBar(
+    BuildContext context,
+    WidgetRef ref,
+    AppUser user,
+  ) {
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isMe = currentUser?.uid == uid;
+
+    if (isMe) {
+      return Container(
+        padding: EdgeInsets.only(
+          left: AppSpacing.s16,
+          right: AppSpacing.s16,
+          top: AppSpacing.s12,
+          bottom: MediaQuery.of(context).padding.bottom + AppSpacing.s12,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 56, // Same height as PrimaryButton
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push('/profile/edit'),
+                  icon: const Icon(Icons.edit, size: 20),
+                  label: const Text('Editar Perfil'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s16),
+            Expanded(
+              child: SizedBox(
+                height: 56, // Same height
+                child: OutlinedButton.icon(
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                  icon: const Icon(Icons.logout, size: 20),
+                  label: const Text('Sair'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // final isFavorited = ref.watch(isLikedProvider(uid)); // Unused
 
     return Container(
       padding: EdgeInsets.only(
@@ -250,10 +167,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       ),
       child: Row(
         children: [
-          // Chat Button (Primary action)
+          // Chat Button (Primary action - Full Width)
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: _openChat,
+              onPressed: () => ref
+                  .read(publicProfileControllerProvider(uid).notifier)
+                  .openChat(context),
               icon: const Icon(Icons.chat_bubble_outline, size: 20),
               label: const Text('Iniciar Conversa'),
               style: ElevatedButton.styleFrom(
@@ -266,32 +185,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.s12),
-          // Like Button (Secondary action)
-          Container(
-            decoration: BoxDecoration(
-              color: isFavorited
-                  ? AppColors.primary
-                  : AppColors.surfaceHighlight,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              onPressed: _toggleLike,
-              icon: Icon(
-                isFavorited ? Icons.favorite : Icons.favorite_border,
-                color: isFavorited ? Colors.white : AppColors.textPrimary,
-              ),
-              padding: const EdgeInsets.all(14),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileContent() {
-    final user = _user!;
-
+  Widget _buildProfileContent(
+    BuildContext context,
+    AppUser user,
+    List<MediaItem> galleryItems,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
       child: Column(
@@ -313,7 +216,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
           // Gallery Section (always show)
           const SizedBox(height: AppSpacing.s24),
-          _buildGallerySection(),
+          _buildGallerySection(context, galleryItems),
 
           // Extra padding at bottom to not overlap with fixed bar
           const SizedBox(height: 100),
@@ -373,6 +276,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
           ),
+
+          // Subcategories with Icons (for professionals)
+          if (user.tipoPerfil == AppUserType.professional) ...[
+            const SizedBox(height: AppSpacing.s8),
+            _buildSubCategoriesRow(user),
+          ],
 
           // Location
           if (location != null) ...[
@@ -549,26 +458,29 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: AppColors.surfaceHighlight, // Matches skill chip
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: AppTypography.bodySmall.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500, // Matches skill chip
         ),
       ),
     );
   }
 
-  Widget _buildGallerySection() {
+  Widget _buildGallerySection(
+    BuildContext context,
+    List<MediaItem> galleryItems,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Galeria', style: AppTypography.titleMedium),
         const SizedBox(height: AppSpacing.s12),
-        if (_galleryItems.isEmpty)
+        if (galleryItems.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32),
@@ -603,21 +515,80 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           )
         else
           PublicGalleryGrid(
-            items: _galleryItems,
+            items: galleryItems,
             onItemTap: (index) {
-              _showMediaViewer(index);
+              _showMediaViewer(context, galleryItems, index);
             },
           ),
       ],
     );
   }
 
-  void _showMediaViewer(int initialIndex) {
+  void _showMediaViewer(
+    BuildContext context,
+    List<MediaItem> items,
+    int initialIndex,
+  ) {
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       builder: (context) =>
-          _MediaViewerDialog(items: _galleryItems, initialIndex: initialIndex),
+          _MediaViewerDialog(items: items, initialIndex: initialIndex),
+    );
+  }
+
+  String _getDisplayName(AppUser user) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '';
+      case AppUserType.band:
+        return user.dadosBanda?['nomeBanda'] ?? user.nome ?? '';
+      case AppUserType.studio:
+        return user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '';
+      default:
+        return user.nome ?? '';
+    }
+  }
+
+  Widget _buildSubCategoriesRow(AppUser user) {
+    final ids = user.dadosProfissional?['categorias'] as List? ?? [];
+    if (ids.isEmpty) return const SizedBox.shrink();
+
+    final widgets = <Widget>[];
+    for (final id in ids) {
+      final config = professionalCategories.firstWhere(
+        (c) => c['id'] == id,
+        orElse: () => <String, dynamic>{},
+      );
+      if (config.isEmpty) continue;
+
+      widgets.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              config['icon'] as IconData,
+              size: 14,
+              color: AppColors.primary, // Changed to primary as requested
+            ),
+            const SizedBox(width: 4),
+            Text(
+              config['label'] as String,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 4,
+      alignment: WrapAlignment.center,
+      children: widgets,
     );
   }
 }
@@ -722,303 +693,80 @@ class _MediaViewerDialogState extends State<_MediaViewerDialog> {
   }
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.zero,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Image PageView
-          PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) => setState(() => _currentIndex = index),
-            itemCount: widget.items.length,
-            itemBuilder: (context, index) {
-              final item = widget.items[index];
-
-              if (item.type == MediaType.video) {
-                return _VideoPlayerItem(videoUrl: item.url);
-              }
-
-              return InteractiveViewer(
-                child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: item.url,
-                    fit: BoxFit.contain,
-                    placeholder: (_, __) => const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    errorWidget: (_, __, ___) =>
-                        const Icon(Icons.error, color: Colors.white, size: 48),
-                  ),
-                ),
-              );
-            },
+    return Stack(
+      children: [
+        PageView.builder(
+          controller: _pageController,
+          itemCount: widget.items.length,
+          onPageChanged: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          itemBuilder: (context, index) {
+            final item = widget.items[index];
+            return _buildMediaItem(item);
+          },
+        ),
+        // Close button
+        Positioned(
+          top: 40,
+          right: 20,
+          child: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-
-          // Close button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            right: 16,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 28),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-
-          // Page indicator
-          if (widget.items.length > 1)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + 24,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  widget.items.length,
-                  (index) => Container(
-                    width: 8,
-                    height: 8,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: index == _currentIndex
-                          ? AppColors.primary
-                          : Colors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
+        ),
+        // Indicator
+        Positioned(
+          bottom: 40,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: Text(
+              '${_currentIndex + 1} / ${widget.items.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                decoration: TextDecoration.none,
               ),
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
-}
 
-/// Widget to play video in the gallery viewer
-class _VideoPlayerItem extends StatefulWidget {
-  final String videoUrl;
-
-  const _VideoPlayerItem({required this.videoUrl});
-
-  @override
-  State<_VideoPlayerItem> createState() => _VideoPlayerItemState();
-}
-
-class _VideoPlayerItemState extends State<_VideoPlayerItem> {
-  late VideoPlayerController _controller;
-  bool _initialized = false;
-  bool _showControls = true;
-  bool _isPlaying = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _initialized = true);
-          _controller.play();
-          _startHideControlsTimer();
-        }
-      });
-
-    _controller.addListener(_videoListener);
-  }
-
-  void _videoListener() {
-    if (mounted) {
-      final isPlaying = _controller.value.isPlaying;
-      if (isPlaying != _isPlaying) {
-        setState(() => _isPlaying = isPlaying);
+  Widget _buildMediaItem(MediaItem item) {
+    if (item.type == MediaType.video) {
+      if (item.url.contains('youtu')) {
+        // Placeholder for Youtube video
+        return Center(
+          child: Text(
+            'Vídeo do YouTube (em breve): ${item.url}',
+            style: const TextStyle(
+              color: Colors.white,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        );
       }
-      // Update UI for progress
-      setState(() {});
-    }
-  }
-
-  void _startHideControlsTimer() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && _controller.value.isPlaying) {
-        setState(() => _showControls = false);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_videoListener);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _togglePlay() {
-    if (_controller.value.isPlaying) {
-      _controller.pause();
-      setState(() => _showControls = true);
+      // Use GalleryVideoPlayer for network videos
+      return GalleryVideoPlayer(videoUrl: item.url);
     } else {
-      _controller.play();
-      _startHideControlsTimer();
-    }
-  }
-
-  void _onTap() {
-    if (_showControls) {
-      _togglePlay();
-    } else {
-      setState(() => _showControls = true);
-      _startHideControlsTimer();
-    }
-  }
-
-  void _seekTo(double value) {
-    final duration = _controller.value.duration;
-    final position = Duration(
-      milliseconds: (value * duration.inMilliseconds).toInt(),
-    );
-    _controller.seekTo(position);
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Loading state with solid black background
-    if (!_initialized) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+      return InteractiveViewer(
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: item.url,
+            fit: BoxFit.contain,
+            placeholder: (context, url) =>
+                const Center(child: CircularProgressIndicator()),
+            errorWidget: (context, url, error) =>
+                const Icon(Icons.error, color: Colors.red),
+          ),
         ),
       );
     }
-
-    final duration = _controller.value.duration;
-    final position = _controller.value.position;
-    final progress = duration.inMilliseconds > 0
-        ? position.inMilliseconds / duration.inMilliseconds
-        : 0.0;
-
-    return GestureDetector(
-      onTap: _onTap,
-      child: Container(
-        color: Colors.black,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Video
-            Center(
-              child: AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-              ),
-            ),
-
-            // Controls Overlay (auto-hide)
-            AnimatedOpacity(
-              opacity: _showControls ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              child: Container(
-                color: Colors.black38,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Spacer(),
-                    // Play/Pause Button
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        iconSize: 64,
-                        icon: Icon(
-                          _isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.white,
-                        ),
-                        onPressed: _togglePlay,
-                      ),
-                    ),
-                    const Spacer(),
-
-                    // Progress Bar and Timer
-                    Padding(
-                      padding: EdgeInsets.only(
-                        left: 16,
-                        right: 16,
-                        bottom: MediaQuery.of(context).padding.bottom + 16,
-                      ),
-                      child: Column(
-                        children: [
-                          // Slider
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: AppColors.primary,
-                              inactiveTrackColor: Colors.white24,
-                              thumbColor: AppColors.primary,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 6,
-                              ),
-                              overlayShape: const RoundSliderOverlayShape(
-                                overlayRadius: 12,
-                              ),
-                              trackHeight: 3,
-                            ),
-                            child: Slider(
-                              value: progress.clamp(0.0, 1.0),
-                              onChanged: _seekTo,
-                            ),
-                          ),
-                          // Timer
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _formatDuration(position),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  _formatDuration(duration),
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

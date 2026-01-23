@@ -21,12 +21,17 @@ class MainScaffold extends StatelessWidget {
           );
         },
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.primary.withOpacity(0.2),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: 'Busca',
           ),
           NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline),

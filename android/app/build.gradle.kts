@@ -45,3 +45,8 @@ android {
 flutter {
     source = "../.."
 }
+
+// Suppress Java 8 obsolete warnings from dependencies
+tasks.withType<JavaCompile> {
+    options.compilerArgs.addAll(listOf("-Xlint:-options", "-Xlint:-deprecation"))
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 export 'pump_app.dart';
 
@@ -22,8 +23,8 @@ class FakeNavigatorObserver extends NavigatorObserver {
 }
 
 /// Creates a test provider container with optional overrides.
-ProviderContainer createTestContainer({List<Override> overrides = const []}) {
-  return ProviderContainer(overrides: overrides);
+ProviderContainer createTestContainer({List<dynamic> overrides = const []}) {
+  return ProviderContainer(overrides: overrides.cast());
 }
 
 /// A simple mock user for testing.
@@ -35,7 +36,7 @@ class MockUserData {
 }
 
 /// Finder helpers for common widgets.
-extension CommonFinders on CommonFinders {
+extension AppCommonFinders on CommonFinders {
   /// Finds a widget by its semantic label.
   Finder bySemanticsLabel(String label) => find.bySemanticsLabel(label);
 

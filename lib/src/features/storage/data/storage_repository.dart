@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -64,6 +65,30 @@ class StorageRepository {
     required bool isVideo,
     void Function(double progress)? onProgress,
   }) async {
+    // NOVO: Verificar autenticação antes de iniciar upload
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception(
+        'Você precisa estar logado para fazer upload. '
+        'Tente fazer logout e login novamente.',
+      );
+    }
+
+    if (currentUser.uid != userId) {
+      throw Exception(
+        'Erro de autenticação: O usuário atual não corresponde '
+        'ao perfil. Tente fazer logout e login novamente.',
+      );
+    }
+
+    // DEBUG: Log informações de autenticação
+    print('🔐 DEBUG Storage Upload:');
+    print('   Tipo: ${isVideo ? "Vídeo" : "Foto"}');
+    print('   User ID: $userId');
+    print('   Current User: ${currentUser.uid}');
+    print('   Email: ${currentUser.email}');
+    print('   Auth: Autenticado ✅');
+
     // Validar arquivo antes do upload
     await UploadValidator.validateMedia(file, isVideo: isVideo);
 
@@ -78,6 +103,9 @@ class StorageRepository {
       final contentType = isVideo ? 'video/mp4' : 'image/jpeg';
       final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
       final metadata = SettableMetadata(contentType: contentType);
+
+      print('📤 Iniciando upload: $folder/$userId/$mediaId.$ext');
+
       final uploadTask = ref.putFile(fileToUpload, metadata);
 
       // Listen to progress updates
@@ -89,8 +117,22 @@ class StorageRepository {
       }
 
       final snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      print('✅ Upload concluído: $downloadUrl');
+
+      return downloadUrl;
     } on FirebaseException catch (e) {
+      print('❌ Erro Firebase: ${e.code} - ${e.message}');
+
+      if (e.code == 'permission-denied' || e.code == 'unauthorized') {
+        throw Exception(
+          'Erro de permissão: Você não tem autorização para fazer upload. '
+          'Tente fazer logout e login novamente. '
+          'Detalhes técnicos: ${e.code}',
+        );
+      }
+
       throw Exception('Erro ao fazer upload da mídia: ${e.message}');
     }
   }

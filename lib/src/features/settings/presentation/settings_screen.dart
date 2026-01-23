@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/app_snackbar.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import 'widgets/settings_item.dart';
 
@@ -16,17 +19,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: Text(
-          'Configurações',
-          style: AppTypography.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
+      appBar: const MubeAppBar(title: 'Configurações', showBackButton: false),
       body: ListView(
         children: [
           const SizedBox(height: 16),
@@ -88,8 +81,15 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () {
               // TODO: Navigate to privacy policy
             },
-            showDivider: false,
           ),
+
+          if (kDebugMode)
+            SettingsItem(
+              icon: Icons.build_circle_outlined,
+              title: 'Manutenção (Dev)',
+              onTap: () => context.push(RoutePaths.maintenance),
+              showDivider: false,
+            ),
 
           const SizedBox(height: 32),
 

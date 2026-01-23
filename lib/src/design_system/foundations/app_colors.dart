@@ -34,6 +34,11 @@ class AppColors {
   static const Color textPrimary = _textWhite;
   static const Color textSecondary = _textGray;
   static const Color textPlaceholder = _textPlaceholder;
+  static const Color textTertiary =
+      _textPlaceholder; // Same as placeholder for now
+
+  // Borders
+  static const Color border = _bgGrayLight;
 
   // States & Feedback
   static const Color error = _error;
@@ -64,6 +69,6 @@ class AppColors {
   static const Color primaryDark = Color(0xFF6D002B); // Razzmatazz 200
 
   // Opacity variations
-  static Color get primaryDisabled => _primary.withOpacity(0.5);
-  static Color get textDisabled => _textWhite.withOpacity(0.5);
+  static Color get primaryDisabled => _primary.withValues(alpha: 0.5);
+  static Color get textDisabled => _textWhite.withValues(alpha: 0.5);
 }

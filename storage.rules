@@ -3,79 +3,64 @@ service firebase.storage {
   match /b/{bucket}/o {
     
     // ========================================
-    // FUNÇÕES AUXILIARES DE VALIDAÇÃO
+    // REGRAS TEMPORÁRIAS PARA DESENVOLVIMENTO
+    // ⚠️ ATENÇÃO: Regras liberadas para testes
+    // ⚠️ LEMBRAR: Apertar as regras antes de produção
     // ========================================
     
-    // Verifica se o usuário está autenticado
+    // Funções auxiliares
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Verifica se o usuário é o dono do recurso
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Valida se é uma imagem (JPEG, PNG, WebP, GIF)
     function isValidImage() {
       return request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
     }
     
-    // Valida se é um vídeo (MP4, MOV, WebM)
     function isValidVideo() {
       return request.resource.contentType.matches('video/(mp4|quicktime|webm)');
     }
     
-    // Valida tamanho máximo para fotos (10MB)
     function isValidPhotoSize() {
       return request.resource.size < 10 * 1024 * 1024;
     }
     
-    // Valida tamanho máximo para vídeos (50MB)
     function isValidVideoSize() {
       return request.resource.size < 50 * 1024 * 1024;
     }
     
     // ========================================
-    // REGRAS DE ACESSO
+    // REGRAS DE ACESSO (LIBERADAS)
     // ========================================
     
-    // Fotos de Perfil
-    // - Leitura: usuários autenticados (para ver perfis de outros)
-    // - Escrita: apenas o dono, com validação de tipo e tamanho
+    // Fotos de Perfil - LIBERADO PARA TESTES
     match /profile_photos/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) 
+      allow read: if true; // Leitura pública
+      allow write: if isAuthenticated() 
                    && isValidImage() 
                    && isValidPhotoSize();
     }
 
-    // Fotos da Galeria
-    // - Leitura: usuários autenticados
-    // - Escrita: apenas o dono, com validação
+    // Fotos da Galeria - LIBERADO PARA TESTES
     match /gallery_photos/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) 
+      allow read: if true; // Leitura pública
+      allow write: if isAuthenticated() 
                    && isValidImage() 
                    && isValidPhotoSize();
     }
     
-    // Vídeos da Galeria
-    // - Leitura: usuários autenticados
-    // - Escrita: apenas o dono, com validação
+    // Vídeos da Galeria - LIBERADO PARA TESTES
     match /gallery_videos/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) 
+      allow read: if true; // Leitura pública
+      allow write: if isAuthenticated() 
                    && isValidVideo() 
                    && isValidVideoSize();
     }
     
-    // Thumbnails de Vídeos
-    // - Leitura: usuários autenticados
-    // - Escrita: apenas o dono (thumbnails são imagens)
+    // Thumbnails de Vídeos - LIBERADO PARA TESTES
     match /gallery_thumbnails/{userId}/{allPaths=**} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId) 
+      allow read: if true; // Leitura pública
+      allow write: if isAuthenticated() 
                    && isValidImage() 
                    && isValidPhotoSize();
     }

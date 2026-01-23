@@ -56,7 +56,7 @@ class _GalleryItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (_, __) => Shimmer.fromColors(
+              placeholder: (context, url) => Shimmer.fromColors(
                 baseColor: AppColors.surface,
                 highlightColor: AppColors.surfaceHighlight,
                 child: Container(
@@ -66,7 +66,7 @@ class _GalleryItem extends StatelessWidget {
                   ),
                 ),
               ),
-              errorWidget: (_, __, ___) => Container(
+              errorWidget: (context, url, error) => Container(
                 color: AppColors.surface,
                 child: const Icon(
                   Icons.broken_image,

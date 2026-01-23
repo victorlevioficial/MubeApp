@@ -20,6 +20,9 @@ class AppTypography {
   static TextStyle get headlineMedium =>
       GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700);
 
+  static TextStyle get headlineSmall =>
+      GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700);
+
   // Titles
   static TextStyle get titleLarge =>
       GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600);
@@ -36,4 +39,8 @@ class AppTypography {
 
   static TextStyle get bodySmall =>
       GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500);
+
+  // Labels
+  static TextStyle get labelMedium =>
+      GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500);
 }

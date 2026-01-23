@@ -37,7 +37,7 @@ abstract class SavedAddress with _$SavedAddress {
     double? lat,
 
     /// Longitude coordinate.
-    @JsonKey(name: 'long') double? lng,
+    @JsonKey(name: 'lng') double? lng,
 
     /// Whether this is the primary/active address.
     @Default(false) bool isPrimary,
@@ -64,7 +64,7 @@ abstract class SavedAddress with _$SavedAddress {
     'estado': estado,
     'cep': cep,
     'lat': lat,
-    'long': lng,
+    'lng': lng,
   };
 
   /// Creates from legacy location map format.
@@ -78,7 +78,7 @@ abstract class SavedAddress with _$SavedAddress {
       estado: map['estado'] ?? '',
       cep: map['cep'] ?? '',
       lat: map['lat'] as double?,
-      lng: map['long'] as double?,
+      lng: (map['lng'] ?? map['long']) as double?,
       isPrimary: true,
       createdAt: DateTime.now(),
     );

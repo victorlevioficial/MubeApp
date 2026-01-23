@@ -19,8 +19,8 @@ import '../design_system/foundations/app_typography.dart';
 /// )
 /// ```
 class MubeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  /// The title text to display.
-  final String title;
+  /// The title text or widget to display.
+  final dynamic title;
 
   /// Optional list of action widgets (right side of AppBar).
   final List<Widget>? actions;
@@ -34,6 +34,9 @@ class MubeAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Whether to center the title. Defaults to true.
   final bool centerTitle;
 
+  /// Optional bottom widget (e.g., TabBar).
+  final PreferredSizeWidget? bottom;
+
   const MubeAppBar({
     super.key,
     required this.title,
@@ -41,6 +44,7 @@ class MubeAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBackButton,
     this.onBackPressed,
     this.centerTitle = true,
+    this.bottom,
   });
 
   @override
@@ -64,12 +68,18 @@ class MubeAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
             )
           : null,
-      title: Text(
-        title,
-        style: AppTypography.titleMedium.copyWith(color: AppColors.textPrimary),
-      ),
+      title: title is String
+          ? Text(
+              title as String,
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            )
+          : (title as Widget?),
       centerTitle: centerTitle,
       actions: actions,
+      bottom: bottom,
     );
   }
 }

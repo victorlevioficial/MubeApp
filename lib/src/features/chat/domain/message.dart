@@ -1,27 +1,44 @@
-/// Modelo de mensagem individual do chat
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:meta/meta.dart';
+
+/// Representa uma mensagem no chat.
+@immutable
 class Message {
   final String id;
   final String senderId;
   final String text;
-  final int timestamp;
+  final Timestamp createdAt;
+  final String type;
 
   const Message({
     required this.id,
     required this.senderId,
     required this.text,
-    required this.timestamp,
+    required this.createdAt,
+    this.type = 'text',
   });
 
-  factory Message.fromJson(String id, Map<dynamic, dynamic> json) {
+  /// Cria Message a partir de DocumentSnapshot do Firestore
+  factory Message.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return Message(
-      id: id,
-      senderId: json['senderId'] as String,
-      text: json['text'] as String,
-      timestamp: json['timestamp'] as int,
+      id: doc.id,
+      senderId: data['senderId'] as String,
+      text: data['text'] as String,
+
+      // Handle optimistic writes locally where serverTimestamp is not yet resolved
+      createdAt: data['createdAt'] as Timestamp? ?? Timestamp.now(),
+      type: data['type'] as String? ?? 'text',
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {'senderId': senderId, 'text': text, 'timestamp': timestamp};
+  /// Converte para Map para Firestore
+  Map<String, dynamic> toFirestore() {
+    return {
+      'senderId': senderId,
+      'text': text,
+      'createdAt': createdAt,
+      'type': type,
+    };
   }
 }

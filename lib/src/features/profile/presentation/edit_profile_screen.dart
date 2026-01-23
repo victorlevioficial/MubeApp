@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
@@ -17,6 +18,7 @@ import '../../auth/domain/user_type.dart';
 import '../../storage/data/storage_repository.dart';
 import '../domain/media_item.dart';
 import 'profile_controller.dart';
+import 'public_profile_controller.dart';
 import 'services/media_picker_service.dart';
 import 'widgets/band_form_fields.dart';
 import 'widgets/contractor_form_fields.dart';
@@ -315,6 +317,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         _isUploadingMedia = false;
         _uploadProgress = 0.0;
       });
+
+      // Invalidate profile provider to refresh gallery on profile screen
+      ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
       setState(() {
         _isUploadingMedia = false;
@@ -396,6 +401,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         _isUploadingMedia = false;
         _uploadProgress = 0.0;
       });
+
+      // Invalidate profile provider to refresh gallery on profile screen
+      ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
       setState(() {
         _isUploadingMedia = false;
@@ -526,16 +534,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           },
           child: Scaffold(
             backgroundColor: AppColors.background,
-            appBar: AppBar(
-              backgroundColor: AppColors.background,
-              surfaceTintColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios),
-                onPressed: _handleBack,
-              ),
-              title: Text('Editar Perfil', style: AppTypography.titleMedium),
-              centerTitle: true,
+            appBar: MubeAppBar(
+              title: 'Editar Perfil',
+              onBackPressed: _handleBack,
               bottom: isContractor
                   ? null
                   : PreferredSize(

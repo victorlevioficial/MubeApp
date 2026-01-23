@@ -417,9 +417,9 @@ class _OnboardingProfessionalFlowState
             mainAxisSpacing: AppSpacing.s16,
             childAspectRatio: 1.2,
           ),
-          itemCount: PROFESSIONAL_CATEGORIES.length,
+          itemCount: professionalCategories.length,
           itemBuilder: (context, index) {
-            final cat = PROFESSIONAL_CATEGORIES[index];
+            final cat = professionalCategories[index];
             final isSelected = _selectedCategories.contains(cat['id']);
 
             return GestureDetector(
@@ -556,7 +556,7 @@ class _OnboardingProfessionalFlowState
               children: [
                 _buildTagSelector(
                   'Quais instrumentos você toca?',
-                  INSTRUMENTS,
+                  instruments,
                   _selectedInstruments,
                 ),
                 const SizedBox(height: AppSpacing.s16),
@@ -584,7 +584,7 @@ class _OnboardingProfessionalFlowState
             title: 'Equipe Técnica',
             child: _buildTagSelector(
               'Quais suas funções?',
-              CREW_ROLES,
+              crewRoles,
               _selectedRoles,
             ),
           ),
@@ -593,7 +593,7 @@ class _OnboardingProfessionalFlowState
           title: 'Gêneros Musicais',
           child: _buildTagSelector(
             'Com quais gêneros você trabalha?',
-            GENRES,
+            genres,
             _selectedGenres,
           ),
         ),

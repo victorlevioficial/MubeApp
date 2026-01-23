@@ -1,6 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../design_system/foundations/app_colors.dart';
+import 'app_skeleton.dart';
+
+// Re-export skeletons from centralized file
+export 'app_skeleton.dart'
+    show
+        SkeletonShimmer,
+        SkeletonBox,
+        SkeletonCircle,
+        SkeletonText,
+        ProfileSkeleton,
+        UserCardSkeleton,
+        UserListSkeleton,
+        FeedCardSkeleton,
+        FeedListSkeleton,
+        FeedScreenSkeleton;
 
 /// A shimmer loading placeholder widget.
 ///
@@ -25,7 +41,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.textPrimary,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
@@ -40,7 +56,7 @@ class AppShimmer extends StatelessWidget {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: AppColors.textPrimary,
+          color: Colors.white,
           shape: BoxShape.circle,
         ),
       ),
@@ -59,7 +75,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.textPrimary,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -78,37 +94,5 @@ class AppShimmer extends StatelessWidget {
   }
 }
 
-/// A profile card skeleton for loading states.
-class ProfileCardSkeleton extends StatelessWidget {
-  const ProfileCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          Center(child: AppShimmer.circle(size: 120)),
-          const SizedBox(height: 24),
-
-          // Name
-          Center(child: AppShimmer.text(width: 180, height: 24)),
-          const SizedBox(height: 8),
-
-          // Subtitle
-          Center(child: AppShimmer.text(width: 120, height: 14)),
-          const SizedBox(height: 32),
-
-          // Info rows
-          AppShimmer.text(width: double.infinity, height: 48),
-          const SizedBox(height: 12),
-          AppShimmer.text(width: double.infinity, height: 48),
-          const SizedBox(height: 12),
-          AppShimmer.text(width: 200, height: 48),
-        ],
-      ),
-    );
-  }
-}
+/// @deprecated Use ProfileSkeleton from app_skeleton.dart
+typedef ProfileCardSkeleton = ProfileSkeleton;

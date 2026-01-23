@@ -3,20 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../common_widgets/main_scaffold.dart';
+import '../features/admin/presentation/maintenance_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
-import '../features/feed/domain/feed_section.dart';
 import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/conversations_screen.dart';
-import '../features/feed/presentation/favorites_screen.dart';
+import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
+import '../features/feed/presentation/my_favorites_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
-import '../features/profile/presentation/profile_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/domain/saved_address.dart';
@@ -38,8 +38,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
 
   // Listen to state changes to trigger route re-evaluation
-  ref.listen(authStateChangesProvider, (_, __) => notifier.notify());
-  ref.listen(currentUserProfileProvider, (_, __) => notifier.notify());
+  ref.listen(authStateChangesProvider, (_, _) => notifier.notify());
+  ref.listen(currentUserProfileProvider, (_, _) => notifier.notify());
 
   return GoRouter(
     initialLocation: RoutePaths.splash,
@@ -123,7 +123,19 @@ List<RouteBase> _buildRoutes() {
             ),
           ],
         ),
-        // Chat tab (substituiu Perfil)
+        // Search tab
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RoutePaths.search,
+              pageBuilder: (context, state) => NoTransitionPage(
+                key: state.pageKey,
+                child: const SearchScreen(),
+              ),
+            ),
+          ],
+        ),
+        // Chat tab (replaced Perfil)
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -132,6 +144,7 @@ List<RouteBase> _buildRoutes() {
                 key: state.pageKey,
                 child: const ConversationsScreen(),
               ),
+              routes: const [],
             ),
           ],
         ),
@@ -153,6 +166,13 @@ List<RouteBase> _buildRoutes() {
                   ),
                 ),
                 GoRoute(
+                  path: 'maintenance',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const MaintenanceScreen(),
+                  ),
+                ),
+                GoRoute(
                   path: 'address',
                   pageBuilder: (context, state) {
                     final address = state.extra as SavedAddress?;
@@ -169,18 +189,21 @@ List<RouteBase> _buildRoutes() {
       ],
     ),
 
-    // Search screen
-    GoRoute(
-      path: '/search',
-      pageBuilder: (context, state) =>
-          NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
-    ),
+    // Search screen - Temporarily disabled
+    // GoRoute(
+    //   path: '/search',
+    //   pageBuilder: (context, state) =>
+    //       NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
+    // ),
 
-    // Favorites screen
+    // Favorites screen (V8)
     GoRoute(
       path: '/favorites',
-      pageBuilder: (context, state) =>
-          NoTransitionPage(key: state.pageKey, child: const FavoritesScreen()),
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        // UniqueKey força recriação do widget a cada navegação
+        child: MyFavoritesScreen(key: UniqueKey()),
+      ),
     ),
 
     // Dev gallery (design system showcase)
@@ -190,22 +213,6 @@ List<RouteBase> _buildRoutes() {
         key: state.pageKey,
         child: const DesignSystemGalleryScreen(),
       ),
-    ),
-
-    // Own profile view
-    GoRoute(
-      path: '/profile',
-      pageBuilder: (context, state) =>
-          NoTransitionPage(key: state.pageKey, child: const ProfileScreen()),
-      routes: [
-        GoRoute(
-          path: 'edit',
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const EditProfileScreen(),
-          ),
-        ),
-      ],
     ),
 
     // Public profile view
@@ -220,31 +227,30 @@ List<RouteBase> _buildRoutes() {
       },
     ),
 
-    // Chat screen with conversation
+    // Chat Conversation Screen (Top-level to hide bottom bar)
     GoRoute(
-      path: '/chat/:conversationId',
+      path: '${RoutePaths.conversation}/:conversationId',
       pageBuilder: (context, state) {
         final conversationId = state.pathParameters['conversationId']!;
-        final extraData = state.extra;
-
-        // Safe casting with fallback
-        String otherUserId = '';
-        String otherUserName = '';
-
-        if (extraData is Map<String, dynamic>) {
-          otherUserId = extraData['otherUserId'] as String? ?? '';
-          otherUserName = extraData['otherUserName'] as String? ?? '';
-        }
-
+        // Pass extra data if available
+        final extra = state.extra as Map<String, dynamic>?;
         return NoTransitionPage(
           key: state.pageKey,
           child: ChatScreen(
             conversationId: conversationId,
-            otherUserId: otherUserId,
-            otherUserName: otherUserName,
+            extra: extra, // Pass extra to ChatScreen
           ),
         );
       },
+    ),
+
+    // Edit Profile Route
+    GoRoute(
+      path: '/profile/edit',
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const EditProfileScreen(),
+      ),
     ),
   ];
 }

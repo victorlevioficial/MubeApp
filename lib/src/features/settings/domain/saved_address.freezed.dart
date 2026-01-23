@@ -25,7 +25,7 @@ mixin _$SavedAddress {
  String get estado;/// Postal code.
  String get cep;/// Latitude coordinate.
  double? get lat;/// Longitude coordinate.
-@JsonKey(name: 'long') double? get lng;/// Whether this is the primary/active address.
+@JsonKey(name: 'lng') double? get lng;/// Whether this is the primary/active address.
  bool get isPrimary;/// Creation timestamp.
 @JsonKey(name: 'created_at') DateTime? get createdAt;
 /// Create a copy of SavedAddress
@@ -60,7 +60,7 @@ abstract mixin class $SavedAddressCopyWith<$Res>  {
   factory $SavedAddressCopyWith(SavedAddress value, $Res Function(SavedAddress) _then) = _$SavedAddressCopyWithImpl;
 @useResult
 $Res call({
- String id, String nome, String logradouro, String numero, String bairro, String cidade, String estado, String cep, double? lat,@JsonKey(name: 'long') double? lng, bool isPrimary,@JsonKey(name: 'created_at') DateTime? createdAt
+ String id, String nome, String logradouro, String numero, String bairro, String cidade, String estado, String cep, double? lat,@JsonKey(name: 'lng') double? lng, bool isPrimary,@JsonKey(name: 'created_at') DateTime? createdAt
 });
 
 
@@ -176,7 +176,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'long')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'lng')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SavedAddress() when $default != null:
 return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_that.cidade,_that.estado,_that.cep,_that.lat,_that.lng,_that.isPrimary,_that.createdAt);case _:
@@ -197,7 +197,7 @@ return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'long')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'lng')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _SavedAddress():
 return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_that.cidade,_that.estado,_that.cep,_that.lat,_that.lng,_that.isPrimary,_that.createdAt);case _:
@@ -217,7 +217,7 @@ return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'long')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String nome,  String logradouro,  String numero,  String bairro,  String cidade,  String estado,  String cep,  double? lat, @JsonKey(name: 'lng')  double? lng,  bool isPrimary, @JsonKey(name: 'created_at')  DateTime? createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _SavedAddress() when $default != null:
 return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_that.cidade,_that.estado,_that.cep,_that.lat,_that.lng,_that.isPrimary,_that.createdAt);case _:
@@ -232,7 +232,7 @@ return $default(_that.id,_that.nome,_that.logradouro,_that.numero,_that.bairro,_
 @JsonSerializable()
 
 class _SavedAddress extends SavedAddress {
-  const _SavedAddress({required this.id, this.nome = '', this.logradouro = '', this.numero = '', this.bairro = '', this.cidade = '', this.estado = '', this.cep = '', this.lat, @JsonKey(name: 'long') this.lng, this.isPrimary = false, @JsonKey(name: 'created_at') this.createdAt}): super._();
+  const _SavedAddress({required this.id, this.nome = '', this.logradouro = '', this.numero = '', this.bairro = '', this.cidade = '', this.estado = '', this.cep = '', this.lat, @JsonKey(name: 'lng') this.lng, this.isPrimary = false, @JsonKey(name: 'created_at') this.createdAt}): super._();
   factory _SavedAddress.fromJson(Map<String, dynamic> json) => _$SavedAddressFromJson(json);
 
 /// Unique identifier for this address.
@@ -254,7 +254,7 @@ class _SavedAddress extends SavedAddress {
 /// Latitude coordinate.
 @override final  double? lat;
 /// Longitude coordinate.
-@override@JsonKey(name: 'long') final  double? lng;
+@override@JsonKey(name: 'lng') final  double? lng;
 /// Whether this is the primary/active address.
 @override@JsonKey() final  bool isPrimary;
 /// Creation timestamp.
@@ -293,7 +293,7 @@ abstract mixin class _$SavedAddressCopyWith<$Res> implements $SavedAddressCopyWi
   factory _$SavedAddressCopyWith(_SavedAddress value, $Res Function(_SavedAddress) _then) = __$SavedAddressCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String nome, String logradouro, String numero, String bairro, String cidade, String estado, String cep, double? lat,@JsonKey(name: 'long') double? lng, bool isPrimary,@JsonKey(name: 'created_at') DateTime? createdAt
+ String id, String nome, String logradouro, String numero, String bairro, String cidade, String estado, String cep, double? lat,@JsonKey(name: 'lng') double? lng, bool isPrimary,@JsonKey(name: 'created_at') DateTime? createdAt
 });
 
 

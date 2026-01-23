@@ -1,44 +1,74 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../../auth/domain/user_type.dart';
 
 part 'search_filters.freezed.dart';
-part 'search_filters.g.dart';
 
-/// Filters for user search queries.
-///
-/// All filters are optional and can be combined.
+/// Categories for search filtering.
+enum SearchCategory {
+  /// Show all searchable profiles
+  all,
+
+  /// Professional musicians, singers, DJs, crew
+  professionals,
+
+  /// Musical bands/groups
+  bands,
+
+  /// Recording/rehearsal studios
+  studios,
+}
+
+/// Professional subcategories (only applies when category is [SearchCategory.professionals])
+enum ProfessionalSubcategory { singer, instrumentalist, crew, dj }
+
+/// Represents the current search filter state.
 @freezed
 abstract class SearchFilters with _$SearchFilters {
   const factory SearchFilters({
-    /// Free-text search query (matches name, artistic name).
-    String? query,
+    /// Text search term (normalized)
+    @Default('') String term,
 
-    /// Filter by profile type.
-    AppUserType? type,
+    /// Main category filter
+    @Default(SearchCategory.all) SearchCategory category,
 
-    /// Filter by city name.
-    String? city,
+    /// Professional subcategory (singer, instrumentalist, crew, dj)
+    ProfessionalSubcategory? professionalSubcategory,
 
-    /// Filter by state code (e.g., 'SP', 'RJ').
-    String? state,
-
-    /// Filter by musical genres.
+    /// Selected genres filter
     @Default([]) List<String> genres,
 
-    /// Maximum distance in km (requires user location).
-    double? maxDistance,
+    /// Selected instruments filter (for instrumentalists)
+    @Default([]) List<String> instruments,
+
+    /// Selected crew roles filter (for crew)
+    @Default([]) List<String> roles,
+
+    /// Selected studio services filter (for studios)
+    @Default([]) List<String> services,
+
+    /// Filter for backing vocal capability
+    /// null = don't filter, true = must do backing, false = solo only
+    bool? canDoBackingVocal,
+
+    /// Studio type filter (home_studio, commercial)
+    String? studioType,
   }) = _SearchFilters;
 
   const SearchFilters._();
 
-  /// Whether any filter is active.
+  /// Whether any filter is active (besides category)
   bool get hasActiveFilters =>
-      query != null && query!.isNotEmpty ||
-      type != null ||
-      city != null ||
-      state != null ||
-      genres.isNotEmpty;
+      term.isNotEmpty ||
+      professionalSubcategory != null ||
+      genres.isNotEmpty ||
+      instruments.isNotEmpty ||
+      roles.isNotEmpty ||
+      services.isNotEmpty ||
+      canDoBackingVocal != null ||
+      studioType != null;
 
-  factory SearchFilters.fromJson(Map<String, dynamic> json) =>
-      _$SearchFiltersFromJson(json);
+  /// Clears all filters except category
+  SearchFilters clearFilters() => SearchFilters(category: category);
+
+  /// Resets everything to default
+  SearchFilters reset() => const SearchFilters();
 }

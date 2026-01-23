@@ -147,9 +147,9 @@ class _FilledSlot extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
-            placeholder: (_, __) => Shimmer.fromColors(
+            placeholder: (context, url) => Shimmer.fromColors(
               baseColor: AppColors.surface,
-              highlightColor: AppColors.surface.withOpacity(0.5),
+              highlightColor: AppColors.surface.withValues(alpha: 0.5),
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
@@ -157,7 +157,7 @@ class _FilledSlot extends StatelessWidget {
                 ),
               ),
             ),
-            errorWidget: (_, __, ___) => Container(
+            errorWidget: (context, url, error) => Container(
               color: AppColors.surface,
               child: const Icon(Icons.error, color: AppColors.error),
             ),
@@ -172,7 +172,7 @@ class _FilledSlot extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.7),
+                color: AppColors.background.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Row(
@@ -206,7 +206,7 @@ class _FilledSlot extends StatelessWidget {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: AppColors.background.withOpacity(0.6),
+                color: AppColors.background.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -241,7 +241,7 @@ class _EmptySlot extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.textSecondary.withOpacity(0.5),
+          color: AppColors.textSecondary.withValues(alpha: 0.5),
           width: 1.5,
         ),
         color: AppColors.surface,
@@ -336,7 +336,10 @@ class _UploadingSlot extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.5), width: 2),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.5),
+          width: 2,
+        ),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(

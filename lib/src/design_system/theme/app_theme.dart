@@ -52,7 +52,7 @@ class AppTheme {
             AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
           ),
           overlayColor: WidgetStateProperty.all(
-            AppColors.accent.withOpacity(0.1),
+            AppColors.accent.withValues(alpha: 0.1),
           ),
         ),
       ),
@@ -65,7 +65,7 @@ class AppTheme {
         dayForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         yearForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         dayOverlayColor: WidgetStateProperty.all(
-          AppColors.accent.withOpacity(0.1),
+          AppColors.accent.withValues(alpha: 0.1),
         ),
         todayBackgroundColor: WidgetStateProperty.all(
           AppColors.surfaceHighlight,

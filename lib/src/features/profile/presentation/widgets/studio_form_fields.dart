@@ -57,7 +57,7 @@ class _StudioFormFieldsState extends State<StudioFormFields> {
           onChanged: widget.onStudioTypeChanged,
         ),
         const SizedBox(height: AppSpacing.s24),
-        _buildTagSelector('Serviços', STUDIO_SERVICES, widget.selectedServices),
+        _buildTagSelector('Serviços', studioServices, widget.selectedServices),
       ],
     );
   }

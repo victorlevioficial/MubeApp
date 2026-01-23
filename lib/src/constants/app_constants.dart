@@ -1,7 +1,7 @@
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 // Categorias Profissionais
-const List<Map<String, dynamic>> PROFESSIONAL_CATEGORIES = [
+const List<Map<String, dynamic>> professionalCategories = [
   {'id': 'singer', 'label': 'Cantor(a)', 'icon': FontAwesomeIcons.microphone},
   {
     'id': 'instrumentalist',
@@ -13,7 +13,7 @@ const List<Map<String, dynamic>> PROFESSIONAL_CATEGORIES = [
 ];
 
 // Gêneros Musicais
-const List<String> GENRES = [
+const List<String> genres = [
   'Rock',
   'Pop',
   'Sertanejo',
@@ -39,7 +39,7 @@ const List<String> GENRES = [
 ];
 
 // Instrumentos
-const List<String> INSTRUMENTS = [
+const List<String> instruments = [
   'Violão',
   'Guitarra',
   'Baixo',
@@ -65,7 +65,7 @@ const List<String> INSTRUMENTS = [
 ];
 
 // Funções de Equipe
-const List<String> CREW_ROLES = [
+const List<String> crewRoles = [
   'Técnico de Som',
   'Técnico de Luz',
   'Roadie',
@@ -81,7 +81,7 @@ const List<String> CREW_ROLES = [
 ];
 
 // Serviços de Estúdio
-const List<String> STUDIO_SERVICES = [
+const List<String> studioServices = [
   'Ensaio',
   'Gravação',
   'Mixagem',

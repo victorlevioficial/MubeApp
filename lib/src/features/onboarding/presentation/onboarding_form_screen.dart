@@ -87,7 +87,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
       Map<String, dynamic>? dadosEstudio;
       Map<String, dynamic>? dadosContratante;
 
-      if (tipo == 'profissional') {
+      if (tipo == AppUserType.professional) {
         final idade = int.tryParse(_idadeController.text) ?? 0;
         if (idade < 18) {
           if (idade < 18) {
@@ -111,7 +111,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
               .toList(),
           'isPublic': true,
         };
-      } else if (tipo == 'estudio') {
+      } else if (tipo == AppUserType.studio) {
         dadosEstudio = {
           'servicosOferecidos': _servicosController.text
               .split(',')
@@ -119,7 +119,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
               .toList(),
           'isPublic': true,
         };
-      } else if (tipo == 'contratante') {
+      } else if (tipo == AppUserType.contractor) {
         dadosContratante = {'isPublic': false};
       }
 

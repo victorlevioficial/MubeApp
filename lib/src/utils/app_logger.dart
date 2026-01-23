@@ -1,48 +1,52 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
-/// Simple logger for the app.
+/// Utilitário centralizado para logs da aplicação.
 ///
-/// Uses debugPrint in debug mode, no-op in release mode.
-/// This avoids the `avoid_print` lint warning.
+/// Use esta classe em vez de `print()` para garantir que:
+/// 1. Os logs possam ser desativados em produção automaticamente.
+/// 2. Tenhamos rastreabilidade (nome do logger).
+/// 3. Possamos futuramente integrar com serviços como Crashlytics/Sentry facilmente.
 class AppLogger {
-  static const String _tag = 'MubeApp';
+  const AppLogger._();
 
-  /// Logs a debug message (only in debug mode).
-  static void debug(String message, {String? tag}) {
+  /// Log de debug simples (informativo)
+  static void info(String message, [Object? error, StackTrace? stackTrace]) {
     if (kDebugMode) {
-      debugPrint('[${tag ?? _tag}] $message');
+      developer.log(
+        message,
+        name: 'MubeApp ℹ️',
+        error: error,
+        stackTrace: stackTrace,
+        level: 800, // INFO
+      );
     }
   }
 
-  /// Logs an info message.
-  static void info(String message, {String? tag}) {
+  /// Log de erro (algo deu errado)
+  static void error(String message, [Object? error, StackTrace? stackTrace]) {
+    // Em produção, aqui poderíamos enviar para o Crashlytics
     if (kDebugMode) {
-      debugPrint('[${tag ?? _tag}] ℹ️ $message');
+      developer.log(
+        message,
+        name: 'MubeApp 🚨',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000, // SEVERE
+      );
     }
   }
 
-  /// Logs a warning message.
-  static void warning(String message, {String? tag}) {
+  /// Log de warning (atenção)
+  static void warning(String message, [Object? error, StackTrace? stackTrace]) {
     if (kDebugMode) {
-      debugPrint('[${tag ?? _tag}] ⚠️ $message');
-    }
-  }
-
-  /// Logs an error message.
-  static void error(
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-    String? tag,
-  }) {
-    if (kDebugMode) {
-      debugPrint('[${tag ?? _tag}] ❌ $message');
-      if (error != null) {
-        debugPrint('[${tag ?? _tag}] Error: $error');
-      }
-      if (stackTrace != null) {
-        debugPrint('[${tag ?? _tag}] StackTrace: $stackTrace');
-      }
+      developer.log(
+        message,
+        name: 'MubeApp ⚠️',
+        error: error,
+        stackTrace: stackTrace,
+        level: 900, // WARNING
+      );
     }
   }
 }

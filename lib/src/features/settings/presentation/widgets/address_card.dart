@@ -24,13 +24,13 @@ class AddressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: address.isPrimary
-          ? AppColors.primary.withOpacity(0.08)
+          ? AppColors.primary.withValues(alpha: 0.08)
           : AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: address.isPrimary
-              ? AppColors.primary.withOpacity(0.3)
+              ? AppColors.primary.withValues(alpha: 0.3)
               : AppColors.surfaceHighlight,
           width: address.isPrimary ? 1.5 : 1,
         ),
@@ -48,7 +48,7 @@ class AddressCard extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: address.isPrimary
-                      ? AppColors.primary.withOpacity(0.15)
+                      ? AppColors.primary.withValues(alpha: 0.15)
                       : AppColors.surfaceHighlight,
                   borderRadius: BorderRadius.circular(10),
                 ),

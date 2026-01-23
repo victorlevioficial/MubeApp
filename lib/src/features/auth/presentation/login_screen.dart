@@ -28,12 +28,24 @@ class LoginController extends _$LoginController {
   }
 
   Future<void> login({required String email, required String password}) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref
+    try {
+      state = const AsyncLoading();
+      await ref
           .read(authRepositoryProvider)
-          .signInWithEmailAndPassword(email, password),
-    );
+          .signInWithEmailAndPassword(email, password);
+      // Explicitly set data on success to ensure clean state
+      state = const AsyncData(null);
+    } catch (e, st) {
+      // Check if user is actually logged in despite error (edge case)
+      final currentUser = ref.read(authRepositoryProvider).currentUser;
+      if (currentUser != null) {
+        // Log weird case but treat as success
+        state = const AsyncData(null);
+        return;
+      }
+
+      state = AsyncError(e, st);
+    }
   }
 }
 
@@ -71,9 +83,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<void>>(loginControllerProvider, (previous, next) {
-      if (next.hasError) {
+      // Only show error if this is a NEW error (not a stale one from before)
+      // This prevents duplicate snackbars when widget rebuilds
+      if (next.hasError && !(previous?.hasError ?? false)) {
         final message = AuthExceptionHandler.handleException(next.error!);
-        AppSnackBar.show(context, message, isError: true);
+        debugPrint('LOGIN ERROR CAUGHT: $message (Original: ${next.error})');
+        // Double check we're still on screen before showing snackbar
+        if (context.mounted) {
+          AppSnackBar.show(context, message, isError: true);
+        }
       }
     });
 

@@ -126,7 +126,7 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
               itemCount: _filteredItems.length,
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, _) =>
                   const Divider(height: 1, color: AppColors.surfaceHighlight),
               itemBuilder: (context, index) {
                 final item = _filteredItems[index];

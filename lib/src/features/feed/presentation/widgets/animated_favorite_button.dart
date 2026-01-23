@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../design_system/foundations/app_colors.dart';
 
-/// Animated favorite button with professional animations and haptic feedback
+/// Um botão de coração animado para o sistema de likes V8.
+/// Puramente visual: recebe estado e callback, sem lógica de negócio.
 class AnimatedFavoriteButton extends StatefulWidget {
   final bool isFavorited;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
   final double size;
-  final Color? favoriteColor;
-  final Color? defaultColor;
-  final bool isLoading;
+  final Color favoriteColor;
+  final Color defaultColor;
 
   const AnimatedFavoriteButton({
     super.key,
     required this.isFavorited,
-    this.onTap,
-    this.size = 24,
-    this.favoriteColor,
-    this.defaultColor,
-    this.isLoading = false,
+    required this.onTap,
+    this.size = 28,
+    this.favoriteColor = AppColors.primary,
+    this.defaultColor = Colors.white54,
   });
 
   @override
@@ -28,50 +27,27 @@ class _AnimatedFavoriteButtonState extends State<AnimatedFavoriteButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
       vsync: this,
+      duration: const Duration(milliseconds: 150),
     );
-
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 1.4,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.4,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.elasticOut)),
-        weight: 50,
-      ),
-    ]).animate(_controller);
-
-    _rotationAnimation = Tween<double>(
-      begin: 0,
-      end: 0.1,
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.3,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
-  void didUpdateWidget(AnimatedFavoriteButton oldWidget) {
+  void didUpdateWidget(covariant AnimatedFavoriteButton oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Se mudou de false -> true, anima
     if (widget.isFavorited && !oldWidget.isFavorited) {
-      _playAnimation();
+      _controller.forward().then((_) => _controller.reverse());
     }
-  }
-
-  void _playAnimation() {
-    _controller.forward(from: 0);
-    HapticFeedback.lightImpact();
   }
 
   @override
@@ -82,38 +58,18 @@ class _AnimatedFavoriteButtonState extends State<AnimatedFavoriteButton>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.isFavorited
-        ? (widget.favoriteColor ?? const Color(0xFFE91E63))
-        : (widget.defaultColor ?? Colors.white54);
-
     return GestureDetector(
-      onTap: widget.isLoading ? null : widget.onTap,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Transform.rotate(
-              angle: _rotationAnimation.value,
-              child: widget.isLoading
-                  ? SizedBox(
-                      width: widget.size,
-                      height: widget.size,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(color),
-                      ),
-                    )
-                  : Icon(
-                      widget.isFavorited
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: color,
-                      size: widget.size,
-                    ),
-            ),
-          );
-        },
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Icon(
+          widget.isFavorited ? Icons.favorite : Icons.favorite_border,
+          color: widget.isFavorited
+              ? widget.favoriteColor
+              : widget.defaultColor,
+          size: widget.size,
+        ),
       ),
     );
   }

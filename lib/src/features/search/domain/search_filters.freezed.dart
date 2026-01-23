@@ -11,39 +11,40 @@ part of 'search_filters.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-
 /// @nodoc
 mixin _$SearchFilters {
 
-/// Free-text search query (matches name, artistic name).
- String? get query;/// Filter by profile type.
- AppUserType? get type;/// Filter by city name.
- String? get city;/// Filter by state code (e.g., 'SP', 'RJ').
- String? get state;/// Filter by musical genres.
- List<String> get genres;/// Maximum distance in km (requires user location).
- double? get maxDistance;
+/// Text search term (normalized)
+ String get term;/// Main category filter
+ SearchCategory get category;/// Professional subcategory (singer, instrumentalist, crew, dj)
+ ProfessionalSubcategory? get professionalSubcategory;/// Selected genres filter
+ List<String> get genres;/// Selected instruments filter (for instrumentalists)
+ List<String> get instruments;/// Selected crew roles filter (for crew)
+ List<String> get roles;/// Selected studio services filter (for studios)
+ List<String> get services;/// Filter for backing vocal capability
+/// null = don't filter, true = must do backing, false = solo only
+ bool? get canDoBackingVocal;/// Studio type filter (home_studio, commercial)
+ String? get studioType;
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $SearchFiltersCopyWith<SearchFilters> get copyWith => _$SearchFiltersCopyWithImpl<SearchFilters>(this as SearchFilters, _$identity);
 
-  /// Serializes this SearchFilters to a JSON map.
-  Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchFilters&&(identical(other.query, query) || other.query == query)&&(identical(other.type, type) || other.type == type)&&(identical(other.city, city) || other.city == city)&&(identical(other.state, state) || other.state == state)&&const DeepCollectionEquality().equals(other.genres, genres)&&(identical(other.maxDistance, maxDistance) || other.maxDistance == maxDistance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other.genres, genres)&&const DeepCollectionEquality().equals(other.instruments, instruments)&&const DeepCollectionEquality().equals(other.roles, roles)&&const DeepCollectionEquality().equals(other.services, services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,query,type,city,state,const DeepCollectionEquality().hash(genres),maxDistance);
+int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(genres),const DeepCollectionEquality().hash(instruments),const DeepCollectionEquality().hash(roles),const DeepCollectionEquality().hash(services),canDoBackingVocal,studioType);
 
 @override
 String toString() {
-  return 'SearchFilters(query: $query, type: $type, city: $city, state: $state, genres: $genres, maxDistance: $maxDistance)';
+  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
 }
 
 
@@ -54,7 +55,7 @@ abstract mixin class $SearchFiltersCopyWith<$Res>  {
   factory $SearchFiltersCopyWith(SearchFilters value, $Res Function(SearchFilters) _then) = _$SearchFiltersCopyWithImpl;
 @useResult
 $Res call({
- String? query, AppUserType? type, String? city, String? state, List<String> genres, double? maxDistance
+ String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, List<String> services, bool? canDoBackingVocal, String? studioType
 });
 
 
@@ -71,15 +72,18 @@ class _$SearchFiltersCopyWithImpl<$Res>
 
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? query = freezed,Object? type = freezed,Object? city = freezed,Object? state = freezed,Object? genres = null,Object? maxDistance = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
   return _then(_self.copyWith(
-query: freezed == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
-as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as AppUserType?,city: freezed == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
-as String?,state: freezed == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
-as String?,genres: null == genres ? _self.genres : genres // ignore: cast_nullable_to_non_nullable
-as List<String>,maxDistance: freezed == maxDistance ? _self.maxDistance : maxDistance // ignore: cast_nullable_to_non_nullable
-as double?,
+term: null == term ? _self.term : term // ignore: cast_nullable_to_non_nullable
+as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as SearchCategory,professionalSubcategory: freezed == professionalSubcategory ? _self.professionalSubcategory : professionalSubcategory // ignore: cast_nullable_to_non_nullable
+as ProfessionalSubcategory?,genres: null == genres ? _self.genres : genres // ignore: cast_nullable_to_non_nullable
+as List<String>,instruments: null == instruments ? _self.instruments : instruments // ignore: cast_nullable_to_non_nullable
+as List<String>,roles: null == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
+as List<String>,services: null == services ? _self.services : services // ignore: cast_nullable_to_non_nullable
+as List<String>,canDoBackingVocal: freezed == canDoBackingVocal ? _self.canDoBackingVocal : canDoBackingVocal // ignore: cast_nullable_to_non_nullable
+as bool?,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -164,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? query,  AppUserType? type,  String? city,  String? state,  List<String> genres,  double? maxDistance)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchFilters() when $default != null:
-return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that.maxDistance);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   return orElse();
 
 }
@@ -185,10 +189,10 @@ return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? query,  AppUserType? type,  String? city,  String? state,  List<String> genres,  double? maxDistance)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)  $default,) {final _that = this;
 switch (_that) {
 case _SearchFilters():
-return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that.maxDistance);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +209,10 @@ return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? query,  AppUserType? type,  String? city,  String? state,  List<String> genres,  double? maxDistance)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchFilters() when $default != null:
-return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that.maxDistance);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   return null;
 
 }
@@ -217,31 +221,59 @@ return $default(_that.query,_that.type,_that.city,_that.state,_that.genres,_that
 }
 
 /// @nodoc
-@JsonSerializable()
+
 
 class _SearchFilters extends SearchFilters {
-  const _SearchFilters({this.query, this.type, this.city, this.state, final  List<String> genres = const [], this.maxDistance}): _genres = genres,super._();
-  factory _SearchFilters.fromJson(Map<String, dynamic> json) => _$SearchFiltersFromJson(json);
+  const _SearchFilters({this.term = '', this.category = SearchCategory.all, this.professionalSubcategory, final  List<String> genres = const [], final  List<String> instruments = const [], final  List<String> roles = const [], final  List<String> services = const [], this.canDoBackingVocal, this.studioType}): _genres = genres,_instruments = instruments,_roles = roles,_services = services,super._();
+  
 
-/// Free-text search query (matches name, artistic name).
-@override final  String? query;
-/// Filter by profile type.
-@override final  AppUserType? type;
-/// Filter by city name.
-@override final  String? city;
-/// Filter by state code (e.g., 'SP', 'RJ').
-@override final  String? state;
-/// Filter by musical genres.
+/// Text search term (normalized)
+@override@JsonKey() final  String term;
+/// Main category filter
+@override@JsonKey() final  SearchCategory category;
+/// Professional subcategory (singer, instrumentalist, crew, dj)
+@override final  ProfessionalSubcategory? professionalSubcategory;
+/// Selected genres filter
  final  List<String> _genres;
-/// Filter by musical genres.
+/// Selected genres filter
 @override@JsonKey() List<String> get genres {
   if (_genres is EqualUnmodifiableListView) return _genres;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_genres);
 }
 
-/// Maximum distance in km (requires user location).
-@override final  double? maxDistance;
+/// Selected instruments filter (for instrumentalists)
+ final  List<String> _instruments;
+/// Selected instruments filter (for instrumentalists)
+@override@JsonKey() List<String> get instruments {
+  if (_instruments is EqualUnmodifiableListView) return _instruments;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_instruments);
+}
+
+/// Selected crew roles filter (for crew)
+ final  List<String> _roles;
+/// Selected crew roles filter (for crew)
+@override@JsonKey() List<String> get roles {
+  if (_roles is EqualUnmodifiableListView) return _roles;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_roles);
+}
+
+/// Selected studio services filter (for studios)
+ final  List<String> _services;
+/// Selected studio services filter (for studios)
+@override@JsonKey() List<String> get services {
+  if (_services is EqualUnmodifiableListView) return _services;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_services);
+}
+
+/// Filter for backing vocal capability
+/// null = don't filter, true = must do backing, false = solo only
+@override final  bool? canDoBackingVocal;
+/// Studio type filter (home_studio, commercial)
+@override final  String? studioType;
 
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
@@ -249,23 +281,20 @@ class _SearchFilters extends SearchFilters {
 @pragma('vm:prefer-inline')
 _$SearchFiltersCopyWith<_SearchFilters> get copyWith => __$SearchFiltersCopyWithImpl<_SearchFilters>(this, _$identity);
 
-@override
-Map<String, dynamic> toJson() {
-  return _$SearchFiltersToJson(this, );
-}
+
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchFilters&&(identical(other.query, query) || other.query == query)&&(identical(other.type, type) || other.type == type)&&(identical(other.city, city) || other.city == city)&&(identical(other.state, state) || other.state == state)&&const DeepCollectionEquality().equals(other._genres, _genres)&&(identical(other.maxDistance, maxDistance) || other.maxDistance == maxDistance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other._genres, _genres)&&const DeepCollectionEquality().equals(other._instruments, _instruments)&&const DeepCollectionEquality().equals(other._roles, _roles)&&const DeepCollectionEquality().equals(other._services, _services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
 }
 
-@JsonKey(includeFromJson: false, includeToJson: false)
+
 @override
-int get hashCode => Object.hash(runtimeType,query,type,city,state,const DeepCollectionEquality().hash(_genres),maxDistance);
+int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(_genres),const DeepCollectionEquality().hash(_instruments),const DeepCollectionEquality().hash(_roles),const DeepCollectionEquality().hash(_services),canDoBackingVocal,studioType);
 
 @override
 String toString() {
-  return 'SearchFilters(query: $query, type: $type, city: $city, state: $state, genres: $genres, maxDistance: $maxDistance)';
+  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
 }
 
 
@@ -276,7 +305,7 @@ abstract mixin class _$SearchFiltersCopyWith<$Res> implements $SearchFiltersCopy
   factory _$SearchFiltersCopyWith(_SearchFilters value, $Res Function(_SearchFilters) _then) = __$SearchFiltersCopyWithImpl;
 @override @useResult
 $Res call({
- String? query, AppUserType? type, String? city, String? state, List<String> genres, double? maxDistance
+ String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, List<String> services, bool? canDoBackingVocal, String? studioType
 });
 
 
@@ -293,15 +322,18 @@ class __$SearchFiltersCopyWithImpl<$Res>
 
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? query = freezed,Object? type = freezed,Object? city = freezed,Object? state = freezed,Object? genres = null,Object? maxDistance = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
   return _then(_SearchFilters(
-query: freezed == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
-as String?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as AppUserType?,city: freezed == city ? _self.city : city // ignore: cast_nullable_to_non_nullable
-as String?,state: freezed == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
-as String?,genres: null == genres ? _self._genres : genres // ignore: cast_nullable_to_non_nullable
-as List<String>,maxDistance: freezed == maxDistance ? _self.maxDistance : maxDistance // ignore: cast_nullable_to_non_nullable
-as double?,
+term: null == term ? _self.term : term // ignore: cast_nullable_to_non_nullable
+as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as SearchCategory,professionalSubcategory: freezed == professionalSubcategory ? _self.professionalSubcategory : professionalSubcategory // ignore: cast_nullable_to_non_nullable
+as ProfessionalSubcategory?,genres: null == genres ? _self._genres : genres // ignore: cast_nullable_to_non_nullable
+as List<String>,instruments: null == instruments ? _self._instruments : instruments // ignore: cast_nullable_to_non_nullable
+as List<String>,roles: null == roles ? _self._roles : roles // ignore: cast_nullable_to_non_nullable
+as List<String>,services: null == services ? _self._services : services // ignore: cast_nullable_to_non_nullable
+as List<String>,canDoBackingVocal: freezed == canDoBackingVocal ? _self.canDoBackingVocal : canDoBackingVocal // ignore: cast_nullable_to_non_nullable
+as bool?,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

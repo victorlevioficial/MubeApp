@@ -17,7 +17,7 @@ _SavedAddress _$SavedAddressFromJson(Map<String, dynamic> json) =>
       estado: json['estado'] as String? ?? '',
       cep: json['cep'] as String? ?? '',
       lat: (json['lat'] as num?)?.toDouble(),
-      lng: (json['long'] as num?)?.toDouble(),
+      lng: (json['lng'] as num?)?.toDouble(),
       isPrimary: json['isPrimary'] as bool? ?? false,
       createdAt: json['created_at'] == null
           ? null
@@ -35,7 +35,7 @@ Map<String, dynamic> _$SavedAddressToJson(_SavedAddress instance) =>
       'estado': instance.estado,
       'cep': instance.cep,
       'lat': instance.lat,
-      'long': instance.lng,
+      'lng': instance.lng,
       'isPrimary': instance.isPrimary,
       'created_at': instance.createdAt?.toIso8601String(),
     };

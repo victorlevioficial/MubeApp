@@ -3,30 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/mube_app_bar.dart';
+import '../../../common_widgets/user_avatar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../data/chat_providers.dart';
 import '../domain/conversation_preview.dart';
-import 'widgets/conversation_tile.dart';
 
-/// Tela de lista de conversas (Chat Inbox)
+/// Tela com lista de conversas do usuário.
 class ConversationsScreen extends ConsumerWidget {
   const ConversationsScreen({super.key});
 
-  void _openChat(BuildContext context, ConversationPreview conversation) {
-    context.push(
-      '/chat/${conversation.conversationId}',
-      extra: {
-        'otherUserId': conversation.otherUserId,
-        'otherUserName': conversation.otherUserName,
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final conversationsAsync = ref.watch(userConversationsStreamProvider);
+    final conversationsAsync = ref.watch(userConversationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -36,89 +27,185 @@ class ConversationsScreen extends ConsumerWidget {
           if (conversations.isEmpty) {
             return _buildEmptyState();
           }
-
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: conversations.length,
             itemBuilder: (context, index) {
-              final conversation = conversations[index];
-              return ConversationTile(
-                conversation: conversation,
-                onTap: () => _openChat(context, conversation),
+              final preview = conversations[index];
+              return _ConversationTile(
+                preview: preview,
+                onTap: () =>
+                    context.push('${RoutePaths.conversation}/${preview.id}'),
               );
             },
           );
         },
-        loading: () => _buildLoadingState(),
-        error: (error, stack) => _buildErrorState(error),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Text(
+            'Erro ao carregar conversas',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.s32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              size: 80,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.chat_bubble_outline,
+            size: 80,
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: AppSpacing.s24),
+          Text(
+            'Nenhuma conversa ainda',
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.textPrimary,
             ),
-            const SizedBox(height: AppSpacing.s24),
-            Text(
-              'Nenhuma conversa ainda',
-              style: AppTypography.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s8),
-            Text(
-              'Inicie uma conversa visitando o perfil de um usuário',
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s48),
+            child: Text(
+              'Inicie uma conversa visitando o perfil de outro usuário',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildLoadingState() {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
-    );
-  }
+class _ConversationTile extends StatelessWidget {
+  final ConversationPreview preview;
+  final VoidCallback onTap;
 
-  Widget _buildErrorState(Object error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.s32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  const _ConversationTile({required this.preview, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
           children: [
-            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-            const SizedBox(height: AppSpacing.s16),
-            Text(
-              'Erro ao carregar conversas',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
-              ),
+            // Avatar
+            UserAvatar(
+              size: 56,
+              photoUrl: preview.otherUserPhoto,
+              name: preview.otherUserName,
             ),
-            const SizedBox(height: AppSpacing.s8),
-            Text(
-              error.toString(),
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+            const SizedBox(width: 12),
+
+            // Conteúdo
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Nome
+                      Expanded(
+                        child: Text(
+                          preview.otherUserName,
+                          style: AppTypography.titleMedium.copyWith(
+                            fontSize: 16,
+                            fontWeight: preview.unreadCount > 0
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Hora
+                      if (preview.lastMessageAt != null)
+                        Text(
+                          _formatTime(preview.lastMessageAt!.toDate()),
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Última mensagem
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          preview.lastMessageText ?? 'Nova conversa',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: preview.unreadCount > 0
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary,
+                            fontWeight: preview.unreadCount > 0
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      // Badge de não lidas
+                      if (preview.unreadCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${preview.unreadCount}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+
+    if (diff.inDays == 0) {
+      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Ontem';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays}d';
+    } else {
+      return '${time.day}/${time.month}';
+    }
   }
 }

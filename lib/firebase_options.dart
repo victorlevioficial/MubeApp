@@ -49,7 +49,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '798301748829',
     projectId: 'mube-63a93',
     authDomain: 'mube-63a93.firebaseapp.com',
-    databaseURL: 'https://mube-63a93-default-rtdb.firebaseio.com',
     storageBucket: 'mube-63a93.firebasestorage.app',
     measurementId: 'G-D56VW4HSY1',
   );
@@ -59,7 +58,6 @@ class DefaultFirebaseOptions {
     appId: '1:798301748829:android:25d2fd20932bb4bc47d7b4',
     messagingSenderId: '798301748829',
     projectId: 'mube-63a93',
-    databaseURL: 'https://mube-63a93-default-rtdb.firebaseio.com',
     storageBucket: 'mube-63a93.firebasestorage.app',
   );
 
@@ -68,7 +66,6 @@ class DefaultFirebaseOptions {
     appId: '1:798301748829:ios:83fd689a9de5f7eb47d7b4',
     messagingSenderId: '798301748829',
     projectId: 'mube-63a93',
-    databaseURL: 'https://mube-63a93-default-rtdb.firebaseio.com',
     storageBucket: 'mube-63a93.firebasestorage.app',
     iosBundleId: 'com.mube.mubeoficial',
   );
@@ -79,7 +76,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '798301748829',
     projectId: 'mube-63a93',
     authDomain: 'mube-63a93.firebaseapp.com',
-    databaseURL: 'https://mube-63a93-default-rtdb.firebaseio.com',
     storageBucket: 'mube-63a93.firebasestorage.app',
     measurementId: 'G-BE180JHHC0',
   );

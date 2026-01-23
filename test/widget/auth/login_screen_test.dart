@@ -27,7 +27,7 @@ void main() {
       await tester.pumpApp(const LoginScreen());
 
       // Should find register prompt
-      expect(find.text('Criar conta'), findsOneWidget);
+      expect(find.text('Crie agora'), findsOneWidget);
     });
 
     testWidgets('shows error when submitting empty form', (tester) async {

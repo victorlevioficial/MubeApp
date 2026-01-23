@@ -29,7 +29,7 @@ class _BandFormFieldsState extends State<BandFormFields> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: AppSpacing.s16),
-        _buildTagSelector('Gêneros Musicais', GENRES, widget.selectedGenres),
+        _buildTagSelector('Gêneros Musicais', genres, widget.selectedGenres),
       ],
     );
   }

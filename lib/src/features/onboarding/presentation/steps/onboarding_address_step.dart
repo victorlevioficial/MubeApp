@@ -258,11 +258,15 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
               padding: const EdgeInsets.all(AppSpacing.s16),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.5),
                   width: 1,
                 ),
                 borderRadius: BorderRadius.circular(AppSpacing.s12),
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.05),
               ),
               child: Row(
                 children: [
@@ -272,7 +276,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.1),
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
@@ -390,7 +394,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
                 itemCount: _searchResults.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final item = _searchResults[index];
                   return ListTile(

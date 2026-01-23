@@ -1,50 +1,42 @@
-/// Modelo de preview de conversa para a lista de conversas
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// Preview de conversa para lista rápida (users/{uid}/conversationPreviews).
 class ConversationPreview {
-  final String conversationId;
+  final String id;
   final String otherUserId;
   final String otherUserName;
   final String? otherUserPhoto;
-  final String lastMessage;
-  final int lastMessageTime;
-  final String lastSenderId;
+  final String? lastMessageText;
+  final Timestamp? lastMessageAt;
+  final String? lastSenderId;
   final int unreadCount;
+  final Timestamp updatedAt;
 
   const ConversationPreview({
-    required this.conversationId,
+    required this.id,
     required this.otherUserId,
     required this.otherUserName,
     this.otherUserPhoto,
-    required this.lastMessage,
-    required this.lastMessageTime,
-    required this.lastSenderId,
-    required this.unreadCount,
+    this.lastMessageText,
+    this.lastMessageAt,
+    this.lastSenderId,
+    this.unreadCount = 0,
+    required this.updatedAt,
   });
 
-  factory ConversationPreview.fromJson(
-    String conversationId,
-    Map<dynamic, dynamic> json,
-  ) {
+  /// Cria ConversationPreview a partir de DocumentSnapshot
+  factory ConversationPreview.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return ConversationPreview(
-      conversationId: conversationId,
-      otherUserId: json['otherUserId'] as String? ?? '',
-      otherUserName: json['otherUserName'] as String? ?? 'Usuário',
-      otherUserPhoto: json['otherUserPhoto'] as String?,
-      lastMessage: json['lastMessage'] as String? ?? '',
-      lastMessageTime: json['lastMessageTime'] as int? ?? 0,
-      lastSenderId: json['lastSenderId'] as String? ?? '',
-      unreadCount: json['unreadCount'] as int? ?? 0,
+      id: doc.id,
+      otherUserId: data['otherUserId'] as String,
+      otherUserName: data['otherUserName'] as String,
+      otherUserPhoto: data['otherUserPhoto'] as String?,
+      lastMessageText: data['lastMessageText'] as String?,
+      lastMessageAt: data['lastMessageAt'] as Timestamp?,
+      lastSenderId: data['lastSenderId'] as String?,
+      unreadCount: data['unreadCount'] as int? ?? 0,
+      updatedAt: data['updatedAt'] as Timestamp? ?? Timestamp.now(),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'otherUserId': otherUserId,
-      'otherUserName': otherUserName,
-      'otherUserPhoto': otherUserPhoto,
-      'lastMessage': lastMessage,
-      'lastMessageTime': lastMessageTime,
-      'lastSenderId': lastSenderId,
-      'unreadCount': unreadCount,
-    };
   }
 }

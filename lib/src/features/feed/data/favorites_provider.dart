@@ -1,198 +1,215 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../auth/data/auth_repository.dart';
-import 'feed_items_provider.dart';
-import 'feed_repository.dart';
+import '../domain/feed_item.dart';
 
-/// State for favorites management
-class FavoritesState {
-  final Set<String> favoriteIds;
-  final bool isLoading;
-  final String? error;
+part 'favorites_provider.g.dart';
 
-  const FavoritesState({
-    this.favoriteIds = const {},
-    this.isLoading = false,
-    this.error,
-  });
+/// ============================================================================
+/// SISTEMA DE LIKES - ARQUITETURA PROFISSIONAL
+/// ============================================================================
+///
+/// Estrutura no Firestore:
+///
+/// likes/{likeId}
+///   ├── fromUserId: String (quem deu o like)
+///   ├── toUserId: String (quem recebeu o like)
+///   └── createdAt: Timestamp
+///
+/// Onde likeId = "${fromUserId}_${toUserId}" (garante unicidade/idempotência)
+///
+/// users/{userId}
+///   └── favoriteCount: int (atualizado atomicamente via transação)
+///
+/// ============================================================================
 
-  FavoritesState copyWith({
-    Set<String>? favoriteIds,
-    bool? isLoading,
-    String? error,
-  }) {
-    return FavoritesState(
-      favoriteIds: favoriteIds ?? this.favoriteIds,
-      isLoading: isLoading ?? this.isLoading,
-      error: error,
-    );
-  }
-
-  bool isFavorited(String itemId) => favoriteIds.contains(itemId);
-}
-
-/// Notifier with CACHE-FIRST approach - cache is the absolute truth
-class FavoritesNotifier extends Notifier<FavoritesState> {
-  String _cacheKey(String userId) => 'favorites_$userId';
-
+/// Controller para gerenciar likes do usuário logado.
+///
+/// Usa documentos individuais na coleção `likes/` com ID composto,
+/// garantindo operações idempotentes e sem duplicação.
+@riverpod
+class LikesController extends _$LikesController {
   @override
-  FavoritesState build() {
-    // Load from cache immediately - this is the source of truth
-    _loadFromCache();
-    // Sync to Firebase in background (fire and forget)
-    _syncToFirebase();
-    return const FavoritesState();
+  FutureOr<Set<String>> build() async {
+    // Observar mudanças no usuário para invalidar estado no logout
+    final userAsync = ref.watch(currentUserProfileProvider);
+    final user = userAsync.value;
+
+    if (user == null) {
+      return {};
+    }
+
+    return _loadUserLikes(user.uid);
   }
 
-  /// Load from cache - this is the ONLY source of truth for UI
-  Future<void> _loadFromCache() async {
+  /// Carrega todos os IDs que o usuário atual curtiu
+  Future<Set<String>> _loadUserLikes(String userId) async {
     try {
-      final user = ref.read(currentUserProfileProvider).value;
-      if (user == null) return;
+      final snapshot = await FirebaseFirestore.instance
+          .collection('likes')
+          .where('fromUserId', isEqualTo: userId)
+          .get();
 
-      final prefs = await SharedPreferences.getInstance();
-      final cached = prefs.getStringList(_cacheKey(user.uid)) ?? [];
-
-      state = state.copyWith(favoriteIds: cached.toSet(), isLoading: false);
+      return snapshot.docs
+          .map((doc) => doc.data()['toUserId'] as String)
+          .toSet();
     } catch (e) {
-      print('Error loading favorites cache: $e');
-      state = state.copyWith(isLoading: false);
+      debugPrint('Erro ao carregar likes: $e');
+      return {};
     }
   }
 
-  /// Save to cache - immediate and synchronous
-  Future<void> _saveToCache(Set<String> favorites) async {
-    try {
-      final user = ref.read(currentUserProfileProvider).value;
-      if (user == null) return;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_cacheKey(user.uid), favorites.toList());
-    } catch (e) {
-      print('Error saving to cache: $e');
-    }
-  }
-
-  /// Sync to Firebase in background - never overwrites cache
-  Future<void> _syncToFirebase() async {
+  /// Alterna o estado de like de forma atômica e idempotente.
+  /// Retorna true se o item está agora curtido, false se não está.
+  Future<bool> toggleLike(String targetUserId) async {
     final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
+    if (user == null) {
+      debugPrint('toggleLike: usuário não logado');
+      return false;
+    }
+
+    final currentUserId = user.uid;
+
+    // Prevenir auto-like
+    if (currentUserId == targetUserId) {
+      debugPrint('toggleLike: usuário tentou curtir a si mesmo');
+      return false;
+    }
+
+    final likeDocId = '${currentUserId}_$targetUserId';
+    final likeRef = FirebaseFirestore.instance
+        .collection('likes')
+        .doc(likeDocId);
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUserId);
 
     try {
-      final feedRepository = ref.read(feedRepositoryProvider);
+      // Usar transação para garantir atomicidade
+      final result = await FirebaseFirestore.instance.runTransaction<bool>((
+        transaction,
+      ) async {
+        final likeDoc = await transaction.get(likeRef);
+        final userDoc = await transaction.get(userRef);
 
-      // Get Firebase favorites
-      final firebaseFavorites = await feedRepository.getUserFavorites(user.uid);
+        if (!userDoc.exists) {
+          throw Exception('Usuário alvo não existe');
+        }
 
-      // Merge with cache (cache wins on conflicts)
-      final merged = Set<String>.from(state.favoriteIds)
-        ..addAll(firebaseFavorites);
+        final currentCount = userDoc.data()?['favoriteCount'] ?? 0;
 
-      // Only update if we found NEW favorites in Firebase
-      if (merged.length > state.favoriteIds.length) {
-        state = state.copyWith(favoriteIds: merged);
-        await _saveToCache(merged);
+        if (likeDoc.exists) {
+          // Remover like
+          transaction.delete(likeRef);
+          transaction.update(userRef, {
+            'favoriteCount': (currentCount - 1).clamp(0, 999999),
+          });
+          return false;
+        } else {
+          // Adicionar like
+          transaction.set(likeRef, {
+            'fromUserId': currentUserId,
+            'toUserId': targetUserId,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+          transaction.update(userRef, {'favoriteCount': currentCount + 1});
+          return true;
+        }
+      });
+
+      // Atualizar estado local
+      final currentSet = state.asData?.value ?? {};
+      if (result) {
+        state = AsyncData({...currentSet, targetUserId});
+      } else {
+        state = AsyncData({...currentSet}..remove(targetUserId));
       }
+
+      return result;
     } catch (e) {
-      print('Firebase sync failed (non-fatal): $e');
-      // Don't update state - cache is truth
+      debugPrint('Erro em toggleLike: $e');
+      // Em caso de erro, forçar recarregamento do estado
+      ref.invalidateSelf();
+      rethrow;
     }
   }
 
-  /// Toggle favorite - cache first, Firebase second
-  Future<bool> toggleFavorite(String targetId) async {
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return false;
-
-    final wasFavorited = state.isFavorited(targetId);
-    final newFavorites = Set<String>.from(state.favoriteIds);
-
-    // 1. Update cache FIRST
-    if (wasFavorited) {
-      newFavorites.remove(targetId);
-    } else {
-      newFavorites.add(targetId);
-    }
-
-    // 2. Update state immediately
-    state = state.copyWith(favoriteIds: newFavorites);
-
-    // 3. Save to cache immediately
-    await _saveToCache(newFavorites);
-
-    // 4. Update feed_items_provider counter for real-time UI
-    try {
-      ref
-          .read(feedItemsProvider.notifier)
-          .updateItemFavoriteStatus(
-            targetId,
-            isFavorited: !wasFavorited,
-            incrementCount: wasFavorited ? -1 : 1,
-          );
-    } catch (e) {
-      print('Error updating feed item counter: $e');
-    }
-
-    // 5. Sync to Firebase in background (fire and forget)
-    _syncSingleToFirebase(targetId, !wasFavorited, user.uid);
-
-    return !wasFavorited;
-  }
-
-  /// Sync single item to Firebase - background only
-  Future<void> _syncSingleToFirebase(
-    String targetId,
-    bool shouldFavorite,
-    String userId,
-  ) async {
-    try {
-      final feedRepository = ref.read(feedRepositoryProvider);
-      await feedRepository.toggleFavorite(userId: userId, targetId: targetId);
-    } catch (e) {
-      print('Firebase sync failed (non-fatal): $e');
-      // Don't revert - cache is truth
-    }
-  }
-
-  /// Add favorite (cache first)
-  void addFavorite(String itemId) {
-    final newFavorites = Set<String>.from(state.favoriteIds)..add(itemId);
-    state = state.copyWith(favoriteIds: newFavorites);
-    _saveToCache(newFavorites);
-  }
-
-  /// Remove favorite (cache first)
-  void removeFavorite(String itemId) {
-    final newFavorites = Set<String>.from(state.favoriteIds)..remove(itemId);
-    state = state.copyWith(favoriteIds: newFavorites);
-    _saveToCache(newFavorites);
-  }
-
-  /// Clear error
-  void clearError() {
-    state = state.copyWith(error: null);
-  }
-
-  /// Force refresh from cache (never from Firebase)
-  Future<void> refresh() async {
-    await _loadFromCache();
+  /// Verifica se um item está curtido (leitura local, sem rede)
+  bool isLiked(String targetUserId) {
+    return state.asData?.value.contains(targetUserId) ?? false;
   }
 }
 
-/// Provider for favorites management
-final favoritesProvider = NotifierProvider<FavoritesNotifier, FavoritesState>(
-  FavoritesNotifier.new,
-);
+// =============================================================================
+// PROVIDERS DE CONVENIÊNCIA
+// =============================================================================
 
-/// Convenience provider to check if an item is favorited
-final isFavoritedProvider = Provider.family<bool, String>((ref, itemId) {
-  final state = ref.watch(favoritesProvider);
-  return state.isFavorited(itemId);
-});
+/// Verifica se um item específico está curtido pelo usuário atual.
+/// Otimizado para reconstruir apenas quando este ID específico muda.
+@riverpod
+bool isLiked(Ref ref, String targetUserId) {
+  final likesState = ref.watch(likesControllerProvider);
+  return likesState.asData?.value.contains(targetUserId) ?? false;
+}
 
-/// Provider for favorite count
-final favoritesCountProvider = Provider<int>((ref) {
-  final state = ref.watch(favoritesProvider);
-  return state.favoriteIds.length;
+/// Retorna a quantidade de likes que o usuário atual deu.
+@riverpod
+int userLikesCount(Ref ref) {
+  final likesState = ref.watch(likesControllerProvider);
+  return likesState.asData?.value.length ?? 0;
+}
+
+/// Provider para carregar a lista completa de perfis curtidos pelo usuário.
+/// Usado na tela "Meus Favoritos".
+///
+/// autoDispose: cache é limpo quando a tela fecha, garantindo shimmer ao reabrir.
+/// Busca da subcoleção users/{uid}/favorites/ (onde feed_favorite_service salva)
+/// e depois carrega dados completos de cada perfil da coleção users/.
+final likedProfilesProvider = FutureProvider.autoDispose<List<FeedItem>>((
+  ref,
+) async {
+  final user = ref.watch(currentUserProfileProvider).value;
+  if (user == null) return [];
+
+  // Buscar IDs dos favoritos da subcoleção correta
+  final favoritesSnapshot = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('favorites')
+      .orderBy('createdAt', descending: true)
+      .get();
+
+  if (favoritesSnapshot.docs.isEmpty) return [];
+
+  // Carregar dados completos de cada perfil favorito
+  final items = await Future.wait(
+    favoritesSnapshot.docs.map((favDoc) async {
+      final targetId = favDoc.data()['targetId'] as String? ?? favDoc.id;
+
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(targetId)
+            .get();
+
+        if (userDoc.exists && userDoc.data() != null) {
+          return FeedItem.fromFirestore(
+            userDoc.data()!,
+            userDoc.id,
+          ).copyWith(isFavorited: true);
+        }
+        return null;
+      } catch (e) {
+        debugPrint('Erro ao carregar perfil $targetId: $e');
+        return null;
+      }
+    }),
+  );
+
+  return items.whereType<FeedItem>().toList();
 });

@@ -26,9 +26,12 @@ class FeedListScreen extends ConsumerStatefulWidget {
 class _FeedListScreenState extends ConsumerState<FeedListScreen> {
   final _scrollController = ScrollController();
   final _items = <FeedItem>[];
+  List<FeedItem> _allSortedItems = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  int _currentPage = 0;
+  static const int _pageSize = 20;
   DocumentSnapshot? _lastDocument;
 
   @override
@@ -50,91 +53,157 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
 
-    final feedRepo = ref.read(feedRepositoryProvider);
-    final userLat = user.location?['lat'] as double?;
-    final userLong = user.location?['lng'] as double?;
-
     try {
-      List<FeedItem> newItems;
-      DocumentSnapshot? lastDoc;
+      final feedRepo = ref.read(feedRepositoryProvider);
+      final userLat = user.location?['lat'] as double?;
+      final userLong = user.location?['lng'] as double?;
+      final userGeohash = user.geohash;
 
-      switch (widget.sectionType) {
-        case FeedSectionType.nearby:
-          if (userLat != null && userLong != null) {
-            newItems = await feedRepo.getNearbyUsers(
-              lat: userLat,
-              long: userLong,
-              radiusKm: 20,
-              currentUserId: user.uid,
-              limit: 20,
-            );
-          } else {
-            newItems = [];
-          }
-          break;
+      if (userLat != null && userLong != null) {
+        // Use proximity sorting for everything if location is available
+        String? filterType;
+        String? category;
+        String? excludeCategory;
 
-        case FeedSectionType.artists:
-          newItems = await feedRepo.getArtists(
-            currentUserId: user.uid,
-            userLat: userLat,
-            userLong: userLong,
-            limit: 20,
-          );
-          break;
+        switch (widget.sectionType) {
+          case FeedSectionType.nearby:
+            filterType = null; // Shows everything
+            break;
+          case FeedSectionType.artists:
+            filterType = 'profissional';
+            excludeCategory = 'Equipe Técnica';
+            break;
+          case FeedSectionType.technicians:
+            filterType = 'profissional';
+            category = 'Equipe Técnica';
+            break;
+          case FeedSectionType.bands:
+            filterType = 'banda';
+            break;
+          case FeedSectionType.studios:
+            filterType = 'estudio';
+            break;
+        }
 
-        case FeedSectionType.technicians:
-          newItems = await feedRepo.getTechnicians(
-            currentUserId: user.uid,
-            userLat: userLat,
-            userLong: userLong,
-            limit: 20,
-          );
-          break;
+        _allSortedItems = await feedRepo.getAllUsersSortedByDistance(
+          currentUserId: user.uid,
+          userLat: userLat,
+          userLong: userLong,
+          filterType: filterType,
+          category: category,
+          excludeCategory: excludeCategory,
+          userGeohash: userGeohash,
+        );
 
-        case FeedSectionType.bands:
-          final response = await feedRepo.getUsersByTypePaginated(
-            type: 'banda',
-            currentUserId: user.uid,
-            userLat: userLat,
-            userLong: userLong,
-            limit: 20,
-          );
-          newItems = response.items;
-          lastDoc = response.lastDocument;
-          break;
-
-        case FeedSectionType.studios:
-          final response = await feedRepo.getUsersByTypePaginated(
-            type: 'estudio',
-            currentUserId: user.uid,
-            userLat: userLat,
-            userLong: userLong,
-            limit: 20,
-          );
-          newItems = response.items;
-          lastDoc = response.lastDocument;
-          break;
-      }
-
-      if (mounted) {
-        setState(() {
-          _items.clear();
-          _items.addAll(newItems);
-          _isLoading = false;
-          _hasMore = newItems.length >= 20;
-          _lastDocument = lastDoc;
-        });
+        if (mounted) {
+          setState(() {
+            _items.clear();
+            _items.addAll(_allSortedItems.take(_pageSize));
+            _currentPage = 1;
+            _hasMore = _allSortedItems.length > _pageSize;
+            _isLoading = false;
+            // No lastDocument needed for local pagination
+          });
+        }
+      } else {
+        // Fallback to classic pagination if no distance logic can be applied
+        await _loadItemsClassicFallback(feedRepo, user.uid, userLat, userLong);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadItemsClassicFallback(
+    FeedRepository feedRepo,
+    String userId,
+    double? userLat,
+    double? userLong,
+  ) async {
+    List<FeedItem> newItems = [];
+    DocumentSnapshot? lastDoc;
+
+    switch (widget.sectionType) {
+      case FeedSectionType.nearby:
+        newItems = []; // Cannot show nearby without location
+        break;
+      case FeedSectionType.artists:
+        newItems = await feedRepo.getArtists(
+          currentUserId: userId,
+          userLat: userLat,
+          userLong: userLong,
+          limit: _pageSize,
+        );
+        break;
+      case FeedSectionType.technicians:
+        newItems = await feedRepo.getTechnicians(
+          currentUserId: userId,
+          userLat: userLat,
+          userLong: userLong,
+          limit: _pageSize,
+        );
+        break;
+      case FeedSectionType.bands:
+        final response = await feedRepo.getUsersByTypePaginated(
+          type: 'banda',
+          currentUserId: userId,
+          userLat: userLat,
+          userLong: userLong,
+          limit: _pageSize,
+        );
+        newItems = response.items;
+        lastDoc = response.lastDocument;
+        break;
+      case FeedSectionType.studios:
+        final response = await feedRepo.getUsersByTypePaginated(
+          type: 'estudio',
+          currentUserId: userId,
+          userLat: userLat,
+          userLong: userLong,
+          limit: _pageSize,
+        );
+        newItems = response.items;
+        lastDoc = response.lastDocument;
+        break;
+    }
+
+    if (mounted) {
+      setState(() {
+        _items.clear();
+        _items.addAll(newItems);
+        _isLoading = false;
+        _hasMore = newItems.length >= _pageSize;
+        _lastDocument = lastDoc;
+      });
     }
   }
 
   Future<void> _loadMore() async {
-    if (_isLoadingMore || !_hasMore || _lastDocument == null) return;
+    if (_isLoadingMore || !_hasMore) return;
 
+    if (_allSortedItems.isNotEmpty) {
+      // Local pagination for distance-sorted items
+      setState(() => _isLoadingMore = true);
+      final startIndex = _currentPage * _pageSize;
+      final endIndex = (startIndex + _pageSize).clamp(
+        0,
+        _allSortedItems.length,
+      );
+      final nextItems = _allSortedItems.sublist(startIndex, endIndex);
+
+      if (mounted) {
+        setState(() {
+          _items.addAll(nextItems);
+          _currentPage++;
+          _hasMore = endIndex < _allSortedItems.length;
+          _isLoadingMore = false;
+        });
+      }
+      return;
+    }
+
+    // Classic remote pagination fallback
+    if (_lastDocument == null) return;
     setState(() => _isLoadingMore = true);
 
     final user = ref.read(currentUserProfileProvider).value;
@@ -167,7 +236,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
         currentUserId: user.uid,
         userLat: userLat,
         userLong: userLong,
-        limit: 20,
+        limit: _pageSize,
         startAfter: _lastDocument,
       );
 
@@ -180,9 +249,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingMore = false);
-      }
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 

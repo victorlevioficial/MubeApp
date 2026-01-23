@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../common_widgets/app_shimmer.dart';
 import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';

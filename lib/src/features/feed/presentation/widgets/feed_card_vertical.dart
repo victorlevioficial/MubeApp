@@ -2,56 +2,69 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../common_widgets/user_avatar.dart';
+import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_typography.dart';
-import '../../../auth/data/auth_repository.dart';
-import '../../data/favorites_provider.dart';
-import '../../data/feed_items_provider.dart';
+import '../../data/feed_favorite_service.dart';
 import '../../domain/feed_item.dart';
+import '../feed_favorite_controller.dart';
+import '../feed_favorite_logic_extension.dart';
 import 'animated_favorite_button.dart';
 
 /// A vertical feed card that reactively updates its favorite status.
-/// Fully reactive - watches favoritesProvider for real-time updates.
 class FeedCardVertical extends ConsumerWidget {
   final FeedItem item;
   final VoidCallback onTap;
 
   const FeedCardVertical({super.key, required this.item, required this.onTap});
 
-  /// Toggle favorite status
-  Future<void> _toggleFavorite(WidgetRef ref, BuildContext context) async {
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
-
-    try {
-      // Toggle using favorites provider
-      await ref.read(favoritesProvider.notifier).toggleFavorite(item.uid);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erro ao atualizar favorito. Tente novamente.'),
-          ),
-        );
-      }
-    }
-  }
-
   /// Returns true if there's distance info to display.
   bool get _hasLocationInfo => item.distanceText.isNotEmpty;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ✅ WATCH favorites provider - rebuilds when favorites change
-    final isFavorited = ref.watch(
-      favoritesProvider.select((state) => state.isFavorited(item.uid)),
+    // 1. Obter Stream de dados reais (Servidor)
+    final favoriteCountAsync = ref.watch(favoriteCountProvider(item.uid));
+    final isFavoritedAsync = ref.watch(isFavoritedProvider(item.uid));
+
+    // 2. Obter Estado Otimista (Controller)
+    final favState = ref.watch(feedFavoriteControllerProvider);
+
+    // 3. Lógica Centralizada (Extension)
+    // Mantém a UI limpa e a regra de negócio testável/reutilizável
+    final isFavorited = favState.isFavorited(
+      item.uid,
+      isFavoritedAsync.value ?? false,
     );
 
-    // ✅ WATCH favoriteCount from feed_items_provider - updates in real-time
-    final favoriteCount = ref.watch(feedItemFavoriteCountProvider(item.uid));
+    final displayCount = favState.displayCount(
+      item.uid,
+      favoriteCountAsync.value ?? item.favoriteCount,
+      isFavoritedAsync.value ?? false,
+    );
+
+    // Listen for global errors (only show if it matches this item or generic)
+    ref.listen(feedFavoriteControllerProvider, (prev, next) {
+      if (next.error != null && next.inFlight.isEmpty) {
+        // Simple toast mechanism or ignoring if handled globally
+        // For now, we rely on the controller state to know rollback happened
+      }
+    });
+
+    void handleLike() {
+      ref
+          .read(feedFavoriteControllerProvider.notifier)
+          .toggleFavorite(target: item, currentIsFavorited: isFavorited);
+    }
 
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: () {
+        // Double tap apenas favorita (se nao estiver favoritado)
+        if (!isFavorited) {
+          handleLike();
+        }
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(12),
@@ -75,48 +88,37 @@ class FeedCardVertical extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Name (Bold White) - TOP Priority
-                  Text(
-                    item.displayName,
-                    style: AppTypography.bodyLarge.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
+                  // 1. Name with Category Icons immediately after
+                  Row(
+                    children: [
+                      // Name (Bold White)
+                      Flexible(
+                        child: Text(
+                          item.displayName,
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
 
-                  // 2. Location Row: Distance + City/State
+                      const SizedBox(width: 8),
+
+                      // Category Icons - immediately after name
+                      _buildCategoryIcons(),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  // 2. Distance Info (CRITICAL FEATURE!)
                   if (_hasLocationInfo)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            size: 12,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 2),
-                          Expanded(
-                            child: Text(
-                              item.distanceText,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    const SizedBox(height: 4),
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: _buildInfoChip(),
+                    ),
 
                   // 3. Skills Chips (Solid gray background) - Single line
                   if (item.skills.isNotEmpty)
@@ -140,20 +142,20 @@ class FeedCardVertical extends ConsumerWidget {
               ),
             ),
 
-            // Right: Like Button (Top Aligned) - Reactive to provider
+            // Right: Like Button (V8 Implementation)
             Column(
               children: [
                 AnimatedFavoriteButton(
                   isFavorited: isFavorited,
-                  onTap: () => _toggleFavorite(ref, context),
+                  onTap: handleLike,
                   size: 24,
                   favoriteColor: AppColors.primary,
                   defaultColor: Colors.white54,
                 ),
-                if (favoriteCount > 0) ...[
+                if (displayCount > 0) ...[
                   const SizedBox(height: 2),
                   Text(
-                    '$favoriteCount',
+                    '$displayCount',
                     style: const TextStyle(color: Colors.white54, fontSize: 10),
                   ),
                 ],
@@ -165,39 +167,102 @@ class FeedCardVertical extends ConsumerWidget {
     );
   }
 
-  /// Skill chip: solid gray background (instruments, services, roles)
+  /// Skill chip: elegant outline style with accent color border
+  /// Creates clear visual distinction from genre chips (solid gray)
   Widget _buildSkillChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHighlight, // Solid gray
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.accent.withValues(alpha: 0.7),
+          width: 1.2,
+        ),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Color(0xFFE0E0E0), // Light gray text
+        style: TextStyle(
+          color: AppColors.accent.withValues(alpha: 0.95),
           fontSize: 10,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  /// Genre chip: primary solid background for maximum impact and legibility
+  Widget _buildInfoChip() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+        const SizedBox(width: 4),
+        Text(
+          item.distanceText,
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryIcons() {
+    final icons = <Widget>[];
+    const Color color = AppColors.primary;
+
+    if (item.tipoPerfil == 'profissional') {
+      for (final subCatId in item.subCategories) {
+        final subCat = professionalCategories.firstWhere(
+          (c) => c['id'] == subCatId,
+          orElse: () => <String, dynamic>{},
+        );
+        if (subCat.containsKey('icon')) {
+          icons.add(
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Icon(subCat['icon'] as IconData, size: 14, color: color),
+            ),
+          );
+        }
+      }
+    } else if (item.tipoPerfil == 'banda') {
+      icons.add(
+        const Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Icon(Icons.people, size: 14, color: color),
+        ),
+      );
+    } else if (item.tipoPerfil == 'estudio') {
+      icons.add(
+        const Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Icon(Icons.headphones, size: 14, color: color),
+        ),
+      );
+    }
+
+    if (icons.isEmpty) return const SizedBox.shrink();
+
+    return Row(mainAxisSize: MainAxisSize.min, children: icons);
+  }
+
+  /// Genre chip: solid gray background for better legibility
   Widget _buildGenreChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.primary, // Solid pink
+        color: AppColors.surfaceHighlight,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppColors.textPrimary, // White text
+          color: Color(0xFFE0E0E0),
           fontSize: 10,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

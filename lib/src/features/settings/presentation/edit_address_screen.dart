@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../common_widgets/app_back_button.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/location_service.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/or_divider.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
@@ -281,16 +281,8 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        leading: const AppBackButton(),
-        title: Text(
-          _isEditing ? 'Editar Endereço' : 'Novo Endereço',
-          style: AppTypography.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+      appBar: MubeAppBar(
+        title: _isEditing ? 'Editar Endereço' : 'Novo Endereço',
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -379,11 +371,11 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.5),
+            color: AppColors.primary.withValues(alpha: 0.5),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(AppSpacing.s12),
-          color: AppColors.primary.withOpacity(0.05),
+          color: AppColors.primary.withValues(alpha: 0.05),
         ),
         child: Row(
           children: [
@@ -391,7 +383,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
               width: AppSpacing.s40,
               height: AppSpacing.s40,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -480,7 +472,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         shrinkWrap: true,
         padding: EdgeInsets.zero,
         itemCount: _searchResults.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final item = _searchResults[index];
           return ListTile(

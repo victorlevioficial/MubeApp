@@ -13,6 +13,9 @@ class AppRadius {
   static const double r28 = 28.0;
   static const double rPill = 100.0;
 
+  // Semantic
+  static const double chatBubble = 12.0; // Reduced from 16
+
   // ---------------------------------------------------------------------------
   // BorderRadius Helpers
   // ---------------------------------------------------------------------------

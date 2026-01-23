@@ -155,14 +155,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final items = <FeedSectionType, List<FeedItem>>{};
 
     try {
-      // Load standard horizontal sections
+      // Load standard horizontal sections with reduced limits for speed
       if (_userLat != null && _userLong != null) {
         items[FeedSectionType.nearby] = await feedRepo.getNearbyUsers(
           lat: _userLat!,
           long: _userLong!,
           radiusKm: 50,
           currentUserId: user.uid,
-          limit: 10,
+          limit: 11, // Fetch 11 to trigger 'See All' after 10
         );
       }
 
@@ -170,7 +170,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         currentUserId: user.uid,
         userLat: _userLat,
         userLong: _userLong,
-        limit: 10,
+        limit: 11,
       );
 
       items[FeedSectionType.bands] = await feedRepo.getUsersByType(
@@ -178,7 +178,22 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         currentUserId: user.uid,
         userLat: _userLat,
         userLong: _userLong,
-        limit: 10,
+        limit: 11,
+      );
+
+      items[FeedSectionType.technicians] = await feedRepo.getTechnicians(
+        currentUserId: user.uid,
+        userLat: _userLat,
+        userLong: _userLong,
+        limit: 11,
+      );
+
+      items[FeedSectionType.studios] = await feedRepo.getUsersByType(
+        type: 'estudio',
+        currentUserId: user.uid,
+        userLat: _userLat,
+        userLong: _userLong,
+        limit: 11,
       );
 
       // Register all items in the centralized provider
@@ -212,7 +227,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     try {
       if (reset) {
-        // Load ALL users sorted by distance
+        // Progressive Loading Strategy:
+        // Phase 1: Load first 20 users (fast initial load)
+        // Phase 2: Expand to 50 when scrolling
+        // Phase 3: Load all when near bottom
+
         String? filterType;
         if (_currentFilter == 'Músicos') filterType = 'profissional';
         if (_currentFilter == 'Bandas') filterType = 'banda';
@@ -220,6 +239,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         // 'Todos' and 'Perto de mim' both show all types
 
         if (_userLat != null && _userLong != null) {
+          // Extract geohash for optimized queries
+          final userGeohash = user.geohash;
+
+          // With geohash: fetches ~30 docs from 9 quadrants, returns ALL sorted
+          // Without geohash: fetches all 100+ docs, returns ALL sorted
+          // Either way, we get complete sorted list for perfect ordering!
           _allSortedUsers = await ref
               .read(feedRepositoryProvider)
               .getAllUsersSortedByDistance(
@@ -227,6 +252,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 userLat: _userLat!,
                 userLong: _userLong!,
                 filterType: filterType,
+                userGeohash: userGeohash, // Enables geohash optimization
               );
         } else {
           // Fallback: no location, use old paginated method without distance
@@ -351,7 +377,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           Row(
             children: [
               GestureDetector(
-                onTap: () => context.go('/profile'),
+                onTap: () {
+                  if (user != null) {
+                    context.push('/user/${user.uid}');
+                  }
+                },
                 child: ClipOval(
                   child: SizedBox(
                     width: 44,
@@ -438,9 +468,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       }
     }
 
+    addSection(FeedSectionType.artists, 'Perfis em destaque');
     addSection(FeedSectionType.nearby, 'Perto de você');
-    addSection(FeedSectionType.artists, 'Artistas em destaque');
     addSection(FeedSectionType.bands, 'Bandas');
+    addSection(FeedSectionType.studios, 'Estúdios');
+    addSection(FeedSectionType.technicians, 'Técnicos');
 
     return slivers;
   }
