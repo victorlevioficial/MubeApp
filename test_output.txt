@@ -1,0 +1,29 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/src/features/chat/data/chat_repository_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: getOrCreateConversation should return Right with existing conversationId when successful
+[Chat] Error creating conversation: type 'Null' is not a subtype of type 'Future<Null>'
+00:00 +0 -1: getOrCreateConversation should return Right with existing conversationId when successful [E]
+  Should be Right but was Left: type 'Null' is not a subtype of type 'Future<Null>'
+  package:matcher                                              fail
+  test\src\features\chat\data\chat_repository_test.dart 89:24  main.<fn>.<fn>.<fn>
+  package:fpdart/src/either.dart 620:72                        Left.match
+  package:fpdart/src/either.dart 280:7                         Either.fold
+  test\src\features\chat\data\chat_repository_test.dart 88:16  main.<fn>.<fn>
+  
+00:00 +0 -1: getOrCreateConversation should return Left with ServerFailure when transaction fails
+[Chat] Error creating conversation: type 'Null' is not a subtype of type 'Future<Null>'
+00:00 +0 -2: getOrCreateConversation should return Left with ServerFailure when transaction fails [E]
+  Expected: contains 'Firestore error'
+    Actual: 'type \'Null\' is not a subtype of type \'Future<Null>\''
+     Which: does not contain 'Firestore error'
+  
+  package:matcher                                               expect
+  package:flutter_test/src/widget_tester.dart 473:18            expect
+  test\src\features\chat\data\chat_repository_test.dart 114:11  main.<fn>.<fn>.<fn>
+  package:fpdart/src/either.dart 620:72                         Left.match
+  package:fpdart/src/either.dart 280:7                          Either.fold
+  test\src\features\chat\data\chat_repository_test.dart 112:16  main.<fn>.<fn>
+  
+00:00 +0 -2: sendMessage should return Right(Unit) when successful
+00:00 +1 -2: (tearDownAll)
+00:00 +1 -2: Some tests failed.

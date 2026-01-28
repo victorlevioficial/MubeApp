@@ -81,10 +81,10 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
               Text(
                 'Interactive / Link',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.accent,
+                  color: AppColors.semanticAction,
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
-                  decorationColor: AppColors.accent,
+                  decorationColor: AppColors.semanticAction,
                 ),
               ),
 
@@ -94,8 +94,8 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 runSpacing: AppSpacing.s8,
                 children: [
                   _buildColorBox(AppColors.primary, 'Primary'),
-                  _buildColorBox(AppColors.primaryDark, 'Primary Dk'),
-                  _buildColorBox(AppColors.accent, 'Accent'),
+
+                  _buildColorBox(AppColors.semanticAction, 'Semantic Act'),
                   _buildColorBox(AppColors.background, 'Background'),
                   _buildColorBox(AppColors.surface, 'Surface'),
                   _buildColorBox(AppColors.surfaceHighlight, 'Surface Hl'),

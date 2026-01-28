@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'app_colors.dart';
+
 class AppTypography {
   const AppTypography._();
+
+  // ... (keeping existing lines implied, but replacing header and problematic getter)
 
   // ---------------------------------------------------------------------------
   // Font Family
@@ -43,4 +47,19 @@ class AppTypography {
   // Labels
   static TextStyle get labelMedium =>
       GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500);
+
+  // ---------------------------------------------------------------------------
+  // Use Case Specific (Semantic)
+  // ---------------------------------------------------------------------------
+
+  /// Used for the main title in Vertical Feed Cards
+  static TextStyle get cardTitle => GoogleFonts.inter(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: AppColors.textPrimary, // Default for cards on dark bg
+  );
+
+  /// Used for small chips (skills, genres)
+  static TextStyle get chipLabel =>
+      GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w500);
 }

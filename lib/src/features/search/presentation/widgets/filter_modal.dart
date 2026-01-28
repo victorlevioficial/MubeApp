@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../common_widgets/app_filter_chip.dart';
+import '../../../../common_widgets/mube_filter_chip.dart';
 import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
@@ -75,7 +76,7 @@ class _FilterModalState extends State<FilterModal> {
                   child: Text(
                     'Limpar',
                     style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.semanticAction,
                     ),
                   ),
                 ),
@@ -213,49 +214,20 @@ class _FilterModalState extends State<FilterModal> {
         const SizedBox(height: AppSpacing.s12),
         Row(
           children: [
-            _buildToggleChip(
+            MubeFilterChip(
               label: 'Qualquer',
               isSelected: _canDoBackingVocal == null,
-              onTap: () => setState(() => _canDoBackingVocal = null),
+              onSelected: (_) => setState(() => _canDoBackingVocal = null),
             ),
             const SizedBox(width: 8),
-            _buildToggleChip(
+            MubeFilterChip(
               label: 'Faz backing',
               isSelected: _canDoBackingVocal == true,
-              onTap: () => setState(() => _canDoBackingVocal = true),
+              onSelected: (_) => setState(() => _canDoBackingVocal = true),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildToggleChip({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.2)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
     );
   }
 

@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ================================================================
+    // USERS - Perfis de Usuários
+    // ================================================================
+    match /users/{userId} {
+      // Qualquer autenticado pode ler perfis
+      allow read: if request.auth != null;
+      
+      // Apenas o próprio usuário pode criar e deletar seu doc
+      allow create, delete: if request.auth != null && request.auth.uid == userId;
+
+      // Update: próprio usuário, likeCount, ou members (para entrar em banda)
+      allow update: if request.auth != null && 
+        (request.auth.uid == userId || 
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']) ||
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
+      
+      // ================================================================
+      // FAVORITES - Subcoleção de favoritos por usuário
+      // ================================================================
+      match /favorites/{favoriteId} {
+        // Usuário só pode ler/escrever seus próprios favoritos
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ================================================================
+      // CHAT - Conversas e mensagens
+      // ================================================================
+      match /conversationPreviews/{conversationId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // ================================================================
+    // CONVERSATIONS - Mensagens reais
+    // ================================================================
+    match /conversations/{conversationId} {
+      // Permite ler/escrever se o UID do usuário estiver na lista de participantes
+      allow read, write: if request.auth != null && 
+        (resource == null || request.auth.uid in resource.data.participants);
+        
+      match /messages/{messageId} {
+        // Permite ler/escrever na subcoleção se tiver acesso ao pai (conversa)
+        // Como 'conversations' já filtra por participante, aqui podemos apenas checar Auth
+        // ou validar novamente via get() no pai, mas por simplicidade e custo:
+        allow read, write: if request.auth != null; 
+      }
+    }
+
+    // ================================================================
+    // INVITES - Convites para bandas
+    // ================================================================
+      match /invites/{inviteId} {
+         // Allow read if user is the target OR the band (admin)
+         allow read: if request.auth != null && (
+           resource.data.target_uid == request.auth.uid || 
+           resource.data.band_id == request.auth.uid
+         );
+         // Allow create if auth (for sending invites)
+         allow create: if request.auth != null;
+         // Allow update if target (accept/decline) or band (cancel)
+         allow update: if request.auth != null && (
+           resource.data.target_uid == request.auth.uid || 
+           resource.data.band_id == request.auth.uid
+         );
+         // Allow delete if band (cancel)
+         allow delete: if request.auth != null && resource.data.band_id == request.auth.uid;
+      }
+
+    // ================================================================
+    // PROFILES - Coleção pública/global (Counter mirror)
+    // ================================================================
+    match /profiles/{profileId} {
+      // Qualquer autenticado pode ler
+      allow read: if request.auth != null;
+      
+      // Permite atualizar APENAS o campo likeCount (qualquer usuário autenticado)
+      allow update: if request.auth != null && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+        
+      // Criação/Deleção restrita (geralmente feita por Cloud Functions ou Admin SDK, 
+      // ou pelo próprio usuário se profiles for espelho de users. 
+      // O repo atual apenas atualiza se existir.
+    }
+    
+    // ================================================================
+    // FALLBACK
+    // ================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

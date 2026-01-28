@@ -167,7 +167,7 @@ class SearchController extends Notifier<SearchState> {
     state = state.copyWith(results: const AsyncValue.loading(), hasMore: true);
 
     try {
-      final results = await _repository.searchUsers(
+      final result = await _repository.searchUsers(
         filters: state.filters,
         startAfter: null,
         requestId: requestId,
@@ -176,15 +176,29 @@ class SearchController extends Notifier<SearchState> {
 
       if (_currentRequestId != requestId) return;
 
-      final sortedResults = SearchRepository.sortByProximity(
-        results,
-        state.userLat,
-        state.userLng,
-      );
+      result.fold(
+        (failure) {
+          if (_currentRequestId != requestId) return;
+          debugPrint('[Search] Error: $failure');
+          // Start using Failure properly instead of generic error if possible, but for now:
+          state = state.copyWith(
+            results: AsyncValue.error(failure, StackTrace.current),
+          );
+        },
+        (results) {
+          if (_currentRequestId != requestId) return;
 
-      state = state.copyWith(
-        results: AsyncValue.data(sortedResults),
-        hasMore: results.length >= SearchConfig.targetResults,
+          final sortedResults = SearchRepository.sortByProximity(
+            results,
+            state.userLat,
+            state.userLng,
+          );
+
+          state = state.copyWith(
+            results: AsyncValue.data(sortedResults),
+            hasMore: results.length >= SearchConfig.targetResults,
+          );
+        },
       );
     } catch (e, st) {
       if (_currentRequestId != requestId) return;

@@ -12,19 +12,19 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
-      primaryColor: AppColors.primary,
+      primaryColor: AppColors.brandPrimary,
 
       // Color Scheme
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
-        secondary: AppColors.textPrimary,
+        primary: AppColors.brandPrimary,
+        secondary: AppColors.brandGlow, // Secondary is now the Glow color
         surface: AppColors.surface,
         onPrimary: AppColors.textPrimary,
         onSecondary: AppColors.background,
         onSurface: AppColors.textPrimary,
-        onSurfaceVariant: AppColors.textPlaceholder, // Fixes Input Hint Color
-        tertiary: AppColors.accent, // Mapped for Interactive Elements / Links
-        outline: AppColors.surfaceHighlight,
+        onSurfaceVariant: AppColors.textPlaceholder,
+        tertiary: AppColors.semanticAction,
+        outline: AppColors.border,
         error: AppColors.error,
       ),
 
@@ -44,15 +44,15 @@ class AppTheme {
             decorationColor: AppColors.textPrimary,
           ),
 
-      // Text Button (Used for Dialog Actions like OK/Cancel)
+      // Text Button
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(AppColors.accent),
+          foregroundColor: WidgetStateProperty.all(AppColors.semanticAction),
           textStyle: WidgetStateProperty.all(
             AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
           ),
           overlayColor: WidgetStateProperty.all(
-            AppColors.accent.withValues(alpha: 0.1),
+            AppColors.semanticAction.withValues(alpha: 0.1),
           ),
         ),
       ),
@@ -65,15 +65,15 @@ class AppTheme {
         dayForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         yearForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         dayOverlayColor: WidgetStateProperty.all(
-          AppColors.accent.withValues(alpha: 0.1),
+          AppColors.semanticAction.withValues(alpha: 0.1),
         ),
         todayBackgroundColor: WidgetStateProperty.all(
           AppColors.surfaceHighlight,
         ),
-        todayForegroundColor: WidgetStateProperty.all(AppColors.accent),
+        todayForegroundColor: WidgetStateProperty.all(AppColors.semanticAction),
         dayStyle: AppTypography.bodyMedium,
         confirmButtonStyle: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(AppColors.accent),
+          foregroundColor: WidgetStateProperty.all(AppColors.semanticAction),
           textStyle: WidgetStateProperty.all(
             AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
           ),
@@ -91,12 +91,12 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         hourMinuteTextColor: AppColors.textPrimary,
         hourMinuteColor: AppColors.surfaceHighlight,
-        dialHandColor: AppColors.primary,
+        dialHandColor: AppColors.brandPrimary,
         dialBackgroundColor: AppColors.surfaceHighlight,
         dayPeriodTextColor: AppColors.textPrimary,
-        dayPeriodColor: AppColors.surfaceHighlight, // Selected AM/PM background
+        dayPeriodColor: AppColors.surfaceHighlight,
         helpTextStyle: AppTypography.bodySmall,
-        entryModeIconColor: AppColors.accent,
+        entryModeIconColor: AppColors.semanticAction,
       ),
 
       // Bottom Sheet Theme
@@ -104,26 +104,29 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(24),
+          ), // Pro Radius
         ),
       ),
 
       // SnackBar Theme
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors
-            .surfaceHighlight, // Mapped from undefined surfaceContainerHighest
+        backgroundColor: AppColors.surfaceHighlight,
         contentTextStyle: AppTypography.bodyMedium.copyWith(
-          color: AppColors.textPrimary, // Mapped from undefined onSurface
+          color: AppColors.textPrimary,
         ),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.all8),
         behavior: SnackBarBehavior.floating,
         insetPadding: const EdgeInsets.all(AppSpacing.s16),
-        actionTextColor: AppColors.accent,
+        actionTextColor: AppColors.semanticAction,
       ),
 
       // AppBar Theme
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.background.withValues(
+          alpha: 0.8,
+        ), // Glass-ready
         elevation: 0,
         centerTitle: true,
         scrolledUnderElevation: 0,
@@ -140,30 +143,30 @@ class AppTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s16,
-          vertical: 14, // Custom visual alignment
+          vertical: 16, // More breathing room
         ),
         border: const OutlineInputBorder(
           borderRadius: AppRadius.all12,
-          borderSide: BorderSide(color: AppColors.surfaceHighlight),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: const OutlineInputBorder(
           borderRadius: AppRadius.all12,
-          borderSide: BorderSide(color: AppColors.surfaceHighlight),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: AppRadius.all12,
-          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
         ),
       ),
 
-      // Elevated Button
+      // Elevated Button (Premium Glow)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
               return AppColors.primaryDisabled;
             }
-            return AppColors.primary;
+            return AppColors.brandPrimary;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
@@ -172,15 +175,16 @@ class AppTheme {
             return AppColors.textPrimary;
           }),
           minimumSize: WidgetStateProperty.all(const Size(double.infinity, 56)),
-          elevation: WidgetStateProperty.all(0),
-          shadowColor: WidgetStateProperty.all(Colors.transparent),
-          overlayColor: WidgetStateProperty.all(
+          elevation: WidgetStateProperty.all(0), // Removed elevation
+          shadowColor: WidgetStateProperty.all(
             Colors.transparent,
-          ), // No hover/splash
-          splashFactory: NoSplash.splashFactory, // No ripple
+          ), // Removed glow
+          overlayColor: WidgetStateProperty.all(
+            AppColors.textPrimary.withValues(alpha: 0.1),
+          ),
           shape: WidgetStateProperty.all(
             const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(28)),
+              borderRadius: BorderRadius.all(Radius.circular(28)), // Pill shape
             ),
           ),
           textStyle: WidgetStateProperty.all(
@@ -189,25 +193,27 @@ class AppTheme {
         ),
       ),
 
-      // Outlined Button (New Default for Secondary/Social)
+      // Outlined Button
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(
-            AppColors.textPrimary,
-          ), // Fixed: Use textPrimary (which is white)
+          foregroundColor: WidgetStateProperty.all(AppColors.textPrimary),
           side: WidgetStateProperty.all(
-            const BorderSide(color: AppColors.surfaceHighlight, width: 1),
+            const BorderSide(
+              color: AppColors.textPrimary,
+              width: 1,
+            ), // White - High Contrast as requested
           ),
           minimumSize: WidgetStateProperty.all(const Size(double.infinity, 48)),
-          overlayColor: WidgetStateProperty.all(Colors.transparent), // No hover
-          splashFactory: NoSplash.splashFactory, // No ripple
+          overlayColor: WidgetStateProperty.all(
+            AppColors.textPrimary.withValues(alpha: 0.05),
+          ),
           shape: WidgetStateProperty.all(
             const RoundedRectangleBorder(
               borderRadius: BorderRadius.all(Radius.circular(28)),
             ),
           ),
           textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w400),
+            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
       ),
@@ -216,9 +222,9 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
+            return AppColors.brandPrimary;
           }
-          return null; // Default (usually transparent/surface)
+          return null;
         }),
         checkColor: WidgetStateProperty.all(AppColors.textPrimary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),

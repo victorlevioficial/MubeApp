@@ -53,7 +53,7 @@ final class PublicProfileControllerProvider
 }
 
 String _$publicProfileControllerHash() =>
-    r'35d3185aee40d4ec2eb2a25919d482c8bc52c79b';
+    r'17b75e1ba08667160dcc677f7ba1f13e09db29e0';
 
 final class PublicProfileControllerFamily extends $Family
     with

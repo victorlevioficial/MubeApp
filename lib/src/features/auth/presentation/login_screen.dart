@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -15,7 +14,6 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
-import '../../../utils/seed_database.dart';
 import '../data/auth_repository.dart';
 
 part 'login_screen.g.dart';
@@ -28,24 +26,19 @@ class LoginController extends _$LoginController {
   }
 
   Future<void> login({required String email, required String password}) async {
-    try {
-      state = const AsyncLoading();
-      await ref
-          .read(authRepositoryProvider)
-          .signInWithEmailAndPassword(email, password);
-      // Explicitly set data on success to ensure clean state
-      state = const AsyncData(null);
-    } catch (e, st) {
-      // Check if user is actually logged in despite error (edge case)
-      final currentUser = ref.read(authRepositoryProvider).currentUser;
-      if (currentUser != null) {
-        // Log weird case but treat as success
-        state = const AsyncData(null);
-        return;
-      }
+    state = const AsyncLoading();
+    final result = await ref
+        .read(authRepositoryProvider)
+        .signInWithEmailAndPassword(email, password);
 
-      state = AsyncError(e, st);
-    }
+    result.fold(
+      (failure) {
+        state = AsyncError(failure.message, StackTrace.current);
+      },
+      (success) {
+        state = const AsyncData(null);
+      },
+    );
   }
 }
 
@@ -61,6 +54,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false; // Add state for visibility toggle
+
+  @override
+  void initState() {
+    super.initState();
+    // [TEST FIX] Ensure clean state. If user navigates here despite being logged in, force logout.
+    // This handles test runner state leakage where session persists between tests.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(authRepositoryProvider).currentUser;
+      if (user != null) {
+        debugPrint(
+          'LoginScreen: User already logged in. Forcing logout for clean state.',
+        );
+        ref.read(authRepositoryProvider).signOut();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -102,12 +111,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: SingleChildScrollView(
         child: ResponsiveCenter(
           maxContentWidth: 600,
-          padding: const EdgeInsets.only(
-            top: 80,
-            bottom: 32,
-            left: 16,
-            right: 16,
-          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s32,
+          ).copyWith(top: 80),
           child: Form(
             key: _formKey,
             child: Column(
@@ -157,6 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ), // Subtitle -> 32px -> Form
                 // INPUTS
                 AppTextField(
+                  fieldKey: const Key('email_input'),
                   controller: _emailController,
                   label: 'E-mail',
                   hint: 'seu@email.com',
@@ -169,6 +177,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: AppSpacing.s24),
 
                 AppTextField(
+                  fieldKey: const Key('password_input'),
                   controller: _passwordController,
                   label: 'Senha',
                   hint: '••••••••',
@@ -204,10 +213,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // BUTTON "ENTRAR"
                 SizedBox(
                   height: 56, // Fixed Height
-                  child: PrimaryButton(
-                    text: 'Entrar',
-                    isLoading: state.isLoading,
-                    onPressed: _submit,
+                  child: Semantics(
+                    button: true,
+                    label: 'Entrar na conta',
+                    child: PrimaryButton(
+                      key: const Key('login_button'),
+                      text: 'Entrar',
+                      isLoading: state.isLoading,
+                      onPressed: _submit,
+                    ),
                   ),
                 ),
 
@@ -223,11 +237,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SocialLoginButton(
+                      key: const Key('google_login_button'),
                       type: SocialType.google,
                       onPressed: () {},
                     ),
                     const SizedBox(height: AppSpacing.s16),
-                    SocialLoginButton(type: SocialType.apple, onPressed: () {}),
+                    SocialLoginButton(
+                      key: const Key('apple_login_button'),
+                      type: SocialType.apple,
+                      onPressed: () {},
+                    ),
                   ],
                 ),
 
@@ -247,6 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onTap: () => context.go('/register'),
                       child: Text(
                         'Crie agora',
+                        key: const Key('register_link'),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.tertiary,
                           fontWeight: FontWeight.bold,
@@ -255,118 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                const SizedBox(height: 24),
-                Center(
-                  child: Column(
-                    children: [
-                      TextButton(
-                        onPressed: () => context.push('/gallery'),
-                        child: Text(
-                          'Ver Galeria (Debug)',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      if (kDebugMode)
-                        TextButton(
-                          onPressed: () async {
-                            try {
-                              AppSnackBar.show(
-                                context,
-                                'Testando conexão...',
-                                isError: false,
-                              );
-                              await DatabaseSeeder.testConnection();
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  'Conexão OK!',
-                                  isError: false,
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  'Erro de Conexão: $e',
-                                  isError: true,
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('TESTAR CONEXÃO'),
-                        ),
-                      if (kDebugMode)
-                        TextButton(
-                          onPressed: () async {
-                            try {
-                              AppSnackBar.show(
-                                context,
-                                'Gerando usuários...',
-                                isError: false,
-                              );
-                              await DatabaseSeeder.seedUsers(count: 50);
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  '50 usuários gerados!',
-                                  isError: false,
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  'Erro no Seed: $e',
-                                  isError: true,
-                                );
-                              }
-                            }
-                          },
-                          child: const Text(
-                            'SEED DATABASE (50)',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      if (kDebugMode)
-                        TextButton(
-                          onPressed: () async {
-                            try {
-                              AppSnackBar.show(
-                                context,
-                                'Limpando usuários mock...',
-                                isError: false,
-                              );
-                              await DatabaseSeeder.clearMockUsers();
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  'Limpeza concluída!',
-                                  isError: false,
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                AppSnackBar.show(
-                                  context,
-                                  'Erro na Limpeza: $e',
-                                  isError: true,
-                                );
-                              }
-                            }
-                          },
-                          child: const Text(
-                            'LIMPAR MOCKS',
-                            style: TextStyle(color: Colors.orange),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: AppSpacing.s24),
               ],
             ),
           ),

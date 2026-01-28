@@ -26,6 +26,11 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   dadosBanda: json['banda'] as Map<String, dynamic>?,
   dadosEstudio: json['estudio'] as Map<String, dynamic>?,
   dadosContratante: json['contratante'] as Map<String, dynamic>?,
+  plan: json['plan'] as String? ?? 'free',
+  favoritesCount: (json['favorites_count'] as num?)?.toInt() ?? 0,
+  members:
+      (json['members'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
   createdAt: json['created_at'],
 );
 
@@ -45,6 +50,9 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'banda': instance.dadosBanda,
   'estudio': instance.dadosEstudio,
   'contratante': instance.dadosContratante,
+  'plan': instance.plan,
+  'favorites_count': instance.favoritesCount,
+  'members': instance.members,
   'created_at': instance.createdAt,
 };
 

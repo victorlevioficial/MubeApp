@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
+
+import '../../../../common_widgets/app_shimmer.dart';
 
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
@@ -56,16 +57,7 @@ class _GalleryItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Shimmer.fromColors(
-                baseColor: AppColors.surface,
-                highlightColor: AppColors.surfaceHighlight,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
+              placeholder: (context, url) => AppShimmer.box(borderRadius: 8),
               errorWidget: (context, url, error) => Container(
                 color: AppColors.surface,
                 child: const Icon(

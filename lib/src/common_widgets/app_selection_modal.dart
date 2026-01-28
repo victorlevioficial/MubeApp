@@ -140,7 +140,7 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
                         : item,
                     style: AppTypography.bodyMedium.copyWith(
                       color: isSelected
-                          ? AppColors.accent
+                          ? AppColors.semanticAction
                           : AppColors.textPrimary,
                       fontWeight: isSelected
                           ? FontWeight.w600

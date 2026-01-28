@@ -11,7 +11,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../../chat/data/chat_repository.dart';
-import '../../feed/data/favorites_provider.dart';
+// import '../../feed/data/favorites_provider.dart'; // Removed
 import '../domain/media_item.dart';
 
 part 'public_profile_controller.g.dart';
@@ -152,41 +152,12 @@ class PublicProfileController extends _$PublicProfileController {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao abrir conversa: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> toggleLike(BuildContext context) async {
-    try {
-      final notifier = ref.read(likesControllerProvider.notifier);
-      final isFavorited = await notifier.toggleLike(uid);
-
-      if (context.mounted) {
-        final message = isFavorited
-            ? 'Adicionado aos favoritos ❤️'
-            : 'Removido dos favoritos';
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: AppColors.primary,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao atualizar: $e'),
             backgroundColor: AppColors.error,
           ),
         );
       }
     }
   }
+
+  // toggleLike method removed
 }

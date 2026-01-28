@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/typedefs.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/search_filters.dart';
@@ -26,66 +29,73 @@ class SearchRepository {
   ///
   /// Uses smart pagination: fetches batches until [targetResults] valid matches
   /// are found or [maxDocsRead] is reached.
-  Future<List<FeedItem>> searchUsers({
+  FutureResult<List<FeedItem>> searchUsers({
     required SearchFilters filters,
     DocumentSnapshot? startAfter,
     required int requestId,
     required ValueGetter<int> getCurrentRequestId,
   }) async {
-    final List<FeedItem> results = [];
-    final Set<String> seenUids = {};
-    DocumentSnapshot? lastDoc = startAfter;
-    int totalDocsRead = 0;
+    try {
+      final List<FeedItem> results = [];
+      final Set<String> seenUids = {};
+      DocumentSnapshot? lastDoc = startAfter;
+      int totalDocsRead = 0;
 
-    while (results.length < SearchConfig.targetResults &&
-        totalDocsRead < SearchConfig.maxDocsRead) {
-      // Check if request is still valid (not cancelled by newer request)
-      if (getCurrentRequestId() != requestId) {
-        debugPrint('[Search] Request $requestId cancelled');
-        return [];
+      while (results.length < SearchConfig.targetResults &&
+          totalDocsRead < SearchConfig.maxDocsRead) {
+        // Check if request is still valid (not cancelled by newer request)
+        if (getCurrentRequestId() != requestId) {
+          debugPrint('[Search] Request $requestId cancelled');
+          return const Right(<FeedItem>[]);
+        }
+
+        // Build and execute query
+        final query = _buildBaseQuery(filters, lastDoc);
+        final snapshot = await query.get();
+
+        if (snapshot.docs.isEmpty) break;
+
+        totalDocsRead += snapshot.docs.length;
+        lastDoc = snapshot.docs.last;
+
+        // Filter and deduplicate in memory
+        for (final doc in snapshot.docs) {
+          if (getCurrentRequestId() != requestId) {
+            return const Right(<FeedItem>[]);
+          }
+
+          final data = doc.data();
+
+          // Skip contractors - NEVER show in results
+          if (data['tipo_perfil'] == 'contratante') continue;
+
+          // Skip non-searchable (incomplete/inactive profiles)
+          final cadastroStatus = data['cadastro_status'] as String?;
+          final status = data['status'] as String? ?? 'ativo';
+          if (cadastroStatus != 'concluido' || status != 'ativo') continue;
+
+          // Deduplicate
+          if (seenUids.contains(doc.id)) continue;
+
+          // Apply filters
+          final item = FeedItem.fromFirestore(data, doc.id);
+          if (!_matchesFilters(item, data, filters)) continue;
+
+          seenUids.add(doc.id);
+          results.add(item);
+
+          if (results.length >= SearchConfig.targetResults) break;
+        }
       }
 
-      // Build and execute query
-      final query = _buildBaseQuery(filters, lastDoc);
-      final snapshot = await query.get();
-
-      if (snapshot.docs.isEmpty) break;
-
-      totalDocsRead += snapshot.docs.length;
-      lastDoc = snapshot.docs.last;
-
-      // Filter and deduplicate in memory
-      for (final doc in snapshot.docs) {
-        if (getCurrentRequestId() != requestId) return [];
-
-        final data = doc.data();
-
-        // Skip contractors - NEVER show in results
-        if (data['tipo_perfil'] == 'contratante') continue;
-
-        // Skip non-searchable (incomplete/inactive profiles)
-        final cadastroStatus = data['cadastro_status'] as String?;
-        final status = data['status'] as String? ?? 'ativo';
-        if (cadastroStatus != 'concluido' || status != 'ativo') continue;
-
-        // Deduplicate
-        if (seenUids.contains(doc.id)) continue;
-
-        // Apply filters
-        final item = FeedItem.fromFirestore(data, doc.id);
-        if (!_matchesFilters(item, data, filters)) continue;
-
-        seenUids.add(doc.id);
-        results.add(item);
-
-        if (results.length >= SearchConfig.targetResults) break;
-      }
+      debugPrint(
+        '[Search] Request $requestId: ${results.length} results from $totalDocsRead docs',
+      );
+      return Right(results);
+    } catch (e) {
+      debugPrint('[Search] Error: $e');
+      return Left(ServerFailure(message: e.toString()));
     }
-
-    debugPrint(
-      '[Search] Request $requestId: ${results.length} results from $totalDocsRead docs',
-    );
-    return results;
   }
 
   /// Builds the base Firestore query.
@@ -159,7 +169,7 @@ class SearchRepository {
       }
     }
 
-    // Genre filter
+    // Genre filter (AND logic - must have ALL selected genres)
     if (filters.genres.isNotEmpty) {
       List<String> itemGenres = [];
       if (item.tipoPerfil == 'profissional') {
@@ -167,7 +177,7 @@ class SearchRepository {
       } else if (item.tipoPerfil == 'banda') {
         itemGenres = List<String>.from(bandData['generosMusicais'] ?? []);
       }
-      if (!listContainsAny(itemGenres, filters.genres)) {
+      if (!listContainsAll(itemGenres, filters.genres)) {
         return false;
       }
     }
@@ -263,26 +273,24 @@ class SearchRepository {
   ) {
     if (userLat == null || userLng == null) {
       // Fallback: sort by name
-      return items..sort((a, b) => a.displayName.compareTo(b.displayName));
+      return List.of(items)
+        ..sort((a, b) => a.displayName.compareTo(b.displayName));
     }
 
     // Calculate distances
-    for (final item in items) {
+    final calculatedItems = items.map((item) {
       final loc = item.location;
       if (loc != null && loc['lat'] != null && loc['lng'] != null) {
         final itemLat = (loc['lat'] as num).toDouble();
         final itemLng = (loc['lng'] as num).toDouble();
-        item.distanceKm = calculateDistanceKm(
-          userLat,
-          userLng,
-          itemLat,
-          itemLng,
-        );
+        final dist = calculateDistanceKm(userLat, userLng, itemLat, itemLng);
+        return item.copyWith(distanceKm: dist);
       }
-    }
+      return item;
+    }).toList();
 
     // Sort: distance asc (nulls last), then name
-    return items..sort((a, b) {
+    return calculatedItems..sort((a, b) {
       if (a.distanceKm == null && b.distanceKm == null) {
         return a.displayName.compareTo(b.displayName);
       }

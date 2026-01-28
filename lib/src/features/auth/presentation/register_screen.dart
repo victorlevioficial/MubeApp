@@ -13,7 +13,7 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
-import '../../auth/data/auth_repository.dart';
+import 'register_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -28,7 +28,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
+  // bool _isLoading = false; // Removed in favor of controller state
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
@@ -41,41 +41,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    // Dismiss keyboard
+    FocusScope.of(context).unfocus();
+
     if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        await ref
-            .read(authRepositoryProvider)
-            .registerWithEmailAndPassword(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-            );
-        // Sucesso? O Router gerencia o redirecionamento.
-      } catch (e) {
-        if (mounted) {
-          final message = AuthExceptionHandler.handleException(e);
-          AppSnackBar.show(context, message, isError: true);
-        }
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
-      }
+      await ref
+          .read(registerControllerProvider.notifier)
+          .register(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for errors
+    ref.listen<AsyncValue<void>>(registerControllerProvider, (prev, next) {
+      if (next.hasError && !(prev?.hasError ?? false)) {
+        final message = AuthExceptionHandler.handleException(next.error!);
+        if (context.mounted) {
+          AppSnackBar.show(context, message, isError: true);
+        }
+      }
+    });
+
+    final state = ref.watch(registerControllerProvider);
+
     return Scaffold(
       // backgroundColor: Theme default,
       // AppBar removed as requested
       body: SingleChildScrollView(
         child: ResponsiveCenter(
           maxContentWidth: 600,
-          padding: const EdgeInsets.only(
-            top: 80,
-            bottom: 32,
-            left: 16,
-            right: 16,
-          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s32,
+          ).copyWith(top: 80),
           child: Form(
             key: _formKey,
             child: Column(
@@ -110,16 +112,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AppSpacing.s32),
 
                 AppTextField(
+                  fieldKey: const Key('register_email_input'),
                   controller: _emailController,
                   label: 'E-mail',
                   hint: 'seu@email.com',
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) =>
-                      v != null && v.contains('@') ? null : 'E-mail inválido',
+                      v != null && v.isNotEmpty ? null : 'E-mail obrigatório',
                 ),
                 const SizedBox(height: 16),
 
                 AppTextField(
+                  fieldKey: const Key('register_password_input'),
                   controller: _passwordController,
                   label: 'Senha',
                   hint: '••••••••',
@@ -129,9 +133,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   validator: (v) =>
                       v != null && v.length >= 6 ? null : 'Mínimo 6 caracteres',
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.s16),
 
                 AppTextField(
+                  fieldKey: const Key('register_confirm_password_input'),
                   controller: _confirmPasswordController,
                   label: 'Confirmar Senha',
                   hint: '••••••••',
@@ -145,13 +150,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       : 'As senhas não conferem',
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.s32),
 
                 SizedBox(
                   height: 56,
                   child: PrimaryButton(
+                    key: const Key('register_button'),
                     text: 'Cadastrar',
-                    isLoading: _isLoading,
+                    isLoading: state.isLoading,
                     onPressed: _submit,
                   ),
                 ),
@@ -168,15 +174,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SocialLoginButton(
+                      key: const Key('google_register_button'),
                       type: SocialType.google,
                       onPressed: () {},
                     ),
                     const SizedBox(height: AppSpacing.s16),
-                    SocialLoginButton(type: SocialType.apple, onPressed: () {}),
+                    SocialLoginButton(
+                      key: const Key('apple_register_button'),
+                      type: SocialType.apple,
+                      onPressed: () {},
+                    ),
                   ],
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.s32),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -191,6 +202,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       onTap: () => context.go('/login'),
                       child: Text(
                         'Entrar',
+                        key: const Key('login_link'),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.tertiary,
                           fontWeight: FontWeight.bold,

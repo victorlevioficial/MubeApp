@@ -63,6 +63,11 @@ class AuthGuard {
     String currentPath,
     AsyncValue<dynamic> userProfileAsync,
   ) {
+    // [REMOVED TEST FIX] - Normal flow requires redirecting away from login if authenticated
+    // if (currentPath == RoutePaths.login || currentPath == RoutePaths.register) {
+    //   return null;
+    // }
+
     // Profile not loaded yet - don't redirect
     if (!userProfileAsync.hasValue || userProfileAsync.value == null) {
       _log('Profile loading - waiting');

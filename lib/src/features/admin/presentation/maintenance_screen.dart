@@ -7,8 +7,8 @@ import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../utils/geohash_helper.dart';
-import '../../../utils/seed_database.dart';
-import '../../feed/data/feed_repository.dart';
+// import '../../../utils/seed_database.dart'; // Deleted
+// import '../../feed/data/feed_repository.dart';
 
 class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
@@ -28,8 +28,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     });
 
     try {
-      final feedRepo = ref.read(feedRepositoryProvider);
-      final result = await feedRepo.migrateLocationLongToLng();
+      // final feedRepo = ref.read(feedRepositoryProvider);
+      // final result = await feedRepo.migrateLocationLongToLng();
+      const result =
+          'Migration method not implemented yet.'; // TODO: Implement migration if needed
       setState(() {
         _report = result;
       });
@@ -45,52 +47,24 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   }
 
   Future<void> _clearMocks() async {
-    setState(() {
-      _isMigrating = true;
-      _report = 'Limpando usuários mock...';
-    });
-    try {
-      await DatabaseSeeder.clearMockUsers();
-      setState(() {
-        _report = 'Usuários mock removidos com sucesso!';
-      });
-    } catch (e) {
-      debugPrint('Erro ao limpar mocks: $e');
-      setState(() {
-        _report =
-            '❌ ERRO: Permissão negada.\n\n'
-            'As Regras de Segurança do Firestore impedem que um usuário logado delete dados de outros usuários.\n\n'
-            '👉 AÇÃO RECOMENDADA:\n'
-            '1. Vá ao Console do Firebase.\n'
-            '2. Clique em "Firestore Database".\n'
-            '3. Clique nos três pontinhos da coleção "users" e escolha "Excluir coleção".\n'
-            '4. Volte aqui e clique em "GERAR NOVOS".';
-      });
-    } finally {
-      setState(() {
-        _isMigrating = false;
-      });
+    // DatabaseSeeder removed
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Funcionalidade removida (SeedDatabase apagado)'),
+        ),
+      );
     }
   }
 
   Future<void> _seedData() async {
-    setState(() {
-      _isMigrating = true;
-      _report = 'Gerando 50 usuários mock (Padrão lng)...';
-    });
-    try {
-      await DatabaseSeeder.seedUsers(count: 50);
-      setState(() {
-        _report = '50 usuários gerados com sucesso!';
-      });
-    } catch (e) {
-      setState(() {
-        _report = 'Erro ao gerar: $e';
-      });
-    } finally {
-      setState(() {
-        _isMigrating = false;
-      });
+    // DatabaseSeeder removed
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Funcionalidade removida (SeedDatabase apagado)'),
+        ),
+      );
     }
   }
 
@@ -167,7 +141,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const MubeAppBar(title: 'Manutenção'),
+      appBar: const MubeAppBar(title: 'Manutenção', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(

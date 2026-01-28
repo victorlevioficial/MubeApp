@@ -50,3 +50,16 @@ bool listContainsAny(List<String> list, List<String> targets) {
 
   return normalizedTargets.any((t) => normalizedList.contains(t));
 }
+
+/// Checks if [list] contains ALL of the [targets].
+///
+/// Both are normalized before comparison.
+/// Returns true if targets is empty.
+bool listContainsAll(List<String> list, List<String> targets) {
+  if (targets.isEmpty) return true;
+
+  final normalizedList = normalizeList(list);
+  final normalizedTargets = normalizeList(targets);
+
+  return normalizedTargets.every((t) => normalizedList.contains(t));
+}

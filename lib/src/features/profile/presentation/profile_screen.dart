@@ -81,7 +81,7 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         user.tipoPerfil?.label.toUpperCase() ?? '',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.accent,
+                          color: AppColors.semanticAction,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.bold,
                         ),
@@ -105,7 +105,7 @@ class ProfileScreen extends ConsumerWidget {
                               size: 16,
                               color: AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.s4),
                             Text(
                               '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
                               style: AppTypography.bodySmall.copyWith(
@@ -140,7 +140,7 @@ class ProfileScreen extends ConsumerWidget {
                   onPressed: () => context.go('/profile/edit'),
                 ),
                 const SizedBox(height: AppSpacing.s48),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.s40),
                 Align(
                   child: IconButton(
                     icon: const Icon(
@@ -251,8 +251,8 @@ class ProfileScreen extends ConsumerWidget {
         Text(title, style: AppTypography.titleMedium),
         const SizedBox(height: AppSpacing.s12),
         Wrap(
-          spacing: 8,
-          runSpacing: 4,
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s4,
           children: items.map((item) {
             return Chip(
               visualDensity: VisualDensity.compact,

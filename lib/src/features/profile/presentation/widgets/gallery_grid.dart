@@ -1,7 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
-import 'package:shimmer/shimmer.dart';
+
+import '../../../../common_widgets/app_shimmer.dart';
 
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
@@ -147,16 +148,7 @@ class _FilledSlot extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
-            placeholder: (context, url) => Shimmer.fromColors(
-              baseColor: AppColors.surface,
-              highlightColor: AppColors.surface.withValues(alpha: 0.5),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
             errorWidget: (context, url, error) => Container(
               color: AppColors.surface,
               child: const Icon(Icons.error, color: AppColors.error),
@@ -350,7 +342,7 @@ class _UploadingSlot extends StatelessWidget {
             color: AppColors.primary,
             size: 28,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.s8),
           // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -361,7 +353,7 @@ class _UploadingSlot extends StatelessWidget {
               minHeight: 6,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.s6),
           // Percentage text
           Text(
             progress > 0 ? '${(progress * 100).toInt()}%' : status,

@@ -1,17 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/showcase/design_system_showcase_screen.dart';
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
-import 'widgets/settings_item.dart';
+import '../../auth/domain/user_type.dart';
+import 'widgets/bento_header.dart';
+import 'widgets/neon_settings_tile.dart';
+import 'widgets/settings_group.dart';
 
-/// Settings screen with configuration options.
+/// Settings screen with "Option A" Bento Grid Redesign
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -20,185 +27,212 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const MubeAppBar(title: 'Configurações', showBackButton: false),
-      body: ListView(
-        children: [
-          const SizedBox(height: 16),
+      extendBodyBehindAppBar: false,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Column(
+          children: [
+            // 1. DASHBOARD HEADER (BENTO)
+            const BentoHeader(),
 
-          // Section: Account
-          _buildSectionHeader('Conta'),
+            const SizedBox(height: 32),
 
-          SettingsItem(
-            icon: Icons.location_on_outlined,
-            title: 'Meus Endereços',
-            onTap: () => context.push('/settings/addresses'),
-          ),
-
-          SettingsItem(
-            icon: Icons.person_outline,
-            title: 'Editar Dados',
-            onTap: () => context.push('/profile/edit'),
-          ),
-
-          SettingsItem(
-            icon: Icons.favorite_outline,
-            title: 'Meus Favoritos',
-            onTap: () => context.push('/favorites'),
-          ),
-
-          SettingsItem(
-            icon: Icons.lock_outline,
-            title: 'Alterar Senha',
-            onTap: () {
-              // TODO: Implement password change
-              AppSnackBar.info(context, 'Em breve!');
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // Section: Other
-          _buildSectionHeader('Outros'),
-
-          SettingsItem(
-            icon: Icons.help_outline,
-            title: 'Ajuda e Suporte',
-            onTap: () {
-              // TODO: Implement help
-            },
-          ),
-
-          SettingsItem(
-            icon: Icons.description_outlined,
-            title: 'Termos de Uso',
-            onTap: () {
-              // TODO: Navigate to terms
-            },
-          ),
-
-          SettingsItem(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Política de Privacidade',
-            onTap: () {
-              // TODO: Navigate to privacy policy
-            },
-          ),
-
-          if (kDebugMode)
-            SettingsItem(
-              icon: Icons.build_circle_outlined,
-              title: 'Manutenção (Dev)',
-              onTap: () => context.push(RoutePaths.maintenance),
-              showDivider: false,
+            // 2. SETTINGS GROUPS
+            SettingsGroup(
+              title: 'CONTA',
+              children: [
+                NeonSettingsTile(
+                  icon: Icons.location_on_outlined,
+                  title: 'Meus Endereços',
+                  subtitle: 'Gerenciar entregas',
+                  onTap: () => context.push('/settings/addresses'),
+                  customAccentColor: Colors.blueAccent,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.person_outline,
+                  title: 'Editar Dados',
+                  onTap: () => context.push('/profile/edit'),
+                  customAccentColor: Colors.purpleAccent,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.favorite_outline,
+                  title: 'Meus Favoritos',
+                  onTap: () => context.push('/favorites'),
+                  customAccentColor: AppColors.brandPrimary,
+                ),
+                // Dynamic Tile: Band Management or My Bands
+                if (ref.watch(currentUserProfileProvider).value?.tipoPerfil ==
+                    AppUserType.band)
+                  NeonSettingsTile(
+                    icon: Icons.groups_outlined,
+                    title: 'Gerenciar Banda',
+                    subtitle: 'Integrantes e convites',
+                    onTap: () => context.push(RoutePaths.invites),
+                    customAccentColor: Colors.pinkAccent,
+                  )
+                else
+                  NeonSettingsTile(
+                    icon: Icons.mail_outline,
+                    title: 'Minhas Bandas',
+                    subtitle: 'Convites e parcerias',
+                    onTap: () => context.push(RoutePaths.invites),
+                    customAccentColor: Colors.pinkAccent,
+                  ),
+                NeonSettingsTile(
+                  icon: Icons.lock_outline,
+                  title: 'Alterar Senha',
+                  onTap: () => AppSnackBar.info(context, 'Em breve!'),
+                  customAccentColor: Colors.orangeAccent,
+                ),
+              ],
             ),
 
-          const SizedBox(height: 32),
+            SettingsGroup(
+              title: 'OUTROS',
+              children: [
+                NeonSettingsTile(
+                  icon: Icons.help_outline,
+                  title: 'Ajuda e Suporte',
+                  onTap: () {},
+                  customAccentColor: Colors.tealAccent,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.description_outlined,
+                  title: 'Termos de Uso',
+                  onTap: () {},
+                  customAccentColor: Colors.grey,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Política de Privacidade',
+                  onTap: () {},
+                  customAccentColor: Colors.grey,
+                ),
+              ],
+            ),
 
-          // Logout button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: () => _confirmLogout(context, ref),
-              icon: const Icon(Icons.logout, size: 20),
-              label: const Text('Sair da Conta'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.surfaceHighlight),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            if (kDebugMode)
+              SettingsGroup(
+                title: 'DEV ZONE',
+                children: [
+                  NeonSettingsTile(
+                    icon: Icons.build_circle_outlined,
+                    title: 'Manutenção (Dev)',
+                    onTap: () => context.push(RoutePaths.maintenance),
+                    customAccentColor: Colors.white,
+                  ),
+                  NeonSettingsTile(
+                    icon: Icons.palette_outlined,
+                    title: 'Design System',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const DesignSystemShowcaseScreen(),
+                        ),
+                      );
+                    },
+                    customAccentColor: Colors.pink,
+                  ),
+                ],
               ),
-            ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Deactivate account
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextButton(
+            // 3. ACTION BUTTONS (Logout / Delete)
+            _buildLogoutButton(context, ref),
+
+            const SizedBox(height: 12),
+
+            TextButton(
               onPressed: () => _confirmDeactivate(context, ref),
               child: Text(
                 'Desativar Conta',
-                style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.error.withValues(alpha: 0.7),
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        title.toUpperCase(),
-        style: AppTypography.bodySmall.copyWith(
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
   }
 
-  void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Sair da conta?'),
-        content: const Text('Você precisará fazer login novamente.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _confirmLogout(context, ref),
+          borderRadius: BorderRadius.circular(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.logout, color: AppColors.textPrimary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Sair da Conta',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(authRepositoryProvider).signOut();
-            },
-            child: const Text('Sair', style: TextStyle(color: AppColors.error)),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  void _confirmDeactivate(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Desativar conta?'),
-        content: const Text(
-          'Sua conta e todos os dados serão excluídos permanentemente. '
-          'Esta ação não pode ser desfeita.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await ref.read(authRepositoryProvider).deleteAccount();
-              } catch (e) {
-                if (context.mounted) {
-                  AppSnackBar.error(context, 'Erro: $e');
-                }
-              }
-            },
-            child: const Text(
-              'Desativar',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
+      builder: (context) => const AppConfirmationDialog(
+        title: 'Sair da conta?',
+        message: 'Você precisará fazer login novamente.',
+        confirmText: 'Sair',
+        isDestructive: true,
       ),
     );
+
+    if (confirm == true) {
+      unawaited(ref.read(authRepositoryProvider).signOut());
+    }
+  }
+
+  void _confirmDeactivate(BuildContext context, WidgetRef ref) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => const AppConfirmationDialog(
+        title: 'Desativar conta?',
+        message:
+            'Sua conta e todos os dados serão excluídos permanentemente. '
+            'Esta ação não pode ser desfeita.',
+        confirmText: 'Desativar',
+        isDestructive: true,
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(authRepositoryProvider).deleteAccount();
+      } catch (e) {
+        if (context.mounted) {
+          AppSnackBar.error(context, 'Erro: $e');
+        }
+      }
+    }
   }
 }

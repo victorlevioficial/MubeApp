@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
+  final double height;
   final bool isLoading;
 
   const PrimaryButton({
@@ -10,12 +11,13 @@ class PrimaryButton extends StatelessWidget {
     required this.text,
     this.onPressed,
     this.isLoading = false,
+    this.height = 56,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
+      height: height,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         child: isLoading

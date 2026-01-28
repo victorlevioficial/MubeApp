@@ -12,8 +12,8 @@ import '../../feed/presentation/widgets/feed_skeleton.dart';
 import '../domain/search_filters.dart';
 import 'search_controller.dart' as ctrl;
 import 'widgets/category_tabs.dart';
-import 'widgets/filter_chips_row.dart';
 import 'widgets/filter_modal.dart';
+import 'widgets/search_filter_bar.dart';
 
 /// Main search screen with category tabs, dynamic filters, and results list.
 class SearchScreen extends ConsumerStatefulWidget {
@@ -85,7 +85,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     const SizedBox(height: AppSpacing.s12),
 
                     // Dynamic Filter Chips
-                    FilterChipsRow(
+                    SearchFilterBar(
                       filters: state.filters,
                       onSubcategoryChanged:
                           controller.setProfessionalSubcategory,
@@ -94,6 +94,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       onRolesChanged: controller.setRoles,
                       onServicesChanged: controller.setServices,
                       onStudioTypeChanged: controller.setStudioType,
+                      onOpenGenres: () =>
+                          _showFilterModal(context, state.filters, controller),
                     ),
                   ],
                 ),
@@ -126,7 +128,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         child: Icon(
           Icons.tune,
-          color: hasActiveFilters ? Colors.white : AppColors.textSecondary,
+          color: hasActiveFilters
+              ? AppColors.textPrimary
+              : AppColors.textSecondary,
         ),
       ),
     );
@@ -175,7 +179,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       },
       loading: () => SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => const FeedCardSkeleton(),
+          (context, index) => const FeedItemSkeleton(),
           childCount: 5,
         ),
       ),
@@ -184,7 +188,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: AppSpacing.s16),
               Text('Erro ao buscar', style: AppTypography.titleMedium),
               const SizedBox(height: AppSpacing.s8),

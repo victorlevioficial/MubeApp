@@ -21,26 +21,53 @@ class MainScaffold extends StatelessWidget {
           );
         },
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
-        destinations: const [
+        indicatorColor: Colors.transparent, // Remove indicator background
+        elevation: 0,
+        height: 72,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: Icon(
+              Icons.home_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            ),
+            selectedIcon: const Icon(
+              Icons.home,
+              color: AppColors.semanticAction,
+            ),
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
+            icon: Icon(
+              Icons.search_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            ),
+            selectedIcon: const Icon(
+              Icons.search,
+              color: AppColors.semanticAction,
+            ),
             label: 'Busca',
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
+            icon: Icon(
+              Icons.chat_bubble_outline,
+              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            ),
+            selectedIcon: const Icon(
+              Icons.chat_bubble,
+              color: AppColors.semanticAction,
+            ),
             label: 'Chat',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            icon: Icon(
+              Icons.settings_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            ),
+            selectedIcon: const Icon(
+              Icons.settings,
+              color: AppColors.semanticAction,
+            ),
             label: 'Config',
           ),
         ],

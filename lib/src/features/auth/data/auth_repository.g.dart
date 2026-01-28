@@ -8,17 +8,13 @@ part of 'auth_repository.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provides a singleton [AuthRepository] instance.
 
 @ProviderFor(authRepository)
 const authRepositoryProvider = AuthRepositoryProvider._();
 
-/// Provides a singleton [AuthRepository] instance.
-
 final class AuthRepositoryProvider
     extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
     with $Provider<AuthRepository> {
-  /// Provides a singleton [AuthRepository] instance.
   const AuthRepositoryProvider._()
     : super(
         from: null,
@@ -52,7 +48,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'51a78addf747af9435875852da980da4ae23e96f';
+String _$authRepositoryHash() => r'37a24295dafe4df61efc2622f135ba4ef14149d6';
 
 /// Stream provider for Firebase Auth state changes.
 
@@ -137,3 +133,78 @@ final class CurrentUserProfileProvider
 
 String _$currentUserProfileHash() =>
     r'a96f6d63145c144fdab0210953b7d95d0522efc6';
+
+@ProviderFor(membersList)
+const membersListProvider = MembersListFamily._();
+
+final class MembersListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<AppUser>>,
+          List<AppUser>,
+          FutureOr<List<AppUser>>
+        >
+    with $FutureModifier<List<AppUser>>, $FutureProvider<List<AppUser>> {
+  const MembersListProvider._({
+    required MembersListFamily super.from,
+    required List<String> super.argument,
+  }) : super(
+         retry: null,
+         name: r'membersListProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$membersListHash();
+
+  @override
+  String toString() {
+    return r'membersListProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<AppUser>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<AppUser>> create(Ref ref) {
+    final argument = this.argument as List<String>;
+    return membersList(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MembersListProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$membersListHash() => r'ba75a7089b833f08a9c5b05f467168d85169a104';
+
+final class MembersListFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<AppUser>>, List<String>> {
+  const MembersListFamily._()
+    : super(
+        retry: null,
+        name: r'membersListProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  MembersListProvider call(List<String> uids) =>
+      MembersListProvider._(argument: uids, from: this);
+
+  @override
+  String toString() => r'membersListProvider';
+}

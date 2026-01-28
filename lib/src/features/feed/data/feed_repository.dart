@@ -2,25 +2,30 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/errors/failures.dart';
+import '../../../core/typedefs.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/feed_item.dart';
 import '../domain/paginated_feed_response.dart';
+import 'feed_remote_data_source.dart';
 
 /// Provider for FeedRepository
 final feedRepositoryProvider = Provider<FeedRepository>((ref) {
-  return FeedRepository(FirebaseFirestore.instance);
+  final dataSource = ref.watch(feedRemoteDataSourceProvider);
+  return FeedRepository(dataSource);
 });
 
 /// Repository for feed-related data operations.
 class FeedRepository {
-  final FirebaseFirestore _firestore;
+  final FeedRemoteDataSource _dataSource;
 
-  FeedRepository(this._firestore);
+  FeedRepository(this._dataSource);
 
-  /// Fetches users near a location within a radius.
-  Future<List<FeedItem>> getNearbyUsers({
+  /// Fetches users near a location. Returns [Right(List<FeedItem>)] or [Left(Failure)].
+  FutureResult<List<FeedItem>> getNearbyUsers({
     required double lat,
     required double long,
     required double radiusKm,
@@ -28,23 +33,7 @@ class FeedRepository {
     int limit = 10,
   }) async {
     try {
-      final query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(
-            FirestoreFields.profileType,
-            whereIn: [
-              ProfileType.professional,
-              ProfileType.band,
-              ProfileType.studio,
-            ],
-          )
-          .limit(limit * 2);
-
-      final snapshot = await query.get();
+      final snapshot = await _dataSource.getNearbyUsers(limit: limit * 2);
       final items = <FeedItem>[];
 
       for (final doc in snapshot.docs) {
@@ -52,35 +41,37 @@ class FeedRepository {
 
         try {
           final data = doc.data();
-          final item = FeedItem.fromFirestore(data, doc.id);
+          var item = FeedItem.fromFirestore(data, doc.id);
 
           if (item.location != null) {
             final itemLat = item.location!['lat'] as double?;
             final itemLng = item.location!['lng'] as double?;
 
             if (itemLat != null && itemLng != null) {
-              item.distanceKm = _calculateDistance(lat, long, itemLat, itemLng);
+              item = item.copyWith(
+                distanceKm: _calculateDistance(lat, long, itemLat, itemLng),
+              );
               if (item.distanceKm! <= radiusKm) {
                 items.add(item);
               }
             }
           }
         } catch (_) {
-          // Skip invalid items
+          continue;
         }
       }
 
       items.sort(
         (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
       );
-      return items.take(limit).toList();
-    } catch (_) {
-      rethrow;
+      return Right(items.take(limit).toList());
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   /// Fetches users by profile type.
-  Future<List<FeedItem>> getUsersByType({
+  FutureResult<List<FeedItem>> getUsersByType({
     required String type,
     required String currentUserId,
     double? userLat,
@@ -89,29 +80,21 @@ class FeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     try {
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(FirestoreFields.profileType, isEqualTo: type)
-          .limit(limit);
-
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
-      }
-
-      final snapshot = await query.get();
-      return _processSnapshot(snapshot, currentUserId, userLat, userLong);
-    } catch (_) {
-      rethrow;
+      final snapshot = await _dataSource.getUsersByType(
+        type: type,
+        limit: limit,
+        startAfter: startAfter,
+      );
+      return Right(
+        _processSnapshot(snapshot, currentUserId, userLat, userLong),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   /// Fetches users by profile type with pagination support.
-  /// Returns a [PaginatedFeedResponse] with items and cursor for next page.
-  Future<PaginatedFeedResponse> getUsersByTypePaginated({
+  FutureResult<PaginatedFeedResponse> getUsersByTypePaginated({
     required String type,
     required String currentUserId,
     double? userLat,
@@ -120,20 +103,11 @@ class FeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     try {
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(FirestoreFields.profileType, isEqualTo: type)
-          .limit(limit);
-
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
-      }
-
-      final snapshot = await query.get();
+      final snapshot = await _dataSource.getUsersByType(
+        type: type,
+        limit: limit,
+        startAfter: startAfter,
+      );
       final items = _processSnapshot(
         snapshot,
         currentUserId,
@@ -141,18 +115,20 @@ class FeedRepository {
         userLong,
       );
 
-      return PaginatedFeedResponse(
-        items: items,
-        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        hasMore: snapshot.docs.length >= limit,
+      return Right(
+        PaginatedFeedResponse(
+          items: items,
+          lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+          hasMore: snapshot.docs.length >= limit,
+        ),
       );
-    } catch (_) {
-      rethrow;
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   /// Fetches professional users by category.
-  Future<List<FeedItem>> getUsersByCategory({
+  FutureResult<List<FeedItem>> getUsersByCategory({
     required String category,
     required String currentUserId,
     double? userLat,
@@ -161,49 +137,32 @@ class FeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     try {
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(
-            FirestoreFields.profileType,
-            isEqualTo: ProfileType.professional,
-          )
-          .where(
-            '${FirestoreFields.professional}.${FirestoreFields.category}',
-            isEqualTo: category,
-          )
-          .limit(limit);
-
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
-      }
-
-      final snapshot = await query.get();
-      return _processSnapshot(snapshot, currentUserId, userLat, userLong);
-    } catch (_) {
-      rethrow;
+      final snapshot = await _dataSource.getUsersByCategory(
+        category: category,
+        limit: limit,
+        startAfter: startAfter,
+      );
+      return Right(
+        _processSnapshot(snapshot, currentUserId, userLat, userLong),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   /// Fetches artists (professional profiles excluding technical crew).
-  Future<List<FeedItem>> getArtists({
+  FutureResult<List<FeedItem>> getArtists({
     required String currentUserId,
     double? userLat,
     double? userLong,
     int limit = 10,
   }) async {
     try {
-      final user = await _firestore
-          .collection(FirestoreCollections.users)
-          .doc(currentUserId)
-          .get();
-      final userGeohash = user.data()?[FirestoreFields.geohash] as String?;
+      final userDoc = await _dataSource.getUser(currentUserId);
+      final userGeohash = userDoc.data()?[FirestoreFields.geohash] as String?;
 
       if (userLat != null && userLong != null) {
-        final allItems = await getAllUsersSortedByDistance(
+        final result = await getAllUsersSortedByDistance(
           currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
@@ -211,54 +170,49 @@ class FeedRepository {
           excludeCategory: ProfessionalCategory.techCrew,
           userGeohash: userGeohash,
         );
-        return allItems.take(limit).toList();
+
+        // Handle result of getAllUsersSortedByDistance (which is now async result)
+        return result.map((items) => items.take(limit).toList());
       }
 
-      // Fallback if no location
-      final query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(
-            FirestoreFields.profileType,
-            isEqualTo: ProfileType.professional,
-          )
-          .limit(limit * 2);
+      // Fallback
+      final snapshot = await _dataSource.getUsersByType(
+        type: ProfileType.professional,
+        limit: limit * 2,
+        startAfter: null,
+      );
 
-      final snapshot = await query.get();
       final items = _processSnapshot(
         snapshot,
         currentUserId,
         userLat,
         userLong,
       );
-      return items
-          .where((item) => item.categoria != ProfessionalCategory.techCrew)
-          .take(limit)
-          .toList();
-    } catch (_) {
-      rethrow;
+
+      return Right(
+        items
+            .where((item) => item.categoria != ProfessionalCategory.techCrew)
+            .take(limit)
+            .toList(),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
   /// Fetches technical crew only.
-  Future<List<FeedItem>> getTechnicians({
+  FutureResult<List<FeedItem>> getTechnicians({
     required String currentUserId,
     double? userLat,
     double? userLong,
     int limit = 10,
   }) async {
     try {
-      final user = await _firestore
-          .collection(FirestoreCollections.users)
-          .doc(currentUserId)
-          .get();
-      final userGeohash = user.data()?[FirestoreFields.geohash] as String?;
+      final userDoc = await _dataSource.getUser(currentUserId);
+      final userGeohash = userDoc.data()?[FirestoreFields.geohash] as String?;
 
       if (userLat != null && userLong != null) {
-        final allItems = await getAllUsersSortedByDistance(
+        final result = await getAllUsersSortedByDistance(
           currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
@@ -266,22 +220,24 @@ class FeedRepository {
           category: ProfessionalCategory.techCrew,
           userGeohash: userGeohash,
         );
-        return allItems.take(limit).toList();
+        return result.map((items) => items.take(limit).toList());
       }
 
-      return getUsersByCategory(
+      // Fallback
+      final snapshot = await _dataSource.getUsersByCategory(
         category: ProfessionalCategory.techCrew,
-        currentUserId: currentUserId,
-        userLat: userLat,
-        userLong: userLong,
         limit: limit,
+        startAfter: null,
       );
-    } catch (_) {
-      rethrow;
+
+      return Right(
+        _processSnapshot(snapshot, currentUserId, userLat, userLong),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
-  // Helper to process query snapshot with favorite status
   List<FeedItem> _processSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
     String currentUserId,
@@ -293,8 +249,7 @@ class FeedRepository {
     for (final doc in snapshot.docs) {
       if (doc.id == currentUserId) continue;
 
-      final data = doc.data();
-      final item = FeedItem.fromFirestore(data, doc.id);
+      var item = FeedItem.fromFirestore(doc.data(), doc.id);
 
       // Calculate distance if we have user location
       if (userLat != null && userLong != null && item.location != null) {
@@ -302,11 +257,8 @@ class FeedRepository {
         final itemLng = item.location!['lng'] as double?;
 
         if (itemLat != null && itemLng != null) {
-          item.distanceKm = _calculateDistance(
-            userLat,
-            userLong,
-            itemLat,
-            itemLng,
+          item = item.copyWith(
+            distanceKm: _calculateDistance(userLat, userLong, itemLat, itemLng),
           );
         }
       }
@@ -317,14 +269,13 @@ class FeedRepository {
     return items;
   }
 
-  /// Haversine formula for distance calculation.
   double _calculateDistance(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    const R = 6371.0; // Earth radius in km
+    const R = 6371.0;
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
     final a =
@@ -339,207 +290,7 @@ class FeedRepository {
 
   double _toRadians(double degrees) => degrees * pi / 180;
 
-  /// DIAGNOSTIC METHOD
-  Future<String> debugDiagnose({required String currentUserId}) async {
-    final report = StringBuffer();
-    report.writeln('=== DIAGNÓSTICO DO FREED ===');
-    report.writeln('User ID: $currentUserId');
-
-    try {
-      // 1. Check connection and total users
-      final allUsers = await _firestore
-          .collection(FirestoreCollections.users)
-          .limit(5)
-          .get();
-      report.writeln('Total users found (limit 5): ${allUsers.docs.length}');
-
-      if (allUsers.docs.isEmpty) {
-        report.writeln('⚠️ NENHUM USUÁRIO ENCONTRADO NA COLEÇÃO "users".');
-        return report.toString();
-      }
-
-      // 2. Analyze first user structure
-      final firstDoc = allUsers.docs.first;
-      report.writeln('=== Sample User (${firstDoc.id}) ===');
-      final data = firstDoc.data();
-      report.writeln('status: "${data[FirestoreFields.registrationStatus]}"');
-      report.writeln('type: "${data[FirestoreFields.profileType]}"');
-      report.writeln('name: "${data[FirestoreFields.name]}"');
-      if (data[FirestoreFields.location] != null) {
-        report.writeln('location: ${data[FirestoreFields.location]}');
-      } else {
-        report.writeln('⚠️ location is NULL');
-      }
-
-      // 3. Test Query Matches
-      // 3. Test Query Matches
-      final completeUsers = await _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .limit(10)
-          .get();
-      report.writeln(
-        'Users with status="concluido": ${completeUsers.docs.length}',
-      );
-
-      if (completeUsers.docs.isNotEmpty) {
-        report.writeln('-- Analyzing Completed Users --');
-        for (var doc in completeUsers.docs) {
-          final d = doc.data();
-          report.writeln(
-            'User ${doc.id.substring(0, 5)}... -> type: "${d[FirestoreFields.profileType]}"',
-          );
-        }
-      }
-
-      final proUsers = await _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.profileType,
-            whereIn: [
-              ProfileType.professional,
-              ProfileType.band,
-              ProfileType.studio,
-            ],
-          )
-          .get();
-      report.writeln('Users with valid profile type: ${proUsers.docs.length}');
-    } catch (e) {
-      report.writeln('❌ ERRO NO DIAGNÓSTICO: $e');
-    }
-
-    return report.toString();
-  }
-
-  /// ONE-TIME MIGRATION: Rename 'long' to 'lng' in all user location fields.
-  /// This should be called once to fix existing data to the new standard.
-  Future<String> migrateLocationLongToLng() async {
-    final report = StringBuffer();
-    report.writeln('=== MIGRAÇÃO: long -> lng ===');
-
-    int updated = 0;
-    int skipped = 0;
-
-    try {
-      final snapshot = await _firestore
-          .collection(FirestoreCollections.users)
-          .get();
-      report.writeln('Total de documentos analisados: ${snapshot.docs.length}');
-
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        bool needsUpdate = false;
-        final updates = <String, dynamic>{};
-
-        // 1. Handle 'location' map if it exists
-        if (data['location'] is Map) {
-          final location = Map<String, dynamic>.from(data['location'] as Map);
-
-          // Rename long -> lng inside location
-          if (location.containsKey('long')) {
-            location['lng'] = location['long'];
-            location.remove('long');
-            updates['location'] = location;
-            needsUpdate = true;
-          }
-        }
-
-        // 2. Handle root-level lat/long (Legacy check)
-        // If lat/long are at root, move them to location map
-        if (data.containsKey('lat') || data.containsKey('long')) {
-          final existingLocation = data['location'] is Map
-              ? Map<String, dynamic>.from(data['location'] as Map)
-              : <String, dynamic>{};
-
-          if (data.containsKey('lat')) {
-            existingLocation['lat'] = data['lat'];
-            // updates['lat'] = FieldValue.delete(); // We'll keep root for safety or delete later
-          }
-          if (data.containsKey('long')) {
-            existingLocation['lng'] = data['long'];
-            // updates['long'] = FieldValue.delete();
-          }
-
-          // Also migrate other location fields if at root
-          for (final field in [
-            'cidade',
-            'estado',
-            'bairro',
-            'logradouro',
-            'cep',
-          ]) {
-            if (data.containsKey(field) &&
-                !existingLocation.containsKey(field)) {
-              existingLocation[field] = data[field];
-            }
-          }
-
-          updates['location'] = existingLocation;
-          needsUpdate = true;
-        }
-
-        // 3. Handle 'addresses' list
-        if (data['addresses'] is List) {
-          final addresses = List<dynamic>.from(data['addresses'] as List);
-          bool addressChanged = false;
-
-          for (int i = 0; i < addresses.length; i++) {
-            if (addresses[i] is Map) {
-              final addr = Map<String, dynamic>.from(addresses[i] as Map);
-              if (addr.containsKey('long')) {
-                addr['lng'] = addr['long'];
-                addr.remove('long');
-                addresses[i] = addr;
-                addressChanged = true;
-              }
-            }
-          }
-
-          if (addressChanged) {
-            updates['addresses'] = addresses;
-            needsUpdate = true;
-          }
-        }
-
-        if (needsUpdate) {
-          await _firestore
-              .collection(FirestoreCollections.users)
-              .doc(doc.id)
-              .update(updates);
-          report.writeln('✅ Atualizado: ${doc.id.substring(0, 8)}...');
-          updated++;
-        } else {
-          skipped++;
-        }
-      }
-
-      report.writeln('');
-      report.writeln('Migração concluída!');
-      report.writeln('Atualizados: $updated');
-      report.writeln('Ignorados: $skipped');
-    } catch (e) {
-      report.writeln('❌ ERRO: $e');
-    }
-
-    return report.toString();
-  }
-
-  /// Fetches users sorted by distance from closest to farthest.
-  ///
-  /// **Performance**:
-  /// - WITH geohash: Queries only ~15-30 nearby users (< 1s even with 10k users)
-  /// - WITHOUT geohash: Falls back to query all users (slower but works)
-  ///
-  /// Uses progressive loading: starts with a small limit for fast initial load,
-  /// then can be called again with higher limits for more content.
-  ///
-  /// [limit]: Optional. If provided, limits the query to this many users.
-  ///          If null, loads all users (use with caution for large datasets).
-  /// [userGeohash]: Optional. If provided, uses geohash-optimized query (10x faster).
-  Future<List<FeedItem>> getAllUsersSortedByDistance({
+  FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
     required String currentUserId,
     required double userLat,
     required double userLong,
@@ -550,7 +301,6 @@ class FeedRepository {
     String? userGeohash,
   }) async {
     try {
-      // OPTIMIZATION: Use geohash if available
       if (userGeohash != null && userGeohash.isNotEmpty) {
         return _getAllUsersSortedByDistanceGeohash(
           currentUserId: currentUserId,
@@ -559,12 +309,10 @@ class FeedRepository {
           filterType: filterType,
           category: category,
           excludeCategory: excludeCategory,
-          limit: limit,
           userGeohash: userGeohash,
         );
       }
 
-      // FALLBACK: Use old method without geohash
       return _getAllUsersSortedByDistanceClassic(
         currentUserId: currentUserId,
         userLat: userLat,
@@ -574,93 +322,40 @@ class FeedRepository {
         excludeCategory: excludeCategory,
         limit: limit,
       );
-    } catch (_) {
-      rethrow;
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 
-  /// Geohash-optimized version (10x+ faster)
-  ///
-  /// IMPORTANT: Does NOT use Firestore limit!
-  /// Geohash already reduces docs from 100+ to ~30 (9 quadrants).
-  /// We fetch ALL from those quadrants, sort by distance, then caller
-  /// paginates locally for 100% accurate proximity ordering.
-  Future<List<FeedItem>> _getAllUsersSortedByDistanceGeohash({
+  FutureResult<List<FeedItem>> _getAllUsersSortedByDistanceGeohash({
     required String currentUserId,
     required double userLat,
     required double userLong,
     String? filterType,
     String? category,
     String? excludeCategory,
-    int? limit, // Ignored - kept for API consistency
     required String userGeohash,
   }) async {
-    try {
-      // Get 9 neighboring geohashes (includes center)
-      final neighbors = GeohashHelper.neighbors(userGeohash);
+    final neighbors = GeohashHelper.neighbors(userGeohash);
 
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          )
-          .where(
-            FirestoreFields.geohash,
-            whereIn: neighbors,
-          ); // Queries ~30 docs
+    final snapshot = await _dataSource.getGeohashNeighbors(
+      neighbors: neighbors,
+      filterType: filterType,
+      category: category,
+    );
 
-      // Apply type filter if provided
-      if (filterType != null && filterType.isNotEmpty) {
-        query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
-      } else {
-        query = query.where(
-          FirestoreFields.profileType,
-          whereIn: [
-            ProfileType.professional,
-            ProfileType.band,
-            ProfileType.studio,
-          ],
-        );
-      }
+    final items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
 
-      // Category filter
-      if (category != null && category.isNotEmpty) {
-        query = query.where(
-          '${FirestoreFields.professional}.${FirestoreFields.category}',
-          isEqualTo: category,
-        );
-      }
-
-      // Fetch ALL docs from the 9 quadrants (~30 docs)
-      final snapshot = await query.get();
-      final items = _processSnapshot(
-        snapshot,
-        currentUserId,
-        userLat,
-        userLong,
-      );
-
-      // Exclude category filter (e.g., exclude technical crew from artists list)
-      if (excludeCategory != null && excludeCategory.isNotEmpty) {
-        items.removeWhere((item) => item.categoria == excludeCategory);
-      }
-
-      // Sort by distance (closest first) - THIS IS CRITICAL!
-      items.sort(
-        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
-      );
-
-      // Return ALL sorted items - caller will paginate locally
-      // This ensures perfect proximity ordering!
-      return items;
-    } catch (_) {
-      rethrow;
+    if (excludeCategory != null && excludeCategory.isNotEmpty) {
+      items.removeWhere((item) => item.categoria == excludeCategory);
     }
+
+    items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
+
+    return Right(items);
   }
 
-  /// Classic version (fallback for users without geohash)
-  Future<List<FeedItem>> _getAllUsersSortedByDistanceClassic({
+  FutureResult<List<FeedItem>> _getAllUsersSortedByDistanceClassic({
     required String currentUserId,
     required double userLat,
     required double userLong,
@@ -669,65 +364,38 @@ class FeedRepository {
     String? excludeCategory,
     int? limit,
   }) async {
-    try {
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          );
+    QuerySnapshot<Map<String, dynamic>> snapshot;
 
-      // Apply type filter if provided
-      if (filterType != null && filterType.isNotEmpty) {
-        query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
-      } else {
-        query = query.where(
-          FirestoreFields.profileType,
-          whereIn: [
-            ProfileType.professional,
-            ProfileType.band,
-            ProfileType.studio,
-          ],
-        );
-      }
-
-      // Category filter
-      if (category != null && category.isNotEmpty) {
-        query = query.where(
-          '${FirestoreFields.professional}.${FirestoreFields.category}',
-          isEqualTo: category,
-        );
-      }
-
-      // Apply limit for progressive loading
-      if (limit != null && limit > 0) {
-        query = query.limit(limit);
-      }
-
-      final snapshot = await query.get();
-      final items = _processSnapshot(
-        snapshot,
-        currentUserId,
-        userLat,
-        userLong,
+    if (category != null) {
+      // Prioritize category search at DB level to ensure we get results
+      snapshot = await _dataSource.getUsersByCategory(
+        category: category,
+        limit: limit ?? 50,
+        startAfter: null,
       );
-
-      // Sort by distance (closest first)
-      items.sort(
-        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+    } else {
+      snapshot = await _dataSource.getMainFeed(
+        filterType: filterType,
+        limit: limit ?? 50,
+        startAfter: null,
       );
-
-      return items;
-    } catch (_) {
-      rethrow;
     }
+
+    final items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+
+    if (category != null) {
+      items.retainWhere((i) => i.categoria == category);
+    }
+    if (excludeCategory != null) {
+      items.removeWhere((i) => i.categoria == excludeCategory);
+    }
+
+    items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
+
+    return Right(items);
   }
 
-  /// Fetches the main feed with optional filtering and pagination.
-  ///
-  /// [filterType]: Optional. If provided, filters by 'tipo_perfil' (e.g., 'profissional', 'banda', 'estudio').
-  /// If null, returns all valid profile types.
-  Future<PaginatedFeedResponse> getMainFeedPaginated({
+  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
     required String currentUserId,
     String? filterType,
     double? userLat,
@@ -736,42 +404,14 @@ class FeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     try {
-      var query = _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            FirestoreFields.registrationStatus,
-            isEqualTo: RegistrationStatus.complete,
-          );
+      final snapshot = await _dataSource.getMainFeed(
+        filterType: filterType,
+        limit: limit,
+        startAfter: startAfter,
+      );
 
-      // Apply filtering
-      if (filterType != null &&
-          filterType.isNotEmpty &&
-          filterType != 'Perto de mim') {
-        query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
-      } else if (filterType != 'Perto de mim') {
-        // Default feed: show pro types
-        query = query.where(
-          FirestoreFields.profileType,
-          whereIn: [
-            ProfileType.professional,
-            ProfileType.band,
-            ProfileType.studio,
-          ],
-        );
-      }
-
-      if (limit > 0) {
-        query = query.limit(limit);
-      }
-
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
-      }
-
-      final snapshot = await query.get();
       var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
 
-      // Post-processing for "Perto de mim" specific filter
       if (filterType == 'Perto de mim' && userLat != null && userLong != null) {
         items = items
             .where((i) => i.distanceKm != null && i.distanceKm! <= 50)
@@ -781,13 +421,50 @@ class FeedRepository {
         );
       }
 
-      return PaginatedFeedResponse(
-        items: items,
-        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-        hasMore: snapshot.docs.length >= limit,
+      return Right(
+        PaginatedFeedResponse(
+          items: items,
+          lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+          hasMore: snapshot.docs.length >= limit,
+        ),
       );
-    } catch (_) {
-      rethrow;
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Fetches users by a list of IDs (for Favorites).
+  FutureResult<List<FeedItem>> getUsersByIds({
+    required List<String> ids,
+    required String currentUserId,
+    double? userLat,
+    double? userLong,
+  }) async {
+    try {
+      if (ids.isEmpty) return const Right([]);
+
+      // Batching for > 30 items
+      final List<FeedItem> allItems = [];
+
+      // Chunking logic if list is large
+      const batchSize = 30;
+      for (var i = 0; i < ids.length; i += batchSize) {
+        final end = (i + batchSize < ids.length) ? i + batchSize : ids.length;
+        final batchIds = ids.sublist(i, end);
+
+        final snapshot = await _dataSource.getUsersByIds(batchIds);
+        final batchItems = _processSnapshot(
+          snapshot,
+          currentUserId,
+          userLat,
+          userLong,
+        );
+        allItems.addAll(batchItems);
+      }
+
+      return Right(allItems);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
     }
   }
 }

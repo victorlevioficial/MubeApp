@@ -6,6 +6,7 @@ import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../common_widgets/primary_button.dart';
+import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
@@ -223,7 +224,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
             ),
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.s24),
             child: Form(
               key: _formKey,
               child: Column(
@@ -240,6 +241,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
 
                   // Campos Comuns (Nome e Localização)
                   AppTextField(
+                    fieldKey: const Key('onboarding_name_input'),
                     controller: _nomeController,
                     textCapitalization: TextCapitalization.words,
                     inputFormatters: [TitleCaseTextInputFormatter()],
@@ -250,20 +252,22 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                               : 'Seu Nome'),
                     validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
 
                   Row(
                     children: [
                       Expanded(
                         child: AppTextField(
+                          fieldKey: const Key('onboarding_city_input'),
                           controller: _cidadeController,
                           label: 'Cidade',
                           validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.s16),
                       Expanded(
                         child: AppTextField(
+                          fieldKey: const Key('onboarding_state_input'),
                           controller: _estadoController,
                           label: 'Estado (UF)',
                           validator: (v) => v!.length != 2 ? 'Ex: SP' : null,
@@ -271,7 +275,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
 
                   // Campos Específicos
                   if (user.tipoPerfil == AppUserType.professional)
@@ -281,7 +285,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                     _buildEstudioFields(),
 
                   // Contratante não tem campos extras além de nome/loc (mas já é handled acima)
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.s24),
 
                   // Foto Upload Fake
                   if (user.tipoPerfil != AppUserType.contractor)
@@ -296,8 +300,9 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.s8),
                         GestureDetector(
+                          key: const Key('onboarding_photo_upload'),
                           onTap: () {
                             setState(() {
                               _fotoUrl = 'https://placeholder.com/user.jpg';
@@ -346,8 +351,9 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                       ],
                     ),
 
-                  const SizedBox(height: 48),
+                  const SizedBox(height: AppSpacing.s48),
                   PrimaryButton(
+                    key: const Key('onboarding_submit_button'),
                     text: 'Concluir Cadastro',
                     isLoading: state.isLoading,
                     onPressed: () => _submit(user),
@@ -368,15 +374,17 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           children: [
             Expanded(
               child: AppTextField(
+                fieldKey: const Key('onboarding_age_input'),
                 controller: _idadeController,
                 label: 'Idade',
                 keyboardType: TextInputType.number,
                 validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.s16),
             Expanded(
               child: AppTextField(
+                fieldKey: const Key('onboarding_gender_input'),
                 controller: _generoController,
                 label: 'Gênero',
                 validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
@@ -384,15 +392,17 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_instrument_input'),
           controller: _instrumentoController,
           label: 'Instrumento / Função',
           hint: 'Ex: Guitarrista, Baterista',
           validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_genres_input'),
           controller: _generosMusicaisController,
           label: 'Gêneros Musicais',
           hint: 'Ex: Rock, Jazz, Blues',
@@ -406,6 +416,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     return Column(
       children: [
         AppTextField(
+          fieldKey: const Key('onboarding_services_input'),
           controller: _servicosController,
           label: 'Serviços Oferecidos',
           hint: 'Ex: Gravação, Mixagem, Ensaio',

@@ -53,7 +53,7 @@ class FeedCardCompact extends StatelessWidget {
                 if (item.tipoPerfil == 'profissional' ||
                     item.tipoPerfil == 'banda' ||
                     item.tipoPerfil == 'estudio') ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.s4),
                   _buildCategoryIcons(),
                 ],
               ],
@@ -66,7 +66,10 @@ class FeedCardCompact extends StatelessWidget {
 
   Widget _buildInfoChip() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s6,
+        vertical: AppSpacing.s2,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(4),
@@ -79,7 +82,7 @@ class FeedCardCompact extends StatelessWidget {
             size: 10,
             color: AppColors.textSecondary,
           ),
-          const SizedBox(width: 2),
+          const SizedBox(width: AppSpacing.s2),
           Text(
             item.distanceText,
             style: AppTypography.bodySmall.copyWith(
@@ -97,7 +100,7 @@ class FeedCardCompact extends StatelessWidget {
 
   Widget _buildCategoryIcons() {
     final icons = <Widget>[];
-    const Color color = AppColors.primary;
+    const Color color = AppColors.semanticAction;
 
     if (item.tipoPerfil == 'profissional') {
       for (final subCatId in item.subCategories) {
@@ -108,7 +111,7 @@ class FeedCardCompact extends StatelessWidget {
         if (subCat.containsKey('icon')) {
           icons.add(
             Padding(
-              padding: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.only(left: AppSpacing.s6),
               child: Icon(subCat['icon'] as IconData, size: 12, color: color),
             ),
           );
@@ -117,14 +120,14 @@ class FeedCardCompact extends StatelessWidget {
     } else if (item.tipoPerfil == 'banda') {
       icons.add(
         const Padding(
-          padding: EdgeInsets.only(left: 6),
+          padding: EdgeInsets.only(left: AppSpacing.s6),
           child: Icon(Icons.people, size: 12, color: color),
         ),
       );
     } else if (item.tipoPerfil == 'estudio') {
       icons.add(
         const Padding(
-          padding: EdgeInsets.only(left: 6),
+          padding: EdgeInsets.only(left: AppSpacing.s6),
           child: Icon(Icons.headphones, size: 12, color: color),
         ),
       );

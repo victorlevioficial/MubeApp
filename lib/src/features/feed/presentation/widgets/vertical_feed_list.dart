@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common_widgets/app_shimmer.dart';
+import '../../../../common_widgets/fade_in_slide.dart';
 import '../../../../design_system/foundations/app_colors.dart';
+import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
+import 'feed_item_skeleton.dart';
 
 /// A reusable vertical feed list widget with pagination, shimmer loading,
 /// and empty state. Used across the app for "Ver Mais" screens and any
@@ -68,22 +70,47 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   @override
   void initState() {
     super.initState();
-    if (widget.scrollController != null) {
-      _scrollController = widget.scrollController!;
-    } else {
-      _scrollController = ScrollController();
-      _ownsScrollController = true;
+    if (!widget.useSliverMode) {
+      if (widget.scrollController != null) {
+        _scrollController = widget.scrollController!;
+      } else {
+        _scrollController = ScrollController();
+        _ownsScrollController = true;
+      }
+      _scrollController.addListener(_onScroll);
     }
-    _scrollController.addListener(_onScroll);
+    // Register initial items
+    _registerItems();
+  }
+
+  @override
+  void didUpdateWidget(VerticalFeedList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.items != oldWidget.items) {
+      _registerItems();
+    }
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
-    if (_ownsScrollController) {
-      _scrollController.dispose();
+    if (!widget.useSliverMode) {
+      _scrollController.removeListener(_onScroll);
+      if (_ownsScrollController) {
+        _scrollController.dispose();
+      }
     }
     super.dispose();
+  }
+
+  void _registerItems() {
+    if (widget.items.isNotEmpty) {
+      // Defer to next frame to avoid building during build (safety)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(feedItemsProvider.notifier).loadItems(widget.items);
+        }
+      });
+    }
   }
 
   void _onScroll() {
@@ -104,13 +131,6 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
 
   @override
   Widget build(BuildContext context) {
-    // Register items in centralized provider for reactive favorites
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.items.isNotEmpty) {
-        ref.read(feedItemsProvider.notifier).loadItems(widget.items);
-      }
-    });
-
     if (widget.useSliverMode) {
       return _buildSliverList();
     } else {
@@ -122,7 +142,10 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   Widget _buildRegularList() {
     // Loading state
     if (widget.isLoading && widget.items.isEmpty) {
-      return _buildLoadingSkeleton();
+      // Use centralized skeleton (no external padding, FeedItemSkeleton has margins)
+      return Column(
+        children: List.generate(6, (index) => const FeedItemSkeleton()),
+      );
     }
 
     // Empty state
@@ -149,7 +172,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
         if (index >= widget.items.length) {
           return _buildLoadingIndicator();
         }
-        return _buildItemCard(widget.items[index]);
+        return _buildItemCard(widget.items[index], index: index);
       },
     );
   }
@@ -158,10 +181,10 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   Widget _buildSliverList() {
     // Loading state
     if (widget.isLoading && widget.items.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: Center(child: CircularProgressIndicator()),
+      // Use centralized skeleton (no external padding, FeedItemSkeleton has margins)
+      return SliverToBoxAdapter(
+        child: Column(
+          children: List.generate(6, (index) => const FeedItemSkeleton()),
         ),
       );
     }
@@ -170,7 +193,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
     if (widget.items.isEmpty && !widget.isLoading) {
       return SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.all(AppSpacing.s32),
           child: Center(
             child: Text(
               widget.emptyMessage,
@@ -189,57 +212,29 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
               ? _buildLoadingIndicator()
               : const SizedBox(height: 80); // Bottom padding
         }
-        return _buildItemCard(widget.items[index]);
+        return _buildItemCard(widget.items[index], index: index);
       }, childCount: widget.items.length + 1),
     );
   }
 
-  Widget _buildItemCard(FeedItem item) {
-    return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
+  Widget _buildItemCard(FeedItem item, {int index = 0}) {
+    // Optimization: Only delay animations for the first few items (initial screen).
+    // For lazy-loaded items during scroll, we want them to appear instantly or with minimal fade.
+    final useDelay = index < 6;
+
+    return FadeInSlide(
+      duration: const Duration(milliseconds: 300), // Reduced from 500ms
+      delay: useDelay
+          ? Duration(milliseconds: (index % 5) * 50)
+          : Duration.zero,
+      child: FeedCardVertical(item: item, onTap: () => _onItemTap(item)),
+    );
   }
 
   Widget _buildLoadingIndicator() {
     return const Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-    );
-  }
-
-  Widget _buildLoadingSkeleton() {
-    return ListView.builder(
-      padding: widget.padding == EdgeInsets.zero
-          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
-          : widget.padding,
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              AppShimmer.circle(size: 80),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppShimmer.text(width: 140, height: 16),
-                    const SizedBox(height: 8),
-                    AppShimmer.text(width: 100, height: 12),
-                    const SizedBox(height: 6),
-                    AppShimmer.text(width: 180, height: 24),
-                  ],
-                ),
-              ),
-              AppShimmer.circle(size: 24),
-            ],
-          ),
-        );
-      },
+      padding: AppSpacing.all16,
+      child: Center(child: FeedItemSkeleton()),
     );
   }
 }

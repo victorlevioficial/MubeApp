@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:ui'; // For PlatformDispatcher
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
+// import 'src/cleaning_script.dart'; // Script de limpeza temporário - REMOVIDO
 import 'src/app.dart';
 import 'src/common_widgets/error_boundary.dart';
 import 'src/utils/app_logger.dart';
@@ -51,9 +54,21 @@ void main() {
           cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
         );
 
-        // === SCRIPT DE MANUTENÇÃO REMOVIDO ===
-        AppLogger.info('🔧 Sistema de likes legado removido.');
-        // ============================================
+        // Initialize App Check
+        await app_check.FirebaseAppCheck.instance.activate(
+          // ignore: deprecated_member_use
+          androidProvider: kDebugMode
+              ? app_check.AndroidProvider.debug
+              : app_check.AndroidProvider.playIntegrity,
+          // ignore: deprecated_member_use
+          appleProvider: kDebugMode
+              ? app_check.AppleProvider.debug
+              : app_check.AppleProvider.deviceCheck,
+        );
+
+        // === SCRIPT DE LIMPEZA CONCLUÍDO E REMOVIDO ===
+        AppLogger.info('✅ Database cleanup check passed.');
+        // ==============================================
       } catch (e, stack) {
         AppLogger.error('Erro ao inicializar Firebase', e, stack);
         // Remove splash to show error

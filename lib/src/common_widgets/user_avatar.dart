@@ -61,17 +61,21 @@ class UserAvatar extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: photoUrl!,
         fit: BoxFit.cover,
-        placeholder: (context, url) => Center(
-          child: SizedBox(
-            width: size * 0.3,
-            height: size * 0.3,
-            child: const CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ),
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        memCacheWidth: (size * 2).toInt(),
+        // No placeholder - shows nothing until image loads to prevent flicker
+        placeholder: (context, url) => const SizedBox.shrink(),
+        // Always show initials on error
         errorWidget: (context, url, error) => _buildInitialsAvatar(),
+        // Use imageBuilder to ensure smooth rendering
+        imageBuilder: (context, imageProvider) {
+          return Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+            ),
+          );
+        },
       );
     }
 

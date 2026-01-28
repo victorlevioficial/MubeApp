@@ -1,134 +1,112 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../constants/firestore_constants.dart';
+import '../../../core/errors/failures.dart';
+import '../../../core/typedefs.dart';
 import '../domain/app_user.dart';
+import 'auth_remote_data_source.dart';
 
 part 'auth_repository.g.dart';
 
-import '../../../constants/firestore_constants.dart';
-
-/// Manages user authentication and Firestore profile data.
-///
-/// This repository handles:
-/// - Email/password authentication (login, register)
-/// - Session state via [authStateChanges]
-/// - User profile CRUD operations
-/// - Account deletion with data archival
-///
-/// See also:
-/// - [AppUser] for the user data model
-/// - [AuthGuard] for route protection based on auth state
+/// Manages user authentication and Firestore profile data using the Result pattern.
 class AuthRepository {
-  final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final AuthRemoteDataSource _dataSource;
 
-  /// Creates an [AuthRepository] with the given Firebase instances.
-  AuthRepository(this._auth, this._firestore);
+  AuthRepository(this._dataSource);
 
-  /// Stream of authentication state changes.
-  ///
-  /// Emits `null` when the user signs out.
-  Stream<User?> authStateChanges() => _auth.authStateChanges();
+  Stream<User?> authStateChanges() => _dataSource.authStateChanges();
 
-  /// The currently authenticated Firebase user, or `null` if signed out.
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _dataSource.currentUser;
 
-  /// Signs in a user with email and password.
-  ///
-  /// Throws [FirebaseAuthException] if:
-  /// - Email is invalid or not registered
-  /// - Password is incorrect
-  /// - Account is disabled
-  Future<void> signInWithEmailAndPassword(String email, String password) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+  /// Signs in a user. Returns [Right(Unit)] on success or [Left(AuthFailure)].
+  FutureResult<Unit> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      await _dataSource.signInWithEmailAndPassword(email, password);
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
+    }
   }
 
-  /// Registers a new user with email and password.
-  ///
-  /// Creates both a Firebase Auth account and a Firestore user document
-  /// with initial status `tipo_pendente` (pending type selection).
-  ///
-  /// Throws [FirebaseAuthException] if:
-  /// - Email is already in use
-  /// - Password is too weak
-  Future<void> registerWithEmailAndPassword({
+  /// Registers a user. Returns [Right(Unit)] on success.
+  FutureResult<Unit> registerWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    final user = credential.user;
-
-    if (user != null) {
-      final appUser = AppUser(
-        uid: user.uid,
-        email: email,
-        cadastroStatus: RegistrationStatus.pending,
-        createdAt: FieldValue.serverTimestamp(),
+    try {
+      final user = await _dataSource.registerWithEmailAndPassword(
+        email,
+        password,
       );
-
-      await _firestore.collection(FirestoreCollections.users).doc(user.uid).set(appUser.toJson());
-    }
-  }
-
-  /// Signs out the current user.
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
-
-  /// Watches the user document for real-time updates.
-  ///
-  /// Returns a stream that emits [AppUser] when data changes,
-  /// or `null` if the document doesn't exist.
-  Stream<AppUser?> watchUser(String uid) {
-    return _firestore.collection(FirestoreCollections.users).doc(uid).snapshots().map((snapshot) {
-      if (snapshot.exists && snapshot.data() != null) {
-        return AppUser.fromJson(snapshot.data()!);
+      if (user != null) {
+        final appUser = AppUser(
+          uid: user.uid,
+          email: email,
+          cadastroStatus: RegistrationStatus.pending,
+          createdAt: FieldValue.serverTimestamp(),
+        );
+        await _dataSource.saveUserProfile(appUser);
       }
-      return null;
-    });
-  }
-
-  /// Updates the user profile in Firestore.
-  ///
-  /// Uses merge mode to only update provided fields.
-  Future<void> updateUser(AppUser user) async {
-    await _firestore
-        .collection(FirestoreCollections.users)
-        .doc(user.uid)
-        .set(user.toFirestore(), SetOptions(merge: true));
-  }
-
-  /// Deletes the user account permanently.
-  ///
-  /// This operation:
-  /// 1. Archives user data to `deleted_users` collection
-  /// 2. Deletes the user document from `users`
-  /// 3. Deletes the Firebase Auth account
-  ///
-  /// Throws [FirebaseAuthException] with code `requires-recent-login`
-  /// if the user hasn't signed in recently. Handle this by prompting
-  /// for re-authentication.
-  Future<void> deleteAccount() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    // Archive user data
-    final userDoc = await _firestore.collection(FirestoreCollections.users).doc(user.uid).get();
-    if (userDoc.exists && userDoc.data() != null) {
-      final userData = userDoc.data()!;
-      userData[FirestoreFields.deletedAt] = FieldValue.serverTimestamp();
-      await _firestore.collection(FirestoreCollections.deletedUsers).doc(user.uid).set(userData);
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      return Left(AuthFailure(message: e.message ?? 'Registration failed'));
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
     }
+  }
 
-    // Delete from active collection
-    await _firestore.collection(FirestoreCollections.users).doc(user.uid).delete();
+  FutureResult<Unit> signOut() async {
+    try {
+      await _dataSource.signOut();
+      return const Right(unit);
+    } catch (e) {
+      return Left(AuthFailure(message: e.toString()));
+    }
+  }
 
-    // Delete auth account (may throw requires-recent-login)
-    await user.delete();
+  Stream<AppUser?> watchUser(String uid) => _dataSource.watchUserProfile(uid);
+
+  FutureResult<Unit> updateUser(AppUser user) async {
+    try {
+      await _dataSource.updateUserProfile(user);
+      return const Right(unit);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> deleteAccount() async {
+    try {
+      final uid = currentUser?.uid;
+      if (uid == null) {
+        return const Left(AuthFailure(message: 'No user logged in'));
+      }
+
+      await _dataSource.deleteAccount(uid);
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      // Re-auth required usually
+      return Left(AuthFailure(message: e.code));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<List<AppUser>> getUsersByIds(List<String> uids) async {
+    try {
+      final users = await _dataSource.fetchUsersByIds(uids);
+      return Right(users);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 }
 
@@ -136,10 +114,10 @@ class AuthRepository {
 // Providers
 // ---------------------------------------------------------------------------
 
-/// Provides a singleton [AuthRepository] instance.
 @Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
-  return AuthRepository(FirebaseAuth.instance, FirebaseFirestore.instance);
+  final dataSource = ref.watch(authRemoteDataSourceProvider);
+  return AuthRepository(dataSource);
 }
 
 /// Stream provider for Firebase Auth state changes.
@@ -162,4 +140,11 @@ Stream<AppUser?> currentUserProfile(Ref ref) {
     loading: () => const Stream.empty(),
     error: (_, _) => const Stream.empty(),
   );
+}
+
+@riverpod
+Future<List<AppUser>> membersList(Ref ref, List<String> uids) async {
+  if (uids.isEmpty) return [];
+  final result = await ref.watch(authRepositoryProvider).getUsersByIds(uids);
+  return result.fold((l) => throw l, (r) => r);
 }

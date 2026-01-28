@@ -1,17 +1,22 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../utils/app_logger.dart';
+import '../../../constants/firestore_constants.dart';
+import '../../../core/typedefs.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
-import '../../../constants/firestore_constants.dart';
 
-// --- State Class ---
+part 'feed_controller.g.dart';
 
+// --- State Class (Manual) ---
+
+@immutable
 class FeedState {
   final bool isInitialLoading;
   final bool isLoadingMain;
@@ -50,11 +55,37 @@ class FeedState {
       currentPage: currentPage ?? this.currentPage,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is FeedState &&
+        other.isInitialLoading == isInitialLoading &&
+        other.isLoadingMain == isLoadingMain &&
+        other.hasMoreMain == hasMoreMain &&
+        mapEquals(other.sectionItems, sectionItems) &&
+        listEquals(other.mainItems, mainItems) &&
+        other.currentFilter == currentFilter &&
+        other.currentPage == currentPage;
+  }
+
+  @override
+  int get hashCode {
+    return isInitialLoading.hashCode ^
+        isLoadingMain.hashCode ^
+        hasMoreMain.hashCode ^
+        sectionItems.hashCode ^
+        mainItems.hashCode ^
+        currentFilter.hashCode ^
+        currentPage.hashCode;
+  }
 }
 
-// --- Controller ---
+// --- Controller (Riverpod Generator) ---
 
-class FeedController extends AsyncNotifier<FeedState> {
+@Riverpod(keepAlive: true)
+class FeedController extends _$FeedController {
   static const int _pageSize = 10;
   List<FeedItem> _allSortedUsers = [];
   double? _userLat;
@@ -85,8 +116,10 @@ class FeedController extends AsyncNotifier<FeedState> {
       final sections = results[0] as Map<FeedSectionType, List<FeedItem>>;
       // Main feed logic handled inside _fetchMainFeed but we update state here carefully
 
+      final currentState = state.value ?? const FeedState();
+
       state = AsyncValue.data(
-        state.value!.copyWith(isInitialLoading: false, sectionItems: sections),
+        currentState.copyWith(isInitialLoading: false, sectionItems: sections),
       );
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -100,41 +133,53 @@ class FeedController extends AsyncNotifier<FeedState> {
     final feedRepo = ref.read(feedRepositoryProvider);
     final items = <FeedSectionType, List<FeedItem>>{};
 
-    try {
-      if (_userLat != null && _userLong != null) {
-        items[FeedSectionType.nearby] = await feedRepo.getNearbyUsers(
+    // Helper to extract result or default to empty list
+    Future<List<FeedItem>> fetchOrEmpty(
+      FutureResult<List<FeedItem>> call,
+    ) async {
+      final result = await call;
+      return result.getOrElse((l) => []);
+    }
+
+    if (_userLat != null && _userLong != null) {
+      items[FeedSectionType.nearby] = await fetchOrEmpty(
+        feedRepo.getNearbyUsers(
           lat: _userLat!,
           long: _userLong!,
           radiusKm: 50,
           currentUserId: user.uid,
           limit: 10,
-        );
-      }
+        ),
+      );
+    }
 
-      items[FeedSectionType.artists] = await feedRepo.getArtists(
+    items[FeedSectionType.artists] = await fetchOrEmpty(
+      feedRepo.getArtists(
         currentUserId: user.uid,
         userLat: _userLat,
         userLong: _userLong,
         limit: 10,
-      );
+      ),
+    );
 
-      items[FeedSectionType.bands] = await feedRepo.getUsersByType(
+    items[FeedSectionType.bands] = await fetchOrEmpty(
+      feedRepo.getUsersByType(
         type: ProfileType.band,
         currentUserId: user.uid,
         userLat: _userLat,
         userLong: _userLong,
         limit: 10,
-      );
+      ),
+    );
 
-      // Update shared provider
-      final allItems = items.values.expand((list) => list).toList();
-      ref.read(feedItemsProvider.notifier).loadItems(allItems);
+    // Update shared provider
+    final allItems = items.values.expand((list) => list).toList();
+    ref.read(feedItemsProvider.notifier).loadItems(allItems);
 
-      return items;
-    } catch (e) {
-      AppLogger.error('Error loading sections', e);
-      return {};
-    }
+    // Preload images
+    _preloadImages(allItems);
+
+    return items;
   }
 
   Future<void> _fetchMainFeed({bool reset = false}) async {
@@ -156,57 +201,63 @@ class FeedController extends AsyncNotifier<FeedState> {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
 
-    try {
-      if (reset) {
-        String? filterType;
-        if (currentState.currentFilter == 'Músicos') {
-          filterType = ProfileType.professional;
-        }
-        if (currentState.currentFilter == 'Bandas')
-          filterType = ProfileType.band;
-        if (currentState.currentFilter == 'Estúdios')
-          filterType = ProfileType.studio;
-
-        if (_userLat != null && _userLong != null) {
-          _allSortedUsers = await ref
-              .read(feedRepositoryProvider)
-              .getAllUsersSortedByDistance(
-                currentUserId: user.uid,
-                userLat: _userLat!,
-                userLong: _userLong!,
-                filterType: filterType,
-              );
-        } else {
-          _allSortedUsers = [];
-        }
+    if (reset) {
+      String? filterType;
+      if (currentState.currentFilter == 'Músicos') {
+        filterType = ProfileType.professional;
+      }
+      if (currentState.currentFilter == 'Bandas') filterType = ProfileType.band;
+      if (currentState.currentFilter == 'Estúdios') {
+        filterType = ProfileType.studio;
       }
 
-      // Pagination locally on sorted list
-      final page = reset ? 0 : currentState.currentPage;
-      final startIndex = page * _pageSize;
-      final endIndex = (startIndex + _pageSize).clamp(
-        0,
-        _allSortedUsers.length,
-      );
+      if (_userLat != null && _userLong != null) {
+        final result = await ref
+            .read(feedRepositoryProvider)
+            .getAllUsersSortedByDistance(
+              currentUserId: user.uid,
+              userLat: _userLat!,
+              userLong: _userLong!,
+              filterType: filterType,
+            );
 
-      final newItems = _allSortedUsers.sublist(startIndex, endIndex);
+        result.fold(
+          (failure) {
+            state = AsyncValue.error(failure.message, StackTrace.current);
+            _allSortedUsers = [];
+          },
+          (success) {
+            _allSortedUsers = success;
+          },
+        );
 
-      // Sync with global item provider
-      ref.read(feedItemsProvider.notifier).loadItems(newItems);
-
-      state = AsyncValue.data(
-        state.value!.copyWith(
-          isLoadingMain: false,
-          currentPage: page + 1,
-          hasMoreMain: endIndex < _allSortedUsers.length,
-          mainItems: reset
-              ? newItems
-              : [...currentState.mainItems, ...newItems],
-        ),
-      );
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+        if (state.hasError) return; // Exit if error occurred
+      } else {
+        _allSortedUsers = [];
+      }
     }
+
+    // Pagination locally on sorted list
+    final page = reset ? 0 : currentState.currentPage;
+    final startIndex = page * _pageSize;
+    final endIndex = (startIndex + _pageSize).clamp(0, _allSortedUsers.length);
+
+    final newItems = _allSortedUsers.sublist(startIndex, endIndex);
+
+    // Sync with global item provider
+    ref.read(feedItemsProvider.notifier).loadItems(newItems);
+
+    // Preload images for smoother experience
+    _preloadImages(newItems);
+
+    state = AsyncValue.data(
+      state.value!.copyWith(
+        isLoadingMain: false,
+        currentPage: page + 1,
+        hasMoreMain: endIndex < _allSortedUsers.length,
+        mainItems: reset ? newItems : [...currentState.mainItems, ...newItems],
+      ),
+    );
   }
 
   Future<void> loadMoreMainFeed() async {
@@ -219,10 +270,23 @@ class FeedController extends AsyncNotifier<FeedState> {
     state = AsyncValue.data(state.value!.copyWith(currentFilter: filter));
     _fetchMainFeed(reset: true);
   }
+
+  /// Preloads avatar images into cache so they are ready when displayed
+  void _preloadImages(List<FeedItem> items) {
+    for (final item in items) {
+      final photoUrl = item.foto;
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        try {
+          // Fire and forget - download to cache
+          DefaultCacheManager().downloadFile(photoUrl).catchError((e) {
+            // Ignore errors silently - preloading failure shouldn't crash app
+            debugPrint('Preload error for $photoUrl: $e');
+            return null; // Return value doesn't matter for fire-and-forget
+          });
+        } catch (e) {
+          // Extra safety
+        }
+      }
+    }
+  }
 }
-
-// --- Provider ---
-
-final feedControllerProvider = AsyncNotifierProvider<FeedController, FeedState>(
-  FeedController.new,
-);

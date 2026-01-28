@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../design_system/foundations/app_colors.dart';
+import '../../../../design_system/foundations/app_typography.dart';
 
 class QuickFilterBar extends StatelessWidget {
   final String selectedFilter;
@@ -21,11 +22,12 @@ class QuickFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 60,
-      color: AppColors.background, // Background match for sticky header
+    return SizedBox(
+      height: 44, // Tight height for filter chips
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+        ), // No vertical padding
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
         separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -33,26 +35,29 @@ class QuickFilterBar extends StatelessWidget {
           final filter = _filters[index];
           final isSelected = selectedFilter == filter;
 
-          // Map display name to internal value if needed,
-          // or just use display name for logic in screen (simplest for MVP)
-
-          return ActionChip(
-            label: Text(filter),
-            onPressed: () => onFilterSelected(filter),
-            backgroundColor: isSelected ? AppColors.primary : AppColors.surface,
-            labelStyle: TextStyle(
-              color: isSelected
-                  ? AppColors.textPrimary
-                  : AppColors.textSecondary,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.surfaceHighlight,
+          return GestureDetector(
+            onTap: () => onFilterSelected(filter),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.brandPrimary : AppColors.surface,
+                borderRadius: BorderRadius.circular(100),
+                border: isSelected
+                    ? null
+                    : Border.all(color: AppColors.border, width: 1),
+              ),
+              alignment: Alignment.center,
+              child: Center(
+                child: Text(
+                  filter,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
               ),
             ),
           );

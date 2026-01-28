@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:go_router/go_router.dart';
@@ -45,12 +46,21 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: SizedBox(
-          width: logoWidth,
-          height: logoWidth, // Força a caixa ser quadrada para o BoxFit.contain
-          child: Image.asset(
-            'assets/images/logos_png/logo vertical.png',
-            fit: BoxFit.contain,
+        child: GestureDetector(
+          key: const Key('splash_logo'),
+          onTap: () {
+            if (kDebugMode) {
+              debugPrint('Splash skipped by tap');
+              context.go('/login');
+            }
+          },
+          child: SizedBox(
+            width: logoWidth,
+            // height: logoWidth, // Removed to allow natural aspect ratio (matches scaleAspectFit)
+            child: Image.asset(
+              'assets/images/logos_png/logo vertical.png',
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),

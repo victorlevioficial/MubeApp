@@ -209,6 +209,28 @@ class PermissionFailure extends Failure {
 }
 
 // ============================================================================
+// SERVER & CACHE FAILURES
+// ============================================================================
+
+/// Represents a server-side failure.
+class ServerFailure extends Failure {
+  const ServerFailure({
+    required super.message,
+    super.debugMessage,
+    super.originalError,
+  });
+}
+
+/// Represents a cache-related failure.
+class CacheFailure extends Failure {
+  const CacheFailure({
+    required super.message,
+    super.debugMessage,
+    super.originalError,
+  });
+}
+
+// ============================================================================
 // GENERIC FAILURE
 // ============================================================================
 

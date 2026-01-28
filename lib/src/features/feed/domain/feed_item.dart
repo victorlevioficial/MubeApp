@@ -4,7 +4,7 @@ part 'feed_item.freezed.dart';
 
 /// Model representing a user profile item in the feed.
 @freezed
-class FeedItem with _$FeedItem {
+sealed class FeedItem with _$FeedItem {
   const FeedItem._(); // Private constructor for custom methods
 
   const factory FeedItem({
@@ -16,10 +16,10 @@ class FeedItem with _$FeedItem {
     @Default([]) List<String> generosMusicais,
     required String tipoPerfil,
     Map<String, dynamic>? location,
-    @Default(0) int favoriteCount,
+    @Default(0) int likeCount,
     @Default([]) List<String> skills,
     @Default([]) List<String> subCategories,
-    @Default(false) bool isFavorited,
+    // @Default(false) bool isFavorited, // Removed
     double? distanceKm,
   }) = _FeedItem;
 
@@ -105,7 +105,7 @@ class FeedItem with _$FeedItem {
       generosMusicais: extractedGenres,
       tipoPerfil: tipoPerfil,
       location: data['location'] as Map<String, dynamic>?,
-      favoriteCount: data['favoriteCount'] ?? 0,
+      likeCount: data['likeCount'] ?? 0,
       skills: extractedSkills,
       subCategories: extractedSubCategories,
     );

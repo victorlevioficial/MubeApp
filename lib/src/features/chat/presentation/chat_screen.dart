@@ -7,7 +7,6 @@ import '../../../common_widgets/app_shimmer.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_radius.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
@@ -197,7 +196,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(title: _buildAppBarTitle()),
+      appBar: MubeAppBar(title: _buildAppBarTitle(), showBackButton: true),
       body: Column(
         children: [
           // Lista de mensagens
@@ -309,82 +308,90 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildInputField() {
     return Container(
       padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 8,
+        left: 16,
+        right: 16,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: const BoxDecoration(
         color: AppColors.background,
-        border: Border(
-          top: BorderSide(color: AppColors.surfaceHighlight, width: 0.5),
-        ),
+        // Removed heavy top border, letting it feel more seamless
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.surface, // Solid dark background for input
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.surfaceHighlight),
               ),
-              child: TextField(
-                controller: _textController,
-                maxLength: 1000,
-                maxLines: 5,
-                minLines: 1,
-                onChanged: (_) => setState(() {}), // Atualiza estado ao digitar
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Mensagem...',
-                  hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      maxLength: 1000,
+                      maxLines: 5,
+                      minLines: 1,
+                      onChanged: (_) => setState(() {}),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Mensagem...',
+                        hintStyle: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 10,
+                        ),
+                        counterText: '',
+                        isDense: true,
+                      ),
+                    ),
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  counterText: '',
-                  isDense: true,
-                ),
+                  const SizedBox(width: 8),
+                ],
               ),
             ),
           ),
           const SizedBox(width: 8),
+
+          // Send Button
           Container(
-            margin: const EdgeInsets.only(bottom: 2), // Aligns with input text
+            height: 44,
+            width: 44,
+            margin: const EdgeInsets.only(bottom: 0),
             decoration: BoxDecoration(
               color: _textController.text.trim().isEmpty
                   ? AppColors
-                        .surface // Apagado quando vazio
-                  : AppColors.primary, // Rosa quando tem texto
+                        .surfaceHighlight // Disabled state
+                  : AppColors.brandPrimary, // Active solid color (NO GLOW)
               shape: BoxShape.circle,
             ),
             child: IconButton(
               onPressed: _isLoading || _textController.text.trim().isEmpty
                   ? null
                   : _sendMessage,
-              visualDensity: VisualDensity.compact,
               icon: _isLoading
                   ? const SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.textPrimary,
+                        color: Colors.white,
                       ),
                     )
                   : Icon(
-                      Icons.arrow_forward, // Seta para direita
+                      Icons.arrow_upward, // Modern send icon
                       color: _textController.text.trim().isEmpty
-                          ? AppColors
-                                .textSecondary // Cinza quando vazio
-                          : AppColors.textPrimary, // Branco quando ativo
+                          ? AppColors.textSecondary
+                          : Colors.white,
                       size: 20,
                     ),
             ),
@@ -421,17 +428,22 @@ class _MessageBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? AppColors.primary : AppColors.surface,
+              color: isMe ? AppColors.brandPrimary : AppColors.surface,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(AppRadius.chatBubble),
-                topRight: const Radius.circular(AppRadius.chatBubble),
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
                 bottomLeft: isMe
-                    ? const Radius.circular(AppRadius.chatBubble)
+                    ? const Radius.circular(20)
                     : const Radius.circular(4),
                 bottomRight: isMe
                     ? const Radius.circular(4)
-                    : const Radius.circular(AppRadius.chatBubble),
+                    : const Radius.circular(20),
               ),
+              border: !isMe
+                  ? Border.all(
+                      color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+                    )
+                  : null,
             ),
             child: Column(
               crossAxisAlignment:

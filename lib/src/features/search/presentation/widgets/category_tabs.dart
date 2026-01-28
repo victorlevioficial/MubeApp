@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../common_widgets/mube_filter_chip.dart';
 import '../../domain/search_filters.dart';
 
 /// Horizontal category tabs for search filtering.
@@ -54,39 +53,11 @@ class CategoryTabs extends StatelessWidget {
     required IconData icon,
     required SearchCategory category,
   }) {
-    final isSelected = selectedCategory == category;
-
-    return GestureDetector(
-      onTap: () => onCategoryChanged(category),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected
-              ? null
-              : Border.all(color: AppColors.border, width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppTypography.labelMedium.copyWith(
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return MubeFilterChip(
+      label: label,
+      icon: icon,
+      isSelected: selectedCategory == category,
+      onSelected: (_) => onCategoryChanged(category),
     );
   }
 }

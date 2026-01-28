@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/mube_app_bar.dart';
@@ -24,7 +25,6 @@ import 'widgets/band_form_fields.dart';
 import 'widgets/contractor_form_fields.dart';
 import 'widgets/gallery_grid.dart';
 import 'widgets/professional_form_fields.dart';
-import 'widgets/profile_photo_widget.dart';
 import 'widgets/studio_form_fields.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -111,37 +111,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
     final shouldLeave = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Descartar alterações?', style: AppTypography.titleMedium),
-        content: Text(
-          'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Continuar editando',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Descartar',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
+      builder: (context) => const AppConfirmationDialog(
+        title: 'Descartar alterações?',
+        message:
+            'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
+        confirmText: 'Descartar',
+        cancelText: 'Continuar editando',
+        isDestructive: true,
       ),
     );
 
@@ -451,6 +427,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
+    // Professional Validation: At least 1 category
+    if (user.tipoPerfil == AppUserType.professional &&
+        _selectedCategories.isEmpty) {
+      AppSnackBar.error(context, 'Selecione pelo menos uma categoria.');
+      return;
+    }
+
     final Map<String, dynamic> updates = {'nome': _nomeController.text.trim()};
 
     switch (user.tipoPerfil) {
@@ -536,48 +519,69 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             backgroundColor: AppColors.background,
             appBar: MubeAppBar(
               title: 'Editar Perfil',
+              showBackButton: true,
               onBackPressed: _handleBack,
-              bottom: isContractor
-                  ? null
-                  : PreferredSize(
-                      preferredSize: const Size.fromHeight(48),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: Colors.white,
-                          unselectedLabelColor: AppColors.textSecondary,
-                          labelStyle: AppTypography.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          unselectedLabelStyle: AppTypography.bodyMedium,
-                          indicator: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          dividerColor: Colors.transparent,
-                          padding: const EdgeInsets.all(4),
-                          tabs: const [
-                            Tab(text: 'Perfil'),
-                            Tab(text: 'Mídia'),
-                          ],
-                        ),
+            ),
+            body: Column(
+              children: [
+                // Custom Rounded TabBar
+                if (!isContractor)
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(100), // Fully rounded
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
                       ),
                     ),
-            ),
-            body: isContractor
-                ? _buildProfileTab(user)
-                : TabBarView(
-                    controller: _tabController,
-                    children: [_buildProfileTab(user), _buildMediaTab(user)],
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: AppColors.textSecondary,
+                      labelStyle: AppTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      unselectedLabelStyle: AppTypography.bodyMedium,
+                      indicator: BoxDecoration(
+                        color: AppColors.brandPrimary, // Brand color
+                        borderRadius: BorderRadius.circular(
+                          100,
+                        ), // Fully rounded
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.brandPrimary.withValues(
+                              alpha: 0.3,
+                            ),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      dividerColor: Colors.transparent,
+                      padding: const EdgeInsets.all(4),
+                      tabs: const [
+                        Tab(text: 'Perfil'),
+                        Tab(text: 'Mídia & Portfólio'),
+                      ],
+                    ),
                   ),
+
+                // Content
+                Expanded(
+                  child: isContractor
+                      ? _buildProfileTab(user)
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildProfileTab(user),
+                            _buildMediaTab(user),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -586,7 +590,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   Widget _buildProfileTab(AppUser user) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.s24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Form(
         key: _formKey,
         child: Column(
@@ -594,30 +598,125 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           children: [
             // Profile Photo
             Center(
-              child: ProfilePhotoWidget(
-                photoUrl: user.foto,
-                isLoading: ref.watch(profileControllerProvider).isLoading,
-                onTap: () async {
-                  final picker = MediaPickerService();
-                  final file = await picker.pickAndCropPhoto(context);
-                  if (file != null) {
-                    await ref
-                        .read(profileControllerProvider.notifier)
-                        .updateProfileImage(file: file, currentUser: user);
-                  }
-                },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      backgroundColor: AppColors.surface,
+                      backgroundImage: user.foto != null
+                          ? CachedNetworkImageProvider(user.foto!)
+                          : null,
+                      child: user.foto == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 50,
+                              color: AppColors.textSecondary,
+                            )
+                          : null,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () async {
+                        final picker = MediaPickerService();
+                        final file = await picker.pickAndCropPhoto(context);
+                        if (file != null) {
+                          await ref
+                              .read(profileControllerProvider.notifier)
+                              .updateProfileImage(
+                                file: file,
+                                currentUser: user,
+                              );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandPrimary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.background,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.s32),
 
-            // Name
-            AppTextField(
-              controller: _nomeController,
-              label: 'Nome Completo',
-              textCapitalization: TextCapitalization.words,
-              validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
-              onChanged: (_) => _markChanged(),
-            ),
+            // --- NAME FIELDS SECTION START ---
+            if (user.tipoPerfil == AppUserType.professional) ...[
+              // Professional: Nome Artístico is already in ProfessionalFormFields below.
+              // Only showing Private Name here.
+              AppTextField(
+                controller: _nomeController,
+                label: 'Nome Completo (Privado)',
+                hint: 'Seu nome real',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                onChanged: (_) => _markChanged(),
+              ),
+            ] else if (user.tipoPerfil == AppUserType.studio) ...[
+              // Studio: Studio Name (Primary) + Responsible Name (Private)
+              AppTextField(
+                controller: _nomeArtisticoController,
+                label: 'Nome do Estúdio (Público)',
+                hint: 'Nome do seu estúdio',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                onChanged: (_) => _markChanged(),
+              ),
+              const SizedBox(height: AppSpacing.s16),
+              AppTextField(
+                controller: _nomeController,
+                label: 'Nome do Responsável (Privado)',
+                hint: 'Nome do proprietário/gerente',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                onChanged: (_) => _markChanged(),
+              ),
+            ] else if (user.tipoPerfil == AppUserType.band) ...[
+              // Band: Band Name (Primary) - No Private Name
+              AppTextField(
+                controller: _nomeController,
+                label: 'Nome da Banda (Público)',
+                hint: 'Nome da sua banda',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                onChanged: (_) => _markChanged(),
+              ),
+            ] else if (user.tipoPerfil == AppUserType.contractor) ...[
+              // Contractor: Full Name (Primary)
+              AppTextField(
+                controller: _nomeController,
+                label: 'Nome Completo (Privado)',
+                hint: 'Seu nome ou da empresa',
+                textCapitalization: TextCapitalization.words,
+                validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
+                onChanged: (_) => _markChanged(),
+              ),
+            ],
+            // --- NAME FIELDS SECTION END ---
             const SizedBox(height: AppSpacing.s16),
 
             // Type-specific fields

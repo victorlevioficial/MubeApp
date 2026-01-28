@@ -100,16 +100,5 @@ final feedItemProvider = Provider.family<FeedItem?, String>((ref, uid) {
   return ref.watch(feedItemsProvider.select((state) => state.items[uid]));
 });
 
-/// Provider for item's isFavorited status only (super granular rebuilds)
-final feedItemIsFavoritedProvider = Provider.family<bool, String>((ref, uid) {
-  return ref.watch(
-    feedItemsProvider.select((state) => state.items[uid]?.isFavorited ?? false),
-  );
-});
-
-/// Provider for item's favoriteCount only
-final feedItemFavoriteCountProvider = Provider.family<int, String>((ref, uid) {
-  return ref.watch(
-    feedItemsProvider.select((state) => state.items[uid]?.favoriteCount ?? 0),
-  );
-});
+// feedItemIsFavoritedProvider removed
+// feedItemFavoriteCountProvider removed

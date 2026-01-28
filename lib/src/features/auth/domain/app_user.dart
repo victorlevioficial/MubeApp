@@ -78,6 +78,15 @@ abstract class AppUser with _$AppUser {
     /// Contractor-specific data (venues, organizers).
     @JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,
 
+    /// User's current subscription plan: 'free', 'pro', etc.
+    @Default('free') String plan,
+
+    /// Number of times this user has been favorited (Received Favorites).
+    @Default(0) @JsonKey(name: 'favorites_count') int favoritesCount,
+
+    /// List of user IDs that are members of this band (if type is band).
+    @Default([]) List<String> members,
+
     /// Document creation timestamp.
     @JsonKey(name: 'created_at') dynamic createdAt,
   }) = _AppUser;

@@ -41,7 +41,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceHighlight, // Changed from Colors.white
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
@@ -56,7 +56,7 @@ class AppShimmer extends StatelessWidget {
         width: size,
         height: size,
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceHighlight, // Changed from Colors.white
           shape: BoxShape.circle,
         ),
       ),
@@ -75,7 +75,7 @@ class AppShimmer extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceHighlight, // Changed from Colors.white
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -87,8 +87,8 @@ class AppShimmer extends StatelessWidget {
     if (!enabled) return child;
 
     return Shimmer.fromColors(
-      baseColor: AppColors.surface,
-      highlightColor: AppColors.surfaceHighlight,
+      baseColor: AppColors.skeletonBase,
+      highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
       child: child,
     );
   }

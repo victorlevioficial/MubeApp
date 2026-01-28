@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
@@ -95,25 +96,12 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     // Confirm deletion
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Excluir endereço?'),
-        content: Text(
-          'Deseja excluir "${address.nome.isNotEmpty ? address.nome : 'este endereço'}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Excluir',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
+      builder: (context) => AppConfirmationDialog(
+        title: 'Excluir endereço?',
+        message:
+            'Deseja excluir "${address.nome.isNotEmpty ? address.nome : 'este endereço'}"?',
+        confirmText: 'Excluir',
+        isDestructive: true,
       ),
     );
 

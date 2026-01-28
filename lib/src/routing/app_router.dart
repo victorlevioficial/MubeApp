@@ -5,18 +5,21 @@ import 'package:go_router/go_router.dart';
 import '../common_widgets/main_scaffold.dart';
 import '../features/admin/presentation/maintenance_screen.dart';
 import '../features/auth/data/auth_repository.dart';
+import '../features/auth/domain/user_type.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
+import '../features/bands/presentation/manage_members_screen.dart';
 import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/conversations_screen.dart';
+import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
-import '../features/feed/presentation/my_favorites_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
+import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/domain/saved_address.dart';
@@ -46,12 +49,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: kDebugMode,
     refreshListenable: notifier,
     redirect: authGuard.redirect,
-    routes: _buildRoutes(),
+    routes: _buildRoutes(ref),
   );
 });
 
 /// Builds the route tree. Separated for readability.
-List<RouteBase> _buildRoutes() {
+List<RouteBase> _buildRoutes(Ref ref) {
   return [
     // Splash (initial loading screen)
     GoRoute(
@@ -196,15 +199,7 @@ List<RouteBase> _buildRoutes() {
     //       NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
     // ),
 
-    // Favorites screen (V8)
-    GoRoute(
-      path: '/favorites',
-      pageBuilder: (context, state) => NoTransitionPage(
-        key: state.pageKey,
-        // UniqueKey força recriação do widget a cada navegação
-        child: MyFavoritesScreen(key: UniqueKey()),
-      ),
-    ),
+    // Favorites screen removed
 
     // Dev gallery (design system showcase)
     GoRoute(
@@ -251,6 +246,39 @@ List<RouteBase> _buildRoutes() {
         key: state.pageKey,
         child: const EditProfileScreen(),
       ),
+    ),
+    GoRoute(
+      path: RoutePaths.invites,
+      pageBuilder: (context, state) {
+        // Smart Redirect: Band -> ManageMembers, Others -> Invites
+        final user = ref.read(currentUserProfileProvider).value;
+        if (user != null && user.tipoPerfil == AppUserType.band) {
+          return NoTransitionPage(
+            key: state.pageKey,
+            child: const ManageMembersScreen(),
+          );
+        }
+        return NoTransitionPage(
+          key: state.pageKey,
+          child: const InvitesScreen(),
+        );
+      },
+    ),
+
+    // Manage Members Screen (Still accessible directly if needed, but redirects prefer above)
+    GoRoute(
+      path: RoutePaths.manageMembers,
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const ManageMembersScreen(),
+      ),
+    ),
+
+    // Favorites Screen
+    GoRoute(
+      path: RoutePaths.favorites,
+      pageBuilder: (context, state) =>
+          NoTransitionPage(key: state.pageKey, child: const FavoritesScreen()),
     ),
   ];
 }

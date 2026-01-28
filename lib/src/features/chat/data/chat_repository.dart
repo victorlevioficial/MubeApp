@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
+
+import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/typedefs.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 
@@ -17,7 +22,7 @@ class ChatRepository {
   /// Cria ou retorna conversa existente entre 2 usuários.
   ///
   /// Usa Transaction para idempotência (race condition safe).
-  Future<String> getOrCreateConversation({
+  FutureResult<String> getOrCreateConversation({
     required String myUid,
     required String otherUid,
     required String otherUserName,
@@ -25,161 +30,178 @@ class ChatRepository {
     required String myName,
     String? myPhoto,
   }) async {
-    final conversationId = getConversationId(myUid, otherUid);
-    final conversationRef = _firestore
-        .collection('conversations')
-        .doc(conversationId);
+    try {
+      final conversationId = getConversationId(myUid, otherUid);
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
 
-    await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(conversationRef);
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(conversationRef);
 
-      if (!snapshot.exists) {
-        // Criar nova conversa
-        transaction.set(conversationRef, {
-          'participants': [myUid, otherUid],
-          'participantsMap': {myUid: true, otherUid: true},
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'readUntil': {myUid: Timestamp(0, 0), otherUid: Timestamp(0, 0)},
-          'lastMessageText': null,
-          'lastMessageAt': null,
-          'lastSenderId': null,
-        });
+        if (!snapshot.exists) {
+          // Criar nova conversa
+          transaction.set(conversationRef, {
+            'participants': [myUid, otherUid],
+            'participantsMap': {myUid: true, otherUid: true},
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+            'readUntil': {myUid: Timestamp(0, 0), otherUid: Timestamp(0, 0)},
+            'lastMessageText': null,
+            'lastMessageAt': null,
+            'lastSenderId': null,
+          });
 
-        // Criar previews para ambos os usuários
-        final myPreviewRef = _firestore
-            .collection('users')
-            .doc(myUid)
-            .collection('conversationPreviews')
-            .doc(conversationId);
+          // Criar previews para ambos os usuários
+          final myPreviewRef = _firestore
+              .collection('users')
+              .doc(myUid)
+              .collection('conversationPreviews')
+              .doc(conversationId);
 
-        final otherPreviewRef = _firestore
-            .collection('users')
-            .doc(otherUid)
-            .collection('conversationPreviews')
-            .doc(conversationId);
+          final otherPreviewRef = _firestore
+              .collection('users')
+              .doc(otherUid)
+              .collection('conversationPreviews')
+              .doc(conversationId);
 
-        transaction.set(myPreviewRef, {
-          'otherUserId': otherUid,
-          'otherUserName': otherUserName,
-          'otherUserPhoto': otherUserPhoto,
-          'lastMessageText': null,
-          'lastMessageAt': null,
-          'lastSenderId': null,
-          'unreadCount': 0,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+          transaction.set(myPreviewRef, {
+            'otherUserId': otherUid,
+            'otherUserName': otherUserName,
+            'otherUserPhoto': otherUserPhoto,
+            'lastMessageText': null,
+            'lastMessageAt': null,
+            'lastSenderId': null,
+            'unreadCount': 0,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
-        transaction.set(otherPreviewRef, {
-          'otherUserId': myUid,
-          'otherUserName': myName,
-          'otherUserPhoto': myPhoto,
-          'lastMessageText': null,
-          'lastMessageAt': null,
-          'lastSenderId': null,
-          'unreadCount': 0,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      }
-    });
+          transaction.set(otherPreviewRef, {
+            'otherUserId': myUid,
+            'otherUserName': myName,
+            'otherUserPhoto': myPhoto,
+            'lastMessageText': null,
+            'lastMessageAt': null,
+            'lastSenderId': null,
+            'unreadCount': 0,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
 
-    return conversationId;
+      return Right(conversationId);
+    } catch (e) {
+      debugPrint('[Chat] Error creating conversation: $e');
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   /// Envia mensagem de texto e atualiza metadata/previews atomicamente.
-  Future<void> sendMessage({
+  FutureResult<Unit> sendMessage({
     required String conversationId,
     required String text,
     required String myUid,
     required String otherUid,
   }) async {
-    final batch = _firestore.batch();
+    try {
+      final batch = _firestore.batch();
 
-    // 1. Nova mensagem
-    final messageRef = _firestore
-        .collection('conversations')
-        .doc(conversationId)
-        .collection('messages')
-        .doc(); // Auto-gera ID
+      // 1. Nova mensagem
+      final messageRef = _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .collection('messages')
+          .doc(); // Auto-gera ID
 
-    batch.set(messageRef, {
-      'senderId': myUid,
-      'text': text.trim(),
-      'createdAt': FieldValue.serverTimestamp(),
-      'type': 'text',
-    });
+      batch.set(messageRef, {
+        'senderId': myUid,
+        'text': text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'type': 'text',
+      });
 
-    // 2. Metadata da conversa
-    final conversationRef = _firestore
-        .collection('conversations')
-        .doc(conversationId);
+      // 2. Metadata da conversa
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
 
-    batch.update(conversationRef, {
-      'lastMessageText': text.trim(),
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'lastSenderId': myUid,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+      batch.update(conversationRef, {
+        'lastMessageText': text.trim(),
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastSenderId': myUid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
-    // 3. Preview do remetente (eu) - zera unread
-    final myPreviewRef = _firestore
-        .collection('users')
-        .doc(myUid)
-        .collection('conversationPreviews')
-        .doc(conversationId);
+      // 3. Preview do remetente (eu) - zera unread
+      final myPreviewRef = _firestore
+          .collection('users')
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
 
-    batch.update(myPreviewRef, {
-      'lastMessageText': text.trim(),
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'lastSenderId': myUid,
-      'unreadCount': 0,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+      batch.update(myPreviewRef, {
+        'lastMessageText': text.trim(),
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastSenderId': myUid,
+        'unreadCount': 0,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
-    // 4. Preview do destinatário (outro) - incrementa unread
-    final otherPreviewRef = _firestore
-        .collection('users')
-        .doc(otherUid)
-        .collection('conversationPreviews')
-        .doc(conversationId);
+      // 4. Preview do destinatário (outro) - incrementa unread
+      final otherPreviewRef = _firestore
+          .collection('users')
+          .doc(otherUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
 
-    batch.update(otherPreviewRef, {
-      'lastMessageText': text.trim(),
-      'lastMessageAt': FieldValue.serverTimestamp(),
-      'lastSenderId': myUid,
-      'unreadCount': FieldValue.increment(1),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+      batch.update(otherPreviewRef, {
+        'lastMessageText': text.trim(),
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastSenderId': myUid,
+        'unreadCount': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
-    await batch.commit();
+      await batch.commit();
+      return const Right(unit);
+    } catch (e) {
+      debugPrint('[Chat] Error sending message: $e');
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   /// Marca conversa como lida (zera unread, atualiza readUntil).
-  Future<void> markAsRead({
+  FutureResult<Unit> markAsRead({
     required String conversationId,
     required String myUid,
   }) async {
-    final batch = _firestore.batch();
+    try {
+      final batch = _firestore.batch();
 
-    // 1. Atualizar readUntil na conversa
-    final conversationRef = _firestore
-        .collection('conversations')
-        .doc(conversationId);
+      // 1. Atualizar readUntil na conversa
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
 
-    batch.update(conversationRef, {
-      'readUntil.$myUid': FieldValue.serverTimestamp(),
-    });
+      batch.update(conversationRef, {
+        'readUntil.$myUid': FieldValue.serverTimestamp(),
+      });
 
-    // 2. Zerar unreadCount no preview
-    final myPreviewRef = _firestore
-        .collection('users')
-        .doc(myUid)
-        .collection('conversationPreviews')
-        .doc(conversationId);
+      // 2. Zerar unreadCount no preview
+      final myPreviewRef = _firestore
+          .collection('users')
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
 
-    batch.update(myPreviewRef, {'unreadCount': 0});
+      batch.update(myPreviewRef, {'unreadCount': 0});
 
-    await batch.commit();
+      await batch.commit();
+      return const Right(unit);
+    } catch (e) {
+      debugPrint('[Chat] Error marking as read: $e');
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   /// Stream de mensagens de uma conversa (últimas 50).

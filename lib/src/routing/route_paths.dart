@@ -17,6 +17,7 @@ abstract final class RoutePaths {
   static const String addresses = '/settings/addresses';
   static const String editAddress = '/settings/address';
   static const String maintenance = '/settings/maintenance';
+  static const String favorites = '/favorites';
 
   // Dev routes
   static const String gallery = '/gallery';
@@ -28,6 +29,8 @@ abstract final class RoutePaths {
   // Profile routes
   static const String profile = '/profile';
   static const String profileEdit = '/profile/edit';
+  static const String invites = '/profile/invites';
+  static const String manageMembers = '/profile/manage-members';
   static const String conversation = '/conversation';
 
   static bool isPublic(String path) => publicRoutes.contains(path);

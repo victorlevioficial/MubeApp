@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../utils/app_logger.dart';
 import '../domain/image_compressor.dart';
 import '../domain/upload_validator.dart';
 
@@ -82,12 +84,9 @@ class StorageRepository {
     }
 
     // DEBUG: Log informações de autenticação
-    print('🔐 DEBUG Storage Upload:');
-    print('   Tipo: ${isVideo ? "Vídeo" : "Foto"}');
-    print('   User ID: $userId');
-    print('   Current User: ${currentUser.uid}');
-    print('   Email: ${currentUser.email}');
-    print('   Auth: Autenticado ✅');
+    AppLogger.info(
+      '🔐 DEBUG Storage Upload: Type=${isVideo ? "Video" : "Photo"}, User=$userId, Auth=${currentUser.email}',
+    );
 
     // Validar arquivo antes do upload
     await UploadValidator.validateMedia(file, isVideo: isVideo);
@@ -104,7 +103,7 @@ class StorageRepository {
       final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
       final metadata = SettableMetadata(contentType: contentType);
 
-      print('📤 Iniciando upload: $folder/$userId/$mediaId.$ext');
+      AppLogger.info('📤 Iniciando upload: $folder/$userId/$mediaId.$ext');
 
       final uploadTask = ref.putFile(fileToUpload, metadata);
 
@@ -119,11 +118,11 @@ class StorageRepository {
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      print('✅ Upload concluído: $downloadUrl');
+      AppLogger.info('✅ Upload concluído: $downloadUrl');
 
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('❌ Erro Firebase: ${e.code} - ${e.message}');
+      AppLogger.error('❌ Erro Firebase: ${e.code}', e);
 
       if (e.code == 'permission-denied' || e.code == 'unauthorized') {
         throw Exception(

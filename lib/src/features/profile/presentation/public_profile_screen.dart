@@ -1,22 +1,22 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shimmer/shimmer.dart';
 
+import '../../../common_widgets/app_shimmer.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../constants/app_constants.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 
 import '../domain/media_item.dart';
 import 'public_profile_controller.dart';
-import 'widgets/gallery_video_player.dart';
+import 'widgets/media_viewer_dialog.dart';
 import 'widgets/public_gallery_grid.dart';
 
 /// Screen to view another user's public profile.
@@ -48,7 +48,7 @@ class PublicProfileScreen extends ConsumerWidget {
       ),
       body: stateAsync.when(
         data: (state) {
-          if (state.isLoading) return const _ProfileSkeleton();
+          if (state.isLoading) return const ProfileSkeleton();
 
           if (state.error != null) {
             return Center(
@@ -67,7 +67,7 @@ class PublicProfileScreen extends ConsumerWidget {
 
           return _buildProfileContent(context, state.user!, state.galleryItems);
         },
-        loading: () => const _ProfileSkeleton(),
+        loading: () => const ProfileSkeleton(),
         error: (err, stack) => Center(child: Text('Erro: $err')),
       ),
       bottomNavigationBar: stateAsync.value?.user != null
@@ -91,7 +91,7 @@ class PublicProfileScreen extends ConsumerWidget {
           left: AppSpacing.s16,
           right: AppSpacing.s16,
           top: AppSpacing.s12,
-          bottom: MediaQuery.of(context).padding.bottom + AppSpacing.s12,
+          bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
         ),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -103,57 +103,79 @@ class PublicProfileScreen extends ConsumerWidget {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: SizedBox(
-                height: 56, // Same height as PrimaryButton
-                child: ElevatedButton.icon(
-                  onPressed: () => context.push('/profile/edit'),
-                  icon: const Icon(Icons.edit, size: 20),
-                  label: const Text('Editar Perfil'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s16),
-            Expanded(
-              child: SizedBox(
-                height: 56, // Same height
+            if (user.tipoPerfil == AppUserType.band) ...[
+              SizedBox(
+                width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                  icon: const Icon(Icons.logout, size: 20),
-                  label: const Text('Sair'),
+                  onPressed: () => context.push(RoutePaths.manageMembers),
+                  icon: const Icon(Icons.groups, size: 20),
+                  label: const Text('Gerenciar Integrantes'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),
+              const SizedBox(height: AppSpacing.s12),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 56, // Same height as PrimaryButton
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.push('/profile/edit'),
+                      icon: const Icon(Icons.edit, size: 20),
+                      label: const Text('Editar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brandPrimary,
+                        foregroundColor: AppColors.textPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s16),
+                Expanded(
+                  child: SizedBox(
+                    height: 56, // Same height
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          ref.read(authRepositoryProvider).signOut(),
+                      icon: const Icon(Icons.logout, size: 20),
+                      label: const Text('Sair'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(
+                          color: AppColors.error,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       );
     }
 
-    // final isFavorited = ref.watch(isLikedProvider(uid)); // Unused
-
     return Container(
       padding: EdgeInsets.only(
         left: AppSpacing.s16,
         right: AppSpacing.s16,
         top: AppSpacing.s12,
-        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.s12,
+        bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
       ),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -176,7 +198,7 @@ class PublicProfileScreen extends ConsumerWidget {
               icon: const Icon(Icons.chat_bubble_outline, size: 20),
               label: const Text('Iniciar Conversa'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -264,13 +286,13 @@ class PublicProfileScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.15),
+              color: AppColors.brandPrimary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               user.tipoPerfil?.label.toUpperCase() ?? 'PROFISSIONAL',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.primary,
+                color: AppColors.brandPrimary,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
@@ -292,7 +314,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 const Icon(
                   Icons.location_on,
                   size: 16,
-                  color: AppColors.primary,
+                  color: AppColors.semanticAction,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -533,7 +555,7 @@ class PublicProfileScreen extends ConsumerWidget {
       context: context,
       barrierColor: Colors.black87,
       builder: (context) =>
-          _MediaViewerDialog(items: items, initialIndex: initialIndex),
+          MediaViewerDialog(items: items, initialIndex: initialIndex),
     );
   }
 
@@ -569,7 +591,8 @@ class PublicProfileScreen extends ConsumerWidget {
             Icon(
               config['icon'] as IconData,
               size: 14,
-              color: AppColors.primary, // Changed to primary as requested
+              color:
+                  AppColors.semanticAction, // Changed to primary as requested
             ),
             const SizedBox(width: 4),
             Text(
@@ -590,183 +613,5 @@ class PublicProfileScreen extends ConsumerWidget {
       alignment: WrapAlignment.center,
       children: widgets,
     );
-  }
-}
-
-/// Skeleton loading for profile
-class _ProfileSkeleton extends StatelessWidget {
-  const _ProfileSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: AppColors.surface,
-      highlightColor: AppColors.surfaceHighlight,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.s24),
-        child: Column(
-          children: [
-            // Avatar skeleton
-            Container(
-              width: 120,
-              height: 120,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Name skeleton
-            Container(
-              width: 180,
-              height: 24,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Badge skeleton
-            Container(
-              width: 100,
-              height: 20,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            const SizedBox(height: 32),
-            // Section skeleton
-            Container(
-              width: double.infinity,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Gallery skeleton
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-              children: List.generate(
-                6,
-                (_) => Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Full-screen media viewer dialog
-class _MediaViewerDialog extends StatefulWidget {
-  final List<MediaItem> items;
-  final int initialIndex;
-
-  const _MediaViewerDialog({required this.items, required this.initialIndex});
-
-  @override
-  State<_MediaViewerDialog> createState() => _MediaViewerDialogState();
-}
-
-class _MediaViewerDialogState extends State<_MediaViewerDialog> {
-  late PageController _pageController;
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: _currentIndex);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        PageView.builder(
-          controller: _pageController,
-          itemCount: widget.items.length,
-          onPageChanged: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          itemBuilder: (context, index) {
-            final item = widget.items[index];
-            return _buildMediaItem(item);
-          },
-        ),
-        // Close button
-        Positioned(
-          top: 40,
-          right: 20,
-          child: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 30),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        // Indicator
-        Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Text(
-              '${_currentIndex + 1} / ${widget.items.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                decoration: TextDecoration.none,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMediaItem(MediaItem item) {
-    if (item.type == MediaType.video) {
-      if (item.url.contains('youtu')) {
-        // Placeholder for Youtube video
-        return Center(
-          child: Text(
-            'Vídeo do YouTube (em breve): ${item.url}',
-            style: const TextStyle(
-              color: Colors.white,
-              decoration: TextDecoration.none,
-            ),
-          ),
-        );
-      }
-      // Use GalleryVideoPlayer for network videos
-      return GalleryVideoPlayer(videoUrl: item.url);
-    } else {
-      return InteractiveViewer(
-        child: Center(
-          child: CachedNetworkImage(
-            imageUrl: item.url,
-            fit: BoxFit.contain,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) =>
-                const Icon(Icons.error, color: Colors.red),
-          ),
-        ),
-      );
-    }
   }
 }

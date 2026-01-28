@@ -283,6 +283,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       backgroundColor: AppColors.background,
       appBar: MubeAppBar(
         title: _isEditing ? 'Editar Endereço' : 'Novo Endereço',
+        showBackButton: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(

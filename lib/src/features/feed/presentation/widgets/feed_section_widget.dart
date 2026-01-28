@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../common_widgets/app_shimmer.dart';
+import '../../../../common_widgets/app_skeleton.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
@@ -49,7 +49,7 @@ class FeedSectionWidget extends StatelessWidget {
         // Content
         SizedBox(
           height:
-              190, // Increased from 170 to accommodate vertical layout of location and icons
+              176, // Optimized height for compact card content (110 avatar + info)
           child: isLoading
               ? _buildLoadingState()
               : items.isEmpty
@@ -94,7 +94,7 @@ class FeedSectionWidget extends StatelessWidget {
             ),
             child: const Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.primary,
+              color: AppColors.semanticAction,
               size: 24,
             ),
           ),
@@ -115,29 +115,31 @@ class FeedSectionWidget extends StatelessWidget {
   }
 
   Widget _buildLoadingState() {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-      itemCount: 4,
-      itemBuilder: (context, index) {
-        return Container(
-          width: 110, // Match FeedCardCompact width
-          margin: const EdgeInsets.only(right: AppSpacing.s12),
-          child: Column(
-            children: [
-              // Shimmer image placeholder
-              AppShimmer.box(width: 110, height: 110, borderRadius: 12),
-              const SizedBox(height: AppSpacing.s8),
-              // Shimmer text placeholder
-              AppShimmer.text(width: 80, height: 14),
-              const SizedBox(height: 4),
-              AppShimmer.text(width: 50, height: 12),
-              const SizedBox(height: 4),
-              AppShimmer.text(width: 40, height: 12),
-            ],
-          ),
-        );
-      },
+    return SkeletonShimmer(
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+        itemCount: 4,
+        itemBuilder: (context, index) {
+          return Container(
+            width: 110,
+            margin: const EdgeInsets.only(right: AppSpacing.s12),
+            child: const Column(
+              children: [
+                // Image placeholder
+                SkeletonBox(width: 110, height: 110, borderRadius: 12),
+                SizedBox(height: AppSpacing.s8),
+                // Text placeholder
+                SkeletonText(width: 80, height: 14),
+                SizedBox(height: AppSpacing.s4),
+                SkeletonText(width: 50, height: 12),
+                SizedBox(height: AppSpacing.s4),
+                SkeletonText(width: 40, height: 12),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

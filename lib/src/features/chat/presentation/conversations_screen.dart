@@ -28,7 +28,7 @@ class ConversationsScreen extends ConsumerWidget {
             return _buildEmptyState();
           }
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: AppSpacing.v8,
             itemCount: conversations.length,
             itemBuilder: (context, index) {
               final preview = conversations[index];
@@ -95,100 +95,116 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            // Avatar
-            UserAvatar(
-              size: 56,
-              photoUrl: preview.otherUserPhoto,
-              name: preview.otherUserName,
-            ),
-            const SizedBox(width: 12),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.surface, // Same as FeedCardVertical
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.surfaceHighlight.withValues(
+            alpha: 0.5,
+          ), // Same as FeedCardVertical
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Avatar
+              UserAvatar(
+                size: 56,
+                photoUrl: preview.otherUserPhoto,
+                name: preview.otherUserName,
+              ),
+              const SizedBox(width: AppSpacing.s12),
 
-            // Conteúdo
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Nome
-                      Expanded(
-                        child: Text(
-                          preview.otherUserName,
-                          style: AppTypography.titleMedium.copyWith(
-                            fontSize: 16,
-                            fontWeight: preview.unreadCount > 0
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // Hora
-                      if (preview.lastMessageAt != null)
-                        Text(
-                          _formatTime(preview.lastMessageAt!.toDate()),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-
-                  // Última mensagem
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          preview.lastMessageText ?? 'Nova conversa',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: preview.unreadCount > 0
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
-                            fontWeight: preview.unreadCount > 0
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-
-                      // Badge de não lidas
-                      if (preview.unreadCount > 0) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+              // Conteúdo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Nome
+                        Expanded(
                           child: Text(
-                            '${preview.unreadCount}',
-                            style: AppTypography.bodySmall.copyWith(
+                            preview.otherUserName,
+                            style: AppTypography.titleMedium.copyWith(
+                              fontSize: 16,
+                              fontWeight: preview.unreadCount > 0
+                                  ? FontWeight.bold
+                                  : FontWeight.w600,
                               color: AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Hora
+                        if (preview.lastMessageAt != null)
+                          Text(
+                            _formatTime(preview.lastMessageAt!.toDate()),
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
-                        ),
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Última mensagem
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            preview.lastMessageText ?? 'Nova conversa',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: preview.unreadCount > 0
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                              fontWeight: preview.unreadCount > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+
+                        // Badge de não lidas (Solid Neon Dot)
+                        if (preview.unreadCount > 0) ...[
+                          const SizedBox(width: AppSpacing.s8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.brandPrimary, // Solid Neon Color
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${preview.unreadCount}',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

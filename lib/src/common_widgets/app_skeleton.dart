@@ -24,8 +24,10 @@ class SkeletonShimmer extends StatelessWidget {
     if (!enabled) return child;
 
     return Shimmer.fromColors(
-      baseColor: AppColors.surface,
-      highlightColor: AppColors.surfaceHighlight,
+      baseColor: AppColors.skeletonBase,
+      highlightColor: AppColors.skeletonHighlight.withValues(
+        alpha: 0.5,
+      ), // Inverted for "glowing" effect on dark mode
       child: child,
     );
   }
@@ -50,7 +52,7 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.skeletonBase, // Changed from Colors.white
         borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
@@ -69,7 +71,7 @@ class SkeletonCircle extends StatelessWidget {
       width: size,
       height: size,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.skeletonBase, // Changed from Colors.white
         shape: BoxShape.circle,
       ),
     );
@@ -93,7 +95,7 @@ class SkeletonText extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.skeletonBase, // Changed from Colors.white
         borderRadius: BorderRadius.circular(4),
       ),
     );
@@ -172,75 +174,77 @@ class FeedCardSkeleton extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 80,
-            height: 80,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceHighlight,
-              shape: BoxShape.circle,
+      child: SkeletonShimmer(
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceHighlight,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Info column
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceHighlight,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: 80,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceHighlight,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceHighlight,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+            const SizedBox(width: 12),
+            // Info column
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHighlight,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 50,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceHighlight,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 80,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHighlight,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHighlight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 50,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHighlight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          // Favorite icon
-          Container(
-            width: 24,
-            height: 24,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceHighlight,
-              shape: BoxShape.circle,
+            // Favorite icon
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceHighlight,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -254,12 +258,10 @@ class FeedListSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonShimmer(
-      child: ListView.builder(
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: itemCount,
-        itemBuilder: (_, _) => const FeedCardSkeleton(),
-      ),
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: itemCount,
+      itemBuilder: (_, _) => const FeedCardSkeleton(),
     );
   }
 }
@@ -304,18 +306,18 @@ class FeedScreenSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonShimmer(
+    return SafeArea(
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeaderSkeleton(),
-            _buildHorizontalSectionSkeleton(),
+            SkeletonShimmer(child: _buildHeaderSkeleton()),
+            SkeletonShimmer(child: _buildHorizontalSectionSkeleton()),
             const SizedBox(height: AppSpacing.s24),
-            _buildHorizontalSectionSkeleton(),
+            SkeletonShimmer(child: _buildHorizontalSectionSkeleton()),
             const SizedBox(height: AppSpacing.s24),
-            _buildQuickFilterSkeleton(),
+            SkeletonShimmer(child: _buildQuickFilterSkeleton()),
             const SizedBox(height: AppSpacing.s16),
             const FeedCardSkeleton(),
             const FeedCardSkeleton(),
@@ -335,13 +337,26 @@ class FeedScreenSkeleton extends StatelessWidget {
             children: [
               SkeletonCircle(size: 44),
               SizedBox(width: AppSpacing.s12),
-              SkeletonText(width: 120, height: 20),
-              Spacer(),
-              SkeletonBox(width: 24, height: 24, borderRadius: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonText(width: 120, height: 16),
+                    SizedBox(height: 8),
+                    SkeletonText(width: 180, height: 12),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8),
+              SkeletonBox(width: 32, height: 32, borderRadius: 16),
             ],
           ),
-          SizedBox(height: AppSpacing.s16),
-          SkeletonBox(width: double.infinity, height: 48, borderRadius: 12),
+          SizedBox(
+            height: AppSpacing.s24,
+          ), // Space before SearchBar placeholder? No, header logic is different.
+          // Simulation of Search Bar if present, but FeedScreen has it in content.
+          // Wait, FeedScreen has AppBar -> Sections.
+          // Let's match FeedScreen layout: AppBar (Avatar + Hi) -> Sections.
         ],
       ),
     );
@@ -370,13 +385,8 @@ class FeedScreenSkeleton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
             itemCount: 3,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s12),
-            itemBuilder: (_, _) => Container(
-              width: 140,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+            itemBuilder: (_, _) =>
+                const SkeletonBox(width: 140, height: 180, borderRadius: 16),
           ),
         ),
       ],
@@ -385,21 +395,15 @@ class FeedScreenSkeleton extends StatelessWidget {
 
   Widget _buildQuickFilterSkeleton() {
     return SizedBox(
-      height: 50,
+      height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
         itemCount: 4,
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s8),
-        itemBuilder: (_, _) => Container(
-          width: 120,
-          height: 32,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
+        itemBuilder: (_, _) =>
+            const SkeletonBox(width: 80, height: 32, borderRadius: 20),
       ),
     );
   }

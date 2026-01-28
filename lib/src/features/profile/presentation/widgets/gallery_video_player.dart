@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../utils/app_logger.dart';
+
 /// Professional video player widget with auto-hide controls
 class GalleryVideoPlayer extends StatefulWidget {
   final String videoUrl;
@@ -41,13 +43,13 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
 
       if (mounted) {
         setState(() => _isInitialized = true);
-        _controller.play();
+        await _controller.play();
 
         // Show controls initially, then hide after 3 seconds
         _showControlsWithTimer();
       }
     } catch (e) {
-      print('❌ Erro ao inicializar vídeo: $e');
+      AppLogger.error('❌ Erro ao inicializar vídeo', e);
       if (mounted) {
         setState(() => _hasError = true);
       }

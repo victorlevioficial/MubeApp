@@ -8,65 +8,84 @@ class AppColors {
   // Raw Palette (Private)
   // ---------------------------------------------------------------------------
   static const Color _primary = Color(0xFFD40055); // Razzmatazz 300
-  static const Color _accent = Color(0xFFFF4892); // Razzmatazz 400
-  static const Color _bgDark = Color(0xFF0E0E0E);
-  static const Color _bgGray = Color(0xFF161718);
-  static const Color _bgGrayLight = Color(0xFF2A2A2A);
+  static const Color _secondaryGlow = Color(0xFFFF0066); // Neon Pink
+  static const Color _gradientEnd = Color(0xFF990033);
+
+  static const Color _bgDeep = Color(0xFF0A0A0A); // Deepest Black
+  static const Color _bgSurface = Color(0xFF18181B); // Zinc 900
+  static const Color _bgHighlight = Color(0xFF27272A); // Zinc 800
+
   static const Color _textWhite = Color(0xFFFFFFFF);
-  static const Color _textGray = Color(0xFFBEBEBE);
-  static const Color _textPlaceholder = Color(0xFF707070);
-  static const Color _error = Color(0xFFCF6679);
+  static const Color _textGray = Color(0xFFA1A1AA); // Zinc 400
+  static const Color _textDarkGray = Color(0xFF52525B); // Zinc 600
+
+  static const Color _error = Color(0xFFEF4444); // Red 500
+  static const Color _success = Color(0xFF22C55E); // Green 500
+  static const Color _info = Color(0xFF3B82F6); // Blue 500
+  static const Color _warning = Color(0xFFF59E0B); // Amber 500
 
   // ---------------------------------------------------------------------------
   // Semantic Tokens (Public)
   // ---------------------------------------------------------------------------
 
-  // Brand
-  static const Color primary = _primary;
-  static const Color accent = _accent;
+  // Brand Identity (Institutional Use - Logo, Gradients, Solid Buttons)
+  // D40055 = Strong brand color, used for identity elements
+  static const Color brandPrimary = _primary;
+  static const Color brandGlow = _secondaryGlow;
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [_primary, _gradientEnd],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   // Backgrounds
-  static const Color background = _bgDark;
-  static const Color surface = _bgGray;
-  static const Color surfaceHighlight = _bgGrayLight;
+  static const Color background = _bgDeep;
+  static const Color surface = _bgSurface;
+  static const Color surfaceHighlight = _bgHighlight;
 
   // Text
   static const Color textPrimary = _textWhite;
   static const Color textSecondary = _textGray;
-  static const Color textPlaceholder = _textPlaceholder;
   static const Color textTertiary =
-      _textPlaceholder; // Same as placeholder for now
+      _textDarkGray; // Low emphasis text & placeholders
+  static const Color textPlaceholder = textTertiary; // Alias for consistency
+
+  // Actionables (Interface Use - Links, Icons, Borders, Interactive Elements)
+  // FF5C8D = Optimized for dark mode: high contrast, reduced eye strain
+  static const Color semanticAction = Color(0xFFFF5C8D);
+  static const Color textAction = semanticAction;
 
   // Borders
-  static const Color border = _bgGrayLight;
+  static const Color border = _bgHighlight;
 
-  // States & Feedback
+  // Feedback
   static const Color error = _error;
-  static const Color success = Color(0xFF4CAF50);
-  static const Color info = Color(0xFF2196F3);
-  static const Color warning = Color(0xFFFF9800);
+  static const Color success = _success;
+  static const Color info = _info;
+  static const Color warning = _warning;
 
-  // ---------------------------------------------------------------------------
-  // Avatar Palette (Modern Pastel Light)
-  // ---------------------------------------------------------------------------
+  // Skeletons
+  // Skeletons
+  static const Color skeletonBase = _bgSurface;
+  static const Color skeletonHighlight = _bgHighlight;
+
+  // Avatar Palette (Refined)
   static const List<Color> avatarColors = [
-    Color(0xFFA5D6A7), // Soft Green
-    Color(0xFF90CAF9), // Soft Blue
-    Color(0xFFCE93D8), // Soft Purple
-    Color(0xFFF48FB1), // Soft Pink
-    Color(0xFFFFCC80), // Soft Orange
-    Color(0xFFFFF59D), // Soft Yellow
-    Color(0xFF80CBC4), // Soft Teal
-    Color(0xFFBCAAA4), // Soft Brown
-    Color(0xFFB0BEC5), // Soft Blue Grey
-    Color(0xFF9FA8DA), // Soft Indigo
+    Color(0xFFF472B6), // Pink 400
+    Color(0xFFA78BFA), // Violet 400
+    Color(0xFF60A5FA), // Blue 400
+    Color(0xFF34D399), // Emerald 400
+    Color(0xFFFBBF24), // Amber 400
+    Color(0xFFF87171), // Red 400
   ];
 
-  static const Color avatarBorder = _bgGrayLight;
+  static const Color avatarBorder = _bgDeep;
   static const double avatarBorderOpacity = 1.0;
 
-  // New definitions to fix lints
-  static const Color primaryDark = Color(0xFF6D002B); // Razzmatazz 200
+  // Backward Compatibility (Deprecated but kept for safety)
+  static const Color primary = brandPrimary;
+  @Deprecated('Use semanticAction')
+  static const Color accent = semanticAction;
 
   // Opacity variations
   static Color get primaryDisabled => _primary.withValues(alpha: 0.5);
