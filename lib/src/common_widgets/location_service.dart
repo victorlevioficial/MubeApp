@@ -5,7 +5,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 class LocationService {
-  // TODO: Substitua pela sua chave REAL copiada do Google Cloud Console
   static const String _googleApiKey = 'AIzaSyDV5N_ybY5dPkE2T0Dl4JCqaAlGxte2WU0';
 
   static String get googleApiKey => _googleApiKey;
