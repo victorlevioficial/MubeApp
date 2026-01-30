@@ -55,7 +55,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.s16,
-                  AppSpacing.s8,,
+                  AppSpacing.s8,
                   AppSpacing.s16,
                   AppSpacing.s16,
                 ),
