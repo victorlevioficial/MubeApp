@@ -154,6 +154,11 @@ class SearchController extends Notifier<SearchState> {
     _performSearch();
   }
 
+  /// Refresh current search results
+  Future<void> refresh() async {
+    await _performSearch();
+  }
+
   /// Debounced search for text input
   void _debouncedSearch() {
     _debounceTimer?.cancel();

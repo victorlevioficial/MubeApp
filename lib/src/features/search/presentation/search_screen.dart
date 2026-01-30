@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../common_widgets/app_text_field.dart';
+import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
@@ -41,14 +42,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
+      appBar: const MubeAppBar(title: 'Busca', showBackButton: false),
+      body: RefreshIndicator(
+        color: AppColors.brandPrimary,
+        backgroundColor: AppColors.surface,
+        onRefresh: controller.refresh,
         child: CustomScrollView(
           controller: _scrollController,
           slivers: [
             // Search Header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.s16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s16,
+                  AppSpacing.s8,,
+                  AppSpacing.s16,
+                  AppSpacing.s16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -59,7 +69,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         Expanded(
                           child: AppTextField(
                             controller: _searchController,
-                            label: '',
+                            label: null, // Remove space-consuming empty label
                             hint: 'Buscar por nome...',
                             prefixIcon: const Icon(
                               Icons.search,

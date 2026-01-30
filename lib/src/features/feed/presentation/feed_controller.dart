@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../constants/firestore_constants.dart';
 import '../../../core/typedefs.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../favorites/domain/favorite_controller.dart';
 import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
@@ -93,28 +94,32 @@ class FeedController extends _$FeedController {
 
   @override
   FutureOr<FeedState> build() {
+    // Data is loaded manually via loadAllData().
+    // Watching providers here would cause unnecessary rebuilds.
     return const FeedState();
   }
 
   Future<void> loadAllData() async {
     state = const AsyncValue.data(FeedState(isInitialLoading: true));
 
-    // Set user location from auth profile
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user != null) {
-      _userLat = user.location?['lat'];
-      _userLong = user.location?['lng'];
-    }
-
     try {
-      // Parallel loading
+      // 1. CRITICAL: Wait for the user's favorites to be loaded first.
+      await ref.read(favoriteControllerProvider.notifier).waitForInitialLoad();
+
+      // 2. Set user location from auth profile
+      final user = ref.read(currentUserProfileProvider).value;
+      if (user != null) {
+        _userLat = user.location?['lat'];
+        _userLong = user.location?['lng'];
+      }
+
+      // 3. Proceed with loading feed sections and main feed in parallel
       final results = await Future.wait([
         _fetchSections(),
         _fetchMainFeed(reset: true),
       ]);
 
       final sections = results[0] as Map<FeedSectionType, List<FeedItem>>;
-      // Main feed logic handled inside _fetchMainFeed but we update state here carefully
 
       final currentState = state.value ?? const FeedState();
 
@@ -133,7 +138,6 @@ class FeedController extends _$FeedController {
     final feedRepo = ref.read(feedRepositoryProvider);
     final items = <FeedSectionType, List<FeedItem>>{};
 
-    // Helper to extract result or default to empty list
     Future<List<FeedItem>> fetchOrEmpty(
       FutureResult<List<FeedItem>> call,
     ) async {
@@ -172,11 +176,8 @@ class FeedController extends _$FeedController {
       ),
     );
 
-    // Update shared provider
     final allItems = items.values.expand((list) => list).toList();
     ref.read(feedItemsProvider.notifier).loadItems(allItems);
-
-    // Preload images
     _preloadImages(allItems);
 
     return items;
@@ -188,7 +189,6 @@ class FeedController extends _$FeedController {
     if (currentState.isLoadingMain) return;
     if (!reset && !currentState.hasMoreMain) return;
 
-    // Optimistic state update for loading
     state = AsyncValue.data(
       currentState.copyWith(
         isLoadingMain: true,
@@ -244,10 +244,8 @@ class FeedController extends _$FeedController {
 
     final newItems = _allSortedUsers.sublist(startIndex, endIndex);
 
-    // Sync with global item provider
     ref.read(feedItemsProvider.notifier).loadItems(newItems);
 
-    // Preload images for smoother experience
     _preloadImages(newItems);
 
     state = AsyncValue.data(
@@ -271,16 +269,40 @@ class FeedController extends _$FeedController {
     _fetchMainFeed(reset: true);
   }
 
-  /// Preloads avatar images into cache so they are ready when displayed
+  void updateLikeCount(String targetId, {required bool isLiked}) {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    FeedItem updateItem(FeedItem item) {
+      if (item.uid == targetId) {
+        final newCount = isLiked
+            ? item.likeCount + 1
+            : (item.likeCount - 1).clamp(0, 9999);
+        return item.copyWith(likeCount: newCount);
+      }
+      return item;
+    }
+
+    final newMainItems = currentState.mainItems.map(updateItem).toList();
+    final newSectionItems = currentState.sectionItems.map((key, value) {
+      return MapEntry(key, value.map(updateItem).toList());
+    });
+
+    state = AsyncValue.data(
+      currentState.copyWith(
+        mainItems: newMainItems,
+        sectionItems: newSectionItems,
+      ),
+    );
+  }
+
   void _preloadImages(List<FeedItem> items) {
     for (final item in items) {
       final photoUrl = item.foto;
       if (photoUrl != null && photoUrl.isNotEmpty) {
-        // Fire and forget - download to cache, ignore any errors
         DefaultCacheManager().downloadFile(photoUrl).then((_) {}).catchError((
           e,
         ) {
-          // Ignore errors silently - preloading failure shouldn't crash app
           debugPrint('Preload error for $photoUrl: $e');
         });
       }

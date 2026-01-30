@@ -11,6 +11,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../../chat/data/chat_repository.dart';
+import '../../moderation/data/moderation_repository.dart';
 // import '../../feed/data/favorites_provider.dart'; // Removed
 import '../domain/media_item.dart';
 
@@ -157,6 +158,40 @@ class PublicProfileController extends _$PublicProfileController {
         );
       }
     }
+  }
+
+  Future<bool> blockUser() async {
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    final targetUser = state.value?.user;
+
+    if (currentUser == null || targetUser == null) return false;
+
+    final result = await ref
+        .read(moderationRepositoryProvider)
+        .blockUser(
+          currentUserId: currentUser.uid,
+          blockedUserId: targetUser.uid,
+        );
+
+    return result.fold((failure) => false, (_) => true);
+  }
+
+  Future<bool> reportUser(String reason, String? description) async {
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    final targetUser = state.value?.user;
+
+    if (currentUser == null || targetUser == null) return false;
+
+    final result = await ref
+        .read(moderationRepositoryProvider)
+        .reportUser(
+          reporterId: currentUser.uid,
+          reportedUserId: targetUser.uid,
+          reason: reason,
+          description: description,
+        );
+
+    return result.fold((failure) => false, (_) => true);
   }
 
   // toggleLike method removed

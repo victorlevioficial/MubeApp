@@ -30,6 +30,7 @@ class FeedRepository {
     required double long,
     required double radiusKm,
     required String currentUserId,
+    List<String> excludedIds = const [],
     int limit = 10,
   }) async {
     try {
@@ -37,7 +38,7 @@ class FeedRepository {
       final items = <FeedItem>[];
 
       for (final doc in snapshot.docs) {
-        if (doc.id == currentUserId) continue;
+        if (doc.id == currentUserId || excludedIds.contains(doc.id)) continue;
 
         try {
           final data = doc.data();
@@ -74,6 +75,7 @@ class FeedRepository {
   FutureResult<List<FeedItem>> getUsersByType({
     required String type,
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
@@ -82,12 +84,23 @@ class FeedRepository {
     try {
       final snapshot = await _dataSource.getUsersByType(
         type: type,
-        limit: limit,
+        limit: limit + excludedIds.length, // Fetch more to compensate
         startAfter: startAfter,
       );
-      return Right(
-        _processSnapshot(snapshot, currentUserId, userLat, userLong),
+      final allItems = _processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
       );
+
+      // Filter blocked users
+      final filteredItems = allItems
+          .where((item) => !excludedIds.contains(item.uid))
+          .take(limit)
+          .toList();
+
+      return Right(filteredItems);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
@@ -131,6 +144,7 @@ class FeedRepository {
   FutureResult<List<FeedItem>> getUsersByCategory({
     required String category,
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
@@ -139,12 +153,22 @@ class FeedRepository {
     try {
       final snapshot = await _dataSource.getUsersByCategory(
         category: category,
-        limit: limit,
+        limit: limit + excludedIds.length,
         startAfter: startAfter,
       );
-      return Right(
-        _processSnapshot(snapshot, currentUserId, userLat, userLong),
+      final allItems = _processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
       );
+
+      final filteredItems = allItems
+          .where((item) => !excludedIds.contains(item.uid))
+          .take(limit)
+          .toList();
+
+      return Right(filteredItems);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }
@@ -153,6 +177,7 @@ class FeedRepository {
   /// Fetches artists (professional profiles excluding technical crew).
   FutureResult<List<FeedItem>> getArtists({
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
@@ -169,6 +194,7 @@ class FeedRepository {
           filterType: ProfileType.professional,
           excludeCategory: ProfessionalCategory.techCrew,
           userGeohash: userGeohash,
+          excludedIds: excludedIds,
         );
 
         // Handle result of getAllUsersSortedByDistance (which is now async result)
@@ -191,7 +217,11 @@ class FeedRepository {
 
       return Right(
         items
-            .where((item) => item.categoria != ProfessionalCategory.techCrew)
+            .where(
+              (item) =>
+                  item.categoria != ProfessionalCategory.techCrew &&
+                  !excludedIds.contains(item.uid),
+            )
             .take(limit)
             .toList(),
       );
@@ -297,6 +327,7 @@ class FeedRepository {
     String? filterType,
     String? category,
     String? excludeCategory,
+    List<String> excludedIds = const [],
     int? limit,
     String? userGeohash,
   }) async {
@@ -310,6 +341,7 @@ class FeedRepository {
           category: category,
           excludeCategory: excludeCategory,
           userGeohash: userGeohash,
+          excludedIds: excludedIds,
         );
       }
 
@@ -320,6 +352,7 @@ class FeedRepository {
         filterType: filterType,
         category: category,
         excludeCategory: excludeCategory,
+        excludedIds: excludedIds,
         limit: limit,
       );
     } catch (e) {
@@ -335,6 +368,7 @@ class FeedRepository {
     String? category,
     String? excludeCategory,
     required String userGeohash,
+    List<String> excludedIds = const [],
   }) async {
     final neighbors = GeohashHelper.neighbors(userGeohash);
 
@@ -345,6 +379,11 @@ class FeedRepository {
     );
 
     final items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+
+    // Filter blocked
+    if (excludedIds.isNotEmpty) {
+      items.removeWhere((item) => excludedIds.contains(item.uid));
+    }
 
     if (excludeCategory != null && excludeCategory.isNotEmpty) {
       items.removeWhere((item) => item.categoria == excludeCategory);
@@ -362,6 +401,7 @@ class FeedRepository {
     String? filterType,
     String? category,
     String? excludeCategory,
+    List<String> excludedIds = const [],
     int? limit,
   }) async {
     QuerySnapshot<Map<String, dynamic>> snapshot;
@@ -386,6 +426,12 @@ class FeedRepository {
     if (category != null) {
       items.retainWhere((i) => i.categoria == category);
     }
+
+    // Filter blocked
+    if (excludedIds.isNotEmpty) {
+      items.removeWhere((item) => excludedIds.contains(item.uid));
+    }
+
     if (excludeCategory != null) {
       items.removeWhere((i) => i.categoria == excludeCategory);
     }

@@ -110,114 +110,119 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
-          FeedHeader(currentUser: currentUser, onNotificationTap: () {}),
+      body: RefreshIndicator(
+        color: AppColors.brandPrimary,
+        backgroundColor: AppColors.surface,
+        onRefresh: () => controller.loadAllData(),
+        child: CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
+            FeedHeader(currentUser: currentUser, onNotificationTap: () {}),
 
-          // Pre-cache Service Integration (Just watching keeps it alive)
-          // Pre-cache Service Integration (Just watching keeps it alive)
-          SliverToBoxAdapter(
-            child: Consumer(
-              builder: (context, ref, _) {
-                ref.watch(feedImagePrecacheServiceProvider);
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-
-          // Horizontal Sections (Lazy Load)
-          if (state.sectionItems.isNotEmpty)
-            SliverPadding(
-              padding: const EdgeInsets.only(top: AppSpacing.s24),
-              sliver: SliverList.builder(
-                itemCount: state.sectionItems.length,
-                itemBuilder: (context, index) {
-                  final entry = state.sectionItems.entries.elementAt(index);
-                  if (entry.value.isEmpty) return const SizedBox.shrink();
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-                    child: FeedSectionWidget(
-                      title: _getSectionTitle(entry.key),
-                      items: entry.value,
-                      onSeeAllTap: () {
-                        context.push(
-                          '/feed/list/${entry.key.name}',
-                          extra: entry.key,
-                        );
-                      },
-                      onItemTap: (item) {
-                        context.push('/user/${item.uid}', extra: item);
-                      },
-                    ),
-                  );
+            // Pre-cache Service Integration (Just watching keeps it alive)
+            // Pre-cache Service Integration (Just watching keeps it alive)
+            SliverToBoxAdapter(
+              child: Consumer(
+                builder: (context, ref, _) {
+                  ref.watch(feedImagePrecacheServiceProvider);
+                  return const SizedBox.shrink();
                 },
               ),
             ),
 
-          // Opaque Filter Bar
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverAppBarDelegate(
-              minHeight: 52.0, // Reduced to match chip height (44) + padding
-              maxHeight: 52.0,
-              topPadding: MediaQuery.of(context).padding.top,
-              child: Container(
-                color: AppColors.background,
-                alignment: Alignment.center,
-                child: QuickFilterBar(
-                  selectedFilter: state.currentFilter,
-                  onFilterSelected: controller.onFilterChanged,
+            // Horizontal Sections (Lazy Load)
+            if (state.sectionItems.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.only(top: AppSpacing.s24),
+                sliver: SliverList.builder(
+                  itemCount: state.sectionItems.length,
+                  itemBuilder: (context, index) {
+                    final entry = state.sectionItems.entries.elementAt(index);
+                    if (entry.value.isEmpty) return const SizedBox.shrink();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                      child: FeedSectionWidget(
+                        title: _getSectionTitle(entry.key),
+                        items: entry.value,
+                        onSeeAllTap: () {
+                          context.push(
+                            '/feed/list/${entry.key.name}',
+                            extra: entry.key,
+                          );
+                        },
+                        onItemTap: (item) {
+                          context.push('/user/${item.uid}', extra: item);
+                        },
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ),
 
-          // Section Title: Principais / Destaques
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.s16,
-                AppSpacing.s24,
-                AppSpacing.s16,
-                AppSpacing.s12,
-              ),
-              child: Text(
-                'Destaques',
-                style: AppTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          // Vertical List (Animated)
-          VerticalFeedList(
-            useSliverMode: true,
-            items: state.mainItems,
-            isLoading: state.isLoadingMain,
-            hasMore: state.hasMoreMain,
-            onLoadMore: () {},
-            padding: AppSpacing.h16,
-          ),
-
-          // Bottom Loader
-          if (state.isLoadingMain && state.mainItems.isNotEmpty)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(AppSpacing.s32),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.brandPrimary,
+            // Opaque Filter Bar
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                minHeight: 52.0, // Reduced to match chip height (44) + padding
+                maxHeight: 52.0,
+                topPadding: MediaQuery.of(context).padding.top,
+                child: Container(
+                  color: AppColors.background,
+                  alignment: Alignment.center,
+                  child: QuickFilterBar(
+                    selectedFilter: state.currentFilter,
+                    onFilterSelected: controller.onFilterChanged,
                   ),
                 ),
               ),
             ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
+            // Section Title: Principais / Destaques
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s16,
+                  AppSpacing.s24,
+                  AppSpacing.s16,
+                  AppSpacing.s12,
+                ),
+                child: Text(
+                  'Destaques',
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // Vertical List (Animated)
+            VerticalFeedList(
+              useSliverMode: true,
+              items: state.mainItems,
+              isLoading: state.isLoadingMain,
+              hasMore: state.hasMoreMain,
+              onLoadMore: () {},
+              padding: AppSpacing.h16,
+            ),
+
+            // Bottom Loader
+            if (state.isLoadingMain && state.mainItems.isNotEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.s32),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.brandPrimary,
+                    ),
+                  ),
+                ),
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
     );
   }

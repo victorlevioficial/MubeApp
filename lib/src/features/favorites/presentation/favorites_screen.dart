@@ -142,68 +142,83 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           ),
 
           Expanded(
-            child: _isLoading
-                ? ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: 6, // Show 6 skeletons
-                    separatorBuilder: (context, index) =>
-                        const SizedBox.shrink(),
-                    itemBuilder: (context, index) => const FeedItemSkeleton(),
-                  )
-                : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+            child: RefreshIndicator(
+              color: AppColors.brandPrimary,
+              backgroundColor: AppColors.surface,
+              onRefresh: _loadFavorites,
+              child: _isLoading
+                  ? ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: 6, // Show 6 skeletons
+                      separatorBuilder: (context, index) =>
+                          const SizedBox.shrink(),
+                      itemBuilder: (context, index) => const FeedItemSkeleton(),
+                    )
+                  : _error != null
+                  ? ListView(
                       children: [
-                        Text(
-                          'Erro ao carregar favoritos',
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.error,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: _loadFavorites,
-                          child: const Text('Tentar novamente'),
-                        ),
-                      ],
-                    ),
-                  )
-                : _filteredItems.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.favorite_border,
-                          size: 64,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _allItems.isEmpty
-                              ? 'Você ainda não tem favoritos.'
-                              : 'Nenhum resultado para este filtro.',
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textSecondary,
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Erro ao carregar favoritos',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color: AppColors.error,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: _loadFavorites,
+                                child: const Text('Tentar novamente'),
+                              ),
+                            ],
                           ),
                         ),
                       ],
+                    )
+                  : _filteredItems.isEmpty
+                  ? ListView(
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.6,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.favorite_border,
+                                size: 64,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _allItems.isEmpty
+                                    ? 'Você ainda não tem favoritos.'
+                                    : 'Nenhum resultado para este filtro.',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: _filteredItems.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox.shrink(),
+                      itemBuilder: (context, index) {
+                        final item = _filteredItems[index];
+                        return FeedCardVertical(
+                          item: item,
+                          onTap: () => context.push('/user/${item.uid}'),
+                        );
+                      },
                     ),
-                  )
-                : ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: _filteredItems.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox.shrink(),
-                    itemBuilder: (context, index) {
-                      final item = _filteredItems[index];
-                      return FeedCardVertical(
-                        item: item,
-                        onTap: () => context.push('/user/${item.uid}'),
-                      );
-                    },
-                  ),
+            ),
           ),
         ],
       ),

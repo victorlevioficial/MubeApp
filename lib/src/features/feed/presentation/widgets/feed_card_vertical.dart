@@ -157,14 +157,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
               ),
 
               // Right: Like Button with Optimistic UI
-              AppLikeButton(
-                targetId: item.uid,
-                initialCount: item.likeCount,
-                initialIsLiked: ref
-                    .read(favoriteControllerProvider)
-                    .serverFavorites
-                    .contains(item.uid),
-              ),
+              AppLikeButton(targetId: item.uid, initialCount: item.likeCount),
             ],
           ),
         ),

@@ -22,6 +22,7 @@ class AppTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final int? maxLength;
+  final EdgeInsets scrollPadding;
 
   const AppTextField({
     super.key,
@@ -46,6 +47,7 @@ class AppTextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.maxLength,
+    this.scrollPadding = const EdgeInsets.all(20.0),
   });
 
   final ValueChanged<String>? onSubmitted;
@@ -89,6 +91,7 @@ class AppTextField extends StatelessWidget {
             validator: validator,
             onFieldSubmitted: onSubmitted,
             textInputAction: textInputAction,
+            scrollPadding: scrollPadding,
             cursorColor: Theme.of(context).colorScheme.primary,
             decoration: InputDecoration(
               hintText: hint,

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_shimmer.dart';
+import '../../../common_widgets/app_snackbar.dart';
+import 'widgets/report_reason_dialog.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../constants/app_constants.dart';
@@ -28,21 +31,47 @@ class PublicProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stateAsync = ref.watch(publicProfileControllerProvider(uid));
-
     final user = stateAsync.value?.user;
-    final title = user != null ? _getDisplayName(user) : 'Perfil';
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: MubeAppBar(
-        title: title,
+        title: user != null ? _buildAppBarTitle(user) : 'Perfil',
         onBackPressed: () => context.pop(),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share, color: AppColors.textPrimary),
-            onPressed: () {
-              // TODO: Implement share functionality
-            },
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+            color: AppColors.surface,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) => _handleMenuAction(context, ref, value),
+            itemBuilder: (context) => [
+              _buildMenuItem(
+                icon: Icons.share,
+                label: 'Compartilhar Perfil',
+                value: 'share',
+              ),
+              _buildMenuItem(
+                icon: Icons.link,
+                label: 'Copiar Link',
+                value: 'copy',
+              ),
+              const PopupMenuDivider(),
+              _buildMenuItem(
+                icon: Icons.block,
+                label: 'Bloquear',
+                value: 'block',
+                isDestructive: true,
+              ),
+              _buildMenuItem(
+                icon: Icons.flag_outlined,
+                label: 'Denunciar',
+                value: 'report',
+                isDestructive: true,
+              ),
+            ],
           ),
         ],
       ),
@@ -74,6 +103,155 @@ class PublicProfileScreen extends ConsumerWidget {
           ? _buildBottomActionBar(context, ref, stateAsync.value!.user!)
           : null,
     );
+  }
+
+  /// Builds the AppBar title with colored icon and profile type
+  Widget _buildAppBarTitle(AppUser user) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          _getProfileIcon(user.tipoPerfil),
+          color: _getProfileColor(user.tipoPerfil),
+          size: 20,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _getProfileLabel(user.tipoPerfil),
+          style: AppTypography.titleMedium.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds a popup menu item
+  PopupMenuEntry<String> _buildMenuItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isDestructive = false,
+  }) {
+    final color = isDestructive ? AppColors.error : AppColors.textPrimary;
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 12),
+          Text(label, style: AppTypography.bodyMedium.copyWith(color: color)),
+        ],
+      ),
+    );
+  }
+
+  /// Handles menu item selection
+  /// Handles menu item selection
+  void _handleMenuAction(
+    BuildContext context,
+    WidgetRef ref,
+    String action,
+  ) async {
+    final controller = ref.read(publicProfileControllerProvider(uid).notifier);
+
+    switch (action) {
+      case 'share':
+        // TODO: Implement share
+        AppSnackBar.info(context, 'Compartilhar em breve');
+        break;
+      case 'copy':
+        // TODO: Implement copy link
+        AppSnackBar.success(context, 'Link copiado!');
+        break;
+      case 'block':
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => const AppConfirmationDialog(
+            title: 'Bloquear Usuário?',
+            message:
+                'Você não verá mais conteúdo deste usuário. Esta ação pode ser desfeita nas configurações.',
+            confirmText: 'Bloquear',
+            isDestructive: true,
+          ),
+        );
+
+        if (confirmed == true && context.mounted) {
+          final success = await controller.blockUser();
+          if (context.mounted) {
+            if (success) {
+              AppSnackBar.success(context, 'Usuário bloqueado');
+              context.pop(); // Exit profile
+            } else {
+              AppSnackBar.error(context, 'Erro ao bloquear usuário');
+            }
+          }
+        }
+        break;
+
+      case 'report':
+        final result = await showDialog<Map<String, dynamic>>(
+          context: context,
+          builder: (context) => const ReportReasonDialog(),
+        );
+
+        if (result != null && context.mounted) {
+          final reason = result['reason'] as String;
+          final description = result['description'] as String?;
+
+          final success = await controller.reportUser(reason, description);
+          if (context.mounted) {
+            if (success) {
+              AppSnackBar.success(context, 'Denúncia enviada para análise');
+            } else {
+              AppSnackBar.error(context, 'Erro ao enviar denúncia');
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  /// Gets the icon for a profile type
+  IconData _getProfileIcon(AppUserType? type) {
+    switch (type) {
+      case AppUserType.professional:
+        return Icons.music_note;
+      case AppUserType.band:
+        return Icons.groups;
+      case AppUserType.studio:
+        return Icons.headphones;
+      default:
+        return Icons.person;
+    }
+  }
+
+  /// Gets the color for a profile type
+  Color _getProfileColor(AppUserType? type) {
+    switch (type) {
+      case AppUserType.professional:
+        return AppColors.badgeMusician;
+      case AppUserType.band:
+        return AppColors.badgeBand;
+      case AppUserType.studio:
+        return AppColors.badgeStudio;
+      default:
+        return AppColors.badgeMusician;
+    }
+  }
+
+  /// Gets the label for a profile type
+  String _getProfileLabel(AppUserType? type) {
+    switch (type) {
+      case AppUserType.professional:
+        return 'Músico';
+      case AppUserType.band:
+        return 'Banda';
+      case AppUserType.studio:
+        return 'Estúdio';
+      default:
+        return 'Perfil';
+    }
   }
 
   /// Fixed bottom bar with Chat and Like buttons
@@ -258,45 +436,13 @@ class PublicProfileScreen extends ConsumerWidget {
           UserAvatar(size: 120, photoUrl: user.foto, name: displayName),
           const SizedBox(height: AppSpacing.s16),
 
-          // Display Name
+          // Display Name (artistic name / band name / studio name)
           Text(
             displayName,
             style: AppTypography.headlineMedium.copyWith(
               fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.center,
-          ),
-
-          // Real name (if different from display name)
-          if (displayName != user.nome &&
-              user.nome != null &&
-              user.nome!.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.s4),
-            Text(
-              user.nome!,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-
-          const SizedBox(height: AppSpacing.s8),
-
-          // Profile Type Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              user.tipoPerfil?.label.toUpperCase() ?? 'PROFISSIONAL',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.brandPrimary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
           ),
 
           // Subcategories with Icons (for professionals)
