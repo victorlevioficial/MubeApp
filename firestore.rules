@@ -3,14 +3,27 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // ================================================================
+    // CONFIG - Configurações do App (Gêneros, Instrumentos, etc)
+    // ================================================================
+    match /config/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // ================================================================
     // USERS - Perfis de Usuários
     // ================================================================
     match /users/{userId} {
       // Qualquer autenticado pode ler perfis
       allow read: if request.auth != null;
       
-      // Apenas o próprio usuário pode criar e deletar seu doc
-      allow create, delete: if request.auth != null && request.auth.uid == userId;
+      // PERMISSÃO DE SEEDING: Allow create if authenticated (removed uid check for create only)
+      allow create: if request.auth != null;
+      
+      // Delete: owner OR seeded users (for dev cleanup - email ends with @seeded.mube.app)
+      // ⚠️ DEV ONLY: Remove the seeded check for production!
+      allow delete: if request.auth != null && 
+        (request.auth.uid == userId || 
+         resource.data.email.matches('.*@seeded[.]mube[.]app$'));
 
       // Update: próprio usuário, likeCount, ou members (para entrar em banda)
       allow update: if request.auth != null && 
@@ -32,6 +45,23 @@ service cloud.firestore {
       match /conversationPreviews/{conversationId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+
+      // ================================================================
+      // INTERACTIONS - Likes/Dislikes (MatchPoint)
+      // ================================================================
+      match /interactions/{interactionId} {
+         // Owner can read/write their own interactions
+         // The 'interactionId' is the ID of the person interacted with.
+         // If I am User A, and I like User B, the doc is users/A/interactions/B.
+         //   - I (User A) need read/write access. (Covered by request.auth.uid == userId)
+         
+         // Mutual Match Check:
+         // If User B wants to know if User A liked them, User B checks users/A/interactions/B.
+         //   - User B (interactionId) needs READ access to users/A/interactions/B.
+         allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == interactionId);
+         allow write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // ================================================================
@@ -41,11 +71,9 @@ service cloud.firestore {
       // Permite ler/escrever se o UID do usuário estiver na lista de participantes
       allow read, write: if request.auth != null && 
         (resource == null || request.auth.uid in resource.data.participants);
-        
+      
       match /messages/{messageId} {
-        // Permite ler/escrever na subcoleção se tiver acesso ao pai (conversa)
-        // Como 'conversations' já filtra por participante, aqui podemos apenas checar Auth
-        // ou validar novamente via get() no pai, mas por simplicidade e custo:
+        // Permite ler/escrever mensagens se tiver acesso à conversa pai
         allow read, write: if request.auth != null; 
       }
     }

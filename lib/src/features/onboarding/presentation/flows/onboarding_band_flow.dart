@@ -11,7 +11,8 @@ import '../../../../common_widgets/onboarding_section_card.dart';
 import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
 import '../../../../common_widgets/secondary_button.dart';
-import '../../../../constants/app_constants.dart';
+import '../../../../core/domain/app_config.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
@@ -91,11 +92,29 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   }
 
   void _finishOnboarding() {
+    // Get AppConfig for ID mapping
+    final appConfigAsync = ref.read(appConfigProvider);
+    final appConfig = appConfigAsync.value;
+
+    List<String> genreIds = _selectedGenres;
+
+    if (appConfig != null) {
+      // Map Labels to IDs
+      genreIds = _selectedGenres.map((label) {
+        return appConfig.genres
+            .firstWhere(
+              (g) => g.label == label,
+              orElse: () => ConfigItem(id: label, label: label, order: 0),
+            )
+            .id;
+      }).toList();
+    }
+
     // Prepare Data
     // Band specific data
     final Map<String, dynamic> bandData = {
       'nome': _nomeController.text.trim(),
-      'generosMusicais': _selectedGenres,
+      'generosMusicais': genreIds,
       'statusBanda': 'draft', // Critical requirement
       'adminUid': widget.user.uid,
       'integrantes': [widget.user.uid], // Admin is the first member
@@ -259,7 +278,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Gêneros Musicais',
-                      items: genres,
+                      items: ref.read(genreLabelsProvider),
                       selectedItems: _selectedGenres,
                       allowMultiple: true,
                     ),

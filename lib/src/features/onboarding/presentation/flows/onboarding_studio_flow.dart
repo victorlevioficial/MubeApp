@@ -13,6 +13,8 @@ import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
 import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
+import '../../../../core/domain/app_config.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
@@ -127,12 +129,29 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
   }
 
   void _finishOnboarding() {
+    // Get AppConfig for ID mapping
+    final appConfigAsync = ref.read(appConfigProvider);
+    final appConfig = appConfigAsync.value;
+
+    List<String> serviceIds = _selectedServices;
+
+    if (appConfig != null) {
+      serviceIds = _selectedServices.map<String>((label) {
+        return appConfig.studioServices
+            .firstWhere(
+              (s) => s.label == label,
+              orElse: () => ConfigItem(id: label, label: label, order: 0),
+            )
+            .id;
+      }).toList();
+    }
+
     // Prepare Data
     final Map<String, dynamic> studioData = {
       'nomeArtistico': _nomeController.text, // Studio Name
       'celular': _celularController.text,
       'studioType': _studioType,
-      'services': _selectedServices,
+      'services': serviceIds,
       'isPublic': true,
       // 'categorias': ['studio'], // Optionally add a category if 'studio' isn't just the user type
     };
@@ -333,35 +352,12 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
   }
 
   Widget _buildStep2UI() {
+    // Use provider for consistency with AppConfig
+    final availableServices = ref.watch(studioServiceLabelsProvider);
+
     return Column(
       children: [
         /* Title removed as it is now part of the card */
-        /* Text(
-          'Serviços',
-          style: AppTypography.headlineMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpacing.s8),
-        Text(
-          'O que você oferece?',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpacing.s32), */
-
-        // Wait, the user wants the "Card" to wrap the selection.
-        // In Professional flow, the card has a title "Cantor(a)" and the child is the dropdown/selection.
-        // Here, the title "Serviços" and subtitle "O que você oferece?" act as the page header.
-        // The card should probably wrap the "Selecionar Serviços" button and the chips.
-        // Or should the whole thing be the card?
-        // Looking at Professional flow image: "Detalhes Técnicos" is the page header. "Cantor(a)" is the card title.
-        // So here: "Serviços" should be the page header. "O que você oferece?" subtitle.
-        // And the card should be... maybe "Serviços Oferecidos"? Or just reuse "Serviços"?
-        // Let's look at the Band one: "Dados da Banda" is header. "Gêneros Musicais" looks like a section title that should be a card title.
-
-        // So for Studio:
         Text(
           'Serviços',
           style: AppTypography.headlineLarge,
@@ -394,7 +390,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                     backgroundColor: Colors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Serviços do Estúdio',
-                      items: studioServices,
+                      items: availableServices.isNotEmpty
+                          ? availableServices
+                          : studioServices, // Fallback to constant if provider empty
                       selectedItems: _selectedServices,
                       allowMultiple: true,
                     ),

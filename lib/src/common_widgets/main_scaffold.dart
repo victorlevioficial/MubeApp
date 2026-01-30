@@ -50,6 +50,17 @@ class MainScaffold extends StatelessWidget {
           ),
           NavigationDestination(
             icon: Icon(
+              Icons.bolt_outlined,
+              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            ),
+            selectedIcon: const Icon(
+              Icons.bolt_rounded,
+              color: AppColors.semanticAction,
+            ),
+            label: 'MatchPoint',
+          ),
+          NavigationDestination(
+            icon: Icon(
               Icons.chat_bubble_outline,
               color: AppColors.textPrimary.withValues(alpha: 0.6),
             ),

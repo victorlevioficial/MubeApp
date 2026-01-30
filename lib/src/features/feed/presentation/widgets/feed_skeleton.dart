@@ -110,8 +110,8 @@ class FeedScreenSkeleton extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: 3,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (_, __) => Shimmer.fromColors(
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) => Shimmer.fromColors(
               baseColor: AppColors.skeletonBase,
               highlightColor: AppColors.skeletonHighlight.withValues(
                 alpha: 0.5,
@@ -139,7 +139,7 @@ class FeedScreenSkeleton extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: 5,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (_, index) {
           // Simulate variable widths like "Todos", "Músicos", "Perto de mim"
           final width = [60.0, 90.0, 70.0, 100.0, 80.0][index % 5];

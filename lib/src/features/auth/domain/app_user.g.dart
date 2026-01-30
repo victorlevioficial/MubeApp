@@ -32,6 +32,7 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
       (json['members'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
   createdAt: json['created_at'],
+  matchpointProfile: json['matchpoint_profile'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
@@ -54,6 +55,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'favorites_count': instance.favoritesCount,
   'members': instance.members,
   'created_at': instance.createdAt,
+  'matchpoint_profile': instance.matchpointProfile,
 };
 
 const _$AppUserTypeEnumMap = {

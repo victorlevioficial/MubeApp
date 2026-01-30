@@ -47,6 +47,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   final _dataNascimentoController = TextEditingController();
   final _generoController = TextEditingController();
   final _instagramController = TextEditingController();
+  final _bioController = TextEditingController();
 
   final _celularMask = MaskTextInputFormatter(
     mask: '(##) #####-####',
@@ -102,6 +103,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _dataNascimentoController.dispose();
     _generoController.dispose();
     _instagramController.dispose();
+    _bioController.dispose();
     _mediaPickerService.dispose();
     super.dispose();
   }
@@ -140,6 +142,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     if (user.foto != null && user.foto!.isNotEmpty) {
       precacheImage(CachedNetworkImageProvider(user.foto!), context);
     }
+
+    _bioController.text = user.bio ?? '';
 
     // Initialize type-specific data
     switch (user.tipoPerfil) {
@@ -434,7 +438,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
-    final Map<String, dynamic> updates = {'nome': _nomeController.text.trim()};
+    final Map<String, dynamic> updates = {
+      'nome': _nomeController.text.trim(),
+      'bio': _bioController.text.trim(),
+    };
 
     switch (user.tipoPerfil) {
       case AppUserType.professional:
@@ -718,6 +725,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ],
             // --- NAME FIELDS SECTION END ---
             const SizedBox(height: AppSpacing.s16),
+
+            // Bio Field (Professional, Band, Studio)
+            if (user.tipoPerfil == AppUserType.professional ||
+                user.tipoPerfil == AppUserType.band ||
+                user.tipoPerfil == AppUserType.studio) ...[
+              AppTextField(
+                controller: _bioController,
+                label: 'Biografia',
+                hint: user.tipoPerfil == AppUserType.band
+                    ? 'Conte um pouco sobre a banda...'
+                    : user.tipoPerfil == AppUserType.studio
+                    ? 'Conte um pouco sobre o estúdio...'
+                    : 'Conte um pouco sobre você...',
+                minLines: 3,
+                maxLines: 5,
+                maxLength: 500,
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) => _markChanged(),
+              ),
+              const SizedBox(height: AppSpacing.s16),
+            ],
 
             // Type-specific fields
             if (user.tipoPerfil == AppUserType.professional)

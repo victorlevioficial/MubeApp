@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../common_widgets/app_filter_chip.dart';
 import '../../../../common_widgets/app_selection_modal.dart';
 import '../../../../common_widgets/secondary_button.dart';
-import '../../../../constants/app_constants.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 
-class BandFormFields extends StatefulWidget {
+class BandFormFields extends ConsumerStatefulWidget {
   final List<String> selectedGenres;
   final VoidCallback onStateChanged;
 
@@ -19,17 +20,21 @@ class BandFormFields extends StatefulWidget {
   });
 
   @override
-  State<BandFormFields> createState() => _BandFormFieldsState();
+  ConsumerState<BandFormFields> createState() => _BandFormFieldsState();
 }
 
-class _BandFormFieldsState extends State<BandFormFields> {
+class _BandFormFieldsState extends ConsumerState<BandFormFields> {
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: AppSpacing.s16),
-        _buildTagSelector('Gêneros Musicais', genres, widget.selectedGenres),
+        _buildTagSelector(
+          'Gêneros Musicais',
+          ref.watch(genreLabelsProvider),
+          widget.selectedGenres,
+        ),
       ],
     );
   }

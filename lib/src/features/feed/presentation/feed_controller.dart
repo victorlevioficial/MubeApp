@@ -276,16 +276,13 @@ class FeedController extends _$FeedController {
     for (final item in items) {
       final photoUrl = item.foto;
       if (photoUrl != null && photoUrl.isNotEmpty) {
-        try {
-          // Fire and forget - download to cache
-          DefaultCacheManager().downloadFile(photoUrl).catchError((e) {
-            // Ignore errors silently - preloading failure shouldn't crash app
-            debugPrint('Preload error for $photoUrl: $e');
-            return null; // Return value doesn't matter for fire-and-forget
-          });
-        } catch (e) {
-          // Extra safety
-        }
+        // Fire and forget - download to cache, ignore any errors
+        DefaultCacheManager().downloadFile(photoUrl).then((_) {}).catchError((
+          e,
+        ) {
+          // Ignore errors silently - preloading failure shouldn't crash app
+          debugPrint('Preload error for $photoUrl: $e');
+        });
       }
     }
   }

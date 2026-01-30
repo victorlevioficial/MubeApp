@@ -16,6 +16,8 @@ import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
+import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
+import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
@@ -134,6 +136,18 @@ List<RouteBase> _buildRoutes(Ref ref) {
               pageBuilder: (context, state) => NoTransitionPage(
                 key: state.pageKey,
                 child: const SearchScreen(),
+              ),
+            ),
+          ],
+        ),
+        // MatchPoint tab
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RoutePaths.matchpoint,
+              pageBuilder: (context, state) => NoTransitionPage(
+                key: state.pageKey,
+                child: const MatchpointWrapperScreen(),
               ),
             ),
           ],
@@ -279,6 +293,14 @@ List<RouteBase> _buildRoutes(Ref ref) {
       path: RoutePaths.favorites,
       pageBuilder: (context, state) =>
           NoTransitionPage(key: state.pageKey, child: const FavoritesScreen()),
+    ),
+    // MatchPoint Wizard
+    GoRoute(
+      path: RoutePaths.matchpointWizard,
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const MatchpointSetupWizardScreen(),
+      ),
     ),
   ];
 }

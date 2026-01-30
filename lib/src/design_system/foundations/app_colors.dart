@@ -12,8 +12,10 @@ class AppColors {
   static const Color _gradientEnd = Color(0xFF990033);
 
   static const Color _bgDeep = Color(0xFF0A0A0A); // Deepest Black
-  static const Color _bgSurface = Color(0xFF18181B); // Zinc 900
-  static const Color _bgHighlight = Color(0xFF27272A); // Zinc 800
+  static const Color _bgSurface = Color(0xFF0E0E10); // Zinc 900
+  static const Color _bgHighlight = Color(0xFF242428); // Zinc 800
+  static const Color _bgChipSkill = Color(0xFF1A1A1D); // L20
+  static const Color _bgChipGenre = Color(0xFF242428); // L40
 
   static const Color _textWhite = Color(0xFFFFFFFF);
   static const Color _textGray = Color(0xFFA1A1AA); // Zinc 400
@@ -23,6 +25,15 @@ class AppColors {
   static const Color _success = Color(0xFF22C55E); // Green 500
   static const Color _info = Color(0xFF3B82F6); // Blue 500
   static const Color _warning = Color(0xFFF59E0B); // Amber 500
+
+  // Profile Type Badge Colors
+  static const Color _badgeFuchsia = Color(
+    0xFFC026D3,
+  ); // Fuchsia/Purple for Bands
+  static const Color _badgeRed = Color(0xFFDC2626); // Red for Studios
+  static const Color _badgeChipBg = Color(
+    0xFF1F1F23,
+  ); // Dark gray for badge chip
 
   // ---------------------------------------------------------------------------
   // Semantic Tokens (Public)
@@ -42,6 +53,9 @@ class AppColors {
   static const Color background = _bgDeep;
   static const Color surface = _bgSurface;
   static const Color surfaceHighlight = _bgHighlight;
+  // Specific Hierarchy
+  static const Color chipSkill = _bgChipSkill;
+  static const Color chipGenre = _bgChipGenre;
 
   // Text
   static const Color textPrimary = _textWhite;
@@ -63,6 +77,13 @@ class AppColors {
   static const Color success = _success;
   static const Color info = _info;
   static const Color warning = _warning;
+
+  // Profile Type Badge
+  static const Color badgeMusician =
+      brandPrimary; // Pink for Musicians/Professionals
+  static const Color badgeBand = _badgeFuchsia; // Fuchsia for Bands
+  static const Color badgeStudio = _badgeRed; // Red for Studios
+  static const Color badgeChipBackground = _badgeChipBg; // Dark gray chip bg
 
   // Skeletons
   // Skeletons

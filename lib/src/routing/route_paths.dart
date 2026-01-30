@@ -18,6 +18,8 @@ abstract final class RoutePaths {
   static const String editAddress = '/settings/address';
   static const String maintenance = '/settings/maintenance';
   static const String favorites = '/favorites';
+  static const String matchpoint = '/matchpoint';
+  static const String matchpointWizard = '/matchpoint/wizard';
 
   // Dev routes
   static const String gallery = '/gallery';

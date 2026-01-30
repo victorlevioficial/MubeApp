@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../auth/data/auth_repository.dart';
@@ -69,7 +70,6 @@ class FavoriteController extends _$FavoriteController {
     // Aqui fazemos uma aproximação: usamos o initialCount vindo do feed
     // E aplicamos o delta local (se eu dei like mas não tava, +1).
 
-    final isLocallyLiked = isLiked(targetId);
     // Precisaríamos saber se o initialCount JÁ incluía meu like ou não.
     // Assumindo que initialCount veio do servidor e reflete o estado no momento do fetch.
     // Se initialCount diz que tem 10 likes, e eu NÃO tinha dado like no server,

@@ -31,7 +31,7 @@ dependencies:
   geolocator: ^14.0.2
   
   # Utilities
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.4
   mask_text_input_formatter: ^2.9.0
   http: ^1.6.0
   font_awesome_flutter: ^10.12.0
@@ -57,6 +57,9 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   # cloud_functions: ^6.0.6
   timeago: ^3.7.1
+  flutter_card_swiper: ^7.2.0
+  google_nav_bar: 5.0.7
+  faker: ^2.2.0
   # bitsdojo_window (Desktop only if needed, removed for mobile MVP)
 
 
@@ -70,10 +73,10 @@ dev_dependencies:
   mockito: ^5.4.5
   
   # Generators
-  build_runner: ^2.4.8
+  build_runner: ^2.10.5
   riverpod_generator: ^3.0.3
   freezed: ^3.2.3
-  json_serializable: ^6.7.1
+  json_serializable: ^6.11.2
   
   # Lints
   flutter_lints: ^6.0.0

@@ -16,6 +16,8 @@ import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/responsive_center.dart';
 import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
+import '../../../../core/domain/app_config.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_radius.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
@@ -206,6 +208,44 @@ class _OnboardingProfessionalFlowState
   }
 
   void _finishOnboarding() {
+    // Get AppConfig for ID mapping
+    final appConfigAsync = ref.read(appConfigProvider);
+    final appConfig = appConfigAsync.value;
+
+    List<String> genreIds = _selectedGenres;
+    List<String> instrumentIds = _selectedInstruments;
+    List<String> roleIds = _selectedRoles;
+
+    if (appConfig != null) {
+      // Map Labels to IDs
+      genreIds = _selectedGenres.map((label) {
+        return appConfig.genres
+            .firstWhere(
+              (g) => g.label == label,
+              orElse: () => ConfigItem(id: label, label: label, order: 0),
+            )
+            .id;
+      }).toList();
+
+      instrumentIds = _selectedInstruments.map((label) {
+        return appConfig.instruments
+            .firstWhere(
+              (i) => i.label == label,
+              orElse: () => ConfigItem(id: label, label: label, order: 0),
+            )
+            .id;
+      }).toList();
+
+      roleIds = _selectedRoles.map((label) {
+        return appConfig.crewRoles
+            .firstWhere(
+              (r) => r.label == label,
+              orElse: () => ConfigItem(id: label, label: label, order: 0),
+            )
+            .id;
+      }).toList();
+    }
+
     // Prepare Data based on selections
     final Map<String, dynamic> professionalData = {
       'nomeArtistico': _nomeArtisticoController.text,
@@ -214,7 +254,7 @@ class _OnboardingProfessionalFlowState
       'genero': _generoController.text,
       'instagram': _instagramController.text,
       'categorias': _selectedCategories,
-      'generosMusicais': _selectedGenres,
+      'generosMusicais': genreIds,
       'isPublic': true, // Professionals are public
     };
 
@@ -223,12 +263,12 @@ class _OnboardingProfessionalFlowState
     }
 
     if (_selectedCategories.contains('instrumentalist')) {
-      professionalData['instrumentos'] = _selectedInstruments;
+      professionalData['instrumentos'] = instrumentIds;
       professionalData['fazBackingVocal'] = _instrumentalistBackingVocal;
     }
 
     if (_selectedCategories.contains('crew')) {
-      professionalData['funcoes'] = _selectedRoles;
+      professionalData['funcoes'] = roleIds;
     }
 
     // Get Address from Provider (it was updated by Step 4)
@@ -556,7 +596,7 @@ class _OnboardingProfessionalFlowState
               children: [
                 _buildTagSelector(
                   'Quais instrumentos você toca?',
-                  instruments,
+                  ref.watch(instrumentLabelsProvider),
                   _selectedInstruments,
                 ),
                 const SizedBox(height: AppSpacing.s16),
@@ -584,7 +624,7 @@ class _OnboardingProfessionalFlowState
             title: 'Equipe Técnica',
             child: _buildTagSelector(
               'Quais suas funções?',
-              crewRoles,
+              ref.watch(crewRoleLabelsProvider),
               _selectedRoles,
             ),
           ),
@@ -593,7 +633,7 @@ class _OnboardingProfessionalFlowState
           title: 'Gêneros Musicais',
           child: _buildTagSelector(
             'Com quais gêneros você trabalha?',
-            genres,
+            ref.watch(genreLabelsProvider),
             _selectedGenres,
           ),
         ),

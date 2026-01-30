@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../common_widgets/app_date_picker_field.dart';
@@ -8,11 +9,12 @@ import '../../../../common_widgets/app_selection_modal.dart';
 import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 
-class ProfessionalFormFields extends StatefulWidget {
+class ProfessionalFormFields extends ConsumerStatefulWidget {
   final TextEditingController nomeArtisticoController;
   final TextEditingController celularController;
   final TextEditingController dataNascimentoController;
@@ -53,10 +55,12 @@ class ProfessionalFormFields extends StatefulWidget {
   });
 
   @override
-  State<ProfessionalFormFields> createState() => _ProfessionalFormFieldsState();
+  ConsumerState<ProfessionalFormFields> createState() =>
+      _ProfessionalFormFieldsState();
 }
 
-class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
+class _ProfessionalFormFieldsState
+    extends ConsumerState<ProfessionalFormFields> {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -154,7 +158,7 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
           const SizedBox(height: AppSpacing.s24),
           _buildTagSelector(
             'Instrumentos',
-            instruments,
+            ref.watch(instrumentLabelsProvider),
             widget.selectedInstruments,
           ),
           const SizedBox(height: AppSpacing.s16),
@@ -201,13 +205,17 @@ class _ProfessionalFormFieldsState extends State<ProfessionalFormFields> {
           const SizedBox(height: AppSpacing.s24),
           _buildTagSelector(
             'Funções Técnicas',
-            crewRoles,
+            ref.watch(crewRoleLabelsProvider),
             widget.selectedRoles,
           ),
         ],
 
         const SizedBox(height: AppSpacing.s24),
-        _buildTagSelector('Gêneros Musicais', genres, widget.selectedGenres),
+        _buildTagSelector(
+          'Gêneros Musicais',
+          ref.watch(genreLabelsProvider),
+          widget.selectedGenres,
+        ),
       ],
     );
   }

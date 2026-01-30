@@ -89,6 +89,11 @@ abstract class AppUser with _$AppUser {
 
     /// Document creation timestamp.
     @JsonKey(name: 'created_at') dynamic createdAt,
+
+    /// MatchPoint configuration data.
+    /// Contains: is_active, intent, genres, hashtags, target_roles, search_radius.
+    @JsonKey(name: 'matchpoint_profile')
+    Map<String, dynamic>? matchpointProfile,
   }) = _AppUser;
 
   /// Creates an [AppUser] from a Firestore document JSON.

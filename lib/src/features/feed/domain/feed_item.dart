@@ -34,6 +34,22 @@ sealed class FeedItem with _$FeedItem {
     return '${distanceKm!.round()} km';
   }
 
+  /// Formatted genres (converts snake_case IDs to readable labels)
+  List<String> get formattedGenres =>
+      generosMusicais.map(_formatGenreLabel).toList();
+
+  /// Converts a genre ID (snake_case) to a readable label
+  static String _formatGenreLabel(String genreId) {
+    // Replace underscores with spaces and capitalize each word
+    return genreId
+        .split('_')
+        .map(
+          (word) =>
+              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
+        )
+        .join(' ');
+  }
+
   factory FeedItem.fromFirestore(Map<String, dynamic> data, String docId) {
     // Extract nested data based on profile type
     final profData = data['profissional'] as Map<String, dynamic>? ?? {};

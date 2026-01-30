@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,10 +91,6 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
             return const Center(child: Text('Usuário não encontrado'));
           }
 
-          final dadosBanda = user.dadosBanda ?? {};
-          final membros =
-              (dadosBanda['membros_preview'] as List<dynamic>?) ?? [];
-
           return SingleChildScrollView(
             padding: AppSpacing.all16,
             child: Column(
@@ -143,9 +141,10 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: user.members.length,
-                          separatorBuilder: (_, __) =>
+                          separatorBuilder: (context, index) =>
                               const SizedBox(height: AppSpacing.s12),
-                          itemBuilder: (_, __) => const _MemberSkeleton(),
+                          itemBuilder: (context, index) =>
+                              const _MemberSkeleton(),
                         ),
                         error: (err, st) =>
                             Text('Erro ao carregar membros: $err'),
@@ -161,8 +160,9 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
         loading: () => ListView.separated(
           padding: AppSpacing.all16,
           itemCount: 3,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.s12),
-          itemBuilder: (_, __) => const _MemberSkeleton(),
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSpacing.s12),
+          itemBuilder: (context, index) => const _MemberSkeleton(),
         ),
         error: (err, _) => Center(child: Text('Erro: $err')),
       ),
@@ -460,7 +460,7 @@ class _MemberCard extends ConsumerWidget {
             ),
             onSelected: (value) async {
               if (value == 'profile') {
-                context.push('/user/${member.uid}');
+                unawaited(context.push('/user/${member.uid}'));
               } else if (value == 'remove') {
                 await _confirmRemoveMember(
                   context,
@@ -737,9 +737,9 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
                   ? ListView.separated(
                       padding: EdgeInsets.zero,
                       itemCount: 4,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (context, index) =>
                           const SizedBox(height: AppSpacing.s12),
-                      itemBuilder: (_, __) => const _MemberSkeleton(),
+                      itemBuilder: (context, index) => const _MemberSkeleton(),
                     )
                   : _results.isEmpty
                   ? Center(
@@ -766,7 +766,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
                   : ListView.separated(
                       padding: EdgeInsets.zero,
                       itemCount: _results.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (context, index) =>
                           const SizedBox(height: AppSpacing.s8),
                       itemBuilder: (context, index) {
                         return _buildResultItem(_results[index], pendingUids);

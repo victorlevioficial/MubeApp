@@ -146,8 +146,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 ? ListView.separated(
                     padding: EdgeInsets.zero,
                     itemCount: 6, // Show 6 skeletons
-                    separatorBuilder: (_, __) => const SizedBox.shrink(),
-                    itemBuilder: (_, __) => const FeedItemSkeleton(),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox.shrink(),
+                    itemBuilder: (context, index) => const FeedItemSkeleton(),
                   )
                 : _error != null
                 ? Center(

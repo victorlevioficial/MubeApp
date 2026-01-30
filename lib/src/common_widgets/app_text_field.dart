@@ -19,6 +19,9 @@ class AppTextField extends StatelessWidget {
   final bool readOnly;
   final bool canRequestFocus;
   final Key? fieldKey; // Key for the actual TextFormField
+  final int? minLines;
+  final int? maxLines;
+  final int? maxLength;
 
   const AppTextField({
     super.key,
@@ -37,7 +40,16 @@ class AppTextField extends StatelessWidget {
     this.readOnly = false,
     this.canRequestFocus = true,
     this.fieldKey,
+
+    this.onSubmitted,
+    this.textInputAction,
+    this.minLines,
+    this.maxLines = 1,
+    this.maxLength,
   });
+
+  final ValueChanged<String>? onSubmitted;
+  final TextInputAction? textInputAction;
 
   @override
   Widget build(BuildContext context) {
@@ -66,12 +78,17 @@ class AppTextField extends StatelessWidget {
             canRequestFocus: canRequestFocus,
             obscureText: obscureText,
             keyboardType: keyboardType,
+            minLines: minLines,
+            maxLines: obscureText ? 1 : maxLines,
+            maxLength: maxLength,
             textCapitalization: textCapitalization,
             inputFormatters: inputFormatters,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
             ),
             validator: validator,
+            onFieldSubmitted: onSubmitted,
+            textInputAction: textInputAction,
             cursorColor: Theme.of(context).colorScheme.primary,
             decoration: InputDecoration(
               hintText: hint,

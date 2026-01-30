@@ -303,7 +303,7 @@ class InvitesScreen extends ConsumerWidget {
     );
   }
 
-  void _respond(
+  Future<void> _respond(
     BuildContext context,
     WidgetRef ref,
     String inviteId,
@@ -313,12 +313,16 @@ class InvitesScreen extends ConsumerWidget {
       await ref
           .read(invitesRepositoryProvider)
           .respondToInvite(inviteId: inviteId, accept: accept);
-      AppSnackBar.success(
-        context,
-        accept ? 'Bem-vindo à banda!' : 'Convite recusado.',
-      );
+      if (context.mounted) {
+        AppSnackBar.success(
+          context,
+          accept ? 'Bem-vindo à banda!' : 'Convite recusado.',
+        );
+      }
     } catch (e) {
-      AppSnackBar.show(context, e.toString(), isError: true);
+      if (context.mounted) {
+        AppSnackBar.show(context, e.toString(), isError: true);
+      }
     }
   }
 

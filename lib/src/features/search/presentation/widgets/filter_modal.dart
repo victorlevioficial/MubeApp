@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../common_widgets/app_filter_chip.dart';
 import '../../../../common_widgets/mube_filter_chip.dart';
 import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/secondary_button.dart';
-import '../../../../constants/app_constants.dart';
+import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
 import '../../domain/search_filters.dart';
 
 /// Modal for advanced filter options.
-class FilterModal extends StatefulWidget {
+class FilterModal extends ConsumerStatefulWidget {
   final SearchFilters filters;
   final ValueChanged<SearchFilters> onApply;
 
   const FilterModal({super.key, required this.filters, required this.onApply});
 
   @override
-  State<FilterModal> createState() => _FilterModalState();
+  ConsumerState<FilterModal> createState() => _FilterModalState();
 }
 
-class _FilterModalState extends State<FilterModal> {
+class _FilterModalState extends ConsumerState<FilterModal> {
   late List<String> _selectedGenres;
   late List<String> _selectedInstruments;
   late List<String> _selectedRoles;
@@ -96,7 +97,7 @@ class _FilterModalState extends State<FilterModal> {
                   // Genres
                   _buildSection(
                     title: 'Gêneros Musicais',
-                    options: genres,
+                    options: ref.watch(genreLabelsProvider),
                     selected: _selectedGenres,
                     onChanged: (v) => setState(() => _selectedGenres = v),
                   ),
@@ -107,7 +108,7 @@ class _FilterModalState extends State<FilterModal> {
                   if (widget.filters.category == SearchCategory.professionals)
                     _buildSection(
                       title: 'Instrumentos',
-                      options: instruments,
+                      options: ref.watch(instrumentLabelsProvider),
                       selected: _selectedInstruments,
                       onChanged: (v) =>
                           setState(() => _selectedInstruments = v),
@@ -120,7 +121,7 @@ class _FilterModalState extends State<FilterModal> {
                   if (widget.filters.category == SearchCategory.professionals)
                     _buildSection(
                       title: 'Funções (Crew)',
-                      options: crewRoles,
+                      options: ref.watch(crewRoleLabelsProvider),
                       selected: _selectedRoles,
                       onChanged: (v) => setState(() => _selectedRoles = v),
                     ),
@@ -129,7 +130,7 @@ class _FilterModalState extends State<FilterModal> {
                   if (widget.filters.category == SearchCategory.studios)
                     _buildSection(
                       title: 'Serviços',
-                      options: studioServices,
+                      options: ref.watch(studioServiceLabelsProvider),
                       selected: _selectedServices,
                       onChanged: (v) => setState(() => _selectedServices = v),
                     ),

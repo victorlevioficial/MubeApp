@@ -1,6 +1,8 @@
 class FirestoreCollections {
   static const String users = 'users';
   static const String deletedUsers = 'deleted_users';
+  static const String matches = 'matches';
+  static const String interactions = 'interactions';
 }
 
 class FirestoreFields {
@@ -28,6 +30,18 @@ class FirestoreFields {
   static const String artisticName = 'nomeArtistico';
   static const String bandName = 'nomeBanda';
   static const String services = 'services';
+
+  // MatchPoint
+  static const String matchpointProfile = 'matchpoint_profile';
+  static const String isActive = 'is_active';
+  static const String intent = 'intent';
+  static const String hashtags = 'hashtags';
+  static const String targetRoles = 'target_roles';
+  static const String searchRadius = 'search_radius';
+  static const String type = 'type';
+  static const String timestamp = 'timestamp';
+  static const String targetId = 'targetId';
+  static const String fromId = 'fromId';
 }
 
 class RegistrationStatus {

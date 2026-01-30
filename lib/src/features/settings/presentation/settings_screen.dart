@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/mube_app_bar.dart';
+import '../../../core/data/app_seeder.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_typography.dart';
 import '../../../design_system/showcase/design_system_showcase_screen.dart';
@@ -135,6 +136,27 @@ class SettingsScreen extends ConsumerWidget {
                     },
                     customAccentColor: Colors.pink,
                   ),
+                  NeonSettingsTile(
+                    icon: Icons.groups_outlined,
+                    title: 'Popular Banco (MatchPoint)',
+                    subtitle: 'Gerar 150 perfis diversos',
+                    onTap: () => _seedDatabase(context, ref),
+                    customAccentColor: Colors.greenAccent,
+                  ),
+                  NeonSettingsTile(
+                    icon: Icons.settings_input_component,
+                    title: 'Seed App Config',
+                    subtitle: 'Resetar listas (Gêneros/Inst.)',
+                    onTap: () => _seedAppConfig(context, ref),
+                    customAccentColor: Colors.cyanAccent,
+                  ),
+                  NeonSettingsTile(
+                    icon: Icons.delete_sweep_outlined,
+                    title: 'Limpar Perfis Fake',
+                    subtitle: 'Deletar usuários do seeder',
+                    onTap: () => _deleteSeededUsers(context, ref),
+                    customAccentColor: Colors.redAccent,
+                  ),
                 ],
               ),
 
@@ -231,6 +253,68 @@ class SettingsScreen extends ConsumerWidget {
       } catch (e) {
         if (context.mounted) {
           AppSnackBar.error(context, 'Erro: $e');
+        }
+      }
+    }
+  }
+
+  void _seedDatabase(BuildContext context, WidgetRef ref) async {
+    AppSnackBar.info(context, 'Iniciando população do banco...');
+
+    try {
+      final seeder = ref.read(appSeederProvider);
+      final count = await seeder.seedUsers(count: 150);
+      if (context.mounted) {
+        AppSnackBar.success(context, '✅ $count usuários criados!');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        AppSnackBar.error(context, 'Erro ao popular: $e');
+      }
+    }
+  }
+
+  void _seedAppConfig(BuildContext context, WidgetRef ref) async {
+    AppSnackBar.info(context, 'Gravando configurações...');
+
+    try {
+      await ref.read(appSeederProvider).seedAppConfig();
+      if (context.mounted) {
+        AppSnackBar.success(context, '✅ Configuração salva no Firestore!');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        AppSnackBar.error(context, 'Erro: $e');
+      }
+    }
+  }
+
+  void _deleteSeededUsers(BuildContext context, WidgetRef ref) async {
+    // Confirmation dialog
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => const AppConfirmationDialog(
+        title: 'Limpar Perfis Fake',
+        message:
+            'Isso vai deletar TODOS os perfis criados pelo seeder '
+            '(identificados pelo email @seeded.mube.app). Continuar?',
+        confirmText: 'Deletar',
+        isDestructive: true,
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      AppSnackBar.info(context, 'Deletando perfis fake...');
+
+      try {
+        final seeder = ref.read(appSeederProvider);
+        final count = await seeder.deleteSeededUsers();
+        if (context.mounted) {
+          AppSnackBar.success(context, '🗑️ $count perfis deletados!');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          AppSnackBar.error(context, 'Erro ao deletar: $e');
         }
       }
     }

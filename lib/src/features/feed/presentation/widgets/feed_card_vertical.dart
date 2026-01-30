@@ -7,9 +7,9 @@ import 'package:mube/src/design_system/foundations/app_typography.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 
 import '../../../../common_widgets/user_avatar.dart';
-import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../domain/feed_item.dart'; // Restored
+import 'profile_type_badge.dart';
 
 /// A vertical feed card that reactively updates its favorite status.
 class FeedCardVertical extends ConsumerStatefulWidget {
@@ -92,38 +92,63 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-
-                        const SizedBox(width: AppSpacing.s8),
-
-                        // Category Icons - immediately after name
-                        _buildCategoryIcons(),
+                        // Removed category icons - replaced by ProfileTypeBadge
+                        const SizedBox(
+                          width: AppSpacing.s8,
+                        ), // Space before like button
                       ],
                     ),
                     const SizedBox(height: AppSpacing.s6),
 
-                    // 2. Distance Info (CRITICAL FEATURE!)
-                    if (_hasLocationInfo)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s6),
-                        child: _buildInfoChip(),
+                    // 2. Distance Info + Profile Type Badge
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s6),
+                      child: Row(
+                        children: [
+                          if (_hasLocationInfo) ...[
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              widget.item.distanceText,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s8),
+                          ],
+                          ProfileTypeBadge(
+                            tipoPerfil: item.tipoPerfil,
+                            subCategories: item.subCategories,
+                          ),
+                        ],
                       ),
+                    ),
 
-                    // 3. Skills Chips (Solid gray background) - Single line
+                    // 3. Skills Chips (filled style) - Single line, sorted by length
                     if (item.skills.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s6),
                         child: _SingleLineChipList(
-                          items: item.skills,
+                          // Sort by length: shorter items first to maximize visible count
+                          items: List<String>.from(item.skills)
+                            ..sort((a, b) => a.length.compareTo(b.length)),
                           chipBuilder: _buildSkillChip,
                           overflowBuilder: (count) =>
                               _buildSkillChip('+$count'),
                         ),
                       ),
 
-                    // 4. Genres Chips (Solid primary color) - Single line
-                    if (item.generosMusicais.isNotEmpty)
+                    // 4. Genres Chips (outline style) - Single line, sorted by length
+                    if (item.formattedGenres.isNotEmpty)
                       _SingleLineChipList(
-                        items: item.generosMusicais,
+                        items: List<String>.from(item.formattedGenres)
+                          ..sort((a, b) => a.length.compareTo(b.length)),
                         chipBuilder: _buildGenreChip,
                         overflowBuilder: (count) => _buildGenreChip('+$count'),
                       ),
@@ -147,101 +172,53 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
     );
   }
 
-  /// Skill chip: elegant outline style with accent color border
-  /// Creates clear visual distinction from genre chips (solid gray)
+  /// Skill chip: filled style (using standardized chip background)
   Widget _buildSkillChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      constraints: const BoxConstraints(
+        maxWidth: 90,
+      ), // Prevent super wide chips
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: AppColors.chipSkill, // L20 (Darker)
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.surfaceHighlight, width: 1.2),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 10,
+          color: AppColors.textPrimary, // High contrast
+          fontSize: 9,
           fontWeight: FontWeight.w600,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
       ),
     );
   }
 
-  Widget _buildInfoChip() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Text(
-          widget.item.distanceText,
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryIcons() {
-    final icons = <Widget>[];
-    // Use Semantic Action (Pink Pastel) for icons to ensure visibility
-    const Color color = AppColors.semanticAction;
-
-    if (widget.item.tipoPerfil == 'profissional') {
-      for (final subCatId in widget.item.subCategories) {
-        final subCat = professionalCategories.firstWhere(
-          (c) => c['id'] == subCatId,
-          orElse: () => <String, dynamic>{},
-        );
-        if (subCat.containsKey('icon')) {
-          icons.add(
-            Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.s8),
-              child: Icon(subCat['icon'] as IconData, size: 14, color: color),
-            ),
-          );
-        }
-      }
-    } else if (widget.item.tipoPerfil == 'banda') {
-      icons.add(
-        const Padding(
-          padding: EdgeInsets.only(left: AppSpacing.s8),
-          child: Icon(Icons.people, size: 14, color: color),
-        ),
-      );
-    } else if (widget.item.tipoPerfil == 'estudio') {
-      icons.add(
-        const Padding(
-          padding: EdgeInsets.only(left: AppSpacing.s8),
-          child: Icon(Icons.headphones, size: 14, color: color),
-        ),
-      );
-    }
-
-    if (icons.isEmpty) return const SizedBox.shrink();
-
-    return Row(mainAxisSize: MainAxisSize.min, children: icons);
-  }
-
-  /// Genre chip: solid gray background for better legibility
+  /// Genre chip: filled style (standardized monochromatic look)
   Widget _buildGenreChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      constraints: const BoxConstraints(
+        maxWidth: 80,
+      ), // Prevent super wide chips
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHighlight,
+        color: AppColors.chipGenre, // L40 (Lighter)
         borderRadius: BorderRadius.circular(20),
+        // No border for cleaner look
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: 10,
+          color: AppColors.textPrimary, // High contrast
+          fontSize: 9,
           fontWeight: FontWeight.w500,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
       ),
     );
   }
@@ -270,8 +247,8 @@ class _SingleLineChipList extends StatelessWidget {
     // we use a specific Wrap-like logic or just a constrained ListView
     // The previous implementation was O(N^2) relative to layout passes.
 
-    // Simplification: display up to 3 items max for skills/genres, then +N.
-    // This is a pragmatic trade-off for scrolling performance.
+    // Simplification: display up to 3 items max for skills, then +N.
+    // With 3 items, shows 2 chips + "+1" overflow counter.
     const maxVisibleItems = 3;
 
     if (items.length <= maxVisibleItems) {

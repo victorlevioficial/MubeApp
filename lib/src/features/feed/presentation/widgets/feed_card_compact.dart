@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../common_widgets/user_avatar.dart';
-import '../../../../constants/app_constants.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
@@ -42,20 +41,33 @@ class FeedCardCompact extends StatelessWidget {
 
             const SizedBox(height: AppSpacing.s4),
 
-            // Location & Category Info (Vertical to prevent overflow)
-            Column(
+            // Location & Profile Type Icon (Same row to save space)
+            Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Location Info Chip
-                if (item.distanceText.isNotEmpty) _buildInfoChip(),
-
-                // Category Icons (Below location)
-                if (item.tipoPerfil == 'profissional' ||
-                    item.tipoPerfil == 'banda' ||
-                    item.tipoPerfil == 'estudio') ...[
-                  const SizedBox(height: AppSpacing.s4),
-                  _buildCategoryIcons(),
+                // Location Info
+                if (item.distanceText.isNotEmpty) ...[
+                  const Icon(
+                    Icons.location_on,
+                    size: 10,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    item.distanceText,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: AppSpacing.s6),
                 ],
+                // Profile Type Icon
+                _buildProfileTypeIcon(),
               ],
             ),
           ],
@@ -64,77 +76,28 @@ class FeedCardCompact extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s6,
-        vertical: AppSpacing.s2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.location_on,
-            size: 10,
-            color: AppColors.textSecondary,
-          ),
-          const SizedBox(width: AppSpacing.s2),
-          Text(
-            item.distanceText,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
+  /// Profile type icon with color based on type
+  Widget _buildProfileTypeIcon() {
+    IconData icon;
+    Color color;
 
-  Widget _buildCategoryIcons() {
-    final icons = <Widget>[];
-    const Color color = AppColors.semanticAction;
-
-    if (item.tipoPerfil == 'profissional') {
-      for (final subCatId in item.subCategories) {
-        final subCat = professionalCategories.firstWhere(
-          (c) => c['id'] == subCatId,
-          orElse: () => <String, dynamic>{},
-        );
-        if (subCat.containsKey('icon')) {
-          icons.add(
-            Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.s6),
-              child: Icon(subCat['icon'] as IconData, size: 12, color: color),
-            ),
-          );
-        }
-      }
-    } else if (item.tipoPerfil == 'banda') {
-      icons.add(
-        const Padding(
-          padding: EdgeInsets.only(left: AppSpacing.s6),
-          child: Icon(Icons.people, size: 12, color: color),
-        ),
-      );
-    } else if (item.tipoPerfil == 'estudio') {
-      icons.add(
-        const Padding(
-          padding: EdgeInsets.only(left: AppSpacing.s6),
-          child: Icon(Icons.headphones, size: 12, color: color),
-        ),
-      );
+    switch (item.tipoPerfil) {
+      case 'banda':
+        icon = Icons.groups;
+        color = AppColors.badgeBand;
+        break;
+      case 'estudio':
+        icon = Icons.headphones;
+        color = AppColors.badgeStudio;
+        break;
+      case 'profissional':
+      default:
+        // All professionals (musicians, vocalists, crew) get music note
+        icon = Icons.music_note;
+        color = AppColors.badgeMusician;
+        break;
     }
 
-    if (icons.isEmpty) return const SizedBox.shrink();
-
-    return Row(mainAxisSize: MainAxisSize.min, children: icons);
+    return Icon(icon, size: 16, color: color);
   }
 }
