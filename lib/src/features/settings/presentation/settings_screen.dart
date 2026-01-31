@@ -85,6 +85,13 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => AppSnackBar.info(context, 'Em breve!'),
                   customAccentColor: Colors.orangeAccent,
                 ),
+                NeonSettingsTile(
+                  icon: Icons.public,
+                  title: 'Privacidade e Visibilidade',
+                  subtitle: 'MatchPoint, Busca, Bloqueios',
+                  onTap: () => context.push(RoutePaths.privacySettings),
+                  customAccentColor: AppColors.semanticAction,
+                ),
               ],
             ),
 
@@ -121,6 +128,13 @@ class SettingsScreen extends ConsumerWidget {
                     title: 'Manutenção (Dev)',
                     onTap: () => context.push(RoutePaths.maintenance),
                     customAccentColor: Colors.white,
+                  ),
+                  NeonSettingsTile(
+                    icon: Icons.developer_mode,
+                    title: 'Developer Tools 🛠️',
+                    subtitle: 'Push Notifications, Logs, etc.',
+                    onTap: () => context.push('/developer-tools'),
+                    customAccentColor: Colors.amber,
                   ),
                   NeonSettingsTile(
                     icon: Icons.palette_outlined,

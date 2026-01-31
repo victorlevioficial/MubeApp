@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../common_widgets/app_loading.dart';
 import '../../../auth/data/auth_repository.dart';
 import 'matchpoint_intro_screen.dart';
 import 'matchpoint_tabs_screen.dart';
@@ -26,7 +27,7 @@ class MatchpointWrapperScreen extends ConsumerWidget {
           return const MatchpointIntroScreen();
         }
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: AppLoading.medium()),
       error: (err, stack) => Center(child: Text('Erro: $err')),
     );
   }

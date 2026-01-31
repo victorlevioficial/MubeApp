@@ -17,6 +17,7 @@ abstract final class RoutePaths {
   static const String addresses = '/settings/addresses';
   static const String editAddress = '/settings/address';
   static const String maintenance = '/settings/maintenance';
+  static const String privacySettings = '/settings/privacy';
   static const String favorites = '/favorites';
   static const String matchpoint = '/matchpoint';
   static const String matchpointWizard = '/matchpoint/wizard';
@@ -30,10 +31,12 @@ abstract final class RoutePaths {
   /// Check if a path is a public route.
   // Profile routes
   static const String profile = '/profile';
+  static const String publicProfile = '/user';
   static const String profileEdit = '/profile/edit';
   static const String invites = '/profile/invites';
   static const String manageMembers = '/profile/manage-members';
   static const String conversation = '/conversation';
+  static const String notifications = '/notifications';
 
   static bool isPublic(String path) => publicRoutes.contains(path);
 }

@@ -306,94 +306,99 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildInputField() {
+    final hasText = _textController.text.trim().isNotEmpty;
+
     return Container(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: MediaQuery.of(context).padding.bottom + 12,
+        left: 12,
+        right: 12,
+        top: 8,
+        bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.background,
-        // Removed heavy top border, letting it feel more seamless
+        border: Border(
+          top: BorderSide(
+            color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // Input field
           Expanded(
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              decoration: BoxDecoration(
-                color: AppColors.surface, // Solid dark background for input
-                borderRadius: BorderRadius.circular(24),
+            child: TextField(
+              controller: _textController,
+              maxLength: 1000,
+              maxLines: 5,
+              minLines: 1,
+              onChanged: (_) => setState(() {}),
+              textCapitalization: TextCapitalization.sentences,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
               ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      maxLength: 1000,
-                      maxLines: 5,
-                      minLines: 1,
-                      onChanged: (_) => setState(() {}),
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Mensagem...',
-                        hintStyle: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 10,
-                        ),
-                        counterText: '',
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+              decoration: InputDecoration(
+                hintText: 'Mensagem...',
+                hintStyle: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+                filled: true,
+                fillColor: AppColors.surface,
+                counterText: '',
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
+
           const SizedBox(width: 8),
 
-          // Send Button
-          Container(
-            height: 44,
-            width: 44,
-            margin: const EdgeInsets.only(bottom: 0),
-            decoration: BoxDecoration(
-              color: _textController.text.trim().isEmpty
-                  ? AppColors
-                        .surfaceHighlight // Disabled state
-                  : AppColors.brandPrimary, // Active solid color (NO GLOW)
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              onPressed: _isLoading || _textController.text.trim().isEmpty
-                  ? null
-                  : _sendMessage,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+          // Send Button - WhatsApp style (arrow right)
+          GestureDetector(
+            onTap: _isLoading || !hasText ? null : _sendMessage,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: 44,
+              width: 44,
+              decoration: BoxDecoration(
+                color: hasText
+                    ? AppColors.brandPrimary
+                    : AppColors.surfaceHighlight,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(
+                        Icons.send_rounded, // WhatsApp-style send icon
+                        color: hasText ? Colors.white : AppColors.textTertiary,
+                        size: 20,
                       ),
-                    )
-                  : Icon(
-                      Icons.arrow_upward, // Modern send icon
-                      color: _textController.text.trim().isEmpty
-                          ? AppColors.textSecondary
-                          : Colors.white,
-                      size: 20,
-                    ),
+              ),
             ),
           ),
         ],
@@ -460,7 +465,7 @@ class _MessageBubble extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _formatTime(message.createdAt.toDate()),
+                      _formatTime(message.createdAt.toDate().toLocal()),
                       style: AppTypography.bodySmall.copyWith(
                         color: isMe
                             ? AppColors.textPrimary.withValues(alpha: 0.7)

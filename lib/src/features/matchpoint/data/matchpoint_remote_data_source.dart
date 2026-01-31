@@ -8,6 +8,7 @@ abstract class MatchpointRemoteDataSource {
   Future<List<AppUser>> fetchCandidates({
     required String currentUserId,
     required List<String> genres,
+    required List<String> excludedUserIds, // Blocked users
     int limit = 50,
   });
   Future<void> saveInteraction({
@@ -29,6 +30,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   Future<List<AppUser>> fetchCandidates({
     required String currentUserId,
     required List<String> genres,
+    required List<String> excludedUserIds,
     int limit = 20,
   }) async {
     // 1. Basic filtering in Firestore
@@ -52,9 +54,11 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     final snapshot = await query.limit(limit).get();
 
-    // 2. Map to AppUser
+    // 2. Map to AppUser and filter blocked users
     return snapshot.docs
-        .where((doc) => doc.id != currentUserId) // Exclude self
+        .where(
+          (doc) => doc.id != currentUserId && !excludedUserIds.contains(doc.id),
+        )
         .map((doc) => AppUser.fromJson(doc.data() as Map<String, dynamic>))
         .toList();
   }

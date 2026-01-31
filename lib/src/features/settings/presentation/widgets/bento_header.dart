@@ -83,7 +83,7 @@ class BentoHeader extends ConsumerWidget {
               ),
               // Edit Action
               GestureDetector(
-                onTap: () => context.push('/profile/edit'),
+                onTap: () => context.push('/settings/profile'),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(

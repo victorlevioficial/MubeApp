@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../common_widgets/mube_app_bar.dart';
 import '../../../../common_widgets/app_filter_chip.dart';
 import '../../../../common_widgets/app_skeleton.dart';
+import '../../../../common_widgets/app_text_field.dart';
+import '../../../../common_widgets/mube_app_bar.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/foundations/app_colors.dart';
@@ -31,8 +31,10 @@ class _MatchpointSetupWizardScreenState
   // ignore: unused_field
   final List<String> _selectedGenres = [];
   // ignore: unused_field
+  // ignore: unused_field
   final List<String> _hashtags = [];
   final TextEditingController _tagController = TextEditingController();
+  bool _isVisibleInHome = true;
 
   @override
   void dispose() {
@@ -73,7 +75,7 @@ class _MatchpointSetupWizardScreenState
           children: [
             // Progress Indicator
             LinearProgressIndicator(
-              value: (_currentStep + 1) / 3,
+              value: (_currentStep + 1) / 4,
               backgroundColor: AppColors.surfaceHighlight,
               valueColor: const AlwaysStoppedAnimation(AppColors.brandPrimary),
             ),
@@ -123,7 +125,7 @@ class _MatchpointSetupWizardScreenState
                           color: AppColors.textPrimary,
                         ),
                       )
-                    : Text(_currentStep == 2 ? 'Concluir' : 'Próximo'),
+                    : Text(_currentStep == 3 ? 'Concluir' : 'Próximo'),
               ),
             ],
           ),
@@ -140,6 +142,8 @@ class _MatchpointSetupWizardScreenState
         return _buildGenresStep();
       case 2:
         return _buildHashtagsStep();
+      case 3:
+        return _buildPrivacyStep();
       default:
         return const SizedBox();
     }
@@ -401,7 +405,7 @@ class _MatchpointSetupWizardScreenState
   }
 
   Future<void> _onNextPressed() async {
-    if (_currentStep < 2) {
+    if (_currentStep < 3) {
       setState(() => _currentStep++);
     } else {
       // Get AppConfig to map Labels to IDs
@@ -419,23 +423,48 @@ class _MatchpointSetupWizardScreenState
         }).toList();
       } else {
         // Fallback: simple lowercase (should not happen if loaded)
-        genreIds = _selectedGenres
-            .map((e) => e.toLowerCase().replaceAll(' ', '_'))
-            .toList();
+        genreIds = _selectedGenres.map((e) => e.toLowerCase()).toList();
       }
 
       await ref
           .read(matchpointControllerProvider.notifier)
           .saveMatchpointProfile(
             intent: _intent ?? 'both',
-            genres: genreIds, // Send IDs, not Labels
+            genres: genreIds,
             hashtags: _hashtags,
+            isVisibleInHome: _isVisibleInHome,
           );
-
-      if (mounted) {
-        // Success handled by listener
-      }
     }
+  }
+
+  Widget _buildPrivacyStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildStepHeader(
+          icon: Icons.privacy_tip_outlined,
+          title: 'Configuração de Visibilidade',
+          subtitle: 'Escolha onde seu perfil deve aparecer.',
+        ),
+        const SizedBox(height: AppSpacing.s24),
+        _buildSelectionCard(
+          title: 'Modo Público',
+          subtitle: 'Aparecer na Home, Busca e MatchPoint',
+          icon: Icons.public,
+          isSelected: _isVisibleInHome,
+          onTap: () => setState(() => _isVisibleInHome = true),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        _buildSelectionCard(
+          title: 'Apenas MatchPoint',
+          subtitle:
+              'Esconder da Home/Busca. Ideal para quem busca banda discretamente.',
+          icon: Icons.visibility_off_outlined,
+          isSelected: !_isVisibleInHome,
+          onTap: () => setState(() => _isVisibleInHome = false),
+        ),
+      ],
+    );
   }
 
   Widget _buildStepHeader({

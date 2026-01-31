@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../design_system/foundations/app_colors.dart';
+import '../features/chat/data/chat_unread_provider.dart';
 import 'responsive_center.dart';
 
 class MainScaffold extends StatelessWidget {
@@ -60,13 +62,43 @@ class MainScaffold extends StatelessWidget {
             label: 'MatchPoint',
           ),
           NavigationDestination(
-            icon: Icon(
-              Icons.chat_bubble_outline,
-              color: AppColors.textPrimary.withValues(alpha: 0.6),
+            icon: Consumer(
+              builder: (context, ref, _) {
+                final unreadCountAsync = ref.watch(unreadMessagesCountProvider);
+                final unreadCount = unreadCountAsync.asData?.value ?? 0;
+
+                return Badge(
+                  isLabelVisible: unreadCount > 0,
+                  label: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: AppColors.brandPrimary,
+                  child: Icon(
+                    Icons.chat_bubble_outline,
+                    color: AppColors.textPrimary.withOpacity(0.6),
+                  ),
+                );
+              },
             ),
-            selectedIcon: const Icon(
-              Icons.chat_bubble,
-              color: AppColors.semanticAction,
+            selectedIcon: Consumer(
+              builder: (context, ref, _) {
+                final unreadCountAsync = ref.watch(unreadMessagesCountProvider);
+                final unreadCount = unreadCountAsync.asData?.value ?? 0;
+
+                return Badge(
+                  isLabelVisible: unreadCount > 0,
+                  label: Text(
+                    unreadCount > 99 ? '99+' : '$unreadCount',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: AppColors.brandPrimary,
+                  child: const Icon(
+                    Icons.chat_bubble,
+                    color: AppColors.semanticAction,
+                  ),
+                );
+              },
             ),
             label: 'Chat',
           ),

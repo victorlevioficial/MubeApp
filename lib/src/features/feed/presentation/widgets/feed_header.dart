@@ -10,6 +10,7 @@ import '../../../../routing/route_paths.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../bands/data/invites_repository.dart';
+import '../../../notifications/data/notification_providers.dart';
 
 class FeedHeader extends ConsumerWidget {
   final AppUser? currentUser;
@@ -147,12 +148,29 @@ class FeedHeader extends ConsumerWidget {
             color: AppColors.surface.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
-          child: IconButton(
-            icon: const Icon(Icons.notifications_outlined, size: 20),
-            color: AppColors.textPrimary,
-            onPressed: onNotificationTap,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-            padding: EdgeInsets.zero,
+          child: Consumer(
+            builder: (context, ref, child) {
+              final unreadCount = ref.watch(unreadNotificationCountProvider);
+              return Badge(
+                isLabelVisible: unreadCount > 0,
+                label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+                backgroundColor: AppColors.brandPrimary,
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_outlined, size: 20),
+                  color: AppColors.textPrimary,
+                  onPressed: () {
+                    // Clear count on tap (optional, logic can vary)
+                    // ref.read(unreadNotificationCountProvider.notifier).state = 0;
+                    onNotificationTap();
+                  },
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+              );
+            },
           ),
         ),
       ],

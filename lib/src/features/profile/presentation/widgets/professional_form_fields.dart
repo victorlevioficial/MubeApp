@@ -34,6 +34,7 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
   final ValueChanged<bool> onInstrumentalistBackingVocalChanged;
 
   final VoidCallback onStateChanged;
+  final ValueChanged<List<String>> onCategoriesChanged;
 
   const ProfessionalFormFields({
     super.key,
@@ -52,6 +53,7 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
     required this.instrumentalistBackingVocal,
     required this.onInstrumentalistBackingVocalChanged,
     required this.onStateChanged,
+    required this.onCategoriesChanged,
   });
 
   @override
@@ -116,11 +118,7 @@ class _ProfessionalFormFieldsState
         const SizedBox(height: AppSpacing.s32),
 
         // --- Categories and Specific Questions ---
-        _buildTagSelector(
-          'Categorias',
-          professionalCategories.map((e) => e['id'] as String).toList(),
-          widget.selectedCategories,
-        ),
+        _buildCategorySelector(),
 
         // 1. Singer Specifics
         if (widget.selectedCategories.contains('singer')) ...[
@@ -217,6 +215,88 @@ class _ProfessionalFormFieldsState
           widget.selectedGenres,
         ),
       ],
+    );
+  }
+
+  Widget _buildCategorySelector() {
+    final options = professionalCategories
+        .map((e) => e['id'] as String)
+        .toList();
+    final selected = widget.selectedCategories;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Categorias', style: AppTypography.titleMedium),
+          const SizedBox(height: AppSpacing.s12),
+
+          SecondaryButton(
+            text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
+            icon: const Icon(Icons.add, size: 18),
+            onPressed: () async {
+              final result = await showModalBottomSheet<List<String>>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => AppSelectionModal(
+                  title: 'Categorias',
+                  items: options,
+                  selectedItems: selected,
+                  allowMultiple: true,
+                  itemLabelBuilder: (item) {
+                    final cat = professionalCategories.firstWhere(
+                      (e) => e['id'] == item,
+                      orElse: () => <String, Object>{'label': item},
+                    );
+                    return cat['label'] as String;
+                  },
+                ),
+              );
+
+              if (result != null) {
+                // Use dedicated callback that allows parent to handle cascading clear
+                widget.onCategoriesChanged(result);
+              }
+            },
+          ),
+
+          if (selected.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: selected.map((item) {
+                String display = item;
+                final cat = professionalCategories.firstWhere(
+                  (e) => e['id'] == item,
+                  orElse: () => <String, Object>{'label': item},
+                );
+                if (cat['label'] != null) {
+                  display = cat['label'] as String;
+                }
+
+                return AppFilterChip(
+                  label: display,
+                  isSelected: true,
+                  onSelected: (_) {},
+                  onRemove: () {
+                    // Remove and notify parent via dedicated callback
+                    final updated = List<String>.from(selected);
+                    updated.remove(item);
+                    widget.onCategoriesChanged(updated);
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

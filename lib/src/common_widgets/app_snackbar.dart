@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app.dart' show scaffoldMessengerKey;
 import '../design_system/foundations/app_colors.dart';
 import '../design_system/foundations/app_radius.dart';
 import '../design_system/foundations/app_spacing.dart';
@@ -75,7 +76,13 @@ class AppSnackBar {
   // ---------------------------------------------------------------------------
 
   static void _show(BuildContext context, String message, SnackBarType type) {
-    final messenger = ScaffoldMessenger.of(context);
+    // Use global messenger key if available (persists across navigation)
+    // Fall back to context-based messenger for compatibility
+    final messenger =
+        scaffoldMessengerKey.currentState ?? ScaffoldMessenger.maybeOf(context);
+
+    if (messenger == null) return;
+
     messenger.hideCurrentSnackBar();
 
     final (color, icon) = _getStyle(type);
@@ -89,7 +96,7 @@ class AppSnackBar {
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: const TextStyle(
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
                 ),
@@ -97,7 +104,7 @@ class AppSnackBar {
             ),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: AppColors.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.all12,

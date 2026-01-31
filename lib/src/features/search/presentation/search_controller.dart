@@ -168,15 +168,19 @@ class SearchController extends Notifier<SearchState> {
   /// Execute search
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
+    final user = ref.read(currentUserProfileProvider).value;
+    final blockedUsers = user?.blockedUsers ?? [];
 
     state = state.copyWith(results: const AsyncValue.loading(), hasMore: true);
 
     try {
-      final result = await _repository.searchUsers(
+      final repository = ref.read(searchRepositoryProvider);
+      final result = await repository.searchUsers(
         filters: state.filters,
         startAfter: null,
         requestId: requestId,
         getCurrentRequestId: () => _currentRequestId,
+        blockedUsers: blockedUsers,
       );
 
       if (_currentRequestId != requestId) return;

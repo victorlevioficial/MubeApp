@@ -90,6 +90,14 @@ abstract class AppUser with _$AppUser {
     /// Document creation timestamp.
     @JsonKey(name: 'created_at') dynamic createdAt,
 
+    /// List of user IDs that this user has blocked.
+    @Default([]) @JsonKey(name: 'blocked_users') List<String> blockedUsers,
+
+    /// Privacy settings: 'ghost_mode', 'visible_in_search', etc.
+    @Default({})
+    @JsonKey(name: 'privacy_settings')
+    Map<String, dynamic> privacySettings,
+
     /// MatchPoint configuration data.
     /// Contains: is_active, intent, genres, hashtags, target_roles, search_radius.
     @JsonKey(name: 'matchpoint_profile')

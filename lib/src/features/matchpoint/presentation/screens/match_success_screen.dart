@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common_widgets/primary_button.dart';
 import '../../../../common_widgets/secondary_button.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
-import '../../../auth/domain/app_user.dart';
 
-class MatchSuccessScreen extends StatefulWidget {
+import '../../../../routing/route_paths.dart';
+import '../../../auth/domain/app_user.dart';
+import '../../../chat/data/chat_repository.dart';
+
+class MatchSuccessScreen extends ConsumerStatefulWidget {
   final AppUser currentUser;
   final AppUser matchUser;
 
@@ -18,10 +22,10 @@ class MatchSuccessScreen extends StatefulWidget {
   });
 
   @override
-  State<MatchSuccessScreen> createState() => _MatchSuccessScreenState();
+  ConsumerState<MatchSuccessScreen> createState() => _MatchSuccessScreenState();
 }
 
-class _MatchSuccessScreenState extends State<MatchSuccessScreen>
+class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -145,9 +149,20 @@ class _MatchSuccessScreenState extends State<MatchSuccessScreen>
                 PrimaryButton(
                   text: 'Mandar Mensagem',
                   onPressed: () {
-                    // Navigate to Chat (to be implemented)
-                    context.pop();
-                    // context.push('/chat/${widget.matchUser.uid}');
+                    final repo = ref.read(chatRepositoryProvider);
+                    final conversationId = repo.getConversationId(
+                      widget.currentUser.uid,
+                      widget.matchUser.uid,
+                    );
+                    context.pop(); // Close Success Screen
+                    context.push(
+                      '${RoutePaths.conversation}/$conversationId',
+                      extra: {
+                        'otherUserId': widget.matchUser.uid,
+                        'otherUserName': widget.matchUser.nome ?? 'Usuário',
+                        'otherUserPhoto': widget.matchUser.foto,
+                      },
+                    );
                   },
                 ),
                 const SizedBox(height: AppSpacing.s16),

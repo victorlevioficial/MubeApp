@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
 import 'package:mube/src/design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart'
-    show AppTypography;
+
 import '../../../../common_widgets/user_avatar.dart';
 import '../../../../design_system/foundations/app_colors.dart';
+import '../../../../design_system/foundations/app_typography.dart'
+    show AppTypography;
 import '../../domain/feed_item.dart'; // Restored
 import 'profile_type_badge.dart';
 

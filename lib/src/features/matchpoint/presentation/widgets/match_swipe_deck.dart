@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -39,7 +40,10 @@ class MatchSwipeDeck extends StatelessWidget {
           child: CardSwiper(
             controller: controller,
             cardsCount: candidates.length,
-            numberOfCardsDisplayed: 2, // Optimize performance
+            numberOfCardsDisplayed: min(
+              candidates.length,
+              2,
+            ), // Optimize performance
             backCardOffset: const Offset(0, 40),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s16,

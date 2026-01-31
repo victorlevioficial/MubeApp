@@ -34,6 +34,7 @@ class SearchRepository {
     DocumentSnapshot? startAfter,
     required int requestId,
     required ValueGetter<int> getCurrentRequestId,
+    List<String> blockedUsers = const [],
   }) async {
     try {
       final List<FeedItem> results = [];
@@ -74,8 +75,15 @@ class SearchRepository {
           final status = data['status'] as String? ?? 'ativo';
           if (cadastroStatus != 'concluido' || status != 'ativo') continue;
 
+          // Skip if hidden from search (Ghost Mode)
+          final privacy = data['privacy_settings'] as Map<String, dynamic>?;
+          if (privacy != null && privacy['visible_in_home'] == false) continue;
+
           // Deduplicate
           if (seenUids.contains(doc.id)) continue;
+
+          // Blocked check
+          if (blockedUsers.contains(doc.id)) continue;
 
           // Apply filters
           final item = FeedItem.fromFirestore(data, doc.id);

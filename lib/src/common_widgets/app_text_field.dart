@@ -23,6 +23,7 @@ class AppTextField extends StatelessWidget {
   final int? maxLines;
   final int? maxLength;
   final EdgeInsets scrollPadding;
+  final FocusNode? focusNode;
 
   const AppTextField({
     super.key,
@@ -41,6 +42,7 @@ class AppTextField extends StatelessWidget {
     this.readOnly = false,
     this.canRequestFocus = true,
     this.fieldKey,
+    this.focusNode,
 
     this.onSubmitted,
     this.textInputAction,
@@ -75,6 +77,7 @@ class AppTextField extends StatelessWidget {
           child: TextFormField(
             key: fieldKey,
             controller: controller,
+            focusNode: focusNode,
             onChanged: onChanged,
             readOnly: readOnly,
             canRequestFocus: canRequestFocus,

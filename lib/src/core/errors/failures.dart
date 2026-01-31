@@ -206,6 +206,12 @@ class PermissionFailure extends Failure {
     message: 'Permissão de localização negada. Habilite nas configurações.',
     debugMessage: 'location-denied',
   );
+
+  /// Firestore permission denied.
+  factory PermissionFailure.firestore() => const PermissionFailure(
+    message: 'Você não tem permissão para acessar este recurso.',
+    debugMessage: 'permission-denied',
+  );
 }
 
 // ============================================================================

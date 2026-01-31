@@ -21,14 +21,21 @@ import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.da
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
+import '../features/profile/presentation/edit_profile_menu_screen.dart';
+import '../features/profile/presentation/edit_categories_screen.dart';
+import '../features/profile/presentation/edit_genres_screen.dart';
+import '../features/profile/presentation/edit_instruments_screen.dart';
 import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/domain/saved_address.dart';
 import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
+import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/developer/presentation/developer_tools_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
+import '../features/notifications/presentation/notification_list_screen.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
 
@@ -58,6 +65,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 /// Builds the route tree. Separated for readability.
 List<RouteBase> _buildRoutes(Ref ref) {
   return [
+    GoRoute(
+      path: '/developer-tools',
+      builder: (context, state) => const DeveloperToolsScreen(),
+    ),
+
     // Splash (initial loading screen)
     GoRoute(
       path: RoutePaths.splash,
@@ -199,6 +211,51 @@ List<RouteBase> _buildRoutes(Ref ref) {
                     );
                   },
                 ),
+                GoRoute(
+                  path: 'privacy',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const PrivacySettingsScreen(),
+                  ),
+                ),
+                // Profile editing routes (Instagram pattern)
+                GoRoute(
+                  path: 'profile',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const EditProfileMenuScreen(),
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: 'basic',
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: const EditProfileScreen(),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'categories',
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: const EditCategoriesScreen(),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'genres',
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: const EditGenresScreen(),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'instruments',
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: const EditInstrumentsScreen(),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
@@ -300,6 +357,15 @@ List<RouteBase> _buildRoutes(Ref ref) {
       pageBuilder: (context, state) => NoTransitionPage(
         key: state.pageKey,
         child: const MatchpointSetupWizardScreen(),
+      ),
+    ),
+
+    // Notifications List
+    GoRoute(
+      path: RoutePaths.notifications,
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const NotificationListScreen(),
       ),
     ),
   ];

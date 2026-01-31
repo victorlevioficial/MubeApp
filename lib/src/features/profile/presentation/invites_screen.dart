@@ -19,7 +19,9 @@ class InvitesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProfileProvider).value;
     if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: SkeletonShimmer(child: UserListSkeleton(itemCount: 4)),
+      );
     }
 
     final invitesAsync = ref.watch(invitesStreamProvider(user.uid));

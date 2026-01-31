@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../common_widgets/app_confirmation_dialog.dart';
 import '../../../common_widgets/app_shimmer.dart';
 import '../../../common_widgets/app_snackbar.dart';
-import 'widgets/report_reason_dialog.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../constants/app_constants.dart';
@@ -16,11 +16,12 @@ import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
-
+import '../../notifications/data/notification_providers.dart';
 import '../domain/media_item.dart';
 import 'public_profile_controller.dart';
 import 'widgets/media_viewer_dialog.dart';
 import 'widgets/public_gallery_grid.dart';
+import 'widgets/report_reason_dialog.dart';
 
 /// Screen to view another user's public profile.
 class PublicProfileScreen extends ConsumerWidget {
@@ -58,6 +59,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 label: 'Copiar Link',
                 value: 'copy',
               ),
+              const PopupMenuDivider(),
               const PopupMenuDivider(),
               _buildMenuItem(
                 icon: Icons.block,

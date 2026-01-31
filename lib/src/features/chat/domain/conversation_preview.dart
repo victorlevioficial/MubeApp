@@ -11,6 +11,7 @@ class ConversationPreview {
   final String? lastSenderId;
   final int unreadCount;
   final Timestamp updatedAt;
+  final String type;
 
   const ConversationPreview({
     required this.id,
@@ -22,6 +23,7 @@ class ConversationPreview {
     this.lastSenderId,
     this.unreadCount = 0,
     required this.updatedAt,
+    this.type = 'direct',
   });
 
   /// Cria ConversationPreview a partir de DocumentSnapshot
@@ -37,6 +39,7 @@ class ConversationPreview {
       lastSenderId: data['lastSenderId'] as String?,
       unreadCount: data['unreadCount'] as int? ?? 0,
       updatedAt: data['updatedAt'] as Timestamp? ?? Timestamp.now(),
+      type: data['type'] as String? ?? 'direct',
     );
   }
 }

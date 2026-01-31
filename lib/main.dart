@@ -14,6 +14,7 @@ import 'firebase_options.dart';
 // import 'src/cleaning_script.dart'; // Script de limpeza temporário - REMOVIDO
 import 'src/app.dart';
 import 'src/common_widgets/error_boundary.dart';
+import 'src/core/services/push_notification_service.dart';
 import 'src/utils/app_logger.dart';
 
 void main() {
@@ -67,24 +68,18 @@ void main() {
         );
 
         // === SCRIPT DE LIMPEZA CONCLUÍDO E REMOVIDO ===
-        AppLogger.info('✅ Database cleanup check passed.');
-        // ==============================================
+        AppLogger.info('✅ Database cleanup passed.');
+
+        // Initialize misc services in background to not block UI
+        Future.wait([
+          PushNotificationService().init(),
+          _preloadFonts(),
+        ]).then((_) => AppLogger.info('Services initialized'));
       } catch (e, stack) {
         AppLogger.error('Erro ao inicializar Firebase', e, stack);
-        // Remove splash to show error
+      } finally {
+        // Always remove splash even if error occurs
         FlutterNativeSplash.remove();
-      }
-
-      // Pre-load Fonts to prevent FOUT (Flash of Unstyled Text) globally
-      try {
-        await GoogleFonts.pendingFonts([
-          GoogleFonts.inter(fontWeight: FontWeight.w400),
-          GoogleFonts.inter(fontWeight: FontWeight.w500),
-          GoogleFonts.inter(fontWeight: FontWeight.w600),
-          GoogleFonts.inter(fontWeight: FontWeight.w700),
-        ]);
-      } catch (e) {
-        AppLogger.warning('Erro ao carregar fontes: $e');
       }
 
       runApp(const ProviderScope(child: MubeApp()));
@@ -93,4 +88,17 @@ void main() {
       AppLogger.error('Erro não tratado no Zone Guarded', error, stack);
     },
   );
+}
+
+Future<void> _preloadFonts() async {
+  try {
+    await GoogleFonts.pendingFonts([
+      GoogleFonts.inter(fontWeight: FontWeight.w400),
+      GoogleFonts.inter(fontWeight: FontWeight.w500),
+      GoogleFonts.inter(fontWeight: FontWeight.w600),
+      GoogleFonts.inter(fontWeight: FontWeight.w700),
+    ]);
+  } catch (e) {
+    AppLogger.warning('Erro ao carregar fontes: $e');
+  }
 }

@@ -6,7 +6,7 @@ import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 import 'chat_repository.dart';
 
-/// Stream de conversas do usuário logado.
+/// Stream de todas as conversas do usuário logado.
 final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   ref,
 ) {
@@ -16,6 +16,24 @@ final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getUserConversations(user.uid);
 });
+
+/// Conversas filtradas: Apenas MatchPoint
+final matchConversationsProvider =
+    Provider<AsyncValue<List<ConversationPreview>>>((ref) {
+      final allAsync = ref.watch(userConversationsProvider);
+      return allAsync.whenData((list) {
+        return list.where((c) => c.type == 'matchpoint').toList();
+      });
+    });
+
+/// Conversas filtradas: Apenas Diretas (não-matchpoint)
+final directConversationsProvider =
+    Provider<AsyncValue<List<ConversationPreview>>>((ref) {
+      final allAsync = ref.watch(userConversationsProvider);
+      return allAsync.whenData((list) {
+        return list.where((c) => c.type != 'matchpoint').toList();
+      });
+    });
 
 /// Stream de mensagens de uma conversa específica.
 final conversationMessagesProvider = StreamProvider.autoDispose

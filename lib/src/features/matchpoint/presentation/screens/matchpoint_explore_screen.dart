@@ -9,12 +9,12 @@ import '../../../../common_widgets/app_skeleton.dart';
 import '../../../../design_system/foundations/app_colors.dart';
 import '../../../../design_system/foundations/app_spacing.dart';
 import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../features/auth/data/auth_repository.dart';
 import '../../../../routing/route_paths.dart';
 import '../../presentation/controllers/matchpoint_controller.dart';
 import '../widgets/match_swipe_deck.dart';
 import '../widgets/matchpoint_tutorial_overlay.dart';
 import 'match_success_screen.dart';
-import '../../../../features/auth/data/auth_repository.dart';
 
 class MatchpointExploreScreen extends ConsumerStatefulWidget {
   const MatchpointExploreScreen({super.key});

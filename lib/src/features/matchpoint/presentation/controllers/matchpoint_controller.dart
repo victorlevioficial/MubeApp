@@ -2,6 +2,7 @@ import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'matchpoint_controller.g.dart';
@@ -17,6 +18,7 @@ class MatchpointController extends _$MatchpointController {
     required String intent,
     required List<String> genres,
     required List<String> hashtags,
+    required bool isVisibleInHome,
   }) async {
     state = const AsyncLoading();
 
@@ -45,8 +47,14 @@ class MatchpointController extends _$MatchpointController {
       'updated_at': DateTime.now().toIso8601String(),
     };
 
+    final Map<String, dynamic> updatedPrivacy = {
+      ...appUser.privacySettings,
+      'visible_in_home': isVisibleInHome,
+    };
+
     final updatedUser = appUser.copyWith(
       matchpointProfile: updatedMatchpointProfile,
+      privacySettings: updatedPrivacy,
     );
 
     final result = await authRepo.updateUser(updatedUser);
@@ -105,13 +113,64 @@ class MatchpointController extends _$MatchpointController {
         state = AsyncError(failure.message, StackTrace.current);
         return null;
       },
-      (isMatch) {
+      (isMatch) async {
         if (isMatch) {
           print("IT'S A MATCH!");
+
+          // Criar conversa automaticamente
+          try {
+            final appUserAsync = ref.read(currentUserProfileProvider);
+            final appUser = appUserAsync.value;
+            final myName =
+                appUser?.nome ?? currentUser.displayName ?? 'Usuário';
+            final myPhoto = appUser?.foto ?? currentUser.photoURL;
+
+            final chatRepo = ref.read(chatRepositoryProvider);
+            await chatRepo.getOrCreateConversation(
+              myUid: currentUser.uid,
+              otherUid: targetUser.uid,
+              otherUserName: targetUser.nome ?? 'Usuário',
+              otherUserPhoto: targetUser.foto,
+              myName: myName,
+              myPhoto: myPhoto,
+              type: 'matchpoint',
+            );
+          } catch (e) {
+            print('Erro ao criar conversa automática: $e');
+          }
+
           return targetUser;
         }
         return null;
       },
+    );
+  }
+
+  Future<void> unmatchUser(String targetUserId) async {
+    final authRepo = ref.read(authRepositoryProvider);
+    final currentUser = authRepo.currentUser;
+    if (currentUser == null) return;
+
+    final chatRepo = ref.read(chatRepositoryProvider);
+    final matchRepo = ref.read(matchpointRepositoryProvider);
+
+    // 1. Delete conversation (Calculate ID)
+    final conversationId = chatRepo.getConversationId(
+      currentUser.uid,
+      targetUserId,
+    );
+
+    await chatRepo.deleteConversation(
+      conversationId: conversationId,
+      myUid: currentUser.uid,
+      otherUid: targetUserId,
+    );
+
+    // 2. Set interaction to dislike
+    await matchRepo.saveInteraction(
+      currentUserId: currentUser.uid,
+      targetUserId: targetUserId,
+      type: 'dislike',
     );
   }
 }
@@ -136,10 +195,13 @@ Future<List<AppUser>> matchpointCandidates(Ref ref) async {
   }
   print('🔍 MatchPoint Filters: Genres=$genres');
 
+  final blockedUsers = userProfile.blockedUsers;
+
   final repo = ref.watch(matchpointRepositoryProvider);
   final result = await repo.fetchCandidates(
     currentUserId: currentUser.uid,
     genres: genres,
+    blockedUsers: blockedUsers,
   );
 
   return result.fold(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../design_system/foundations/app_colors.dart';
 import '../design_system/foundations/app_spacing.dart';
 import '../design_system/foundations/app_typography.dart';
+import 'app_filter_chip.dart';
 import 'app_text_field.dart';
 import 'primary_button.dart';
 
@@ -123,39 +124,24 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
 
           // List
           Expanded(
-            child: ListView.separated(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-              itemCount: _filteredItems.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: AppColors.surfaceHighlight),
-              itemBuilder: (context, index) {
-                final item = _filteredItems[index];
-                final isSelected = _tempSelectedItems.contains(item);
+              child: Wrap(
+                spacing: AppSpacing.s8,
+                runSpacing: AppSpacing.s8,
+                children: _filteredItems.map((item) {
+                  final isSelected = _tempSelectedItems.contains(item);
+                  final label = widget.itemLabelBuilder != null
+                      ? widget.itemLabelBuilder!(item)
+                      : item;
 
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    widget.itemLabelBuilder != null
-                        ? widget.itemLabelBuilder!(item)
-                        : item,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: isSelected
-                          ? AppColors.semanticAction
-                          : AppColors.textPrimary,
-                      fontWeight: isSelected
-                          ? FontWeight.w600
-                          : FontWeight.w400,
-                    ),
-                  ),
-                  trailing: Checkbox(
-                    value: isSelected,
-                    onChanged: (v) => _toggleItem(item),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    // Colors handled by AppTheme
-                  ),
-                  onTap: () => _toggleItem(item),
-                );
-              },
+                  return AppFilterChip(
+                    label: label,
+                    isSelected: isSelected,
+                    onSelected: (v) => _toggleItem(item),
+                  );
+                }).toList(),
+              ),
             ),
           ),
 

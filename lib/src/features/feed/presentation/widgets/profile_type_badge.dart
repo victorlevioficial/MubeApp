@@ -35,7 +35,7 @@ class ProfileTypeBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
+        const Text(
           '•',
           style: TextStyle(
             color: AppColors.textSecondary,

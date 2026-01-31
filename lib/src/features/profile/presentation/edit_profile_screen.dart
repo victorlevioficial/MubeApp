@@ -13,6 +13,7 @@ import '../../../common_widgets/primary_button.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -87,6 +88,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   bool _hasChanges = false;
   bool _isInitialized = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -232,7 +234,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   void _markChanged() {
+    // Don't mark as changed during save operation
+    if (_isSaving) return;
     if (!_hasChanges) {
+      AppLogger.info('Marking as changed');
       setState(() => _hasChanges = true);
     }
   }
@@ -425,19 +430,89 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     });
   }
 
+  bool _validateData(AppUser user) {
+    AppLogger.info('_validateData: tipoPerfil=${user.tipoPerfil}');
+    AppLogger.info('_validateData: categories=$_selectedCategories');
+    AppLogger.info('_validateData: instruments=$_selectedInstruments');
+    AppLogger.info('_validateData: genres=$_selectedGenres');
+    AppLogger.info('_validateData: roles=$_selectedRoles');
+
+    if (user.tipoPerfil == AppUserType.professional) {
+      if (_selectedCategories.isEmpty) {
+        AppSnackBar.error(context, 'Selecione pelo menos uma categoria.');
+        return false;
+      }
+
+      if (_selectedCategories.contains('instrumentalist') &&
+          _selectedInstruments.isEmpty) {
+        AppLogger.info('BLOCKING: instrumentalist without instruments');
+        AppSnackBar.error(
+          context,
+          'Selecione pelo menos um instrumento para continuar.',
+        );
+        return false;
+      }
+
+      if (_selectedCategories.contains('crew') && _selectedRoles.isEmpty) {
+        AppLogger.info('BLOCKING: crew without roles');
+        AppSnackBar.error(
+          context,
+          'Selecione pelo menos uma função técnica para continuar.',
+        );
+        return false;
+      }
+
+      if (_selectedGenres.isEmpty) {
+        AppLogger.info('BLOCKING: no genres');
+        AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        return false;
+      }
+    } else if (user.tipoPerfil == AppUserType.band) {
+      if (_bandGenres.isEmpty) {
+        AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        return false;
+      }
+    }
+
+    AppLogger.info('_validateData: PASSED');
+    return true;
+  }
+
   Future<void> _saveProfile(AppUser user) async {
-    // Only validate form if we're on profile tab and form exists
+    AppLogger.info('=== _saveProfile START ===');
+    AppLogger.info(
+      '_isSaving=$_isSaving, _hasChanges=$_hasChanges, mounted=$mounted',
+    );
+
+    // Prevent double-save
+    if (_isSaving) {
+      AppLogger.warning('Already saving, ignoring');
+      return;
+    }
+
+    // Early mounted check
+    if (!mounted) {
+      AppLogger.warning('Not mounted at start, aborting');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    // Form validation (only if form exists and we're on profile tab)
     if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
+      AppLogger.info('Form validation failed');
+      if (mounted) setState(() => _isSaving = false);
       return;
     }
 
-    // Professional Validation: At least 1 category
-    if (user.tipoPerfil == AppUserType.professional &&
-        _selectedCategories.isEmpty) {
-      AppSnackBar.error(context, 'Selecione pelo menos uma categoria.');
+    // Business rule validation
+    if (!_validateData(user)) {
+      AppLogger.info('Business rule validation failed');
+      if (mounted) setState(() => _isSaving = false);
       return;
     }
 
+    // Build updates map
     final Map<String, dynamic> updates = {
       'nome': _nomeController.text.trim(),
       'bio': _bioController.text.trim(),
@@ -487,14 +562,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         break;
     }
 
-    await ref
-        .read(profileControllerProvider.notifier)
-        .updateProfile(currentUser: user, updates: updates);
+    AppLogger.info('Calling updateProfile...');
 
-    if (mounted) {
-      AppSnackBar.success(context, 'Perfil atualizado!');
-      context.pop();
+    try {
+      await ref
+          .read(profileControllerProvider.notifier)
+          .updateProfile(currentUser: user, updates: updates);
+
+      AppLogger.info('updateProfile completed successfully');
+
+      // Check mounted AGAIN after async operation
+      if (!mounted) {
+        AppLogger.warning('Not mounted after updateProfile, cannot navigate');
+        return;
+      }
+
+      // CRITICAL: Clear ALL flags before scheduling navigation
+      AppLogger.info('Clearing _hasChanges and _isSaving');
+      _hasChanges = false;
+      _isSaving = false;
+      _isInitialized = false; // Force re-init on next visit
+
+      // Single frame callback for snackbar and navigation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        AppLogger.info('PostFrame: mounted=$mounted');
+        if (mounted) {
+          AppSnackBar.success(context, 'Perfil atualizado!');
+          Navigator.of(context).pop();
+          AppLogger.info('Pop executed');
+        }
+      });
+    } catch (e, st) {
+      AppLogger.error('Erro ao salvar perfil', e, st);
+      if (mounted) {
+        setState(() => _isSaving = false);
+        AppSnackBar.error(context, 'Erro ao salvar: $e');
+      }
     }
+
+    AppLogger.info('=== _saveProfile END ===');
   }
 
   @override
@@ -772,6 +878,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 },
                 onStateChanged: () {
                   setState(() {});
+                  _markChanged();
+                },
+                onCategoriesChanged: (newCategories) {
+                  setState(() {
+                    // Clear instruments if instrumentalist was removed
+                    if (!newCategories.contains('instrumentalist')) {
+                      _selectedInstruments.clear();
+                      _instrumentalistBackingVocal = false;
+                    }
+                    // Clear roles if crew was removed
+                    if (!newCategories.contains('crew')) {
+                      _selectedRoles.clear();
+                    }
+                    // Clear backing vocal mode if singer was removed
+                    if (!newCategories.contains('singer')) {
+                      _backingVocalMode = '0';
+                    }
+                    // Update categories
+                    _selectedCategories
+                      ..clear()
+                      ..addAll(newCategories);
+                  });
                   _markChanged();
                 },
               ),

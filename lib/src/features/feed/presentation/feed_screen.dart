@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/empty_state_widget.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
 import '../../../design_system/foundations/app_typography.dart';
@@ -118,7 +119,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           controller: _scrollController,
           slivers: [
             // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
-            FeedHeader(currentUser: currentUser, onNotificationTap: () {}),
+            FeedHeader(
+              currentUser: currentUser,
+              onNotificationTap: () {
+                context.push('/notifications');
+              },
+            ),
 
             // Pre-cache Service Integration (Just watching keeps it alive)
             // Pre-cache Service Integration (Just watching keeps it alive)
@@ -197,15 +203,25 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               ),
             ),
 
-            // Vertical List (Animated)
-            VerticalFeedList(
-              useSliverMode: true,
-              items: state.mainItems,
-              isLoading: state.isLoadingMain,
-              hasMore: state.hasMoreMain,
-              onLoadMore: () {},
-              padding: AppSpacing.h16,
-            ),
+            // Empty State or Vertical List
+            if (state.mainItems.isEmpty && !state.isLoadingMain)
+              SliverToBoxAdapter(
+                child: EmptyStateWidget(
+                  icon: Icons.music_off_rounded,
+                  title: 'Nenhum músico encontrado',
+                  subtitle: 'Tente ajustar seus filtros ou volte mais tarde',
+                ),
+              )
+            else
+              // Vertical List (Animated)
+              VerticalFeedList(
+                useSliverMode: true,
+                items: state.mainItems,
+                isLoading: state.isLoadingMain,
+                hasMore: state.hasMoreMain,
+                onLoadMore: () {},
+                padding: AppSpacing.h16,
+              ),
 
             // Bottom Loader
             if (state.isLoadingMain && state.mainItems.isNotEmpty)

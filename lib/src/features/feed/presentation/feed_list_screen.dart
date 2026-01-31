@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../common_widgets/app_refresh_indicator.dart';
+import '../../../common_widgets/app_skeleton.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../design_system/foundations/app_colors.dart';
 import '../../../design_system/foundations/app_spacing.dart';
@@ -51,7 +52,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
         onRefresh: () =>
             ref.refresh(feedListControllerProvider(widget.sectionType).future),
         child: stateAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const FeedListSkeleton(itemCount: 4),
           error: (err, stack) => Center(child: Text('Erro: $err')),
           data: (state) {
             return VerticalFeedList(

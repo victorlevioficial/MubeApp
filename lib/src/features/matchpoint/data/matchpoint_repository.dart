@@ -16,12 +16,14 @@ class MatchpointRepository {
   FutureResult<List<AppUser>> fetchCandidates({
     required String currentUserId,
     required List<String> genres,
+    required List<String> blockedUsers,
     int limit = 20,
   }) async {
     try {
       final candidates = await _dataSource.fetchCandidates(
         currentUserId: currentUserId,
         genres: genres,
+        excludedUserIds: blockedUsers,
         limit: limit,
       );
 

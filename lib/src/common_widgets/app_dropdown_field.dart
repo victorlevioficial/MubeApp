@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../design_system/foundations/app_colors.dart';
 import '../design_system/foundations/app_radius.dart';
+import '../design_system/foundations/app_spacing.dart';
+import '../design_system/foundations/app_typography.dart';
 import 'app_text_field.dart';
 
 class AppDropdownField<T> extends StatefulWidget {
@@ -28,12 +30,17 @@ class AppDropdownField<T> extends StatefulWidget {
 
 class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
   final TextEditingController _controller = TextEditingController();
-  final GlobalKey _fieldKey = GlobalKey();
+  final LayerLink _layerLink = LayerLink();
+  final FocusNode _focusNode = FocusNode();
+
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
 
   @override
   void initState() {
     super.initState();
     _updateControllerText();
+    _focusNode.addListener(_handleFocusChange);
   }
 
   @override
@@ -44,6 +51,27 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     }
   }
 
+  @override
+  void dispose() {
+    _removeOverlay();
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus && !_isOpen) {
+      _toggleDropdown();
+    } else if (!_focusNode.hasFocus && _isOpen) {
+      // Small delay to allow tap on item to register
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && !_focusNode.hasFocus) {
+          _removeOverlay();
+        }
+      });
+    }
+  }
+
   void _updateControllerText() {
     String newText = '';
     if (widget.value != null) {
@@ -51,7 +79,6 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
         (item) => item.value == widget.value,
         orElse: () => widget.items.first,
       );
-      // Extract text from child if it's a Text widget, otherwise vague string
       if (selectedItem.child is Text) {
         newText = (selectedItem.child as Text).data ?? '';
       } else {
@@ -59,10 +86,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       }
     }
 
-    // Only update if text actually changed to avoid notifyListeners loop / setState during build
     if (_controller.text != newText) {
-      // Use addPostFrameCallback ensures we are not in the middle of a build phase
-      // when stimulating the TextFormField listeners.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _controller.text = newText;
@@ -71,73 +95,141 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     }
   }
 
-  Future<void> _showMenu() async {
-    final RenderBox renderBox =
-        _fieldKey.currentContext!.findRenderObject() as RenderBox;
-    final offset = renderBox.localToGlobal(Offset.zero);
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _removeOverlay();
+    } else {
+      _showOverlay();
+    }
+  }
+
+  void _showOverlay() {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
 
-    // Map items to PopupMenuItem
-    final popupItems = widget.items.map((item) {
-      return PopupMenuItem<T>(value: item.value, child: item.child);
-    }).toList();
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Transparent detector to close when tapping outside
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _removeOverlay,
+              behavior: HitTestBehavior.translucent,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          // The Dropdown List
+          Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0.0, size.height + 4.0),
+              child: Material(
+                elevation: 8,
+                color: AppColors.surface, // Changed from surfaceHighlight
+                borderRadius: AppRadius.all12,
+                shadowColor: Colors.black.withOpacity(0.5),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface, // Changed from surfaceHighlight
+                    borderRadius: AppRadius.all12,
+                    border: Border.all(
+                      color: AppColors.textTertiary.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shrinkWrap: true,
+                    itemCount: widget.items.length,
+                    separatorBuilder: (context, index) => Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: AppColors.textTertiary.withOpacity(0.2),
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = widget.items[index];
+                      final isSelected = item.value == widget.value;
 
-    final T? selectedValue = await showMenu<T>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height + 8, // Open below field with gap
-        offset.dx + size.width,
-        offset.dy + size.height + 300,
+                      return InkWell(
+                        onTap: () {
+                          widget.onChanged(item.value);
+                          _removeOverlay();
+                          _focusNode.unfocus();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s16,
+                            vertical: AppSpacing.s12,
+                          ),
+                          color: isSelected
+                              ? AppColors.primary.withOpacity(0.1)
+                              : null,
+                          child: DefaultTextStyle(
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textPrimary,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            child: item.child,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
-      items: popupItems,
-      color: AppColors.surfaceHighlight, // Lighter for elevation in dark mode
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.all12),
-      constraints: BoxConstraints(
-        minWidth: size.width, // Match field width
-        maxWidth: size.width,
-      ),
-      elevation: 12,
-      shadowColor: Colors.black,
     );
 
-    if (selectedValue != null) {
-      widget.onChanged(selectedValue);
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    if (mounted) {
+      setState(() => _isOpen = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: _showMenu,
-          child: AbsorbPointer(
-            // Prevent keyboard
-            child: AppTextField(
-              key: _fieldKey,
-              controller: _controller,
-              label: widget.label,
-              hint: widget.hint,
-              readOnly: true, // Prevent typing
-              canRequestFocus: false, // Prevent Tab focus to avoid typing
-              suffixIcon: SizedBox(
-                width: 48,
-                height: 48,
-                child: Center(
-                  child: Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 24,
-                  ),
-                ),
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _toggleDropdown,
+        child: AbsorbPointer(
+          // Allow focus but block typing
+          absorbing: true,
+          child: AppTextField(
+            focusNode: _focusNode,
+            controller: _controller,
+            label: widget.label,
+            hint: widget.hint,
+            readOnly: true,
+            validator: (val) => widget.validator?.call(widget.value),
+            suffixIcon: AnimatedRotation(
+              turns: _isOpen ? 0.5 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.keyboard_arrow_down,
+                color: _isOpen ? AppColors.primary : AppColors.textSecondary,
+                size: 24,
               ),
-              validator: (val) => widget.validator?.call(widget.value),
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../common_widgets/app_loading.dart';
 import '../../../common_widgets/app_snackbar.dart';
 import '../../../common_widgets/primary_button.dart';
 import '../../../common_widgets/responsive_center.dart';
@@ -66,7 +67,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
       // backgroundColor: Use default Scaffold background from Theme
       body: userAsync.when(
         skipLoadingOnReload: true,
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: AppLoading.medium()),
         error: (err, stack) => Center(child: Text('Erro: $err')),
         data: (user) {
           if (user == null) {

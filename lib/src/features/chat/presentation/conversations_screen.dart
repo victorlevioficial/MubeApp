@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/app_skeleton.dart';
 import '../../../common_widgets/mube_app_bar.dart';
 import '../../../common_widgets/user_avatar.dart';
 import '../../../design_system/foundations/app_colors.dart';
@@ -17,7 +18,7 @@ class ConversationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final conversationsAsync = ref.watch(userConversationsProvider);
+    final conversationsAsync = ref.watch(directConversationsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -34,13 +35,20 @@ class ConversationsScreen extends ConsumerWidget {
               final preview = conversations[index];
               return _ConversationTile(
                 preview: preview,
-                onTap: () =>
-                    context.push('${RoutePaths.conversation}/${preview.id}'),
+                onTap: () => context.push(
+                  '${RoutePaths.conversation}/${preview.id}',
+                  extra: {
+                    'otherUserId': preview.otherUserId,
+                    'otherUserName': preview.otherUserName,
+                    'otherUserPhoto': preview.otherUserPhoto,
+                  },
+                ),
               );
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () =>
+            const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
         error: (error, stack) => Center(
           child: Text(
             'Erro ao carregar conversas',
@@ -74,7 +82,7 @@ class ConversationsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s48),
             child: Text(
-              'Inicie uma conversa visitando o perfil de outro usuário',
+              'Suas conexões e amigos aparecerão aqui.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -148,7 +156,9 @@ class _ConversationTile extends StatelessWidget {
                         // Hora
                         if (preview.lastMessageAt != null)
                           Text(
-                            _formatTime(preview.lastMessageAt!.toDate()),
+                            _formatTime(
+                              preview.lastMessageAt!.toDate().toLocal(),
+                            ),
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.textSecondary,
                             ),

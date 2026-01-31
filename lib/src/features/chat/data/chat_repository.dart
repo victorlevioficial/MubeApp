@@ -29,6 +29,7 @@ class ChatRepository {
     String? otherUserPhoto,
     required String myName,
     String? myPhoto,
+    String type = 'direct',
   }) async {
     try {
       final conversationId = getConversationId(myUid, otherUid);
@@ -50,6 +51,7 @@ class ChatRepository {
             'lastMessageText': null,
             'lastMessageAt': null,
             'lastSenderId': null,
+            'type': type,
           });
 
           // Criar previews para ambos os usuários
@@ -74,6 +76,7 @@ class ChatRepository {
             'lastSenderId': null,
             'unreadCount': 0,
             'updatedAt': FieldValue.serverTimestamp(),
+            'type': type,
           });
 
           transaction.set(otherPreviewRef, {
@@ -85,6 +88,7 @@ class ChatRepository {
             'lastSenderId': null,
             'unreadCount': 0,
             'updatedAt': FieldValue.serverTimestamp(),
+            'type': type,
           });
         }
       });
@@ -251,6 +255,49 @@ class ChatRepository {
         .collection('conversations')
         .doc(conversationId)
         .snapshots();
+  }
+
+  /// Deleta a conversa e os previews dos usuários.
+  /// (As mensagens permanecem na subcollection, mas inacessíveis pelo app)
+  FutureResult<Unit> deleteConversation({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+
+      // 1. Deletar preview do usuário atual
+      final myPreviewRef = _firestore
+          .collection('users')
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      batch.delete(myPreviewRef);
+
+      // 2. Deletar preview do outro usuário (Opcional: Se for Unmatch, ambos somem?)
+      // Se for apenas "apagar conversa", só o meu some.
+      // Se for "Unmatch", ambos somem.
+      // Vou assumir que deleteConversation apaga para AMBOS se passado both UIDs.
+      final otherPreviewRef = _firestore
+          .collection('users')
+          .doc(otherUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      batch.delete(otherPreviewRef);
+
+      // 3. Deletar metadados da conversa (Doc pai)
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+      batch.delete(conversationRef);
+
+      await batch.commit();
+      return const Right(unit);
+    } catch (e) {
+      debugPrint('[Chat] Error deleting conversation: $e');
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 }
 

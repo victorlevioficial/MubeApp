@@ -1,12 +1,13 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import '../../../constants/firestore_constants.dart';
-import '../../../core/errors/failures.dart';
+import '../../../core/errors/failure_mapper.dart';
+
 import '../../../core/typedefs.dart';
+
+import '../../../utils/distance_calculator.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/feed_item.dart';
 import '../domain/paginated_feed_response.dart';
@@ -25,6 +26,8 @@ class FeedRepository {
   FeedRepository(this._dataSource);
 
   /// Fetches users near a location. Returns [Right(List<FeedItem>)] or [Left(Failure)].
+  ///
+  /// Uses Geohash-based query when available for efficient server-side filtering.
   FutureResult<List<FeedItem>> getNearbyUsers({
     required double lat,
     required double long,
@@ -34,40 +37,23 @@ class FeedRepository {
     int limit = 10,
   }) async {
     try {
-      final snapshot = await _dataSource.getNearbyUsers(limit: limit * 2);
-      final items = <FeedItem>[];
+      // Get user's geohash for optimized query
+      final userDoc = await _dataSource.getUser(currentUserId);
+      final userGeohash = userDoc.data()?[FirestoreFields.geohash] as String?;
 
-      for (final doc in snapshot.docs) {
-        if (doc.id == currentUserId || excludedIds.contains(doc.id)) continue;
-
-        try {
-          final data = doc.data();
-          var item = FeedItem.fromFirestore(data, doc.id);
-
-          if (item.location != null) {
-            final itemLat = item.location!['lat'] as double?;
-            final itemLng = item.location!['lng'] as double?;
-
-            if (itemLat != null && itemLng != null) {
-              item = item.copyWith(
-                distanceKm: _calculateDistance(lat, long, itemLat, itemLng),
-              );
-              if (item.distanceKm! <= radiusKm) {
-                items.add(item);
-              }
-            }
-          }
-        } catch (_) {
-          continue;
-        }
-      }
-
-      items.sort(
-        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+      // Use the optimized geohash-based query
+      final result = await getAllUsersSortedByDistance(
+        currentUserId: currentUserId,
+        userLat: lat,
+        userLong: long,
+        userGeohash: userGeohash,
+        excludedIds: excludedIds,
+        radiusKm: radiusKm,
       );
-      return Right(items.take(limit).toList());
+
+      return result.map((items) => items.take(limit).toList());
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -102,7 +88,7 @@ class FeedRepository {
 
       return Right(filteredItems);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -136,7 +122,7 @@ class FeedRepository {
         ),
       );
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -170,7 +156,7 @@ class FeedRepository {
 
       return Right(filteredItems);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -181,61 +167,40 @@ class FeedRepository {
     double? userLat,
     double? userLong,
     int limit = 10,
-  }) async {
-    try {
-      final userDoc = await _dataSource.getUser(currentUserId);
-      final userGeohash = userDoc.data()?[FirestoreFields.geohash] as String?;
-
-      if (userLat != null && userLong != null) {
-        final result = await getAllUsersSortedByDistance(
-          currentUserId: currentUserId,
-          userLat: userLat,
-          userLong: userLong,
-          filterType: ProfileType.professional,
-          excludeCategory: ProfessionalCategory.techCrew,
-          userGeohash: userGeohash,
-          excludedIds: excludedIds,
-        );
-
-        // Handle result of getAllUsersSortedByDistance (which is now async result)
-        return result.map((items) => items.take(limit).toList());
-      }
-
-      // Fallback
-      final snapshot = await _dataSource.getUsersByType(
-        type: ProfileType.professional,
-        limit: limit * 2,
-        startAfter: null,
-      );
-
-      final items = _processSnapshot(
-        snapshot,
-        currentUserId,
-        userLat,
-        userLong,
-      );
-
-      return Right(
-        items
-            .where(
-              (item) =>
-                  item.categoria != ProfessionalCategory.techCrew &&
-                  !excludedIds.contains(item.uid),
-            )
-            .take(limit)
-            .toList(),
-      );
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
+  }) => _getFilteredProfessionals(
+    currentUserId: currentUserId,
+    userLat: userLat,
+    userLong: userLong,
+    limit: limit,
+    excludedIds: excludedIds,
+    excludeCategory: ProfessionalCategory.techCrew,
+  );
 
   /// Fetches technical crew only.
   FutureResult<List<FeedItem>> getTechnicians({
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
+  }) => _getFilteredProfessionals(
+    currentUserId: currentUserId,
+    userLat: userLat,
+    userLong: userLong,
+    limit: limit,
+    excludedIds: excludedIds,
+    includeCategory: ProfessionalCategory.techCrew,
+  );
+
+  /// Private method containing the shared logic for filtering professionals.
+  FutureResult<List<FeedItem>> _getFilteredProfessionals({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    required int limit,
+    List<String> excludedIds = const [],
+    String? includeCategory,
+    String? excludeCategory,
   }) async {
     try {
       final userDoc = await _dataSource.getUser(currentUserId);
@@ -247,24 +212,40 @@ class FeedRepository {
           userLat: userLat,
           userLong: userLong,
           filterType: ProfileType.professional,
-          category: ProfessionalCategory.techCrew,
+          category: includeCategory,
+          excludeCategory: excludeCategory,
           userGeohash: userGeohash,
+          excludedIds: excludedIds,
         );
         return result.map((items) => items.take(limit).toList());
       }
 
-      // Fallback
-      final snapshot = await _dataSource.getUsersByCategory(
-        category: ProfessionalCategory.techCrew,
-        limit: limit,
-        startAfter: null,
-      );
+      // Fallback without location
+      final snapshot = includeCategory != null
+          ? await _dataSource.getUsersByCategory(
+              category: includeCategory,
+              limit: limit,
+              startAfter: null,
+            )
+          : await _dataSource.getUsersByType(
+              type: ProfileType.professional,
+              limit: limit * 2,
+              startAfter: null,
+            );
 
-      return Right(
-        _processSnapshot(snapshot, currentUserId, userLat, userLong),
-      );
+      var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+
+      // Apply filters
+      if (excludeCategory != null) {
+        items = items.where((i) => i.categoria != excludeCategory).toList();
+      }
+      if (excludedIds.isNotEmpty) {
+        items = items.where((i) => !excludedIds.contains(i.uid)).toList();
+      }
+
+      return Right(items.take(limit).toList());
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -288,7 +269,12 @@ class FeedRepository {
 
         if (itemLat != null && itemLng != null) {
           item = item.copyWith(
-            distanceKm: _calculateDistance(userLat, userLong, itemLat, itemLng),
+            distanceKm: DistanceCalculator.haversine(
+              fromLat: userLat,
+              fromLng: userLong,
+              toLat: itemLat,
+              toLng: itemLng,
+            ),
           );
         }
       }
@@ -298,27 +284,6 @@ class FeedRepository {
 
     return items;
   }
-
-  double _calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const R = 6371.0;
-    final dLat = _toRadians(lat2 - lat1);
-    final dLon = _toRadians(lon2 - lon1);
-    final a =
-        sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRadians(lat1)) *
-            cos(_toRadians(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
-  }
-
-  double _toRadians(double degrees) => degrees * pi / 180;
 
   FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
     required String currentUserId,
@@ -330,6 +295,7 @@ class FeedRepository {
     List<String> excludedIds = const [],
     int? limit,
     String? userGeohash,
+    double? radiusKm,
   }) async {
     try {
       if (userGeohash != null && userGeohash.isNotEmpty) {
@@ -342,6 +308,7 @@ class FeedRepository {
           excludeCategory: excludeCategory,
           userGeohash: userGeohash,
           excludedIds: excludedIds,
+          radiusKm: radiusKm,
         );
       }
 
@@ -354,9 +321,10 @@ class FeedRepository {
         excludeCategory: excludeCategory,
         excludedIds: excludedIds,
         limit: limit,
+        radiusKm: radiusKm,
       );
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -369,6 +337,7 @@ class FeedRepository {
     String? excludeCategory,
     required String userGeohash,
     List<String> excludedIds = const [],
+    double? radiusKm,
   }) async {
     final neighbors = GeohashHelper.neighbors(userGeohash);
 
@@ -389,6 +358,13 @@ class FeedRepository {
       items.removeWhere((item) => item.categoria == excludeCategory);
     }
 
+    // Filter by radius if specified
+    if (radiusKm != null) {
+      items.removeWhere(
+        (item) => item.distanceKm == null || item.distanceKm! > radiusKm,
+      );
+    }
+
     items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
 
     return Right(items);
@@ -403,6 +379,7 @@ class FeedRepository {
     String? excludeCategory,
     List<String> excludedIds = const [],
     int? limit,
+    double? radiusKm,
   }) async {
     QuerySnapshot<Map<String, dynamic>> snapshot;
 
@@ -434,6 +411,13 @@ class FeedRepository {
 
     if (excludeCategory != null) {
       items.removeWhere((i) => i.categoria == excludeCategory);
+    }
+
+    // Filter by radius if specified
+    if (radiusKm != null) {
+      items.removeWhere(
+        (item) => item.distanceKm == null || item.distanceKm! > radiusKm,
+      );
     }
 
     items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
@@ -475,7 +459,7 @@ class FeedRepository {
         ),
       );
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -510,7 +494,7 @@ class FeedRepository {
 
       return Right(allItems);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(mapExceptionToFailure(e));
     }
   }
 }
