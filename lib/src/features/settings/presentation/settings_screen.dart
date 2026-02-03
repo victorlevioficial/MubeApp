@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/mube_app_bar.dart';
 import '../../../core/data/app_seeder.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_typography.dart';
-import '../../../design_system/showcase/design_system_showcase_screen.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../design_system/presentation/widgetbook_screen.dart';
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_type.dart';
@@ -27,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Configurações', showBackButton: false),
+      appBar: const AppAppBar(title: 'Configurações', showBackButton: false),
       extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -47,19 +47,19 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Meus Endereços',
                   subtitle: 'Gerenciar entregas',
                   onTap: () => context.push('/settings/addresses'),
-                  customAccentColor: Colors.blueAccent,
+                  customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.person_outline,
                   title: 'Editar Dados',
                   onTap: () => context.push('/profile/edit'),
-                  customAccentColor: Colors.purpleAccent,
+                  customAccentColor: AppColors.brandPrimary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.favorite_outline,
                   title: 'Meus Favoritos',
                   onTap: () => context.push('/favorites'),
-                  customAccentColor: AppColors.brandPrimary,
+                  customAccentColor: AppColors.brandSecondary,
                 ),
                 // Dynamic Tile: Band Management or My Bands
                 if (ref.watch(currentUserProfileProvider).value?.tipoPerfil ==
@@ -69,7 +69,7 @@ class SettingsScreen extends ConsumerWidget {
                     title: 'Gerenciar Banda',
                     subtitle: 'Integrantes e convites',
                     onTap: () => context.push(RoutePaths.invites),
-                    customAccentColor: Colors.pinkAccent,
+                    customAccentColor: AppColors.warning,
                   )
                 else
                   NeonSettingsTile(
@@ -77,13 +77,13 @@ class SettingsScreen extends ConsumerWidget {
                     title: 'Minhas Bandas',
                     subtitle: 'Convites e parcerias',
                     onTap: () => context.push(RoutePaths.invites),
-                    customAccentColor: Colors.pinkAccent,
+                    customAccentColor: AppColors.warning,
                   ),
                 NeonSettingsTile(
                   icon: Icons.lock_outline,
                   title: 'Alterar Senha',
                   onTap: () => AppSnackBar.info(context, 'Em breve!'),
-                  customAccentColor: Colors.orangeAccent,
+                  customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.public,
@@ -101,20 +101,21 @@ class SettingsScreen extends ConsumerWidget {
                 NeonSettingsTile(
                   icon: Icons.help_outline,
                   title: 'Ajuda e Suporte',
-                  onTap: () {},
-                  customAccentColor: Colors.tealAccent,
+                  onTap: () => context.push(RoutePaths.support),
+                  customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.description_outlined,
                   title: 'Termos de Uso',
-                  onTap: () {},
-                  customAccentColor: Colors.grey,
+                  onTap: () => context.push('${RoutePaths.legal}/termsOfUse'),
+                  customAccentColor: AppColors.textSecondary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Política de Privacidade',
-                  onTap: () {},
-                  customAccentColor: Colors.grey,
+                  onTap: () =>
+                      context.push('${RoutePaths.legal}/privacyPolicy'),
+                  customAccentColor: AppColors.textSecondary,
                 ),
               ],
             ),
@@ -127,49 +128,48 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.build_circle_outlined,
                     title: 'Manutenção (Dev)',
                     onTap: () => context.push(RoutePaths.maintenance),
-                    customAccentColor: Colors.white,
+                    customAccentColor: AppColors.textPrimary,
                   ),
                   NeonSettingsTile(
                     icon: Icons.developer_mode,
                     title: 'Developer Tools 🛠️',
                     subtitle: 'Push Notifications, Logs, etc.',
                     onTap: () => context.push('/developer-tools'),
-                    customAccentColor: Colors.amber,
+                    customAccentColor: AppColors.warning,
                   ),
                   NeonSettingsTile(
                     icon: Icons.palette_outlined,
-                    title: 'Design System',
+                    title: 'Widgetbook (Style Guide)',
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const DesignSystemShowcaseScreen(),
+                          builder: (context) => const WidgetbookScreen(),
                         ),
                       );
                     },
-                    customAccentColor: Colors.pink,
+                    customAccentColor: AppColors.brandPrimary,
                   ),
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
                     title: 'Popular Banco (MatchPoint)',
                     subtitle: 'Gerar 150 perfis diversos',
                     onTap: () => _seedDatabase(context, ref),
-                    customAccentColor: Colors.greenAccent,
+                    customAccentColor: AppColors.success,
                   ),
                   NeonSettingsTile(
                     icon: Icons.settings_input_component,
                     title: 'Seed App Config',
                     subtitle: 'Resetar listas (Gêneros/Inst.)',
                     onTap: () => _seedAppConfig(context, ref),
-                    customAccentColor: Colors.cyanAccent,
+                    customAccentColor: AppColors.info,
                   ),
                   NeonSettingsTile(
                     icon: Icons.delete_sweep_outlined,
                     title: 'Limpar Perfis Fake',
                     subtitle: 'Deletar usuários do seeder',
                     onTap: () => _deleteSeededUsers(context, ref),
-                    customAccentColor: Colors.redAccent,
+                    customAccentColor: AppColors.error,
                   ),
                 ],
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Determines the profile classification based on selected categories.
 enum ProfileClassification {

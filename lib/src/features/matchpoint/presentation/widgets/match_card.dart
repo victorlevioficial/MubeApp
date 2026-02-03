@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/user_type.dart';
 
 class MatchCard extends StatelessWidget {

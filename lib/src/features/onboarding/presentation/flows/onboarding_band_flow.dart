@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
-import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
-import '../../../../common_widgets/onboarding_header.dart';
-import '../../../../common_widgets/onboarding_section_card.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/responsive_center.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_selection_modal.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/navigation/responsive_center.dart';
+import '../../../../design_system/components/patterns/onboarding_header.dart';
+import '../../../../design_system/components/patterns/onboarding_section_card.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -189,7 +188,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   Widget _buildStep1Tutorial() {
     return Column(
       children: [
-        const Icon(Icons.groups, size: 64, color: AppColors.primary),
+        const Icon(Icons.groups, size: 64, color: AppColors.brandPrimary),
         const SizedBox(height: AppSpacing.s24),
         Text(
           'Criando sua Banda',
@@ -236,7 +235,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           ),
         ),
         const SizedBox(height: AppSpacing.s48),
-        PrimaryButton(text: 'Criar banda', onPressed: _nextStep),
+        AppButton.primary(text: 'Criar banda', onPressed: _nextStep),
       ],
     );
   }
@@ -266,7 +265,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SecondaryButton(
+              AppButton.outline(
                 text: _selectedGenres.isEmpty
                     ? 'Selecionar Gêneros'
                     : 'Editar Gêneros',
@@ -325,7 +324,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        PrimaryButton(text: 'Continuar', onPressed: _nextStep),
+        AppButton.primary(text: 'Continuar', onPressed: _nextStep),
       ],
     );
   }

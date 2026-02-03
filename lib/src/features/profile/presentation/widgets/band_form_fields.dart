@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/inputs/app_selection_modal.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 
 class BandFormFields extends ConsumerStatefulWidget {
   final List<String> selectedGenres;
-  final VoidCallback onStateChanged;
+  final ValueChanged<List<String>> onGenresChanged;
 
   const BandFormFields({
     super.key,
     required this.selectedGenres,
-    required this.onStateChanged,
+    required this.onGenresChanged,
   });
 
   @override
@@ -34,6 +35,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
           'Gêneros Musicais',
           ref.watch(genreLabelsProvider),
           widget.selectedGenres,
+          widget.onGenresChanged,
         ),
       ],
     );
@@ -43,6 +45,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
     String label,
     List<String> options,
     List<String> selected,
+    ValueChanged<List<String>> onChanged,
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
@@ -56,7 +59,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
           Text(label, style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s12),
 
-          SecondaryButton(
+          AppButton.outline(
             text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
             icon: const Icon(Icons.add, size: 18),
             onPressed: () async {
@@ -73,10 +76,13 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
                 ),
               );
 
+              AppLogger.info('📋 BandFormFields Modal returned: $result for $label');
               if (result != null) {
-                selected.clear();
-                selected.addAll(result);
-                widget.onStateChanged();
+                AppLogger.info('📋 Calling onChanged callback with: $result');
+                onChanged(result);
+                AppLogger.info('📋 onChanged callback completed');
+              } else {
+                AppLogger.info('📋 Result was null, not calling callback');
               }
             },
           ),
@@ -92,8 +98,9 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
                   isSelected: true,
                   onSelected: (_) {},
                   onRemove: () {
-                    selected.remove(item);
-                    widget.onStateChanged();
+                    final newList = List<String>.from(selected);
+                    newList.remove(item);
+                    onChanged(newList);
                   },
                 );
               }).toList(),

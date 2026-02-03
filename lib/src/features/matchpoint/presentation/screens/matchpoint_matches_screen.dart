@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mube/src/common_widgets/app_skeleton.dart';
-import 'package:mube/src/common_widgets/user_avatar.dart';
-import 'package:mube/src/design_system/foundations/app_colors.dart';
-import 'package:mube/src/design_system/foundations/app_spacing.dart';
-import 'package:mube/src/design_system/foundations/app_typography.dart';
+import 'package:mube/src/design_system/components/components.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/chat/data/chat_providers.dart';
 import 'package:mube/src/features/chat/domain/conversation_preview.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
@@ -23,7 +22,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
       body: conversationsAsync.when(
         data: (conversations) {
           if (conversations.isEmpty) {
-            return _buildEmptyState();
+            return _buildEmptyState(context);
           }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.s16),
@@ -32,21 +31,24 @@ class MatchpointMatchesScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.s12),
             itemBuilder: (context, index) {
               final preview = conversations[index];
-              return _MatchTile(
-                preview: preview,
-                onTap: () => context.push(
-                  '${RoutePaths.conversation}/${preview.id}',
-                  extra: {
-                    'otherUserId': preview.otherUserId,
-                    'otherUserName': preview.otherUserName,
-                    'otherUserPhoto': preview.otherUserPhoto,
-                  },
-                ),
-                onUnmatch: () => _confirmUnmatch(
-                  context,
-                  ref,
-                  preview.otherUserId,
-                  preview.otherUserName,
+              return FadeInSlide(
+                duration: const Duration(milliseconds: 400),
+                child: _MatchTile(
+                  preview: preview,
+                  onTap: () => context.push(
+                    '${RoutePaths.conversation}/${preview.id}',
+                    extra: {
+                      'otherUserId': preview.otherUserId,
+                      'otherUserName': preview.otherUserName,
+                      'otherUserPhoto': preview.otherUserPhoto,
+                    },
+                  ),
+                  onUnmatch: () => _confirmUnmatch(
+                    context,
+                    ref,
+                    preview.otherUserId,
+                    preview.otherUserName,
+                  ),
                 ),
               );
             },
@@ -54,88 +56,51 @@ class MatchpointMatchesScreen extends ConsumerWidget {
         },
         loading: () =>
             const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
-        error: (error, stack) => Center(
-          child: Text(
-            'Erro ao carregar matches',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
+        error: (error, stack) => EmptyStateWidget(
+          title: 'Erro ao carregar',
+          subtitle: 'Não foi possível carregar seus matches.',
+          icon: Icons.error_outline,
+          actionButton: AppButton.secondary(
+            text: 'Tentar novamente',
+            onPressed: () => ref.refresh(matchConversationsProvider),
           ),
         ),
       ),
     );
   }
 
-  void _confirmUnmatch(
+  Future<void> _confirmUnmatch(
     BuildContext context,
     WidgetRef ref,
     String targetUserId,
     String name,
-  ) {
-    showDialog(
+  ) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          'Desfazer Match com $name?',
-          style: AppTypography.titleLarge,
-        ),
-        content: Text(
-          'A conversa será apagada e vocês não aparecerão mais um para o outro.',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => context.pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(matchpointControllerProvider.notifier)
-                  .unmatchUser(targetUserId);
-              context.pop();
-            },
-            child: Text(
-              'Desfazer Match',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
-            ),
-          ),
-        ],
+      builder: (context) => AppConfirmationDialog(
+        title: 'Desfazer Match com $name?',
+        message:
+            'A conversa será apagada e vocês não aparecerão mais um para o outro.',
+        confirmText: 'Desfazer Match',
+        isDestructive: true,
       ),
     );
+
+    if (confirmed == true) {
+      await ref
+          .read(matchpointControllerProvider.notifier)
+          .unmatchUser(targetUserId);
+    }
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.favorite_border,
-            size: 64,
-            color: AppColors.textSecondary.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: AppSpacing.s24),
-          Text(
-            'Nenhum match ainda',
-            style: AppTypography.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
-            child: Text(
-              'Curta perfis para conectar com outros músicos!',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
+  Widget _buildEmptyState(BuildContext context) {
+    return EmptyStateWidget(
+      title: 'Nenhum match ainda',
+      subtitle: 'Curta perfis para conectar com outros músicos!',
+      icon: Icons.favorite_border,
+      actionButton: AppButton.primary(
+        text: 'Ir para o Feed',
+        onPressed: () => context.go(RoutePaths.feed),
       ),
     );
   }
@@ -154,17 +119,16 @@ class _MatchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+    return AppAnimatedPress(
+      onPressed: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../common_widgets/user_avatar.dart'; // Reusing existing UserAvatar for now
+import '../../../design_system/components/data_display/user_avatar.dart'; // Reusing existing UserAvatar for now
 import '../../components/chips/app_chip.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_spacing.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class ComponentsSection extends StatelessWidget {
   const ComponentsSection({super.key});

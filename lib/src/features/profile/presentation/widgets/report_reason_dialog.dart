@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 class ReportReasonDialog extends StatefulWidget {
   const ReportReasonDialog({super.key});
@@ -80,11 +80,13 @@ class _ReportReasonDialogState extends State<ReportReasonDialog> {
                     ),
                   ),
                   value: reason,
+                  // ignore: deprecated_member_use
                   groupValue: _selectedReason,
                   activeColor: AppColors.error,
                   contentPadding: EdgeInsets.zero,
                   dense: true,
                   visualDensity: VisualDensity.compact,
+                  // ignore: deprecated_member_use
                   onChanged: (value) {
                     setState(() {
                       _selectedReason = value;

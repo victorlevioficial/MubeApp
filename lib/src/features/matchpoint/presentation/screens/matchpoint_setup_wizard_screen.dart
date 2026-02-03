@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/app_skeleton.dart';
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../common_widgets/mube_app_bar.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
+import '../../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class MatchpointSetupWizardScreen extends ConsumerStatefulWidget {
@@ -64,7 +65,7 @@ class _MatchpointSetupWizardScreenState
     });
 
     return Scaffold(
-      appBar: const MubeAppBar(
+      appBar: const AppAppBar(
         title: 'Configuração MatchPoint',
         showBackButton: true,
       ),
@@ -96,36 +97,21 @@ class _MatchpointSetupWizardScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (_currentStep > 0)
-                TextButton(
-                  onPressed: () => setState(() => _currentStep--),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                  ),
-                  child: const Text('Voltar'),
-                )
-              else
-                const SizedBox(width: 64), // Keep layout stable
+                if (_currentStep > 0)
+                  AppButton.ghost(
+                    onPressed: () => setState(() => _currentStep--),
+                    text: 'Voltar',
+                  )
+                else
+                  const SizedBox(width: 64), // Keep layout stable
 
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandPrimary,
-                  foregroundColor: AppColors.textPrimary,
-                  minimumSize: const Size(120, 48),
-                  elevation: 0,
-                ),
+              AppButton.primary(
                 onPressed: ref.watch(matchpointControllerProvider).isLoading
                     ? null
                     : _onNextPressed,
-                child: ref.watch(matchpointControllerProvider).isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.textPrimary,
-                        ),
-                      )
-                    : Text(_currentStep == 3 ? 'Concluir' : 'Próximo'),
+                isLoading: ref.watch(matchpointControllerProvider).isLoading,
+                text: _currentStep == 3 ? 'Concluir' : 'Próximo',
+                size: AppButtonSize.medium,
               ),
             ],
           ),
@@ -150,8 +136,8 @@ class _MatchpointSetupWizardScreenState
   }
 
   Widget _buildIntentStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         _buildStepHeader(
           icon: Icons.rocket_launch_outlined,
@@ -256,8 +242,8 @@ class _MatchpointSetupWizardScreenState
     final isConfigLoading = ref.watch(appConfigProvider).isLoading;
 
     if (availableGenres.isEmpty && isConfigLoading) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      return ListView(
+        padding: EdgeInsets.zero,
         children: [
           _buildStepHeader(
             icon: Icons.music_note_rounded,
@@ -265,30 +251,26 @@ class _MatchpointSetupWizardScreenState
             subtitle: 'Escolha quais gêneros representam seu estilo.',
           ),
           const SizedBox(height: AppSpacing.s24),
-          Expanded(
-            child: SingleChildScrollView(
-              child: SkeletonShimmer(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: List.generate(12, (index) {
-                    return const SkeletonBox(
-                      width: 80,
-                      height: 32,
-                      borderRadius: 20,
-                    );
-                  }),
-                ),
-              ),
+          SkeletonShimmer(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: List.generate(12, (index) {
+                return const SkeletonBox(
+                  width: 80,
+                  height: 32,
+                  borderRadius: 20,
+                );
+              }),
             ),
           ),
         ],
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         _buildStepHeader(
           icon: Icons.music_note_rounded,
@@ -297,38 +279,34 @@ class _MatchpointSetupWizardScreenState
         ),
         const SizedBox(height: AppSpacing.s24),
 
-        Expanded(
-          child: SingleChildScrollView(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: availableGenres.map((genre) {
-                final isSelected = _selectedGenres.contains(genre);
-                return AppFilterChip(
-                  label: genre,
-                  isSelected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedGenres.add(genre);
-                      } else {
-                        _selectedGenres.remove(genre);
-                      }
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 12,
+          alignment: WrapAlignment.center,
+          children: availableGenres.map((genre) {
+            final isSelected = _selectedGenres.contains(genre);
+            return AppFilterChip(
+              label: genre,
+              isSelected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedGenres.add(genre);
+                  } else {
+                    _selectedGenres.remove(genre);
+                  }
+                });
+              },
+            );
+          }).toList(),
         ),
       ],
     );
   }
 
   Widget _buildHashtagsStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         _buildStepHeader(
           icon: Icons.tag,
@@ -361,26 +339,22 @@ class _MatchpointSetupWizardScreenState
             ),
           ),
 
-        Expanded(
-          child: SingleChildScrollView(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _hashtags.map((tag) {
-                return AppFilterChip(
-                  label: tag,
-                  isSelected:
-                      true, // Always "selected" style in this context or neutral
-                  onSelected: (_) {}, // No-op, just visual
-                  onRemove: () {
-                    setState(() {
-                      _hashtags.remove(tag);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _hashtags.map((tag) {
+            return AppFilterChip(
+              label: tag,
+              isSelected:
+                  true, // Always "selected" style in this context or neutral
+              onSelected: (_) {}, // No-op, just visual
+              onRemove: () {
+                setState(() {
+                  _hashtags.remove(tag);
+                });
+              },
+            );
+          }).toList(),
         ),
       ],
     );
@@ -438,8 +412,8 @@ class _MatchpointSetupWizardScreenState
   }
 
   Widget _buildPrivacyStep() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
         _buildStepHeader(
           icon: Icons.privacy_tip_outlined,

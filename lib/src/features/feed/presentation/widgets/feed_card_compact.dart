@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../common_widgets/user_avatar.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/data_display/user_avatar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
 
 /// Compact card for horizontal feed sections (~160px width).

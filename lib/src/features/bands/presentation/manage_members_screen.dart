@@ -5,13 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../feed/domain/feed_item.dart';
@@ -73,7 +74,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
-      appBar: const MubeAppBar(title: 'Gerenciar Integrantes'),
+      appBar: const AppAppBar(title: 'Gerenciar Integrantes'),
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.brandPrimary, // More distinct primary color
@@ -639,42 +640,15 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minWidth: 80, maxWidth: 100),
                 child: isInvited
-                    ? ElevatedButton(
+                    ? const AppButton.secondary(
                         onPressed: null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.surfaceHighlight,
-                          disabledBackgroundColor: AppColors.surfaceHighlight,
-                          disabledForegroundColor: AppColors.textTertiary,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text(
-                          'Aguardando',
-                          style: TextStyle(fontSize: 10),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        text: 'Aguardando',
+                        size: AppButtonSize.small,
                       )
-                    : ElevatedButton(
+                    : AppButton.primary(
                         onPressed: () => _invite(item),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.brandPrimary,
-                          foregroundColor: AppColors.textPrimary,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text(
-                          'Convidar',
-                          style: TextStyle(fontSize: 11),
-                        ),
+                        text: 'Convidar',
+                        size: AppButtonSize.small,
                       ),
               ),
             ),

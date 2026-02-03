@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common_widgets/app_refresh_indicator.dart';
-import '../../../common_widgets/app_skeleton.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
+import '../../../design_system/components/feedback/app_refresh_indicator.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../domain/feed_section.dart';
 import 'feed_view_controller.dart';
 import 'widgets/vertical_feed_list.dart';
@@ -47,7 +47,7 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(title: _getTitle(), showBackButton: true),
+      appBar: AppAppBar(title: _getTitle(), showBackButton: true),
       body: AppRefreshIndicator(
         onRefresh: () =>
             ref.refresh(feedListControllerProvider(widget.sectionType).future),

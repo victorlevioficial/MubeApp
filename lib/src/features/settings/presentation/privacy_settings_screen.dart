@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mube/src/common_widgets/mube_app_bar.dart';
-import 'package:mube/src/design_system/foundations/app_colors.dart';
-import 'package:mube/src/design_system/foundations/app_spacing.dart';
-import 'package:mube/src/design_system/foundations/app_typography.dart';
+import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 
 class PrivacySettingsScreen extends ConsumerWidget {
@@ -15,7 +15,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Privacidade e Visibilidade'),
+      appBar: const AppAppBar(title: 'Privacidade e Visibilidade'),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
@@ -67,13 +67,17 @@ class PrivacySettingsScreen extends ConsumerWidget {
               const Divider(color: AppColors.surfaceHighlight, height: 32),
               _buildSectionHeader('Segurança'),
               ListTile(
-                title: const Text(
+                title: Text(
                   'Usuários Bloqueados',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 subtitle: Text(
                   '$blockedCount usuários',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 trailing: const Icon(
                   Icons.chevron_right,
@@ -118,14 +122,17 @@ class PrivacySettingsScreen extends ConsumerWidget {
     required ValueChanged<bool> onChanged,
   }) {
     return SwitchListTile(
-      title: Text(title, style: const TextStyle(color: AppColors.textPrimary)),
+      title: Text(
+        title,
+        style: AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary),
+      ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(color: AppColors.textSecondary),
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
       ),
       value: value,
       onChanged: onChanged,
-      activeColor: AppColors.brandPrimary,
+      activeThumbColor: AppColors.brandPrimary,
       trackColor: WidgetStateProperty.resolveWith(
         (states) => AppColors.surfaceHighlight,
       ),

@@ -74,8 +74,6 @@ class SearchController extends Notifier<SearchState> {
     return SearchState(userLat: lat, userLng: lng);
   }
 
-  SearchRepository get _repository => ref.read(searchRepositoryProvider);
-
   /// Update search term with debounce
   void setTerm(String term) {
     state = state.copyWith(filters: state.filters.copyWith(term: term));

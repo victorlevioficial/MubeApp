@@ -21,12 +21,22 @@ abstract final class RoutePaths {
   static const String favorites = '/favorites';
   static const String matchpoint = '/matchpoint';
   static const String matchpointWizard = '/matchpoint/wizard';
+  static const String legal = '/legal';
+  static const String support = '/settings/support';
+  static const String supportCreate = 'create-ticket'; // relative to support
+  static const String supportTickets = 'my-tickets'; // relative to support
 
   // Dev routes
   static const String gallery = '/gallery';
 
   /// Routes that don't require authentication.
-  static const Set<String> publicRoutes = {splash, login, register, gallery};
+  static const Set<String> publicRoutes = {
+    splash,
+    login,
+    register,
+    gallery,
+    legal,
+  };
 
   /// Check if a path is a public route.
   // Profile routes

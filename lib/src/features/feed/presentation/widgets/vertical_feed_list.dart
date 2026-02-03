@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common_widgets/fade_in_slide.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/patterns/fade_in_slide.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
+import '../../../../core/services/analytics/analytics_provider.dart';
 import 'feed_item_skeleton.dart';
 
 /// A reusable vertical feed list widget with pagination, shimmer loading,
@@ -121,6 +122,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   }
 
   void _onItemTap(FeedItem item) {
+    ref.read(analyticsServiceProvider).logFeedPostView(postId: item.uid);
     if (widget.onItemTap != null) {
       widget.onItemTap!(item);
     } else {
@@ -197,7 +199,9 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
           child: Center(
             child: Text(
               widget.emptyMessage,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ),

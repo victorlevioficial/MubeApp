@@ -56,7 +56,7 @@ Future<void> takeScreenshot(WidgetTester tester, String name) async {
     // Find the RepaintBoundary wrapping the app
     final finder = find.byKey(const Key('screenshot_boundary'));
     if (finder.evaluate().isEmpty) {
-      print('Error: Could not find screenshot boundary');
+      debugPrint('Error: Could not find screenshot boundary');
       return;
     }
 
@@ -71,21 +71,21 @@ Future<void> takeScreenshot(WidgetTester tester, String name) async {
     final file = File('screenshots/$name.png');
     await file.parent.create(recursive: true); // Ensure dir exists
     await file.writeAsBytes(buffer);
-    print('✅ Saved screenshots/$name.png');
+    debugPrint('✅ Saved screenshots/$name.png');
   } catch (e) {
-    print('❌ Failed to save screenshot $name: $e');
+    debugPrint('❌ Failed to save screenshot $name: $e');
   }
 }
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('Generate Store Screenshots', (tester) async {
     // 1. Setup Window
     if (!kIsWeb &&
         (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       await windowManager.ensureInitialized();
-      final WindowOptions windowOptions = const WindowOptions(
+      const WindowOptions windowOptions = WindowOptions(
         size: Size(1080, 1920),
         center: true,
         backgroundColor: Colors.transparent,
@@ -140,7 +140,7 @@ void main() {
       final deviceName = entry.key;
       final size = entry.value;
 
-      print('--- Processing $deviceName ---');
+      debugPrint('--- Processing $deviceName ---');
 
       if (!kIsWeb &&
           (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {

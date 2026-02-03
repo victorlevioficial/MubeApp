@@ -2,10 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/geohash_helper.dart';
 // import '../../../utils/seed_database.dart'; // Deleted
 // import '../../feed/data/feed_repository.dart';
@@ -141,7 +142,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const MubeAppBar(title: 'Manutenção', showBackButton: true),
+      appBar: const AppAppBar(title: 'Manutenção', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(
@@ -163,22 +164,11 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.s16),
-                    ElevatedButton(
+                    AppButton.primary(
                       onPressed: _isMigrating ? null : _runMigration,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
-                      ),
-                      child: _isMigrating
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.black,
-                              ),
-                            )
-                          : const Text('TENTAR MIGRAÇÃO (MODO AVANÇADO)'),
+                      isLoading: _isMigrating,
+                      text: 'TENTAR MIGRAÇÃO (MODO AVANÇADO)',
+                      isFullWidth: true,
                     ),
                     const SizedBox(height: AppSpacing.s12),
                     const Divider(),
@@ -197,24 +187,16 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: AppButton.outline(
                             onPressed: _isMigrating ? null : _clearMocks,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.redAccent,
-                              side: const BorderSide(color: Colors.redAccent),
-                            ),
-                            child: const Text('LIMPAR MOCKS'),
+                            text: 'LIMPAR MOCKS',
                           ),
                         ),
                         const SizedBox(width: AppSpacing.s12),
                         Expanded(
-                          child: ElevatedButton(
+                          child: AppButton.primary(
                             onPressed: _isMigrating ? null : _seedData,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('GERAR NOVOS'),
+                            text: 'GERAR NOVOS',
                           ),
                         ),
                       ],
@@ -248,13 +230,10 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
               ),
             ],
             const SizedBox(height: AppSpacing.s16),
-            OutlinedButton(
+            AppButton.outline(
               onPressed: _isMigrating ? null : _addGeohash,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blueAccent,
-                side: const BorderSide(color: Colors.blueAccent),
-              ),
-              child: const Text('ADICIONAR GEOHASH (OTIMIZAÇÃO)'),
+              text: 'ADICIONAR GEOHASH (OTIMIZAÇÃO)',
+              isFullWidth: true,
             ),
             const Text(
               'Adiciona geohash aos usuários existentes para queries 10x mais rápidas',

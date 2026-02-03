@@ -9,7 +9,9 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   firebase_storage
   geolocator_windows
+  printing
   screen_retriever_windows
+  share_plus
   url_launcher_windows
   window_manager
 )

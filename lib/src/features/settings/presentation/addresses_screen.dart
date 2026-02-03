@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../domain/saved_address.dart';
 import 'widgets/address_card.dart';
@@ -129,7 +129,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Meus Endereços'),
+      appBar: const AppAppBar(title: 'Meus Endereços'),
       body: addresses.isEmpty
           ? _buildEmptyState()
           : ListView.separated(
@@ -150,7 +150,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       floatingActionButton: addresses.length < _maxAddresses
           ? FloatingActionButton.extended(
               onPressed: _addAddress,
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.brandPrimary,
               foregroundColor: AppColors.textPrimary,
               icon: const Icon(Icons.add),
               label: const Text('Adicionar'),
@@ -192,7 +192,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Adicionar Endereço'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.brandPrimary,
                 foregroundColor: AppColors.textPrimary,
               ),
             ),

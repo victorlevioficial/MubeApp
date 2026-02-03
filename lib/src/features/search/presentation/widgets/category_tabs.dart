@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../common_widgets/mube_filter_chip.dart';
+import '../../../../design_system/components/chips/mube_filter_chip.dart';
 import '../../domain/search_filters.dart';
 
 /// Horizontal category tabs for search filtering.

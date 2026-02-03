@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_spacing.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class ColorsSection extends StatelessWidget {
   const ColorsSection({super.key});

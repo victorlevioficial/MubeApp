@@ -5,11 +5,13 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
+import '../../../shared/services/content_moderation_service.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
 import '../../storage/data/storage_repository.dart';
 
 part 'profile_controller.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ProfileController extends _$ProfileController {
   @override
   FutureOr<void> build() {
@@ -20,82 +22,120 @@ class ProfileController extends _$ProfileController {
     required AppUser currentUser,
     required Map<String, dynamic> updates,
   }) async {
+    // Capture repository BEFORE any async operation
+    final authRepo = ref.read(authRepositoryProvider);
+
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      // Create a copy of the user with the updates
-      // This is a shallow merge, be careful with nested maps if not handled correctly
-      // Ideally AppUser would have a copyWith that accepts raw maps or we parse first.
 
-      // Construct the updated map manually to ensure specific fields are updated correctly
-      // or rely on Firestore SetOptions(merge: true) which authRepository.updateUser uses.
+    // Build the updated user object synchronously
+    final updatedDadosProfissional = Map<String, dynamic>.from(
+      currentUser.dadosProfissional ?? {},
+    );
+    if (updates.containsKey('dadosProfissional')) {
+      updatedDadosProfissional.addAll(updates['dadosProfissional']);
+    }
 
-      // However, AppUser is a class. We need to create a new AppUser instance.
-      // But wait, authRepository.updateUser takes an AppUser.
-      // If we use copyWith, we can update known fields.
-      // For dynamic maps (dadosProfissional), we need to merge them.
+    final updatedDadosEstudio = Map<String, dynamic>.from(
+      currentUser.dadosEstudio ?? {},
+    );
+    if (updates.containsKey('dadosEstudio')) {
+      updatedDadosEstudio.addAll(updates['dadosEstudio']);
+    }
 
-      final updatedDadosProfissional = Map<String, dynamic>.from(
-        currentUser.dadosProfissional ?? {},
-      );
-      if (updates.containsKey('dadosProfissional')) {
-        updatedDadosProfissional.addAll(updates['dadosProfissional']);
-      }
+    final updatedDadosBanda = Map<String, dynamic>.from(
+      currentUser.dadosBanda ?? {},
+    );
+    if (updates.containsKey('dadosBanda')) {
+      updatedDadosBanda.addAll(updates['dadosBanda']);
+    }
 
-      final updatedDadosEstudio = Map<String, dynamic>.from(
-        currentUser.dadosEstudio ?? {},
-      );
-      if (updates.containsKey('dadosEstudio')) {
-        updatedDadosEstudio.addAll(updates['dadosEstudio']);
-      }
+    final updatedDadosContratante = Map<String, dynamic>.from(
+      currentUser.dadosContratante ?? {},
+    );
+    if (updates.containsKey('dadosContratante')) {
+      updatedDadosContratante.addAll(updates['dadosContratante']);
+    }
 
-      final updatedDadosBanda = Map<String, dynamic>.from(
-        currentUser.dadosBanda ?? {},
-      );
-      if (updates.containsKey('dadosBanda')) {
-        updatedDadosBanda.addAll(updates['dadosBanda']);
-      }
+    final updatedUser = currentUser.copyWith(
+      nome: updates['nome'] ?? currentUser.nome,
+      location: updates['location'] ?? currentUser.location,
+      foto: updates['foto'] ?? currentUser.foto,
+      dadosProfissional: updatedDadosProfissional,
+      dadosEstudio: updatedDadosEstudio,
+      dadosBanda: updatedDadosBanda,
+      dadosContratante: updatedDadosContratante,
+    );
 
-      final updatedDadosContratante = Map<String, dynamic>.from(
-        currentUser.dadosContratante ?? {},
-      );
-      if (updates.containsKey('dadosContratante')) {
-        updatedDadosContratante.addAll(updates['dadosContratante']);
-      }
+    // Call repository and handle Result
+    final result = await authRepo.updateUser(updatedUser);
 
-      final updatedUser = currentUser.copyWith(
-        nome: updates['nome'] ?? currentUser.nome,
-        // Location is a Map, assume it's replaced entirely if provided
-        location: updates['location'] ?? currentUser.location,
-        foto: updates['foto'] ?? currentUser.foto,
-        dadosProfissional: updatedDadosProfissional,
-        dadosEstudio: updatedDadosEstudio,
-        dadosBanda: updatedDadosBanda,
-        dadosContratante: updatedDadosContratante,
-      );
-
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
-    });
+    result.fold(
+      (failure) {
+        state = AsyncError(failure.message, StackTrace.current);
+        throw Exception(failure.message); // Re-throw to be caught by UI
+      },
+      (_) {
+        ref
+            .read(analyticsServiceProvider)
+            .logProfileEdit(userId: currentUser.uid);
+        state = const AsyncData(null);
+      },
+    );
   }
 
   Future<void> updateProfileImage({
     required File file,
     required AppUser currentUser,
   }) async {
+    // Capture repositories BEFORE any async operation
+    final storageRepo = ref.read(storageRepositoryProvider);
+    final authRepo = ref.read(authRepositoryProvider);
+    final moderationTest = ref.read(contentModerationServiceProvider);
+
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      final downloadUrl = await ref
-          .read(storageRepositoryProvider)
-          .uploadProfileImage(userId: currentUser.uid, file: file);
+
+    try {
+      // 1. Validate Image Content
+      await moderationTest.validateImage(file);
+
+      // 2. Upload if safe
+      final downloadUrl = await storageRepo.uploadProfileImage(
+        userId: currentUser.uid,
+        file: file,
+      );
 
       final updatedUser = currentUser.copyWith(foto: downloadUrl);
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
-    });
+      await authRepo.updateUser(updatedUser);
+      ref
+          .read(analyticsServiceProvider)
+          .logProfileEdit(userId: currentUser.uid);
+      state = const AsyncData(null);
+    } catch (e, st) {
+      try {
+        state = AsyncError(e, st);
+      } catch (_) {
+        // Provider was disposed, ignore
+      }
+      rethrow;
+    }
   }
 
   Future<void> deleteProfile() async {
+    // Capture repository BEFORE any async operation
+    final authRepo = ref.read(authRepositoryProvider);
+
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await ref.read(authRepositoryProvider).deleteAccount();
-    });
+
+    try {
+      await authRepo.deleteAccount();
+      state = const AsyncData(null);
+    } catch (e, st) {
+      try {
+        state = AsyncError(e, st);
+      } catch (_) {
+        // Provider was disposed, ignore
+      }
+      rethrow;
+    }
   }
 }

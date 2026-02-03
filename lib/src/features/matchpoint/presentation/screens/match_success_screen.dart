@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/secondary_button.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 import '../../../../routing/route_paths.dart';
 import '../../../auth/domain/app_user.dart';
@@ -146,8 +145,9 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                 const SizedBox(height: AppSpacing.s64),
 
                 // Buttons
-                PrimaryButton(
+                AppButton.primary(
                   text: 'Mandar Mensagem',
+                  isFullWidth: true,
                   onPressed: () {
                     final repo = ref.read(chatRepositoryProvider);
                     final conversationId = repo.getConversationId(
@@ -168,9 +168,10 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                 const SizedBox(height: AppSpacing.s16),
                 SizedBox(
                   width: double.infinity,
-                  child: SecondaryButton(
+                  child: AppButton.secondary(
                     text: 'Continuar Deslizando',
                     onPressed: () => context.pop(),
+                    isFullWidth: true,
                   ),
                 ),
               ],

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart'; // Removed
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
-import 'package:mube/src/design_system/foundations/app_spacing.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 
-import '../../../../common_widgets/user_avatar.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_typography.dart'
+import '../../../../design_system/components/data_display/user_avatar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart'
     show AppTypography;
 import '../../domain/feed_item.dart'; // Restored
 import 'profile_type_badge.dart';

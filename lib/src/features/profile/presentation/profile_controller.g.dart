@@ -20,7 +20,7 @@ final class ProfileControllerProvider
         argument: null,
         retry: null,
         name: r'profileControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -33,7 +33,7 @@ final class ProfileControllerProvider
   ProfileController create() => ProfileController();
 }
 
-String _$profileControllerHash() => r'5d44d7b49d02c3eb06be8b0d7ecc482a607110cc';
+String _$profileControllerHash() => r'afce1764fcca206c7b7c4a1925141c16ec719bb6';
 
 abstract class _$ProfileController extends $AsyncNotifier<void> {
   FutureOr<void> build();

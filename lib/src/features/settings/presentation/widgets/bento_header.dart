@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
 
 class BentoHeader extends ConsumerWidget {
@@ -28,10 +28,14 @@ class BentoHeader extends ConsumerWidget {
               alpha: 0.5,
             ), // Glassy feel
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.05),
+            ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: Colors.black.withValues(
+                  alpha: 0.2,
+                ), // Shadow can be black
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -87,7 +91,7 @@ class BentoHeader extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: AppColors.textPrimary.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -144,7 +148,9 @@ class BentoHeader extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.03),
+        ),
       ),
       child: Row(
         children: [

@@ -2,12 +2,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/formatters/title_case_formatter.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -352,7 +352,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                     ),
 
                   const SizedBox(height: AppSpacing.s48),
-                  PrimaryButton(
+                  AppButton.primary(
                     key: const Key('onboarding_submit_button'),
                     text: 'Concluir Cadastro',
                     isLoading: state.isLoading,

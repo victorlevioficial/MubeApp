@@ -3,16 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/or_divider.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/responsive_center.dart';
-import '../../../common_widgets/social_login_button.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/buttons/app_social_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/responsive_center.dart';
+import '../../../design_system/components/patterns/or_divider.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../routing/route_paths.dart';
 import 'register_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -152,13 +153,64 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.s32),
 
-                SizedBox(
-                  height: 56,
-                  child: PrimaryButton(
-                    key: const Key('register_button'),
-                    text: 'Cadastrar',
-                    isLoading: state.isLoading,
-                    onPressed: _submit,
+                AppButton.primary(
+                  key: const Key('register_button'),
+                  text: 'Cadastrar',
+                  isLoading: state.isLoading,
+                  onPressed: _submit,
+                ),
+
+                const SizedBox(height: AppSpacing.s16),
+
+                // LEGAL TEXT
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: 'Ao criar sua conta, você concorda com nossos ',
+                        ),
+                        WidgetSpan(
+                          child: GestureDetector(
+                            onTap: () =>
+                                context.push('${RoutePaths.legal}/termsOfUse'),
+                            child: Text(
+                              'Termos de Uso',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.brandPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const TextSpan(text: ' e '),
+                        WidgetSpan(
+                          child: GestureDetector(
+                            onTap: () => context.push(
+                              '${RoutePaths.legal}/privacyPolicy',
+                            ),
+                            child: Text(
+                              'Política de Privacidade',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.brandPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const TextSpan(text: '.'),
+                      ],
+                    ),
                   ),
                 ),
 

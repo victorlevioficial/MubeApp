@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../../../common_widgets/app_date_picker_field.dart';
-import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
-import '../../../../common_widgets/app_text_field.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/inputs/app_date_picker_field.dart';
+import '../../../../design_system/components/inputs/app_dropdown_field.dart';
+import '../../../../design_system/components/inputs/app_selection_modal.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 
 class ProfessionalFormFields extends ConsumerStatefulWidget {
   final TextEditingController nomeArtisticoController;
@@ -26,6 +27,10 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
   final List<String> selectedGenres;
   final List<String> selectedInstruments;
   final List<String> selectedRoles;
+
+  final ValueChanged<List<String>> onInstrumentsChanged;
+  final ValueChanged<List<String>> onRolesChanged;
+  final ValueChanged<List<String>> onGenresChanged;
 
   final String backingVocalMode;
   final ValueChanged<String> onBackingVocalModeChanged;
@@ -48,6 +53,9 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
     required this.selectedGenres,
     required this.selectedInstruments,
     required this.selectedRoles,
+    required this.onInstrumentsChanged,
+    required this.onRolesChanged,
+    required this.onGenresChanged,
     required this.backingVocalMode,
     required this.onBackingVocalModeChanged,
     required this.instrumentalistBackingVocal,
@@ -158,6 +166,7 @@ class _ProfessionalFormFieldsState
             'Instrumentos',
             ref.watch(instrumentLabelsProvider),
             widget.selectedInstruments,
+            widget.onInstrumentsChanged,
           ),
           const SizedBox(height: AppSpacing.s16),
 
@@ -174,7 +183,7 @@ class _ProfessionalFormFieldsState
                   scale: 1.2,
                   child: Checkbox(
                     value: widget.instrumentalistBackingVocal,
-                    activeColor: AppColors.primary,
+                    activeColor: AppColors.brandPrimary,
                     side: const BorderSide(
                       color: AppColors.textSecondary,
                       width: 2,
@@ -205,6 +214,7 @@ class _ProfessionalFormFieldsState
             'Funções Técnicas',
             ref.watch(crewRoleLabelsProvider),
             widget.selectedRoles,
+            widget.onRolesChanged,
           ),
         ],
 
@@ -213,6 +223,7 @@ class _ProfessionalFormFieldsState
           'Gêneros Musicais',
           ref.watch(genreLabelsProvider),
           widget.selectedGenres,
+          widget.onGenresChanged,
         ),
       ],
     );
@@ -236,7 +247,7 @@ class _ProfessionalFormFieldsState
           Text('Categorias', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s12),
 
-          SecondaryButton(
+          AppButton.outline(
             text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
             icon: const Icon(Icons.add, size: 18),
             onPressed: () async {
@@ -304,6 +315,7 @@ class _ProfessionalFormFieldsState
     String label,
     List<String> options,
     List<String> selected,
+    ValueChanged<List<String>> onChanged,
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
@@ -317,7 +329,7 @@ class _ProfessionalFormFieldsState
           Text(label, style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s12),
 
-          SecondaryButton(
+          AppButton.outline(
             text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
             icon: const Icon(Icons.add, size: 18),
             onPressed: () async {
@@ -330,20 +342,19 @@ class _ProfessionalFormFieldsState
                   items: options,
                   selectedItems: selected,
                   allowMultiple: true,
-                  itemLabelBuilder: (item) {
-                    final cat = professionalCategories.firstWhere(
-                      (e) => e['id'] == item,
-                      orElse: () => <String, Object>{'label': item},
-                    );
-                    return cat['label'] as String;
-                  },
+                  // Items (instruments, roles, genres) are already
+                  // display-ready strings from providers
+                  itemLabelBuilder: (item) => item,
                 ),
               );
 
+              AppLogger.info('📋 Modal returned: $result for $label');
               if (result != null) {
-                selected.clear();
-                selected.addAll(result);
-                widget.onStateChanged();
+                AppLogger.info('📋 Calling onChanged callback with: $result');
+                onChanged(result);
+                AppLogger.info('📋 onChanged callback completed');
+              } else {
+                AppLogger.info('📋 Result was null, not calling callback');
               }
             },
           ),
@@ -354,22 +365,15 @@ class _ProfessionalFormFieldsState
               spacing: 6,
               runSpacing: 6,
               children: selected.map((item) {
-                String display = item;
-                final cat = professionalCategories.firstWhere(
-                  (e) => e['id'] == item,
-                  orElse: () => <String, Object>{'label': item},
-                );
-                if (cat['label'] != null) {
-                  display = cat['label'] as String;
-                }
-
+                // Items are already display-ready strings from providers
                 return AppFilterChip(
-                  label: display,
+                  label: item,
                   isSelected: true,
                   onSelected: (_) {},
                   onRemove: () {
-                    selected.remove(item);
-                    widget.onStateChanged();
+                    final newList = List<String>.from(selected);
+                    newList.remove(item);
+                    onChanged(newList);
                   },
                 );
               }).toList(),

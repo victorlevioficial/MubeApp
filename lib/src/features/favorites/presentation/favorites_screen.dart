@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mube/src/common_widgets/mube_app_bar.dart';
-import 'package:mube/src/design_system/foundations/app_colors.dart';
-import 'package:mube/src/design_system/foundations/app_typography.dart';
+import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
@@ -125,7 +125,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Meus Favoritos', showBackButton: true),
+      appBar: const AppAppBar(title: 'Meus Favoritos', showBackButton: true),
       body: Column(
         children: [
           // Filter Bar

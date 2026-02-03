@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../common_widgets/app_date_picker_field.dart';
-import '../../../common_widgets/app_dropdown_field.dart';
-import '../../../common_widgets/app_filter_chip.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/onboarding_progress_bar.dart';
-import '../../../common_widgets/or_divider.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/secondary_button.dart';
-import '../../../common_widgets/social_login_button.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_radius.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/buttons/app_social_button.dart';
+import '../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_date_picker_field.dart';
+import '../../../design_system/components/inputs/app_dropdown_field.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/patterns/onboarding_progress_bar.dart';
+import '../../../design_system/components/patterns/or_divider.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 
 class DesignSystemGalleryScreen extends StatefulWidget {
   const DesignSystemGalleryScreen({super.key});
@@ -93,7 +92,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 spacing: AppSpacing.s8,
                 runSpacing: AppSpacing.s8,
                 children: [
-                  _buildColorBox(AppColors.primary, 'Primary'),
+                  _buildColorBox(AppColors.brandPrimary, 'Primary'),
 
                   _buildColorBox(AppColors.semanticAction, 'Semantic Act'),
                   _buildColorBox(AppColors.background, 'Background'),
@@ -255,16 +254,16 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
               ),
 
               _buildSectionHeader('Buttons'),
-              PrimaryButton(text: 'Primary Button', onPressed: () {}),
+              AppButton.primary(text: 'Primary Button', onPressed: () {}),
               const SizedBox(height: AppSpacing.s16),
-              SecondaryButton(text: 'Secondary Button', onPressed: () {}),
+              AppButton.secondary(text: 'Secondary Button', onPressed: () {}),
               const SizedBox(height: AppSpacing.s16),
               SocialLoginButton(type: SocialType.google, onPressed: () {}),
               const SizedBox(height: AppSpacing.s8),
               SocialLoginButton(type: SocialType.apple, onPressed: () {}),
 
               _buildSectionHeader('Feedback'),
-              PrimaryButton(
+              AppButton.primary(
                 text: 'Show Snackbar (Success)',
                 onPressed: () {
                   AppSnackBar.show(
@@ -275,7 +274,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 },
               ),
               const SizedBox(height: AppSpacing.s8),
-              PrimaryButton(
+              AppButton.primary(
                 text: 'Show Snackbar (Error)',
                 onPressed: () {
                   AppSnackBar.show(
@@ -345,7 +344,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           height: size,
           width: size,
           decoration: BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.brandPrimary,
             borderRadius: BorderRadius.circular(size / 4),
           ),
         ),
@@ -364,7 +363,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           decoration: BoxDecoration(
             color: AppColors.surfaceHighlight,
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: AppColors.primary),
+            border: Border.all(color: AppColors.brandPrimary),
           ),
         ),
         const SizedBox(height: AppSpacing.s4),
@@ -395,7 +394,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
             ],
           ),
         ),
-        Container(height: 24, width: spacing, color: AppColors.primary),
+        Container(height: 24, width: spacing, color: AppColors.brandPrimary),
         const SizedBox(width: 8),
         Text(
           '${spacing.toInt()}px',

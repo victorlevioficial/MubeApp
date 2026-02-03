@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_skeleton.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../common_widgets/user_avatar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../data/chat_providers.dart';
 import '../domain/conversation_preview.dart';
@@ -22,7 +22,7 @@ class ConversationsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Conversas'),
+      appBar: const AppAppBar(title: 'Conversas'),
       body: conversationsAsync.when(
         data: (conversations) {
           if (conversations.isEmpty) {

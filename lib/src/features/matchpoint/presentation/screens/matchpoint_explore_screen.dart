@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../common_widgets/app_skeleton.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../features/auth/data/auth_repository.dart';
 import '../../../../routing/route_paths.dart';
 import '../../presentation/controllers/matchpoint_controller.dart';
@@ -134,10 +135,14 @@ class _MatchpointExploreScreenState
           final fullProfile = ref.read(currentUserProfileProvider).value;
           final bestUser = fullProfile ?? minimalUser;
 
-          Navigator.of(context).push(
+          if (!context.mounted) return;
+          // ignore: use_build_context_synchronously
+          final navigator = Navigator.of(context);
+
+          await navigator.push(
             PageRouteBuilder(
               opaque: false,
-              pageBuilder: (_, __, ___) =>
+              pageBuilder: (context, animation, secondaryAnimation) =>
                   MatchSuccessScreen(currentUser: bestUser, matchUser: match),
             ),
           );
@@ -178,7 +183,7 @@ class _MatchpointExploreScreenState
           const SizedBox(height: AppSpacing.s32),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: AppButton.primary(
               onPressed: () {
                 context.push(RoutePaths.matchpointWizard).then((_) {
                   // Refresh the provider
@@ -186,16 +191,8 @@ class _MatchpointExploreScreenState
                 });
               },
               icon: const Icon(Icons.tune),
-              label: const Text('Ajustar Filtros'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandPrimary,
-                foregroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
+              text: 'Ajustar Filtros',
+              isFullWidth: true,
             ),
           ),
         ],

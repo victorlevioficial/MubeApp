@@ -4,14 +4,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/location_service.dart';
-import '../../../../common_widgets/or_divider.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/patterns/or_divider.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../onboarding_form_provider.dart';
 
 class OnboardingAddressStep extends ConsumerStatefulWidget {
@@ -417,7 +417,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
             ),
 
           const SizedBox(height: AppSpacing.s16),
-          PrimaryButton(
+          AppButton.primary(
             text: 'Buscar Manualmente',
             onPressed: _logradouroController.text.length > 3
                 ? () => setState(() => _addressFound = true)
@@ -509,7 +509,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           SizedBox(
             width: double.infinity,
             height: 56,
-            child: PrimaryButton(
+            child: AppButton.primary(
               text: 'Finalizar',
               onPressed: () {
                 _persistAddress();

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../common_widgets/app_skeleton.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_compact.dart';
 

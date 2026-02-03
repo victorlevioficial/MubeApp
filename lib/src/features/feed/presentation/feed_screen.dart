@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/empty_state_widget.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../domain/feed_section.dart';
 import 'feed_controller.dart';
@@ -205,7 +205,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
             // Empty State or Vertical List
             if (state.mainItems.isEmpty && !state.isLoadingMain)
-              SliverToBoxAdapter(
+              const SliverToBoxAdapter(
                 child: EmptyStateWidget(
                   icon: Icons.music_off_rounded,
                   title: 'Nenhum músico encontrado',

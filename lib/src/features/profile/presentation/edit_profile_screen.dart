@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
@@ -98,6 +98,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   @override
   void dispose() {
+    // Reset initialization flag so data reloads on next screen visit
+    _isInitialized = false;
     _tabController.dispose();
     _nomeController.dispose();
     _nomeArtisticoController.dispose();
@@ -135,15 +137,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   void _initializeFromUser(AppUser user) {
+    // Guard against re-initialization during rebuilds (e.g., when selecting items)
+    // Flag is reset in dispose() to allow fresh data load on next screen visit
     if (_isInitialized) return;
     _isInitialized = true;
 
     _nomeController.text = user.nome ?? '';
 
-    // Pre-cache avatar photo for instant display
-    if (user.foto != null && user.foto!.isNotEmpty) {
-      precacheImage(CachedNetworkImageProvider(user.foto!), context);
-    }
+    // Pre-cache removed to improve stability
+    // if (user.foto != null && user.foto!.isNotEmpty) { ... }
 
     _bioController.text = user.bio ?? '';
 
@@ -214,8 +216,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       final imageUrl = item.type == MediaType.video
           ? item.thumbnailUrl ?? item.url
           : item.url;
+
       if (imageUrl.isNotEmpty) {
-        precacheImage(CachedNetworkImageProvider(imageUrl), context);
+        // Validate URL before attempting to load
+        final uri = Uri.tryParse(imageUrl);
+        if (uri == null || !uri.hasAbsolutePath) {
+          AppLogger.warning('Invalid gallery URL skipped: $imageUrl');
+          continue;
+        }
+
+        try {
+          precacheImage(
+            CachedNetworkImageProvider(imageUrl),
+            context,
+          ).catchError((e) {
+            AppLogger.warning('Failed to precache image: $imageUrl', e);
+          });
+        } catch (e) {
+          AppLogger.warning('Error initiating precache for: $imageUrl', e);
+        }
       }
     }
   }
@@ -238,21 +257,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     if (_isSaving) return;
     if (!_hasChanges) {
       AppLogger.info('Marking as changed');
-      setState(() => _hasChanges = true);
+      if (mounted) {
+        setState(() => _hasChanges = true);
+      }
     }
   }
 
   Future<void> _handleAddPhoto(AppUser user) async {
     // Check limits before opening picker
     if (_galleryItems.length >= _maxTotal) {
-      AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
+      if (mounted) {
+        AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
+      }
       return;
     }
     if (_photoCount >= _maxPhotos) {
-      AppSnackBar.warning(
-        context,
-        'Você já atingiu o limite de $_maxPhotos fotos.',
-      );
+      if (mounted) {
+        AppSnackBar.warning(
+          context,
+          'Você já atingiu o limite de $_maxPhotos fotos.',
+        );
+      }
       return;
     }
 
@@ -267,6 +292,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         context,
         lockAspectRatio: false,
       );
+
+      if (!context.mounted) return; // EARLY EXIT if unmounted
+
       if (file == null) {
         setState(() => _isUploadingMedia = false);
         return;
@@ -289,6 +317,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         },
       );
 
+      if (!context.mounted) return;
+
       setState(() {
         _galleryItems.add(
           MediaItem(
@@ -306,27 +336,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       // Invalidate profile provider to refresh gallery on profile screen
       ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
+      if (!context.mounted) return;
+
       setState(() {
         _isUploadingMedia = false;
         _uploadProgress = 0.0;
       });
-      if (mounted) {
-        AppSnackBar.error(context, 'Erro ao adicionar foto: $e');
-      }
+
+      AppSnackBar.error(context, 'Erro ao adicionar foto: $e');
     }
   }
 
   Future<void> _handleAddVideo(AppUser user) async {
     // Check limits before opening picker
     if (_galleryItems.length >= _maxTotal) {
-      AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
+      if (context.mounted) {
+        AppSnackBar.warning(context, 'Limite máximo da galeria atingido.');
+      }
       return;
     }
     if (_videoCount >= _maxVideos) {
-      AppSnackBar.warning(
-        context,
-        'Você já atingiu o limite de $_maxVideos vídeos.',
-      );
+      if (context.mounted) {
+        AppSnackBar.warning(
+          context,
+          'Você já atingiu o limite de $_maxVideos vídeos.',
+        );
+      }
       return;
     }
 
@@ -338,6 +373,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
     try {
       final result = await _mediaPickerService.pickAndProcessVideo(context);
+
+      if (!context.mounted) return;
+
       if (result == null) {
         setState(() => _isUploadingMedia = false);
         return;
@@ -362,6 +400,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         },
       );
 
+      if (!context.mounted) return;
+
       setState(() => _uploadStatus = 'Enviando thumbnail...');
 
       // Upload thumbnail
@@ -370,6 +410,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         mediaId: mediaId,
         thumbnail: thumbnailFile,
       );
+
+      if (!context.mounted) return;
 
       setState(() {
         _uploadProgress = 1.0;
@@ -390,13 +432,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       // Invalidate profile provider to refresh gallery on profile screen
       ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
+      if (!context.mounted) return;
+
       setState(() {
         _isUploadingMedia = false;
         _uploadProgress = 0.0;
       });
-      if (mounted) {
-        AppSnackBar.error(context, 'Erro ao adicionar vídeo: $e');
-      }
+      AppSnackBar.error(context, 'Erro ao adicionar vídeo: $e');
     }
   }
 
@@ -432,85 +474,85 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   bool _validateData(AppUser user) {
     AppLogger.info('_validateData: tipoPerfil=${user.tipoPerfil}');
-    AppLogger.info('_validateData: categories=$_selectedCategories');
-    AppLogger.info('_validateData: instruments=$_selectedInstruments');
-    AppLogger.info('_validateData: genres=$_selectedGenres');
-    AppLogger.info('_validateData: roles=$_selectedRoles');
 
     if (user.tipoPerfil == AppUserType.professional) {
       if (_selectedCategories.isEmpty) {
-        AppSnackBar.error(context, 'Selecione pelo menos uma categoria.');
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'Selecione pelo menos uma categoria (Cantor, Instrumentista ou Equipe Técnica).',
+          );
+        }
         return false;
       }
 
       if (_selectedCategories.contains('instrumentalist') &&
           _selectedInstruments.isEmpty) {
-        AppLogger.info('BLOCKING: instrumentalist without instruments');
-        AppSnackBar.error(
-          context,
-          'Selecione pelo menos um instrumento para continuar.',
-        );
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'Selecione pelo menos um instrumento para continuar.',
+          );
+        }
         return false;
       }
 
       if (_selectedCategories.contains('crew') && _selectedRoles.isEmpty) {
-        AppLogger.info('BLOCKING: crew without roles');
-        AppSnackBar.error(
-          context,
-          'Selecione pelo menos uma função técnica para continuar.',
-        );
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'Selecione pelo menos uma função técnica para continuar.',
+          );
+        }
         return false;
       }
 
       if (_selectedGenres.isEmpty) {
-        AppLogger.info('BLOCKING: no genres');
-        AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        if (context.mounted) {
+          AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        }
         return false;
       }
     } else if (user.tipoPerfil == AppUserType.band) {
       if (_bandGenres.isEmpty) {
-        AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        if (context.mounted) {
+          AppSnackBar.error(context, 'Selecione pelo menos um gênero musical.');
+        }
+        return false;
+      }
+    } else if (user.tipoPerfil == AppUserType.studio) {
+      if (_selectedServices.isEmpty) {
+        if (context.mounted) {
+          AppSnackBar.error(context, 'Selecione pelo menos um serviço.');
+        }
         return false;
       }
     }
 
-    AppLogger.info('_validateData: PASSED');
     return true;
   }
 
   Future<void> _saveProfile(AppUser user) async {
     AppLogger.info('=== _saveProfile START ===');
-    AppLogger.info(
-      '_isSaving=$_isSaving, _hasChanges=$_hasChanges, mounted=$mounted',
-    );
 
-    // Prevent double-save
-    if (_isSaving) {
-      AppLogger.warning('Already saving, ignoring');
+    if (_isSaving) return;
+    if (!mounted) return;
+
+    // Capture values needed for async operations
+    final profileController = ref.read(profileControllerProvider.notifier);
+
+    // Validate first (sync)
+    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
+      AppLogger.info('Form validation failed');
       return;
     }
 
-    // Early mounted check
-    if (!mounted) {
-      AppLogger.warning('Not mounted at start, aborting');
+    if (!_validateData(user)) {
+      AppLogger.info('Business rule validation failed');
       return;
     }
 
     setState(() => _isSaving = true);
-
-    // Form validation (only if form exists and we're on profile tab)
-    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
-      AppLogger.info('Form validation failed');
-      if (mounted) setState(() => _isSaving = false);
-      return;
-    }
-
-    // Business rule validation
-    if (!_validateData(user)) {
-      AppLogger.info('Business rule validation failed');
-      if (mounted) setState(() => _isSaving = false);
-      return;
-    }
 
     // Build updates map
     final Map<String, dynamic> updates = {
@@ -534,6 +576,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           'instrumentalistBackingVocal': _instrumentalistBackingVocal,
           'gallery': _galleryToJson(),
         };
+        break;
 
       case AppUserType.studio:
         updates['dadosEstudio'] = {
@@ -543,12 +586,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           'servicosOferecidos': _selectedServices,
           'gallery': _galleryToJson(),
         };
+        break;
 
       case AppUserType.band:
         updates['dadosBanda'] = {
+          'nomeArtistico': _nomeController.text.trim(),
+          'bio': _bioController.text.trim(),
           'generosMusicais': _bandGenres,
           'gallery': _galleryToJson(),
         };
+        break;
 
       case AppUserType.contractor:
         updates['dadosContratante'] = {
@@ -557,50 +604,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           'genero': _generoController.text.trim(),
           'instagram': _instagramController.text.trim(),
         };
+        break;
 
       default:
         break;
     }
 
-    AppLogger.info('Calling updateProfile...');
-
     try {
-      await ref
-          .read(profileControllerProvider.notifier)
-          .updateProfile(currentUser: user, updates: updates);
+      await profileController.updateProfile(
+        currentUser: user,
+        updates: updates,
+      );
 
-      AppLogger.info('updateProfile completed successfully');
+      // CRITICAL: Check mounted (State property) after await
+      if (!mounted) return;
 
-      // Check mounted AGAIN after async operation
-      if (!mounted) {
-        AppLogger.warning('Not mounted after updateProfile, cannot navigate');
-        return;
-      }
-
-      // CRITICAL: Clear ALL flags before scheduling navigation
-      AppLogger.info('Clearing _hasChanges and _isSaving');
-      _hasChanges = false;
-      _isSaving = false;
-      _isInitialized = false; // Force re-init on next visit
-
-      // Single frame callback for snackbar and navigation
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        AppLogger.info('PostFrame: mounted=$mounted');
-        if (mounted) {
-          AppSnackBar.success(context, 'Perfil atualizado!');
-          Navigator.of(context).pop();
-          AppLogger.info('Pop executed');
-        }
+      setState(() {
+        _isSaving = false;
+        _hasChanges = false;
+        _isInitialized = false; // Force reload on next visit
       });
+
+      // Now it is safe to use context because mounted is true
+      if (context.mounted) {
+        AppSnackBar.success(context, 'Perfil atualizado com sucesso!');
+      }
     } catch (e, st) {
       AppLogger.error('Erro ao salvar perfil', e, st);
-      if (mounted) {
-        setState(() => _isSaving = false);
+
+      // CRITICAL: Check mounted (State property) after error
+      if (!mounted) return;
+
+      setState(() => _isSaving = false);
+
+      final errorMessage = e.toString().toLowerCase();
+      // Don't show technical errors if it's just a provider disposal (race condition)
+      if (!errorMessage.contains('disposed') && context.mounted) {
         AppSnackBar.error(context, 'Erro ao salvar: $e');
       }
     }
-
-    AppLogger.info('=== _saveProfile END ===');
   }
 
   @override
@@ -630,7 +672,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           },
           child: Scaffold(
             backgroundColor: AppColors.background,
-            appBar: MubeAppBar(
+            appBar: AppAppBar(
               title: 'Editar Perfil',
               showBackButton: true,
               onBackPressed: _handleBack,
@@ -743,15 +785,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                     right: 0,
                     child: GestureDetector(
                       onTap: () async {
+                        // Capture controller and messenger before async gap
+                        final controller = ref.read(
+                          profileControllerProvider.notifier,
+                        );
+                        final messenger = ScaffoldMessenger.of(context);
+
                         final picker = MediaPickerService();
                         final file = await picker.pickAndCropPhoto(context);
                         if (file != null) {
-                          await ref
-                              .read(profileControllerProvider.notifier)
-                              .updateProfileImage(
-                                file: file,
-                                currentUser: user,
+                          try {
+                            await controller.updateProfileImage(
+                              file: file,
+                              currentUser: user,
+                            );
+                            if (mounted) {
+                              AppSnackBar.success(context, 'Foto atualizada!');
+                            }
+                          } catch (e) {
+                            // Ignore disposed provider errors
+                            final isDisposedError = e
+                                .toString()
+                                .toLowerCase()
+                                .contains('disposed');
+                            if (!isDisposedError && mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Erro ao atualizar foto: $e'),
+                                ),
                               );
+                            }
+                          }
                         }
                       },
                       child: Container(
@@ -880,6 +944,40 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                   setState(() {});
                   _markChanged();
                 },
+                onInstrumentsChanged: (newInstruments) {
+                  AppLogger.info(
+                    '🔧 onInstrumentsChanged called: $newInstruments',
+                  );
+                  setState(() {
+                    _selectedInstruments
+                      ..clear()
+                      ..addAll(newInstruments);
+                  });
+                  AppLogger.info(
+                    '🔧 _selectedInstruments after: $_selectedInstruments',
+                  );
+                  _markChanged();
+                },
+                onRolesChanged: (newRoles) {
+                  AppLogger.info('⚙️ onRolesChanged called: $newRoles');
+                  setState(() {
+                    _selectedRoles
+                      ..clear()
+                      ..addAll(newRoles);
+                  });
+                  AppLogger.info('⚙️ _selectedRoles after: $_selectedRoles');
+                  _markChanged();
+                },
+                onGenresChanged: (newGenres) {
+                  AppLogger.info('🎵 onGenresChanged called: $newGenres');
+                  setState(() {
+                    _selectedGenres
+                      ..clear()
+                      ..addAll(newGenres);
+                  });
+                  AppLogger.info('🎵 _selectedGenres after: $_selectedGenres');
+                  _markChanged();
+                },
                 onCategoriesChanged: (newCategories) {
                   setState(() {
                     // Clear instruments if instrumentalist was removed
@@ -914,8 +1012,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                   _markChanged();
                 },
                 selectedServices: _selectedServices,
-                onStateChanged: () {
-                  setState(() {});
+                onServicesChanged: (newServices) {
+                  setState(() {
+                    _selectedServices
+                      ..clear()
+                      ..addAll(newServices);
+                  });
                   _markChanged();
                 },
               ),
@@ -923,8 +1025,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             if (user.tipoPerfil == AppUserType.band)
               BandFormFields(
                 selectedGenres: _bandGenres,
-                onStateChanged: () {
-                  setState(() {});
+                onGenresChanged: (newGenres) {
+                  setState(() {
+                    _bandGenres
+                      ..clear()
+                      ..addAll(newGenres);
+                  });
                   _markChanged();
                 },
               ),
@@ -936,8 +1042,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 generoController: _generoController,
                 instagramController: _instagramController,
                 celularMask: _celularMask,
-                onStateChanged: () {
-                  setState(() {});
+                onChanged: () {
                   _markChanged();
                 },
               ),
@@ -945,10 +1050,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             const SizedBox(height: AppSpacing.s48),
 
             // Save button at bottom
-            PrimaryButton(
+            AppButton.primary(
               text: 'Salvar Alterações',
-              isLoading: ref.watch(profileControllerProvider).isLoading,
+              isLoading: _isSaving,
               onPressed: _hasChanges ? () => _saveProfile(user) : null,
+              isFullWidth: true,
             ),
           ],
         ),
@@ -979,10 +1085,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         // Bottom CTA button
         Padding(
           padding: const EdgeInsets.all(AppSpacing.s24),
-          child: PrimaryButton(
+          child: AppButton.primary(
             text: 'Salvar Alterações',
-            isLoading: ref.watch(profileControllerProvider).isLoading,
+            isLoading: _isSaving,
             onPressed: _hasChanges ? () => _saveProfile(user) : null,
+            isFullWidth: true,
           ),
         ),
       ],

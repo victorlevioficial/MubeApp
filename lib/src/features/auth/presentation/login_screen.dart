@@ -4,15 +4,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/or_divider.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/responsive_center.dart';
-import '../../../common_widgets/social_login_button.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/buttons/app_social_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/responsive_center.dart';
+import '../../../design_system/components/patterns/or_divider.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
 import '../data/auth_repository.dart';
 
@@ -216,7 +216,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Semantics(
                     button: true,
                     label: 'Entrar na conta',
-                    child: PrimaryButton(
+                    child: AppButton.primary(
                       key: const Key('login_button'),
                       text: 'Entrar',
                       isLoading: state.isLoading,

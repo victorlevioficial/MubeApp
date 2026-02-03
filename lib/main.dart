@@ -13,8 +13,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 // import 'src/cleaning_script.dart'; // Script de limpeza temporário - REMOVIDO
 import 'src/app.dart';
-import 'src/common_widgets/error_boundary.dart';
 import 'src/core/services/push_notification_service.dart';
+import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 
 void main() {
@@ -71,7 +71,7 @@ void main() {
         AppLogger.info('✅ Database cleanup passed.');
 
         // Initialize misc services in background to not block UI
-        Future.wait([
+        await Future.wait([
           PushNotificationService().init(),
           _preloadFonts(),
         ]).then((_) => AppLogger.info('Services initialized'));

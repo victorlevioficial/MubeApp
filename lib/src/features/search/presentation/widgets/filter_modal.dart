@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/mube_filter_chip.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/chips/mube_filter_chip.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/search_filters.dart';
 
 /// Modal for advanced filter options.
@@ -151,14 +150,14 @@ class _FilterModalState extends ConsumerState<FilterModal> {
             child: Row(
               children: [
                 Expanded(
-                  child: SecondaryButton(
+                  child: AppButton.outline(
                     text: 'Cancelar',
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.s12),
                 Expanded(
-                  child: PrimaryButton(
+                  child: AppButton.primary(
                     text: 'Aplicar',
                     onPressed: _applyFilters,
                   ),

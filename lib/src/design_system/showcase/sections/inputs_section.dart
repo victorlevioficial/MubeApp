@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../common_widgets/app_checkbox.dart'; // Reusing existing checkbox
+import '../../../design_system/components/inputs/app_checkbox.dart'; // Reusing existing checkbox
 import '../../components/inputs/app_text_input.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_spacing.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class InputsSection extends StatelessWidget {
   const InputsSection({super.key});

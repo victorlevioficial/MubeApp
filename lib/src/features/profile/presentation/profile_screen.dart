@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_shimmer.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/user_avatar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/loading/app_shimmer.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -135,7 +135,7 @@ class ProfileScreen extends ConsumerWidget {
 
                 const SizedBox(height: AppSpacing.s24),
                 // Actions
-                PrimaryButton(
+                AppButton.primary(
                   text: 'Editar Perfil',
                   onPressed: () => context.go('/profile/edit'),
                 ),
@@ -154,7 +154,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const ProfileCardSkeleton(),
+        loading: () => const ProfileSkeleton(),
         error: (err, stack) => Center(child: Text('Erro: $err')),
       ),
     );

@@ -6,15 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/app_text_field.dart';
 import '../../../common_widgets/location_service.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../common_widgets/or_divider.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/components/patterns/or_divider.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../domain/saved_address.dart';
 
@@ -146,7 +146,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
           FocusManager.instance.primaryFocus?.unfocus();
         });
       } else {
-        if (mounted) {
+        if (context.mounted) {
           AppSnackBar.error(context, 'Erro ao obter detalhes.');
         }
       }
@@ -171,17 +171,17 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
             _addressFound = true;
           });
         } else {
-          if (mounted) {
+          if (context.mounted) {
             AppSnackBar.error(context, 'Endereço não encontrado.');
           }
         }
       } else {
-        if (mounted) {
+        if (context.mounted) {
           AppSnackBar.error(context, 'Não foi possível obter localização.');
         }
       }
     } catch (e) {
-      if (mounted) AppSnackBar.error(context, 'Erro: $e');
+      if (context.mounted) AppSnackBar.error(context, 'Erro: $e');
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }
@@ -261,7 +261,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       );
       await ref.read(authRepositoryProvider).updateUser(updatedUser);
 
-      if (mounted) {
+      if (context.mounted) {
         AppSnackBar.success(
           context,
           _isEditing ? 'Endereço atualizado!' : 'Endereço adicionado!',
@@ -269,7 +269,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         context.pop();
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         AppSnackBar.error(context, 'Erro ao salvar: $e');
       }
     } finally {
@@ -281,7 +281,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(
+      appBar: AppAppBar(
         title: _isEditing ? 'Editar Endereço' : 'Novo Endereço',
         showBackButton: true,
       ),
@@ -329,7 +329,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 if (_searchResults.isNotEmpty) _buildSearchResults(),
 
                 const SizedBox(height: AppSpacing.s16),
-                PrimaryButton(
+                AppButton.primary(
                   text: 'Buscar Manualmente',
                   onPressed: _logradouroController.text.length > 3
                       ? () => setState(() => _addressFound = true)
@@ -351,7 +351,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 56,
-                  child: PrimaryButton(
+                  child: AppButton.primary(
                     text: _isSaving ? 'Salvando...' : 'Salvar Endereço',
                     onPressed: _isSaving ? null : _saveAddress,
                   ),
@@ -372,11 +372,11 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.5),
+            color: AppColors.brandPrimary.withValues(alpha: 0.5),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(AppSpacing.s12),
-          color: AppColors.primary.withValues(alpha: 0.05),
+          color: AppColors.brandPrimary.withValues(alpha: 0.05),
         ),
         child: Row(
           children: [
@@ -384,7 +384,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
               width: AppSpacing.s40,
               height: AppSpacing.s40,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: AppColors.brandPrimary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
@@ -394,12 +394,12 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                       height: AppSpacing.s20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     )
                   : const Icon(
                       Icons.my_location,
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                       size: AppSpacing.s20,
                     ),
             ),
@@ -414,7 +414,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                         : 'Usar minha localização atual',
                     style: AppTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: AppColors.brandPrimary,
                     ),
                   ),
                   if (_isLoadingPreview)
@@ -453,7 +453,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.primary),
+            const Icon(Icons.chevron_right, color: AppColors.brandPrimary),
           ],
         ),
       ),

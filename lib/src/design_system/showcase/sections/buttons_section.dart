@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../components/buttons/app_button.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_spacing.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class ButtonsSection extends StatelessWidget {
   const ButtonsSection({super.key});

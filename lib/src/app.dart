@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/services/push_notification_event_bus.dart';
-import 'design_system/foundations/app_scroll_behavior.dart';
-import 'design_system/theme/app_theme.dart';
+import 'design_system/foundations/theme/app_scroll_behavior.dart';
+import 'design_system/foundations/theme/app_theme.dart';
 import 'routing/app_router.dart';
 
 /// Global key for ScaffoldMessenger to show snackbars across navigation.

@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../../../common_widgets/app_date_picker_field.dart';
-import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
-import '../../../../common_widgets/onboarding_header.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/responsive_center.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_date_picker_field.dart';
+import '../../../../design_system/components/inputs/app_dropdown_field.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/navigation/responsive_center.dart';
+import '../../../../design_system/components/patterns/onboarding_header.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/app_logger.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
@@ -325,7 +325,7 @@ class _OnboardingContractorFlowState
 
         SizedBox(
           height: 56,
-          child: PrimaryButton(text: 'Continuar', onPressed: _nextStep),
+          child: AppButton.primary(text: 'Continuar', onPressed: _nextStep),
         ),
         const SizedBox(height: AppSpacing.s24),
       ],

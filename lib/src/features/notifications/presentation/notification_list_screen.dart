@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/notification_providers.dart';
 import '../domain/notification_model.dart';
@@ -21,7 +21,7 @@ class NotificationListScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProfileProvider).value;
 
     return Scaffold(
-      appBar: MubeAppBar(
+      appBar: AppAppBar(
         title: 'Notificações',
         actions: [
           if (notificationsAsync.value?.isNotEmpty == true)
@@ -174,7 +174,7 @@ class NotificationListScreen extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.notifications_off_outlined,
             size: 64,
             color: AppColors.textTertiary,

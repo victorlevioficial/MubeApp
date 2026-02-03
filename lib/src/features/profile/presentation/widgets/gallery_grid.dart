@@ -2,11 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 
-import '../../../../common_widgets/app_shimmer.dart';
+import '../../../../design_system/components/loading/app_shimmer.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/media_item.dart';
 
 /// Reorderable gallery grid with drag-and-drop support.
@@ -167,18 +167,18 @@ class _FilledSlot extends StatelessWidget {
                 color: AppColors.background.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.play_arrow,
                     color: AppColors.textPrimary,
                     size: 14,
                   ),
-                  SizedBox(width: 2),
+                  const SizedBox(width: 2),
                   Text(
                     'Vídeo',
-                    style: TextStyle(
+                    style: AppTypography.labelSmall.copyWith(
                       color: AppColors.textPrimary,
                       fontSize: 10,
                     ),
@@ -273,7 +273,7 @@ class _EmptySlot extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s24),
               ListTile(
-                leading: const Icon(Icons.photo, color: AppColors.primary),
+                leading: const Icon(Icons.photo, color: AppColors.brandPrimary),
                 title: const Text('Foto'),
                 subtitle: const Text('Será cortada em formato quadrado'),
                 onTap: () {
@@ -283,7 +283,10 @@ class _EmptySlot extends StatelessWidget {
               ),
               if (canAddVideo)
                 ListTile(
-                  leading: const Icon(Icons.videocam, color: AppColors.primary),
+                  leading: const Icon(
+                    Icons.videocam,
+                    color: AppColors.brandPrimary,
+                  ),
                   title: const Text('Vídeo'),
                   subtitle: const Text('Máximo 30 segundos'),
                   onTap: () {
@@ -292,15 +295,22 @@ class _EmptySlot extends StatelessWidget {
                   },
                 )
               else
-                const ListTile(
-                  leading: Icon(Icons.videocam, color: AppColors.textSecondary),
+                ListTile(
+                  leading: const Icon(
+                    Icons.videocam,
+                    color: AppColors.textSecondary,
+                  ),
                   title: Text(
                     'Vídeo',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   subtitle: Text(
                     'Limite de vídeos atingido',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
             ],
@@ -329,7 +339,7 @@ class _UploadingSlot extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.5),
+          color: AppColors.brandPrimary.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
@@ -339,7 +349,7 @@ class _UploadingSlot extends StatelessWidget {
         children: [
           const Icon(
             Icons.cloud_upload_outlined,
-            color: AppColors.primary,
+            color: AppColors.brandPrimary,
             size: 28,
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -349,7 +359,7 @@ class _UploadingSlot extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress > 0 ? progress : null,
               backgroundColor: AppColors.surfaceHighlight,
-              color: AppColors.primary,
+              color: AppColors.brandPrimary,
               minHeight: 6,
             ),
           ),

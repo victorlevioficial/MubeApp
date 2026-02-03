@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../common_widgets/app_loading.dart';
+import '../../../../design_system/components/loading/app_loading.dart';
 import '../../../auth/data/auth_repository.dart';
 import 'matchpoint_intro_screen.dart';
 import 'matchpoint_tabs_screen.dart';

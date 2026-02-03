@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:like_button/like_button.dart';
 
 import '../../../features/favorites/domain/favorite_controller.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 /// An optimistic like button that manages its own animation state locally
 /// to provide a smooth user experience while syncing with a global state controller.

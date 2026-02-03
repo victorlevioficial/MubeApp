@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
-import '../../../../common_widgets/mube_app_bar.dart';
-import '../../../../design_system/foundations/app_colors.dart';
+import '../../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../screens/matchpoint_matches_screen.dart';
 import 'matchpoint_explore_screen.dart';
@@ -27,7 +28,7 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(
+      appBar: AppAppBar(
         title: 'MatchPoint',
         showBackButton: false,
         actions: [
@@ -72,23 +73,21 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
                   _selectedIndex = index;
                 });
               },
-              tabs: const [
+              tabs: [
                 GButton(
                   icon: Icons.explore_rounded,
                   text: 'Explorar',
-                  textStyle: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.bold,
+                  textStyle: AppTypography.labelLarge.copyWith(
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 GButton(
                   icon: Icons.bolt_rounded,
                   text: 'Matches',
-                  textStyle: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.bold,
+                  textStyle: AppTypography.labelLarge.copyWith(
                     color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],

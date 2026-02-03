@@ -2,11 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:mube/src/common_widgets/app_snackbar.dart';
-import 'package:mube/src/common_widgets/mube_app_bar.dart';
-import 'package:mube/src/design_system/foundations/app_colors.dart';
-import 'package:mube/src/design_system/foundations/app_typography.dart';
+import 'package:mube/src/design_system/components/feedback/app_snackbar.dart';
+import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 
 class DeveloperToolsScreen extends ConsumerStatefulWidget {
@@ -160,7 +159,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(
+      appBar: const AppAppBar(
         title: Text('Ferramentas Dev 🛠️'),
         showBackButton: true,
       ),

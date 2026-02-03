@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/analytics/analytics_provider.dart';
 import '../data/auth_repository.dart';
 
 part 'register_controller.g.dart';
@@ -25,6 +26,9 @@ class RegisterController extends _$RegisterController {
         state = AsyncError(failure.message, StackTrace.current);
       },
       (success) {
+        ref
+            .read(analyticsServiceProvider)
+            .logAuthSignupComplete(method: 'email');
         state = const AsyncData(null);
       },
     );

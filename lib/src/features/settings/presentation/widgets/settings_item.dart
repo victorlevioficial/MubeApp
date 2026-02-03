@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_icons.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_icons.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Reusable settings row widget.
 class SettingsItem extends StatelessWidget {

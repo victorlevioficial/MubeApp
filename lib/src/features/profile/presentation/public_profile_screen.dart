@@ -1,22 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_shimmer.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../common_widgets/user_avatar.dart';
 import '../../../constants/app_constants.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/loading/app_shimmer.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
-import '../../notifications/data/notification_providers.dart';
 import '../domain/media_item.dart';
 import 'public_profile_controller.dart';
 import 'widgets/media_viewer_dialog.dart';
@@ -36,7 +34,7 @@ class PublicProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(
+      appBar: AppAppBar(
         title: user != null ? _buildAppBarTitle(user) : 'Perfil',
         onBackPressed: () => context.pop(),
         actions: [
@@ -294,8 +292,8 @@ class PublicProfileScreen extends ConsumerWidget {
                   icon: const Icon(Icons.groups, size: 20),
                   label: const Text('Gerenciar Integrantes'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
+                    foregroundColor: AppColors.brandPrimary,
+                    side: const BorderSide(color: AppColors.brandPrimary),
                   ),
                 ),
               ),

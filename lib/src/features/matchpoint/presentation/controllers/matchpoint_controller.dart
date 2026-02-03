@@ -1,8 +1,10 @@
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
-import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/utils/app_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'matchpoint_controller.g.dart';
@@ -59,6 +61,12 @@ class MatchpointController extends _$MatchpointController {
 
     final result = await authRepo.updateUser(updatedUser);
 
+    if (result.isRight()) {
+      ref
+          .read(analyticsServiceProvider)
+          .logMatchPointFilter(instruments: [], genres: genres, distance: 0);
+    }
+
     result.fold(
       (failure) => state = AsyncError(failure.message, StackTrace.current),
       (_) => state = const AsyncData(null),
@@ -69,7 +77,7 @@ class MatchpointController extends _$MatchpointController {
 
   void debugSetForceMatch() {
     _debugForceMatch = true;
-    print('🛠️ DEBUG: Next swipe will trigger a MATCH! (Static Mode)');
+    AppLogger.info('🛠️ DEBUG: Next swipe will trigger a MATCH! (Static Mode)');
   }
 
   Future<AppUser?> swipeRight(AppUser targetUser) async {
@@ -98,7 +106,7 @@ class MatchpointController extends _$MatchpointController {
         targetUserId: targetUser.uid,
         type: type,
       );
-      print('🚀 FORCED MATCH TRIGGERED!');
+      AppLogger.info('🚀 FORCED MATCH TRIGGERED!');
       return targetUser;
     }
 
@@ -115,7 +123,7 @@ class MatchpointController extends _$MatchpointController {
       },
       (isMatch) async {
         if (isMatch) {
-          print("IT'S A MATCH!");
+          AppLogger.info("IT'S A MATCH!");
 
           // Criar conversa automaticamente
           try {
@@ -136,7 +144,7 @@ class MatchpointController extends _$MatchpointController {
               type: 'matchpoint',
             );
           } catch (e) {
-            print('Erro ao criar conversa automática: $e');
+            AppLogger.error('Erro ao criar conversa automática: $e');
           }
 
           return targetUser;
@@ -172,6 +180,7 @@ class MatchpointController extends _$MatchpointController {
       targetUserId: targetUserId,
       type: 'dislike',
     );
+    AppLogger.info('MatchpointController: Disliked $targetUserId');
   }
 }
 
@@ -190,10 +199,10 @@ Future<List<AppUser>> matchpointCandidates(Ref ref) async {
     userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
   );
   if (genres.isEmpty) {
-    print('⚠️ MatchPoint: User has no genres.');
+    AppLogger.warning('⚠️ MatchPoint: User has no genres.');
     return [];
   }
-  print('🔍 MatchPoint Filters: Genres=$genres');
+  AppLogger.info('🔍 MatchPoint Filters: Genres=$genres');
 
   final blockedUsers = userProfile.blockedUsers;
 
@@ -206,11 +215,13 @@ Future<List<AppUser>> matchpointCandidates(Ref ref) async {
 
   return result.fold(
     (l) {
-      print('❌ MatchPoint Query Error: ${l.message}');
+      AppLogger.error('❌ MatchPoint Query Error: ${l.message}');
       throw l.message; // Throw string to show in UI
     },
     (r) {
-      print('✅ MatchPoint Query Success: Found ${r.length} candidates');
+      AppLogger.info(
+        '✅ MatchPoint Query Success: Found ${r.length} candidates',
+      );
       return r;
     },
   );

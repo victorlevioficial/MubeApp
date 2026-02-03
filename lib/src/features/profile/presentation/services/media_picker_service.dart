@@ -6,8 +6,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_compress/video_compress.dart';
 
-import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../design_system/foundations/app_colors.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
 
 /// Service for picking, cropping and compressing media files.
 class MediaPickerService {
@@ -44,7 +44,7 @@ class MediaPickerService {
           toolbarColor: AppColors.background,
           toolbarWidgetColor: AppColors.textPrimary,
           backgroundColor: AppColors.background,
-          activeControlsWidgetColor: AppColors.primary,
+          activeControlsWidgetColor: AppColors.brandPrimary,
           lockAspectRatio: lockAspectRatio,
           initAspectRatio: CropAspectRatioPreset.square,
           aspectRatioPresets: lockAspectRatio

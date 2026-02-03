@@ -2,26 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../../../common_widgets/app_checkbox.dart';
-import '../../../../common_widgets/app_date_picker_field.dart';
-import '../../../../common_widgets/app_dropdown_field.dart';
-import '../../../../common_widgets/app_filter_chip.dart';
-import '../../../../common_widgets/app_selection_modal.dart';
-import '../../../../common_widgets/app_snackbar.dart';
-import '../../../../common_widgets/app_text_field.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
-import '../../../../common_widgets/onboarding_header.dart';
-import '../../../../common_widgets/onboarding_section_card.dart';
-import '../../../../common_widgets/primary_button.dart';
-import '../../../../common_widgets/responsive_center.dart';
-import '../../../../common_widgets/secondary_button.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_radius.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_checkbox.dart';
+import '../../../../design_system/components/inputs/app_date_picker_field.dart';
+import '../../../../design_system/components/inputs/app_dropdown_field.dart';
+import '../../../../design_system/components/inputs/app_selection_modal.dart';
+import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/navigation/responsive_center.dart';
+import '../../../../design_system/components/patterns/onboarding_header.dart';
+import '../../../../design_system/components/patterns/onboarding_section_card.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -424,7 +423,7 @@ class _OnboardingProfessionalFlowState
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        PrimaryButton(text: 'Continuar', onPressed: _nextStep),
+        AppButton.primary(text: 'Continuar', onPressed: _nextStep),
         const SizedBox(height: AppSpacing.s24),
       ],
     );
@@ -477,7 +476,9 @@ class _OnboardingProfessionalFlowState
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : AppColors.surface,
+                  color: isSelected
+                      ? AppColors.brandPrimary
+                      : AppColors.surface,
                   borderRadius: AppRadius.all16,
                   border: isSelected
                       ? null
@@ -491,7 +492,7 @@ class _OnboardingProfessionalFlowState
                       size: 40,
                       color: isSelected
                           ? AppColors.textPrimary
-                          : AppColors.primary,
+                          : AppColors.brandPrimary,
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     Text(
@@ -511,7 +512,7 @@ class _OnboardingProfessionalFlowState
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        PrimaryButton(
+        AppButton.primary(
           text: 'Continuar',
           onPressed: _selectedCategories.isNotEmpty ? _nextStep : null,
         ),
@@ -639,7 +640,8 @@ class _OnboardingProfessionalFlowState
         ),
 
         const SizedBox(height: AppSpacing.s16),
-        PrimaryButton(
+        const SizedBox(height: AppSpacing.s16),
+        AppButton.primary(
           text: 'Continuar',
           onPressed: _isStep3Valid ? _nextStep : null,
         ),
@@ -664,7 +666,7 @@ class _OnboardingProfessionalFlowState
         const SizedBox(height: AppSpacing.s12),
 
         // Button to open Modal
-        SecondaryButton(
+        AppButton.outline(
           text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
           icon: const Icon(Icons.add, size: 18),
           onPressed: () async {

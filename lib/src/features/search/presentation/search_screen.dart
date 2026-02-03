@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_text_field.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../feed/domain/feed_item.dart';
 import '../../feed/presentation/widgets/feed_card_vertical.dart';
 import '../../feed/presentation/widgets/feed_skeleton.dart';
@@ -42,7 +42,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const MubeAppBar(title: 'Busca', showBackButton: false),
+      appBar: const AppAppBar(title: 'Busca', showBackButton: false),
       body: RefreshIndicator(
         color: AppColors.brandPrimary,
         backgroundColor: AppColors.surface,
@@ -133,7 +133,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: hasActiveFilters ? AppColors.primary : AppColors.surface,
+          color: hasActiveFilters ? AppColors.brandPrimary : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(

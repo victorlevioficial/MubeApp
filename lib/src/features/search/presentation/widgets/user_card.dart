@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../common_widgets/user_avatar.dart';
+import '../../../../design_system/components/data_display/user_avatar.dart';
 
-import '../../../../design_system/foundations/app_colors.dart';
-import '../../../../design_system/foundations/app_spacing.dart';
-import '../../../../design_system/foundations/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../features/auth/domain/app_user.dart';
 import '../../../../features/auth/domain/user_type.dart';
 
@@ -56,7 +56,7 @@ class UserCard extends StatelessWidget {
                     Text(
                       user.tipoPerfil?.label ?? '',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.brandPrimary,
                       ),
                     ),
                     if (user.location != null) ...[

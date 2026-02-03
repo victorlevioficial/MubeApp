@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../common_widgets/app_loading.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/primary_button.dart';
-import '../../../common_widgets/responsive_center.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/loading/app_loading.dart';
+import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import 'onboarding_controller.dart';
@@ -144,7 +144,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                     // Button
                     SizedBox(
                       height: 56, // Match Login button height
-                      child: PrimaryButton(
+                      child: AppButton.primary(
                         text: 'Continuar',
                         isLoading: state.isLoading,
                         onPressed: _selectedType != null

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../common_widgets/app_shimmer.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../common_widgets/user_avatar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/loading/app_shimmer.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/chat_providers.dart';
@@ -196,7 +196,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: MubeAppBar(title: _buildAppBarTitle(), showBackButton: true),
+      appBar: AppAppBar(title: _buildAppBarTitle(), showBackButton: true),
       body: Column(
         children: [
           // Lista de mensagens

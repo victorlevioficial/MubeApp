@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-import '../../../common_widgets/app_confirmation_dialog.dart';
-import '../../../common_widgets/app_skeleton.dart';
-import '../../../common_widgets/app_snackbar.dart';
-import '../../../common_widgets/mube_app_bar.dart';
-import '../../../design_system/foundations/app_colors.dart';
-import '../../../design_system/foundations/app_spacing.dart';
-import '../../../design_system/foundations/app_typography.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../bands/data/invites_repository.dart';
 
@@ -28,7 +28,7 @@ class InvitesScreen extends ConsumerWidget {
     final bandsAsync = ref.watch(userBandsProvider(user.uid));
 
     return Scaffold(
-      appBar: const MubeAppBar(title: 'Minhas Bandas'),
+      appBar: const AppAppBar(title: 'Minhas Bandas'),
       backgroundColor: AppColors.background,
       body: invitesAsync.when(
         loading: () => const UserListSkeleton(itemCount: 4),

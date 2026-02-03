@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
-import '../../foundations/app_colors.dart';
-import '../../foundations/app_spacing.dart';
-import '../../foundations/app_typography.dart';
+import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
+import '../interactions/app_animated_press.dart';
 
 enum AppButtonVariant { primary, secondary, outline, ghost }
 
 enum AppButtonSize { small, medium, large }
 
+/// Botão padrão do sistema Mube.
+///
+/// Suporta variantes (primary, secondary, outline, ghost) e tamanhos.
+/// Inclui suporte nativo para estado de loading e ícones.
+///
+/// Exemplo:
+/// ```dart
+/// AppButton.primary(
+///   text: 'Salvar',
+///   onPressed: _save,
+///   isLoading: _isSaving,
+/// )
+/// ```
 class AppButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -27,6 +41,9 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = false,
   });
 
+  /// Botão com cor de destaque (Brand Primary).
+  ///
+  /// Use para a ação principal da tela.
   const AppButton.primary({
     super.key,
     required this.text,
@@ -37,6 +54,9 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = false,
   }) : variant = AppButtonVariant.primary;
 
+  /// Botão com fundo cinza escuro.
+  ///
+  /// Use para ações secundárias ou "Cancelar".
   const AppButton.secondary({
     super.key,
     required this.text,
@@ -47,6 +67,9 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = false,
   }) : variant = AppButtonVariant.secondary;
 
+  /// Botão transparente com borda.
+  ///
+  /// Alternativa ao secundário para menor ênfase visual.
   const AppButton.outline({
     super.key,
     required this.text,
@@ -57,6 +80,9 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = false,
   }) : variant = AppButtonVariant.outline;
 
+  /// Botão apenas texto, sem background ou borda.
+  ///
+  /// Use para links ou ações terciárias.
   const AppButton.ghost({
     super.key,
     required this.text,
@@ -158,11 +184,19 @@ class AppButton extends StatelessWidget {
         break;
     }
 
+    final resultWidget = SizedBox(height: height, child: button);
+
     if (isFullWidth) {
-      return SizedBox(height: height, width: double.infinity, child: button);
+      return AppAnimatedPress(
+        onPressed: isLoading ? null : onPressed,
+        child: SizedBox(height: height, width: double.infinity, child: button),
+      );
     }
 
-    return SizedBox(height: height, child: button);
+    return AppAnimatedPress(
+      onPressed: isLoading ? null : onPressed,
+      child: resultWidget,
+    );
   }
 
   double _getHeight() {

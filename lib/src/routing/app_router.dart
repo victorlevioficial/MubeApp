@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../common_widgets/main_scaffold.dart';
+import '../design_system/components/navigation/main_scaffold.dart';
 import '../features/admin/presentation/maintenance_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/domain/user_type.dart';
@@ -11,6 +11,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/bands/presentation/manage_members_screen.dart';
 import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/conversations_screen.dart';
+import '../features/developer/presentation/developer_tools_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
@@ -18,13 +19,10 @@ import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
+import '../features/notifications/presentation/notification_list_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
-import '../features/profile/presentation/edit_profile_menu_screen.dart';
-import '../features/profile/presentation/edit_categories_screen.dart';
-import '../features/profile/presentation/edit_genres_screen.dart';
-import '../features/profile/presentation/edit_instruments_screen.dart';
 import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
@@ -33,11 +31,14 @@ import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
-import '../features/developer/presentation/developer_tools_screen.dart';
+import '../features/support/presentation/create_ticket_screen.dart';
+import '../features/support/presentation/support_screen.dart';
+import '../features/support/presentation/ticket_list_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
-import '../features/notifications/presentation/notification_list_screen.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
+import '../core/services/analytics/analytics_provider.dart';
+import '../features/legal/presentation/legal_detail_screen.dart';
 
 /// Notifier to trigger router refresh when auth/profile state changes.
 class _GoRouterRefreshNotifier extends ChangeNotifier {
@@ -48,6 +49,7 @@ class _GoRouterRefreshNotifier extends ChangeNotifier {
 final goRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterRefreshNotifier();
   final authGuard = AuthGuard(ref);
+  final analyticsObserver = ref.read(analyticsServiceProvider).getObserver();
 
   // Listen to state changes to trigger route re-evaluation
   ref.listen(authStateChangesProvider, (_, _) => notifier.notify());
@@ -58,6 +60,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: kDebugMode,
     refreshListenable: notifier,
     redirect: authGuard.redirect,
+    observers: [analyticsObserver],
     routes: _buildRoutes(ref),
   );
 });
@@ -218,40 +221,25 @@ List<RouteBase> _buildRoutes(Ref ref) {
                     child: const PrivacySettingsScreen(),
                   ),
                 ),
-                // Profile editing routes (Instagram pattern)
                 GoRoute(
-                  path: 'profile',
+                  path: 'support',
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
-                    child: const EditProfileMenuScreen(),
+                    child: const SupportScreen(),
                   ),
                   routes: [
                     GoRoute(
-                      path: 'basic',
+                      path: RoutePaths.supportCreate,
                       pageBuilder: (context, state) => NoTransitionPage(
                         key: state.pageKey,
-                        child: const EditProfileScreen(),
+                        child: const CreateTicketScreen(),
                       ),
                     ),
                     GoRoute(
-                      path: 'categories',
+                      path: RoutePaths.supportTickets,
                       pageBuilder: (context, state) => NoTransitionPage(
                         key: state.pageKey,
-                        child: const EditCategoriesScreen(),
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'genres',
-                      pageBuilder: (context, state) => NoTransitionPage(
-                        key: state.pageKey,
-                        child: const EditGenresScreen(),
-                      ),
-                    ),
-                    GoRoute(
-                      path: 'instruments',
-                      pageBuilder: (context, state) => NoTransitionPage(
-                        key: state.pageKey,
-                        child: const EditInstrumentsScreen(),
+                        child: const TicketListScreen(),
                       ),
                     ),
                   ],
@@ -367,6 +355,17 @@ List<RouteBase> _buildRoutes(Ref ref) {
         key: state.pageKey,
         child: const NotificationListScreen(),
       ),
+    ),
+    GoRoute(
+      path: '${RoutePaths.legal}/:type',
+      builder: (context, state) {
+        final typeStr = state.pathParameters['type'];
+        final type = LegalDocumentType.values.firstWhere(
+          (e) => e.name == typeStr,
+          orElse: () => LegalDocumentType.termsOfUse,
+        );
+        return LegalDetailScreen(type: type);
+      },
     ),
   ];
 }
