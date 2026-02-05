@@ -19,8 +19,9 @@ service cloud.firestore {
       // Qualquer autenticado pode ler perfis
       allow read: if request.auth != null;
       
-      // PERMISSÃO DE SEEDING: Allow create if authenticated (removed uid check for create only)
-      allow create: if request.auth != null;
+      // Apenas o próprio usuário pode criar seu perfil
+      // O UID deve corresponder ao usuário autenticado
+      allow create: if request.auth != null && request.auth.uid == userId;
       
       // Only owner can delete their own account
       allow delete: if request.auth != null && request.auth.uid == userId;

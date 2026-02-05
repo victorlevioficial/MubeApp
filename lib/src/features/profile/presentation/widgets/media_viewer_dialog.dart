@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../domain/media_item.dart';
 import 'gallery_video_player.dart';
+import '../../../../core/services/image_cache_config.dart';
 
 /// Full-screen media viewer dialog
 class MediaViewerDialog extends StatefulWidget {
@@ -97,6 +98,10 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           child: CachedNetworkImage(
             imageUrl: item.url,
             fit: BoxFit.contain,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            useOldImageOnUrlChange: true,
+            cacheManager: ImageCacheConfig.optimizedCacheManager,
             placeholder: (context, url) =>
                 const Center(child: CircularProgressIndicator()),
             errorWidget: (context, url, error) =>

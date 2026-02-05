@@ -1,9 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/ticket_model.dart';
-import '../../auth/data/auth_repository.dart';
 
 part 'support_repository.g.dart';
 

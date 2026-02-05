@@ -13,7 +13,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 // import 'src/cleaning_script.dart'; // Script de limpeza temporário - REMOVIDO
 import 'src/app.dart';
+import 'src/core/services/analytics_service.dart';
 import 'src/core/services/push_notification_service.dart';
+import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 
@@ -66,6 +68,15 @@ void main() {
               ? app_check.AppleProvider.debug
               : app_check.AppleProvider.deviceCheck,
         );
+
+        // Initialize Crashlytics
+        await AppLogger.initialize();
+
+        // Initialize Analytics
+        await AnalyticsService.initialize();
+
+        // Initialize Remote Config
+        await RemoteConfigService.initialize();
 
         // === SCRIPT DE LIMPEZA CONCLUÍDO E REMOVIDO ===
         AppLogger.info('✅ Database cleanup passed.');

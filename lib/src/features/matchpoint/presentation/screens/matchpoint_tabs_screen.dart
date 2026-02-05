@@ -35,7 +35,7 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
           IconButton(
             icon: const Icon(
               Icons.tune_rounded,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
             onPressed: () => context.push(RoutePaths.matchpointWizard),
           ),
@@ -64,7 +64,7 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
               backgroundColor: Colors.transparent,
               color: AppColors.textSecondary,
               activeColor: Colors.white,
-              tabBackgroundColor: AppColors.brandPrimary,
+              tabBackgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               duration: const Duration(milliseconds: 300),
               selectedIndex: _selectedIndex,
@@ -124,7 +124,7 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               'Entendi',
-              style: TextStyle(color: AppColors.brandPrimary),
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],

@@ -10,9 +10,13 @@ extension PumpApp on WidgetTester {
   /// ```dart
   /// await tester.pumpApp(const MyWidget());
   /// ```
-  Future<void> pumpApp(Widget widget) async {
+  Future<void> pumpApp(
+    Widget widget, {
+    List<Override> overrides = const [],
+  }) async {
     await pumpWidget(
       ProviderScope(
+        overrides: overrides,
         child: MaterialApp(home: widget, theme: ThemeData.dark()),
       ),
     );

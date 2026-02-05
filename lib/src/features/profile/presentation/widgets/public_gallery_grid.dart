@@ -5,6 +5,7 @@ import '../../../../design_system/components/loading/app_shimmer.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../core/services/image_cache_config.dart';
 import '../../domain/media_item.dart';
 
 /// Read-only gallery grid for public profile viewing.
@@ -57,6 +58,10 @@ class _GalleryItem extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              useOldImageOnUrlChange: true,
+              cacheManager: ImageCacheConfig.thumbnailCacheManager,
               placeholder: (context, url) => AppShimmer.box(borderRadius: 8),
               errorWidget: (context, url, error) => Container(
                 color: AppColors.surface,

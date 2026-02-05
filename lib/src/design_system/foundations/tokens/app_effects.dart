@@ -49,7 +49,7 @@ class AppEffects {
   /// Sombra para botões
   static final List<BoxShadow> buttonShadow = [
     BoxShadow(
-      color: AppColors.brandPrimary.withValues(alpha: 0.3),
+      color: AppColors.primary.withValues(alpha: 0.3),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),

@@ -37,7 +37,7 @@ class MatchpointTutorialOverlay extends StatelessWidget {
                   const _TutorialItem(
                     icon: Icons.swipe_right,
                     text: 'Curti!',
-                    color: AppColors.brandPrimary,
+                    color: AppColors.primary,
                   ),
                 ],
               ),

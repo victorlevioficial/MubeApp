@@ -7,6 +7,7 @@ import '../../../core/errors/failure_mapper.dart';
 
 import '../../../core/typedefs.dart';
 
+import '../../../utils/app_logger.dart';
 import '../../../utils/distance_calculator.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/feed_item.dart';
@@ -495,6 +496,154 @@ class FeedRepository {
       return Right(allItems);
     } catch (e) {
       return Left(mapExceptionToFailure(e));
+    }
+  }
+
+  /// Busca usuários próximos usando geohash com busca progressiva otimizada.
+  /// 
+  /// Esta é a melhor prática para performance com grandes volumes:
+  /// 1. Busca primeiro no geohash do usuário (5km x 5km)
+  /// 2. Se não tiver suficientes, expande para vizinhos progressivamente
+  /// 3. Limita a 20 resultados por query (eficiente no Firestore)
+  /// 4. Ordena por distância real calculada
+  /// 
+  /// Com 50k usuários, isso lê apenas ~20-60 documentos em vez de 150+
+  FutureResult<List<FeedItem>> getNearbyUsersOptimized({
+    required String currentUserId,
+    required double userLat,
+    required double userLong,
+    String? filterType,
+    List<String> excludedIds = const [],
+    int targetResults = 20,
+  }) async {
+    try {
+      final List<FeedItem> results = [];
+      final Set<String> seenUids = {};
+      
+      // Gera geohash do usuário com precisão 5 (~5km x 5km)
+      final userGeohash = GeohashHelper.encode(userLat, userLong, precision: 5);
+      
+      // 1. Primeiro busca no geohash do usuário (mais próximos)
+      final centerSnapshot = await _dataSource.getUsersByGeohash(
+        geohash: userGeohash,
+        filterType: filterType,
+        limit: targetResults,
+      );
+      
+      _processGeohashResults(
+        centerSnapshot,
+        results,
+        seenUids,
+        currentUserId,
+        userLat,
+        userLong,
+        excludedIds,
+      );
+      
+      // 2. Se não tiver suficientes, expande para vizinhos (9 áreas ao todo)
+      if (results.length < targetResults) {
+        final neighbors = GeohashHelper.neighbors(userGeohash);
+        // Remove o centro que já buscamos
+        neighbors.remove(userGeohash);
+        
+        // Busca em cada vizinho até ter resultados suficientes
+        for (final neighborHash in neighbors) {
+          if (results.length >= targetResults) break;
+          
+          final neighborSnapshot = await _dataSource.getUsersByGeohash(
+            geohash: neighborHash,
+            filterType: filterType,
+            limit: targetResults - results.length,
+          );
+          
+          _processGeohashResults(
+            neighborSnapshot,
+            results,
+            seenUids,
+            currentUserId,
+            userLat,
+            userLong,
+            excludedIds,
+          );
+        }
+      }
+      
+      // 3. Ordena por distância real calculada
+      results.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
+      
+      // 4. Fallback: se não encontrou nada com geohash, busca todos
+      if (results.isEmpty) {
+        AppLogger.info('⚠️ Nenhum usuário com geohash encontrado. Usando fallback...');
+        return _getAllUsersSortedByDistanceClassic(
+          currentUserId: currentUserId,
+          userLat: userLat,
+          userLong: userLong,
+          filterType: filterType,
+          excludedIds: excludedIds,
+          limit: targetResults,
+        );
+      }
+      
+      return Right(results);
+    } catch (e) {
+      return Left(mapExceptionToFailure(e));
+    }
+  }
+  
+  /// Processa resultados de uma query de geohash
+  void _processGeohashResults(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+    List<FeedItem> results,
+    Set<String> seenUids,
+    String currentUserId,
+    double userLat,
+    double userLong,
+    List<String> excludedIds,
+  ) {
+    for (final doc in snapshot.docs) {
+      // Skip self
+      if (doc.id == currentUserId) continue;
+      
+      // Skip duplicates
+      if (seenUids.contains(doc.id)) continue;
+      
+      // Skip blocked
+      if (excludedIds.contains(doc.id)) continue;
+      
+      final data = doc.data();
+      
+      // Skip contractors
+      if (data['tipo_perfil'] == 'contratante') continue;
+      
+      // Skip incomplete profiles
+      final cadastroStatus = data['cadastro_status'] as String?;
+      final status = data['status'] as String? ?? 'ativo';
+      if (cadastroStatus != 'concluido' || status != 'ativo') continue;
+      
+      // Skip ghost mode
+      final privacy = data['privacy_settings'] as Map<String, dynamic>?;
+      if (privacy != null && privacy['visible_in_home'] == false) continue;
+      
+      var item = FeedItem.fromFirestore(data, doc.id);
+      
+      // Calculate exact distance
+      if (item.location != null) {
+        final itemLat = item.location!['lat'] as double?;
+        final itemLng = item.location!['lng'] as double?;
+        if (itemLat != null && itemLng != null) {
+          item = item.copyWith(
+            distanceKm: DistanceCalculator.haversine(
+              fromLat: userLat,
+              fromLng: userLong,
+              toLat: itemLat,
+              toLng: itemLng,
+            ),
+          );
+        }
+      }
+      
+      seenUids.add(doc.id);
+      results.add(item);
     }
   }
 }

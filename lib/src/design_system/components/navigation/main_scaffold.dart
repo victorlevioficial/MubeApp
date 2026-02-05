@@ -37,7 +37,7 @@ class MainScaffold extends StatelessWidget {
             ),
             selectedIcon: const Icon(
               Icons.home,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
             label: 'Home',
           ),
@@ -48,7 +48,7 @@ class MainScaffold extends StatelessWidget {
             ),
             selectedIcon: const Icon(
               Icons.search,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
             label: 'Busca',
           ),
@@ -59,7 +59,7 @@ class MainScaffold extends StatelessWidget {
             ),
             selectedIcon: const Icon(
               Icons.bolt_rounded,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
             label: 'MatchPoint',
           ),
@@ -75,7 +75,7 @@ class MainScaffold extends StatelessWidget {
                     unreadCount > 99 ? '99+' : '$unreadCount',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: AppColors.brandPrimary,
+                  backgroundColor: AppColors.primary,
                   child: Icon(
                     Icons.chat_bubble_outline,
                     color: AppColors.textPrimary.withValues(alpha: 0.6),
@@ -94,10 +94,10 @@ class MainScaffold extends StatelessWidget {
                     unreadCount > 99 ? '99+' : '$unreadCount',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  backgroundColor: AppColors.brandPrimary,
+                  backgroundColor: AppColors.primary,
                   child: const Icon(
                     Icons.chat_bubble,
-                    color: AppColors.semanticAction,
+                    color: AppColors.primary,
                   ),
                 );
               },
@@ -111,7 +111,7 @@ class MainScaffold extends StatelessWidget {
             ),
             selectedIcon: const Icon(
               Icons.settings,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
             label: 'Config',
           ),

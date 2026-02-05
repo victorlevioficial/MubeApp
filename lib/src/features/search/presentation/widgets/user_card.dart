@@ -56,7 +56,7 @@ class UserCard extends StatelessWidget {
                     Text(
                       user.tipoPerfil?.label ?? '',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.brandPrimary,
+                        color: AppColors.primary,
                       ),
                     ),
                     if (user.location != null) ...[

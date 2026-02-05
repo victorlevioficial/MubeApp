@@ -4,17 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+import '../core/config/app_config.dart';
+
 class LocationService {
-  static const String _googleApiKey = 'AIzaSyDV5N_ybY5dPkE2T0Dl4JCqaAlGxte2WU0';
-
-  static String get googleApiKey => _googleApiKey;
-
-  static const String _placesUrl =
-      'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-  static const String _detailsUrl =
-      'https://maps.googleapis.com/maps/api/place/details/json';
-  static const String _geocodeUrl =
-      'https://maps.googleapis.com/maps/api/geocode/json';
+  // API Key now comes from environment configuration
+  static String get googleApiKey => AppConfig.googleMapsApiKey;
 
   /// Helper para fazer requisições HTTP lidando com CORS na Web
   Future<http.Response> _makeRequest(String url) async {
@@ -33,9 +27,15 @@ class LocationService {
   Future<List<Map<String, dynamic>>> searchAddress(String query) async {
     if (query.length < 3) return [];
 
+    if (AppConfig.googleMapsApiKey.isEmpty) {
+      debugPrint(
+        'GOOGLE_MAPS_API_KEY not set. Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
+      );
+      return [];
+    }
+
     // Components=country:br limita a busca ao Brasil
-    final urlString =
-        '$_placesUrl?input=$query&components=country:br&language=pt_BR&key=$_googleApiKey';
+    final urlString = AppConfig.buildPlacesUrl(query, country: 'br');
 
     try {
       final response = await _makeRequest(urlString);
@@ -57,8 +57,14 @@ class LocationService {
 
   /// Pega detalhes do lugar pelo ID (Rua, CEP, Cidade...)
   Future<Map<String, dynamic>?> getPlaceDetails(String placeId) async {
-    final urlString =
-        '$_detailsUrl?place_id=$placeId&fields=address_component,geometry&key=$_googleApiKey';
+    if (AppConfig.googleMapsApiKey.isEmpty) {
+      debugPrint(
+        'GOOGLE_MAPS_API_KEY not set. Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
+      );
+      return null;
+    }
+
+    final urlString = AppConfig.buildPlaceDetailsUrl(placeId);
 
     try {
       final response = await _makeRequest(urlString);
@@ -87,8 +93,14 @@ class LocationService {
     double lat,
     double lon,
   ) async {
-    final urlString =
-        '$_geocodeUrl?latlng=$lat,$lon&language=pt_BR&key=$_googleApiKey';
+    if (AppConfig.googleMapsApiKey.isEmpty) {
+      debugPrint(
+        'GOOGLE_MAPS_API_KEY not set. Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
+      );
+      return null;
+    }
+
+    final urlString = AppConfig.buildGeocodeUrl('$lat,$lon');
 
     try {
       final response = await _makeRequest(urlString);

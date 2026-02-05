@@ -76,7 +76,7 @@ class AppTextInput extends StatelessWidget {
               errorText:
                   null, // We handle error text manually below for better control
             ),
-            cursorColor: AppColors.brandPrimary,
+            cursorColor: AppColors.primary,
           ),
         ),
         if (errorText != null) ...[

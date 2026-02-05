@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../../common_widgets/location_service.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_autocomplete_field.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/patterns/or_divider.dart';
@@ -33,6 +34,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
   Timer? _debounce;
   List<Map<String, dynamic>> _searchResults = [];
   bool _isLoadingLocation = false;
+  bool _isLoadingSearch = false; // Added loading state for search
   bool _isLoadingPreview = false;
   bool _addressFound = false;
   bool _isSaving = false;
@@ -126,10 +128,14 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       return;
     }
 
+    setState(() => _isLoadingSearch = true); // Start loading
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       final results = await _locationService.searchAddress(query);
       if (mounted) {
-        setState(() => _searchResults = results);
+        setState(() {
+          _searchResults = results;
+          _isLoadingSearch = false; // Stop loading
+        });
       }
     });
   }
@@ -146,7 +152,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
           FocusManager.instance.primaryFocus?.unfocus();
         });
       } else {
-        if (context.mounted) {
+        if (mounted) {
           AppSnackBar.error(context, 'Erro ao obter detalhes.');
         }
       }
@@ -171,17 +177,17 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
             _addressFound = true;
           });
         } else {
-          if (context.mounted) {
+          if (mounted) {
             AppSnackBar.error(context, 'Endereço não encontrado.');
           }
         }
       } else {
-        if (context.mounted) {
+        if (mounted) {
           AppSnackBar.error(context, 'Não foi possível obter localização.');
         }
       }
     } catch (e) {
-      if (context.mounted) AppSnackBar.error(context, 'Erro: $e');
+      if (mounted) AppSnackBar.error(context, 'Erro: $e');
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }
@@ -261,7 +267,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       );
       await ref.read(authRepositoryProvider).updateUser(updatedUser);
 
-      if (context.mounted) {
+      if (mounted) {
         AppSnackBar.success(
           context,
           _isEditing ? 'Endereço atualizado!' : 'Endereço adicionado!',
@@ -269,7 +275,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         context.pop();
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         AppSnackBar.error(context, 'Erro ao salvar: $e');
       }
     } finally {
@@ -315,19 +321,35 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 const SizedBox(height: AppSpacing.s24),
 
                 // Search Field
-                AppTextField(
+                AppAutocompleteField<Map<String, dynamic>>(
                   controller: _logradouroController,
                   label: 'Buscar Endereço',
                   hint: 'Digitar endereço manual...',
                   prefixIcon: const Icon(Icons.search),
-                  onChanged: (val) {
-                    _onSearchChanged(val);
-                    setState(() {});
+                  options: _searchResults,
+                  isLoading: _isLoadingSearch,
+                  onChanged: _onSearchChanged,
+                  displayStringForOption: (item) => item['description'] ?? '',
+                  onSelected: _selectAddress,
+                  itemBuilder: (context, item) {
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s16,
+                        vertical: AppSpacing.s4,
+                      ),
+                      leading: const Icon(Icons.location_on_outlined, size: 20),
+                      title: Text(item['description']?.split(',')[0] ?? ''),
+                      subtitle: Text(
+                        item['description'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall,
+                      ),
+                    );
                   },
                 ),
 
-                if (_searchResults.isNotEmpty) _buildSearchResults(),
-
+                // Removed manual _buildSearchResults call/widget as it is handled by the component
                 const SizedBox(height: AppSpacing.s16),
                 AppButton.primary(
                   text: 'Buscar Manualmente',
@@ -372,11 +394,11 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           border: Border.all(
-            color: AppColors.brandPrimary.withValues(alpha: 0.5),
+            color: AppColors.primary.withValues(alpha: 0.5),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(AppSpacing.s12),
-          color: AppColors.brandPrimary.withValues(alpha: 0.05),
+          color: AppColors.primary.withValues(alpha: 0.05),
         ),
         child: Row(
           children: [
@@ -384,23 +406,23 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
               width: AppSpacing.s40,
               height: AppSpacing.s40,
               decoration: BoxDecoration(
-                color: AppColors.brandPrimary.withValues(alpha: 0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: _isLoadingLocation
                   ? const SizedBox(
-                      width: AppSpacing.s20,
-                      height: AppSpacing.s20,
+                      width: AppSpacing.s24,
+                      height: AppSpacing.s24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.brandPrimary,
+                        color: AppColors.primary,
                       ),
                     )
                   : const Icon(
                       Icons.my_location,
-                      color: AppColors.brandPrimary,
-                      size: AppSpacing.s20,
+                      color: AppColors.primary,
+                      size: AppSpacing.s24,
                     ),
             ),
             const SizedBox(width: AppSpacing.s16),
@@ -414,7 +436,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                         : 'Usar minha localização atual',
                     style: AppTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.brandPrimary,
+                      color: AppColors.primary,
                     ),
                   ),
                   if (_isLoadingPreview)
@@ -453,45 +475,9 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.brandPrimary),
+            const Icon(Icons.chevron_right, color: AppColors.primary),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      margin: const EdgeInsets.only(top: AppSpacing.s8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        itemCount: _searchResults.length,
-        separatorBuilder: (_, _) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final item = _searchResults[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s16,
-              vertical: AppSpacing.s4,
-            ),
-            leading: const Icon(Icons.location_on_outlined, size: 20),
-            title: Text(item['description']?.split(',')[0] ?? ''),
-            subtitle: Text(
-              item['description'] ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.bodySmall,
-            ),
-            onTap: () => _selectAddress(item),
-          );
-        },
       ),
     );
   }

@@ -3,6 +3,9 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
+// Export geohash migration functions (lowercase for v2 naming convention)
+export {migrategeohashes, updateusergeohash} from "./geohash_migration";
+
 /**
  * Trigger: When a new message is created in a conversation.
  * Path: conversations/{conversationId}/messages/{messageId}

@@ -23,7 +23,7 @@ class AppRefreshIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      color: AppColors.brandPrimary,
+      color: AppColors.primary,
       backgroundColor: AppColors.surface,
       displacement: 60,
       edgeOffset: edgeOffset,

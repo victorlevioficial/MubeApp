@@ -20,8 +20,11 @@ class AppTypography {
   // FONT FAMILY
   // ===========================================================================
 
-  /// Fonte principal do aplicativo
-  static const String fontFamily = 'Inter';
+  /// Fonte para titulos e subtitulos
+  static const String fontFamilyDisplay = 'Poppins';
+
+  /// Fonte para textos e labels
+  static const String fontFamilyBody = 'Inter';
 
   // ===========================================================================
   // HEADLINES
@@ -29,7 +32,7 @@ class AppTypography {
 
   /// Headline Large - 28px, Bold
   /// Uso: Títulos principais de tela
-  static TextStyle get headlineLarge => GoogleFonts.inter(
+  static TextStyle get headlineLarge => GoogleFonts.poppins(
     fontSize: 28,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -38,7 +41,7 @@ class AppTypography {
 
   /// Headline Medium - 20px, Bold
   /// Uso: Títulos de seção
-  static TextStyle get headlineMedium => GoogleFonts.inter(
+  static TextStyle get headlineMedium => GoogleFonts.poppins(
     fontSize: 20,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -47,7 +50,7 @@ class AppTypography {
 
   /// Headline Small - 18px, Bold
   /// Uso: Subtítulos
-  static TextStyle get headlineSmall => GoogleFonts.inter(
+  static TextStyle get headlineSmall => GoogleFonts.poppins(
     fontSize: 18,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -60,7 +63,7 @@ class AppTypography {
 
   /// Title Large - 18px, Semi-bold
   /// Uso: Títulos de cards
-  static TextStyle get titleLarge => GoogleFonts.inter(
+  static TextStyle get titleLarge => GoogleFonts.poppins(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
@@ -69,7 +72,7 @@ class AppTypography {
 
   /// Title Medium - 16px, Semi-bold
   /// Uso: Títulos de listas
-  static TextStyle get titleMedium => GoogleFonts.inter(
+  static TextStyle get titleMedium => GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
@@ -78,7 +81,7 @@ class AppTypography {
 
   /// Title Small - 14px, Semi-bold
   /// Uso: Labels importantes
-  static TextStyle get titleSmall => GoogleFonts.inter(
+  static TextStyle get titleSmall => GoogleFonts.poppins(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
@@ -155,7 +158,7 @@ class AppTypography {
   // ===========================================================================
 
   /// Estilo para títulos de cards verticais
-  static TextStyle get cardTitle => GoogleFonts.inter(
+  static TextStyle get cardTitle => GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,

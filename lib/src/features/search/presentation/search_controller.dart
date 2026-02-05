@@ -1,61 +1,113 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/mixins/pagination_mixin.dart';
+import '../../../core/utils/rate_limiter.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../feed/domain/feed_item.dart';
 import '../data/search_repository.dart';
 import '../domain/search_filters.dart';
 
-/// Search screen UI state
-class SearchState {
+/// Estado de paginação específico para busca.
+@immutable
+class SearchPaginationState extends PaginationState<FeedItem> {
+  /// Filtros atuais da busca.
   final SearchFilters filters;
-  final AsyncValue<List<FeedItem>> results;
-  final bool isLoadingMore;
-  final bool hasMore;
+
+  /// Latitude do usuário para ordenação por proximidade.
   final double? userLat;
+
+  /// Longitude do usuário para ordenação por proximidade.
   final double? userLng;
 
-  const SearchState({
+  const SearchPaginationState({
     this.filters = const SearchFilters(),
-    this.results = const AsyncValue.loading(),
-    this.isLoadingMore = false,
-    this.hasMore = true,
     this.userLat,
     this.userLng,
+    super.items = const [],
+    super.status = PaginationStatus.initial,
+    super.errorMessage,
+    super.lastDocument,
+    super.hasMore = true,
+    super.currentPage = 0,
+    super.pageSize = 20,
   });
 
-  SearchState copyWith({
+  SearchPaginationState copyWithSearch({
     SearchFilters? filters,
-    AsyncValue<List<FeedItem>>? results,
-    bool? isLoadingMore,
-    bool? hasMore,
     double? userLat,
     double? userLng,
+    List<FeedItem>? items,
+    PaginationStatus? status,
+    String? errorMessage,
+    DocumentSnapshot? lastDocument,
+    bool? hasMore,
+    int? currentPage,
+    int? pageSize,
+    bool clearError = false,
+    bool clearLastDocument = false,
   }) {
-    return SearchState(
+    return SearchPaginationState(
       filters: filters ?? this.filters,
-      results: results ?? this.results,
-      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      hasMore: hasMore ?? this.hasMore,
       userLat: userLat ?? this.userLat,
       userLng: userLng ?? this.userLng,
+      items: items ?? this.items,
+      status: status ?? this.status,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      lastDocument: clearLastDocument
+          ? null
+          : (lastDocument ?? this.lastDocument),
+      hasMore: hasMore ?? this.hasMore,
+      currentPage: currentPage ?? this.currentPage,
+      pageSize: pageSize ?? this.pageSize,
     );
   }
-}
-
-/// Controller for the search screen using Riverpod 3.x Notifier pattern
-class SearchController extends Notifier<SearchState> {
-  Timer? _debounceTimer;
-  int _currentRequestId = 0;
 
   @override
-  SearchState build() {
-    // Get user's location from their profile (registered address)
-    final userAsync = ref.watch(currentUserProfileProvider);
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SearchPaginationState &&
+        other.filters == filters &&
+        other.userLat == userLat &&
+        other.userLng == userLng &&
+        listEquals(other.items, items) &&
+        other.status == status &&
+        other.errorMessage == errorMessage &&
+        other.lastDocument == lastDocument &&
+        other.hasMore == hasMore &&
+        other.currentPage == currentPage &&
+        other.pageSize == pageSize;
+  }
 
-    // Extract location from user profile
+  @override
+  int get hashCode => Object.hash(
+        filters,
+        userLat,
+        userLng,
+        items,
+        status,
+        errorMessage,
+        lastDocument,
+        hasMore,
+        currentPage,
+        pageSize,
+      );
+}
+
+/// Controller para a tela de busca usando padrão unificado de paginação.
+class SearchController extends Notifier<SearchPaginationState> {
+  Timer? _debounceTimer;
+  int _currentRequestId = 0;
+  final RateLimiter _rateLimiter = RateLimitConfigs.search;
+
+  @override
+  SearchPaginationState build() {
+    // Inicializa com a localização do usuário
+    final userAsync = ref.read(currentUserProfileProvider);
+
     double? lat;
     double? lng;
     userAsync.whenData((user) {
@@ -65,111 +117,217 @@ class SearchController extends Notifier<SearchState> {
       }
     });
 
-    // Initialize search when we have location
-    Future.microtask(() {
-      state = state.copyWith(userLat: lat, userLng: lng);
-      _performSearch();
-    });
+    // Inicializa a busca após o build
+    Future.microtask(() => _performSearch());
 
-    return SearchState(userLat: lat, userLng: lng);
+    return SearchPaginationState(userLat: lat, userLng: lng);
   }
 
-  /// Update search term with debounce
+  /// Atualiza o estado interno.
+  void _updateState(SearchPaginationState newState) {
+    state = newState;
+  }
+
+  /// Atualiza o termo de busca com debounce.
   void setTerm(String term) {
-    state = state.copyWith(filters: state.filters.copyWith(term: term));
+    _updateState(state.copyWithSearch(
+      filters: state.filters.copyWith(term: term),
+    ));
     _debouncedSearch();
   }
 
-  /// Update category filter
+  /// Atualiza o filtro de categoria.
   void setCategory(SearchCategory category) {
-    state = state.copyWith(
+    _updateState(state.copyWithSearch(
       filters: state.filters.copyWith(
         category: category,
-        // Clear subcategory when changing main category
         professionalSubcategory: null,
       ),
-    );
+    ));
     _performSearch();
   }
 
-  /// Update professional subcategory
+  /// Atualiza a subcategoria profissional.
   void setProfessionalSubcategory(ProfessionalSubcategory? subcategory) {
-    state = state.copyWith(
+    _updateState(state.copyWithSearch(
       filters: state.filters.copyWith(professionalSubcategory: subcategory),
-    );
+    ));
     _performSearch();
   }
 
-  /// Update genre filter
+  /// Atualiza o filtro de gêneros.
   void setGenres(List<String> genres) {
-    state = state.copyWith(filters: state.filters.copyWith(genres: genres));
+    _updateState(state.copyWithSearch(
+      filters: state.filters.copyWith(genres: genres),
+    ));
     _performSearch();
   }
 
-  /// Update instruments filter
+  /// Atualiza o filtro de instrumentos.
   void setInstruments(List<String> instruments) {
-    state = state.copyWith(
+    _updateState(state.copyWithSearch(
       filters: state.filters.copyWith(instruments: instruments),
-    );
+    ));
     _performSearch();
   }
 
-  /// Update crew roles filter
+  /// Atualiza o filtro de funções (crew).
   void setRoles(List<String> roles) {
-    state = state.copyWith(filters: state.filters.copyWith(roles: roles));
+    _updateState(state.copyWithSearch(
+      filters: state.filters.copyWith(roles: roles),
+    ));
     _performSearch();
   }
 
-  /// Update studio services filter
+  /// Atualiza o filtro de serviços (estúdios).
   void setServices(List<String> services) {
-    state = state.copyWith(filters: state.filters.copyWith(services: services));
+    _updateState(state.copyWithSearch(
+      filters: state.filters.copyWith(services: services),
+    ));
     _performSearch();
   }
 
-  /// Update studio type filter
+  /// Atualiza o tipo de estúdio.
   void setStudioType(String? type) {
-    state = state.copyWith(filters: state.filters.copyWith(studioType: type));
+    _updateState(state.copyWithSearch(
+      filters: state.filters.copyWith(studioType: type),
+    ));
     _performSearch();
   }
 
-  /// Update backing vocal filter
+  /// Atualiza o filtro de backing vocal.
   void setBackingVocalFilter(bool? canDoBacking) {
-    state = state.copyWith(
+    _updateState(state.copyWithSearch(
       filters: state.filters.copyWith(canDoBackingVocal: canDoBacking),
-    );
+    ));
     _performSearch();
   }
 
-  /// Clear all filters
+  /// Limpa todos os filtros.
   void clearFilters() {
-    state = state.copyWith(filters: state.filters.clearFilters());
+    _updateState(state.copyWithSearch(
+      filters: state.filters.clearFilters(),
+    ));
     _performSearch();
   }
 
-  /// Reset everything
+  /// Reseta tudo.
   void reset() {
-    state = state.copyWith(filters: const SearchFilters());
+    _updateState(state.copyWithSearch(
+      filters: const SearchFilters(),
+      clearError: true,
+      clearLastDocument: true,
+    ));
     _performSearch();
   }
 
-  /// Refresh current search results
+  /// Atualiza os resultados (pull-to-refresh).
   Future<void> refresh() async {
     await _performSearch();
   }
 
-  /// Debounced search for text input
+  /// Carrega mais resultados (paginação).
+  Future<void> loadMore() async {
+    if (!canLoadMore) return;
+
+    final requestId = ++_currentRequestId;
+
+    _updateState(state.copyWithSearch(
+      status: PaginationStatus.loadingMore,
+      clearError: true,
+    ));
+
+    try {
+      final user = ref.read(currentUserProfileProvider).value;
+      final blockedUsers = user?.blockedUsers ?? [];
+
+      final repository = ref.read(searchRepositoryProvider);
+
+      // Para busca, usamos o lastDocument do estado anterior
+      final result = await repository.searchUsers(
+        filters: state.filters,
+        startAfter: state.lastDocument,
+        requestId: requestId,
+        getCurrentRequestId: () => _currentRequestId,
+        blockedUsers: blockedUsers,
+      );
+
+      if (_currentRequestId != requestId) return;
+
+      result.fold(
+        (failure) {
+          if (_currentRequestId != requestId) return;
+          _updateState(state.copyWithSearch(
+            status: PaginationStatus.error,
+            errorMessage: failure.message,
+          ));
+        },
+        (response) {
+          if (_currentRequestId != requestId) return;
+
+          final sortedResults = SearchRepository.sortByProximity(
+            response.items,
+            state.userLat,
+            state.userLng,
+          );
+
+          final existingIds = state.items.map((item) => item.uid).toSet();
+          final newItems =
+              sortedResults.where((item) => !existingIds.contains(item.uid)).toList();
+
+          final allItems = [...state.items, ...newItems];
+          final hasMore = response.hasMore;
+
+          _updateState(state.copyWithSearch(
+            items: allItems,
+            status: hasMore
+                ? PaginationStatus.loaded
+                : PaginationStatus.noMoreData,
+            hasMore: hasMore,
+            currentPage: state.currentPage + 1,
+            lastDocument: response.lastDocument,
+          ));
+        },
+      );
+    } catch (e) {
+      if (_currentRequestId != requestId) return;
+      _updateState(state.copyWithSearch(
+        status: PaginationStatus.error,
+        errorMessage: e.toString(),
+      ));
+    }
+  }
+
+  /// Busca com debounce para entrada de texto.
   void _debouncedSearch() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), _performSearch);
   }
 
-  /// Execute search
+  /// Executa a busca.
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
     final user = ref.read(currentUserProfileProvider).value;
     final blockedUsers = user?.blockedUsers ?? [];
+    final userId = user?.uid ?? 'anonymous';
 
-    state = state.copyWith(results: const AsyncValue.loading(), hasMore: true);
+    // Rate limiting check
+    if (!_rateLimiter.allowRequest(userId)) {
+      final timeUntil = _rateLimiter.timeUntilNextRequest(userId);
+      debugPrint('[Search] Rate limit exceeded. Try again in $timeUntil');
+      _updateState(state.copyWithSearch(
+        status: PaginationStatus.error,
+        errorMessage: 'Muitas buscas. Tente novamente em alguns segundos.',
+      ));
+      return;
+    }
+
+    _updateState(state.copyWithSearch(
+      status: PaginationStatus.loading,
+      hasMore: true,
+      clearError: true,
+      clearLastDocument: true,
+    ));
 
     try {
       final repository = ref.read(searchRepositoryProvider);
@@ -187,34 +345,64 @@ class SearchController extends Notifier<SearchState> {
         (failure) {
           if (_currentRequestId != requestId) return;
           debugPrint('[Search] Error: $failure');
-          // Start using Failure properly instead of generic error if possible, but for now:
-          state = state.copyWith(
-            results: AsyncValue.error(failure, StackTrace.current),
-          );
+          _updateState(state.copyWithSearch(
+            status: PaginationStatus.error,
+            errorMessage: failure.message,
+          ));
         },
-        (results) {
+        (response) {
           if (_currentRequestId != requestId) return;
 
           final sortedResults = SearchRepository.sortByProximity(
-            results,
+            response.items,
             state.userLat,
             state.userLng,
           );
 
-          state = state.copyWith(
-            results: AsyncValue.data(sortedResults),
-            hasMore: results.length >= SearchConfig.targetResults,
-          );
+          final hasMore = response.hasMore;
+
+          _updateState(state.copyWithSearch(
+            items: sortedResults,
+            status: hasMore
+                ? PaginationStatus.loaded
+                : PaginationStatus.noMoreData,
+            hasMore: hasMore,
+            currentPage: 1,
+            lastDocument: response.lastDocument,
+          ));
         },
       );
-    } catch (e, st) {
+    } catch (e) {
       if (_currentRequestId != requestId) return;
       debugPrint('[Search] Error: $e');
-      state = state.copyWith(results: AsyncValue.error(e, st));
+      _updateState(state.copyWithSearch(
+        status: PaginationStatus.error,
+        errorMessage: e.toString(),
+      ));
     }
+  }
+
+  /// Verifica se pode carregar mais resultados.
+  bool get canLoadMore {
+    return state.hasMore &&
+        !state.isLoading &&
+        state.status != PaginationStatus.error;
+  }
+
+  /// Verifica se está carregando mais resultados.
+  bool get isLoadingMore => state.isLoadingMore;
+
+  /// Converte o estado para AsyncValue (para compatibilidade com UI).
+  AsyncValue<List<FeedItem>> get resultsAsyncValue => state.toAsyncValue();
+
+  /// Cancela o debounce pendente.
+  void cancelDebounce() {
+    _debounceTimer?.cancel();
   }
 }
 
-/// Provider for SearchController
+/// Provider para SearchController
 final searchControllerProvider =
-    NotifierProvider<SearchController, SearchState>(SearchController.new);
+    NotifierProvider<SearchController, SearchPaginationState>(() {
+  return SearchController();
+});

@@ -81,7 +81,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                         'MATCH!',
                         style: AppTypography.headlineLarge.copyWith(
                           fontSize: 48,
-                          color: AppColors.brandPrimary,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w900,
                           fontStyle: FontStyle.italic,
                           letterSpacing: 2,
@@ -117,7 +117,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.brandPrimary.withValues(
+                              color: AppColors.primary.withValues(
                                 alpha: 0.5,
                               ),
                               blurRadius: 20,
@@ -127,7 +127,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                         ),
                         child: const Icon(
                           Icons.favorite,
-                          color: AppColors.brandPrimary,
+                          color: AppColors.primary,
                           size: 32,
                         ),
                       ),
@@ -142,7 +142,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: AppSpacing.s64),
+                const SizedBox(height: AppSpacing.s48),
 
                 // Buttons
                 AppButton.primary(

@@ -16,21 +16,20 @@ class AppColors {
   // ===========================================================================
 
   // Brand Colors
-  static const Color _primary = Color(0xFFD71E68); // Razzmatazz 300
-  static const Color _secondaryGlow = Color(0xFFD71E68); // Neon Pink
-  static const Color _gradientEnd = Color(0xFF990033);
+  static const Color _primary = Color(0xFFE8466C);
+  static const Color _primaryPressed = Color(0xFFD13F61);
 
   // Background Colors
-  static const Color _bgDeep = Color(0xFF0A0A0A); // Deepest Black
-  static const Color _bgSurface = Color(0xFF161616); // Zinc 900
-  static const Color _bgHighlight = Color(0xFF202020); // Zinc 800
-  static const Color _bgChipSkill = Color(0xFF2C2C2C); // L20
-  static const Color _bgChipGenre = Color(0xFF3E3E3E); // L40
+  static const Color _bgDeep = Color(0xFF0A0A0A);
+  static const Color _bgSurface = Color(0xFF141414);
+  static const Color _bgSurface2 = Color(0xFF1F1F1F);
+  static const Color _bgHighlight = Color(0xFF292929);
+  static const Color _border = Color(0xFF383838);
 
   // Text Colors
   static const Color _textWhite = Color(0xFFFFFFFF);
-  static const Color _textGray = Color(0xFFB3B3B3); // Zinc 400
-  static const Color _textDarkGray = Color(0xFF737373); // Zinc 600
+  static const Color _textGray = Color(0xFFB3B3B3);
+  static const Color _textDarkGray = Color(0xFF8A8A8A);
 
   // Feedback Colors
   static const Color _error = Color(0xFFEF4444); // Red 500
@@ -44,21 +43,24 @@ class AppColors {
   static const Color _badgeChipBg = Color(0xFF1F1F23); // Dark gray
 
   // ===========================================================================
-  // SEMANTIC TOKENS - BRAND
+  // SEMANTIC TOKENS - PRIMARY
   // ===========================================================================
 
-  /// Cor primária da marca (Razzmatazz)
-  static const Color brandPrimary = _primary;
+  /// Cor primária oficial do app
+  static const Color primary = _primary;
 
-  /// Cor de brilho/destaque da marca
-  static const Color brandGlow = _secondaryGlow;
+  /// Cor primária pressionada
+  static const Color primaryPressed = _primaryPressed;
 
-  /// Cor secundária da marca
-  static const Color brandSecondary = _secondaryGlow;
+  /// Cor primária com opacidade para elementos sutis (ex: RankBadge)
+  static Color get primaryMuted => _primary.withValues(alpha: 0.2);
 
-  /// Gradiente principal da marca
-  static const LinearGradient brandGradient = LinearGradient(
-    colors: [_primary, _gradientEnd],
+  /// Cor primária desabilitada
+  static Color get primaryDisabled => _primary.withValues(alpha: 0.3);
+
+  /// Gradiente sutil da primária (quando necessário)
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [_primary, _primaryPressed],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -76,11 +78,8 @@ class AppColors {
   /// Cor de superfície destacada
   static const Color surfaceHighlight = _bgHighlight;
 
-  /// Cor de fundo para chips de habilidades
-  static const Color chipSkill = _bgChipSkill;
-
-  /// Cor de fundo para chips de gêneros
-  static const Color chipGenre = _bgChipGenre;
+  /// Cor de superfície elevada
+  static const Color surface2 = _bgSurface2;
 
   // ===========================================================================
   // SEMANTIC TOKENS - TEXT
@@ -102,21 +101,11 @@ class AppColors {
   static Color get textDisabled => _textWhite.withValues(alpha: 0.5);
 
   // ===========================================================================
-  // SEMANTIC TOKENS - ACTION
-  // ===========================================================================
-
-  /// Cor para elementos interativos (links, ícones, bordas)
-  static const Color semanticAction = Color(0xFFFF5C8D);
-
-  /// Alias para semanticAction
-  static const Color textAction = semanticAction;
-
-  // ===========================================================================
   // SEMANTIC TOKENS - BORDER
   // ===========================================================================
 
   /// Cor de borda padrão
-  static const Color border = _bgHighlight;
+  static const Color border = _border;
 
   // ===========================================================================
   // SEMANTIC TOKENS - FEEDBACK
@@ -139,7 +128,7 @@ class AppColors {
   // ===========================================================================
 
   /// Badge para músicos/profissionais
-  static const Color badgeMusician = brandPrimary;
+  static const Color badgeMusician = primary;
 
   /// Badge para bandas
   static const Color badgeBand = _badgeFuchsia;
@@ -159,13 +148,6 @@ class AppColors {
 
   /// Cor de highlight para skeletons
   static const Color skeletonHighlight = _bgHighlight;
-
-  // ===========================================================================
-  // SEMANTIC TOKENS - STATE
-  // ===========================================================================
-
-  /// Cor primária desabilitada
-  static Color get primaryDisabled => _primary.withValues(alpha: 0.5);
 
   // ===========================================================================
   // SEMANTIC TOKENS - AVATAR

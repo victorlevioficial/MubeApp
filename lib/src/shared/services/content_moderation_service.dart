@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../core/config/app_config.dart';
+import '../../utils/app_logger.dart';
 
 part 'content_moderation_service.g.dart';
 
@@ -12,18 +15,19 @@ ContentModerationService contentModerationService(Ref ref) {
 }
 
 class ContentModerationService {
-  // API Key reused from LocationService
-  static const String _apiKey = 'AIzaSyDV5N_ybY5dPkE2T0Dl4JCqaAlGxte2WU0';
-  static const String _apiUrl =
-      'https://vision.googleapis.com/v1/images:annotate?key=$_apiKey';
+  // API Key now comes from environment configuration
+  String get _apiUrl => AppConfig.visionApiUrl;
 
   /// Validates an image file for inappropriate content.
   /// Throws [ModerationException] if content is flagged.
   /// Returns [true] if clean.
   Future<bool> validateImage(File imageFile) async {
-    if (_apiKey == 'YOUR_API_KEY_HERE') {
-      // Fail open or closed during dev? Let's log warning and pass for now to avoid blocking
-      print('WARNING: Cloud Vision API Key not set. Skipping moderation.');
+    if (AppConfig.googleVisionApiKey.isEmpty) {
+      // Fail open during dev to avoid blocking uploads
+      AppLogger.warning(
+        'GOOGLE_VISION_API_KEY not set. Skipping moderation. '
+        'Run with: --dart-define=GOOGLE_VISION_API_KEY=your_key',
+      );
       return true;
     }
 
@@ -47,7 +51,7 @@ class ContentModerationService {
       );
 
       if (response.statusCode != 200) {
-        print('Cloud Vision API Error: ${response.body}');
+        AppLogger.error('Cloud Vision API Error: ${response.body}');
         // Decision: If API fails (quota, network), do we block upload?
         // For MVP, let's allow it but log error.
         return true;
@@ -71,13 +75,10 @@ class ContentModerationService {
       }
 
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (e is ModerationException) rethrow;
-      // Network errors etc - Fail safe (allow) for now?
-      // Or fail closed (block)?
-      // Let's rethrow as generic failure if we want to be strict, or return true to be lenient.
-      // Strict for safety:
-      print('Moderation check failed: $e');
+      // Network errors etc - Fail safe (allow) for now
+      AppLogger.error('Moderation check failed', e, stackTrace);
       return true; // Skipping on error to not block user if internet is flaky
     }
   }

@@ -28,7 +28,7 @@ class OnboardingProgressBar extends StatelessWidget {
               backgroundColor:
                   AppColors.surfaceHighlight, // Dark gray background
               valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.brandPrimary,
+                AppColors.primary,
               ),
               minHeight: 4,
             ),

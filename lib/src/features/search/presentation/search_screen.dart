@@ -9,7 +9,9 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../feed/domain/feed_item.dart';
 import '../../feed/presentation/widgets/feed_card_vertical.dart';
+import '../../feed/presentation/widgets/feed_loading_more.dart';
 import '../../feed/presentation/widgets/feed_skeleton.dart';
+import '../../feed/presentation/feed_image_precache_service.dart';
 import '../domain/search_filters.dart';
 import 'search_controller.dart' as ctrl;
 import 'widgets/category_tabs.dart';
@@ -17,6 +19,10 @@ import 'widgets/filter_modal.dart';
 import 'widgets/search_filter_bar.dart';
 
 /// Main search screen with category tabs, dynamic filters, and results list.
+abstract final class SearchConstants {
+  static const double paginationThreshold = 200.0;
+}
+
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -29,10 +35,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final currentScroll = _scrollController.position.pixels;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+
+      if (currentScroll >= maxScroll - SearchConstants.paginationThreshold) {
+        final controller = ref.read(ctrl.searchControllerProvider.notifier);
+        if (controller.canLoadMore) {
+          controller.loadMore();
+        }
+      }
+    }
   }
 
   @override
@@ -40,11 +67,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final state = ref.watch(ctrl.searchControllerProvider);
     final controller = ref.read(ctrl.searchControllerProvider.notifier);
 
+    ref.listen(ctrl.searchControllerProvider, (previous, next) {
+      if (next.items.isNotEmpty && context.mounted) {
+        ref
+            .read(feedImagePrecacheServiceProvider)
+            .precacheItems(context, next.items);
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Busca', showBackButton: false),
       body: RefreshIndicator(
-        color: AppColors.brandPrimary,
+        color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: controller.refresh,
         child: CustomScrollView(
@@ -113,7 +148,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
 
             // Results
-            _buildResultsSliver(state),
+            _buildResultsSliver(state, controller),
           ],
         ),
       ),
@@ -122,7 +157,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildFilterButton(
     BuildContext context,
-    ctrl.SearchState state,
+    ctrl.SearchPaginationState state,
     ctrl.SearchController controller,
   ) {
     final hasActiveFilters = state.filters.hasActiveFilters;
@@ -133,7 +168,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: hasActiveFilters ? AppColors.brandPrimary : AppColors.surface,
+          color: hasActiveFilters ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
@@ -173,18 +208,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _buildResultsSliver(ctrl.SearchState state) {
-    return state.results.when(
+  Widget _buildResultsSliver(
+    ctrl.SearchPaginationState state,
+    ctrl.SearchController controller,
+  ) {
+    return controller.resultsAsyncValue.when(
       data: (items) {
         if (items.isEmpty) {
           return SliverFillRemaining(child: _buildEmptyState());
         }
         return SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
+            if (index >= items.length) {
+              if (state.isLoadingMore) {
+                return const FeedLoadingMore();
+              }
+              return state.hasMore
+                  ? const SizedBox(height: 80)
+                  : const SizedBox.shrink();
+            }
+
             final item = items[index];
             // FeedCardVertical already has internal margin (16h, 8v)
             return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
-          }, childCount: items.length),
+          }, childCount: items.length + (state.hasMore ? 1 : 0)),
         );
       },
       loading: () => SliverList(

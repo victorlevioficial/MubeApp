@@ -17,6 +17,9 @@ class AppRadius {
   // RADIUS TOKENS
   // ===========================================================================
 
+  /// 4px - Micro radius
+  static const double r4 = 4.0;
+
   /// 8px - Small radius
   static const double r8 = 8.0;
 
@@ -26,17 +29,11 @@ class AppRadius {
   /// 16px - Large radius
   static const double r16 = 16.0;
 
-  /// 20px - Extra large radius
-  static const double r20 = 20.0;
-
-  /// 24px - 2x Large radius
+  /// 24px - Extra large radius
   static const double r24 = 24.0;
 
-  /// 28px - 3x Large radius
-  static const double r28 = 28.0;
-
-  /// 100px - Pill/Full radius
-  static const double rPill = 100.0;
+  /// 999px - Pill/Full radius
+  static const double rPill = 999.0;
 
   // ===========================================================================
   // SEMANTIC RADIUS
@@ -58,10 +55,10 @@ class AppRadius {
   static const double input = 12.0;
 
   /// Radius para botões
-  static const double button = 28.0;
+  static const double button = rPill;
 
   /// Radius para chips
-  static const double chip = 20.0;
+  static const double chip = rPill;
 
   /// Radius para avatares
   static const double avatar = 100.0;
@@ -70,12 +67,11 @@ class AppRadius {
   // BORDER RADIUS - ALL SIDES
   // ===========================================================================
 
+  static const BorderRadius all4 = BorderRadius.all(Radius.circular(r4));
   static const BorderRadius all8 = BorderRadius.all(Radius.circular(r8));
   static const BorderRadius all12 = BorderRadius.all(Radius.circular(r12));
   static const BorderRadius all16 = BorderRadius.all(Radius.circular(r16));
-  static const BorderRadius all20 = BorderRadius.all(Radius.circular(r20));
   static const BorderRadius all24 = BorderRadius.all(Radius.circular(r24));
-  static const BorderRadius all28 = BorderRadius.all(Radius.circular(r28));
   static const BorderRadius pill = BorderRadius.all(Radius.circular(rPill));
 
   // ===========================================================================

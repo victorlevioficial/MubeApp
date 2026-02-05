@@ -3,14 +3,16 @@ service firebase.storage {
   match /b/{bucket}/o {
     
     // ========================================
-    // REGRAS TEMPORÁRIAS PARA DESENVOLVIMENTO
-    // ⚠️ ATENÇÃO: Regras liberadas para testes
-    // ⚠️ LEMBRAR: Apertar as regras antes de produção
+    // REGRAS DE PRODUÇÃO - SEGURAS
     // ========================================
     
     // Funções auxiliares
     function isAuthenticated() {
       return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
     
     function isValidImage() {
@@ -22,47 +24,91 @@ service firebase.storage {
     }
     
     function isValidPhotoSize() {
-      return request.resource.size < 10 * 1024 * 1024;
+      return request.resource.size < 10 * 1024 * 1024; // 10MB
     }
     
     function isValidVideoSize() {
-      return request.resource.size < 50 * 1024 * 1024;
+      return request.resource.size < 50 * 1024 * 1024; // 50MB
     }
     
     // ========================================
-    // REGRAS DE ACESSO (LIBERADAS)
+    // FOTOS DE PERFIL
     // ========================================
     
-    // Fotos de Perfil - LIBERADO PARA TESTES
     match /profile_photos/{userId} {
-      allow read: if true; // Leitura pública
-      allow write: if isAuthenticated() 
-                   && isValidImage() 
-                   && isValidPhotoSize();
+      // Leitura pública - qualquer um pode ver fotos de perfil
+      allow read: if true;
+      
+      // Escrita apenas pelo próprio usuário
+      allow create, update: if isAuthenticated() 
+                             && isOwner(userId)
+                             && isValidImage() 
+                             && isValidPhotoSize();
+      
+      // Deleção apenas pelo próprio usuário
+      allow delete: if isAuthenticated() && isOwner(userId);
     }
 
-    // Fotos da Galeria - LIBERADO PARA TESTES
+    // ========================================
+    // FOTOS DA GALERIA
+    // ========================================
+    
     match /gallery_photos/{userId}/{allPaths=**} {
-      allow read: if true; // Leitura pública
-      allow write: if isAuthenticated() 
-                   && isValidImage() 
-                   && isValidPhotoSize();
+      // Leitura pública
+      allow read: if true;
+      
+      // Escrita apenas pelo dono da galeria
+      allow create, update: if isAuthenticated() 
+                             && isOwner(userId)
+                             && isValidImage() 
+                             && isValidPhotoSize();
+      
+      // Deleção apenas pelo dono
+      allow delete: if isAuthenticated() && isOwner(userId);
     }
     
-    // Vídeos da Galeria - LIBERADO PARA TESTES
+    // ========================================
+    // VÍDEOS DA GALERIA
+    // ========================================
+    
     match /gallery_videos/{userId}/{allPaths=**} {
-      allow read: if true; // Leitura pública
-      allow write: if isAuthenticated() 
-                   && isValidVideo() 
-                   && isValidVideoSize();
+      // Leitura pública
+      allow read: if true;
+      
+      // Escrita apenas pelo dono
+      allow create, update: if isAuthenticated() 
+                             && isOwner(userId)
+                             && isValidVideo() 
+                             && isValidVideoSize();
+      
+      // Deleção apenas pelo dono
+      allow delete: if isAuthenticated() && isOwner(userId);
     }
     
-    // Thumbnails de Vídeos - LIBERADO PARA TESTES
+    // ========================================
+    // THUMBNAILS DE VÍDEOS
+    // ========================================
+    
     match /gallery_thumbnails/{userId}/{allPaths=**} {
-      allow read: if true; // Leitura pública
-      allow write: if isAuthenticated() 
-                   && isValidImage() 
-                   && isValidPhotoSize();
+      // Leitura pública
+      allow read: if true;
+      
+      // Escrita apenas pelo dono (gerado automaticamente pelo app)
+      allow create, update: if isAuthenticated() 
+                             && isOwner(userId)
+                             && isValidImage() 
+                             && isValidPhotoSize();
+      
+      // Deleção apenas pelo dono
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // ========================================
+    // FALLBACK - NEGAR TUDO O MAIS
+    // ========================================
+    
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

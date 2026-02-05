@@ -131,7 +131,7 @@ class AppTextField extends StatelessWidget {
             style: AppTypography.input.copyWith(color: AppColors.textPrimary),
             validator: validator,
             scrollPadding: scrollPadding,
-            cursorColor: AppColors.brandPrimary,
+            cursorColor: AppColors.primary,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTypography.inputHint,
@@ -162,7 +162,7 @@ class AppTextField extends StatelessWidget {
               focusedBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.all12,
                 borderSide: BorderSide(
-                  color: AppColors.brandPrimary,
+                  color: AppColors.primary,
                   width: 1.5,
                 ),
               ),

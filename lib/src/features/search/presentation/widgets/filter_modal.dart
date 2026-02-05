@@ -76,7 +76,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                   child: Text(
                     'Limpar',
                     style: AppTypography.labelMedium.copyWith(
-                      color: AppColors.semanticAction,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),

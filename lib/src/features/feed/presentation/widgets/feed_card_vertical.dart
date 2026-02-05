@@ -98,11 +98,11 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                         ), // Space before like button
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.s6),
+                    const SizedBox(height: AppSpacing.s8),
 
                     // 2. Distance Info + Profile Type Badge
                     Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.s6),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                       child: Row(
                         children: [
                           if (_hasLocationInfo) ...[
@@ -133,11 +133,10 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                     // 3. Skills Chips (filled style) - Single line, sorted by length
                     if (item.skills.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s6),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                         child: _SingleLineChipList(
-                          // Sort by length: shorter items first to maximize visible count
-                          items: List<String>.from(item.skills)
-                            ..sort((a, b) => a.length.compareTo(b.length)),
+                          // Already sorted in domain layer
+                          items: item.skills,
                           chipBuilder: _buildSkillChip,
                           overflowBuilder: (count) =>
                               _buildSkillChip('+$count'),
@@ -147,8 +146,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                     // 4. Genres Chips (outline style) - Single line, sorted by length
                     if (item.formattedGenres.isNotEmpty)
                       _SingleLineChipList(
-                        items: List<String>.from(item.formattedGenres)
-                          ..sort((a, b) => a.length.compareTo(b.length)),
+                        items: item.formattedGenres,
                         chipBuilder: _buildGenreChip,
                         overflowBuilder: (count) => _buildGenreChip('+$count'),
                       ),
@@ -173,7 +171,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
       ), // Prevent super wide chips
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.chipSkill, // L20 (Darker)
+        color: AppColors.surface2,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -198,7 +196,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
       ), // Prevent super wide chips
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.chipGenre, // L40 (Lighter)
+        color: AppColors.surfaceHighlight,
         borderRadius: BorderRadius.circular(20),
         // No border for cleaner look
       ),

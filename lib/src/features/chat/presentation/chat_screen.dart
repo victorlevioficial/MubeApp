@@ -379,7 +379,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               width: 44,
               decoration: BoxDecoration(
                 color: hasText
-                    ? AppColors.brandPrimary
+                    ? AppColors.primary
                     : AppColors.surfaceHighlight,
                 shape: BoxShape.circle,
               ),
@@ -433,7 +433,7 @@ class _MessageBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isMe ? AppColors.brandPrimary : AppColors.surface,
+              color: isMe ? AppColors.primary : AppColors.surface,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(20),
                 topRight: const Radius.circular(20),

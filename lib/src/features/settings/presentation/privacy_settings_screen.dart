@@ -132,7 +132,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
       ),
       value: value,
       onChanged: onChanged,
-      activeThumbColor: AppColors.brandPrimary,
+      activeThumbColor: AppColors.primary,
       trackColor: WidgetStateProperty.resolveWith(
         (states) => AppColors.surfaceHighlight,
       ),

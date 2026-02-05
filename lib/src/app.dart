@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
@@ -60,6 +63,19 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: goRouter,
+
+      // Localization configuration
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pt'), // Portuguese (Brazil) - default
+        Locale('en'), // English
+      ],
+      locale: const Locale('pt'), // Default to Portuguese for MVP
     );
   }
 }

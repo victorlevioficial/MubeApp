@@ -68,7 +68,7 @@ class MatchSwipeDeck extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               color:
                                   (isLike
-                                          ? AppColors.brandPrimary
+                                          ? AppColors.primary
                                           : AppColors.error)
                                       .withValues(alpha: opacity * 0.4),
                             ),
@@ -138,7 +138,7 @@ class MatchSwipeDeck extends StatelessWidget {
               // LIKE
               _ActionButton(
                 icon: Icons.favorite,
-                color: AppColors.brandPrimary, // Razzmatazz
+                color: AppColors.primary,
                 backgroundColor: AppColors.surface,
                 size: 64,
                 onPressed: () => controller.swipe(CardSwiperDirection.right),

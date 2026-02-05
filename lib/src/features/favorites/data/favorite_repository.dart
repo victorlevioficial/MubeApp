@@ -1,7 +1,9 @@
-// ignore_for_file: avoid_print
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../../utils/app_logger.dart';
+import '../domain/paginated_favorites_response.dart';
 
 part 'favorite_repository.g.dart';
 
@@ -28,11 +30,43 @@ class FavoriteRepository {
           .get();
 
       return snapshot.docs.map((doc) => doc.id).toSet();
-    } catch (e) {
-      // Em caso de erro (ex: offline), retorna vazio ou lança
-      // Por enquanto, log e retorna vazio para não quebrar UI
-      print('Erro ao carregar favoritos: $e');
+    } catch (e, stackTrace) {
+      // Em caso de erro (ex: offline), retorna vazio para não quebrar UI
+      AppLogger.warning('Erro ao carregar favoritos', e, stackTrace);
       return {};
+    }
+  }
+
+  /// Carrega os favoritos paginados ordenados por data de favoritado (desc).
+  Future<PaginatedFavoritesResponse> loadFavoritesPage({
+    DocumentSnapshot? startAfter,
+    int limit = 20,
+  }) async {
+    try {
+      var query = _firestore
+          .collection('users')
+          .doc(_uid)
+          .collection('favorites')
+          .orderBy('favoritedAt', descending: true)
+          .limit(limit);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.get();
+      final favoriteIds = snapshot.docs.map((doc) => doc.id).toList();
+      final lastDocument = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+      final hasMore = snapshot.docs.length >= limit;
+
+      return PaginatedFavoritesResponse(
+        favoriteIds: favoriteIds,
+        lastDocument: lastDocument,
+        hasMore: hasMore,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.warning('Erro ao carregar favoritos paginados', e, stackTrace);
+      return const PaginatedFavoritesResponse.empty();
     }
   }
 

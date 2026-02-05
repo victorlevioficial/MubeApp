@@ -63,18 +63,6 @@ class _ChipsSectionState extends State<ChipsSection> {
             const AppFilterChip(label: 'Online', isSelected: false),
           ],
         ),
-        const SizedBox(height: AppSpacing.s24),
-
-        Text('Action Chips', style: AppTypography.titleSmall),
-        const SizedBox(height: AppSpacing.s8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            AppChip.action(label: 'Adicionar', icon: Icons.add, onTap: () {}),
-            AppChip.action(label: 'Editar', icon: Icons.edit, onTap: () {}),
-          ],
-        ),
       ],
     );
   }

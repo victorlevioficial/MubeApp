@@ -6,9 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
+import '../domain/paginated_search_response.dart';
 import '../domain/search_filters.dart';
 
 /// Search configuration constants
@@ -21,15 +24,17 @@ class SearchConfig {
 /// Repository for searching users with smart pagination and filtering.
 class SearchRepository {
   final FirebaseFirestore _firestore;
+  final AnalyticsService? _analytics;
 
-  SearchRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+  SearchRepository({FirebaseFirestore? firestore, AnalyticsService? analytics})
+    : _firestore = firestore ?? FirebaseFirestore.instance,
+      _analytics = analytics;
 
   /// Search for users based on filters.
   ///
   /// Uses smart pagination: fetches batches until [targetResults] valid matches
   /// are found or [maxDocsRead] is reached.
-  FutureResult<List<FeedItem>> searchUsers({
+  FutureResult<PaginatedSearchResponse> searchUsers({
     required SearchFilters filters,
     DocumentSnapshot? startAfter,
     required int requestId,
@@ -41,20 +46,24 @@ class SearchRepository {
       final Set<String> seenUids = {};
       DocumentSnapshot? lastDoc = startAfter;
       int totalDocsRead = 0;
+      var reachedEnd = false;
 
       while (results.length < SearchConfig.targetResults &&
           totalDocsRead < SearchConfig.maxDocsRead) {
         // Check if request is still valid (not cancelled by newer request)
         if (getCurrentRequestId() != requestId) {
           debugPrint('[Search] Request $requestId cancelled');
-          return const Right(<FeedItem>[]);
+          return const Right(PaginatedSearchResponse.empty());
         }
 
         // Build and execute query
         final query = _buildBaseQuery(filters, lastDoc);
         final snapshot = await query.get();
 
-        if (snapshot.docs.isEmpty) break;
+        if (snapshot.docs.isEmpty) {
+          reachedEnd = true;
+          break;
+        }
 
         totalDocsRead += snapshot.docs.length;
         lastDoc = snapshot.docs.last;
@@ -62,7 +71,7 @@ class SearchRepository {
         // Filter and deduplicate in memory
         for (final doc in snapshot.docs) {
           if (getCurrentRequestId() != requestId) {
-            return const Right(<FeedItem>[]);
+            return const Right(PaginatedSearchResponse.empty());
           }
 
           final data = doc.data();
@@ -99,9 +108,39 @@ class SearchRepository {
       debugPrint(
         '[Search] Request $requestId: ${results.length} results from $totalDocsRead docs',
       );
-      return Right(results);
+
+      // Log analytics event for search performed
+      await _analytics?.logEvent(
+        name: 'search_performed',
+        parameters: {
+          'query': filters.term,
+          'results_count': results.length,
+          'has_filters': filters.hasActiveFilters,
+          'category': filters.category.name,
+        },
+      );
+
+      final hasMore = !reachedEnd && lastDoc != null;
+
+      return Right(
+        PaginatedSearchResponse(
+          items: results,
+          lastDocument: lastDoc,
+          hasMore: hasMore,
+        ),
+      );
     } catch (e) {
       debugPrint('[Search] Error: $e');
+
+      // Log analytics event for search error
+      await _analytics?.logEvent(
+        name: 'search_error',
+        parameters: {
+          'query': filters.term,
+          'error_message': e.toString(),
+        },
+      );
+
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -311,5 +350,6 @@ class SearchRepository {
 
 /// Provider for SearchRepository
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
-  return SearchRepository();
+  final analytics = ref.read(analyticsServiceProvider);
+  return SearchRepository(analytics: analytics);
 });

@@ -305,7 +305,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       final mediaId = const Uuid().v4();
       final storage = ref.read(storageRepositoryProvider);
 
-      final url = await storage.uploadGalleryMedia(
+      final mediaUrls = await storage.uploadGalleryMediaWithSizes(
         userId: user.uid,
         file: file,
         mediaId: mediaId,
@@ -316,6 +316,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           }
         },
       );
+
+      final url = mediaUrls.full ?? '';
 
       if (!context.mounted) return;
 
@@ -336,7 +338,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       // Invalidate profile provider to refresh gallery on profile screen
       ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       setState(() {
         _isUploadingMedia = false;
@@ -374,7 +376,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     try {
       final result = await _mediaPickerService.pickAndProcessVideo(context);
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       if (result == null) {
         setState(() => _isUploadingMedia = false);
@@ -388,7 +390,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       setState(() => _uploadStatus = 'Enviando vídeo...');
 
       // Upload video
-      final videoUrl = await storage.uploadGalleryMedia(
+      final mediaUrls = await storage.uploadGalleryMediaWithSizes(
         userId: user.uid,
         file: videoFile,
         mediaId: mediaId,
@@ -400,7 +402,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         },
       );
 
-      if (!context.mounted) return;
+      final videoUrl = mediaUrls.full ?? '';
+
+      if (!mounted) return;
 
       setState(() => _uploadStatus = 'Enviando thumbnail...');
 
@@ -411,7 +415,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         thumbnail: thumbnailFile,
       );
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       setState(() {
         _uploadProgress = 1.0;
@@ -432,7 +436,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       // Invalidate profile provider to refresh gallery on profile screen
       ref.invalidate(publicProfileControllerProvider(user.uid));
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       setState(() {
         _isUploadingMedia = false;
@@ -700,13 +704,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                       ),
                       unselectedLabelStyle: AppTypography.bodyMedium,
                       indicator: BoxDecoration(
-                        color: AppColors.brandPrimary, // Brand color
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(
                           100,
                         ), // Fully rounded
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.brandPrimary.withValues(
+                            color: AppColors.primary.withValues(
                               alpha: 0.3,
                             ),
                             blurRadius: 10,
@@ -821,7 +825,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.brandPrimary,
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: AppColors.background,

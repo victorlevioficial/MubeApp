@@ -78,7 +78,7 @@ class _MatchpointSetupWizardScreenState
             LinearProgressIndicator(
               value: (_currentStep + 1) / 4,
               backgroundColor: AppColors.surfaceHighlight,
-              valueColor: const AlwaysStoppedAnimation(AppColors.brandPrimary),
+              valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
             const SizedBox(height: AppSpacing.s24),
 
@@ -187,12 +187,12 @@ class _MatchpointSetupWizardScreenState
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.brandPrimary.withValues(alpha: 0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
-                ? AppColors.brandPrimary
+                ? AppColors.primary
                 : AppColors.surfaceHighlight,
             width: 2,
           ),
@@ -203,7 +203,7 @@ class _MatchpointSetupWizardScreenState
               icon,
               size: 32,
               color: isSelected
-                  ? AppColors.brandPrimary
+                  ? AppColors.primary
                   : AppColors.textTertiary,
             ),
             const SizedBox(width: AppSpacing.s16),
@@ -215,7 +215,7 @@ class _MatchpointSetupWizardScreenState
                     title,
                     style: AppTypography.titleLarge.copyWith(
                       color: isSelected
-                          ? AppColors.brandPrimary
+                          ? AppColors.primary
                           : AppColors.textPrimary,
                     ),
                   ),
@@ -230,7 +230,7 @@ class _MatchpointSetupWizardScreenState
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: AppColors.brandPrimary),
+              const Icon(Icons.check_circle, color: AppColors.primary),
           ],
         ),
       ),
@@ -322,7 +322,7 @@ class _MatchpointSetupWizardScreenState
           prefixIcon: const Icon(Icons.tag, size: 20),
           textInputAction: TextInputAction.done,
           suffixIcon: IconButton(
-            icon: const Icon(Icons.add, color: AppColors.semanticAction),
+            icon: const Icon(Icons.add, color: AppColors.primary),
             onPressed: _addHashtag,
           ),
           onSubmitted: (_) => _addHashtag(),
@@ -448,7 +448,7 @@ class _MatchpointSetupWizardScreenState
   }) {
     return Column(
       children: [
-        Icon(icon, size: 48, color: AppColors.brandPrimary),
+        Icon(icon, size: 48, color: AppColors.primary),
         const SizedBox(height: AppSpacing.s16),
         Text(
           title,

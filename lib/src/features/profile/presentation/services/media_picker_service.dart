@@ -44,7 +44,7 @@ class MediaPickerService {
           toolbarColor: AppColors.background,
           toolbarWidgetColor: AppColors.textPrimary,
           backgroundColor: AppColors.background,
-          activeControlsWidgetColor: AppColors.brandPrimary,
+          activeControlsWidgetColor: AppColors.primary,
           lockAspectRatio: lockAspectRatio,
           initAspectRatio: CropAspectRatioPreset.square,
           aspectRatioPresets: lockAspectRatio

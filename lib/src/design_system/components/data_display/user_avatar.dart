@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_typography.dart';
+import '../../../core/services/image_cache_config.dart';
 
 /// Avatar widget that shows user photo or initials with a modern professional design.
 /// Features a thick border and modern pastel colors for initials fallback.
@@ -63,10 +64,10 @@ class UserAvatar extends StatelessWidget {
         fit: BoxFit.cover,
         fadeInDuration: Duration.zero,
         fadeOutDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
+        cacheManager: ImageCacheConfig.profileCacheManager,
         memCacheWidth: (size * 2).toInt(),
-        // No placeholder - shows nothing until image loads to prevent flicker
-        placeholder: (context, url) => const SizedBox.shrink(),
-        // Always show initials on error
+        placeholder: (context, url) => _buildLoadingPlaceholder(),
         errorWidget: (context, url, error) => _buildInitialsAvatar(),
         // Use imageBuilder to ensure smooth rendering
         imageBuilder: (context, imageProvider) {
@@ -81,6 +82,15 @@ class UserAvatar extends StatelessWidget {
 
     // Otherwise show initials
     return _buildInitialsAvatar();
+  }
+
+  Widget _buildLoadingPlaceholder() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceHighlight,
+        shape: BoxShape.circle,
+      ),
+    );
   }
 
   Widget _buildInitialsAvatar() {

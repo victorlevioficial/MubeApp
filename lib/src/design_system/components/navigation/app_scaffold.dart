@@ -69,7 +69,7 @@ class AppScaffold extends StatelessWidget {
   }) {
     return NavigationDestination(
       icon: Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.6)),
-      selectedIcon: Icon(selectedIcon, color: AppColors.semanticAction),
+      selectedIcon: Icon(selectedIcon, color: AppColors.primary),
       label: label,
     );
   }
@@ -87,7 +87,7 @@ class AppScaffold extends StatelessWidget {
               unreadCount > 99 ? '99+' : '$unreadCount',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            backgroundColor: AppColors.brandPrimary,
+            backgroundColor: AppColors.primary,
             child: Icon(
               Icons.chat_bubble_outline,
               color: AppColors.textPrimary.withValues(alpha: 0.6),
@@ -106,10 +106,10 @@ class AppScaffold extends StatelessWidget {
               unreadCount > 99 ? '99+' : '$unreadCount',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            backgroundColor: AppColors.brandPrimary,
+            backgroundColor: AppColors.primary,
             child: const Icon(
               Icons.chat_bubble,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
             ),
           );
         },

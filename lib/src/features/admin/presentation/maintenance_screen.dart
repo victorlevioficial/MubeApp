@@ -29,16 +29,43 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     });
 
     try {
-      // final feedRepo = ref.read(feedRepositoryProvider);
-      // final result = await feedRepo.migrateLocationLongToLng();
-      const result =
-          'Migration method not implemented yet.'; // TODO: Implement migration if needed
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore
+          .collection('users')
+          .where('cadastro_status', isEqualTo: 'concluido')
+          .get();
+
+      int updated = 0;
+      int skipped = 0;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['location'] is Map) {
+          final location = Map<String, dynamic>.from(data['location'] as Map);
+          if (location.containsKey('long')) {
+            final val = location.remove('long');
+            location['lng'] = val;
+            await firestore.collection('users').doc(doc.id).update({
+              'location': location,
+            });
+            updated++;
+          } else {
+            skipped++;
+          }
+        } else {
+          skipped++;
+        }
+      }
+
       setState(() {
-        _report = result;
+        _report =
+            '✅ Migração concluída!\n'
+            'Atualizados: $updated\n'
+            'Pulados: $skipped';
       });
     } catch (e) {
       setState(() {
-        _report = 'Erro na migração: $e';
+        _report = '❌ Erro na migração: $e';
       });
     } finally {
       setState(() {

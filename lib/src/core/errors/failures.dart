@@ -248,3 +248,19 @@ class UnknownFailure extends Failure {
     super.originalError,
   });
 }
+
+// ============================================================================
+// UNEXPECTED FAILURE
+// ============================================================================
+
+/// Represents an unexpected failure during execution with stack trace.
+class UnexpectedFailure extends Failure {
+  final StackTrace? stackTrace;
+
+  const UnexpectedFailure({
+    super.message = 'Algo inesperado aconteceu. Tente novamente.',
+    super.debugMessage,
+    super.originalError,
+    this.stackTrace,
+  });
+}

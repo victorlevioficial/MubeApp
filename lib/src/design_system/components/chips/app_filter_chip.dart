@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../foundations/tokens/app_colors.dart';
-import '../../foundations/tokens/app_radius.dart';
-import '../../foundations/tokens/app_typography.dart';
+import 'app_chip.dart';
 
 /// Chip de filtro selecionável do Design System.
 ///
@@ -37,53 +35,15 @@ class AppFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AppChip.filter(
+      label: label,
+      isSelected: isSelected,
+      icon: icon,
       onTap: () {
         onTap?.call();
         onSelected?.call(!isSelected);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandPrimary : AppColors.surface,
-          borderRadius: AppRadius.circular(AppRadius.r24),
-          border: isSelected
-              ? null
-              : Border.all(color: AppColors.surfaceHighlight, width: 1),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: AppTypography.labelMedium.copyWith(
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            if (onRemove != null) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: onRemove,
-                child: Icon(
-                  Icons.close,
-                  size: 16,
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+      onDeleted: onRemove,
     );
   }
 }

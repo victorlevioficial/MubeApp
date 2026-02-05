@@ -63,10 +63,18 @@ class AuthGuard {
     String currentPath,
     AsyncValue<dynamic> userProfileAsync,
   ) {
-    // [REMOVED TEST FIX] - Normal flow requires redirecting away from login if authenticated
-    // if (currentPath == RoutePaths.login || currentPath == RoutePaths.register) {
-    //   return null;
-    // }
+    // Check if email is verified first
+    final authRepo = _ref.read(authRepositoryProvider);
+    final currentUser = authRepo.currentUser;
+    
+    // If user is logged in but email is not verified, redirect to verification screen
+    if (currentUser != null && !currentUser.emailVerified) {
+      if (currentPath == RoutePaths.emailVerification) {
+        return null; // Already on verification screen
+      }
+      _log('Email not verified - redirecting to verification');
+      return RoutePaths.emailVerification;
+    }
 
     // Profile not loaded yet - don't redirect
     if (!userProfileAsync.hasValue || userProfileAsync.value == null) {

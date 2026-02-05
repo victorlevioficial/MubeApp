@@ -21,7 +21,7 @@ class MatchpointIntroScreen extends StatelessWidget {
             const Icon(
               Icons.bolt_rounded,
               size: 80,
-              color: AppColors.brandPrimary,
+              color: AppColors.primary,
             ),
             const SizedBox(height: AppSpacing.s24),
             Text(

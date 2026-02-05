@@ -4,6 +4,8 @@ abstract final class RoutePaths {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
+  static const String emailVerification = '/verify-email';
 
   // Onboarding routes
   static const String onboarding = '/onboarding';
@@ -34,6 +36,8 @@ abstract final class RoutePaths {
     splash,
     login,
     register,
+    forgotPassword,
+    emailVerification,
     gallery,
     legal,
   };

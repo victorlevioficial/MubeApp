@@ -125,7 +125,7 @@ class BentoHeader extends ConsumerWidget {
               child: _buildMiniCard(
                 icon: user?.plan == 'pro' ? Icons.star : Icons.star_border,
                 iconColor: user?.plan == 'pro'
-                    ? AppColors.brandPrimary
+                    ? AppColors.primary
                     : AppColors.textSecondary,
                 title: user?.plan == 'pro' ? 'Pro' : 'Free',
                 subtitle: 'Plano Ativo',

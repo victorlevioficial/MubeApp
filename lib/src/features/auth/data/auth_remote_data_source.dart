@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../utils/app_logger.dart';
+import '../../../utils/geohash_helper.dart';
 import '../domain/app_user.dart';
 
 /// Interface for raw data access
@@ -18,6 +20,10 @@ abstract class AuthRemoteDataSource {
   Future<void> signOut();
   Future<void> deleteAccount(String uid);
   Future<List<AppUser>> fetchUsersByIds(List<String> uids);
+  Future<void> sendPasswordResetEmail(String email);
+  Future<void> sendEmailVerification();
+  Future<bool> isEmailVerified();
+  Future<void> reloadUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -51,18 +57,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> saveUserProfile(AppUser user) async {
+    final data = _prepareUserData(user);
     await _firestore
         .collection(FirestoreCollections.users)
         .doc(user.uid)
-        .set(user.toJson());
+        .set(data);
   }
 
   @override
   Future<void> updateUserProfile(AppUser user) async {
+    final data = _prepareUserData(user);
     await _firestore
         .collection(FirestoreCollections.users)
         .doc(user.uid)
-        .set(user.toFirestore(), SetOptions(merge: true));
+        .set(data, SetOptions(merge: true));
+  }
+
+  /// Prepara os dados do usuário adicionando geohash automaticamente
+  Map<String, dynamic> _prepareUserData(AppUser user) {
+    final data = user.toFirestore();
+
+    // Adiciona geohash automaticamente se tiver localização
+    if (user.location != null &&
+        user.location!['lat'] != null &&
+        user.location!['lng'] != null) {
+      try {
+        final lat = (user.location!['lat'] as num).toDouble();
+        final lng = (user.location!['lng'] as num).toDouble();
+        final geohash = GeohashHelper.encode(lat, lng, precision: 5);
+        data['geohash'] = geohash;
+        AppLogger.info('📍 Geohash gerado: $geohash para usuário ${user.uid}');
+      } catch (e) {
+        AppLogger.warning('⚠️ Erro ao gerar geohash: $e');
+      }
+    }
+
+    return data;
   }
 
   @override
@@ -135,6 +165,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         .get();
 
     return query.docs.map((doc) => AppUser.fromJson(doc.data())).toList();
+  }
+
+  @override
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  @override
+  Future<void> sendEmailVerification() async {
+    final user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  @override
+  Future<bool> isEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
+  @override
+  Future<void> reloadUser() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.reload();
+    }
   }
 }
 

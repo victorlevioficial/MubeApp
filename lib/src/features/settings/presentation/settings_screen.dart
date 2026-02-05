@@ -53,13 +53,13 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.person_outline,
                   title: 'Editar Dados',
                   onTap: () => context.push('/profile/edit'),
-                  customAccentColor: AppColors.brandPrimary,
+                  customAccentColor: AppColors.primary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.favorite_outline,
                   title: 'Meus Favoritos',
                   onTap: () => context.push('/favorites'),
-                  customAccentColor: AppColors.brandSecondary,
+                  customAccentColor: AppColors.primary,
                 ),
                 // Dynamic Tile: Band Management or My Bands
                 if (ref.watch(currentUserProfileProvider).value?.tipoPerfil ==
@@ -82,7 +82,7 @@ class SettingsScreen extends ConsumerWidget {
                 NeonSettingsTile(
                   icon: Icons.lock_outline,
                   title: 'Alterar Senha',
-                  onTap: () => AppSnackBar.info(context, 'Em breve!'),
+                  onTap: () => _changePassword(context, ref),
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
@@ -90,7 +90,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Privacidade e Visibilidade',
                   subtitle: 'MatchPoint, Busca, Bloqueios',
                   onTap: () => context.push(RoutePaths.privacySettings),
-                  customAccentColor: AppColors.semanticAction,
+                  customAccentColor: AppColors.primary,
                 ),
               ],
             ),
@@ -148,7 +148,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       );
                     },
-                    customAccentColor: AppColors.brandPrimary,
+                    customAccentColor: AppColors.primary,
                   ),
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
@@ -245,6 +245,45 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirm == true) {
       unawaited(ref.read(authRepositoryProvider).signOut());
+    }
+  }
+
+  void _changePassword(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(authRepositoryProvider).currentUser;
+    final email = user?.email;
+
+    if (email == null || email.isEmpty) {
+      AppSnackBar.error(context, 'Não foi possível encontrar seu email.');
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AppConfirmationDialog(
+        title: 'Alterar Senha',
+        message:
+            'Enviaremos um link de redefinição para:\n\n$email\n\nDeseja continuar?',
+        confirmText: 'Enviar',
+        isDestructive: false,
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      AppSnackBar.info(context, 'Enviando email...');
+
+      final result = await ref
+          .read(authRepositoryProvider)
+          .sendPasswordResetEmail(email);
+
+      if (!context.mounted) return;
+
+      result.fold(
+        (failure) => AppSnackBar.error(context, failure.message),
+        (_) => AppSnackBar.success(
+          context,
+          'Email enviado! Verifique sua caixa de entrada.',
+        ),
+      );
     }
   }
 

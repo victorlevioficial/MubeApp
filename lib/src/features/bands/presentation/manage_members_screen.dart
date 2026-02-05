@@ -77,7 +77,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
       appBar: const AppAppBar(title: 'Gerenciar Integrantes'),
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.brandPrimary, // More distinct primary color
+        backgroundColor: AppColors.primary,
         child: const Icon(Icons.person_add, color: AppColors.textPrimary),
         onPressed: () {
           final user = userAsync.value;
@@ -542,7 +542,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
     result.fold(
       (l) => AppSnackBar.show(context, 'Erro ao buscar', isError: true),
       (r) {
-        if (mounted) setState(() => _results = r);
+        if (mounted) setState(() => _results = r.items);
       },
     );
 

@@ -36,6 +36,13 @@ abstract class FeedRemoteDataSource {
   });
 
   Future<QuerySnapshot<Map<String, dynamic>>> getUsersByIds(List<String> ids);
+
+  /// Busca usuários por geohash específico com filtros opcionais
+  Future<QuerySnapshot<Map<String, dynamic>>> getUsersByGeohash({
+    required String geohash,
+    String? filterType,
+    required int limit,
+  });
 }
 
 class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
@@ -214,6 +221,38 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
         .collection(FirestoreCollections.users)
         .where(FieldPath.documentId, whereIn: limitedIds)
         .get();
+  }
+
+  @override
+  Future<QuerySnapshot<Map<String, dynamic>>> getUsersByGeohash({
+    required String geohash,
+    String? filterType,
+    required int limit,
+  }) {
+    var query = _firestore
+        .collection(FirestoreCollections.users)
+        .where(
+          FirestoreFields.registrationStatus,
+          isEqualTo: RegistrationStatus.complete,
+        )
+        .where(FirestoreFields.geohash, isEqualTo: geohash);
+
+    if (filterType != null &&
+        filterType.isNotEmpty &&
+        filterType != 'Perto de mim') {
+      query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
+    } else {
+      query = query.where(
+        FirestoreFields.profileType,
+        whereIn: [
+          ProfileType.professional,
+          ProfileType.band,
+          ProfileType.studio,
+        ],
+      );
+    }
+
+    return query.limit(limit).get();
   }
 }
 

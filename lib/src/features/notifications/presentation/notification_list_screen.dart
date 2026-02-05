@@ -30,7 +30,7 @@ class NotificationListScreen extends ConsumerWidget {
               child: Text(
                 'Limpar',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.semanticAction,
+                  color: AppColors.primary,
                 ),
               ),
             ),
@@ -218,7 +218,7 @@ class _NotificationTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: !notification.isRead
             ? Border.all(
-                color: AppColors.semanticAction.withValues(alpha: 0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 width: 1,
               )
             : null,
@@ -237,12 +237,12 @@ class _NotificationTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.semanticAction.withValues(alpha: 0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     _getIconForType(notification.type),
-                    color: AppColors.semanticAction,
+                    color: AppColors.primary,
                     size: 22,
                   ),
                 ),
@@ -292,7 +292,7 @@ class _NotificationTile extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: AppColors.semanticAction,
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
                       ),

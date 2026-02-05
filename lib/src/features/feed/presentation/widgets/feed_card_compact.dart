@@ -64,7 +64,7 @@ class FeedCardCompact extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: AppSpacing.s6),
+                  const SizedBox(width: AppSpacing.s8),
                 ],
                 // Profile Type Icon
                 _buildProfileTypeIcon(),

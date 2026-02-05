@@ -54,7 +54,7 @@ class AppLoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final indicatorColor = color ?? AppColors.brandPrimary;
+    final indicatorColor = color ?? AppColors.primary;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

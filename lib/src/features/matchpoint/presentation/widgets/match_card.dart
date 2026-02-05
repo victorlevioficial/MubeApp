@@ -9,6 +9,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/user_type.dart';
+import '../../../../core/services/image_cache_config.dart';
 
 class MatchCard extends StatelessWidget {
   final AppUser user;
@@ -42,11 +43,15 @@ class MatchCard extends StatelessWidget {
                 CachedNetworkImage(
                   imageUrl: user.foto!,
                   fit: BoxFit.cover,
+                  fadeInDuration: Duration.zero,
+                  fadeOutDuration: Duration.zero,
+                  useOldImageOnUrlChange: true,
+                  cacheManager: ImageCacheConfig.profileCacheManager,
                   placeholder: (context, url) => Container(
                     color: AppColors.surfaceHighlight,
                     child: const Center(
                       child: CircularProgressIndicator(
-                        color: AppColors.brandPrimary,
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -158,7 +163,7 @@ class MatchCard extends StatelessWidget {
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.s12,
-                              vertical: AppSpacing.s6,
+                              vertical: AppSpacing.s8,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.surface.withValues(alpha: 0.8),

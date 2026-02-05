@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:mube/src/constants/firestore_constants.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
-import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -62,9 +63,11 @@ class MatchpointController extends _$MatchpointController {
     final result = await authRepo.updateUser(updatedUser);
 
     if (result.isRight()) {
-      ref
-          .read(analyticsServiceProvider)
-          .logMatchPointFilter(instruments: [], genres: genres, distance: 0);
+      unawaited(
+        ref
+            .read(analyticsServiceProvider)
+            .logMatchPointFilter(instruments: [], genres: genres, distance: 0),
+      );
     }
 
     result.fold(

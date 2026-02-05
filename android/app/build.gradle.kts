@@ -8,6 +8,15 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.mube.mubeoficial"
     compileSdk = flutter.compileSdkVersion
@@ -37,10 +46,20 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = "upload"
-            keyPassword = "MubeApp2026Secure"
-            storeFile = file("upload-keystore.jks")
-            storePassword = "MubeApp2026Secure"
+            val keyAliasProp = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordProp = keystoreProperties.getProperty("keyPassword")
+            val storeFileProp = keystoreProperties.getProperty("storeFile")
+            val storePasswordProp = keystoreProperties.getProperty("storePassword")
+
+            if (keyAliasProp != null && keyPasswordProp != null && storeFileProp != null && storePasswordProp != null) {
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
+                storeFile = file(storeFileProp)
+                storePassword = storePasswordProp
+            } else {
+                // Fail gracefully or log warning if running locally without keys
+                println("Warning: Release signing keys not found in key.properties")
+            }
         }
     }
 

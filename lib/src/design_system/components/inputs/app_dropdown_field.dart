@@ -165,12 +165,12 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                             vertical: AppSpacing.s12,
                           ),
                           color: isSelected
-                              ? AppColors.brandPrimary.withValues(alpha: 0.1)
+                              ? AppColors.primary.withValues(alpha: 0.1)
                               : null,
                           child: DefaultTextStyle(
                             style: AppTypography.bodyMedium.copyWith(
                               color: isSelected
-                                  ? AppColors.brandPrimary
+                                  ? AppColors.primary
                                   : AppColors.textPrimary,
                               fontWeight: isSelected
                                   ? FontWeight.w600
@@ -197,7 +197,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    if (mounted) {
+    // Only call setState if the widget is still mounted and not defunct
+    if (mounted && context.mounted) {
       setState(() => _isOpen = false);
     }
   }
@@ -224,7 +225,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               child: Icon(
                 Icons.keyboard_arrow_down,
                 color: _isOpen
-                    ? AppColors.brandPrimary
+                    ? AppColors.primary
                     : AppColors.textSecondary,
                 size: 24,
               ),

@@ -5,6 +5,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
 import '../domain/app_user.dart';
 import 'auth_remote_data_source.dart';
@@ -14,8 +16,10 @@ part 'auth_repository.g.dart';
 /// Manages user authentication and Firestore profile data using the Result pattern.
 class AuthRepository {
   final AuthRemoteDataSource _dataSource;
+  final AnalyticsService? _analytics;
 
-  AuthRepository(this._dataSource);
+  AuthRepository(this._dataSource, {AnalyticsService? analytics})
+    : _analytics = analytics;
 
   Stream<User?> authStateChanges() => _dataSource.authStateChanges();
 
@@ -28,10 +32,34 @@ class AuthRepository {
   ) async {
     try {
       await _dataSource.signInWithEmailAndPassword(email, password);
+
+      // Log analytics event for successful login
+      await _analytics?.logEvent(
+        name: 'login',
+        parameters: {'method': 'email'},
+      );
+
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
+      // Log analytics event for login error
+      await _analytics?.logEvent(
+        name: 'login_error',
+        parameters: {
+          'method': 'email',
+          'error_code': e.code,
+          'error_message': e.message ?? 'Unknown error',
+        },
+      );
       return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
     } catch (e) {
+      await _analytics?.logEvent(
+        name: 'login_error',
+        parameters: {
+          'method': 'email',
+          'error_code': 'unknown',
+          'error_message': e.toString(),
+        },
+      );
       return Left(AuthFailure(message: e.toString()));
     }
   }
@@ -47,6 +75,9 @@ class AuthRepository {
         password,
       );
       if (user != null) {
+        // Send email verification
+        await _dataSource.sendEmailVerification();
+
         final appUser = AppUser(
           uid: user.uid,
           email: email,
@@ -54,17 +85,46 @@ class AuthRepository {
           createdAt: FieldValue.serverTimestamp(),
         );
         await _dataSource.saveUserProfile(appUser);
+
+        // Log analytics event for successful registration
+        await _analytics?.logEvent(
+          name: 'user_registration',
+          parameters: {'method': 'email', 'user_type': 'pending'},
+        );
+
+        // Set user ID for analytics
+        await _analytics?.setUserId(user.uid);
       }
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
+      // Log analytics event for registration error
+      await _analytics?.logEvent(
+        name: 'registration_error',
+        parameters: {
+          'method': 'email',
+          'error_code': e.code,
+          'error_message': e.message ?? 'Unknown error',
+        },
+      );
       return Left(AuthFailure(message: e.message ?? 'Registration failed'));
     } catch (e) {
+      await _analytics?.logEvent(
+        name: 'registration_error',
+        parameters: {
+          'method': 'email',
+          'error_code': 'unknown',
+          'error_message': e.toString(),
+        },
+      );
       return Left(AuthFailure(message: e.toString()));
     }
   }
 
   FutureResult<Unit> signOut() async {
     try {
+      // Clear analytics user ID on sign out
+      await _analytics?.setUserId(null);
+
       await _dataSource.signOut();
       return const Right(unit);
     } catch (e) {
@@ -90,6 +150,15 @@ class AuthRepository {
         return const Left(AuthFailure(message: 'No user logged in'));
       }
 
+      // Log analytics event before deletion
+      await _analytics?.logEvent(
+        name: 'account_deleted',
+        parameters: {'user_id': uid},
+      );
+
+      // Clear analytics user ID
+      await _analytics?.setUserId(null);
+
       await _dataSource.deleteAccount(uid);
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
@@ -108,6 +177,77 @@ class AuthRepository {
       return Left(ServerFailure(message: e.toString()));
     }
   }
+
+  FutureResult<Unit> sendPasswordResetEmail(String email) async {
+    try {
+      await _dataSource.sendPasswordResetEmail(email);
+
+      // Log analytics event
+      await _analytics?.logEvent(
+        name: 'password_reset_requested',
+        parameters: {'email': email},
+      );
+
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      await _analytics?.logEvent(
+        name: 'password_reset_error',
+        parameters: {
+          'error_code': e.code,
+          'error_message': e.message ?? 'Unknown error',
+        },
+      );
+      return Left(
+        AuthFailure(message: e.message ?? 'Failed to send reset email'),
+      );
+    } catch (e) {
+      await _analytics?.logEvent(
+        name: 'password_reset_error',
+        parameters: {'error_code': 'unknown', 'error_message': e.toString()},
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> sendEmailVerification() async {
+    try {
+      await _dataSource.sendEmailVerification();
+
+      // Log analytics event
+      await _analytics?.logEvent(name: 'email_verification_sent');
+
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      await _analytics?.logEvent(
+        name: 'email_verification_error',
+        parameters: {
+          'error_code': e.code,
+          'error_message': e.message ?? 'Unknown error',
+        },
+      );
+      return Left(
+        AuthFailure(message: e.message ?? 'Failed to send verification email'),
+      );
+    } catch (e) {
+      await _analytics?.logEvent(
+        name: 'email_verification_error',
+        parameters: {'error_code': 'unknown', 'error_message': e.toString()},
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  Future<bool> isEmailVerified() async {
+    return await _dataSource.isEmailVerified();
+  }
+
+  Future<void> reloadUser() async {
+    await _dataSource.reloadUser();
+  }
+
+  bool get isCurrentUserEmailVerified {
+    return _dataSource.currentUser?.emailVerified ?? false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +257,8 @@ class AuthRepository {
 @Riverpod(keepAlive: true)
 AuthRepository authRepository(Ref ref) {
   final dataSource = ref.watch(authRemoteDataSourceProvider);
-  return AuthRepository(dataSource);
+  final analytics = ref.read(analyticsServiceProvider);
+  return AuthRepository(dataSource, analytics: analytics);
 }
 
 /// Stream provider for Firebase Auth state changes.
@@ -132,6 +273,7 @@ Stream<User?> authStateChanges(Ref ref) {
 @riverpod
 Stream<AppUser?> currentUserProfile(Ref ref) {
   final authState = ref.watch(authStateChangesProvider);
+  print('DEBUG: currentUserProfile authState: $authState');
   return authState.when(
     data: (user) {
       if (user == null) return Stream.value(null);

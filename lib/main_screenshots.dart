@@ -14,6 +14,7 @@ import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
+import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/domain/search_filters.dart';
 
 // --- STUBS & MOCKS ---
@@ -182,7 +183,7 @@ class MockFeedRepository implements FeedRepository {
 
 class MockSearchRepository implements SearchRepository {
   @override
-  FutureResult<List<FeedItem>> searchUsers({
+  FutureResult<PaginatedSearchResponse> searchUsers({
     required SearchFilters filters,
     DocumentSnapshot? startAfter,
     required int requestId,
@@ -190,7 +191,13 @@ class MockSearchRepository implements SearchRepository {
     List<String> blockedUsers = const [],
   }) async {
     // Return all dummy items for any search
-    return Right(_dummyFeedItems);
+    return Right(
+      PaginatedSearchResponse(
+        items: _dummyFeedItems,
+        lastDocument: null,
+        hasMore: false,
+      ),
+    );
   }
 
   @override

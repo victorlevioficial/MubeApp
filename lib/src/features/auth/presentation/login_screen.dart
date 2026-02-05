@@ -197,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () => context.push('/forgot-password'),
                     child: Text(
                       'Esqueceu a senha?',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(

@@ -41,7 +41,7 @@ class AppButton extends StatelessWidget {
     this.isFullWidth = false,
   });
 
-  /// Botão com cor de destaque (Brand Primary).
+  /// Botão com cor primária.
   ///
   /// Use para a ação principal da tela.
   const AppButton.primary({
@@ -128,7 +128,7 @@ class AppButton extends StatelessWidget {
         button = ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.brandPrimary,
+            backgroundColor: AppColors.primary,
             disabledBackgroundColor: AppColors.primaryDisabled,
             foregroundColor: AppColors.textPrimary,
             elevation: 0,
@@ -234,8 +234,7 @@ class AppButton extends StatelessWidget {
           color: _getTextColor(),
         );
       case AppButtonSize.large:
-        return AppTypography.titleMedium.copyWith(
-          fontWeight: FontWeight.bold,
+        return AppTypography.buttonPrimary.copyWith(
           color: _getTextColor(),
         );
     }
@@ -260,7 +259,7 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.primary:
         return AppColors.textPrimary;
       default:
-        return AppColors.brandPrimary;
+        return AppColors.primary;
     }
   }
 }

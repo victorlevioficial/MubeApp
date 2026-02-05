@@ -45,7 +45,7 @@ class TicketListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: tickets.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final ticket = tickets[index];
               return _TicketCard(ticket: ticket);
@@ -90,8 +90,7 @@ class _TicketCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            // TODO: Navigate to detail
-            // context.push('${RoutePaths.support}/ticket/${ticket.id}', extra: ticket);
+            // Navegação para detalhes será implementada na v2
           },
           borderRadius: BorderRadius.circular(12),
           child: Padding(
@@ -108,7 +107,9 @@ class _TicketCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(ticket.status).withOpacity(0.1),
+                        color: _getStatusColor(
+                          ticket.status,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _getStatusColor(ticket.status),

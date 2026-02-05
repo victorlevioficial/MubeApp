@@ -39,7 +39,7 @@ class FavoritesFilterBar extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.brandPrimary : AppColors.surface,
+                color: isSelected ? AppColors.primary : AppColors.surface,
                 borderRadius: BorderRadius.circular(100),
                 border: isSelected
                     ? null

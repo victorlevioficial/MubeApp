@@ -52,6 +52,14 @@ lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
+# Environment files
+.env
+.env.local
+.env.production
+
+# VS Code settings with sensitive data
+.vscode/settings.json
+
 # Analysis and temporary files
 analysis*.txt
 analysis*.json

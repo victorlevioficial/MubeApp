@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 
 /// Repository para gerenciar conversas e mensagens no Firestore.
 class ChatRepository {
   final FirebaseFirestore _firestore;
+  final AnalyticsService? _analytics;
 
-  ChatRepository(this._firestore);
+  ChatRepository(this._firestore, {AnalyticsService? analytics})
+    : _analytics = analytics;
 
   /// Calcula conversationId determinístico (uidMenor_uidMaior).
   String getConversationId(String uid1, String uid2) {
@@ -93,6 +97,19 @@ class ChatRepository {
         }
       });
 
+      // Log analytics event for new conversation
+      final snapshot = await conversationRef.get();
+      if (!snapshot.exists) {
+        await _analytics?.logEvent(
+          name: 'chat_initiated',
+          parameters: {
+            'conversation_id': conversationId,
+            'other_user_id': otherUid,
+            'source': type,
+          },
+        );
+      }
+
       return Right(conversationId);
     } catch (e) {
       debugPrint('[Chat] Error creating conversation: $e');
@@ -167,9 +184,29 @@ class ChatRepository {
       });
 
       await batch.commit();
+
+      // Log analytics event for message sent
+      await _analytics?.logEvent(
+        name: 'message_sent',
+        parameters: {
+          'conversation_id': conversationId,
+          'has_media': false,
+        },
+      );
+
       return const Right(unit);
     } catch (e) {
       debugPrint('[Chat] Error sending message: $e');
+
+      // Log analytics event for message error
+      await _analytics?.logEvent(
+        name: 'message_sent_error',
+        parameters: {
+          'conversation_id': conversationId,
+          'error_message': e.toString(),
+        },
+      );
+
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -293,6 +330,16 @@ class ChatRepository {
       batch.delete(conversationRef);
 
       await batch.commit();
+
+      // Log analytics event for conversation deleted
+      await _analytics?.logEvent(
+        name: 'conversation_deleted',
+        parameters: {
+          'conversation_id': conversationId,
+          'other_user_id': otherUid,
+        },
+      );
+
       return const Right(unit);
     } catch (e) {
       debugPrint('[Chat] Error deleting conversation: $e');
@@ -303,5 +350,6 @@ class ChatRepository {
 
 /// Provider para ChatRepository.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepository(FirebaseFirestore.instance);
+  final analytics = ref.read(analyticsServiceProvider);
+  return ChatRepository(FirebaseFirestore.instance, analytics: analytics);
 });

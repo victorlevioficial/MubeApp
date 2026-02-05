@@ -81,7 +81,7 @@ class ProfileScreen extends ConsumerWidget {
                       Text(
                         user.tipoPerfil?.label.toUpperCase() ?? '',
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.semanticAction,
+                          color: AppColors.primary,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.bold,
                         ),

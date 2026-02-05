@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../design_system/components/chips/mube_filter_chip.dart';
 
 class QuickFilterBar extends StatelessWidget {
   final String selectedFilter;
@@ -14,7 +13,7 @@ class QuickFilterBar extends StatelessWidget {
 
   final List<String> _filters = const [
     'Todos',
-    'Músicos',
+    'Profissionais',
     'Bandas',
     'Estúdios',
     'Perto de mim',
@@ -23,11 +22,9 @@ class QuickFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44, // Tight height for filter chips
+      height: 48,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ), // No vertical padding
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
         separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -35,34 +32,33 @@ class QuickFilterBar extends StatelessWidget {
           final filter = _filters[index];
           final isSelected = selectedFilter == filter;
 
-          return GestureDetector(
-            onTap: () => onFilterSelected(filter),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.brandPrimary : AppColors.surface,
-                borderRadius: BorderRadius.circular(100),
-                border: isSelected
-                    ? null
-                    : Border.all(color: AppColors.border, width: 1),
-              ),
-              alignment: Alignment.center,
-              child: Center(
-                child: Text(
-                  filter,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: isSelected ? Colors.white : AppColors.textSecondary,
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-              ),
+          return Center(
+            child: MubeFilterChip(
+              label: filter,
+              isSelected: isSelected,
+              icon: _getFilterIcon(filter),
+              onTap: () => onFilterSelected(filter),
             ),
           );
         },
       ),
     );
+  }
+
+  IconData _getFilterIcon(String filter) {
+    switch (filter) {
+      case 'Todos':
+        return Icons.people_outline;
+      case 'Profissionais':
+        return Icons.person_outline_rounded;
+      case 'Bandas':
+        return Icons.groups_outlined;
+      case 'Estúdios':
+        return Icons.mic_none_outlined;
+      case 'Perto de mim':
+        return Icons.location_on_outlined;
+      default:
+        return Icons.circle_outlined;
+    }
   }
 }

@@ -1,0 +1,11 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart
+00:00 +0 -1: loading C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart [E]
+  Failed to load "C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart":
+  Compilation failed for testPath=C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: test/helpers/firebase_mocks.dart:146:50: Error: The method 'MockDocumentReference.snapshots' has fewer named arguments than those of overridden method 'DocumentReference.snapshots'.
+    Stream<DocumentSnapshot<Map<String, dynamic>>> snapshots({
+                                                   ^
+  ../../AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore-6.1.2/lib/src/document_reference.dart:57:31: Context: This is the overridden method ('snapshots').
+    Stream<DocumentSnapshot<T>> snapshots({
+                                ^
+  .
+00:00 +0 -1: Some tests failed.

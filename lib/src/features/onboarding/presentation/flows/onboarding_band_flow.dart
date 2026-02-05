@@ -188,7 +188,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   Widget _buildStep1Tutorial() {
     return Column(
       children: [
-        const Icon(Icons.groups, size: 64, color: AppColors.brandPrimary),
+        const Icon(Icons.groups, size: 64, color: AppColors.primary),
         const SizedBox(height: AppSpacing.s24),
         Text(
           'Criando sua Banda',

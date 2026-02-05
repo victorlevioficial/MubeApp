@@ -12,8 +12,8 @@ import '../../../design_system/components/patterns/or_divider.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../utils/auth_exception_handler.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/auth_exception_handler.dart';
 import 'register_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -183,7 +183,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             child: Text(
                               'Termos de Uso',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.brandPrimary,
+                                color: AppColors.primary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,
@@ -200,7 +200,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             child: Text(
                               'Política de Privacidade',
                               style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.brandPrimary,
+                                color: AppColors.primary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 decoration: TextDecoration.underline,

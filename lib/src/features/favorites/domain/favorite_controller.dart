@@ -1,6 +1,8 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../feed/presentation/feed_controller.dart';
 import '../data/favorite_repository.dart';
@@ -52,9 +54,9 @@ class FavoriteController extends _$FavoriteController {
         serverFavorites: serverFavorites,
         isSyncing: false,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       state = state.copyWith(isSyncing: false);
-      print('Error loading favorites: $e');
+      AppLogger.error('Erro ao carregar favoritos', e, stackTrace);
     } finally {
       // Signal that the initial load is complete, regardless of success or failure.
       if (!_initialLoadCompleter.isCompleted) {
@@ -120,7 +122,7 @@ class FavoriteController extends _$FavoriteController {
         state = state.copyWith(localFavorites: newLocal);
       }
 
-      print('Error syncing favorite status for $targetId: $e');
+      AppLogger.error('Erro ao sincronizar favorito: $targetId', e);
     }
   }
 }

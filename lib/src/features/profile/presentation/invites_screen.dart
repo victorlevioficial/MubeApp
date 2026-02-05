@@ -129,7 +129,7 @@ class InvitesScreen extends ConsumerWidget {
                   ),
                   child: const Icon(
                     Icons.mail_outline,
-                    color: AppColors.brandPrimary,
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.s12),
@@ -189,7 +189,7 @@ class InvitesScreen extends ConsumerWidget {
                       onPressed: () =>
                           _respond(context, ref, invite['id'], true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brandPrimary,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -241,7 +241,7 @@ class InvitesScreen extends ConsumerWidget {
                       ? const Icon(
                           Icons.groups,
                           size: 20,
-                          color: AppColors.brandPrimary,
+                          color: AppColors.primary,
                         )
                       : null,
                 ),

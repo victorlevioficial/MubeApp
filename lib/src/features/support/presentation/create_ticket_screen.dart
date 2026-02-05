@@ -105,7 +105,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
                     isExpanded: true,
                     icon: const Icon(
                       Icons.arrow_drop_down,
-                      color: AppColors.brandPrimary,
+                      color: AppColors.primary,
                     ),
                     items: _categories.entries.map((e) {
                       return DropdownMenuItem(

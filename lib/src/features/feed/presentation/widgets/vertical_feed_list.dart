@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/analytics/analytics_provider.dart';
 import '../../../../design_system/components/patterns/fade_in_slide.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -9,7 +10,7 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
-import '../../../../core/services/analytics/analytics_provider.dart';
+import 'feed_loading_more.dart';
 import 'feed_item_skeleton.dart';
 
 /// A reusable vertical feed list widget with pagination, shimmer loading,
@@ -181,9 +182,9 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
 
   /// Build as a SliverList (for CustomScrollView embedding)
   Widget _buildSliverList() {
-    // Loading state
+    // Loading state inicial (quando não tem itens)
     if (widget.isLoading && widget.items.isEmpty) {
-      // Use centralized skeleton (no external padding, FeedItemSkeleton has margins)
+      // Use centralized skeleton (sem padding externo, FeedItemSkeleton já tem margens)
       return SliverToBoxAdapter(
         child: Column(
           children: List.generate(6, (index) => const FeedItemSkeleton()),
@@ -208,13 +209,16 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       );
     }
 
-    // Sliver list with items
+    // Sliver list com items + loader no final se necessário
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         if (index == widget.items.length) {
-          return widget.hasMore
-              ? _buildLoadingIndicator()
-              : const SizedBox(height: 80); // Bottom padding
+          // Último item: mostra loading se está carregando mais
+          if (widget.isLoadingMore) {
+            return _buildLoadingIndicator();
+          }
+          // Ou espaço no final se tem mais para carregar
+          return widget.hasMore ? const SizedBox(height: 80) : const SizedBox.shrink();
         }
         return _buildItemCard(widget.items[index], index: index);
       }, childCount: widget.items.length + 1),
@@ -222,23 +226,20 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   }
 
   Widget _buildItemCard(FeedItem item, {int index = 0}) {
-    // Optimization: Only delay animations for the first few items (initial screen).
-    // For lazy-loaded items during scroll, we want them to appear instantly or with minimal fade.
-    final useDelay = index < 6;
-
-    return FadeInSlide(
-      duration: const Duration(milliseconds: 300), // Reduced from 500ms
-      delay: useDelay
-          ? Duration(milliseconds: (index % 5) * 50)
-          : Duration.zero,
-      child: FeedCardVertical(item: item, onTap: () => _onItemTap(item)),
-    );
+    // Performance: Only animate the first 3 items (visible on initial load).
+    // Items loaded during scroll appear instantly to maintain 60fps.
+    if (index < 3) {
+      return FadeInSlide(
+        duration: const Duration(milliseconds: 250),
+        delay: Duration(milliseconds: index * 40),
+        child: FeedCardVertical(item: item, onTap: () => _onItemTap(item)),
+      );
+    }
+    // No animation for lazy-loaded items
+    return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
   }
 
   Widget _buildLoadingIndicator() {
-    return const Padding(
-      padding: AppSpacing.all16,
-      child: Center(child: FeedItemSkeleton()),
-    );
+    return const FeedLoadingMore();
   }
 }

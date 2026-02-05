@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../shared/services/content_moderation_service.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
-import '../../../shared/services/content_moderation_service.dart';
-import '../../../core/services/analytics/analytics_provider.dart';
 import '../../storage/data/storage_repository.dart';
 
 part 'profile_controller.g.dart';
@@ -75,9 +75,11 @@ class ProfileController extends _$ProfileController {
         throw Exception(failure.message); // Re-throw to be caught by UI
       },
       (_) {
-        ref
-            .read(analyticsServiceProvider)
-            .logProfileEdit(userId: currentUser.uid);
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .logProfileEdit(userId: currentUser.uid),
+        );
         state = const AsyncData(null);
       },
     );
@@ -99,16 +101,18 @@ class ProfileController extends _$ProfileController {
       await moderationTest.validateImage(file);
 
       // 2. Upload if safe
-      final downloadUrl = await storageRepo.uploadProfileImage(
+      final imageUrls = await storageRepo.uploadProfileImageWithSizes(
         userId: currentUser.uid,
         file: file,
       );
 
-      final updatedUser = currentUser.copyWith(foto: downloadUrl);
+      final updatedUser = currentUser.copyWith(foto: imageUrls.full);
       await authRepo.updateUser(updatedUser);
-      ref
-          .read(analyticsServiceProvider)
-          .logProfileEdit(userId: currentUser.uid);
+      unawaited(
+        ref
+            .read(analyticsServiceProvider)
+            .logProfileEdit(userId: currentUser.uid),
+      );
       state = const AsyncData(null);
     } catch (e, st) {
       try {

@@ -183,7 +183,7 @@ class _ProfessionalFormFieldsState
                   scale: 1.2,
                   child: Checkbox(
                     value: widget.instrumentalistBackingVocal,
-                    activeColor: AppColors.brandPrimary,
+                    activeColor: AppColors.primary,
                     side: const BorderSide(
                       color: AppColors.textSecondary,
                       width: 2,

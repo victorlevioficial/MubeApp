@@ -301,7 +301,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.brandPrimary : Colors.transparent,
+            color: isSelected ? AppColors.primary : Colors.transparent,
             width: 1,
           ),
         ),
@@ -318,7 +318,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                   ref.read(onboardingFormProvider.notifier).updateStudioType(v);
                 }
               },
-              activeColor: AppColors.brandPrimary,
+              activeColor: AppColors.primary,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             const SizedBox(width: AppSpacing.s8),

@@ -195,7 +195,7 @@ class _ConversationTile extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.brandPrimary, // Solid Neon Color
+                              color: AppColors.primary,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(

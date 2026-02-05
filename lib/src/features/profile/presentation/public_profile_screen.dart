@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../constants/app_constants.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
@@ -45,7 +47,7 @@ class PublicProfileScreen extends ConsumerWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            onSelected: (value) => _handleMenuAction(context, ref, value),
+            onSelected: (value) => _handleMenuAction(context, ref, value, user),
             itemBuilder: (context) => [
               _buildMenuItem(
                 icon: Icons.share,
@@ -152,17 +154,31 @@ class PublicProfileScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String action,
+    AppUser? user,
   ) async {
+    if (user == null) return;
     final controller = ref.read(publicProfileControllerProvider(uid).notifier);
 
     switch (action) {
       case 'share':
-        // TODO: Implement share
-        AppSnackBar.info(context, 'Compartilhar em breve');
+        final displayName = _getDisplayName(user);
+        await SharePlus.instance.share(
+          ShareParams(
+            text: 'Confira meu perfil no Mube: https://mube.app/profile/$uid',
+            subject: 'Perfil de $displayName no Mube',
+          ),
+        );
         break;
       case 'copy':
-        // TODO: Implement copy link
-        AppSnackBar.success(context, 'Link copiado!');
+        await Clipboard.setData(
+          ClipboardData(text: 'https://mube.app/profile/$uid'),
+        );
+        if (context.mounted) {
+          AppSnackBar.success(
+            context,
+            'Link copiado para a área de transferência!',
+          );
+        }
         break;
       case 'block':
         final confirmed = await showDialog<bool>(
@@ -292,8 +308,8 @@ class PublicProfileScreen extends ConsumerWidget {
                   icon: const Icon(Icons.groups, size: 20),
                   label: const Text('Gerenciar Integrantes'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.brandPrimary,
-                    side: const BorderSide(color: AppColors.brandPrimary),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ),
@@ -309,7 +325,7 @@ class PublicProfileScreen extends ConsumerWidget {
                       icon: const Icon(Icons.edit, size: 20),
                       label: const Text('Editar'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.brandPrimary,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -376,7 +392,7 @@ class PublicProfileScreen extends ConsumerWidget {
               icon: const Icon(Icons.chat_bubble_outline, size: 20),
               label: const Text('Iniciar Conversa'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandPrimary,
+                backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -460,7 +476,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 const Icon(
                   Icons.location_on,
                   size: 16,
-                  color: AppColors.semanticAction,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(width: 4),
                 Text(
@@ -738,7 +754,7 @@ class PublicProfileScreen extends ConsumerWidget {
               config['icon'] as IconData,
               size: 14,
               color:
-                  AppColors.semanticAction, // Changed to primary as requested
+                  AppColors.primary,
             ),
             const SizedBox(width: 4),
             Text(

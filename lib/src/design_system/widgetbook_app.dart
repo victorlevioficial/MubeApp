@@ -27,10 +27,10 @@ class WidgetbookApp extends StatelessWidget {
               name: 'Dark',
               data: ThemeData.dark().copyWith(
                 scaffoldBackgroundColor: AppColors.background,
-                primaryColor: AppColors.brandPrimary,
+                primaryColor: AppColors.primary,
                 colorScheme: const ColorScheme.dark(
-                  primary: AppColors.brandPrimary,
-                  secondary: AppColors.brandGlow,
+                  primary: AppColors.primary,
+                  secondary: AppColors.primary,
                 ),
               ),
             ),

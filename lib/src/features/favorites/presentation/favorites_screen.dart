@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,13 +6,21 @@ import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_card_vertical.dart';
+import 'package:mube/src/features/feed/presentation/widgets/feed_loading_more.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
+import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 
 import 'widgets/favorites_filter_bar.dart';
+
+abstract final class FavoritesConstants {
+  static const double paginationThreshold = 200.0;
+  static const int pageSize = 20;
+}
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -23,22 +32,49 @@ class FavoritesScreen extends ConsumerStatefulWidget {
 class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   String _selectedFilter = 'Todos';
   bool _isLoading = true;
+  bool _isLoadingMore = false;
   List<FeedItem> _allItems = [];
   String? _error;
+  bool _hasMore = true;
+  DocumentSnapshot? _lastFavoriteDoc;
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Load favorites immediately when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadFavorites();
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final currentScroll = _scrollController.position.pixels;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+
+      if (currentScroll >=
+          maxScroll - FavoritesConstants.paginationThreshold) {
+        _loadMoreFavorites();
+      }
+    }
+  }
+
   Future<void> _loadFavorites() async {
     setState(() {
       _isLoading = true;
       _error = null;
+      _allItems = [];
+      _hasMore = true;
+      _lastFavoriteDoc = null;
     });
 
     try {
@@ -48,56 +84,99 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       // But for better UX, we assume controller state is reasonably up to date or synced.
       // We can also trigger a sync if needed.
       await ref.read(favoriteControllerProvider.notifier).loadFavorites();
-
-      final favoriteState = ref.read(favoriteControllerProvider);
-      final favoriteIds = favoriteState.localFavorites
-          .toList(); // Use local/optimistic IDs
-
-      if (favoriteIds.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _allItems = [];
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      final userId = ref.read(authRepositoryProvider).currentUser?.uid;
-      // For location, we ideally need user location.
-      // Passing null for now if not easily available, or fetching from location provider if exists.
-      // Assuming feed repo can handle null lat/long (it does, distance will be null).
-
-      final result = await ref
-          .read(feedRepositoryProvider)
-          .getUsersByIds(ids: favoriteIds, currentUserId: userId ?? '');
-
-      result.fold(
-        (failure) {
-          if (mounted) {
-            setState(() {
-              _error = failure.message;
-              _isLoading = false;
-            });
-          }
-        },
-        (items) {
-          if (mounted) {
-            setState(() {
-              _allItems = items;
-              _isLoading = false;
-            });
-          }
-        },
-      );
+      await _fetchFavoritesPage(reset: true);
     } catch (e) {
       if (mounted) {
         setState(() {
           _error = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
           _isLoading = false;
         });
       }
     }
+  }
+
+  Future<void> _loadMoreFavorites() async {
+    if (_isLoading || _isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+    await _fetchFavoritesPage(reset: false);
+    if (mounted) setState(() => _isLoadingMore = false);
+  }
+
+  Future<void> _fetchFavoritesPage({required bool reset}) async {
+    final userId = ref.read(authRepositoryProvider).currentUser?.uid;
+
+    // Get user location for distance calculation
+    final currentUserProfile = ref.read(currentUserProfileProvider).value;
+    final userLat = currentUserProfile?.location?['lat'] as double?;
+    final userLng = currentUserProfile?.location?['lng'] as double?;
+
+    final favoritesPage = await ref
+        .read(favoriteRepositoryProvider)
+        .loadFavoritesPage(
+          startAfter: reset ? null : _lastFavoriteDoc,
+          limit: FavoritesConstants.pageSize,
+        );
+
+    if (favoritesPage.favoriteIds.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _hasMore = false;
+        });
+      }
+      return;
+    }
+
+    final result = await ref.read(feedRepositoryProvider).getUsersByIds(
+          ids: favoritesPage.favoriteIds,
+          currentUserId: userId ?? '',
+          userLat: userLat,
+          userLong: userLng,
+        );
+
+    result.fold(
+      (failure) {
+        if (mounted) {
+          setState(() {
+            if (reset) {
+              _error = failure.message;
+            }
+            _hasMore = false;
+          });
+        }
+      },
+      (items) {
+        if (mounted) {
+          final itemsById = {for (final item in items) item.uid: item};
+          final orderedItems = favoritesPage.favoriteIds
+              .map((id) => itemsById[id])
+              .whereType<FeedItem>()
+              .toList();
+
+          final existingIds = _allItems.map((item) => item.uid).toSet();
+          final newItems = orderedItems
+              .where((item) => !existingIds.contains(item.uid))
+              .toList();
+
+          if (newItems.isNotEmpty) {
+            ref
+                .read(feedImagePrecacheServiceProvider)
+                .precacheItems(context, newItems);
+          }
+
+          setState(() {
+            _allItems = reset ? newItems : [..._allItems, ...newItems];
+            _lastFavoriteDoc = favoritesPage.lastDocument;
+            _hasMore = favoritesPage.hasMore;
+          });
+        }
+      },
+    );
   }
 
   List<FeedItem> get _filteredItems {
@@ -143,11 +222,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
           Expanded(
             child: RefreshIndicator(
-              color: AppColors.brandPrimary,
+              color: AppColors.primary,
               backgroundColor: AppColors.surface,
               onRefresh: _loadFavorites,
               child: _isLoading
                   ? ListView.separated(
+                      controller: _scrollController,
                       padding: EdgeInsets.zero,
                       itemCount: 6, // Show 6 skeletons
                       separatorBuilder: (context, index) =>
@@ -156,6 +236,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     )
                   : _error != null
                   ? ListView(
+                      controller: _scrollController,
                       children: [
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.6,
@@ -180,6 +261,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     )
                   : _filteredItems.isEmpty
                   ? ListView(
+                      controller: _scrollController,
                       children: [
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.6,
@@ -205,12 +287,18 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         ),
                       ],
                     )
-                  : ListView.separated(
+                  : ListView.builder(
+                      controller: _scrollController,
                       padding: EdgeInsets.zero,
-                      itemCount: _filteredItems.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox.shrink(),
+                      itemCount: _filteredItems.length + (_hasMore ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (index >= _filteredItems.length) {
+                          if (_isLoadingMore) {
+                            return const FeedLoadingMore();
+                          }
+                          return const SizedBox(height: 80);
+                        }
+
                         final item = _filteredItems[index];
                         return FeedCardVertical(
                           item: item,

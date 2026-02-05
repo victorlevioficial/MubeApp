@@ -42,7 +42,7 @@ class AppConfirmationDialog extends StatelessWidget {
           child: Text(
             confirmText,
             style: TextStyle(
-              color: isDestructive ? AppColors.error : AppColors.brandPrimary,
+              color: isDestructive ? AppColors.error : AppColors.primary,
             ),
           ),
         ),

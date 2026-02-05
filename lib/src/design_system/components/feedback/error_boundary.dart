@@ -47,7 +47,7 @@ class ErrorBoundary extends StatefulWidget {
                   // without causing loops.
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandPrimary,
+                  backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.textPrimary,
                 ),
                 child: const Text('Tentar Novamente'),

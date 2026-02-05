@@ -12,18 +12,18 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
-      primaryColor: AppColors.brandPrimary,
+      primaryColor: AppColors.primary,
 
       // Color Scheme
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.brandPrimary,
-        secondary: AppColors.brandGlow, // Secondary is now the Glow color
+        primary: AppColors.primary,
+        secondary: AppColors.primary,
         surface: AppColors.surface,
         onPrimary: AppColors.textPrimary,
-        onSecondary: AppColors.background,
+        onSecondary: AppColors.textPrimary,
         onSurface: AppColors.textPrimary,
         onSurfaceVariant: AppColors.textPlaceholder,
-        tertiary: AppColors.semanticAction,
+        tertiary: AppColors.primary,
         outline: AppColors.border,
         error: AppColors.error,
       ),
@@ -33,8 +33,11 @@ class AppTheme {
           .copyWith(
             headlineLarge: AppTypography.headlineLarge,
             headlineMedium: AppTypography.headlineMedium,
+            headlineSmall: AppTypography.headlineSmall,
             titleLarge: AppTypography.titleLarge,
             titleMedium: AppTypography.titleMedium,
+            titleSmall: AppTypography.titleSmall,
+            bodyLarge: AppTypography.bodyLarge,
             bodyMedium: AppTypography.bodyMedium,
             bodySmall: AppTypography.bodySmall,
           )
@@ -47,12 +50,10 @@ class AppTheme {
       // Text Button
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(AppColors.semanticAction),
-          textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
-          ),
+          foregroundColor: WidgetStateProperty.all(AppColors.primary),
+          textStyle: WidgetStateProperty.all(AppTypography.buttonSecondary),
           overlayColor: WidgetStateProperty.all(
-            AppColors.semanticAction.withValues(alpha: 0.1),
+            AppColors.primary.withValues(alpha: 0.12),
           ),
         ),
       ),
@@ -65,24 +66,20 @@ class AppTheme {
         dayForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         yearForegroundColor: WidgetStateProperty.all(AppColors.textPrimary),
         dayOverlayColor: WidgetStateProperty.all(
-          AppColors.semanticAction.withValues(alpha: 0.1),
+          AppColors.primary.withValues(alpha: 0.12),
         ),
         todayBackgroundColor: WidgetStateProperty.all(
           AppColors.surfaceHighlight,
         ),
-        todayForegroundColor: WidgetStateProperty.all(AppColors.semanticAction),
+        todayForegroundColor: WidgetStateProperty.all(AppColors.primary),
         dayStyle: AppTypography.bodyMedium,
         confirmButtonStyle: ButtonStyle(
-          foregroundColor: WidgetStateProperty.all(AppColors.semanticAction),
-          textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
-          ),
+          foregroundColor: WidgetStateProperty.all(AppColors.primary),
+          textStyle: WidgetStateProperty.all(AppTypography.buttonSecondary),
         ),
         cancelButtonStyle: ButtonStyle(
           foregroundColor: WidgetStateProperty.all(AppColors.textSecondary),
-          textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w600),
-          ),
+          textStyle: WidgetStateProperty.all(AppTypography.buttonSecondary),
         ),
       ),
 
@@ -91,12 +88,12 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         hourMinuteTextColor: AppColors.textPrimary,
         hourMinuteColor: AppColors.surfaceHighlight,
-        dialHandColor: AppColors.brandPrimary,
+        dialHandColor: AppColors.primary,
         dialBackgroundColor: AppColors.surfaceHighlight,
         dayPeriodTextColor: AppColors.textPrimary,
         dayPeriodColor: AppColors.surfaceHighlight,
         helpTextStyle: AppTypography.bodySmall,
-        entryModeIconColor: AppColors.semanticAction,
+        entryModeIconColor: AppColors.primary,
       ),
 
       // Bottom Sheet Theme
@@ -119,7 +116,7 @@ class AppTheme {
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.all8),
         behavior: SnackBarBehavior.floating,
         insetPadding: const EdgeInsets.all(AppSpacing.s16),
-        actionTextColor: AppColors.semanticAction,
+        actionTextColor: AppColors.primary,
       ),
 
       // AppBar Theme
@@ -155,7 +152,7 @@ class AppTheme {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: AppRadius.all12,
-          borderSide: BorderSide(color: AppColors.brandPrimary, width: 1.5),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
       ),
 
@@ -166,7 +163,10 @@ class AppTheme {
             if (states.contains(WidgetState.disabled)) {
               return AppColors.primaryDisabled;
             }
-            return AppColors.brandPrimary;
+            if (states.contains(WidgetState.pressed)) {
+              return AppColors.primaryPressed;
+            }
+            return AppColors.primary;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
@@ -180,16 +180,12 @@ class AppTheme {
             Colors.transparent,
           ), // Removed glow
           overlayColor: WidgetStateProperty.all(
-            AppColors.textPrimary.withValues(alpha: 0.1),
+            AppColors.textPrimary.withValues(alpha: 0.08),
           ),
           shape: WidgetStateProperty.all(
-            const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(28)), // Pill shape
-            ),
+            const RoundedRectangleBorder(borderRadius: AppRadius.pill),
           ),
-          textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
-          ),
+          textStyle: WidgetStateProperty.all(AppTypography.buttonPrimary),
         ),
       ),
 
@@ -208,13 +204,9 @@ class AppTheme {
             AppColors.textPrimary.withValues(alpha: 0.05),
           ),
           shape: WidgetStateProperty.all(
-            const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(28)),
-            ),
+            const RoundedRectangleBorder(borderRadius: AppRadius.pill),
           ),
-          textStyle: WidgetStateProperty.all(
-            AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w500),
-          ),
+          textStyle: WidgetStateProperty.all(AppTypography.buttonSecondary),
         ),
       ),
 
@@ -222,7 +214,7 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.brandPrimary;
+            return AppColors.primary;
           }
           return null;
         }),

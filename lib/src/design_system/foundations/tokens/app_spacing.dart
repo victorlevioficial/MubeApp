@@ -23,9 +23,6 @@ class AppSpacing {
   /// 4px - Extra small
   static const double s4 = 4.0;
 
-  /// 6px - Small compact
-  static const double s6 = 6.0;
-
   /// 8px - Small
   static const double s8 = 8.0;
 
@@ -34,9 +31,6 @@ class AppSpacing {
 
   /// 16px - Medium (base)
   static const double s16 = 16.0;
-
-  /// 20px - Medium large
-  static const double s20 = 20.0;
 
   /// 24px - Large
   static const double s24 = 24.0;
@@ -49,9 +43,6 @@ class AppSpacing {
 
   /// 48px - 3x Large
   static const double s48 = 48.0;
-
-  /// 64px - 4x Large
-  static const double s64 = 64.0;
 
   // ===========================================================================
   // EDGE INSETS - ALL SIDES
@@ -70,7 +61,6 @@ class AppSpacing {
   static const EdgeInsets h8 = EdgeInsets.symmetric(horizontal: s8);
   static const EdgeInsets h12 = EdgeInsets.symmetric(horizontal: s12);
   static const EdgeInsets h16 = EdgeInsets.symmetric(horizontal: s16);
-  static const EdgeInsets h20 = EdgeInsets.symmetric(horizontal: s20);
   static const EdgeInsets h24 = EdgeInsets.symmetric(horizontal: s24);
   static const EdgeInsets h32 = EdgeInsets.symmetric(horizontal: s32);
 
@@ -81,7 +71,6 @@ class AppSpacing {
   static const EdgeInsets v8 = EdgeInsets.symmetric(vertical: s8);
   static const EdgeInsets v12 = EdgeInsets.symmetric(vertical: s12);
   static const EdgeInsets v16 = EdgeInsets.symmetric(vertical: s16);
-  static const EdgeInsets v20 = EdgeInsets.symmetric(vertical: s20);
   static const EdgeInsets v24 = EdgeInsets.symmetric(vertical: s24);
   static const EdgeInsets v32 = EdgeInsets.symmetric(vertical: s32);
 

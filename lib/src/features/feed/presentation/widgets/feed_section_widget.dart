@@ -94,7 +94,7 @@ class FeedSectionWidget extends StatelessWidget {
             ),
             child: const Icon(
               Icons.arrow_forward_ios,
-              color: AppColors.semanticAction,
+              color: AppColors.primary,
               size: 24,
             ),
           ),

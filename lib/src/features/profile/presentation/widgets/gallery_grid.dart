@@ -7,6 +7,7 @@ import '../../../../design_system/components/loading/app_shimmer.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../core/services/image_cache_config.dart';
 import '../../domain/media_item.dart';
 
 /// Reorderable gallery grid with drag-and-drop support.
@@ -148,6 +149,10 @@ class _FilledSlot extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            useOldImageOnUrlChange: true,
+            cacheManager: ImageCacheConfig.thumbnailCacheManager,
             placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
             errorWidget: (context, url, error) => Container(
               color: AppColors.surface,
@@ -273,7 +278,7 @@ class _EmptySlot extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s24),
               ListTile(
-                leading: const Icon(Icons.photo, color: AppColors.brandPrimary),
+                leading: const Icon(Icons.photo, color: AppColors.primary),
                 title: const Text('Foto'),
                 subtitle: const Text('Será cortada em formato quadrado'),
                 onTap: () {
@@ -285,7 +290,7 @@ class _EmptySlot extends StatelessWidget {
                 ListTile(
                   leading: const Icon(
                     Icons.videocam,
-                    color: AppColors.brandPrimary,
+                    color: AppColors.primary,
                   ),
                   title: const Text('Vídeo'),
                   subtitle: const Text('Máximo 30 segundos'),
@@ -339,7 +344,7 @@ class _UploadingSlot extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.brandPrimary.withValues(alpha: 0.5),
+          color: AppColors.primary.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
@@ -349,7 +354,7 @@ class _UploadingSlot extends StatelessWidget {
         children: [
           const Icon(
             Icons.cloud_upload_outlined,
-            color: AppColors.brandPrimary,
+            color: AppColors.primary,
             size: 28,
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -359,11 +364,11 @@ class _UploadingSlot extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress > 0 ? progress : null,
               backgroundColor: AppColors.surfaceHighlight,
-              color: AppColors.brandPrimary,
+              color: AppColors.primary,
               minHeight: 6,
             ),
           ),
-          const SizedBox(height: AppSpacing.s6),
+          const SizedBox(height: AppSpacing.s8),
           // Percentage text
           Text(
             progress > 0 ? '${(progress * 100).toInt()}%' : status,

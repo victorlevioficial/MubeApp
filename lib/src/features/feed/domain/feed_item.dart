@@ -112,6 +112,11 @@ sealed class FeedItem with _$FeedItem {
       category = 'Contratante';
     }
 
+    // Optimization: Sort items by length for better UI display (cloud tags)
+    // Shortest items first allows showing more chips in limited space
+    extractedSkills.sort((a, b) => a.length.compareTo(b.length));
+    extractedGenres.sort((a, b) => a.length.compareTo(b.length));
+
     return FeedItem(
       uid: docId,
       nome: data['nome'] ?? '',

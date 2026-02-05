@@ -150,7 +150,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       floatingActionButton: addresses.length < _maxAddresses
           ? FloatingActionButton.extended(
               onPressed: _addAddress,
-              backgroundColor: AppColors.brandPrimary,
+              backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textPrimary,
               icon: const Icon(Icons.add),
               label: const Text('Adicionar'),
@@ -192,7 +192,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
               icon: const Icon(Icons.add),
               label: const Text('Adicionar Endereço'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandPrimary,
+                backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textPrimary,
               ),
             ),

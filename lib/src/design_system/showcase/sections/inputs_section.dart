@@ -64,7 +64,7 @@ class InputsSection extends StatelessWidget {
                 Switch(
                   value: true,
                   onChanged: (v) {},
-                  activeThumbColor: AppColors.brandPrimary,
+                  activeThumbColor: AppColors.primary,
                 ),
                 const SizedBox(width: AppSpacing.s8),
                 Text(

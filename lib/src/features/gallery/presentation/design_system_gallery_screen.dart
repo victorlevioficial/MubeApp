@@ -80,10 +80,10 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
               Text(
                 'Interactive / Link',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.semanticAction,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   decoration: TextDecoration.underline,
-                  decorationColor: AppColors.semanticAction,
+                  decorationColor: AppColors.primary,
                 ),
               ),
 
@@ -92,9 +92,9 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 spacing: AppSpacing.s8,
                 runSpacing: AppSpacing.s8,
                 children: [
-                  _buildColorBox(AppColors.brandPrimary, 'Primary'),
+                  _buildColorBox(AppColors.primary, 'Primary'),
 
-                  _buildColorBox(AppColors.semanticAction, 'Semantic Act'),
+                  _buildColorBox(AppColors.primary, 'Primary Action'),
                   _buildColorBox(AppColors.background, 'Background'),
                   _buildColorBox(AppColors.surface, 'Surface'),
                   _buildColorBox(AppColors.surfaceHighlight, 'Surface Hl'),
@@ -344,7 +344,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           height: size,
           width: size,
           decoration: BoxDecoration(
-            color: AppColors.brandPrimary,
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(size / 4),
           ),
         ),
@@ -363,7 +363,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           decoration: BoxDecoration(
             color: AppColors.surfaceHighlight,
             borderRadius: BorderRadius.circular(radius),
-            border: Border.all(color: AppColors.brandPrimary),
+            border: Border.all(color: AppColors.primary),
           ),
         ),
         const SizedBox(height: AppSpacing.s4),
@@ -394,7 +394,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
             ],
           ),
         ),
-        Container(height: 24, width: spacing, color: AppColors.brandPrimary),
+        Container(height: 24, width: spacing, color: AppColors.primary),
         const SizedBox(width: 8),
         Text(
           '${spacing.toInt()}px',

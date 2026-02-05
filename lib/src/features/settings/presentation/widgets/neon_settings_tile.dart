@@ -25,7 +25,7 @@ class NeonSettingsTile extends StatelessWidget {
     // Define active color based on destructiveness or custom accent
     final activeColor = isDestructive
         ? AppColors.error
-        : (customAccentColor ?? AppColors.semanticAction);
+        : (customAccentColor ?? AppColors.primary);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

@@ -282,8 +282,8 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                     alignment: Alignment.center,
                     child: _isLoadingLocation
                         ? SizedBox(
-                            width: AppSpacing.s20,
-                            height: AppSpacing.s20,
+                            width: AppSpacing.s24,
+                            height: AppSpacing.s24,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Theme.of(context).colorScheme.primary,
@@ -292,7 +292,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                         : Icon(
                             Icons.my_location,
                             color: Theme.of(context).colorScheme.primary,
-                            size: AppSpacing.s20,
+                            size: AppSpacing.s24,
                           ),
                   ),
                   const SizedBox(width: AppSpacing.s16),

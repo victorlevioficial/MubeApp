@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/services/analytics/analytics_provider.dart';
 import '../design_system/components/navigation/main_scaffold.dart';
 import '../features/admin/presentation/maintenance_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/domain/user_type.dart';
+import '../features/auth/presentation/email_verification_screen.dart';
+import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/bands/presentation/manage_members_screen.dart';
@@ -17,6 +20,7 @@ import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
+import '../features/legal/presentation/legal_detail_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 import '../features/notifications/presentation/notification_list_screen.dart';
@@ -31,14 +35,12 @@ import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/support_screen.dart';
 import '../features/support/presentation/ticket_list_screen.dart';
-import '../features/splash/presentation/splash_screen.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
-import '../core/services/analytics/analytics_provider.dart';
-import '../features/legal/presentation/legal_detail_screen.dart';
 
 /// Notifier to trigger router refresh when auth/profile state changes.
 class _GoRouterRefreshNotifier extends ChangeNotifier {
@@ -90,6 +92,20 @@ List<RouteBase> _buildRoutes(Ref ref) {
       path: RoutePaths.register,
       pageBuilder: (context, state) =>
           NoTransitionPage(key: state.pageKey, child: const RegisterScreen()),
+    ),
+    GoRoute(
+      path: RoutePaths.forgotPassword,
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const ForgotPasswordScreen(),
+      ),
+    ),
+    GoRoute(
+      path: RoutePaths.emailVerification,
+      pageBuilder: (context, state) => NoTransitionPage(
+        key: state.pageKey,
+        child: const EmailVerificationScreen(),
+      ),
     ),
 
     // Onboarding routes

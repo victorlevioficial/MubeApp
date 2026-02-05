@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/mixins/pagination_mixin.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
+import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import 'feed_controller.dart';
 import 'feed_image_precache_service.dart';
@@ -15,6 +17,13 @@ import 'widgets/feed_section_widget.dart';
 import 'widgets/feed_skeleton.dart';
 import 'widgets/quick_filter_bar.dart';
 import 'widgets/vertical_feed_list.dart';
+
+/// Constants for the Feed screen layout and behavior
+abstract final class FeedConstants {
+  static const double filterBarHeight = 52.0;
+  static const double paginationThreshold = 200.0;
+  static const double bottomPadding = 80.0;
+}
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -26,6 +35,7 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -45,10 +55,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final maxScroll = _scrollController.position.maxScrollExtent;
       final currentScroll = _scrollController.position.pixels;
-      if (currentScroll >= maxScroll - 200) {
-        ref.read(feedControllerProvider.notifier).loadMoreMainFeed();
+      final maxScroll = _scrollController.position.maxScrollExtent;
+
+      // Update header animation state
+      final shouldScroll = currentScroll > 50;
+      if (shouldScroll != _isScrolled) {
+        setState(() => _isScrolled = shouldScroll);
+      }
+
+      // Pagination
+      if (currentScroll >= maxScroll - FeedConstants.paginationThreshold) {
+        final controller = ref.read(feedControllerProvider.notifier);
+        if (controller.canLoadMore) {
+          controller.loadMoreMainFeed();
+        }
       }
     }
   }
@@ -59,6 +80,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     } catch (_) {
       return type.name.toUpperCase();
     }
+  }
+
+  void _navigateToUser(FeedItem item) {
+    context.push('/user/${item.uid}', extra: item);
+  }
+
+  void _navigateToSectionList(FeedSectionType type) {
+    context.push('/feed/list/${type.name}', extra: type);
   }
 
   @override
@@ -72,7 +101,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       next.whenData((state) {
         // Precache all images as soon as data arrives (during skeleton phase)
         final allItems = [
-          ...state.mainItems,
+          ...state.items,
           ...state.sectionItems.values.expand((list) => list),
         ];
 
@@ -112,7 +141,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
-        color: AppColors.brandPrimary,
+        color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: () => controller.loadAllData(),
         child: CustomScrollView(
@@ -121,13 +150,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
             FeedHeader(
               currentUser: currentUser,
+              isScrolled: _isScrolled,
               onNotificationTap: () {
                 context.push('/notifications');
               },
             ),
 
-            // Pre-cache Service Integration (Just watching keeps it alive)
-            // Pre-cache Service Integration (Just watching keeps it alive)
+            // Pre-cache Service Integration (keeps provider alive)
             SliverToBoxAdapter(
               child: Consumer(
                 builder: (context, ref, _) {
@@ -148,19 +177,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                     if (entry.value.isEmpty) return const SizedBox.shrink();
 
                     return Padding(
+                      key: ValueKey('section_${entry.key.name}'),
                       padding: const EdgeInsets.only(bottom: AppSpacing.s16),
                       child: FeedSectionWidget(
                         title: _getSectionTitle(entry.key),
                         items: entry.value,
-                        onSeeAllTap: () {
-                          context.push(
-                            '/feed/list/${entry.key.name}',
-                            extra: entry.key,
-                          );
-                        },
-                        onItemTap: (item) {
-                          context.push('/user/${item.uid}', extra: item);
-                        },
+                        onSeeAllTap: () => _navigateToSectionList(entry.key),
+                        onItemTap: _navigateToUser,
                       ),
                     );
                   },
@@ -171,8 +194,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverAppBarDelegate(
-                minHeight: 52.0, // Reduced to match chip height (44) + padding
-                maxHeight: 52.0,
+                minHeight: FeedConstants.filterBarHeight,
+                maxHeight: FeedConstants.filterBarHeight,
                 topPadding: MediaQuery.of(context).padding.top,
                 child: Container(
                   color: AppColors.background,
@@ -204,7 +227,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
 
             // Empty State or Vertical List
-            if (state.mainItems.isEmpty && !state.isLoadingMain)
+            if (state.items.isEmpty && !state.isLoading)
               const SliverToBoxAdapter(
                 child: EmptyStateWidget(
                   icon: Icons.music_off_rounded,
@@ -213,27 +236,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 ),
               )
             else
-              // Vertical List (Animated)
+              // Vertical List (Animated) - já inclui loading interno
               VerticalFeedList(
                 useSliverMode: true,
-                items: state.mainItems,
-                isLoading: state.isLoadingMain,
-                hasMore: state.hasMoreMain,
-                onLoadMore: () {},
-                padding: AppSpacing.h16,
-              ),
-
-            // Bottom Loader
-            if (state.isLoadingMain && state.mainItems.isNotEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.s32),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.brandPrimary,
-                    ),
-                  ),
-                ),
+                items: state.items,
+                isLoading: state.status == PaginationStatus.loading,
+                isLoadingMore: state.status == PaginationStatus.loadingMore,
+                hasMore: state.hasMore,
+                onLoadMore: controller.loadMoreMainFeed,
+                padding: EdgeInsets.zero, // Remove padding duplo, o skeleton já tem
               ),
 
             const SliverToBoxAdapter(child: SizedBox(height: 80)),

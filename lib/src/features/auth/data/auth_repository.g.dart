@@ -48,7 +48,7 @@ final class AuthRepositoryProvider
   }
 }
 
-String _$authRepositoryHash() => r'37a24295dafe4df61efc2622f135ba4ef14149d6';
+String _$authRepositoryHash() => r'699815b2710e684ad1c2c02f2bb9975b4b6e50cb';
 
 /// Stream provider for Firebase Auth state changes.
 
@@ -132,7 +132,7 @@ final class CurrentUserProfileProvider
 }
 
 String _$currentUserProfileHash() =>
-    r'a96f6d63145c144fdab0210953b7d95d0522efc6';
+    r'f82f3eb2c38b3fcbd7e062275f3b2e40527ce8d7';
 
 @ProviderFor(membersList)
 const membersListProvider = MembersListFamily._();

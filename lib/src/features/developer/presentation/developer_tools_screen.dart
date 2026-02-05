@@ -190,7 +190,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
     return Card(
       color: AppColors.surface,
       child: ListTile(
-        leading: Icon(icon, color: AppColors.brandPrimary),
+        leading: Icon(icon, color: AppColors.primary),
         title: Text(
           title,
           style: AppTypography.bodyMedium.copyWith(

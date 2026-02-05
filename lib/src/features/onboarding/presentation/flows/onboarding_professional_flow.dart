@@ -477,7 +477,7 @@ class _OnboardingProfessionalFlowState
               child: Container(
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.brandPrimary
+                      ? AppColors.primary
                       : AppColors.surface,
                   borderRadius: AppRadius.all16,
                   border: isSelected
@@ -492,7 +492,7 @@ class _OnboardingProfessionalFlowState
                       size: 40,
                       color: isSelected
                           ? AppColors.textPrimary
-                          : AppColors.brandPrimary,
+                          : AppColors.primary,
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     Text(

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-import '../utils/pdf_generator.dart';
 import '../data/legal_content.dart';
+import '../utils/pdf_generator.dart';
 
 enum LegalDocumentType {
   termsOfUse,
@@ -55,12 +56,12 @@ class LegalDetailScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.brandPrimary),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
           onPressed: () => context.pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share, color: AppColors.brandPrimary),
+            icon: const Icon(Icons.share, color: AppColors.primary),
             onPressed: _sharePdf,
             tooltip: 'Baixar/Compartilhar PDF',
           ),
@@ -70,7 +71,7 @@ class LegalDetailScreen extends StatelessWidget {
         data: type.content,
         styleSheet: MarkdownStyleSheet(
           h1: AppTypography.headlineMedium.copyWith(
-            color: AppColors.brandPrimary,
+            color: AppColors.primary,
           ),
           h2: AppTypography.headlineSmall.copyWith(
             color: AppColors.textPrimary,

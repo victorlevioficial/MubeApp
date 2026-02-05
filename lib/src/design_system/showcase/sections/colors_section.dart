@@ -12,12 +12,14 @@ class ColorsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ColorGroup(
-          title: 'Brand Identity',
+          title: 'Primary',
           colors: [
-            _ColorItem('Brand Primary', AppColors.brandPrimary),
-            _ColorItem('Brand Glow', AppColors.brandGlow),
+            _ColorItem('Primary', AppColors.primary),
+            _ColorItem('Primary Pressed', AppColors.primaryPressed),
+            _ColorItem('Primary Muted', AppColors.primaryMuted),
+            _ColorItem('Primary Disabled', AppColors.primaryDisabled),
           ],
-          gradients: [_GradientItem('Brand Gradient', AppColors.brandGradient)],
+          gradients: [_GradientItem('Primary Gradient', AppColors.primaryGradient)],
         ),
         const SizedBox(height: AppSpacing.s24),
 
@@ -26,6 +28,7 @@ class ColorsSection extends StatelessWidget {
           colors: [
             _ColorItem('Background', AppColors.background),
             _ColorItem('Surface', AppColors.surface),
+            _ColorItem('Surface 2', AppColors.surface2),
             _ColorItem('Surface Highlight', AppColors.surfaceHighlight),
           ],
         ),
@@ -40,15 +43,13 @@ class ColorsSection extends StatelessWidget {
               'Text Tertiary',
               AppColors.textTertiary,
             ), // Includes placeholder
-            _ColorItem('Text Action', AppColors.textAction),
           ],
         ),
         const SizedBox(height: AppSpacing.s24),
 
         _ColorGroup(
-          title: 'Feedback & Action',
+          title: 'Feedback',
           colors: [
-            _ColorItem('Semantic Action', AppColors.semanticAction),
             _ColorItem('Success', AppColors.success),
             _ColorItem('Error', AppColors.error),
             _ColorItem('Warning', AppColors.warning),

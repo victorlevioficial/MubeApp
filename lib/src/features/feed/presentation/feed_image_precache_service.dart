@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/feed_item.dart';
 import 'feed_controller.dart'; // Using FeedController instead of FeedItemsProvider
+import '../../../core/services/image_cache_config.dart';
 
 /// Provider for the Feed Image Precache Service.
 final feedImagePrecacheServiceProvider = Provider<FeedImagePrecacheService>((
@@ -33,9 +34,9 @@ class FeedImagePrecacheService {
     ) {
       next.whenData((state) {
         // Pre-cache main feed items
-        if (state.mainItems.isNotEmpty) {
+        if (state.items.isNotEmpty) {
           // Pre-cache the next batch
-          final itemsToCache = state.mainItems
+          final itemsToCache = state.items
               .skip(_cachedUrls.length)
               .take(10);
           for (final item in itemsToCache) {
@@ -51,7 +52,13 @@ class FeedImagePrecacheService {
     for (final item in items) {
       final url = item.foto;
       if (url != null && url.isNotEmpty && !_cachedUrls.contains(url)) {
-        precacheImage(CachedNetworkImageProvider(url), context);
+        precacheImage(
+          CachedNetworkImageProvider(
+            url,
+            cacheManager: ImageCacheConfig.profileCacheManager,
+          ),
+          context,
+        );
         _markAsCached(url);
       }
     }

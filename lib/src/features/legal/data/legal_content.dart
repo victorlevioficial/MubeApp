@@ -1,5 +1,5 @@
 class LegalContent {
-  static const String termsOfUse = """
+  static const String termsOfUse = '''
 # Termos de Uso do Mube
 
 **Última atualização: 02 de Fevereiro de 2026**
@@ -46,9 +46,9 @@ Podemos modificar estes Termos a qualquer momento. Notificaremos sobre alteraç�
 
 ## 9. Lei Aplicável
 Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da comarca de domicílio do usuário para dirimir quaisquer dúvidas.
-""";
+''';
 
-  static const String privacyPolicy = """
+  static const String privacyPolicy = '''
 # Política de Privacidade do Mube
 
 **Última atualização: 02 de Fevereiro de 2026**
@@ -95,5 +95,5 @@ Manteremos seus dados enquanto você tiver uma conta ativa. As mensagens de chat
 
 ## 7. Menores de Idade
 O Mube não é destinado a menores de 18 anos. Não coletamos intencionalmente dados de crianças ou adolescentes.
-""";
+''';
 }

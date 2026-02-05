@@ -109,17 +109,17 @@ class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
       padding: EdgeInsets.zero,
       onTap: _onTap,
       bubblesColor: const BubblesColor(
-        dotPrimaryColor: AppColors.brandPrimary,
-        dotSecondaryColor: AppColors.semanticAction,
+        dotPrimaryColor: AppColors.primary,
+        dotSecondaryColor: AppColors.primaryPressed,
       ),
       circleColor: const CircleColor(
-        start: AppColors.semanticAction,
-        end: AppColors.brandPrimary,
+        start: AppColors.primaryPressed,
+        end: AppColors.primary,
       ),
       likeBuilder: (bool isLiked) {
         return Icon(
           isLiked ? Icons.favorite : Icons.favorite_outline,
-          color: isLiked ? AppColors.brandPrimary : AppColors.textSecondary,
+          color: isLiked ? AppColors.primary : AppColors.textSecondary,
           size: widget.size,
         );
       },
@@ -131,7 +131,7 @@ class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
           child: Text(
             text,
             style: AppTypography.labelMedium.copyWith(
-              color: isLiked ? AppColors.brandPrimary : AppColors.textSecondary,
+              color: isLiked ? AppColors.primary : AppColors.textSecondary,
               fontWeight: isLiked ? FontWeight.w600 : FontWeight.w500,
             ),
           ),
