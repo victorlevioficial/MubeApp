@@ -28,7 +28,7 @@ class PdfGenerator {
                 style: pw.TextStyle(font: fontBold, fontSize: 24),
               ),
             ),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 16),
             // We are simply displaying the content as text for now
             // A full markdown parser for PDF is complex, better to just show clean text
             // or we could replace Headers (#) with pw.Header logic if we want to be fancy.
@@ -39,7 +39,7 @@ class PdfGenerator {
               ), // Strip markdown headers hash for cleaner look
               style: pw.TextStyle(font: font, fontSize: 12, lineSpacing: 1.5),
             ),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 16),
             pw.Divider(),
             pw.Footer(
               leading: pw.Text('Mube'),

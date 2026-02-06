@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
 class OrDivider extends StatelessWidget {
@@ -18,7 +19,7 @@ class OrDivider extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: AppSpacing.h16,
           child: Text(
             text,
             style: AppTypography.bodyMedium.copyWith(

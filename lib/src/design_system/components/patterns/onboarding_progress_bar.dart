@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class OnboardingProgressBar extends StatelessWidget {
   final int currentStep;
@@ -22,7 +25,7 @@ class OnboardingProgressBar extends StatelessWidget {
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 160),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: AppRadius.all4,
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor:
@@ -34,13 +37,11 @@ class OnboardingProgressBar extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.s8),
         Text(
           'Etapa $currentStep de $totalSteps',
-          style: const TextStyle(
+          style: AppTypography.labelSmall.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 10,
-            fontWeight: FontWeight.w400,
           ),
         ),
       ],

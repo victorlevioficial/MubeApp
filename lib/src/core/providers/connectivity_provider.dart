@@ -4,6 +4,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../design_system/foundations/tokens/app_colors.dart';
+import '../../design_system/foundations/tokens/app_spacing.dart';
+import '../../design_system/foundations/tokens/app_typography.dart';
 import '../../utils/app_logger.dart';
 
 /// Provider que monitora o estado de conectividade da rede
@@ -75,21 +78,23 @@ class OfflineIndicator extends ConsumerWidget {
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           height: isOnline ? 0 : 32,
-          color: Colors.orange,
+          color: AppColors.warning,
           child: AnimatedOpacity(
             duration: const Duration(milliseconds: 200),
             opacity: isOnline ? 0 : 1,
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_off, size: 16, color: Colors.white),
-                SizedBox(width: 8),
+                const Icon(
+                  Icons.wifi_off,
+                  size: 16,
+                  color: AppColors.textPrimary,
+                ),
+                const SizedBox(width: AppSpacing.s8),
                 Text(
                   'Sem conexão com a internet',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],

@@ -4,6 +4,8 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../screens/matchpoint_matches_screen.dart';
@@ -52,20 +54,27 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
         children: [
           // Custom Google Nav Bar (Top Menu)
           Container(
-            margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-            padding: const EdgeInsets.all(4),
+            margin: const EdgeInsets.fromLTRB(
+              AppSpacing.s16,
+              AppSpacing.s8,
+              AppSpacing.s16,
+              AppSpacing.s16,
+            ),
+            padding: AppSpacing.all4,
             decoration: BoxDecoration(
               color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              borderRadius: AppRadius.pill,
+              border: Border.all(
+                color: AppColors.textPrimary.withValues(alpha: 0.05),
+              ),
             ),
             child: GNav(
-              gap: 8,
-              backgroundColor: Colors.transparent,
+              gap: AppSpacing.s8,
+              backgroundColor: AppColors.transparent,
               color: AppColors.textSecondary,
-              activeColor: Colors.white,
+              activeColor: AppColors.textPrimary,
               tabBackgroundColor: AppColors.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: AppSpacing.h16v12,
               duration: const Duration(milliseconds: 300),
               selectedIndex: _selectedIndex,
               onTabChange: (index) {
@@ -78,16 +87,16 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
                   icon: Icons.explore_rounded,
                   text: 'Explorar',
                   textStyle: AppTypography.labelLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    fontWeight: AppTypography.buttonPrimary.fontWeight,
                   ),
                 ),
                 GButton(
                   icon: Icons.bolt_rounded,
                   text: 'Matches',
                   textStyle: AppTypography.labelLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                    fontWeight: AppTypography.buttonPrimary.fontWeight,
                   ),
                 ),
               ],
@@ -108,23 +117,27 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text(
+        title: Text(
           'Sobre o MatchPoint',
-          style: TextStyle(color: AppColors.textPrimary),
+          style: AppTypography.titleLarge,
         ),
-        content: const Text(
+        content: Text(
           'O MatchPoint é o lugar para formar sua próxima banda ou projeto musical.\n\n'
           '1. Explore: Descubra músicos que combinam com seus gêneros e objetivos.\n\n'
           '2. Filtre: Use o botão de filtros para refinar sua busca por instrumentos, estilos e localização.\n\n'
           '3. Conecte: Envie convites e comece a criar música juntos!',
-          style: TextStyle(color: AppColors.textSecondary),
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
+            child: Text(
               'Entendi',
-              style: TextStyle(color: AppColors.primary),
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ),
         ],

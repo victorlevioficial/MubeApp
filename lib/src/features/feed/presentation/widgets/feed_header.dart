@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
@@ -128,17 +129,16 @@ class FeedHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Olá, $firstName! 👋',
-                style: isScrolled
-                    ? AppTypography.titleMedium.copyWith(
-                        color: AppColors.textPrimary,
-                      )
-                    : AppTypography.headlineSmall.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-              ),
+                  Text(
+                    'Olá, $firstName! 👋',
+                    style: isScrolled
+                        ? AppTypography.titleMedium.copyWith(
+                            color: AppColors.textPrimary,
+                          )
+                        : AppTypography.headlineSmall.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                  ),
               const SizedBox(height: AppSpacing.s4),
               Text(
                 _getGreetingSubtitle(),
@@ -182,7 +182,7 @@ class FeedHeader extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [AppColors.primary, AppColors.primaryPressed],
           ),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: AppRadius.all16,
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.24),
@@ -220,15 +220,15 @@ class FeedHeader extends StatelessWidget {
                       color: AppColors.textPrimary.withAlpha(200),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.s2),
                   Text(
                     '$profileType • $profileRole',
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppTypography.titleSmall.fontWeight,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.s2),
                   Text(
                     '$completionPercent% completo',
                     style: AppTypography.bodySmall.copyWith(
@@ -241,10 +241,10 @@ class FeedHeader extends StatelessWidget {
 
             // Arrow icon
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: AppSpacing.all8,
               decoration: BoxDecoration(
                 color: AppColors.textPrimary.withAlpha(20),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.all12,
               ),
               child: const Icon(
                 Icons.arrow_forward_ios,
@@ -400,7 +400,7 @@ class _NotificationButton extends StatelessWidget {
       child: Stack(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: AppSpacing.all8,
             decoration: const BoxDecoration(
               color: AppColors.surfaceHighlight,
               shape: BoxShape.circle,
@@ -416,7 +416,7 @@ class _NotificationButton extends StatelessWidget {
               top: 6,
               right: 6,
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: AppSpacing.all4,
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
@@ -425,7 +425,6 @@ class _NotificationButton extends StatelessWidget {
                   count > 9 ? '9+' : count.toString(),
                   style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textPrimary,
-                    fontSize: 10,
                   ),
                 ),
               ),

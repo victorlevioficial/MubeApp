@@ -30,9 +30,8 @@ class FeedCardCompact extends StatelessWidget {
             // Name
             Text(
               item.displayName,
-              style: AppTypography.bodySmall.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -53,13 +52,11 @@ class FeedCardCompact extends StatelessWidget {
                     size: 10,
                     color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: AppSpacing.s2),
                   Text(
                     item.distanceText,
-                    style: AppTypography.bodySmall.copyWith(
+                    style: AppTypography.chipLabel.copyWith(
                       color: AppColors.textSecondary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

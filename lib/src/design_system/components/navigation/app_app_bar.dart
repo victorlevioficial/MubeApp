@@ -78,7 +78,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
               title as String,
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
               ),
             )
           : (title as Widget?),

@@ -6,6 +6,7 @@ import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart'
     show AppTypography;
 import '../../domain/feed_item.dart'; // Restored
@@ -62,7 +63,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
           padding: AppSpacing.all12,
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.all16,
             border: Border.all(
               color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
               width: 1,
@@ -111,13 +112,11 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
                               size: 14,
                               color: AppColors.textSecondary,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.s4),
                             Text(
                               widget.item.distanceText,
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(width: AppSpacing.s8),
@@ -169,17 +168,19 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
       constraints: const BoxConstraints(
         maxWidth: 90,
       ), // Prevent super wide chips
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s8,
+        vertical: AppSpacing.s2,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface2,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.pill,
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: AppColors.textPrimary, // High contrast
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
+        style: AppTypography.chipLabel.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: AppTypography.buttonPrimary.fontWeight,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -194,18 +195,19 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
       constraints: const BoxConstraints(
         maxWidth: 80,
       ), // Prevent super wide chips
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s8,
+        vertical: AppSpacing.s2,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.pill,
         // No border for cleaner look
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: AppColors.textPrimary, // High contrast
-          fontSize: 9,
-          fontWeight: FontWeight.w500,
+        style: AppTypography.chipLabel.copyWith(
+          color: AppColors.textPrimary,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -247,7 +249,7 @@ class _SingleLineChipList extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (int i = 0; i < items.length; i++) ...[
-            if (i > 0) const SizedBox(width: 6),
+            if (i > 0) const SizedBox(width: AppSpacing.s4),
             Flexible(child: chipBuilder(items[i])),
           ],
         ],
@@ -259,10 +261,10 @@ class _SingleLineChipList extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (int i = 0; i < maxVisibleItems - 1; i++) ...[
-          if (i > 0) const SizedBox(width: 6),
+          if (i > 0) const SizedBox(width: AppSpacing.s4),
           Flexible(child: chipBuilder(items[i])),
         ],
-        const SizedBox(width: 6),
+        const SizedBox(width: AppSpacing.s4),
         overflowBuilder(items.length - (maxVisibleItems - 1)),
       ],
     );

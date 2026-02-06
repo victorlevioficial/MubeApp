@@ -1,10 +1,14 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import 'match_card.dart';
 
 class MatchSwipeDeck extends StatelessWidget {
@@ -24,10 +28,12 @@ class MatchSwipeDeck extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (candidates.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'Não há mais perfis por perto.',
-          style: TextStyle(color: Colors.white),
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textPrimary,
+          ),
         ),
       );
     }
@@ -65,11 +71,9 @@ class MatchSwipeDeck extends StatelessWidget {
                         Positioned.fill(
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: AppRadius.all16,
                               color:
-                                  (isLike
-                                          ? AppColors.primary
-                                          : AppColors.error)
+                                  (isLike ? AppColors.primary : AppColors.error)
                                       .withValues(alpha: opacity * 0.4),
                             ),
                             child: Center(
@@ -77,7 +81,7 @@ class MatchSwipeDeck extends StatelessWidget {
                                 scale: 1.0 + opacity,
                                 child: Icon(
                                   isLike ? Icons.favorite : Icons.close,
-                                  color: Colors.white.withValues(
+                                  color: AppColors.textPrimary.withValues(
                                     alpha: opacity,
                                   ),
                                   size: 100,
@@ -174,18 +178,11 @@ class _ActionButton extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor,
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppEffects.cardShadow,
         border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: onPressed,
           customBorder: const CircleBorder(),

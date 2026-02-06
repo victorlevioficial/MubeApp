@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -63,7 +64,10 @@ class NotificationListScreen extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: AppSpacing.s16),
                   color: AppColors.error,
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  child: const Icon(
+                    Icons.delete,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 onDismissed: (_) {
                   if (user != null) {
@@ -215,7 +219,7 @@ class _NotificationTile extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         border: !notification.isRead
             ? Border.all(
                 color: AppColors.primary.withValues(alpha: 0.3),
@@ -224,9 +228,9 @@ class _NotificationTile extends StatelessWidget {
             : null,
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.s12),
@@ -238,7 +242,7 @@ class _NotificationTile extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.all12,
                   ),
                   child: Icon(
                     _getIconForType(notification.type),
@@ -254,15 +258,14 @@ class _NotificationTile extends StatelessWidget {
                     children: [
                       Text(
                         notification.title,
-                        style: AppTypography.titleLarge.copyWith(
+                        style: AppTypography.bodyLarge.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: !notification.isRead
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          fontSize: 15,
+                              ? AppTypography.buttonPrimary.fontWeight
+                              : AppTypography.bodyLarge.fontWeight,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSpacing.s2),
                       Text(
                         notification.body,
                         style: AppTypography.bodySmall.copyWith(
@@ -281,16 +284,15 @@ class _NotificationTile extends StatelessWidget {
                   children: [
                     Text(
                       _formatTime(notification.createdAt),
-                      style: AppTypography.bodySmall.copyWith(
+                      style: AppTypography.labelSmall.copyWith(
                         color: AppColors.textTertiary,
-                        fontSize: 11,
                       ),
                     ),
                     if (!notification.isRead) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.s4),
                       Container(
-                        width: 8,
-                        height: 8,
+                        width: AppSpacing.s8,
+                        height: AppSpacing.s8,
                         decoration: const BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,

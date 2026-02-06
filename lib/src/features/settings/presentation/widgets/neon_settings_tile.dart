@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 class NeonSettingsTile extends StatelessWidget {
@@ -28,16 +30,19 @@ class NeonSettingsTile extends StatelessWidget {
         : (customAccentColor ?? AppColors.primary);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s8),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           splashColor: activeColor.withValues(alpha: 0.1),
           highlightColor: activeColor.withValues(alpha: 0.05),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.s12,
+              horizontal: AppSpacing.s12,
+            ),
             child: Row(
               children: [
                 // Glowing Icon Container
@@ -46,7 +51,7 @@ class NeonSettingsTile extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     color: activeColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.all12,
                     border: Border.all(
                       color: activeColor.withValues(alpha: 0.2),
                       width: 1,
@@ -55,7 +60,7 @@ class NeonSettingsTile extends StatelessWidget {
                   child: Icon(icon, color: activeColor, size: 20),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.s16),
 
                 // Text Content
                 Expanded(
@@ -68,11 +73,11 @@ class NeonSettingsTile extends StatelessWidget {
                           color: isDestructive
                               ? AppColors.error
                               : AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: AppTypography.bodyLarge.fontWeight,
                         ),
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSpacing.s2),
                         Text(
                           subtitle!,
                           style: AppTypography.bodySmall.copyWith(

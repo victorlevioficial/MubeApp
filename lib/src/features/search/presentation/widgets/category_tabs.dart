@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design_system/components/chips/mube_filter_chip.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../domain/search_filters.dart';
 
 /// Horizontal category tabs for search filtering.
@@ -25,19 +26,19 @@ class CategoryTabs extends StatelessWidget {
             icon: Icons.people_outline,
             category: SearchCategory.all,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildTab(
             label: 'Profissionais',
             icon: Icons.person_outline,
             category: SearchCategory.professionals,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildTab(
             label: 'Bandas',
             icon: Icons.groups_outlined,
             category: SearchCategory.bands,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildTab(
             label: 'Estúdios',
             icon: Icons.mic_none,

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
@@ -40,7 +41,7 @@ class _ReportReasonDialogState extends State<ReportReasonDialog> {
         (!isOther || _descriptionController.text.trim().isNotEmpty);
 
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Container(
@@ -48,7 +49,7 @@ class _ReportReasonDialogState extends State<ReportReasonDialog> {
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.s16),
+          borderRadius: AppRadius.all16,
           border: Border.all(color: AppColors.surfaceHighlight),
         ),
         child: SingleChildScrollView(
@@ -140,7 +141,7 @@ class _ReportReasonDialogState extends State<ReportReasonDialog> {
                         color: isValid
                             ? AppColors.error
                             : AppColors.textTertiary,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
                       ),
                     ),
                   ),

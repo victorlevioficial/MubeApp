@@ -4,6 +4,7 @@ import '../../components/loading/app_loading.dart';
 import '../../components/loading/app_loading_indicator.dart';
 import '../../components/loading/app_shimmer.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -21,9 +22,9 @@ class LoadingSection extends StatelessWidget {
         const Row(
           children: [
             AppLoading.small(),
-            SizedBox(width: 16),
+            SizedBox(width: AppSpacing.s16),
             AppLoading.medium(),
-            SizedBox(width: 16),
+            SizedBox(width: AppSpacing.s16),
             AppLoading.large(),
           ],
         ),
@@ -37,9 +38,9 @@ class LoadingSection extends StatelessWidget {
         const Row(
           children: [
             AppLoadingIndicator.small(),
-            SizedBox(width: 24),
+            SizedBox(width: AppSpacing.s24),
             AppLoadingIndicator.medium(),
-            SizedBox(width: 24),
+            SizedBox(width: AppSpacing.s24),
             AppLoadingIndicator.large(),
           ],
         ),
@@ -55,7 +56,7 @@ class LoadingSection extends StatelessWidget {
             width: double.infinity,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.all12,
             ),
           ),
         ),

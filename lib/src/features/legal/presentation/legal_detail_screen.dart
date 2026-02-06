@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../data/legal_content.dart';
 import '../utils/pdf_generator.dart';
@@ -48,10 +49,7 @@ class LegalDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          type.title,
-          style: AppTypography.headlineSmall.copyWith(fontSize: 18),
-        ),
+        title: Text(type.title, style: AppTypography.headlineSmall),
         backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
@@ -78,13 +76,15 @@ class LegalDetailScreen extends StatelessWidget {
           ),
           h3: AppTypography.titleLarge.copyWith(color: AppColors.textPrimary),
           p: AppTypography.bodyLarge.copyWith(color: AppColors.textSecondary),
-          listBullet: const TextStyle(color: AppColors.textSecondary),
-          strong: const TextStyle(
-            fontWeight: FontWeight.bold,
+          listBullet: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          strong: AppTypography.bodyMedium.copyWith(
             color: AppColors.textPrimary,
+            fontWeight: AppTypography.buttonPrimary.fontWeight,
           ),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: AppSpacing.all16,
       ),
     );
   }

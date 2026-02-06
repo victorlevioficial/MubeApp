@@ -204,7 +204,10 @@ class _OnboardingContractorFlowState
         child: SingleChildScrollView(
           child: ResponsiveCenter(
             maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s24,
+            ),
             child: Form(
               key: _formKey,
               child: Column(

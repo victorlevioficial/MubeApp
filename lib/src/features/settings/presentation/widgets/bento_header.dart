@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
 
@@ -22,24 +26,16 @@ class BentoHeader extends ConsumerWidget {
         // BIG PROFILE CARD
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(20),
+          padding: AppSpacing.all16,
           decoration: BoxDecoration(
             color: AppColors.surfaceHighlight.withValues(
               alpha: 0.5,
             ), // Glassy feel
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: AppRadius.all24,
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.05),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: 0.2,
-                ), // Shadow can be black
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            boxShadow: AppEffects.cardShadow,
           ),
           child: Row(
             children: [
@@ -58,7 +54,7 @@ class BentoHeader extends ConsumerWidget {
                       )
                     : null,
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: AppSpacing.s16),
               // Text Info
               Expanded(
                 child: Column(
@@ -66,14 +62,11 @@ class BentoHeader extends ConsumerWidget {
                   children: [
                     Text(
                       user?.nome ?? 'Bem-vindo',
-                      style: AppTypography.headlineMedium.copyWith(
-                        color: AppColors.textPrimary,
-                        height: 1.1,
-                      ),
+                      style: AppTypography.headlineMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
                       user?.email ?? 'Visitante',
                       style: AppTypography.bodySmall.copyWith(
@@ -89,7 +82,7 @@ class BentoHeader extends ConsumerWidget {
               GestureDetector(
                 onTap: () => context.push('/settings/profile'),
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: AppSpacing.all8,
                   decoration: BoxDecoration(
                     color: AppColors.textPrimary.withValues(alpha: 0.05),
                     shape: BoxShape.circle,
@@ -105,7 +98,7 @@ class BentoHeader extends ConsumerWidget {
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.s12),
 
         // MINI CARDS ROW
         Row(
@@ -119,7 +112,7 @@ class BentoHeader extends ConsumerWidget {
                 subtitle: 'Favoritos',
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.s12),
             // Action Card (Active Plan)
             Expanded(
               child: _buildMiniCard(
@@ -144,10 +137,10 @@ class BentoHeader extends ConsumerWidget {
     required String subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: AppSpacing.all16,
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.all24,
         border: Border.all(
           color: AppColors.textPrimary.withValues(alpha: 0.03),
         ),
@@ -155,7 +148,7 @@ class BentoHeader extends ConsumerWidget {
       child: Row(
         children: [
           Icon(icon, color: iconColor, size: 20),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.s12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -163,14 +156,13 @@ class BentoHeader extends ConsumerWidget {
                 title,
                 style: AppTypography.titleMedium.copyWith(
                   color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTypography.buttonPrimary.fontWeight,
                 ),
               ),
               Text(
                 subtitle,
-                style: AppTypography.labelMedium.copyWith(
+                style: AppTypography.labelSmall.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  fontSize: 11,
                 ),
               ),
             ],

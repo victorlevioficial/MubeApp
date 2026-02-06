@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/saved_address.dart';
@@ -27,7 +28,7 @@ class AddressCard extends StatelessWidget {
           ? AppColors.primary.withValues(alpha: 0.08)
           : AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         side: BorderSide(
           color: address.isPrimary
               ? AppColors.primary.withValues(alpha: 0.3)
@@ -37,7 +38,7 @@ class AddressCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.s16),
           child: Row(
@@ -50,7 +51,7 @@ class AddressCard extends StatelessWidget {
                   color: address.isPrimary
                       ? AppColors.primary.withValues(alpha: 0.15)
                       : AppColors.surfaceHighlight,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: AppRadius.all12,
                 ),
                 child: Icon(
                   address.isPrimary ? Icons.star : Icons.location_on_outlined,
@@ -72,7 +73,7 @@ class AddressCard extends StatelessWidget {
                         Text(
                           address.nome.isNotEmpty ? address.nome : 'Endereço',
                           style: AppTypography.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppTypography.titleSmall.fontWeight,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -80,26 +81,25 @@ class AddressCard extends StatelessWidget {
                           const SizedBox(width: AppSpacing.s8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: AppSpacing.s8,
+                              vertical: AppSpacing.s2,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: AppRadius.all12,
                             ),
                             child: Text(
                               'Principal',
-                              style: AppTypography.bodySmall.copyWith(
+                              style: AppTypography.chipLabel.copyWith(
                                 color: AppColors.background,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: AppTypography.titleSmall.fontWeight,
                               ),
                             ),
                           ),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
                       address.displayAddress.isNotEmpty
                           ? address.displayAddress
@@ -119,7 +119,7 @@ class AddressCard extends StatelessWidget {
                 elevation: 16,
                 shadowColor: AppColors.background,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.all12,
                   side: const BorderSide(
                     color: AppColors.surfaceHighlight,
                     width: 1,
@@ -142,17 +142,17 @@ class AddressCard extends StatelessWidget {
                 },
                 itemBuilder: (context) => [
                   if (!address.isPrimary)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'primary',
                       child: Row(
                         children: [
                           Icon(Icons.star_outline, size: 20),
-                          SizedBox(width: 12),
+                          SizedBox(width: AppSpacing.s12),
                           Text('Definir como principal'),
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
@@ -161,10 +161,12 @@ class AddressCard extends StatelessWidget {
                           size: 20,
                           color: AppColors.error,
                         ),
-                        SizedBox(width: 12),
+                        SizedBox(width: AppSpacing.s12),
                         Text(
                           'Excluir',
-                          style: TextStyle(color: AppColors.error),
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.error,
+                          ),
                         ),
                       ],
                     ),

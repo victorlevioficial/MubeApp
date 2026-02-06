@@ -6,6 +6,7 @@ import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -104,10 +105,13 @@ class _ConversationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s4,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface, // Same as FeedCardVertical
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
         border: Border.all(
           color: AppColors.surfaceHighlight.withValues(
             alpha: 0.5,
@@ -117,9 +121,9 @@ class _ConversationTile extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.all16,
           child: Row(
             children: [
               // Avatar
@@ -143,10 +147,9 @@ class _ConversationTile extends StatelessWidget {
                           child: Text(
                             preview.otherUserName,
                             style: AppTypography.titleMedium.copyWith(
-                              fontSize: 16,
                               fontWeight: preview.unreadCount > 0
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
+                                  ? AppTypography.buttonPrimary.fontWeight
+                                  : AppTypography.titleSmall.fontWeight,
                               color: AppColors.textPrimary,
                             ),
                             maxLines: 1,
@@ -165,7 +168,7 @@ class _ConversationTile extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
 
                     // Última mensagem
                     Row(
@@ -178,8 +181,8 @@ class _ConversationTile extends StatelessWidget {
                                   ? AppColors.textPrimary
                                   : AppColors.textSecondary,
                               fontWeight: preview.unreadCount > 0
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                                  ? AppTypography.titleSmall.fontWeight
+                                  : AppTypography.bodyMedium.fontWeight,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -191,19 +194,18 @@ class _ConversationTile extends StatelessWidget {
                           const SizedBox(width: AppSpacing.s8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                              horizontal: AppSpacing.s8,
+                              vertical: AppSpacing.s4,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: AppRadius.all12,
                             ),
                             child: Text(
                               '${preview.unreadCount}',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
+                              style: AppTypography.chipLabel.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: AppTypography.buttonPrimary.fontWeight,
                               ),
                             ),
                           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../design_system/components/chips/mube_filter_chip.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 
 class QuickFilterBar extends StatelessWidget {
   final String selectedFilter;
@@ -22,12 +23,13 @@ class QuickFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: AppSpacing.s48,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: AppSpacing.h16,
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSpacing.s8),
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = selectedFilter == filter;

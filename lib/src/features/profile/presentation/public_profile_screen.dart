@@ -11,6 +11,7 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -43,9 +44,9 @@ class PublicProfileScreen extends ConsumerWidget {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             color: AppColors.surface,
-            surfaceTintColor: Colors.transparent,
+            surfaceTintColor: AppColors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.all12,
             ),
             onSelected: (value) => _handleMenuAction(context, ref, value, user),
             itemBuilder: (context) => [
@@ -117,7 +118,7 @@ class PublicProfileScreen extends ConsumerWidget {
           color: _getProfileColor(user.tipoPerfil),
           size: 20,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.s8),
         Text(
           _getProfileLabel(user.tipoPerfil),
           style: AppTypography.titleMedium.copyWith(
@@ -141,7 +142,7 @@ class PublicProfileScreen extends ConsumerWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: color),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.s12),
           Text(label, style: AppTypography.bodyMedium.copyWith(color: color)),
         ],
       ),
@@ -291,7 +292,7 @@ class PublicProfileScreen extends ConsumerWidget {
           color: AppColors.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: AppColors.background.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -329,7 +330,7 @@ class PublicProfileScreen extends ConsumerWidget {
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.all16,
                         ),
                       ),
                     ),
@@ -351,7 +352,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.all16,
                         ),
                       ),
                     ),
@@ -375,7 +376,7 @@ class PublicProfileScreen extends ConsumerWidget {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: AppColors.background.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -394,9 +395,9 @@ class PublicProfileScreen extends ConsumerWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: AppSpacing.v12,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.all12,
                 ),
               ),
             ),
@@ -435,7 +436,7 @@ class PublicProfileScreen extends ConsumerWidget {
           _buildGallerySection(context, galleryItems),
 
           // Extra padding at bottom to not overlap with fixed bar
-          const SizedBox(height: 100),
+          const SizedBox(height: AppSpacing.s48),
         ],
       ),
     );
@@ -455,9 +456,7 @@ class PublicProfileScreen extends ConsumerWidget {
           // Display Name (artistic name / band name / studio name)
           Text(
             displayName,
-            style: AppTypography.headlineMedium.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTypography.headlineMedium,
             textAlign: TextAlign.center,
           ),
 
@@ -478,7 +477,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   size: 16,
                   color: AppColors.primary,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.s4),
                 Text(
                   '${location['cidade'] ?? '-'}, ${location['estado'] ?? '-'}',
                   style: AppTypography.bodySmall.copyWith(
@@ -626,10 +625,13 @@ class PublicProfileScreen extends ConsumerWidget {
 
   Widget _buildSkillChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s4,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.pill,
       ),
       child: Text(
         label,
@@ -640,16 +642,18 @@ class PublicProfileScreen extends ConsumerWidget {
 
   Widget _buildGenreChip(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s4,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight, // Matches skill chip
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadius.pill,
       ),
       child: Text(
         label,
-        style: AppTypography.bodySmall.copyWith(
+        style: AppTypography.chipLabel.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w500, // Matches skill chip
         ),
       ),
     );
@@ -667,10 +671,10 @@ class PublicProfileScreen extends ConsumerWidget {
         if (galleryItems.isEmpty)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32),
+            padding: AppSpacing.v32,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.all12,
               border: Border.all(color: AppColors.surfaceHighlight),
             ),
             child: Column(
@@ -680,7 +684,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   size: 48,
                   color: AppColors.textSecondary,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.s8),
                 Text(
                   'Galeria Vazia',
                   style: AppTypography.bodyMedium.copyWith(
@@ -715,7 +719,7 @@ class PublicProfileScreen extends ConsumerWidget {
   ) {
     showDialog(
       context: context,
-      barrierColor: Colors.black87,
+      barrierColor: AppColors.background.withValues(alpha: 0.87),
       builder: (context) =>
           MediaViewerDialog(items: items, initialIndex: initialIndex),
     );
@@ -756,12 +760,11 @@ class PublicProfileScreen extends ConsumerWidget {
               color:
                   AppColors.primary,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: AppSpacing.s4),
             Text(
               config['label'] as String,
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],

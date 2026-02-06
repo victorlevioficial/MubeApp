@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-
 import '../../../../routing/route_paths.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../chat/data/chat_repository.dart';
@@ -70,23 +71,8 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                   scale: _scaleAnimation,
                   child: Column(
                     children: [
-                      Text(
-                        "IT'S A",
-                        style: AppTypography.headlineMedium.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 4,
-                        ),
-                      ),
-                      Text(
-                        'MATCH!',
-                        style: AppTypography.headlineLarge.copyWith(
-                          fontSize: 48,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w900,
-                          fontStyle: FontStyle.italic,
-                          letterSpacing: 2,
-                        ),
-                      ),
+                      Text("IT'S A", style: AppTypography.matchSuccessKicker),
+                      Text('MATCH!', style: AppTypography.matchSuccessTitle),
                     ],
                   ),
                 ),
@@ -111,15 +97,13 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                       ),
                       // Icon in center
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: AppSpacing.all8,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primary.withValues(
-                                alpha: 0.5,
-                              ),
+                              color: AppColors.primary.withValues(alpha: 0.5),
                               blurRadius: 20,
                               spreadRadius: 2,
                             ),
@@ -138,7 +122,9 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                 const SizedBox(height: AppSpacing.s16),
                 Text(
                   'Você e ${widget.matchUser.nome} se curtiram!',
-                  style: AppTypography.bodyLarge.copyWith(color: Colors.white),
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
@@ -190,21 +176,15 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: AppColors.textPrimary, width: 4),
+          boxShadow: AppEffects.subtleShadow,
           image: url != null
               ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
               : null,
           color: AppColors.surfaceHighlight,
         ),
         child: url == null
-            ? const Icon(Icons.person, size: 60, color: Colors.white)
+            ? const Icon(Icons.person, size: 60, color: AppColors.textPrimary)
             : null,
       ),
     );

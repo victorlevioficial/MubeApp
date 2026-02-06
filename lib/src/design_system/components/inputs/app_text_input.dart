@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -37,7 +38,7 @@ class AppTextInput extends StatelessWidget {
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: AppTypography.titleSmall.fontWeight,
             color: AppColors.textPrimary,
           ),
         ),
@@ -45,7 +46,7 @@ class AppTextInput extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.all12,
             border: Border.all(
               color: errorText != null
                   ? AppColors.error
@@ -69,7 +70,7 @@ class AppTextInput extends StatelessWidget {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.s16,
-                vertical: 14,
+                vertical: AppSpacing.s12,
               ),
               prefixIcon: prefixIcon,
               suffixIcon: suffixIcon,
@@ -83,9 +84,8 @@ class AppTextInput extends StatelessWidget {
           const SizedBox(height: AppSpacing.s4),
           Text(
             errorText!,
-            style: AppTypography.bodySmall.copyWith(
+            style: AppTypography.labelSmall.copyWith(
               color: AppColors.error,
-              fontSize: 11,
             ),
           ),
         ],

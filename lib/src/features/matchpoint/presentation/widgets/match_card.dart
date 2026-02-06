@@ -6,8 +6,10 @@ import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../../core/services/image_cache_config.dart';
 
@@ -23,18 +25,12 @@ class MatchCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: AppRadius.all24,
           color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          boxShadow: AppEffects.cardShadow,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: AppRadius.all24,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -82,10 +78,10 @@ class MatchCard extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.0),
-                        Colors.black.withValues(alpha: 0.8),
-                        Colors.black.withValues(alpha: 0.95),
+                        AppColors.transparent,
+                        AppColors.transparent,
+                        AppColors.background.withValues(alpha: 0.8),
+                        AppColors.background.withValues(alpha: 0.95),
                       ],
                       stops: const [0.0, 0.5, 0.8, 1.0],
                     ),
@@ -110,10 +106,7 @@ class MatchCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               _getDisplayName(),
-                              style: AppTypography.headlineMedium.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: AppTypography.headlineMedium,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -126,14 +119,17 @@ class MatchCard extends StatelessWidget {
                                 vertical: AppSpacing.s4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(8),
+                                color: AppColors.textPrimary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                borderRadius: AppRadius.all8,
                               ),
                               child: Text(
                                 '${_getAge()}',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight:
+                                      AppTypography.buttonPrimary.fontWeight,
                                 ),
                               ),
                             ),
@@ -167,7 +163,7 @@ class MatchCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.surface.withValues(alpha: 0.8),
-                              borderRadius: BorderRadius.circular(100),
+                              borderRadius: AppRadius.pill,
                               border: Border.all(
                                 color: AppColors.surfaceHighlight,
                               ),
@@ -176,7 +172,8 @@ class MatchCard extends StatelessWidget {
                               tag,
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textPrimary,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    AppTypography.buttonPrimary.fontWeight,
                               ),
                             ),
                           );
@@ -195,7 +192,10 @@ class MatchCard extends StatelessWidget {
                   child: Consumer(
                     builder: (context, ref, child) {
                       return IconButton(
-                        icon: const Icon(Icons.bug_report, color: Colors.red),
+                        icon: const Icon(
+                          Icons.bug_report,
+                          color: AppColors.error,
+                        ),
                         tooltip: 'Force Match on Next Swipe',
                         onPressed: () {
                           ref
@@ -205,7 +205,7 @@ class MatchCard extends StatelessWidget {
                             const SnackBar(
                               content: Text('🐞 DEBUG: Next swipe will MATCH!'),
                               duration: Duration(seconds: 1),
-                              backgroundColor: Colors.red,
+                              backgroundColor: AppColors.error,
                             ),
                           );
                         },

@@ -33,7 +33,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          padding: AppSpacing.all24,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,18 +51,11 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                     constraints: const BoxConstraints(),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Text(
-                    'DESIGN SYSTEM',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 20), // Balance back button
+                  Text('DESIGN SYSTEM', style: AppTypography.titleLarge),
+                  const SizedBox(width: AppSpacing.s16),
                 ],
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: AppSpacing.s40),
 
               _buildSectionHeader('Typography'),
               Text('Headline Large', style: AppTypography.headlineLarge),
@@ -81,7 +74,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 'Interactive / Link',
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTypography.buttonPrimary.fontWeight,
                   decoration: TextDecoration.underline,
                   decorationColor: AppColors.primary,
                 ),
@@ -109,9 +102,11 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
               ),
 
               _buildSectionHeader('Spacing'),
-              const Text(
+              Text(
                 'Base Unit: 4px. Scale: 4, 8, 12, 16, 24, 32, 48.',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: AppSpacing.s16),
               Wrap(
@@ -128,11 +123,10 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.s24),
-              const Text(
+              Text(
                 'Spacing Scenarios (Context)',
-                style: TextStyle(
+                style: AppTypography.titleSmall.copyWith(
                   color: AppColors.textPrimary,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: AppSpacing.s16),
@@ -237,13 +231,13 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                     isSelected: true,
                     onSelected: (v) {},
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.s8),
                   AppFilterChip(
                     label: 'Unselected',
                     isSelected: false,
                     onSelected: (v) {},
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.s8),
                   AppFilterChip(
                     label: 'With Remove',
                     isSelected: true,
@@ -380,32 +374,35 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                name,
-                style: const TextStyle(color: AppColors.success, fontSize: 12),
-              ),
-              Text(
-                contextObj,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
+                Text(
+                  name,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.success,
+                  ),
                 ),
-              ),
+                Text(
+                  contextObj,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
             ],
           ),
         ),
         Container(height: 24, width: spacing, color: AppColors.primary),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.s8),
         Text(
           '${spacing.toInt()}px',
-          style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textPrimary,
+          ),
         ),
         const Spacer(),
         // Example visualization
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.surfaceHighlight),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.all4,
           ),
           child: Row(
             children: [

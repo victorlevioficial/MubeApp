@@ -14,7 +14,9 @@ class MatchpointTutorialOverlay extends StatelessWidget {
       children: [
         // Dark Dimension Background
         Positioned.fill(
-          child: Container(color: Colors.black.withValues(alpha: 0.85)),
+          child: Container(
+            color: AppColors.background.withValues(alpha: 0.85),
+          ),
         ),
 
         // Content
@@ -33,7 +35,11 @@ class MatchpointTutorialOverlay extends StatelessWidget {
                     text: 'Não Curti',
                     color: AppColors.error,
                   ),
-                  Container(width: 1, height: 50, color: Colors.white24),
+                  Container(
+                    width: 1,
+                    height: AppSpacing.s48,
+                    color: AppColors.textPrimary.withValues(alpha: 0.24),
+                  ),
                   const _TutorialItem(
                     icon: Icons.swipe_right,
                     text: 'Curti!',
@@ -42,7 +48,7 @@ class MatchpointTutorialOverlay extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: AppSpacing.s48),
 
               // Undo Instruction
               const Icon(
@@ -62,21 +68,21 @@ class MatchpointTutorialOverlay extends StatelessWidget {
 
               // Got it Button
               Padding(
-                padding: const EdgeInsets.only(bottom: 150),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s48),
                 child: FilledButton(
                   onPressed: onDismiss,
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
+                    backgroundColor: AppColors.textPrimary,
+                    foregroundColor: AppColors.background,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
+                      horizontal: AppSpacing.s32,
+                      vertical: AppSpacing.s16,
                     ),
                   ),
                   child: Text(
                     'Entendi',
                     style: AppTypography.titleLarge.copyWith(
-                      color: Colors.black,
+                      color: AppColors.background,
                     ),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/components/data_display/user_avatar.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../features/auth/domain/app_user.dart';
@@ -22,13 +23,13 @@ class UserCard extends StatelessWidget {
         horizontal: AppSpacing.s16,
         vertical: AppSpacing.s8,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.surfaceHighlight),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.all12,
+        side: BorderSide(color: AppColors.surfaceHighlight),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.s16),
           child: Row(

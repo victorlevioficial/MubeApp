@@ -78,7 +78,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s16,
             vertical: AppSpacing.s32,
-          ).copyWith(top: 80),
+          ).copyWith(top: AppSpacing.s48),
           child: Form(
             key: _formKey,
             child: Column(
@@ -87,17 +87,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 Center(
                   child: SvgPicture.asset(
                     'assets/images/logos_svg/logo horizontal.svg',
-                    height: 50,
+                    height: AppSpacing.s48,
                     fit: BoxFit.scaleDown,
-                    placeholderBuilder: (context) => const SizedBox(height: 50),
+                    placeholderBuilder: (context) =>
+                        const SizedBox(height: AppSpacing.s48),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.s24),
                 Text(
                   'Criar Conta',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontSize: 24,
+                  style: AppTypography.headlineCompact.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -121,7 +121,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   validator: (v) =>
                       v != null && v.isNotEmpty ? null : 'E-mail obrigatório',
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.s16),
 
                 AppTextField(
                   fieldKey: const Key('register_password_input'),
@@ -164,13 +164,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 // LEGAL TEXT
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: AppSpacing.h16,
                   child: RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 12,
                       ),
                       children: [
                         const TextSpan(
@@ -184,8 +183,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               'Termos de Uso',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    AppTypography.buttonPrimary.fontWeight,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -201,8 +200,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               'Política de Privacidade',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    AppTypography.buttonPrimary.fontWeight,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -255,9 +254,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       child: Text(
                         'Entrar',
                         key: const Key('login_link'),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: AppTypography.bodyMedium.copyWith(
                           color: Theme.of(context).colorScheme.tertiary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                         ),
                       ),
                     ),

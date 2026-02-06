@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_radius.dart';
 
 /// Tokens de efeitos visuais do Design System Mube.
 ///
@@ -22,7 +23,7 @@ class AppEffects {
   /// Sombra padrão para cards
   static final List<BoxShadow> cardShadow = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.5),
+      color: AppColors.background.withValues(alpha: 0.5),
       blurRadius: 12,
       offset: const Offset(0, 4),
     ),
@@ -31,7 +32,7 @@ class AppEffects {
   /// Sombra profunda para elementos flutuantes
   static final List<BoxShadow> floatingShadow = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.6),
+      color: AppColors.background.withValues(alpha: 0.6),
       blurRadius: 32,
       offset: const Offset(0, 12),
     ),
@@ -40,7 +41,7 @@ class AppEffects {
   /// Sombra sutil para elementos elevados
   static final List<BoxShadow> subtleShadow = [
     BoxShadow(
-      color: Colors.black.withValues(alpha: 0.3),
+      color: AppColors.background.withValues(alpha: 0.3),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
@@ -88,15 +89,21 @@ class AppEffects {
 
   /// Decoração para containers glass
   static final BoxDecoration glassDecoration = BoxDecoration(
-    color: Colors.white.withValues(alpha: 0.03),
-    border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1),
+    color: AppColors.textPrimary.withValues(alpha: 0.03),
+    border: Border.all(
+      color: AppColors.textPrimary.withValues(alpha: 0.08),
+      width: 1,
+    ),
   );
 
   /// Decoração para cards glass
   static final BoxDecoration glassCardDecoration = BoxDecoration(
     color: AppColors.surface.withValues(alpha: 0.8),
-    borderRadius: BorderRadius.circular(16),
-    border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+    borderRadius: AppRadius.all16,
+    border: Border.all(
+      color: AppColors.textPrimary.withValues(alpha: 0.1),
+      width: 1,
+    ),
   );
 
   // ===========================================================================

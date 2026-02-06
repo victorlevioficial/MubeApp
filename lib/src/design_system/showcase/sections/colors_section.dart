@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -129,7 +130,7 @@ class _ColorSwatch extends StatelessWidget {
       width: 100,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.all8,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
       child: Column(
@@ -140,30 +141,28 @@ class _ColorSwatch extends StatelessWidget {
             decoration: BoxDecoration(
               color: item.color,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
+                top: Radius.circular(AppRadius.r8),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: AppSpacing.all8,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   item.name,
-                  style: AppTypography.bodySmall.copyWith(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                  style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textPrimary,
+                    fontWeight: AppTypography.buttonPrimary.fontWeight,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.s4),
                 Text(
                   _colorToHex(item.color),
-                  style: AppTypography.bodySmall.copyWith(
-                    fontSize: 10,
+                  style: AppTypography.labelSmall.copyWith(
                     fontFamily: 'monospace',
                     color: AppColors.textSecondary,
                   ),
@@ -192,7 +191,7 @@ class _GradientSwatch extends StatelessWidget {
       width: 140,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AppRadius.all8,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
       child: Column(
@@ -203,18 +202,17 @@ class _GradientSwatch extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: item.gradient,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
+                top: Radius.circular(AppRadius.r8),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: AppSpacing.all8,
             child: Text(
               item.name,
-              style: AppTypography.bodySmall.copyWith(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+              style: AppTypography.labelSmall.copyWith(
                 color: AppColors.textPrimary,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
               ),
             ),
           ),

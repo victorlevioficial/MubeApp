@@ -7,6 +7,7 @@ import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -80,11 +81,7 @@ class ProfileScreen extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.s4),
                       Text(
                         user.tipoPerfil?.label.toUpperCase() ?? '',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.primary,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTypography.profileTypeLabel,
                       ),
                       if (_getDisplayName(user) != user.nome) ...[
                         const SizedBox(height: AppSpacing.s4),
@@ -265,7 +262,7 @@ class ProfileScreen extends ConsumerWidget {
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.surfaceHighlight),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: AppRadius.pill,
               ),
             );
           }).toList(),

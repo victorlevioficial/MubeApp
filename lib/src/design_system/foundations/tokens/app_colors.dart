@@ -40,7 +40,6 @@ class AppColors {
   // Badge Colors
   static const Color _badgeFuchsia = Color(0xFFC026D3); // Fuchsia/Purple
   static const Color _badgeRed = Color(0xFFDC2626); // Red
-  static const Color _badgeChipBg = Color(0xFF1F1F23); // Dark gray
 
   // ===========================================================================
   // SEMANTIC TOKENS - PRIMARY
@@ -71,6 +70,9 @@ class AppColors {
 
   /// Cor de fundo principal (mais escura)
   static const Color background = _bgDeep;
+
+  /// Transparente
+  static const Color transparent = Color(0x00000000);
 
   /// Cor de superfície para cards e containers
   static const Color surface = _bgSurface;
@@ -135,9 +137,6 @@ class AppColors {
 
   /// Badge para estúdios
   static const Color badgeStudio = _badgeRed;
-
-  /// Fundo do chip de badge
-  static const Color badgeChipBackground = _badgeChipBg;
 
   // ===========================================================================
   // SEMANTIC TOKENS - SKELETON/LOADING

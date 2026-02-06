@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -74,7 +75,7 @@ class _TextStyleGroup extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.all12,
             border: Border.all(color: AppColors.surfaceHighlight),
           ),
           child: ListView.separated(
@@ -114,16 +115,14 @@ class _TypographyRow extends StatelessWidget {
             children: [
               Text(
                 item.name,
-                style: AppTypography.bodySmall.copyWith(
+                style: AppTypography.labelSmall.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 10,
                 ),
               ),
               Text(
                 '${item.style.fontSize?.toInt()}sp / ${item.style.fontWeight}',
-                style: AppTypography.bodySmall.copyWith(
+                style: AppTypography.labelSmall.copyWith(
                   color: AppColors.textTertiary,
-                  fontSize: 10,
                   fontFamily: 'monospace',
                 ),
               ),

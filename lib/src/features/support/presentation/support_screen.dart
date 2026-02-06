@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -34,7 +36,7 @@ class SupportScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.s16),
                 Expanded(
                   child: _SupportActionCard(
                     icon: Icons.history,
@@ -48,17 +50,17 @@ class SupportScreen extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // 2. FAQ Header
             Text('Perguntas Frequentes', style: AppTypography.headlineSmall),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
 
             // 3. FAQ List
             Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: AppRadius.all16,
                 border: Border.all(color: AppColors.surfaceHighlight),
               ),
               clipBehavior: Clip.antiAlias,
@@ -68,14 +70,11 @@ class SupportScreen extends StatelessWidget {
                   return Column(
                     children: [
                       ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                        tilePadding: AppSpacing.h16v8,
                         title: Text(
                           faq.question,
                           style: AppTypography.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppTypography.titleSmall.fontWeight,
                           ),
                         ),
                         backgroundColor: AppColors.surface,
@@ -86,12 +85,17 @@ class SupportScreen extends StatelessWidget {
                         children: [
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.s16,
+                              0,
+                              AppSpacing.s16,
+                              AppSpacing.s16,
+                            ),
                             child: Text(
                               faq.answer,
                               style: AppTypography.bodyMedium.copyWith(
                                 color: AppColors.textSecondary,
-                                height: 1.5,
+                                height: AppTypography.bodyLarge.height,
                               ),
                             ),
                           ),
@@ -108,7 +112,7 @@ class SupportScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // 4. Contact Info
             Center(
@@ -143,40 +147,34 @@ class _SupportActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
+      height: AppSpacing.s48,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
         border: Border.all(color: AppColors.surfaceHighlight),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppEffects.subtleShadow,
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: AppSpacing.all8,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 28),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.s8),
               Text(
                 title,
                 style: AppTypography.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: AppTypography.titleSmall.fontWeight,
                 ),
               ),
             ],

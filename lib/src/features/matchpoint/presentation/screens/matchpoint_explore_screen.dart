@@ -87,7 +87,7 @@ class _MatchpointExploreScreenState
           ),
           error: (err, stack) => Center(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: AppSpacing.all24,
               child: SelectableText(
                 'Erro: $err',
                 textAlign: TextAlign.center,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
+import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 enum SocialType { google, apple }
 
@@ -25,22 +28,22 @@ class SocialLoginButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: AppSpacing.s48,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           // foregroundColor and side are inherited from specific OutlinedButtonTheme or default
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: AppSpacing.h16,
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.pill),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              width: 24,
-              height: 24,
+              width: AppSpacing.s24,
+              height: AppSpacing.s24,
               child: Center(
                 child: SvgPicture.asset(
                   assetPath,
@@ -55,12 +58,11 @@ class SocialLoginButton extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.s12),
             Text(
               text,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              style: AppTypography.buttonSecondary.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w400,
               ),
             ),
           ],

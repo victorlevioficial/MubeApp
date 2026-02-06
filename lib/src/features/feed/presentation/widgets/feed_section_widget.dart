@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
@@ -38,7 +39,7 @@ class FeedSectionWidget extends StatelessWidget {
               Text(
                 title,
                 style: AppTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTypography.buttonPrimary.fontWeight,
                 ),
               ),
             ],
@@ -90,7 +91,7 @@ class FeedSectionWidget extends StatelessWidget {
             margin: const EdgeInsets.only(right: AppSpacing.s12),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.all12,
             ),
             child: const Icon(
               Icons.arrow_forward_ios,
@@ -105,7 +106,7 @@ class FeedSectionWidget extends StatelessWidget {
               'Ver todos',
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
               ),
             ),
           ),

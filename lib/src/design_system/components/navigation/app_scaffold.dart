@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/chat/data/chat_unread_provider.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 /// Scaffold principal com navegação inferior do Design System Mube.
 ///
@@ -31,7 +32,7 @@ class AppScaffold extends StatelessWidget {
           );
         },
         backgroundColor: AppColors.surface,
-        indicatorColor: Colors.transparent,
+        indicatorColor: AppColors.transparent,
         elevation: 0,
         height: 72,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -85,7 +86,10 @@ class AppScaffold extends StatelessWidget {
             isLabelVisible: unreadCount > 0,
             label: Text(
               unreadCount > 99 ? '99+' : '$unreadCount',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: AppTypography.chipLabel.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
+              ),
             ),
             backgroundColor: AppColors.primary,
             child: Icon(
@@ -104,7 +108,10 @@ class AppScaffold extends StatelessWidget {
             isLabelVisible: unreadCount > 0,
             label: Text(
               unreadCount > 99 ? '99+' : '$unreadCount',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: AppTypography.chipLabel.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
+              ),
             ),
             backgroundColor: AppColors.primary,
             child: const Icon(

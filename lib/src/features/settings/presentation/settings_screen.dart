@@ -10,6 +10,8 @@ import '../../../design_system/components/feedback/app_confirmation_dialog.dart'
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../design_system/presentation/widgetbook_screen.dart';
 import '../../../routing/route_paths.dart';
@@ -30,13 +32,13 @@ class SettingsScreen extends ConsumerWidget {
       appBar: const AppAppBar(title: 'Configurações', showBackButton: false),
       extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: AppSpacing.h16v8,
         child: Column(
           children: [
             // 1. DASHBOARD HEADER (BENTO)
             const BentoHeader(),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: AppSpacing.s32),
 
             // 2. SETTINGS GROUPS
             SettingsGroup(
@@ -174,12 +176,12 @@ class SettingsScreen extends ConsumerWidget {
                 ],
               ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.s16),
 
             // 3. ACTION BUTTONS (Logout / Delete)
             _buildLogoutButton(context, ref),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s12),
 
             TextButton(
               onPressed: () => _confirmDeactivate(context, ref),
@@ -192,7 +194,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: AppSpacing.s40),
           ],
         ),
       ),
@@ -205,24 +207,24 @@ class SettingsScreen extends ConsumerWidget {
       height: 56,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: () => _confirmLogout(context, ref),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.logout, color: AppColors.textPrimary, size: 20),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.s8),
               Text(
                 'Sair da Conta',
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: AppTypography.titleSmall.fontWeight,
                 ),
               ),
             ],

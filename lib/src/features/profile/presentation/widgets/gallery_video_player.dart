@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/app_logger.dart';
 
 /// Professional video player widget with auto-hide controls
@@ -98,18 +101,17 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error, color: Colors.red, size: 64),
-            SizedBox(height: 16),
+            const Icon(Icons.error, color: AppColors.error, size: 64),
+            const SizedBox(height: AppSpacing.s16),
             Text(
               'Erro ao carregar vídeo',
-              style: TextStyle(
-                color: Colors.white,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textPrimary,
                 decoration: TextDecoration.none,
-                fontSize: 16,
               ),
             ),
           ],
@@ -119,7 +121,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
 
     if (!_isInitialized) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+        child: CircularProgressIndicator(color: AppColors.textPrimary),
       );
     }
 
@@ -128,7 +130,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
         _showControlsWithTimer();
       },
       child: Container(
-        color: Colors.black,
+        color: AppColors.background,
         child: Center(
           child: AspectRatio(
             aspectRatio: _controller.value.aspectRatio,
@@ -148,10 +150,10 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withValues(alpha: 0.7),
-                          Colors.transparent,
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.7),
+                          AppColors.background.withValues(alpha: 0.7),
+                          AppColors.transparent,
+                          AppColors.transparent,
+                          AppColors.background.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -168,15 +170,15 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                       onTap: _togglePlayPause,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: AppColors.background.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
-                        padding: const EdgeInsets.all(20),
+                        padding: AppSpacing.all16,
                         child: Icon(
                           _controller.value.isPlaying
                               ? Icons.pause
                               : Icons.play_arrow,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           size: 56,
                         ),
                       ),
@@ -193,18 +195,15 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                   child: IgnorePointer(
                     ignoring: !_showControls,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                      padding: AppSpacing.h16v12,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.8),
-                          ],
+                        colors: [
+                          AppColors.transparent,
+                          AppColors.background.withValues(alpha: 0.8),
+                        ],
                         ),
                       ),
                       child: Column(
@@ -214,7 +213,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                           SizedBox(
                             height: 32,
                             child: Material(
-                              color: Colors.transparent,
+                              color: AppColors.transparent,
                               child: SliderTheme(
                                 data: SliderThemeData(
                                   trackHeight: 3,
@@ -224,14 +223,15 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                                   overlayShape: const RoundSliderOverlayShape(
                                     overlayRadius: 14,
                                   ),
-                                  activeTrackColor: const Color(
-                                    0xFFFF2D55,
-                                  ), // Pink
-                                  inactiveTrackColor: Colors.white24,
-                                  thumbColor: const Color(0xFFFF2D55),
-                                  overlayColor: const Color(
-                                    0xFFFF2D55,
-                                  ).withValues(alpha: 0.3),
+                                  activeTrackColor: AppColors.primary,
+                                  inactiveTrackColor:
+                                      AppColors.textPrimary.withValues(
+                                    alpha: 0.24,
+                                  ),
+                                  thumbColor: AppColors.primary,
+                                  overlayColor: AppColors.primary.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                                 child: Slider(
                                   value: _controller
@@ -259,20 +259,18 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                           ),
                           // Time display
                           Padding(
-                            padding: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.only(top: AppSpacing.s4),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   _formatDuration(_controller.value.position),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: AppColors.textPrimary,
                                     decoration: TextDecoration.none,
-                                    fontWeight: FontWeight.w500,
-                                    shadows: [
+                                    shadows: const [
                                       Shadow(
-                                        color: Colors.black,
+                                        color: AppColors.background,
                                         offset: Offset(1, 1),
                                         blurRadius: 2,
                                       ),
@@ -281,14 +279,12 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                                 ),
                                 Text(
                                   _formatDuration(_controller.value.duration),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
+                                  style: AppTypography.labelMedium.copyWith(
+                                    color: AppColors.textPrimary,
                                     decoration: TextDecoration.none,
-                                    fontWeight: FontWeight.w500,
-                                    shadows: [
+                                    shadows: const [
                                       Shadow(
-                                        color: Colors.black,
+                                        color: AppColors.background,
                                         offset: Offset(1, 1),
                                         blurRadius: 2,
                                       ),

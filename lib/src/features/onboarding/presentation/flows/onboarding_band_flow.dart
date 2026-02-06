@@ -13,6 +13,7 @@ import '../../../../design_system/components/navigation/responsive_center.dart';
 import '../../../../design_system/components/patterns/onboarding_header.dart';
 import '../../../../design_system/components/patterns/onboarding_section_card.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
@@ -152,7 +153,10 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         child: SingleChildScrollView(
           child: ResponsiveCenter(
             maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s24,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -200,7 +204,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           padding: const EdgeInsets.all(AppSpacing.s24),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.all16,
             border: Border.all(color: AppColors.surfaceHighlight),
           ),
           child: Column(
@@ -208,7 +212,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
               Text(
                 'Sua banda será criada como Rascunho (Draft) e não aparecerá no feed do Mube.',
                 style: AppTypography.bodyMedium.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTypography.buttonPrimary.fontWeight,
                   color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
@@ -274,7 +278,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                   final result = await showModalBottomSheet<List<String>>(
                     context: context,
                     isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
+                    backgroundColor: AppColors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Gêneros Musicais',
                       items: ref.read(genreLabelsProvider),

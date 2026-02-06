@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design_system/components/chips/mube_filter_chip.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../domain/search_filters.dart';
 
 /// Dynamic horizontal filter bar that shows relevant filters based on category.
@@ -33,13 +34,13 @@ class SearchFilterBar extends StatelessWidget {
     final dynamicChips = _buildDynamicChips();
 
     return SizedBox(
-      height: 40,
+      height: AppSpacing.s40,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
           _buildGenresChip(context),
           if (dynamicChips.isNotEmpty) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.s8),
             ...dynamicChips,
           ],
         ],
@@ -52,14 +53,14 @@ class SearchFilterBar extends StatelessWidget {
       case SearchCategory.professionals:
         return [
           _buildSubcategoryChip('Cantor', ProfessionalSubcategory.singer),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildSubcategoryChip(
             'Instrumentista',
             ProfessionalSubcategory.instrumentalist,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildSubcategoryChip('DJ', ProfessionalSubcategory.dj),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildSubcategoryChip('Equipe Técnica', ProfessionalSubcategory.crew),
         ];
 
@@ -69,9 +70,9 @@ class SearchFilterBar extends StatelessWidget {
       case SearchCategory.studios:
         return [
           _buildSelectableChip('Gravação', 'recording', isService: true),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildSelectableChip('Ensaio', 'rehearsal', isService: true),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           _buildSelectableChip('Mix/Master', 'mix_master', isService: true),
         ];
 

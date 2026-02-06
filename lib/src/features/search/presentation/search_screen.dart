@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../feed/domain/feed_item.dart';
@@ -169,7 +170,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         height: 48,
         decoration: BoxDecoration(
           color: hasActiveFilters ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
         ),
         child: Icon(
           Icons.tune,
@@ -189,7 +190,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (_) => FilterModal(
         filters: filters,
         onApply: (newFilters) {
@@ -224,7 +225,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 return const FeedLoadingMore();
               }
               return state.hasMore
-                  ? const SizedBox(height: 80)
+                  ? const SizedBox(height: AppSpacing.s48)
                   : const SizedBox.shrink();
             }
 

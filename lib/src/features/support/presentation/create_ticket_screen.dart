@@ -7,6 +7,7 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import 'support_controller.dart';
@@ -93,10 +94,10 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.all12,
                   border: Border.all(color: AppColors.surfaceHighlight),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: AppSpacing.h16,
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedCategory,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../core/services/image_cache_config.dart';
 import '../../domain/media_item.dart';
@@ -54,7 +55,7 @@ class _GalleryItem extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.all8,
             child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
@@ -62,7 +63,8 @@ class _GalleryItem extends StatelessWidget {
               fadeOutDuration: Duration.zero,
               useOldImageOnUrlChange: true,
               cacheManager: ImageCacheConfig.thumbnailCacheManager,
-              placeholder: (context, url) => AppShimmer.box(borderRadius: 8),
+              placeholder: (context, url) =>
+                  AppShimmer.box(borderRadius: AppRadius.r8),
               errorWidget: (context, url, error) => Container(
                 color: AppColors.surface,
                 child: const Icon(
@@ -79,14 +81,17 @@ class _GalleryItem extends StatelessWidget {
               bottom: 4,
               left: 4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s4,
+                  vertical: AppSpacing.s2,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.background.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: AppRadius.all4,
                 ),
                 child: const Icon(
                   Icons.play_arrow,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                   size: 14,
                 ),
               ),

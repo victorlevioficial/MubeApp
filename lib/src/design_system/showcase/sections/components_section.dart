@@ -19,12 +19,14 @@ class ComponentsSection extends StatelessWidget {
           children: [
             const AppChip(label: 'Skill Chip', variant: AppChipVariant.skill),
             const AppChip(label: 'Genre Chip', variant: AppChipVariant.genre),
-            const Text(
+            Text(
               'Filter Chips:',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             Wrap(
-              spacing: 8,
+              spacing: AppSpacing.s8,
               children: [
                 AppChip(
                   label: 'Unselected',

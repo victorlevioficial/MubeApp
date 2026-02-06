@@ -4,6 +4,7 @@ import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 /// Semantic snackbar types for consistent styling.
 enum SnackBarType { success, error, info, warning }
@@ -96,8 +97,7 @@ class AppSnackBar {
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
+                style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),

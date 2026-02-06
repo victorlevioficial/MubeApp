@@ -11,6 +11,7 @@ import '../../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/app_logger.dart';
@@ -135,7 +136,7 @@ class _ProfessionalFormFieldsState
             padding: const EdgeInsets.all(AppSpacing.s16),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppRadius.all16,
             ),
             child: AppDropdownField<String>(
               label: 'Faz Backing Vocal?',
@@ -175,7 +176,7 @@ class _ProfessionalFormFieldsState
             padding: const EdgeInsets.all(AppSpacing.s16),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppRadius.all16,
             ),
             child: Row(
               children: [
@@ -189,7 +190,7 @@ class _ProfessionalFormFieldsState
                       width: 2,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.all4,
                     ),
                     onChanged: (v) =>
                         widget.onInstrumentalistBackingVocalChanged(v ?? false),
@@ -239,7 +240,7 @@ class _ProfessionalFormFieldsState
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,7 +255,7 @@ class _ProfessionalFormFieldsState
               final result = await showModalBottomSheet<List<String>>(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 builder: (context) => AppSelectionModal(
                   title: 'Categorias',
                   items: options,
@@ -321,7 +322,7 @@ class _ProfessionalFormFieldsState
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -336,7 +337,7 @@ class _ProfessionalFormFieldsState
               final result = await showModalBottomSheet<List<String>>(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 builder: (context) => AppSelectionModal(
                   title: label,
                   items: options,

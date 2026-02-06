@@ -39,6 +39,15 @@ class AppTypography {
     letterSpacing: -0.5,
   );
 
+  /// Headline Compact - 24px, Bold
+  /// Uso: Títulos de tela mais compactos
+  static TextStyle get headlineCompact => GoogleFonts.poppins(
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    letterSpacing: -0.2,
+  );
+
   /// Headline Medium - 20px, Bold
   /// Uso: Títulos de seção
   static TextStyle get headlineMedium => GoogleFonts.poppins(
@@ -171,6 +180,39 @@ class AppTypography {
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
     letterSpacing: 0.1,
+  );
+
+  /// Estilo para título de grupo em settings
+  static TextStyle get settingsGroupTitle => GoogleFonts.inter(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textSecondary,
+    letterSpacing: 2.0,
+  );
+
+  /// Estilo para label do tipo de perfil
+  static TextStyle get profileTypeLabel => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.primary,
+    letterSpacing: 1.5,
+  );
+
+  /// Estilo para título do Match Success
+  static TextStyle get matchSuccessTitle => GoogleFonts.poppins(
+    fontSize: 48,
+    fontWeight: FontWeight.w900,
+    fontStyle: FontStyle.italic,
+    color: AppColors.primary,
+    letterSpacing: 2,
+  );
+
+  /// Estilo para kicker do Match Success
+  static TextStyle get matchSuccessKicker => GoogleFonts.poppins(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    letterSpacing: 4,
   );
 
   /// Estilo para botão primário

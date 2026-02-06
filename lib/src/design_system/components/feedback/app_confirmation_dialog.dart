@@ -34,14 +34,16 @@ class AppConfirmationDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context, false),
           child: Text(
             cancelText,
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: AppTypography.buttonSecondary.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
           child: Text(
             confirmText,
-            style: TextStyle(
+            style: AppTypography.buttonSecondary.copyWith(
               color: isDestructive ? AppColors.error : AppColors.primary,
             ),
           ),

@@ -217,12 +217,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   AppSpacing.s16,
                   AppSpacing.s12,
                 ),
-                child: Text(
-                  'Destaques',
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: Text('Destaques', style: AppTypography.titleMedium),
               ),
             ),
 
@@ -247,7 +242,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 padding: EdgeInsets.zero, // Remove padding duplo, o skeleton já tem
               ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.s48)),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/design_system/components/feedback/app_snackbar.dart';
 import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 
@@ -164,7 +165,7 @@ class _DeveloperToolsScreenState extends ConsumerState<DeveloperToolsScreen> {
         showBackButton: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: AppSpacing.all16,
         children: [
           _buildToolCard(
             title: 'Testar Notificação Real',

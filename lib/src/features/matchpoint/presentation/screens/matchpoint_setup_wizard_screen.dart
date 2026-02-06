@@ -10,6 +10,7 @@ import '../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../controllers/matchpoint_controller.dart';
@@ -103,7 +104,7 @@ class _MatchpointSetupWizardScreenState
                     text: 'Voltar',
                   )
                 else
-                  const SizedBox(width: 64), // Keep layout stable
+                  const SizedBox(width: AppSpacing.s48),
 
               AppButton.primary(
                 onPressed: ref.watch(matchpointControllerProvider).isLoading
@@ -182,14 +183,14 @@ class _MatchpointSetupWizardScreenState
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.all12,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
               : AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
@@ -219,7 +220,7 @@ class _MatchpointSetupWizardScreenState
                           : AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.s4),
                   Text(
                     subtitle,
                     style: AppTypography.bodySmall.copyWith(

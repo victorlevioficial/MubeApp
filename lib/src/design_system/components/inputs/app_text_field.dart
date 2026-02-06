@@ -87,7 +87,7 @@ class AppTextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.maxLength,
-    this.scrollPadding = const EdgeInsets.all(20.0),
+    this.scrollPadding = AppSpacing.all16,
     this.focusNode,
     this.textInputAction,
     this.errorText,

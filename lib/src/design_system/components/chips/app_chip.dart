@@ -93,7 +93,6 @@ class AppChip extends StatelessWidget {
         label,
         style: AppTypography.chipLabel.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -113,7 +112,6 @@ class AppChip extends StatelessWidget {
         label,
         style: AppTypography.chipLabel.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -124,7 +122,10 @@ class AppChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s8,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.surfaceHighlight,
           borderRadius: AppRadius.pill,
@@ -144,7 +145,9 @@ class AppChip extends StatelessWidget {
               label,
               style: AppTypography.labelMedium.copyWith(
                 color: AppColors.textPrimary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: isSelected
+                    ? AppTypography.buttonPrimary.fontWeight
+                    : AppTypography.labelMedium.fontWeight,
               ),
             ),
             if (onDeleted != null) ...[

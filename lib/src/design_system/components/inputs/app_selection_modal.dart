@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 import '../buttons/app_button.dart';
@@ -81,7 +82,7 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
       height: MediaQuery.of(context).size.height * 0.70,
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: AppRadius.top24,
       ),
       child: Column(
         children: [

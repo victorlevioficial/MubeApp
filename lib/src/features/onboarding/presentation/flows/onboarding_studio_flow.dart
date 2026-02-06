@@ -15,6 +15,7 @@ import '../../../../design_system/components/navigation/responsive_center.dart';
 import '../../../../design_system/components/patterns/onboarding_header.dart';
 import '../../../../design_system/components/patterns/onboarding_section_card.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
@@ -187,7 +188,10 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         child: SingleChildScrollView(
           child: ResponsiveCenter(
             maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s24,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -299,9 +303,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
+            color: isSelected ? AppColors.primary : AppColors.transparent,
             width: 1,
           ),
         ),
@@ -329,7 +333,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                   Text(
                     title,
                     style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
                       color: isSelected
                           ? AppColors.textPrimary
                           : AppColors.textSecondary,
@@ -386,7 +390,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                   final result = await showModalBottomSheet<List<String>>(
                     context: context,
                     isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
+                    backgroundColor: AppColors.transparent,
                     builder: (context) => AppSelectionModal(
                       title: 'Serviços do Estúdio',
                       items: availableServices.isNotEmpty

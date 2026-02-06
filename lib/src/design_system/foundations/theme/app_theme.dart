@@ -101,9 +101,7 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         modalBackgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(24),
-          ), // Pro Radius
+          borderRadius: AppRadius.top24, // Pro Radius
         ),
       ),
 
@@ -177,7 +175,7 @@ class AppTheme {
           minimumSize: WidgetStateProperty.all(const Size(64, 56)),
           elevation: WidgetStateProperty.all(0), // Removed elevation
           shadowColor: WidgetStateProperty.all(
-            Colors.transparent,
+            AppColors.transparent,
           ), // Removed glow
           overlayColor: WidgetStateProperty.all(
             AppColors.textPrimary.withValues(alpha: 0.08),
@@ -219,7 +217,7 @@ class AppTheme {
           return null;
         }),
         checkColor: WidgetStateProperty.all(AppColors.textPrimary),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.all4),
         side: const BorderSide(color: AppColors.textSecondary, width: 2),
       ),
     );

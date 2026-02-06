@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../domain/ticket_model.dart';
 import 'support_controller.dart';
@@ -31,7 +33,7 @@ class TicketListScreen extends ConsumerWidget {
                     size: 64,
                     color: AppColors.textSecondary,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.s16),
                   Text(
                     'Nenhum chamado aberto',
                     style: AppTypography.bodyLarge.copyWith(
@@ -43,9 +45,9 @@ class TicketListScreen extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: AppSpacing.all16,
             itemCount: tickets.length,
-            separatorBuilder: (_, index) => const SizedBox(height: 12),
+            separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.s12),
             itemBuilder: (context, index) {
               final ticket = tickets[index];
               return _TicketCard(ticket: ticket);
@@ -83,18 +85,18 @@ class _TicketCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: () {
             // Navegação para detalhes será implementada na v2
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: AppSpacing.all16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -103,14 +105,14 @@ class _TicketCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s4,
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(
                           ticket.status,
                         ).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: AppRadius.all8,
                         border: Border.all(
                           color: _getStatusColor(ticket.status),
                           width: 1,
@@ -120,7 +122,7 @@ class _TicketCard extends StatelessWidget {
                         ticket.status.label.toUpperCase(),
                         style: AppTypography.labelSmall.copyWith(
                           color: _getStatusColor(ticket.status),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                         ),
                       ),
                     ),
@@ -132,14 +134,14 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.s12),
                 Text(
                   ticket.title,
                   style: AppTypography.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: AppTypography.titleSmall.fontWeight,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.s4),
                 Text(
                   ticket.description,
                   maxLines: 2,

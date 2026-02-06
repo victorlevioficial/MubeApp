@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/geohash_helper.dart';
@@ -200,15 +201,15 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                     const SizedBox(height: AppSpacing.s12),
                     const Divider(),
                     const SizedBox(height: AppSpacing.s12),
-                    const Text(
+                    Text(
                       'Resumo de Dados (Recomendado)',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: AppTypography.titleSmall,
                     ),
                     const SizedBox(height: AppSpacing.s8),
-                    const Text(
+                    Text(
                       'Se a migração acima falhar por permissão, use estes botões:',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 12),
+                      style: AppTypography.bodySmall,
                     ),
                     const SizedBox(height: AppSpacing.s12),
                     Row(
@@ -234,24 +235,25 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
             ),
             if (_report.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.s24),
-              const Text(
+              Text(
                 'Relatório:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: AppTypography.titleSmall,
               ),
               const SizedBox(height: AppSpacing.s8),
               Container(
                 padding: const EdgeInsets.all(AppSpacing.s12),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.white10),
+                  color: AppColors.background,
+                  borderRadius: AppRadius.all8,
+                  border: Border.all(
+                    color: AppColors.textPrimary.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Text(
                   _report,
-                  style: const TextStyle(
+                  style: AppTypography.bodySmall.copyWith(
                     fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: Colors.greenAccent,
+                    color: AppColors.success,
                   ),
                 ),
               ),
@@ -262,10 +264,12 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
               text: 'ADICIONAR GEOHASH (OTIMIZAÇÃO)',
               isFullWidth: true,
             ),
-            const Text(
+            Text(
               'Adiciona geohash aos usuários existentes para queries 10x mais rápidas',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10),
+              style: AppTypography.chipLabel.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 
 // Re-export skeletons from centralized file
 export 'app_skeleton.dart'
@@ -75,7 +76,7 @@ class AppShimmer extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           color: AppColors.surfaceHighlight,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: AppRadius.all4,
         ),
       ),
     );

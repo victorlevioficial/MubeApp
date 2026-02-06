@@ -33,7 +33,7 @@ void main() async {
         return pw.Container(
           color: bgDeep,
           alignment: pw.Alignment.center,
-          padding: const pw.EdgeInsets.all(40),
+            padding: const pw.EdgeInsets.all(40),
           child: pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -46,7 +46,7 @@ void main() async {
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 20),
+              pw.SizedBox(height: 16),
               pw.Divider(color: brandPrimary, thickness: 2),
               pw.SizedBox(height: 40),
               pw.Text(
@@ -87,7 +87,7 @@ void main() async {
         return [
           _buildSectionHeader('1. CAPITAL SOCIAL E DISTRIBUIÇÃO', brandPrimary),
           _buildText('Capital dividido em 100.000 quotas.', textWhite),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 8),
           _buildBulletPoint('Victor: 50.000 quotas (50%)', textGray),
           _buildBulletPoint('Igor: 15.000 quotas (15%)', textGray),
           _buildBulletPoint('Diogo: 8.000 quotas (8%)', textGray),
@@ -96,7 +96,7 @@ void main() async {
             textGray,
           ),
           _buildBulletPoint('Pool estratégico: 5.000 quotas (5%)', textGray),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           _buildSectionHeader('2. VESTING', brandPrimary),
           _buildSubHeader('Bruninha:', textWhite),
@@ -109,14 +109,14 @@ void main() async {
             'Restante adquirido mensalmente até completar 48 meses.',
             textGray,
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 8),
           _buildSubHeader('Diogo:', textWhite),
           _buildBulletPoint('3% fixo com cliff de 12 meses.', textGray),
           _buildBulletPoint(
             '5% condicionado a metas objetivas de crescimento e divulgação.',
             textGray,
           ),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 8),
           _buildSubHeader('Igor:', textWhite),
           _buildBulletPoint('10% fixo imediato.', textGray),
           _buildBulletPoint(
@@ -124,29 +124,29 @@ void main() async {
             textGray,
           ),
           _buildBulletPoint('Aportes futuros via Mútuo Conversível.', textGray),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           _buildSectionHeader('3. GOVERNANÇA', brandPrimary),
           _buildBulletPoint('Decisões simples: maioria simples.', textGray),
           _buildBulletPoint('Decisões estratégicas: 75% dos votos.', textGray),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           _buildSectionHeader('4. NÃO CONCORRÊNCIA', brandPrimary),
           _buildText('Prazo de 24 meses após saída.', textGray),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           _buildSectionHeader('5. CONFIDENCIALIDADE', brandPrimary),
           _buildText(
             'Proteção integral de código, base de dados e estratégia.',
             textGray,
           ),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           pw.Divider(color: brandPrimary),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
 
           _buildSectionHeader('CAP TABLE EVOLUTIVA', brandPrimary),
-          pw.SizedBox(height: 10),
+          pw.SizedBox(height: 8),
           _buildCapTable(textWhite, textGray, brandPrimary, bgSurface),
         ];
       },
@@ -160,7 +160,7 @@ void main() async {
 
 pw.Widget _buildSectionHeader(String text, PdfColor color) {
   return pw.Container(
-    margin: const pw.EdgeInsets.only(bottom: 10, top: 10),
+    margin: const pw.EdgeInsets.only(bottom: 8, top: 8),
     child: pw.Text(
       text,
       style: pw.TextStyle(
@@ -174,7 +174,7 @@ pw.Widget _buildSectionHeader(String text, PdfColor color) {
 
 pw.Widget _buildSubHeader(String text, PdfColor color) {
   return pw.Padding(
-    padding: const pw.EdgeInsets.only(bottom: 5, left: 10),
+    padding: const pw.EdgeInsets.only(bottom: 4, left: 8),
     child: pw.Text(
       text,
       style: pw.TextStyle(
@@ -192,14 +192,14 @@ pw.Widget _buildText(String text, PdfColor color) {
 
 pw.Widget _buildBulletPoint(String text, PdfColor color) {
   return pw.Padding(
-    padding: const pw.EdgeInsets.only(left: 20, bottom: 2),
+    padding: const pw.EdgeInsets.only(left: 16, bottom: 2),
     child: pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Container(
           width: 4,
           height: 4,
-          margin: const pw.EdgeInsets.only(top: 5, right: 5),
+          margin: const pw.EdgeInsets.only(top: 4, right: 4),
           decoration: pw.BoxDecoration(color: color, shape: pw.BoxShape.circle),
         ),
         pw.Expanded(

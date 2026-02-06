@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
 class AppCheckbox extends StatelessWidget {
@@ -32,7 +33,7 @@ class AppCheckbox extends StatelessWidget {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           Text(
             label,
             style: AppTypography.bodyMedium.copyWith(

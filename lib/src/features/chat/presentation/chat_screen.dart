@@ -7,6 +7,8 @@ import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
@@ -170,7 +172,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao enviar mensagem: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -218,7 +220,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true, // Mais recentes embaixo
-                  padding: const EdgeInsets.all(16),
+                  padding: AppSpacing.all16,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
@@ -292,7 +294,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       child: Row(
         children: [
           UserAvatar(size: 36, photoUrl: _otherUserPhoto, name: _otherUserName),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
           Expanded(
             child: Text(
               _otherUserName,
@@ -310,10 +312,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Container(
       padding: EdgeInsets.only(
-        left: 12,
-        right: 12,
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 8,
+        left: AppSpacing.s12,
+        right: AppSpacing.s12,
+        top: AppSpacing.s8,
+        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.s8,
       ),
       decoration: BoxDecoration(
         color: AppColors.background,
@@ -348,27 +350,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 fillColor: AppColors.surface,
                 counterText: '',
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: AppSpacing.h16v12,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.s8),
 
           // Send Button - WhatsApp style (arrow right)
           GestureDetector(
@@ -390,12 +389,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                         ),
                       )
                     : Icon(
                         Icons.send_rounded, // WhatsApp-style send icon
-                        color: hasText ? Colors.white : AppColors.textTertiary,
+                        color: hasText
+                            ? AppColors.textPrimary
+                            : AppColors.textTertiary,
                         size: 20,
                       ),
               ),
@@ -421,7 +422,7 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
       child: Row(
         mainAxisAlignment: isMe
             ? MainAxisAlignment.end
@@ -431,18 +432,21 @@ class _MessageBubble extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.75,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s8,
+            ),
             decoration: BoxDecoration(
               color: isMe ? AppColors.primary : AppColors.surface,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
+                topLeft: const Radius.circular(AppRadius.r24),
+                topRight: const Radius.circular(AppRadius.r24),
                 bottomLeft: isMe
-                    ? const Radius.circular(20)
-                    : const Radius.circular(4),
+                    ? const Radius.circular(AppRadius.r24)
+                    : const Radius.circular(AppRadius.r4),
                 bottomRight: isMe
-                    ? const Radius.circular(4)
-                    : const Radius.circular(20),
+                    ? const Radius.circular(AppRadius.r4)
+                    : const Radius.circular(AppRadius.r24),
               ),
               border: !isMe
                   ? Border.all(
@@ -460,21 +464,20 @@ class _MessageBubble extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.s2),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       _formatTime(message.createdAt.toDate().toLocal()),
-                      style: AppTypography.bodySmall.copyWith(
+                      style: AppTypography.chipLabel.copyWith(
                         color: isMe
                             ? AppColors.textPrimary.withValues(alpha: 0.7)
                             : AppColors.textSecondary,
-                        fontSize: 10,
                       ),
                     ),
                     if (isMe) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.s4),
                       Icon(
                         isRead ? Icons.done_all : Icons.done,
                         size: 14,
@@ -504,13 +507,13 @@ class _ChatShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.all16,
       itemCount: 8,
       reverse: true,
       itemBuilder: (context, index) {
         final isMe = index % 2 == 0;
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.only(bottom: AppSpacing.s16),
           child: Row(
             mainAxisAlignment: isMe
                 ? MainAxisAlignment.end
@@ -526,7 +529,7 @@ class _ChatShimmer extends StatelessWidget {
                     height: 48,
                     borderRadius: 16,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.s4),
                   AppShimmer.text(width: 40, height: 10),
                 ],
               ),

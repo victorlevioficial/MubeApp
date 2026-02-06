@@ -11,6 +11,8 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/app_logger.dart';
@@ -686,40 +688,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 // Custom Rounded TabBar
                 if (!isContractor)
                   Container(
-                    margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-                    height: 48,
+                    margin: const EdgeInsets.fromLTRB(
+                      AppSpacing.s16,
+                      AppSpacing.s8,
+                      AppSpacing.s16,
+                      AppSpacing.s16,
+                    ),
+                    height: AppSpacing.s48,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(100), // Fully rounded
+                      borderRadius: AppRadius.pill, // Fully rounded
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: AppColors.textPrimary.withValues(alpha: 0.05),
                       ),
                     ),
                     child: TabBar(
                       controller: _tabController,
-                      labelColor: Colors.white,
+                      labelColor: AppColors.textPrimary,
                       unselectedLabelColor: AppColors.textSecondary,
                       labelStyle: AppTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
                       ),
                       unselectedLabelStyle: AppTypography.bodyMedium,
                       indicator: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(
-                          100,
-                        ), // Fully rounded
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(
-                              alpha: 0.3,
-                            ),
-                            blurRadius: 10,
-                          ),
-                        ],
+                        borderRadius: AppRadius.pill, // Fully rounded
+                        boxShadow: AppEffects.buttonShadow,
                       ),
                       indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: Colors.transparent,
-                      padding: const EdgeInsets.all(4),
+                      dividerColor: AppColors.transparent,
+                      padding: AppSpacing.all4,
                       tabs: const [
                         Tab(text: 'Perfil'),
                         Tab(text: 'Mídia & Portfólio'),
@@ -749,7 +747,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   Widget _buildProfileTab(AppUser user) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s24,
+        vertical: AppSpacing.s8,
+      ),
       child: Form(
         key: _formKey,
         child: Column(
@@ -766,7 +767,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: AppColors.textPrimary.withValues(alpha: 0.2),
                         width: 1,
                       ),
                     ),
@@ -823,7 +824,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: AppSpacing.all8,
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
@@ -834,7 +835,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                         ),
                         child: const Icon(
                           Icons.camera_alt,
-                          color: Colors.white,
+                          color: AppColors.textPrimary,
                           size: 16,
                         ),
                       ),

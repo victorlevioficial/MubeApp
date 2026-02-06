@@ -3,11 +3,12 @@ import 'package:widgetbook/widgetbook.dart';
 import 'package:widgetbook_annotation/widgetbook_annotation.dart' as widgetbook;
 
 import 'app_button.dart';
+import '../../foundations/tokens/app_spacing.dart';
 
 @widgetbook.UseCase(name: 'Default', type: AppButton)
 Widget buildAppButton(BuildContext context) {
   return Padding(
-    padding: const EdgeInsets.all(16.0),
+    padding: AppSpacing.all16,
     child: Center(
       child: AppButton(
         text: context.knobs.string(label: 'Text', initialValue: 'Click Me'),
@@ -35,17 +36,17 @@ Widget buildAppButton(BuildContext context) {
 @widgetbook.UseCase(name: 'Variants', type: AppButton)
 Widget buildAppButtonVariants(BuildContext context) {
   return const Padding(
-    padding: EdgeInsets.all(16.0),
+    padding: AppSpacing.all16,
     child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           AppButton.primary(text: 'Primary Button', onPressed: null),
-          SizedBox(height: 16),
+          SizedBox(height: AppSpacing.s16),
           AppButton.secondary(text: 'Secondary Button', onPressed: null),
-          SizedBox(height: 16),
+          SizedBox(height: AppSpacing.s16),
           AppButton.outline(text: 'Outline Button', onPressed: null),
-          SizedBox(height: 16),
+          SizedBox(height: AppSpacing.s16),
           AppButton.ghost(text: 'Ghost Button', onPressed: null),
         ],
       ),

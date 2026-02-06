@@ -7,6 +7,7 @@ import 'package:like_button/like_button.dart';
 
 import '../../../features/favorites/domain/favorite_controller.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
 /// An optimistic like button that manages its own animation state locally
@@ -127,12 +128,14 @@ class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
         if (!widget.showCount || count == null) return const SizedBox.shrink();
 
         return Padding(
-          padding: const EdgeInsets.only(top: 2.0),
+          padding: const EdgeInsets.only(top: AppSpacing.s2),
           child: Text(
             text,
             style: AppTypography.labelMedium.copyWith(
               color: isLiked ? AppColors.primary : AppColors.textSecondary,
-              fontWeight: isLiked ? FontWeight.w600 : FontWeight.w500,
+              fontWeight: isLiked
+                  ? AppTypography.buttonPrimary.fontWeight
+                  : AppTypography.labelMedium.fontWeight,
             ),
           ),
         );

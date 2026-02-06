@@ -6,6 +6,7 @@ import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/app_logger.dart';
@@ -51,7 +52,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -66,7 +67,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
               final result = await showModalBottomSheet<List<String>>(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 builder: (context) => AppSelectionModal(
                   title: label,
                   items: options,

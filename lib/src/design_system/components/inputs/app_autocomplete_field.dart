@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
+import '../../foundations/tokens/app_spacing.dart';
 import 'app_text_field.dart';
 
 /// Campo de autocomplete do Design System Mube.
@@ -149,7 +150,7 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
                 _removeOverlay();
               },
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
+              child: Container(color: AppColors.transparent),
             ),
           ),
           Positioned(
@@ -168,7 +169,7 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
                 elevation: 8,
                 color: AppColors.surface,
                 borderRadius: AppRadius.all12,
-                shadowColor: Colors.black.withValues(alpha: 0.15),
+                shadowColor: AppColors.background.withValues(alpha: 0.15),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 250),
                   decoration: BoxDecoration(
@@ -182,7 +183,7 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
                   child: widget.options.isEmpty
                       ? const SizedBox.shrink()
                       : ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: AppSpacing.v8,
                           shrinkWrap: true,
                           itemCount: widget.options.length,
                           separatorBuilder: (context, index) => Divider(

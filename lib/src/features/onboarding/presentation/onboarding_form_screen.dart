@@ -6,6 +6,7 @@ import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -232,12 +233,11 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                 children: [
                   Text(
                     'Cadastro: ${user.tipoPerfil!.label.toUpperCase()}',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    style: AppTypography.titleLarge.copyWith(
                       color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.s24),
 
                   // Campos Comuns (Nome e Localização)
                   AppTextField(
@@ -294,11 +294,9 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                       children: [
                         Text(
                           'Foto de Perfil',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.s8),
                         GestureDetector(
@@ -321,7 +319,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                                   : Theme.of(
                                       context,
                                     ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: AppRadius.all12,
                               image: _fotoUrl != null
                                   ? const DecorationImage(
                                       image: CachedNetworkImageProvider(

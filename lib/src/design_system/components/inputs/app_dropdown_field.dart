@@ -115,7 +115,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
             child: GestureDetector(
               onTap: _removeOverlay,
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
+              child: Container(color: AppColors.transparent),
             ),
           ),
           // The Dropdown List
@@ -129,7 +129,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                 elevation: 8,
                 color: AppColors.surface,
                 borderRadius: AppRadius.all12,
-                shadowColor: Colors.black.withValues(alpha: 0.5),
+                shadowColor: AppColors.background.withValues(alpha: 0.5),
                 child: Container(
                   constraints: const BoxConstraints(maxHeight: 250),
                   decoration: BoxDecoration(
@@ -141,7 +141,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                     ),
                   ),
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: AppSpacing.v8,
                     shrinkWrap: true,
                     itemCount: widget.items.length,
                     separatorBuilder: (context, index) => Divider(
@@ -173,8 +173,8 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                                   ? AppColors.primary
                                   : AppColors.textPrimary,
                               fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                                  ? AppTypography.titleSmall.fontWeight
+                                  : AppTypography.bodyMedium.fontWeight,
                             ),
                             child: item.child,
                           ),

@@ -303,7 +303,10 @@ class _OnboardingProfessionalFlowState
         child: SingleChildScrollView(
           child: ResponsiveCenter(
             maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s24,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -498,10 +501,8 @@ class _OnboardingProfessionalFlowState
                     Text(
                       cat['label'],
                       style: AppTypography.titleMedium.copyWith(
-                        color: isSelected
-                            ? AppColors.textPrimary
-                            : AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
                       ),
                     ),
                   ],
@@ -673,7 +674,7 @@ class _OnboardingProfessionalFlowState
             final result = await showModalBottomSheet<List<String>>(
               context: context,
               isScrollControlled: true,
-              backgroundColor: Colors.transparent,
+              backgroundColor: AppColors.transparent,
               builder: (context) => AppSelectionModal(
                 title: label,
                 items: options,

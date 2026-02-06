@@ -114,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s16,
             vertical: AppSpacing.s32,
-          ).copyWith(top: 80),
+          ).copyWith(top: AppSpacing.s48),
           child: Form(
             key: _formKey,
             child: Column(
@@ -127,10 +127,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Center(
                       child: SvgPicture.asset(
                         'assets/images/logos_svg/logo horizontal.svg',
-                        height: 50, // Reduced size
+                        height: AppSpacing.s48,
                         fit: BoxFit.scaleDown,
                         placeholderBuilder: (context) =>
-                            const SizedBox(height: 50),
+                            const SizedBox(height: AppSpacing.s48),
                       ),
                     ),
 
@@ -138,12 +138,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       'Bem-vindo de volta',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontSize:
-                                24, // Override to match verified preference
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      style: AppTypography.headlineCompact.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(
                       height: AppSpacing.s8,
@@ -200,9 +197,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onTap: () => context.push('/forgot-password'),
                     child: Text(
                       'Esqueceu a senha?',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: AppTypography.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.tertiary,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -212,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 // BUTTON "ENTRAR"
                 SizedBox(
-                  height: 56, // Fixed Height
+                  height: AppSpacing.s48,
                   child: Semantics(
                     button: true,
                     label: 'Entrar na conta',
@@ -267,9 +263,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Text(
                         'Crie agora',
                         key: const Key('register_link'),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: AppTypography.bodyMedium.copyWith(
                           color: Theme.of(context).colorScheme.tertiary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                         ),
                       ),
                     ),

@@ -218,7 +218,9 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
             return _buildLoadingIndicator();
           }
           // Ou espaço no final se tem mais para carregar
-          return widget.hasMore ? const SizedBox(height: 80) : const SizedBox.shrink();
+          return widget.hasMore
+              ? const SizedBox(height: AppSpacing.s48)
+              : const SizedBox.shrink();
         }
         return _buildItemCard(widget.items[index], index: index);
       }, childCount: widget.items.length + 1),

@@ -4,6 +4,8 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
+import '../../foundations/tokens/app_spacing.dart';
 
 /// Enum para definir o tamanho da imagem a ser carregada
 enum ImageResolution {
@@ -153,7 +155,7 @@ class OptimizedImage extends StatelessWidget {
       height: height,
       fit: BoxFit.cover,
       resolution: resolution,
-      borderRadius: borderRadius ?? BorderRadius.circular(12),
+      borderRadius: borderRadius ?? AppRadius.all12,
     );
   }
 
@@ -285,7 +287,7 @@ class OptimizedImage extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           color: placeholderColor ?? AppColors.surfaceHighlight,
-          borderRadius: borderRadius ?? BorderRadius.circular(8),
+          borderRadius: borderRadius ?? AppRadius.all8,
         ),
       ),
     );
@@ -297,7 +299,7 @@ class OptimizedImage extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight,
-        borderRadius: borderRadius ?? BorderRadius.circular(8),
+        borderRadius: borderRadius ?? AppRadius.all8,
       ),
       child: Center(
         child: Icon(
@@ -359,8 +361,8 @@ class OptimizedImageList extends StatelessWidget {
     super.key,
     required this.imageUrls,
     this.scrollController,
-    this.padding = const EdgeInsets.all(16),
-    this.spacing = 8,
+    this.padding = AppSpacing.all16,
+    this.spacing = AppSpacing.s8,
     this.crossAxisCount = 3,
     this.childAspectRatio = 1,
     this.resolution = ImageResolution.thumbnail,

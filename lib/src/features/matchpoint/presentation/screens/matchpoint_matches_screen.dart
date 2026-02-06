@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/design_system/components/components.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_radius.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/chat/data/chat_providers.dart';
@@ -124,13 +125,13 @@ class _MatchTile extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           border: Border.all(
             color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: AppSpacing.all12,
           child: Row(
             children: [
               UserAvatar(
@@ -145,11 +146,9 @@ class _MatchTile extends StatelessWidget {
                   children: [
                     Text(
                       preview.otherUserName,
-                      style: AppTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTypography.titleMedium,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
                       preview.lastMessageText ?? 'Novo Match! Diga Olá 👋',
                       style: AppTypography.bodySmall.copyWith(
@@ -157,8 +156,8 @@ class _MatchTile extends StatelessWidget {
                             ? AppColors.textPrimary
                             : AppColors.textSecondary,
                         fontWeight: preview.unreadCount > 0
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                            ? AppTypography.buttonPrimary.fontWeight
+                            : AppTypography.bodySmall.fontWeight,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -183,9 +182,11 @@ class _MatchTile extends StatelessWidget {
                             Icons.person,
                             color: AppColors.textPrimary,
                           ),
-                          title: const Text(
+                          title: Text(
                             'Ver Perfil',
-                            style: TextStyle(color: AppColors.textPrimary),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           onTap: () {
                             context.pop();
@@ -199,16 +200,18 @@ class _MatchTile extends StatelessWidget {
                             Icons.heart_broken,
                             color: AppColors.error,
                           ),
-                          title: const Text(
+                          title: Text(
                             'Desfazer Match',
-                            style: TextStyle(color: AppColors.error),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.error,
+                            ),
                           ),
                           onTap: () {
                             context.pop();
                             onUnmatch();
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.s16),
                       ],
                     ),
                   );

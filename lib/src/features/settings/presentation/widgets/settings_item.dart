@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_icons.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Reusable settings row widget.
@@ -30,7 +31,7 @@ class SettingsItem extends StatelessWidget {
         InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            padding: AppSpacing.all16,
             child: Row(
               children: [
                 Icon(
@@ -38,7 +39,7 @@ class SettingsItem extends StatelessWidget {
                   color: iconColor ?? AppColors.textSecondary,
                   size: 22,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.s16),
                 Expanded(
                   child: Text(
                     title,

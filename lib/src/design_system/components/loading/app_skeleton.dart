@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 
 // =============================================================================
@@ -96,7 +97,7 @@ class SkeletonText extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: AppColors.skeletonBase,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppRadius.all4,
       ),
     );
   }
@@ -128,7 +129,7 @@ class UserCardSkeleton extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SkeletonText(width: 150, height: 16),
-                SizedBox(height: 8),
+                SizedBox(height: AppSpacing.s8),
                 SkeletonText(width: 100, height: 12),
               ],
             ),
@@ -170,10 +171,10 @@ class FeedCardSkeleton extends StatelessWidget {
         horizontal: AppSpacing.s16,
         vertical: AppSpacing.s8,
       ),
-      padding: const EdgeInsets.all(12),
+      padding: AppSpacing.all12,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.all16,
       ),
       child: SkeletonShimmer(
         child: Row(
@@ -187,7 +188,7 @@ class FeedCardSkeleton extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.s12),
             // Info column
             Expanded(
               child: Column(
@@ -198,19 +199,19 @@ class FeedCardSkeleton extends StatelessWidget {
                     height: 16,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceHighlight,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.all4,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
                   Container(
                     width: 80,
                     height: 12,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceHighlight,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.all4,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
                   Row(
                     children: [
                       Container(
@@ -218,16 +219,16 @@ class FeedCardSkeleton extends StatelessWidget {
                         height: 20,
                         decoration: BoxDecoration(
                           color: AppColors.surfaceHighlight,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: AppRadius.all12,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.s4),
                       Container(
                         width: 50,
                         height: 20,
                         decoration: BoxDecoration(
                           color: AppColors.surfaceHighlight,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: AppRadius.all12,
                         ),
                       ),
                     ],
@@ -275,20 +276,20 @@ class ProfileSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return const SkeletonShimmer(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: AppSpacing.all16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: SkeletonCircle(size: 120)),
-            SizedBox(height: 24),
+            SizedBox(height: AppSpacing.s24),
             Center(child: SkeletonText(width: 180, height: 24)),
-            SizedBox(height: 8),
+            SizedBox(height: AppSpacing.s8),
             Center(child: SkeletonText(width: 120, height: 14)),
-            SizedBox(height: 32),
+            SizedBox(height: AppSpacing.s32),
             SkeletonBox(width: double.infinity, height: 48),
-            SizedBox(height: 12),
+            SizedBox(height: AppSpacing.s12),
             SkeletonBox(width: double.infinity, height: 48),
-            SizedBox(height: 12),
+            SizedBox(height: AppSpacing.s12),
             SkeletonBox(width: 200, height: 48),
           ],
         ),
@@ -343,12 +344,12 @@ class FeedScreenSkeleton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SkeletonText(width: 120, height: 16),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSpacing.s8),
                     SkeletonText(width: 180, height: 12),
                   ],
                 ),
               ),
-              SizedBox(width: 8),
+              SizedBox(width: AppSpacing.s8),
               SkeletonBox(width: 32, height: 32, borderRadius: 16),
             ],
           ),

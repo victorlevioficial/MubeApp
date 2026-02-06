@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 
 class FeedItemSkeleton extends StatelessWidget {
@@ -21,7 +22,7 @@ class FeedItemSkeleton extends StatelessWidget {
       padding: AppSpacing.all12,
       decoration: BoxDecoration(
         color: AppColors.surface, // Background of the card itself
-        borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.all16,
         border: Border.all(
           color: AppColors.surfaceHighlight.withValues(
             alpha: 0.5,
@@ -51,17 +52,17 @@ class FeedItemSkeleton extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
                   // Name Placeholder
                   Container(
                     width: double.infinity,
                     height: 16,
                     decoration: BoxDecoration(
                       color: AppColors.skeletonBase, // Standardized
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.all4,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.s12),
 
                   // Location Placeholder
                   Container(
@@ -69,10 +70,10 @@ class FeedItemSkeleton extends StatelessWidget {
                     height: 14,
                     decoration: BoxDecoration(
                       color: AppColors.skeletonBase, // Standardized
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.all4,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.s12),
 
                   // Chips Placeholders (Skills)
                   Row(
@@ -82,21 +83,21 @@ class FeedItemSkeleton extends StatelessWidget {
                         height: 20,
                         decoration: BoxDecoration(
                           color: AppColors.skeletonBase, // Standardized
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadius.all24,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.s8),
                       Container(
                         width: 80,
                         height: 20,
                         decoration: BoxDecoration(
                           color: AppColors.skeletonBase, // Standardized
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadius.all24,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.s8),
 
                   // Chips Placeholders (Genres)
                   Row(
@@ -105,8 +106,8 @@ class FeedItemSkeleton extends StatelessWidget {
                         width: 70,
                         height: 20,
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.skeletonHighlight,
+                          borderRadius: AppRadius.all24,
                         ),
                       ),
                     ],

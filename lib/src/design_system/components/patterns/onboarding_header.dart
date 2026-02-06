@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_spacing.dart';
 import 'onboarding_progress_bar.dart';
 
 class OnboardingHeader extends StatelessWidget {
@@ -55,7 +56,7 @@ class OnboardingHeader extends StatelessWidget {
         ),
 
         // Counter-balance for the back button to ensure perfect centering
-        const SizedBox(width: 40), // Matches the left SizedBox width
+        const SizedBox(width: AppSpacing.s40),
       ],
     );
   }

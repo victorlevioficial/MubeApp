@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 class SettingsGroup extends StatelessWidget {
@@ -15,22 +15,20 @@ class SettingsGroup extends StatelessWidget {
       children: [
         // Group Header
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          padding: const EdgeInsets.only(
+            left: AppSpacing.s4,
+            bottom: AppSpacing.s12,
+          ),
           child: Text(
             title.toUpperCase(),
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.textSecondary,
-              letterSpacing: 2.0, // Wider tracking for elegance
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-            ),
+            style: AppTypography.settingsGroupTitle,
           ),
         ),
 
         // Group Items
         ...children,
 
-        const SizedBox(height: 24), // Spacing between groups
+        const SizedBox(height: AppSpacing.s24), // Spacing between groups
       ],
     );
   }

@@ -115,10 +115,10 @@ class UserAvatar extends StatelessWidget {
           initials,
           style: AppTypography.titleMedium.copyWith(
             // Use a dark tonal color for text to look more professional with pastels
-            color: Colors.black.withValues(alpha: 0.65),
+            color: AppColors.background.withValues(alpha: 0.65),
             fontSize: fontSize,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
+            fontWeight: AppTypography.buttonPrimary.fontWeight,
+            letterSpacing: AppTypography.headlineLarge.letterSpacing,
           ),
         ),
       ),

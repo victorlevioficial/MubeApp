@@ -6,6 +6,7 @@ import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/components/chips/mube_filter_chip.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/search_filters.dart';
@@ -48,19 +49,19 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       ),
       decoration: const BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: AppRadius.top24,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle
           Container(
-            margin: const EdgeInsets.only(top: 12),
+            margin: const EdgeInsets.only(top: AppSpacing.s12),
             width: 40,
             height: 4,
             decoration: BoxDecoration(
               color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: AppRadius.all4,
             ),
           ),
 
@@ -219,7 +220,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
               isSelected: _canDoBackingVocal == null,
               onSelected: (_) => setState(() => _canDoBackingVocal = null),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.s8),
             MubeFilterChip(
               label: 'Faz backing',
               isSelected: _canDoBackingVocal == true,

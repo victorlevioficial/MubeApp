@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
+import '../../foundations/tokens/app_typography.dart';
 
 class AppDatePickerField extends StatefulWidget {
   final String label;
@@ -79,8 +80,7 @@ class _AppDatePickerFieldState extends State<AppDatePickerField> {
       children: [
         Text(
           widget.label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: AppTypography.labelLarge.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
@@ -88,14 +88,14 @@ class _AppDatePickerFieldState extends State<AppDatePickerField> {
         TextFormField(
           controller: widget.controller,
           validator: widget.validator,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: AppTypography.bodyMedium.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
           ),
           keyboardType: TextInputType.number,
           inputFormatters: [_dateMask],
           decoration: InputDecoration(
             hintText: 'dd/mm/aaaa',
-            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            hintStyle: AppTypography.inputHint.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             filled: true,

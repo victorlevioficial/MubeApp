@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/chat/data/chat_unread_provider.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_typography.dart';
 import 'responsive_center.dart';
 
 /// Scaffold principal com bottom navigation.
@@ -24,8 +25,8 @@ class MainScaffold extends StatelessWidget {
             initialLocation: index == navigationShell.currentIndex,
           );
         },
-        backgroundColor: AppColors.surface,
-        indicatorColor: Colors.transparent,
+        backgroundColor: AppColors.background,
+        indicatorColor: AppColors.transparent,
         elevation: 0,
         height: 72,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -73,7 +74,10 @@ class MainScaffold extends StatelessWidget {
                   isLabelVisible: unreadCount > 0,
                   label: Text(
                     unreadCount > 99 ? '99+' : '$unreadCount',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: AppTypography.chipLabel.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                    ),
                   ),
                   backgroundColor: AppColors.primary,
                   child: Icon(
@@ -92,7 +96,10 @@ class MainScaffold extends StatelessWidget {
                   isLabelVisible: unreadCount > 0,
                   label: Text(
                     unreadCount > 99 ? '99+' : '$unreadCount',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: AppTypography.chipLabel.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                    ),
                   ),
                   backgroundColor: AppColors.primary,
                   child: const Icon(

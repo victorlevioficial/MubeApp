@@ -11,6 +11,7 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -43,16 +44,16 @@ class _MemberSkeleton extends StatelessWidget {
           height: 16,
           decoration: BoxDecoration(
             color: AppColors.surfaceHighlight,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.all4,
           ),
         ),
         subtitle: Container(
           width: 80,
           height: 12,
-          margin: const EdgeInsets.only(top: 8),
+          margin: const EdgeInsets.only(top: AppSpacing.s8),
           decoration: BoxDecoration(
             color: AppColors.surfaceHighlight,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.all4,
           ),
         ),
       ),
@@ -100,7 +101,9 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
                 if (user.members.isEmpty) ...[
                   // Empty State Inline
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.s40,
+                    ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -177,7 +180,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
       backgroundColor: AppColors.background, // Darker background as requested
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: AppRadius.top24,
       ),
       builder: (context) => _SearchMembersModal(bandId: myUid),
     );
@@ -217,7 +220,7 @@ class _SentInvitesList extends ConsumerWidget {
                 color: AppColors.surface,
                 margin: const EdgeInsets.only(bottom: AppSpacing.s12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.all12,
                   side: BorderSide(
                     color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
                   ),
@@ -255,12 +258,12 @@ class _SentInvitesList extends ConsumerWidget {
                               invite['target_name'] ?? 'Usuário',
                               style: AppTypography.bodyMedium.copyWith(
                                 color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: AppTypography.titleSmall.fontWeight,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: AppSpacing.s2),
                             Text(
                               invite['target_instrument'] ?? 'Músico',
                               style: AppTypography.bodySmall.copyWith(
@@ -280,23 +283,21 @@ class _SentInvitesList extends ConsumerWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
+                              horizontal: AppSpacing.s8,
+                              vertical: AppSpacing.s2,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceHighlight,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: AppRadius.all4,
                             ),
                             child: Text(
                               'Aguardando',
-                              style: AppTypography.bodySmall.copyWith(
-                                fontSize: 10,
+                              style: AppTypography.chipLabel.copyWith(
                                 color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSpacing.s4),
                           InkWell(
                             onTap: () async {
                               try {
@@ -319,11 +320,11 @@ class _SentInvitesList extends ConsumerWidget {
                                 }
                               }
                             },
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: AppRadius.all4,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
+                                horizontal: AppSpacing.s4,
+                                vertical: AppSpacing.s4,
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -333,13 +334,12 @@ class _SentInvitesList extends ConsumerWidget {
                                     size: 14,
                                     color: AppColors.error,
                                   ),
-                                  const SizedBox(width: 4),
+                                  const SizedBox(width: AppSpacing.s4),
                                   Text(
                                     'Cancelar',
                                     style: AppTypography.bodySmall.copyWith(
                                       color: AppColors.error,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: AppTypography.titleSmall.fontWeight,
                                     ),
                                   ),
                                 ],
@@ -413,14 +413,14 @@ class _MemberCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.s12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         side: BorderSide(
           color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
         ),
       ),
       child: InkWell(
         onTap: () => context.push('/user/${member.uid}'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s16,
@@ -444,7 +444,7 @@ class _MemberCard extends ConsumerWidget {
             member.nome ?? 'Sem nome',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppTypography.titleSmall.fontWeight,
             ),
           ),
           subtitle: Text(
@@ -457,7 +457,7 @@ class _MemberCard extends ConsumerWidget {
             icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
             color: AppColors.surfaceHighlight,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.all12,
             ),
             onSelected: (value) async {
               if (value == 'profile') {
@@ -480,7 +480,7 @@ class _MemberCard extends ConsumerWidget {
                       size: 20,
                       color: AppColors.textPrimary,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.s8),
                     Text('Ver Perfil', style: AppTypography.bodyMedium),
                   ],
                 ),
@@ -490,7 +490,7 @@ class _MemberCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     const Icon(Icons.logout, size: 20, color: AppColors.error),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.s8),
                     Text(
                       'Remover da Banda',
                       style: AppTypography.bodyMedium.copyWith(
@@ -578,7 +578,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
       margin: const EdgeInsets.only(bottom: AppSpacing.s12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         side: BorderSide(
           color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
         ),
@@ -611,19 +611,18 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
                   Text(
                     item.displayName,
                     style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
                       color: AppColors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (item.skills.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.s2),
                     Text(
                       item.skills.take(3).join(', '),
-                      style: AppTypography.bodySmall.copyWith(
+                      style: AppTypography.labelSmall.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 11,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -726,7 +725,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
                               size: 48,
                               color: AppColors.textTertiary,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.s8),
                             Text(
                               'Busque músicos para sua banda',
                               style: AppTypography.bodySmall.copyWith(

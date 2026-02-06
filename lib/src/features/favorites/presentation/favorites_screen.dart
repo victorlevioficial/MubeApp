@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
@@ -209,7 +210,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         children: [
           // Filter Bar
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: AppSpacing.v8,
             child: FavoritesFilterBar(
               selectedFilter: _selectedFilter,
               onFilterSelected: (filter) {
@@ -249,7 +250,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                   color: AppColors.error,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.s8),
                               TextButton(
                                 onPressed: _loadFavorites,
                                 child: const Text('Tentar novamente'),
@@ -273,7 +274,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                 size: 64,
                                 color: AppColors.textSecondary,
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppSpacing.s16),
                               Text(
                                 _allItems.isEmpty
                                     ? 'Você ainda não tem favoritos.'
@@ -296,7 +297,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                           if (_isLoadingMore) {
                             return const FeedLoadingMore();
                           }
-                          return const SizedBox(height: 80);
+                          return const SizedBox(height: AppSpacing.s48);
                         }
 
                         final item = _filteredItems[index];

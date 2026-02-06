@@ -43,7 +43,7 @@ class RankBadge extends StatelessWidget {
         '$rank',
         style: (textStyle ?? AppTypography.labelSmall).copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
+          fontWeight: AppTypography.buttonPrimary.fontWeight,
         ),
       ),
     );

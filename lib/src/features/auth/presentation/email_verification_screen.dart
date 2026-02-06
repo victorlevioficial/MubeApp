@@ -12,6 +12,7 @@ import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../data/auth_repository.dart';
@@ -312,10 +313,12 @@ class _EmailVerificationScreenState
                     Center(
                       child: SvgPicture.asset(
                         'assets/images/logos_svg/logo horizontal.svg',
-                        height: 50,
+                        height: AppSpacing.s48,
                         fit: BoxFit.scaleDown,
                         placeholderBuilder: (context) =>
-                            const SizedBox(height: 50),
+                            const SizedBox(
+                              height: AppSpacing.s48,
+                            ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s32),
@@ -328,7 +331,7 @@ class _EmailVerificationScreenState
                         height: 80,
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadius.all24,
                         ),
                         child: const Icon(
                           Icons.mark_email_unread_outlined,
@@ -342,18 +345,16 @@ class _EmailVerificationScreenState
                     Text(
                       'Verifique seu email',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontSize: 24,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      style: AppTypography.headlineCompact.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.s16),
 
                     Text(
                       'Enviamos um link de verificação para',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: AppTypography.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -361,9 +362,9 @@ class _EmailVerificationScreenState
                     Text(
                       email,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      style: AppTypography.bodyLarge.copyWith(
                         color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: AppTypography.titleSmall.fontWeight,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s16),
@@ -371,7 +372,7 @@ class _EmailVerificationScreenState
                     Text(
                       'Clique no link no email para verificar sua conta e continuar.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: AppTypography.bodyMedium.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -385,7 +386,7 @@ class _EmailVerificationScreenState
                   padding: const EdgeInsets.all(AppSpacing.s16),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceHighlight,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.all12,
                     border: Border.all(
                       color: AppColors.border.withValues(alpha: 0.5),
                     ),
@@ -430,7 +431,7 @@ class _EmailVerificationScreenState
                     padding: const EdgeInsets.all(AppSpacing.s16),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.all12,
                     ),
                     child: Row(
                       children: [

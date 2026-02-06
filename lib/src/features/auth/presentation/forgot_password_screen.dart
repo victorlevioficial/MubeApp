@@ -11,6 +11,7 @@ import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_back_button.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/auth_exception_handler.dart';
@@ -97,7 +98,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: const AppBackButton(),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -119,21 +120,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     Center(
                       child: SvgPicture.asset(
                         'assets/images/logos_svg/logo horizontal.svg',
-                        height: 50,
+                        height: AppSpacing.s48,
                         fit: BoxFit.scaleDown,
                         placeholderBuilder: (context) =>
-                            const SizedBox(height: 50),
+                            const SizedBox(height: AppSpacing.s48),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s24),
                     Text(
                       'Recuperar senha',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontSize: 24,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      style: AppTypography.headlineCompact.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.s8),
                     Text(
@@ -185,7 +184,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     padding: const EdgeInsets.all(AppSpacing.s24),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.all12,
                     ),
                     child: Column(
                       children: [
@@ -199,7 +198,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                           'E-mail enviado!',
                           style: AppTypography.titleLarge.copyWith(
                             color: AppColors.success,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: AppTypography.buttonPrimary.fontWeight,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.s8),

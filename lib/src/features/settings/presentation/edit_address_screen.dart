@@ -14,6 +14,7 @@ import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/patterns/or_divider.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -389,7 +390,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
   Widget _buildLocationButton() {
     return InkWell(
       onTap: _isLoadingLocation ? null : _useCurrentLocation,
-      borderRadius: BorderRadius.circular(AppSpacing.s12),
+      borderRadius: AppRadius.all12,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s16),
         decoration: BoxDecoration(
@@ -397,7 +398,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
             color: AppColors.primary.withValues(alpha: 0.5),
             width: 1,
           ),
-          borderRadius: BorderRadius.circular(AppSpacing.s12),
+          borderRadius: AppRadius.all12,
           color: AppColors.primary.withValues(alpha: 0.05),
         ),
         child: Row(
@@ -435,7 +436,6 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                         ? 'Obtendo localização...'
                         : 'Usar minha localização atual',
                     style: AppTypography.titleMedium.copyWith(
-                      fontWeight: FontWeight.w600,
                       color: AppColors.primary,
                     ),
                   ),
@@ -488,7 +488,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: AppSpacing.s16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         color: AppColors.surface,
         image: (_selectedLat != null && _selectedLng != null)
             ? DecorationImage(
@@ -500,7 +500,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
             : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         child: Stack(
           children: [
             if (_selectedLat == null)
@@ -519,14 +519,14 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
                   horizontal: 12,
                   vertical: 6,
                 ),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.textPrimary,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.all16,
                 ),
                 child: Text(
                   'Ajustar no mapa',
                   style: AppTypography.bodySmall.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: AppTypography.buttonPrimary.fontWeight,
                     color: AppColors.background,
                   ),
                 ),
@@ -549,7 +549,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
               Text(
                 '${_logradouroController.text}, ${_numeroController.text}',
                 style: AppTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: AppTypography.buttonPrimary.fontWeight,
                 ),
               ),
               Text(

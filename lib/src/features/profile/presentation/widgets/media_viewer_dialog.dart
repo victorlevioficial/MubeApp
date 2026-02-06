@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../domain/media_item.dart';
 import 'gallery_video_player.dart';
 import '../../../../core/services/image_cache_config.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Full-screen media viewer dialog
 class MediaViewerDialog extends StatefulWidget {
@@ -52,7 +54,11 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           top: 40,
           right: 20,
           child: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+            icon: const Icon(
+              Icons.close,
+              color: AppColors.textPrimary,
+              size: 30,
+            ),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -64,9 +70,8 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           child: Center(
             child: Text(
               '${_currentIndex + 1} / ${widget.items.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppColors.textPrimary,
                 decoration: TextDecoration.none,
               ),
             ),
@@ -83,8 +88,8 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
         return Center(
           child: Text(
             'Vídeo do YouTube (em breve): ${item.url}',
-            style: const TextStyle(
-              color: Colors.white,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
               decoration: TextDecoration.none,
             ),
           ),
@@ -105,7 +110,7 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
             placeholder: (context, url) =>
                 const Center(child: CircularProgressIndicator()),
             errorWidget: (context, url, error) =>
-                const Icon(Icons.error, color: Colors.red),
+                const Icon(Icons.error, color: AppColors.error),
           ),
         ),
       );

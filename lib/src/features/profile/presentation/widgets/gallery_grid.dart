@@ -5,6 +5,7 @@ import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../core/services/image_cache_config.dart';
@@ -145,7 +146,7 @@ class _FilledSlot extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.cover,
@@ -167,10 +168,13 @@ class _FilledSlot extends StatelessWidget {
             bottom: 8,
             left: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s4,
+                vertical: AppSpacing.s2,
+              ),
               decoration: BoxDecoration(
                 color: AppColors.background.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: AppRadius.all4,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -180,12 +184,11 @@ class _FilledSlot extends StatelessWidget {
                     color: AppColors.textPrimary,
                     size: 14,
                   ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: AppSpacing.s2),
                   Text(
                     'Vídeo',
                     style: AppTypography.labelSmall.copyWith(
                       color: AppColors.textPrimary,
-                      fontSize: 10,
                     ),
                   ),
                 ],
@@ -236,7 +239,7 @@ class _EmptySlot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         border: Border.all(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           width: 1.5,
@@ -244,10 +247,10 @@ class _EmptySlot extends StatelessWidget {
         color: AppColors.surface,
       ),
       child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.transparent,
+        borderRadius: AppRadius.all12,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.all12,
           onTap: () => _showAddOptions(context),
           child: const Center(
             child: Icon(Icons.add, color: AppColors.textSecondary, size: 32),
@@ -262,7 +265,7 @@ class _EmptySlot extends StatelessWidget {
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: AppRadius.top16,
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -342,13 +345,13 @@ class _UploadingSlot extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.5),
           width: 2,
         ),
       ),
-      padding: const EdgeInsets.all(12),
+      padding: AppSpacing.all12,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -360,7 +363,7 @@ class _UploadingSlot extends StatelessWidget {
           const SizedBox(height: AppSpacing.s8),
           // Progress bar
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.all4,
             child: LinearProgressIndicator(
               value: progress > 0 ? progress : null,
               backgroundColor: AppColors.surfaceHighlight,
@@ -372,10 +375,11 @@ class _UploadingSlot extends StatelessWidget {
           // Percentage text
           Text(
             progress > 0 ? '${(progress * 100).toInt()}%' : status,
-            style: AppTypography.bodySmall.copyWith(
-              fontSize: 10,
+            style: AppTypography.labelSmall.copyWith(
               color: AppColors.textSecondary,
-              fontWeight: progress > 0 ? FontWeight.bold : FontWeight.normal,
+              fontWeight: progress > 0
+                  ? AppTypography.buttonPrimary.fontWeight
+                  : AppTypography.labelSmall.fontWeight,
             ),
             textAlign: TextAlign.center,
             maxLines: 1,

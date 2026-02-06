@@ -4,6 +4,7 @@ import '../../components/buttons/app_button.dart';
 import '../../components/feedback/app_snackbar.dart';
 import '../../components/feedback/empty_state_widget.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -52,10 +53,10 @@ class FeedbackSection extends StatelessWidget {
         Text('Empty State', style: AppTypography.titleSmall),
         const SizedBox(height: AppSpacing.s8),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.all16,
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.all12,
           ),
           child: EmptyStateWidget(
             icon: Icons.search_off,

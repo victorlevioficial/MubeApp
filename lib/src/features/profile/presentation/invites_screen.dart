@@ -7,6 +7,7 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
@@ -93,9 +94,8 @@ class InvitesScreen extends ConsumerWidget {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: AppTypography.headlineMedium.copyWith(
+      style: AppTypography.headlineSmall.copyWith(
         color: AppColors.textPrimary,
-        fontSize: 18,
       ),
     );
   }
@@ -125,7 +125,7 @@ class InvitesScreen extends ConsumerWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceHighlight,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.all8,
                   ),
                   child: const Icon(
                     Icons.mail_outline,
@@ -141,7 +141,7 @@ class InvitesScreen extends ConsumerWidget {
                         'Convite para: $bandName',
                         style: AppTypography.titleMedium.copyWith(
                           color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                         ),
                       ),
                       Text(
@@ -168,14 +168,14 @@ class InvitesScreen extends ConsumerWidget {
                         side: const BorderSide(color: AppColors.textPrimary),
                         foregroundColor: AppColors.textPrimary,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: AppRadius.pill,
                         ),
                       ),
                       child: Text(
                         'Recusar',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        style: AppTypography.buttonSecondary.copyWith(
                           color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                         ),
                       ),
                     ),
@@ -193,15 +193,14 @@ class InvitesScreen extends ConsumerWidget {
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: AppRadius.pill,
                         ),
                         minimumSize: const Size(0, 48),
                       ),
                       child: Text(
                         'Aceitar',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        style: AppTypography.buttonPrimary.copyWith(
                           color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -253,7 +252,7 @@ class InvitesScreen extends ConsumerWidget {
                       Text(
                         band['nome'] ?? band['displayName'] ?? 'Banda',
                         style: AppTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: AppTypography.buttonPrimary.fontWeight,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -279,7 +278,7 @@ class InvitesScreen extends ConsumerWidget {
                   side: const BorderSide(color: AppColors.error),
                   foregroundColor: AppColors.error,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
+                      borderRadius: AppRadius.pill,
                   ),
                   splashFactory: NoSplash.splashFactory,
                 ),
@@ -290,9 +289,9 @@ class InvitesScreen extends ConsumerWidget {
                     const SizedBox(width: AppSpacing.s8),
                     Text(
                       'Sair da banda',
-                      style: AppTypography.titleMedium.copyWith(
+                      style: AppTypography.buttonSecondary.copyWith(
                         color: AppColors.error,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
                       ),
                     ),
                   ],

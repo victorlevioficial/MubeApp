@@ -5,6 +5,9 @@ import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_loading.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import 'onboarding_controller.dart';
@@ -79,8 +82,8 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
               child: ResponsiveCenter(
                 maxContentWidth: 600,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 40.0,
+                  horizontal: AppSpacing.s24,
+                  vertical: AppSpacing.s40,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -89,20 +92,16 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                     // or just let it start from top like LoginScreen.
                     // Login uses: padding: const EdgeInsets.fromLTRB(24, 80, 24, 40)
                     // We will match spacing logic but allow scrolling.
-                    const SizedBox(
-                      height: 48,
-                    ), // Top spacing matching visual approximation
+                    const SizedBox(height: AppSpacing.s48),
 
                     Text(
                       'Bem-vindo ao Mube!',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      style: AppTypography.headlineLarge.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
                       'Como você quer usar a plataforma?',
                       textAlign: TextAlign.center,
@@ -110,7 +109,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.s32),
 
                     // Grid 2x2 with shrinkWrap
                     GridView.builder(
@@ -119,8 +118,8 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
+                            crossAxisSpacing: AppSpacing.s16,
+                            mainAxisSpacing: AppSpacing.s16,
                             childAspectRatio: 1.5,
                           ),
                       itemCount: _types.length,
@@ -138,12 +137,10 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                       },
                     ),
 
-                    const SizedBox(
-                      height: 48,
-                    ), // Increased spacing as requested
+                    const SizedBox(height: AppSpacing.s48),
                     // Button
                     SizedBox(
-                      height: 56, // Match Login button height
+                      height: AppSpacing.s48,
                       child: AppButton.primary(
                         text: 'Continuar',
                         isLoading: state.isLoading,
@@ -153,7 +150,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.s24),
                   ],
                 ),
               ),
@@ -191,7 +188,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.all16,
           border: border,
           // BoxShadow removed
         ),
@@ -204,13 +201,10 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
               size: 56, // Increased to 56 as requested ("maiores ainda")
               color: iconColor,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.s12),
             Text(
               label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
+              style: AppTypography.titleMedium.copyWith(color: textColor),
             ),
           ],
         ),

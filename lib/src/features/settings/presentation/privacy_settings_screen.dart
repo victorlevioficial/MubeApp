@@ -104,12 +104,12 @@ class PrivacySettingsScreen extends ConsumerWidget {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: AppSpacing.v8,
       child: Text(
         title.toUpperCase(),
-        style: AppTypography.bodySmall.copyWith(
+        style: AppTypography.labelSmall.copyWith(
           color: AppColors.textTertiary,
-          fontWeight: FontWeight.bold,
+          fontWeight: AppTypography.buttonPrimary.fontWeight,
         ),
       ),
     );

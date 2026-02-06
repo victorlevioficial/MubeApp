@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Determines the profile classification based on selected categories.
@@ -35,22 +36,19 @@ class ProfileTypeBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
+        Text(
           '•',
-          style: TextStyle(
+          style: AppTypography.labelLarge.copyWith(
             color: AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: AppSpacing.s4),
         Icon(icon, size: 14, color: iconColor),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.s4),
         Text(
           label,
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
           ),
         ),
       ],
