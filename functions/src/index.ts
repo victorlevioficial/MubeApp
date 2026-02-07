@@ -6,14 +6,53 @@ admin.initializeApp();
 // Export geohash migration functions (lowercase for v2 naming convention)
 export {migrategeohashes, updateusergeohash} from "./geohash_migration";
 
+// Export Matchpoint functions
+export {
+  submitMatchpointAction,
+  getRemainingLikes,
+  onInteractionCreated,
+} from "./matchpoint";
+
+// Export Bands functions
+export {
+  manageBandInvite,
+  getPendingInvites,
+  leaveBand,
+} from "./bands";
+
+// Export Chat functions
+export {
+  initiateContact,
+} from "./chat";
+
+// Export Moderation functions
+export {
+  onReportCreated,
+  liftSuspensions,
+} from "./moderation";
+
+// Export Scheduled functions
+export {
+  pruneOldInteractions,
+  cleanupOrphanedData,
+  updateMatchpointStats,
+} from "./scheduled";
+
+// Export Hashtag functions
+export {
+  onHashtagUsed,
+  recalculateHashtagRanking,
+  getTrendingHashtags,
+  searchHashtags,
+} from "./hashtags";
+
 /**
  * Trigger: When a new message is created in a conversation.
  * Path: conversations/{conversationId}/messages/{messageId}
  *
  * Actions:
- * 1. Update conversation metadata (last_message, last_message_at, updated_at).
- * 2. Increment unread_count for the recipient.
- * 3. Send Push Notification to the recipient.
+ * 1. Update conversation metadata (lastMessageText, lastMessageAt, updatedAt).
+ * 2. Send Push Notification to the recipient.
  */
 export const onMessageCreated = onDocumentCreated(
   "conversations/{conversationId}/messages/{messageId}",
@@ -51,15 +90,11 @@ export const onMessageCreated = onDocumentCreated(
       }
 
       await db.runTransaction(async (transaction) => {
-        const freshConvDoc = await transaction.get(conversationRef);
-        const freshData = freshConvDoc.data();
-        const currentUnread = freshData?.unread_counts?.[recipientId] || 0;
-
         transaction.update(conversationRef, {
-          last_message: displayMessage,
-          last_message_at: admin.firestore.FieldValue.serverTimestamp(),
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
-          [`unread_counts.${recipientId}`]: currentUnread + 1,
+          lastMessageText: displayMessage,
+          lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastSenderId: senderId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       });
 

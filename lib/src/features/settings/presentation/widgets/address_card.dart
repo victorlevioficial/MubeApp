@@ -84,7 +84,7 @@ class AddressCard extends StatelessWidget {
                               horizontal: AppSpacing.s8,
                               vertical: AppSpacing.s2,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: AppRadius.all12,
                             ),
@@ -118,9 +118,9 @@ class AddressCard extends StatelessWidget {
               PopupMenuButton<String>(
                 elevation: 16,
                 shadowColor: AppColors.background,
-                shape: RoundedRectangleBorder(
+                shape: const RoundedRectangleBorder(
                   borderRadius: AppRadius.all12,
-                  side: const BorderSide(
+                  side: BorderSide(
                     color: AppColors.surfaceHighlight,
                     width: 1,
                   ),
@@ -146,9 +146,9 @@ class AddressCard extends StatelessWidget {
                       value: 'primary',
                       child: Row(
                         children: [
-                          Icon(Icons.star_outline, size: 20),
-                          SizedBox(width: AppSpacing.s12),
-                          Text('Definir como principal'),
+                          const Icon(Icons.star_outline, size: 20),
+                          const SizedBox(width: AppSpacing.s12),
+                          const Text('Definir como principal'),
                         ],
                       ),
                     ),
@@ -156,17 +156,15 @@ class AddressCard extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.delete_outline,
                           size: 20,
                           color: AppColors.error,
                         ),
-                        SizedBox(width: AppSpacing.s12),
+                        const SizedBox(width: AppSpacing.s12),
                         Text(
                           'Excluir',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.error,
-                          ),
+                          style: AppTypography.bodyMedium,
                         ),
                       ],
                     ),

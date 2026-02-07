@@ -172,7 +172,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
         horizontal: AppSpacing.s8,
         vertical: AppSpacing.s2,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface2,
         borderRadius: AppRadius.pill,
       ),
@@ -199,7 +199,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
         horizontal: AppSpacing.s8,
         vertical: AppSpacing.s2,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
         // No border for cleaner look

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -13,8 +15,8 @@ import 'match_card.dart';
 
 class MatchSwipeDeck extends StatelessWidget {
   final List<AppUser> candidates;
-  final Function(AppUser user) onSwipeRight;
-  final Function(AppUser user) onSwipeLeft;
+  final Future<void> Function(AppUser user) onSwipeRight;
+  final Future<void> Function(AppUser user) onSwipeLeft;
   final CardSwiperController controller;
 
   const MatchSwipeDeck({
@@ -96,9 +98,9 @@ class MatchSwipeDeck extends StatelessWidget {
             onSwipe: (previousIndex, currentIndex, direction) {
               final user = candidates[previousIndex];
               if (direction == CardSwiperDirection.right) {
-                onSwipeRight(user);
+                unawaited(onSwipeRight(user));
               } else if (direction == CardSwiperDirection.left) {
-                onSwipeLeft(user);
+                unawaited(onSwipeLeft(user));
               }
               return true;
             },

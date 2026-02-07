@@ -69,11 +69,12 @@ void main() {
 
         // Assert
         final state = container.read(emailVerificationControllerProvider);
-        expect(state.hasValue, true);
+        expect(state.isLoading, false);
+        expect(state.error, isNull);
         verify(mockAuthRepository.sendEmailVerification()).called(1);
       });
 
-      test('should set state to AsyncError on failure', () async {
+      test('should set state error on failure', () async {
         // Arrange
         const failure = AuthFailure(message: 'Failed to send email');
         when(
@@ -89,7 +90,7 @@ void main() {
 
         // Assert
         final state = container.read(emailVerificationControllerProvider);
-        expect(state.hasError, true);
+        expect(state.isLoading, false);
         expect(state.error, 'Failed to send email');
       });
     });
@@ -140,7 +141,7 @@ void main() {
         final controller = container.read(
           emailVerificationControllerProvider.notifier,
         );
-        final states = <AsyncValue<void>>[];
+        final states = <EmailVerificationState>[];
 
         // Listen to state changes
         container.listen(
@@ -155,7 +156,8 @@ void main() {
         // Assert
         expect(states.length, 2);
         expect(states[0].isLoading, true);
-        expect(states[1].hasValue, true);
+        expect(states[1].isLoading, false);
+        expect(states[1].error, isNull);
       });
 
       test('should transition from idle to loading to error', () async {
@@ -168,7 +170,7 @@ void main() {
         final controller = container.read(
           emailVerificationControllerProvider.notifier,
         );
-        final states = <AsyncValue<void>>[];
+        final states = <EmailVerificationState>[];
 
         // Listen to state changes
         container.listen(
@@ -183,7 +185,8 @@ void main() {
         // Assert
         expect(states.length, 2);
         expect(states[0].isLoading, true);
-        expect(states[1].hasError, true);
+        expect(states[1].isLoading, false);
+        expect(states[1].error, 'Error');
       });
     });
   });

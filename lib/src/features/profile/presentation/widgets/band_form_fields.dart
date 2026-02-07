@@ -50,7 +50,7 @@ class _BandFormFieldsState extends ConsumerState<BandFormFields> {
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
       ),

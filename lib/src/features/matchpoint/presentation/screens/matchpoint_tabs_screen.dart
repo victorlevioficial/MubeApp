@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
@@ -8,32 +9,84 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../controllers/matchpoint_controller.dart';
 import '../screens/matchpoint_matches_screen.dart';
+import 'hashtag_ranking_screen.dart';
 import 'matchpoint_explore_screen.dart';
 
-class MatchpointTabsScreen extends StatefulWidget {
+class MatchpointTabsScreen extends ConsumerStatefulWidget {
   const MatchpointTabsScreen({super.key});
 
   @override
-  State<MatchpointTabsScreen> createState() => _MatchpointTabsScreenState();
+  ConsumerState<MatchpointTabsScreen> createState() => _MatchpointTabsScreenState();
 }
 
-class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
+class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = [
     const MatchpointExploreScreen(),
     const MatchpointMatchesScreen(),
+    const HashtagRankingScreen(),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Carregar quota de swipes ao iniciar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(matchpointControllerProvider.notifier).fetchRemainingLikes();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final quotaState = ref.watch(likesQuotaProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppAppBar(
         title: 'MatchPoint',
         showBackButton: false,
         actions: [
+          // Contador de swipes restantes
+          if (_selectedIndex == 0) ...[
+            Container(
+              margin: const EdgeInsets.only(right: AppSpacing.s8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s4,
+              ),
+              decoration: BoxDecoration(
+                color: quotaState.hasReachedLimit
+                    ? AppColors.error.withValues(alpha: 0.1)
+                    : AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: AppRadius.all8,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.swap_horiz_rounded,
+                    size: 16,
+                    color: quotaState.hasReachedLimit
+                        ? AppColors.error
+                        : AppColors.primary,
+                  ),
+                  const SizedBox(width: AppSpacing.s4),
+                  Text(
+                    '${quotaState.remaining}/${quotaState.limit}',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: quotaState.hasReachedLimit
+                          ? AppColors.error
+                          : AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           IconButton(
             icon: const Icon(
               Icons.tune_rounded,
@@ -99,6 +152,14 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
                     fontWeight: AppTypography.buttonPrimary.fontWeight,
                   ),
                 ),
+                GButton(
+                  icon: Icons.trending_up_rounded,
+                  text: 'Trending',
+                  textStyle: AppTypography.labelLarge.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: AppTypography.buttonPrimary.fontWeight,
+                  ),
+                ),
               ],
             ),
           ),
@@ -123,12 +184,13 @@ class _MatchpointTabsScreenState extends State<MatchpointTabsScreen> {
         ),
         content: Text(
           'O MatchPoint é o lugar para formar sua próxima banda ou projeto musical.\n\n'
-          '1. Explore: Descubra músicos que combinam com seus gêneros e objetivos.\n\n'
-          '2. Filtre: Use o botão de filtros para refinar sua busca por instrumentos, estilos e localização.\n\n'
-          '3. Conecte: Envie convites e comece a criar música juntos!',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          '1. Explorar: Descubra músicos que combinam com seus gêneros e objetivos.\n\n'
+          '2. Matches: Veja seus matches e inicie conversas.\n\n'
+           '3. Trending: Descubra as hashtags mais populares entre músicos.\n\n'
+           'Você tem 50 swipes por dia. Use com sabedoria!',
+           style: AppTypography.bodyMedium.copyWith(
+             color: AppColors.textSecondary,
+           ),
         ),
         actions: [
           TextButton(

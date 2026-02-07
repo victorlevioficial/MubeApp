@@ -85,7 +85,7 @@ class AppChip extends StatelessWidget {
         horizontal: AppSpacing.s12,
         vertical: AppSpacing.s4,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface2,
         borderRadius: AppRadius.pill,
       ),
@@ -104,7 +104,7 @@ class AppChip extends StatelessWidget {
         horizontal: AppSpacing.s12,
         vertical: AppSpacing.s4,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
       ),
@@ -154,7 +154,7 @@ class AppChip extends StatelessWidget {
               const SizedBox(width: AppSpacing.s8),
               GestureDetector(
                 onTap: onDeleted,
-                child: Icon(
+                child: const Icon(
                   Icons.close,
                   size: 16,
                   color: AppColors.textPrimary,

@@ -51,23 +51,25 @@ void main() {
           options: DefaultFirebaseOptions.currentPlatform,
         );
 
+        AppLogger.info('Build mode: ${kReleaseMode ? 'release' : 'dev'}');
+
         // Enable Firestore offline persistence for better caching
         FirebaseFirestore.instance.settings = const Settings(
           persistenceEnabled: true,
           cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
         );
 
-        // Initialize App Check
-        await app_check.FirebaseAppCheck.instance.activate(
-          // ignore: deprecated_member_use
-          androidProvider: kDebugMode
-              ? app_check.AndroidProvider.debug
-              : app_check.AndroidProvider.playIntegrity,
-          // ignore: deprecated_member_use
-          appleProvider: kDebugMode
-              ? app_check.AppleProvider.debug
-              : app_check.AppleProvider.deviceCheck,
-        );
+        if (kReleaseMode) {
+          // Initialize App Check apenas em release
+          await app_check.FirebaseAppCheck.instance.activate(
+            // ignore: deprecated_member_use
+            androidProvider: app_check.AndroidProvider.playIntegrity,
+            // ignore: deprecated_member_use
+            appleProvider: app_check.AppleProvider.deviceCheck,
+          );
+        } else {
+          AppLogger.info('App Check desativado no ambiente de desenvolvimento');
+        }
 
         // Initialize Crashlytics
         await AppLogger.initialize();

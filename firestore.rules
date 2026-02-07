@@ -1,15 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ================================================================
+    // FUNÇÕES AUXILIARES
+    // ================================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isParticipantByConversationId(conversationId) {
+      return request.auth != null && request.auth.uid in conversationId.split('_');
+    }
     
     // ================================================================
     // CONFIG - Configurações do App (Gêneros, Instrumentos, etc)
     // ================================================================
     match /config/{document=**} {
-      // Read-only for authenticated users
-      // Write only via Admin SDK or Cloud Functions
       allow read: if request.auth != null;
-      allow write: if false;
+      allow write: if false; // Apenas via Admin SDK ou Cloud Functions
     }
 
     // ================================================================
@@ -20,23 +33,31 @@ service cloud.firestore {
       allow read: if request.auth != null;
       
       // Apenas o próprio usuário pode criar seu perfil
-      // O UID deve corresponder ao usuário autenticado
       allow create: if request.auth != null && request.auth.uid == userId;
       
       // Only owner can delete their own account
       allow delete: if request.auth != null && request.auth.uid == userId;
 
-      // Update: próprio usuário, likeCount, ou members (para entrar em banda)
-      allow update: if request.auth != null && 
-        (request.auth.uid == userId || 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']) ||
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members']));
+      // Update: próprio usuário pode atualizar seus dados
+      // Campos sensíveis são bloqueados para alterações client-side
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'status',
+          'report_count',
+          'report_count_total',
+          'suspended_until',
+          'suspension_end_date',
+          'daily_likes_count',
+          'last_like_date',
+          'total_likes_sent',
+          'total_dislikes_sent',
+          'members'
+        ]);
       
       // ================================================================
       // FAVORITES - Subcoleção de favoritos por usuário
       // ================================================================
       match /favorites/{favoriteId} {
-        // Usuário só pode ler/escrever seus próprios favoritos
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
 
@@ -48,116 +69,124 @@ service cloud.firestore {
       }
 
       // ================================================================
-      // CHAT - Conversas e mensagens
-      // ================================================================
-      match /conversationPreviews/{conversationId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-
-
-      // ================================================================
-      // INTERACTIONS - Likes/Dislikes (MatchPoint)
-      // ================================================================
-      match /interactions/{interactionId} {
-         // Owner can read/write their own interactions
-         // The 'interactionId' is the ID of the person interacted with.
-         // If I am User A, and I like User B, the doc is users/A/interactions/B.
-         //   - I (User A) need read/write access. (Covered by request.auth.uid == userId)
-         
-         // Mutual Match Check:
-         // If User B wants to know if User A liked them, User B checks users/A/interactions/B.
-         //   - User B (interactionId) needs READ access to users/A/interactions/B.
-         allow read: if request.auth != null && (request.auth.uid == userId || request.auth.uid == interactionId);
-         allow write: if request.auth != null && request.auth.uid == userId;
-      }
-
-      // ================================================================
       // CONVERSATION PREVIEWS - Lista de conversas do usuário
       // ================================================================
       match /conversationPreviews/{previewId} {
         // User can read their own previews
-        allow read: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId);
         
-        // Any authenticated user can create/update previews (for chat initiation)
-        // This is needed because when User A starts a chat with User B,
-        // User A needs to create a preview in User B's subcollection
-        allow create, update: if request.auth != null && 
-          request.auth.uid in previewId.split('_');
+        // Participantes podem criar/atualizar (para sync de previews)
+        allow create, update: if isAuthenticated() && isParticipantByConversationId(previewId);
         
         // Only owner can delete their own previews
-        allow delete: if request.auth != null && request.auth.uid == userId;
+        allow delete: if isOwner(userId);
       }
 
       // ================================================================
       // NOTIFICATIONS - Push notification history
       // ================================================================
       match /notifications/{notificationId} {
-        // User can read/write/delete their own notifications
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // ================================================================
+    // INTERACTIONS - Likes/Dislikes (MatchPoint) - COLEÇÃO GLOBAL
+    // ================================================================
+    match /interactions/{interactionId} {
+      // Apenas Cloud Functions podem criar - bloqueado para client-side
+      allow read: if request.auth != null && 
+        (resource.data.source_user_id == request.auth.uid || 
+         resource.data.target_user_id == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    // ================================================================
+    // MATCHES - Matches entre usuários
+    // ================================================================
+    match /matches/{matchId} {
+      // Ler se for um dos participantes
+      allow read: if request.auth != null && 
+        (resource.data.user_id_1 == request.auth.uid || 
+         resource.data.user_id_2 == request.auth.uid);
+      
+      // Apenas Cloud Functions podem criar matches
+      allow create, update, delete: if false;
     }
 
     // ================================================================
     // CONVERSATIONS - Mensagens reais
     // ================================================================
     match /conversations/{conversationId} {
-      // Helper: check if user's UID is part of the conversationId (uid1_uid2 format)
-      function isParticipantByConversationId() {
-        return request.auth.uid in conversationId.split('_');
-      }
+      // Read: user must be participant
+      allow read: if isAuthenticated() && isParticipantByConversationId(conversationId);
       
-      // Read: conversationId contains user's UID (safe for both existing and new docs)
-      allow read: if request.auth != null && isParticipantByConversationId();
+      // Create: user must be in participants
+      allow create: if isAuthenticated()
+        && isParticipantByConversationId(conversationId)
+        && request.auth.uid in request.resource.data.participants;
       
-      // Create: user must be in the new document's participants AND in conversationId
-      allow create: if request.auth != null && 
-        isParticipantByConversationId() &&
-        request.auth.uid in request.resource.data.participants;
-      
-      // Update: conversationId contains user's UID
-      allow update: if request.auth != null && isParticipantByConversationId();
+      // Update: user must be participant
+      allow update: if isAuthenticated() && isParticipantByConversationId(conversationId);
       
       match /messages/{messageId} {
-        // Only participants can access messages (use parent's conversationId check)
-        allow read, write: if request.auth != null && 
-          request.auth.uid in conversationId.split('_');
+        // Only participants can read messages
+        allow read: if isAuthenticated() && isParticipantByConversationId(conversationId);
+        
+        // Create: user must be participant and is the sender
+        allow create: if isAuthenticated() &&
+          isParticipantByConversationId(conversationId) &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0 &&
+          request.resource.data.createdAt is timestamp;
+          
+        allow update, delete: if false;
       }
     }
 
     // ================================================================
     // INVITES - Convites para bandas
     // ================================================================
-      match /invites/{inviteId} {
-         // Allow read if user is the target OR the band (admin)
-         allow read: if request.auth != null && (
-           resource.data.target_uid == request.auth.uid || 
-           resource.data.band_id == request.auth.uid
-         );
-         // Allow create if auth (for sending invites)
-         allow create: if request.auth != null;
-         // Allow update if target (accept/decline) or band (cancel)
-         allow update: if request.auth != null && (
-           resource.data.target_uid == request.auth.uid || 
-           resource.data.band_id == request.auth.uid
-         );
-         // Allow delete if band (cancel)
-         allow delete: if request.auth != null && resource.data.band_id == request.auth.uid;
-      }
+    match /invites/{inviteId} {
+      // Leitura: remetente ou destinatário
+      allow read: if isAuthenticated() &&
+        (resource.data.target_uid == request.auth.uid ||
+         resource.data.sender_uid == request.auth.uid);
+
+      // Escrita: apenas via Cloud Functions
+      allow create, update, delete: if false;
+    }
 
     // ================================================================
-    // PROFILES - Coleção pública/global (Counter mirror)
+    // BAND MEMBERSHIPS - Associação usuário-banda
     // ================================================================
-    match /profiles/{profileId} {
-      // Qualquer autenticado pode ler
+    match /bandMemberships/{membershipId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+    }
+
+    // ================================================================
+    // BANDS - Informações de bandas
+    // ================================================================
+    match /bands/{bandId} {
       allow read: if request.auth != null;
       
-      // Permite atualizar APENAS o campo likeCount (qualquer usuário autenticado)
-      allow update: if request.auth != null && 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']);
+      // Criação: qualquer usuário autenticado pode criar banda
+      allow create: if request.auth != null;
+      
+      // Update: apenas membros com role adequado (verificado na function)
+      allow update: if request.auth != null &&
+        exists(/databases/$(database)/documents/bandMemberships/$(request.auth.uid + '_' + bandId));
         
-      // Criação/Deleção restrita (geralmente feita por Cloud Functions ou Admin SDK, 
-      // ou pelo próprio usuário se profiles for espelho de users. 
-      // O repo atual apenas atualiza se existir.
+      // Delete: apenas via function
+      allow delete: if false;
+      
+      // Subcoleção de membros
+      match /members/{memberId} {
+        allow read: if request.auth != null;
+        allow write: if false; // Apenas via Cloud Function
+      }
     }
 
     // ================================================================
@@ -165,9 +194,84 @@ service cloud.firestore {
     // ================================================================
     match /reports/{reportId} {
       // Create: Authenticated users can report
-      allow create: if request.auth != null;
-      // Read/Update/Delete: Admins only (not implemented in client yet)
+      allow create: if isAuthenticated() &&
+        request.resource.data.reporter_user_id == request.auth.uid &&
+        request.resource.data.reported_item_id is string &&
+        request.resource.data.reported_item_type is string &&
+        request.resource.data.reason is string &&
+        request.resource.data.reported_item_id != request.auth.uid;
+      
+      // Read/Update/Delete: Apenas via Cloud Functions
       allow read, update, delete: if false; 
+    }
+
+    // ================================================================
+    // SUSPENSIONS - Suspensões de usuários
+    // ================================================================
+    match /suspensions/{suspensionId} {
+      // Usuário pode ler sua própria suspensão
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+    }
+
+    // ================================================================
+    // USER MODERATIONS - Registro de moderação
+    // ================================================================
+    match /userModerations/{moderationId} {
+      // Usuário pode ler sua própria moderação
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+    }
+
+    // ================================================================
+    // HASHTAG RANKING - Ranking de hashtags
+    // ================================================================
+    match /hashtagRanking/{hashtagId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+      
+      // Subcoleção de usos diários
+      match /dailyUses/{dateId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+    }
+
+    // ================================================================
+    // PROFILES - Coleção pública/global (Counter mirror)
+    // ================================================================
+    match /profiles/{profileId} {
+      allow read: if request.auth != null;
+      
+      // Apenas Cloud Functions podem atualizar
+      allow create, update, delete: if false;
+    }
+
+    // ================================================================
+    // POSTS - Posts do feed
+    // ================================================================
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      
+      // Create: usuário autenticado
+      allow create: if request.auth != null &&
+        request.resource.data.author_id == request.auth.uid;
+      
+      // Update: apenas o autor
+      allow update: if request.auth != null &&
+        resource.data.author_id == request.auth.uid &&
+        !resource.data.keys().hasAny(['report_count', 'hidden', 'hidden_reason']);
+      
+      // Delete: apenas o autor ou admin (via function)
+      allow delete: if request.auth != null && resource.data.author_id == request.auth.uid;
+    }
+
+    // ================================================================
+    // MATCHPOINT STATS - Estatísticas (apenas leitura)
+    // ================================================================
+    match /matchpointStats/{statId} {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
     
     // ================================================================

@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'efc4dcc8856a6fc534a4498eee5b66d36eb22145';
+    r'e6545408663b79c29da5dfd0b3fccdd1d9552a49';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -52,6 +52,65 @@ abstract class _$MatchpointController extends $AsyncNotifier<void> {
               Object?
             >;
     element.handleValue(ref, null);
+  }
+}
+
+/// Provider para quota de likes
+
+@ProviderFor(LikesQuota)
+const likesQuotaProvider = LikesQuotaProvider._();
+
+/// Provider para quota de likes
+final class LikesQuotaProvider
+    extends $NotifierProvider<LikesQuota, LikesQuotaState> {
+  /// Provider para quota de likes
+  const LikesQuotaProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'likesQuotaProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$likesQuotaHash();
+
+  @$internal
+  @override
+  LikesQuota create() => LikesQuota();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LikesQuotaState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LikesQuotaState>(value),
+    );
+  }
+}
+
+String _$likesQuotaHash() => r'449fe45cb0bf6daa18ee0a9674d0a2b28801e4fb';
+
+/// Provider para quota de likes
+
+abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
+  LikesQuotaState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<LikesQuotaState, LikesQuotaState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<LikesQuotaState, LikesQuotaState>,
+              LikesQuotaState,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
   }
 }
 
@@ -94,3 +153,219 @@ final class MatchpointCandidatesProvider
 
 String _$matchpointCandidatesHash() =>
     r'af1b84c0d4f6894ce78ac6e7d3a7788685349d76';
+
+/// Provider para lista de matches do usuário
+
+@ProviderFor(matches)
+const matchesProvider = MatchesProvider._();
+
+/// Provider para lista de matches do usuário
+
+final class MatchesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<MatchInfo>>,
+          List<MatchInfo>,
+          FutureOr<List<MatchInfo>>
+        >
+    with $FutureModifier<List<MatchInfo>>, $FutureProvider<List<MatchInfo>> {
+  /// Provider para lista de matches do usuário
+  const MatchesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'matchesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$matchesHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<MatchInfo>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<MatchInfo>> create(Ref ref) {
+    return matches(ref);
+  }
+}
+
+String _$matchesHash() => r'7463b464104822a7236193839b3d289baa52f56d';
+
+/// Provider para ranking de hashtags
+
+@ProviderFor(hashtagRanking)
+const hashtagRankingProvider = HashtagRankingFamily._();
+
+/// Provider para ranking de hashtags
+
+final class HashtagRankingProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<HashtagRanking>>,
+          List<HashtagRanking>,
+          FutureOr<List<HashtagRanking>>
+        >
+    with
+        $FutureModifier<List<HashtagRanking>>,
+        $FutureProvider<List<HashtagRanking>> {
+  /// Provider para ranking de hashtags
+  const HashtagRankingProvider._({
+    required HashtagRankingFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'hashtagRankingProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$hashtagRankingHash();
+
+  @override
+  String toString() {
+    return r'hashtagRankingProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<HashtagRanking>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<HashtagRanking>> create(Ref ref) {
+    final argument = this.argument as int;
+    return hashtagRanking(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is HashtagRankingProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$hashtagRankingHash() => r'b0bb3ddd122c3bd2d751f73b67abaa40baff3f2f';
+
+/// Provider para ranking de hashtags
+
+final class HashtagRankingFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<HashtagRanking>>, int> {
+  const HashtagRankingFamily._()
+    : super(
+        retry: null,
+        name: r'hashtagRankingProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Provider para ranking de hashtags
+
+  HashtagRankingProvider call(int limit) =>
+      HashtagRankingProvider._(argument: limit, from: this);
+
+  @override
+  String toString() => r'hashtagRankingProvider';
+}
+
+/// Provider para busca de hashtags
+
+@ProviderFor(hashtagSearch)
+const hashtagSearchProvider = HashtagSearchFamily._();
+
+/// Provider para busca de hashtags
+
+final class HashtagSearchProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<HashtagRanking>>,
+          List<HashtagRanking>,
+          FutureOr<List<HashtagRanking>>
+        >
+    with
+        $FutureModifier<List<HashtagRanking>>,
+        $FutureProvider<List<HashtagRanking>> {
+  /// Provider para busca de hashtags
+  const HashtagSearchProvider._({
+    required HashtagSearchFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'hashtagSearchProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$hashtagSearchHash();
+
+  @override
+  String toString() {
+    return r'hashtagSearchProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<HashtagRanking>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<HashtagRanking>> create(Ref ref) {
+    final argument = this.argument as String;
+    return hashtagSearch(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is HashtagSearchProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$hashtagSearchHash() => r'a3fa9956daa2b21e82ac92abb6c8878a7963ea13';
+
+/// Provider para busca de hashtags
+
+final class HashtagSearchFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<HashtagRanking>>, String> {
+  const HashtagSearchFamily._()
+    : super(
+        retry: null,
+        name: r'hashtagSearchProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Provider para busca de hashtags
+
+  HashtagSearchProvider call(String query) =>
+      HashtagSearchProvider._(argument: query, from: this);
+
+  @override
+  String toString() => r'hashtagSearchProvider';
+}

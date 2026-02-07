@@ -123,7 +123,7 @@ class InvitesScreen extends ConsumerWidget {
                 Container(
                   width: 40,
                   height: 40,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors.surfaceHighlight,
                     borderRadius: AppRadius.all8,
                   ),
@@ -167,7 +167,7 @@ class InvitesScreen extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.textPrimary),
                         foregroundColor: AppColors.textPrimary,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadius.pill,
                         ),
                       ),
@@ -192,7 +192,7 @@ class InvitesScreen extends ConsumerWidget {
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadius.pill,
                         ),
                         minimumSize: const Size(0, 48),
@@ -277,7 +277,7 @@ class InvitesScreen extends ConsumerWidget {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   foregroundColor: AppColors.error,
-                  shape: RoundedRectangleBorder(
+                  shape: const RoundedRectangleBorder(
                       borderRadius: AppRadius.pill,
                   ),
                   splashFactory: NoSplash.splashFactory,

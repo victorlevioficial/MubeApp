@@ -59,7 +59,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
             margin: const EdgeInsets.only(top: AppSpacing.s12),
             width: 40,
             height: 4,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.border,
               borderRadius: AppRadius.all4,
             ),

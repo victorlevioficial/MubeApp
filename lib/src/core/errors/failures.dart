@@ -264,3 +264,28 @@ class UnexpectedFailure extends Failure {
     this.stackTrace,
   });
 }
+
+// ============================================================================
+// MATCHPOINT FAILURES
+// ============================================================================
+
+/// Represents matchpoint/rate limiting failures.
+class QuotaExceededFailure extends Failure {
+  const QuotaExceededFailure({
+    required super.message,
+    super.debugMessage,
+    super.originalError,
+  });
+
+  /// Daily swipe limit reached.
+  factory QuotaExceededFailure.dailyLikes() => const QuotaExceededFailure(
+    message: 'Limite diário de 50 swipes atingido. Tente novamente amanhã.',
+    debugMessage: 'daily-swipe-limit-exceeded',
+  );
+
+  /// Generic quota exceeded.
+  factory QuotaExceededFailure.generic() => const QuotaExceededFailure(
+    message: 'Limite atingido. Tente novamente mais tarde.',
+    debugMessage: 'quota-exceeded',
+  );
+}

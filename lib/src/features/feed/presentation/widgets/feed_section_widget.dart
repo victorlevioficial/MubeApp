@@ -89,7 +89,7 @@ class FeedSectionWidget extends StatelessWidget {
             width: 110,
             height: 110, // Match photo size
             margin: const EdgeInsets.only(right: AppSpacing.s12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all12,
             ),

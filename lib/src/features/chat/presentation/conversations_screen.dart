@@ -197,7 +197,7 @@ class _ConversationTile extends StatelessWidget {
                               horizontal: AppSpacing.s8,
                               vertical: AppSpacing.s4,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: AppRadius.all12,
                             ),

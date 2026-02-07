@@ -24,11 +24,12 @@ class ModerationRepository {
   }) async {
     try {
       await _firestore.collection(FirestoreCollections.reports).add({
-        'reporterId': reporterId,
-        'reportedUserId': reportedUserId,
+        'reporter_user_id': reporterId,
+        'reported_item_id': reportedUserId,
+        'reported_item_type': 'user',
         'reason': reason,
         'description': description,
-        'createdAt': FieldValue.serverTimestamp(),
+        'created_at': FieldValue.serverTimestamp(),
         'status': 'pending',
       });
       return const Right(null);

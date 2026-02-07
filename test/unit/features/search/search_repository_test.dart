@@ -53,8 +53,8 @@ void main() {
 
       expect(result.isRight(), true);
       result.fold((l) => fail('Should not fail'), (r) {
-        expect(r.length, 1);
-        expect(r.first.uid, userUid);
+        expect(r.items.length, 1);
+        expect(r.items.first.uid, userUid);
       });
     });
 
@@ -76,8 +76,8 @@ void main() {
       );
 
       result.fold((l) => fail('Should not fail'), (r) {
-        expect(r.any((u) => u.uid == 'hidden-user'), false);
-        expect(r.any((u) => u.uid == userUid), true);
+        expect(r.items.any((u) => u.uid == 'hidden-user'), false);
+        expect(r.items.any((u) => u.uid == userUid), true);
       });
     });
   });

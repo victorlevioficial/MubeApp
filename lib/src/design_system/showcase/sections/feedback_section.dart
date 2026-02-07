@@ -54,7 +54,7 @@ class FeedbackSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.s8),
         Container(
           padding: AppSpacing.all16,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all12,
           ),

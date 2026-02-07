@@ -450,7 +450,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
                         horizontal: 12,
                         vertical: 6,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.textPrimary,
                         borderRadius: AppRadius.all16,
                       ),

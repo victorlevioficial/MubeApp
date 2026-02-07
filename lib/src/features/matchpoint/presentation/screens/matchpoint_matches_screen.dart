@@ -6,8 +6,7 @@ import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_radius.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
-import 'package:mube/src/features/chat/data/chat_providers.dart';
-import 'package:mube/src/features/chat/domain/conversation_preview.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/routing/route_paths.dart';
 
@@ -16,39 +15,48 @@ class MatchpointMatchesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final conversationsAsync = ref.watch(matchConversationsProvider);
+    final matchesAsync = ref.watch(matchesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: conversationsAsync.when(
-        data: (conversations) {
-          if (conversations.isEmpty) {
+      body: matchesAsync.when(
+        data: (matches) {
+          if (matches.isEmpty) {
             return _buildEmptyState(context);
           }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.s16),
-            itemCount: conversations.length,
+            itemCount: matches.length,
             separatorBuilder: (context, index) =>
                 const SizedBox(height: AppSpacing.s12),
             itemBuilder: (context, index) {
-              final preview = conversations[index];
+              final match = matches[index];
+              final otherUser = match.otherUser;
+              
               return FadeInSlide(
                 duration: const Duration(milliseconds: 400),
                 child: _MatchTile(
-                  preview: preview,
-                  onTap: () => context.push(
-                    '${RoutePaths.conversation}/${preview.id}',
-                    extra: {
-                      'otherUserId': preview.otherUserId,
-                      'otherUserName': preview.otherUserName,
-                      'otherUserPhoto': preview.otherUserPhoto,
-                    },
-                  ),
+                  userName: otherUser?.nome ?? 'Usuário',
+                  userPhoto: otherUser?.foto,
+                  userId: match.otherUserId,
+                  conversationId: match.conversationId,
+                  onTap: () {
+                    if (match.conversationId != null) {
+                      context.push(
+                        '${RoutePaths.conversation}/${match.conversationId}',
+                        extra: {
+                          'otherUserId': match.otherUserId,
+                          'otherUserName': otherUser?.nome ?? 'Usuário',
+                          'otherUserPhoto': otherUser?.foto,
+                        },
+                      );
+                    }
+                  },
                   onUnmatch: () => _confirmUnmatch(
                     context,
                     ref,
-                    preview.otherUserId,
-                    preview.otherUserName,
+                    match.otherUserId,
+                    otherUser?.nome ?? 'Usuário',
                   ),
                 ),
               );
@@ -63,7 +71,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
           icon: Icons.error_outline,
           actionButton: AppButton.secondary(
             text: 'Tentar novamente',
-            onPressed: () => ref.refresh(matchConversationsProvider),
+            onPressed: () => ref.refresh(matchesProvider),
           ),
         ),
       ),
@@ -100,20 +108,29 @@ class MatchpointMatchesScreen extends ConsumerWidget {
       subtitle: 'Curta perfis para conectar com outros músicos!',
       icon: Icons.favorite_border,
       actionButton: AppButton.primary(
-        text: 'Ir para o Feed',
-        onPressed: () => context.go(RoutePaths.feed),
+        text: 'Explorar',
+        onPressed: () {
+          // Voltar para a aba de explorar
+          // Isso será tratado pelo IndexedStack no parent
+        },
       ),
     );
   }
 }
 
 class _MatchTile extends StatelessWidget {
-  final ConversationPreview preview;
+  final String userName;
+  final String? userPhoto;
+  final String userId;
+  final String? conversationId;
   final VoidCallback onTap;
   final VoidCallback onUnmatch;
 
   const _MatchTile({
-    required this.preview,
+    required this.userName,
+    required this.userPhoto,
+    required this.userId,
+    this.conversationId,
     required this.onTap,
     required this.onUnmatch,
   });
@@ -136,8 +153,8 @@ class _MatchTile extends StatelessWidget {
             children: [
               UserAvatar(
                 size: 56,
-                photoUrl: preview.otherUserPhoto,
-                name: preview.otherUserName,
+                photoUrl: userPhoto,
+                name: userName,
               ),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
@@ -145,19 +162,15 @@ class _MatchTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      preview.otherUserName,
+                      userName,
                       style: AppTypography.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
-                      preview.lastMessageText ?? 'Novo Match! Diga Olá 👋',
+                      'Novo Match! Diga Olá 👋',
                       style: AppTypography.bodySmall.copyWith(
-                        color: preview.unreadCount > 0
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                        fontWeight: preview.unreadCount > 0
-                            ? AppTypography.buttonPrimary.fontWeight
-                            : AppTypography.bodySmall.fontWeight,
+                        color: AppColors.primary,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -191,7 +204,7 @@ class _MatchTile extends StatelessWidget {
                           onTap: () {
                             context.pop();
                             context.push(
-                              '${RoutePaths.publicProfile}/${preview.otherUserId}',
+                              '${RoutePaths.publicProfile}/$userId',
                             );
                           },
                         ),

@@ -57,7 +57,7 @@ class FeedItemSkeleton extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     height: 16,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.skeletonBase, // Standardized
                       borderRadius: AppRadius.all4,
                     ),
@@ -68,7 +68,7 @@ class FeedItemSkeleton extends StatelessWidget {
                   Container(
                     width: 100,
                     height: 14,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.skeletonBase, // Standardized
                       borderRadius: AppRadius.all4,
                     ),
@@ -81,7 +81,7 @@ class FeedItemSkeleton extends StatelessWidget {
                       Container(
                         width: 60,
                         height: 20,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.skeletonBase, // Standardized
                           borderRadius: AppRadius.all24,
                         ),
@@ -90,7 +90,7 @@ class FeedItemSkeleton extends StatelessWidget {
                       Container(
                         width: 80,
                         height: 20,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.skeletonBase, // Standardized
                           borderRadius: AppRadius.all24,
                         ),
@@ -105,7 +105,7 @@ class FeedItemSkeleton extends StatelessWidget {
                       Container(
                         width: 70,
                         height: 20,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.skeletonHighlight,
                           borderRadius: AppRadius.all24,
                         ),

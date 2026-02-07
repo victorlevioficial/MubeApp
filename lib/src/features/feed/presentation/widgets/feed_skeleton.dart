@@ -59,7 +59,7 @@ class FeedScreenSkeleton extends StatelessWidget {
                 Container(
                   width: 120,
                   height: 16,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors
                         .skeletonBase, // Standardized skeleton element color
                     borderRadius: AppRadius.all4,
@@ -69,7 +69,7 @@ class FeedScreenSkeleton extends StatelessWidget {
                 Container(
                   width: 180,
                   height: 12,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppColors
                         .skeletonBase, // Standardized skeleton element color
                     borderRadius: AppRadius.all4,
@@ -95,7 +95,7 @@ class FeedScreenSkeleton extends StatelessWidget {
             child: Container(
               width: 150,
               height: 20,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors
                     .skeletonBase, // Standardized skeleton element color
                 borderRadius: AppRadius.all4,
@@ -120,7 +120,7 @@ class FeedScreenSkeleton extends StatelessWidget {
               ),
               child: Container(
                 width: 140,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors
                       .skeletonBase, // Standardized skeleton element color
                   borderRadius: AppRadius.all16,
@@ -155,7 +155,7 @@ class FeedScreenSkeleton extends StatelessWidget {
               child: Container(
                 width: width,
                 height: AppSpacing.s32,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors
                       .skeletonBase, // Standardized skeleton element color
                   borderRadius: AppRadius.pill, // Fully rounded
@@ -182,7 +182,7 @@ class FeedScreenSkeleton extends StatelessWidget {
         child: Container(
           width: 120,
           height: 20, // Title size
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color:
                 AppColors.skeletonBase, // Standardized skeleton element color
             borderRadius: AppRadius.all4,

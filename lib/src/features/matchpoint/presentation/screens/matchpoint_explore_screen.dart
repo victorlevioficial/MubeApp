@@ -113,10 +113,17 @@ class _MatchpointExploreScreenState
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
-        debugPrint('Liked ${user.nome}');
-        final match = await ref
+        final swipeResult = await ref
             .read(matchpointControllerProvider.notifier)
             .swipeRight(user);
+
+        if (!swipeResult.success) {
+          debugPrint('Swipe bloqueado: backend retornou falha.');
+          return;
+        }
+
+        debugPrint('Liked ${user.nome}');
+        final match = swipeResult.matchedUser;
 
         if (match != null && context.mounted) {
           final currentUserProfile = ref
@@ -148,9 +155,14 @@ class _MatchpointExploreScreenState
           );
         }
       },
-      onSwipeLeft: (user) {
-        debugPrint('Disliked ${user.nome}');
-        ref.read(matchpointControllerProvider.notifier).swipeLeft(user);
+      onSwipeLeft: (user) async {
+        final success = await ref
+            .read(matchpointControllerProvider.notifier)
+            .swipeLeft(user);
+
+        if (success) {
+          debugPrint('Disliked ${user.nome}');
+        }
       },
     );
   }

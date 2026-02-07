@@ -15,8 +15,9 @@ import 'package:mube/src/core/errors/failures.dart' as _i8;
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart'
     as _i2;
 import 'package:mube/src/features/auth/domain/app_user.dart' as _i5;
-import 'package:mube/src/features/feed/domain/feed_item.dart' as _i9;
 import 'package:mube/src/features/search/data/search_repository.dart' as _i6;
+import 'package:mube/src/features/search/domain/paginated_search_response.dart'
+    as _i9;
 import 'package:mube/src/features/search/domain/search_filters.dart' as _i10;
 
 // ignore_for_file: type=lint
@@ -179,7 +180,7 @@ class MockAuthRemoteDataSource extends _i1.Mock
 /// See the documentation for Mockito's code generation for more information.
 class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
   @override
-  _i3.Future<_i7.Either<_i8.Failure, List<_i9.FeedItem>>> searchUsers({
+  _i3.Future<_i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>> searchUsers({
     required _i10.SearchFilters? filters,
     _i11.DocumentSnapshot<Object?>? startAfter,
     required int? requestId,
@@ -195,8 +196,12 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
               #blockedUsers: blockedUsers,
             }),
             returnValue:
-                _i3.Future<_i7.Either<_i8.Failure, List<_i9.FeedItem>>>.value(
-                  _i13.dummyValue<_i7.Either<_i8.Failure, List<_i9.FeedItem>>>(
+                _i3.Future<
+                  _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                >.value(
+                  _i13.dummyValue<
+                    _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  >(
                     this,
                     Invocation.method(#searchUsers, [], {
                       #filters: filters,
@@ -208,8 +213,12 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
                   ),
                 ),
             returnValueForMissingStub:
-                _i3.Future<_i7.Either<_i8.Failure, List<_i9.FeedItem>>>.value(
-                  _i13.dummyValue<_i7.Either<_i8.Failure, List<_i9.FeedItem>>>(
+                _i3.Future<
+                  _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                >.value(
+                  _i13.dummyValue<
+                    _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  >(
                     this,
                     Invocation.method(#searchUsers, [], {
                       #filters: filters,
@@ -221,5 +230,5 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
                   ),
                 ),
           )
-          as _i3.Future<_i7.Either<_i8.Failure, List<_i9.FeedItem>>>);
+          as _i3.Future<_i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>>);
 }

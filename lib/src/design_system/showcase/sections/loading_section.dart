@@ -54,7 +54,7 @@ class LoadingSection extends StatelessWidget {
           child: Container(
             height: 100,
             width: double.infinity,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all12,
             ),

@@ -95,7 +95,7 @@ class SkeletonText extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.skeletonBase,
         borderRadius: AppRadius.all4,
       ),
@@ -172,7 +172,7 @@ class FeedCardSkeleton extends StatelessWidget {
         vertical: AppSpacing.s8,
       ),
       padding: AppSpacing.all12,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
       ),
@@ -197,7 +197,7 @@ class FeedCardSkeleton extends StatelessWidget {
                   Container(
                     width: double.infinity,
                     height: 16,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.surfaceHighlight,
                       borderRadius: AppRadius.all4,
                     ),
@@ -206,7 +206,7 @@ class FeedCardSkeleton extends StatelessWidget {
                   Container(
                     width: 80,
                     height: 12,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.surfaceHighlight,
                       borderRadius: AppRadius.all4,
                     ),
@@ -217,7 +217,7 @@ class FeedCardSkeleton extends StatelessWidget {
                       Container(
                         width: 50,
                         height: 20,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.surfaceHighlight,
                           borderRadius: AppRadius.all12,
                         ),
@@ -226,7 +226,7 @@ class FeedCardSkeleton extends StatelessWidget {
                       Container(
                         width: 50,
                         height: 20,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.surfaceHighlight,
                           borderRadius: AppRadius.all12,
                         ),

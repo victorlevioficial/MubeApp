@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:cloud_functions/cloud_functions.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -8,16 +8,16 @@ part 'invites_repository.g.dart';
 @Riverpod(keepAlive: true)
 InvitesRepository invitesRepository(Ref ref) {
   return InvitesRepository(
-    // FirebaseFunctions.instance,
+    FirebaseFunctions.instanceFor(region: 'southamerica-east1'),
     FirebaseFirestore.instance,
   );
 }
 
 class InvitesRepository {
-  // final FirebaseFunctions _functions;
+  final FirebaseFunctions _functions;
   final FirebaseFirestore _firestore;
 
-  InvitesRepository(/*this._functions,*/ this._firestore);
+  InvitesRepository(this._functions, this._firestore);
 
   /// Sends an invite to a user to join a band.
   Future<void> sendInvite({
@@ -28,24 +28,14 @@ class InvitesRepository {
     required String targetInstrument,
   }) async {
     try {
-      // 1. Get Band Info (to show in invite)
-      final bandDoc = await _firestore.collection('users').doc(bandId).get();
-      if (!bandDoc.exists) throw Exception('Banda não encontrada');
-      final bandData = bandDoc.data()!;
-
-      // 2. Create Invite Doc
-      await _firestore.collection('invites').add({
-        'band_id': bandId,
-        'band_name':
-            bandData['nome'] ?? bandData['displayName'] ?? 'Banda sem nome',
-        'band_photo': bandData['foto'] ?? '',
-        'target_uid': targetUid,
-        'target_name': targetName,
-        'target_photo': targetPhoto,
-        'target_instrument': targetInstrument,
-        'sender_uid': bandId, // Assuming admin is sending from band account
-        'status': 'pendente',
-        'created_at': FieldValue.serverTimestamp(),
+      final callable = _functions.httpsCallable('manageBandInvite');
+      await callable.call({
+        'action': 'send',
+        'bandId': bandId,
+        'targetUid': targetUid,
+        'targetName': targetName,
+        'targetPhoto': targetPhoto,
+        'targetInstrument': targetInstrument,
       });
     } catch (e) {
       throw Exception('Erro ao enviar convite: $e');
@@ -58,28 +48,11 @@ class InvitesRepository {
     required bool accept,
   }) async {
     try {
-      final inviteRef = _firestore.collection('invites').doc(inviteId);
-      final inviteDoc = await inviteRef.get();
-
-      if (!inviteDoc.exists) throw Exception('Convite não encontrado');
-
-      if (accept) {
-        final data = inviteDoc.data()!;
-        final bandId = data['band_id'];
-        final userId = data['target_uid'];
-
-        // 1. Add user to Band's members list
-        // Note: For MVP we do client-side array updates. Real app should use Cloud Function or Transactions.
-        await _firestore.collection('users').doc(bandId).update({
-          'members': FieldValue.arrayUnion([userId]),
-        });
-
-        // 2. Update Invite Status
-        await inviteRef.update({'status': 'aceito'});
-      } else {
-        // Decline
-        await inviteRef.update({'status': 'recusado'});
-      }
+      final callable = _functions.httpsCallable('manageBandInvite');
+      await callable.call({
+        'action': accept ? 'accept' : 'decline',
+        'inviteId': inviteId,
+      });
     } catch (e) {
       throw Exception('Erro ao responder convite: $e');
     }
@@ -137,8 +110,10 @@ class InvitesRepository {
   /// Removes the user from a band's member list.
   Future<void> leaveBand({required String bandId, required String uid}) async {
     try {
-      await _firestore.collection('users').doc(bandId).update({
-        'members': FieldValue.arrayRemove([uid]),
+      final callable = _functions.httpsCallable('leaveBand');
+      await callable.call({
+        'bandId': bandId,
+        'userId': uid,
       });
     } catch (e) {
       throw Exception('Erro ao sair da banda: $e');
@@ -148,7 +123,11 @@ class InvitesRepository {
   /// Cancels a sent invite (deletes the document).
   Future<void> cancelInvite(String inviteId) async {
     try {
-      await _firestore.collection('invites').doc(inviteId).delete();
+      final callable = _functions.httpsCallable('manageBandInvite');
+      await callable.call({
+        'action': 'cancel',
+        'inviteId': inviteId,
+      });
     } catch (e) {
       throw Exception('Erro ao cancelar convite: $e');
     }

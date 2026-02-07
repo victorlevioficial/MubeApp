@@ -55,4 +55,4 @@ final class MatchpointRepositoryProvider
 }
 
 String _$matchpointRepositoryHash() =>
-    r'3739f88a779526c54e1c890ca110274919eddc26';
+    r'7d6557b03e35fa3b8121a6bb520d64e0846fcb86';

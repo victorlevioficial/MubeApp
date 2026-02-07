@@ -92,6 +92,18 @@ class AppLogger {
     }
   }
 
+  /// Log de debug (desenvolvimento)
+  /// Apenas em modo debug, não envia ao Crashlytics
+  static void debug(String message) {
+    if (kDebugMode) {
+      developer.log(
+        message,
+        name: 'MubeApp 🐛',
+        level: 500, // FINE
+      );
+    }
+  }
+
   /// Log de warning (atenção)
   /// Em produção, envia como log não-crítico ao Crashlytics
   static void warning(String message, [Object? error, StackTrace? stackTrace]) {

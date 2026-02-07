@@ -77,7 +77,7 @@ class _StudioFormFieldsState extends State<StudioFormFields> {
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
       ),

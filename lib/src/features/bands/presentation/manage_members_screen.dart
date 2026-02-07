@@ -42,7 +42,7 @@ class _MemberSkeleton extends StatelessWidget {
         title: Container(
           width: 120,
           height: 16,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.surfaceHighlight,
             borderRadius: AppRadius.all4,
           ),
@@ -51,7 +51,7 @@ class _MemberSkeleton extends StatelessWidget {
           width: 80,
           height: 12,
           margin: const EdgeInsets.only(top: AppSpacing.s8),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.surfaceHighlight,
             borderRadius: AppRadius.all4,
           ),
@@ -286,7 +286,7 @@ class _SentInvitesList extends ConsumerWidget {
                               horizontal: AppSpacing.s8,
                               vertical: AppSpacing.s2,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.surfaceHighlight,
                               borderRadius: AppRadius.all4,
                             ),
@@ -456,7 +456,7 @@ class _MemberCard extends ConsumerWidget {
           trailing: PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
             color: AppColors.surfaceHighlight,
-            shape: RoundedRectangleBorder(
+            shape: const RoundedRectangleBorder(
               borderRadius: AppRadius.all12,
             ),
             onSelected: (value) async {

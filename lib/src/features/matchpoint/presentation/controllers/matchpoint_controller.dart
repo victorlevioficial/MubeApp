@@ -3,12 +3,53 @@ import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
-import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'matchpoint_controller.g.dart';
+
+/// Estado do controller de quota de likes
+class LikesQuotaState {
+  final int remaining;
+  final int limit;
+  final DateTime? resetTime;
+  final bool isLoading;
+
+  const LikesQuotaState({
+    this.remaining = 50,
+    this.limit = 50,
+    this.resetTime,
+    this.isLoading = false,
+  });
+
+  bool get hasReachedLimit => remaining <= 0;
+
+  LikesQuotaState copyWith({
+    int? remaining,
+    int? limit,
+    DateTime? resetTime,
+    bool? isLoading,
+  }) {
+    return LikesQuotaState(
+      remaining: remaining ?? this.remaining,
+      limit: limit ?? this.limit,
+      resetTime: resetTime ?? this.resetTime,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+}
+
+class SwipeActionResult {
+  final bool success;
+  final AppUser? matchedUser;
+
+  const SwipeActionResult({
+    required this.success,
+    this.matchedUser,
+  });
+}
 
 @Riverpod(keepAlive: true)
 class MatchpointController extends _$MatchpointController {
@@ -76,83 +117,68 @@ class MatchpointController extends _$MatchpointController {
     );
   }
 
-  static bool _debugForceMatch = false;
-
-  void debugSetForceMatch() {
-    _debugForceMatch = true;
-    AppLogger.info('🛠️ DEBUG: Next swipe will trigger a MATCH! (Static Mode)');
-  }
-
-  Future<AppUser?> swipeRight(AppUser targetUser) async {
+  Future<SwipeActionResult> swipeRight(AppUser targetUser) async {
     return await _handleSwipe(targetUser, 'like');
   }
 
-  Future<void> swipeLeft(AppUser targetUser) async {
-    await _handleSwipe(targetUser, 'dislike');
+  Future<bool> swipeLeft(AppUser targetUser) async {
+    final result = await _handleSwipe(targetUser, 'dislike');
+    return result.success;
   }
 
-  Future<AppUser?> _handleSwipe(AppUser targetUser, String type) async {
+  Future<SwipeActionResult> _handleSwipe(AppUser targetUser, String type) async {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
-    if (currentUser == null) return null;
+    if (currentUser == null) {
+      AppLogger.error('Swipe bloqueado: usuário sem sessão FirebaseAuth');
+      state = const AsyncError('Sessão expirada. Faça login novamente.', StackTrace.empty);
+      return const SwipeActionResult(success: false);
+    }
+
+    try {
+      final idToken = await currentUser.getIdToken();
+      if (idToken == null || idToken.isEmpty) {
+        AppLogger.error('Swipe bloqueado: token FirebaseAuth ausente');
+        state = const AsyncError('Sessão inválida. Faça login novamente.', StackTrace.empty);
+        return const SwipeActionResult(success: false);
+      }
+    } catch (e) {
+      AppLogger.error('Swipe bloqueado: erro ao obter token FirebaseAuth: $e');
+      state = AsyncError('Erro de autenticação: $e', StackTrace.current);
+      return const SwipeActionResult(success: false);
+    }
 
     final repo = ref.read(matchpointRepositoryProvider);
 
-    // DEBUG BYPASS
-    if (type == 'like' && _debugForceMatch) {
-      _debugForceMatch = false; // Reset
-      // In a real forced scenario, we would also write to DB,
-      // but for UI testing we just pretend it matched.
-      // We still save the 'like' to DB so the card disappears from future queries
-      await repo.saveInteraction(
-        currentUserId: currentUser.uid,
-        targetUserId: targetUser.uid,
-        type: type,
-      );
-      AppLogger.info('🚀 FORCED MATCH TRIGGERED!');
-      return targetUser;
-    }
-
-    final result = await repo.saveInteraction(
-      currentUserId: currentUser.uid,
+    // Usar nova função submitAction que chama Cloud Function
+    final result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
     );
 
     return result.fold(
       (failure) {
+        AppLogger.error('Falha ao processar swipe: ${failure.toString()}');
         state = AsyncError(failure.message, StackTrace.current);
-        return null;
+        return const SwipeActionResult(success: false);
       },
-      (isMatch) async {
-        if (isMatch) {
+      (actionResult) async {
+        // Atualizar quota de likes no provider
+        if (actionResult.remainingLikes != null) {
+          ref.read(likesQuotaProvider.notifier).updateRemaining(
+            actionResult.remainingLikes!,
+          );
+        }
+
+        if (actionResult.isMatch == true) {
           AppLogger.info("IT'S A MATCH!");
 
-          // Criar conversa automaticamente
-          try {
-            final appUserAsync = ref.read(currentUserProfileProvider);
-            final appUser = appUserAsync.value;
-            final myName =
-                appUser?.nome ?? currentUser.displayName ?? 'Usuário';
-            final myPhoto = appUser?.foto ?? currentUser.photoURL;
+          // Invalidar provider de matches para recarregar
+          ref.invalidate(matchesProvider);
 
-            final chatRepo = ref.read(chatRepositoryProvider);
-            await chatRepo.getOrCreateConversation(
-              myUid: currentUser.uid,
-              otherUid: targetUser.uid,
-              otherUserName: targetUser.nome ?? 'Usuário',
-              otherUserPhoto: targetUser.foto,
-              myName: myName,
-              myPhoto: myPhoto,
-              type: 'matchpoint',
-            );
-          } catch (e) {
-            AppLogger.error('Erro ao criar conversa automática: $e');
-          }
-
-          return targetUser;
+          return SwipeActionResult(success: true, matchedUser: targetUser);
         }
-        return null;
+        return const SwipeActionResult(success: true);
       },
     );
   }
@@ -162,28 +188,73 @@ class MatchpointController extends _$MatchpointController {
     final currentUser = authRepo.currentUser;
     if (currentUser == null) return;
 
-    final chatRepo = ref.read(chatRepositoryProvider);
-    final matchRepo = ref.read(matchpointRepositoryProvider);
+    final repo = ref.read(matchpointRepositoryProvider);
 
-    // 1. Delete conversation (Calculate ID)
-    final conversationId = chatRepo.getConversationId(
-      currentUser.uid,
-      targetUserId,
-    );
-
-    await chatRepo.deleteConversation(
-      conversationId: conversationId,
-      myUid: currentUser.uid,
-      otherUid: targetUserId,
-    );
-
-    // 2. Set interaction to dislike
-    await matchRepo.saveInteraction(
-      currentUserId: currentUser.uid,
+    // Dar dislike (que remove o match)
+    final result = await repo.submitAction(
       targetUserId: targetUserId,
       type: 'dislike',
     );
-    AppLogger.info('MatchpointController: Disliked $targetUserId');
+
+    result.fold(
+      (failure) {
+        AppLogger.error('Erro ao dar unmatch: ${failure.message}');
+      },
+      (_) {
+        AppLogger.info('MatchpointController: Unmatched $targetUserId');
+        // Invalidar providers para recarregar
+        ref.invalidate(matchesProvider);
+      },
+    );
+  }
+
+  /// Busca quota de likes restantes
+  Future<void> fetchRemainingLikes() async {
+    final repo = ref.read(matchpointRepositoryProvider);
+    final result = await repo.getRemainingLikes();
+
+    result.fold(
+      (failure) {
+        AppLogger.error('Erro ao buscar quota: ${failure.message}');
+      },
+      (quota) {
+        ref.read(likesQuotaProvider.notifier).setQuota(
+          remaining: quota.remaining,
+          limit: quota.limit,
+          resetTime: quota.resetTime,
+        );
+      },
+    );
+  }
+}
+
+/// Provider para quota de likes
+@Riverpod(keepAlive: true)
+class LikesQuota extends _$LikesQuota {
+  @override
+  LikesQuotaState build() {
+    return const LikesQuotaState();
+  }
+
+  void setQuota({
+    required int remaining,
+    required int limit,
+    required DateTime resetTime,
+  }) {
+    state = LikesQuotaState(
+      remaining: remaining,
+      limit: limit,
+      resetTime: resetTime,
+      isLoading: false,
+    );
+  }
+
+  void updateRemaining(int remaining) {
+    state = state.copyWith(remaining: remaining);
+  }
+
+  void setLoading(bool loading) {
+    state = state.copyWith(isLoading: loading);
   }
 }
 
@@ -227,5 +298,60 @@ Future<List<AppUser>> matchpointCandidates(Ref ref) async {
       );
       return r;
     },
+  );
+}
+
+/// Provider para lista de matches do usuário
+@riverpod
+Future<List<MatchInfo>> matches(Ref ref) async {
+  final authRepo = ref.read(authRepositoryProvider);
+  final currentUser = authRepo.currentUser;
+
+  if (currentUser == null) return [];
+
+  final repo = ref.watch(matchpointRepositoryProvider);
+  final result = await repo.fetchMatches(currentUser.uid);
+
+  return result.fold(
+    (failure) {
+      AppLogger.error('Erro ao buscar matches: ${failure.message}');
+      throw failure.message;
+    },
+    (matches) => matches,
+  );
+}
+
+/// Provider para ranking de hashtags
+@riverpod
+Future<List<HashtagRanking>> hashtagRanking(Ref ref, int limit) async {
+  final repo = ref.watch(matchpointRepositoryProvider);
+  final result = await repo.fetchHashtagRanking(limit: limit);
+
+  return result.fold(
+    (failure) {
+      AppLogger.error('Erro ao buscar ranking: ${failure.message}');
+      return [];
+    },
+    (rankings) => rankings,
+  );
+}
+
+/// Provider para busca de hashtags
+@riverpod
+Future<List<HashtagRanking>> hashtagSearch(
+  Ref ref,
+  String query,
+) async {
+  if (query.length < 2) return [];
+
+  final repo = ref.watch(matchpointRepositoryProvider);
+  final result = await repo.searchHashtags(query, limit: 20);
+
+  return result.fold(
+    (failure) {
+      AppLogger.error('Erro ao buscar hashtags: ${failure.message}');
+      return [];
+    },
+    (rankings) => rankings,
   );
 }

@@ -261,7 +261,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.surfaceHighlight),
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: AppRadius.pill,
               ),
             );

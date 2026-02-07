@@ -132,7 +132,7 @@ final class CurrentUserProfileProvider
 }
 
 String _$currentUserProfileHash() =>
-    r'f82f3eb2c38b3fcbd7e062275f3b2e40527ce8d7';
+    r'a96f6d63145c144fdab0210953b7d95d0522efc6';
 
 @ProviderFor(membersList)
 const membersListProvider = MembersListFamily._();

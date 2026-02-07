@@ -1,9 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
-import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -184,35 +181,6 @@ class MatchCard extends StatelessWidget {
                 ),
               ),
 
-              // 4. Debug Button (Force Match)
-              if (kDebugMode)
-                Positioned(
-                  top: AppSpacing.s16,
-                  right: AppSpacing.s16,
-                  child: Consumer(
-                    builder: (context, ref, child) {
-                      return IconButton(
-                        icon: const Icon(
-                          Icons.bug_report,
-                          color: AppColors.error,
-                        ),
-                        tooltip: 'Force Match on Next Swipe',
-                        onPressed: () {
-                          ref
-                              .read(matchpointControllerProvider.notifier)
-                              .debugSetForceMatch();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('🐞 DEBUG: Next swipe will MATCH!'),
-                              duration: Duration(seconds: 1),
-                              backgroundColor: AppColors.error,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
             ],
           ),
         ),

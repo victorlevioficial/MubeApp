@@ -351,15 +351,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 counterText: '',
                 isDense: true,
                 contentPadding: AppSpacing.h16v12,
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),
-                enabledBorder: OutlineInputBorder(
+                enabledBorder: const OutlineInputBorder(
                   borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderRadius: AppRadius.all24,
                   borderSide: BorderSide.none,
                 ),

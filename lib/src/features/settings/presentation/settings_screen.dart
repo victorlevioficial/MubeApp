@@ -166,13 +166,14 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => _seedAppConfig(context, ref),
                     customAccentColor: AppColors.info,
                   ),
-                  NeonSettingsTile(
-                    icon: Icons.delete_sweep_outlined,
-                    title: 'Limpar Perfis Fake',
-                    subtitle: 'Deletar usuários do seeder',
-                    onTap: () => _deleteSeededUsers(context, ref),
-                    customAccentColor: AppColors.error,
-                  ),
+                  // REMOVIDO: Botão de limpar perfis fake não deve estar em produção
+                  // NeonSettingsTile(
+                  //   icon: Icons.delete_sweep_outlined,
+                  //   title: 'Limpar Perfis Fake',
+                  //   subtitle: 'Deletar usuários do seeder',
+                  //   onTap: () => _deleteSeededUsers(context, ref),
+                  //   customAccentColor: AppColors.error,
+                  // ),
                 ],
               ),
 
@@ -344,34 +345,6 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _deleteSeededUsers(BuildContext context, WidgetRef ref) async {
-    // Confirmation dialog
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => const AppConfirmationDialog(
-        title: 'Limpar Perfis Fake',
-        message:
-            'Isso vai deletar TODOS os perfis criados pelo seeder '
-            '(identificados pelo email @seeded.mube.app). Continuar?',
-        confirmText: 'Deletar',
-        isDestructive: true,
-      ),
-    );
-
-    if (confirm == true && context.mounted) {
-      AppSnackBar.info(context, 'Deletando perfis fake...');
-
-      try {
-        final seeder = ref.read(appSeederProvider);
-        final count = await seeder.deleteSeededUsers();
-        if (context.mounted) {
-          AppSnackBar.success(context, '🗑️ $count perfis deletados!');
-        }
-      } catch (e) {
-        if (context.mounted) {
-          AppSnackBar.error(context, 'Erro ao deletar: $e');
-        }
-      }
-    }
-  }
+  // REMOVIDO: Método de deletar perfis fake não deve estar em produção
+  // void _deleteSeededUsers(BuildContext context, WidgetRef ref) async { ... }
 }

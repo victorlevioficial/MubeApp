@@ -134,7 +134,7 @@ class _ProfessionalFormFieldsState
           const SizedBox(height: AppSpacing.s24),
           Container(
             padding: const EdgeInsets.all(AppSpacing.s16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all16,
             ),
@@ -174,7 +174,7 @@ class _ProfessionalFormFieldsState
           // Backing Vocal Checkbox for Instrumentalist
           Container(
             padding: const EdgeInsets.all(AppSpacing.s16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all16,
             ),
@@ -189,7 +189,7 @@ class _ProfessionalFormFieldsState
                       color: AppColors.textSecondary,
                       width: 2,
                     ),
-                    shape: RoundedRectangleBorder(
+                    shape: const RoundedRectangleBorder(
                       borderRadius: AppRadius.all4,
                     ),
                     onChanged: (v) =>
@@ -238,7 +238,7 @@ class _ProfessionalFormFieldsState
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
       ),
@@ -320,7 +320,7 @@ class _ProfessionalFormFieldsState
   ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
       ),

@@ -10,6 +10,7 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
+import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
 
 import '../../helpers/pump_app.dart';
@@ -44,15 +45,18 @@ void main() {
     group('Search by Term', () {
       testWidgets('should search users by name', (tester) async {
         // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'John Doe',
-            nomeArtistico: 'Johnny Rock',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock', 'pop'],
-          ),
-        ];
+        final testResults = PaginatedSearchResponse(
+          items: const [
+            FeedItem(
+              uid: 'user-1',
+              nome: 'John Doe',
+              nomeArtistico: 'Johnny Rock',
+              tipoPerfil: 'profissional',
+              generosMusicais: ['rock', 'pop'],
+            ),
+          ],
+          hasMore: false,
+        );
 
         when(
           mockSearchRepository.searchUsers(
@@ -105,7 +109,7 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => const Right(<FeedItem>[]));
+        ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
         when(
           mockAuthDataSource.watchUserProfile(any),
@@ -733,7 +737,7 @@ void main() {
           ),
         ).thenAnswer((_) async {
           await Future.delayed(const Duration(milliseconds: 500));
-          return const Right(<FeedItem>[]);
+          return const Right(PaginatedSearchResponse.empty());
         });
 
         when(
@@ -806,7 +810,7 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => const Right(<FeedItem>[]));
+        ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
         when(
           mockAuthDataSource.watchUserProfile(any),
@@ -849,7 +853,7 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => const Right(<FeedItem>[]));
+        ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
         when(
           mockAuthDataSource.watchUserProfile(any),
@@ -900,7 +904,7 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: ['blocked-user-1', 'blocked-user-2'],
           ),
-        ).thenAnswer((_) async => const Right(<FeedItem>[]));
+        ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
         when(
           mockAuthDataSource.watchUserProfile('current-user'),

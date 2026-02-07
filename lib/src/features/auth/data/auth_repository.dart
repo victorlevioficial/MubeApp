@@ -273,7 +273,6 @@ Stream<User?> authStateChanges(Ref ref) {
 @riverpod
 Stream<AppUser?> currentUserProfile(Ref ref) {
   final authState = ref.watch(authStateChangesProvider);
-  print('DEBUG: currentUserProfile authState: $authState');
   return authState.when(
     data: (user) {
       if (user == null) return Stream.value(null);

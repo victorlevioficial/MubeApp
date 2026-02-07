@@ -45,7 +45,7 @@ class PublicProfileScreen extends ConsumerWidget {
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             color: AppColors.surface,
             surfaceTintColor: AppColors.transparent,
-            shape: RoundedRectangleBorder(
+            shape: const RoundedRectangleBorder(
               borderRadius: AppRadius.all12,
             ),
             onSelected: (value) => _handleMenuAction(context, ref, value, user),
@@ -329,7 +329,7 @@ class PublicProfileScreen extends ConsumerWidget {
                         backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.textPrimary,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadius.all16,
                         ),
                       ),
@@ -351,7 +351,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           color: AppColors.error,
                           width: 1.5,
                         ),
-                        shape: RoundedRectangleBorder(
+                        shape: const RoundedRectangleBorder(
                           borderRadius: AppRadius.all16,
                         ),
                       ),
@@ -396,7 +396,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.textPrimary,
                 padding: AppSpacing.v12,
-                shape: RoundedRectangleBorder(
+                shape: const RoundedRectangleBorder(
                   borderRadius: AppRadius.all12,
                 ),
               ),
@@ -629,7 +629,7 @@ class PublicProfileScreen extends ConsumerWidget {
         horizontal: AppSpacing.s12,
         vertical: AppSpacing.s4,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
       ),
@@ -646,7 +646,7 @@ class PublicProfileScreen extends ConsumerWidget {
         horizontal: AppSpacing.s12,
         vertical: AppSpacing.s4,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.surfaceHighlight, // Matches skill chip
         borderRadius: AppRadius.pill,
       ),

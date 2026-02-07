@@ -36,14 +36,34 @@ class AnalyticsService {
     required String name,
     Map<String, Object>? parameters,
   }) async {
+    final normalized = _normalizeParameters(parameters);
+
     if (_isEnabled) {
       await _analytics.logEvent(
         name: name,
-        parameters: parameters,
+        parameters: normalized,
       );
     }
     
-    AppLogger.info('📊 Evento: $name | Params: $parameters');
+    AppLogger.info('📊 Evento: $name | Params: $normalized');
+  }
+
+  static Map<String, Object>? _normalizeParameters(
+    Map<String, Object>? parameters,
+  ) {
+    if (parameters == null) return null;
+
+    return parameters.map((key, value) {
+      if (value is String || value is num) {
+        return MapEntry(key, value);
+      }
+
+      if (value is bool) {
+        return MapEntry(key, value ? 1 : 0);
+      }
+
+      return MapEntry(key, value.toString());
+    });
   }
 
   /// Define o user ID para rastreamento cross-device

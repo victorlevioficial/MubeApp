@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../utils/app_logger.dart';
+
 import '../../../constants/firestore_constants.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/typedefs.dart';
@@ -234,16 +236,16 @@ class FeedController extends _$FeedController {
     // Verificações de proteção usando o padrão PaginationState
     // Se está carregando a primeira página (loading), não permitir nova chamada
     if (currentState.status == PaginationStatus.loading) {
-      print('🚫 Feed: Primeira carga em andamento, ignorando');
+      AppLogger.debug('Feed: Primeira carga em andamento, ignorando');
       return;
     }
     // Se está carregando mais (loadingMore) e tem itens, não permitir nova chamada
     if (currentState.status == PaginationStatus.loadingMore && !reset) {
-      print('🚫 Feed: Já está carregando mais itens');
+      AppLogger.debug('Feed: Já está carregando mais itens');
       return;
     }
     if (!reset && !currentState.hasMore) {
-      print('🚫 Feed: Não tem mais dados para carregar');
+      AppLogger.debug('Feed: Não tem mais dados para carregar');
       return;
     }
 
@@ -282,7 +284,11 @@ class FeedController extends _$FeedController {
           _remoteHasMore && _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
       final shouldFetchFromFirestore = reset || (localRemaining <= 0 && canTryRemote);
       
-      print('📊 Feed Debug: localRemaining=$localRemaining, shouldFetch=$shouldFetchFromFirestore, reset=$reset, total=${_allSortedUsers.length}');
+      AppLogger.debug(
+        'Feed Debug: localRemaining=$localRemaining, '
+        'shouldFetch=$shouldFetchFromFirestore, reset=$reset, '
+        'total=${_allSortedUsers.length}',
+      );
       
       if (shouldFetchFromFirestore) {
         String? filterType;
@@ -304,7 +310,7 @@ class FeedController extends _$FeedController {
         if (_userLat != null && _userLong != null) {
           if (!_geoFetchCompleted) {
             var fallbackToCursor = false;
-            print('🔄 Feed: Buscando usuários do Firestore...');
+            AppLogger.debug('Feed: Buscando usuários do Firestore...');
             final result = await ref
                 .read(feedRepositoryProvider)
                 .getNearbyUsersOptimized(
@@ -318,7 +324,10 @@ class FeedController extends _$FeedController {
 
             result.fold(
               (failure) {
-                print('❌ Feed: Erro ao buscar usuários: ${failure.message}');
+                AppLogger.error(
+                  'Feed: Erro ao buscar usuários',
+                  failure,
+                );
                 if (reset) {
                   state = AsyncValue.data(
                     currentState.copyWithFeed(
@@ -330,7 +339,9 @@ class FeedController extends _$FeedController {
                 }
               },
               (success) {
-                print('✅ Feed: ${success.length} usuários retornados do Firestore');
+                AppLogger.debug(
+                  'Feed: ${success.length} usuários retornados do Firestore',
+                );
                 if (reset) {
                   // Substitui a lista
                   _allSortedUsers = success;
@@ -340,11 +351,11 @@ class FeedController extends _$FeedController {
                   final existingIds = _allSortedUsers.map((u) => u.uid).toSet();
                   final newUsers =
                       success.where((u) => !existingIds.contains(u.uid)).toList();
-                  print('📥 Feed: ${newUsers.length} usuários são novos');
+                  AppLogger.debug('Feed: ${newUsers.length} usuários são novos');
 
                   if (newUsers.isEmpty) {
                     // Não encontrou usuários novos, tentar cursor
-                    print('🏁 Feed: Nenhum usuário novo encontrado');
+                    AppLogger.debug('Feed: Nenhum usuário novo encontrado');
                     fallbackToCursor = true;
                   } else {
                     _allSortedUsers.addAll(newUsers);
@@ -391,7 +402,9 @@ class FeedController extends _$FeedController {
           );
         }
       } else {
-        print('📄 Feed: Usando paginação local, $localRemaining usuários restantes');
+        AppLogger.debug(
+          'Feed: Usando paginação local, $localRemaining usuários restantes',
+        );
       }
 
       // Paginação local na lista ordenada
@@ -433,7 +446,9 @@ class FeedController extends _$FeedController {
           _remoteHasMore && _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
       final hasMore = hasMoreLocal || canFetchMore;
 
-      print('📊 Feed: endIndex=$endIndex, total=${_allSortedUsers.length}, hasMore=$hasMore');
+      AppLogger.debug(
+        'Feed: endIndex=$endIndex, total=${_allSortedUsers.length}, hasMore=$hasMore',
+      );
 
       state = AsyncValue.data(
         currentState.copyWithFeed(
@@ -472,7 +487,7 @@ class FeedController extends _$FeedController {
 
     result.fold(
       (failure) {
-        print('❌ Feed: Erro ao buscar página: ${failure.message}');
+        AppLogger.error('Feed: Erro ao buscar página', failure);
         if (reset) {
           state = AsyncValue.data(
             currentState.copyWithFeed(
