@@ -4,11 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../../../utils/app_logger.dart';
-
 import '../../../constants/firestore_constants.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/typedefs.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../data/feed_items_provider.dart';

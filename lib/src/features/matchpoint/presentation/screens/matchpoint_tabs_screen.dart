@@ -18,7 +18,8 @@ class MatchpointTabsScreen extends ConsumerStatefulWidget {
   const MatchpointTabsScreen({super.key});
 
   @override
-  ConsumerState<MatchpointTabsScreen> createState() => _MatchpointTabsScreenState();
+  ConsumerState<MatchpointTabsScreen> createState() =>
+      _MatchpointTabsScreenState();
 }
 
 class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
@@ -89,9 +90,13 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
           ],
           IconButton(
             icon: const Icon(
-              Icons.tune_rounded,
-              color: AppColors.primary,
+              Icons.history_rounded,
+              color: AppColors.textSecondary,
             ),
+            onPressed: () => context.push(RoutePaths.matchpointHistory),
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
             onPressed: () => context.push(RoutePaths.matchpointWizard),
           ),
           IconButton(
@@ -178,19 +183,16 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(
-          'Sobre o MatchPoint',
-          style: AppTypography.titleLarge,
-        ),
+        title: Text('Sobre o MatchPoint', style: AppTypography.titleLarge),
         content: Text(
           'O MatchPoint é o lugar para formar sua próxima banda ou projeto musical.\n\n'
           '1. Explorar: Descubra músicos que combinam com seus gêneros e objetivos.\n\n'
           '2. Matches: Veja seus matches e inicie conversas.\n\n'
-           '3. Trending: Descubra as hashtags mais populares entre músicos.\n\n'
-           'Você tem 50 swipes por dia. Use com sabedoria!',
-           style: AppTypography.bodyMedium.copyWith(
-             color: AppColors.textSecondary,
-           ),
+          '3. Trending: Descubra as hashtags mais populares entre músicos.\n\n'
+          'Você tem 50 swipes por dia. Use com sabedoria!',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         actions: [
           TextButton(

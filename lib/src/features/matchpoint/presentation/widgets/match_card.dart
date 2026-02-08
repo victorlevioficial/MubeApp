@@ -2,19 +2,25 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../auth/domain/user_type.dart';
-import '../../../../core/services/image_cache_config.dart';
 
 class MatchCard extends StatelessWidget {
   final AppUser user;
   final VoidCallback? onTap;
+  final List<String>? currentUserGenres;
 
-  const MatchCard({super.key, required this.user, this.onTap});
+  const MatchCard({
+    super.key,
+    required this.user,
+    this.onTap,
+    this.currentUserGenres,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,6 +103,41 @@ class MatchCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Compatibility Badge
+                      if (_getGenreCompatibility() > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: AppSpacing.s12,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s12,
+                              vertical: AppSpacing.s4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.9),
+                              borderRadius: AppRadius.pill,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.music_note,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: AppSpacing.s4),
+                                Text(
+                                  '${_getGenreCompatibility()} gênero${_getGenreCompatibility() > 1 ? "s" : ""} em comum',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       // Name & Age
                       Row(
                         children: [
@@ -180,7 +221,6 @@ class MatchCard extends StatelessWidget {
                   ),
                 ),
               ),
-
             ],
           ),
         ),
@@ -238,5 +278,20 @@ class MatchCard extends StatelessWidget {
     }
 
     return tags;
+  }
+
+  /// Calcula quantos gêneros em comum entre o usuário atual e o candidato
+  int _getGenreCompatibility() {
+    if (currentUserGenres == null || currentUserGenres!.isEmpty) return 0;
+
+    final candidateGenres = _getTags();
+    if (candidateGenres.isEmpty) return 0;
+
+    // Conta quantos gêneros do candidato estão na lista do usuário atual
+    final commonGenres = candidateGenres
+        .where((g) => currentUserGenres!.contains(g))
+        .length;
+
+    return commonGenres;
   }
 }

@@ -9,10 +9,11 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../feed/domain/feed_item.dart';
+import '../../feed/presentation/feed_image_precache_service.dart';
 import '../../feed/presentation/widgets/feed_card_vertical.dart';
 import '../../feed/presentation/widgets/feed_loading_more.dart';
 import '../../feed/presentation/widgets/feed_skeleton.dart';
-import '../../feed/presentation/feed_image_precache_service.dart';
+
 import '../domain/search_filters.dart';
 import 'search_controller.dart' as ctrl;
 import 'widgets/category_tabs.dart';

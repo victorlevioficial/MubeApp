@@ -269,11 +269,90 @@ service cloud.firestore {
     // ================================================================
     // MATCHPOINT STATS - Estatísticas (apenas leitura)
     // ================================================================
+
+    // ================================================================
+    // SUSPENSIONS - Suspensões de usuários
+    // ================================================================
+    match /suspensions/{suspensionId} {
+      // Usuário pode ler sua própria suspensão
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+    }
+
+    // ================================================================
+    // USER MODERATIONS - Registro de moderação
+    // ================================================================
+    match /userModerations/{moderationId} {
+      // Usuário pode ler sua própria moderação
+      allow read: if request.auth != null && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+    }
+
+    // ================================================================
+    // HASHTAG RANKING - Ranking de hashtags
+    // ================================================================
+    match /hashtagRanking/{hashtagId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if false; // Apenas via Cloud Function
+      
+      // Subcoleção de usos diários
+      match /dailyUses/{dateId} {
+        allow read: if request.auth != null;
+        allow write: if false;
+      }
+    }
+
+    // ================================================================
+    // PROFILES - Coleção pública/global (Counter mirror)
+    // ================================================================
+    match /profiles/{profileId} {
+      allow read: if request.auth != null;
+      
+      // Apenas Cloud Functions podem atualizar
+      allow create, update, delete: if false;
+    }
+
+    // ================================================================
+    // POSTS - Posts do feed
+    // ================================================================
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      
+      // Create: usuário autenticado
+      allow create: if request.auth != null &&
+        request.resource.data.author_id == request.auth.uid;
+      
+      // Update: apenas o autor
+      allow update: if request.auth != null &&
+        resource.data.author_id == request.auth.uid &&
+        !resource.data.keys().hasAny(['report_count', 'hidden', 'hidden_reason']);
+      
+      // Delete: apenas o autor ou admin (via function)
+      allow delete: if request.auth != null && resource.data.author_id == request.auth.uid;
+    }
+
+    // ================================================================
+    // MATCHPOINT STATS - Estatísticas (apenas leitura)
+    // ================================================================
     match /matchpointStats/{statId} {
       allow read: if request.auth != null;
       allow write: if false;
     }
     
+    // ================================================================
+    // TICKETS - Suporte
+    // ================================================================
+    match /tickets/{ticketId} {
+      // User can read their own tickets
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // User can create ticket if they are the owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // User cannot update or delete (only admins via functions/console)
+      allow update, delete: if false;
+    }
+
     // ================================================================
     // FALLBACK
     // ================================================================

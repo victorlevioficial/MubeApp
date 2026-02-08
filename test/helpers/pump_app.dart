@@ -12,11 +12,11 @@ extension PumpApp on WidgetTester {
   /// ```
   Future<void> pumpApp(
     Widget widget, {
-    List<ProviderContainer> overrides = const [],
+    List<dynamic> overrides = const [],
   }) async {
     await pumpWidget(
       ProviderScope(
-        overrides: const [],
+        overrides: overrides.cast(),
         child: MaterialApp(home: widget, theme: ThemeData.dark()),
       ),
     );

@@ -2,13 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
-
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../../core/services/image_cache_config.dart';
+
 import '../../domain/media_item.dart';
 
 /// Reorderable gallery grid with drag-and-drop support.

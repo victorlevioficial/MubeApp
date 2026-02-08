@@ -152,7 +152,10 @@ class ProfileScreen extends ConsumerWidget {
           );
         },
         loading: () => const ProfileSkeleton(),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
+        error: (err, stack) {
+          debugPrint('[ProfileScreen] Error state: $err');
+          return Center(child: Text('Erro: $err'));
+        },
       ),
     );
   }
@@ -261,9 +264,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               backgroundColor: AppColors.surface,
               side: const BorderSide(color: AppColors.surfaceHighlight),
-              shape: const RoundedRectangleBorder(
-                borderRadius: AppRadius.pill,
-              ),
+              shape: const RoundedRectangleBorder(borderRadius: AppRadius.pill),
             );
           }).toList(),
         ),

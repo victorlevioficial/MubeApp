@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -25,6 +28,42 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
   final _descriptionController = TextEditingController();
   String _selectedCategory = 'feedback'; // Default
 
+  final List<File> _attachments = [];
+  final _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    if (_attachments.length >= 3) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Máximo de 3 anexos permitidos');
+      }
+      return;
+    }
+
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        // imageQuality is handled by storage repository, but we can do a light prescaling if needed
+        // leaving empty to use original for now, or use max methods
+      );
+
+      if (image != null) {
+        setState(() {
+          _attachments.add(File(image.path));
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao selecionar imagem');
+      }
+    }
+  }
+
+  void _removeAttachment(int index) {
+    setState(() {
+      _attachments.removeAt(index);
+    });
+  }
+
   final Map<String, String> _categories = {
     'bug': 'Reportar um Problema',
     'feedback': 'Sugestão ou Feedback',
@@ -47,6 +86,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
             title: _titleController.text.trim(),
             description: _descriptionController.text.trim(),
             category: _selectedCategory,
+            attachments: _attachments,
           );
     }
   }
@@ -141,6 +181,95 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
                 validator: (v) => v == null || v.length < 10
                     ? 'Descreva com mais detalhes'
                     : null,
+              ),
+
+              const SizedBox(height: AppSpacing.s24),
+
+              // Attachments
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Anexos (Opcional)', style: AppTypography.labelLarge),
+                  Text(
+                    '${_attachments.length}/3',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s8),
+
+              SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _attachments.length + 1,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(width: AppSpacing.s8),
+                  itemBuilder: (context, index) {
+                    if (index == _attachments.length) {
+                      // Add Button
+                      return GestureDetector(
+                        onTap: _attachments.length < 3 ? _pickImage : null,
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: AppRadius.all12,
+                            border: Border.all(
+                              color: AppColors.surfaceHighlight,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: _attachments.length < 3
+                                ? AppColors.primary
+                                : AppColors.textDisabled,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: AppRadius.all12,
+                            image: DecorationImage(
+                              image: FileImage(_attachments[index]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: -8,
+                          right: -8,
+                          child: GestureDetector(
+                            onTap: () => _removeAttachment(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
 
               const SizedBox(height: AppSpacing.s32),

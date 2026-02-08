@@ -46,6 +46,11 @@ export {
   searchHashtags,
 } from "./hashtags";
 
+// Export Support functions
+export {
+  onTicketCreated,
+} from "./support";
+
 /**
  * Trigger: When a new message is created in a conversation.
  * Path: conversations/{conversationId}/messages/{messageId}

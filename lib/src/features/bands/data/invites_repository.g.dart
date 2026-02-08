@@ -54,7 +54,7 @@ final class InvitesRepositoryProvider
   }
 }
 
-String _$invitesRepositoryHash() => r'127c202f6fda8794a73483ed01f9183d57ac84b3';
+String _$invitesRepositoryHash() => r'bd77f449f2db28c084b0d59c3f59e6fa9fc493d6';
 
 @ProviderFor(pendingInviteCount)
 const pendingInviteCountProvider = PendingInviteCountFamily._();

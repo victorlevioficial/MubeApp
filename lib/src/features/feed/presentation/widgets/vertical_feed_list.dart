@@ -10,8 +10,8 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
-import 'feed_loading_more.dart';
 import 'feed_item_skeleton.dart';
+import 'feed_loading_more.dart';
 
 /// A reusable vertical feed list widget with pagination, shimmer loading,
 /// and empty state. Used across the app for "Ver Mais" screens and any

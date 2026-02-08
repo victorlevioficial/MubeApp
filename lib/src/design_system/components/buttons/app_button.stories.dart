@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:widgetbook/widgetbook.dart';
 import 'package:widgetbook_annotation/widgetbook_annotation.dart' as widgetbook;
 
-import 'app_button.dart';
 import '../../foundations/tokens/app_spacing.dart';
+import 'app_button.dart';
 
 @widgetbook.UseCase(name: 'Default', type: AppButton)
 Widget buildAppButton(BuildContext context) {

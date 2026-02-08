@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/services/image_cache_config.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_typography.dart';
-import '../../../core/services/image_cache_config.dart';
 
 /// Avatar widget that shows user photo or initials with a modern professional design.
 /// Features a thick border and modern pastel colors for initials fallback.

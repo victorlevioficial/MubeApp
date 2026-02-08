@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'e6545408663b79c29da5dfd0b3fccdd1d9552a49';
+    r'9d781204a320a2cd656d7c7b14596882862fa324';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -91,7 +91,7 @@ final class LikesQuotaProvider
   }
 }
 
-String _$likesQuotaHash() => r'449fe45cb0bf6daa18ee0a9674d0a2b28801e4fb';
+String _$likesQuotaHash() => r'b708bea0ad483f5cc79b1b3ba6d8680f6d823eba';
 
 /// Provider para quota de likes
 
@@ -114,24 +114,22 @@ abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   }
 }
 
-@ProviderFor(matchpointCandidates)
+/// Provider para lista de candidatos com estado mutável (UI otimista)
+
+@ProviderFor(MatchpointCandidates)
 const matchpointCandidatesProvider = MatchpointCandidatesProvider._();
 
+/// Provider para lista de candidatos com estado mutável (UI otimista)
 final class MatchpointCandidatesProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<AppUser>>,
-          List<AppUser>,
-          FutureOr<List<AppUser>>
-        >
-    with $FutureModifier<List<AppUser>>, $FutureProvider<List<AppUser>> {
+    extends $AsyncNotifierProvider<MatchpointCandidates, List<AppUser>> {
+  /// Provider para lista de candidatos com estado mutável (UI otimista)
   const MatchpointCandidatesProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'matchpointCandidatesProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -141,18 +139,32 @@ final class MatchpointCandidatesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<AppUser>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<AppUser>> create(Ref ref) {
-    return matchpointCandidates(ref);
-  }
+  MatchpointCandidates create() => MatchpointCandidates();
 }
 
 String _$matchpointCandidatesHash() =>
-    r'af1b84c0d4f6894ce78ac6e7d3a7788685349d76';
+    r'05c71d68abb8aa4821ae587084f7abdfd8b4a696';
+
+/// Provider para lista de candidatos com estado mutável (UI otimista)
+
+abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
+  FutureOr<List<AppUser>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref as $Ref<AsyncValue<List<AppUser>>, List<AppUser>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<AppUser>>, List<AppUser>>,
+              AsyncValue<List<AppUser>>,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
 
 /// Provider para lista de matches do usuário
 
@@ -196,7 +208,7 @@ final class MatchesProvider
   }
 }
 
-String _$matchesHash() => r'7463b464104822a7236193839b3d289baa52f56d';
+String _$matchesHash() => r'd71f8f40e378e8c2e11aec803262cbeaae8783e3';
 
 /// Provider para ranking de hashtags
 
@@ -260,7 +272,7 @@ final class HashtagRankingProvider
   }
 }
 
-String _$hashtagRankingHash() => r'b0bb3ddd122c3bd2d751f73b67abaa40baff3f2f';
+String _$hashtagRankingHash() => r'4021cf2e5872fee7673eadb15616b33c860d5dfb';
 
 /// Provider para ranking de hashtags
 
@@ -346,7 +358,7 @@ final class HashtagSearchProvider
   }
 }
 
-String _$hashtagSearchHash() => r'a3fa9956daa2b21e82ac92abb6c8878a7963ea13';
+String _$hashtagSearchHash() => r'0eab766807c22e23dae2e268c4ae0c514bb0532e';
 
 /// Provider para busca de hashtags
 
@@ -368,4 +380,64 @@ final class HashtagSearchFamily extends $Family
 
   @override
   String toString() => r'hashtagSearchProvider';
+}
+
+/// Provider para histórico de swipes local (sessão atual)
+
+@ProviderFor(SwipeHistory)
+const swipeHistoryProvider = SwipeHistoryProvider._();
+
+/// Provider para histórico de swipes local (sessão atual)
+final class SwipeHistoryProvider
+    extends $NotifierProvider<SwipeHistory, List<SwipeHistoryItem>> {
+  /// Provider para histórico de swipes local (sessão atual)
+  const SwipeHistoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'swipeHistoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$swipeHistoryHash();
+
+  @$internal
+  @override
+  SwipeHistory create() => SwipeHistory();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<SwipeHistoryItem> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<SwipeHistoryItem>>(value),
+    );
+  }
+}
+
+String _$swipeHistoryHash() => r'69246f49bfb8ec3d48031ef382a5f638f9d10f9b';
+
+/// Provider para histórico de swipes local (sessão atual)
+
+abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryItem>> {
+  List<SwipeHistoryItem> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref =
+        this.ref as $Ref<List<SwipeHistoryItem>, List<SwipeHistoryItem>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<List<SwipeHistoryItem>, List<SwipeHistoryItem>>,
+              List<SwipeHistoryItem>,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
 }

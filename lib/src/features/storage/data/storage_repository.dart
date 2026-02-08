@@ -22,12 +22,7 @@ class ImageUrls {
   final String? large;
   final String? full;
 
-  const ImageUrls({
-    this.thumbnail,
-    this.medium,
-    this.large,
-    this.full,
-  });
+  const ImageUrls({this.thumbnail, this.medium, this.large, this.full});
 
   /// Retorna a URL mais apropriada para o tamanho solicitado
   String? getUrlForSize(ImageSize size) {
@@ -44,15 +39,14 @@ class ImageUrls {
   }
 
   /// Retorna a primeira URL disponível
-  String? get firstAvailable =>
-      thumbnail ?? medium ?? large ?? full;
+  String? get firstAvailable => thumbnail ?? medium ?? large ?? full;
 
   Map<String, dynamic> toJson() => {
-        'thumbnail': thumbnail,
-        'medium': medium,
-        'large': large,
-        'full': full,
-      };
+    'thumbnail': thumbnail,
+    'medium': medium,
+    'large': large,
+    'full': full,
+  };
 
   factory ImageUrls.fromJson(Map<String, dynamic> json) {
     return ImageUrls(
@@ -83,8 +77,9 @@ class StorageRepository {
 
     if (generateMultipleSizes) {
       // Gerar múltiplas versões da imagem
-      final compressedFiles =
-          await ImageCompressor.generateProfilePhotoSizes(file);
+      final compressedFiles = await ImageCompressor.generateProfilePhotoSizes(
+        file,
+      );
 
       String? thumbnailUrl;
       String? largeUrl;
@@ -200,10 +195,7 @@ class StorageRepository {
         onProgress: onProgress,
       );
 
-      return GalleryMediaUrls(
-        full: videoUrl,
-        isVideo: true,
-      );
+      return GalleryMediaUrls(full: videoUrl, isVideo: true);
     } else {
       // Upload de imagem com múltiplas resoluções
       return _uploadGalleryImageWithSizes(
@@ -223,7 +215,9 @@ class StorageRepository {
     void Function(double progress)? onProgress,
   }) async {
     // Gerar múltiplas versões da imagem
-    final compressedFiles = await ImageCompressor.generateGalleryPhotoSizes(file);
+    final compressedFiles = await ImageCompressor.generateGalleryPhotoSizes(
+      file,
+    );
 
     String? thumbnailUrl;
     String? mediumUrl;
@@ -286,7 +280,9 @@ class StorageRepository {
     final ref = _storage.ref().child('gallery_videos/$userId/$mediaId.mp4');
     final metadata = SettableMetadata(contentType: 'video/mp4');
 
-    AppLogger.info('📤 Iniciando upload de vídeo: gallery_videos/$userId/$mediaId.mp4');
+    AppLogger.info(
+      '📤 Iniciando upload de vídeo: gallery_videos/$userId/$mediaId.mp4',
+    );
 
     final uploadTask = ref.putFile(file, metadata);
 
@@ -440,7 +436,9 @@ class StorageRepository {
     await UploadValidator.validateImage(thumbnail);
 
     // Comprimir thumbnail antes do upload (WebP)
-    final compressedThumbnail = await ImageCompressor.compressThumbnail(thumbnail);
+    final compressedThumbnail = await ImageCompressor.compressThumbnail(
+      thumbnail,
+    );
 
     return _uploadSingleImage(
       file: compressedThumbnail,
@@ -539,6 +537,27 @@ class StorageRepository {
       // Ignore errors
     }
   }
+
+  /// Faz upload de um anexo de suporte
+  Future<String> uploadSupportAttachment({
+    required String ticketId,
+    required File file,
+  }) async {
+    // Validar arquivo
+    await UploadValidator.validateImage(file);
+
+    final compressedFile = await ImageCompressor.compressGalleryPhoto(
+      file,
+      format: ImageFormat.webp,
+    );
+
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.webp';
+    return _uploadSingleImage(
+      file: compressedFile,
+      path: 'support_tickets/$ticketId/$fileName',
+      contentType: 'image/webp',
+    );
+  }
 }
 
 /// Modelo para URLs de mídia de galeria
@@ -574,16 +593,15 @@ class GalleryMediaUrls {
   }
 
   /// Retorna a primeira URL disponível
-  String? get firstAvailable =>
-      thumbnail ?? medium ?? large ?? full;
+  String? get firstAvailable => thumbnail ?? medium ?? large ?? full;
 
   Map<String, dynamic> toJson() => {
-        'thumbnail': thumbnail,
-        'medium': medium,
-        'large': large,
-        'full': full,
-        'isVideo': isVideo,
-      };
+    'thumbnail': thumbnail,
+    'medium': medium,
+    'large': large,
+    'full': full,
+    'isVideo': isVideo,
+  };
 
   factory GalleryMediaUrls.fromJson(Map<String, dynamic> json) {
     return GalleryMediaUrls(

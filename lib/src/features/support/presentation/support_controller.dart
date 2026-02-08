@@ -2,7 +2,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:uuid/uuid.dart';
 
+import 'dart:io';
+
 import '../../auth/data/auth_repository.dart';
+import '../../storage/data/storage_repository.dart';
 import '../data/support_repository.dart';
 import '../domain/ticket_model.dart';
 
@@ -19,6 +22,7 @@ class SupportController extends _$SupportController {
     required String title,
     required String description,
     required String category,
+    List<File> attachments = const [],
   }) async {
     state = const AsyncLoading();
 
@@ -26,13 +30,29 @@ class SupportController extends _$SupportController {
       final user = ref.read(currentUserProfileProvider).value;
       if (user == null) throw Exception('Usuário não autenticado');
 
+      final ticketId = const Uuid().v4();
+      final List<String> imageUrls = [];
+
+      // Upload attachments
+      if (attachments.isNotEmpty) {
+        final storage = ref.read(storageRepositoryProvider);
+        for (final file in attachments) {
+          final url = await storage.uploadSupportAttachment(
+            ticketId: ticketId,
+            file: file,
+          );
+          imageUrls.add(url);
+        }
+      }
+
       final ticket = Ticket(
-        id: const Uuid().v4(),
+        id: ticketId,
         userId: user.uid,
         title: title,
         description: description,
         category: category,
         status: TicketStatus.open,
+        imageUrls: imageUrls,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );

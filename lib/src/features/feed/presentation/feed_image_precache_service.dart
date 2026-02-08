@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/image_cache_config.dart';
 import '../domain/feed_item.dart';
 import 'feed_controller.dart'; // Using FeedController instead of FeedItemsProvider
-import '../../../core/services/image_cache_config.dart';
 
 /// Provider for the Feed Image Precache Service.
 final feedImagePrecacheServiceProvider = Provider<FeedImagePrecacheService>((

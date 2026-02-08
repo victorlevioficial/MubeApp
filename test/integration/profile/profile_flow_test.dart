@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +25,49 @@ import '../../helpers/pump_app.dart';
 ])
 import 'profile_flow_test.mocks.dart';
 
-class FakeAnalyticsService extends Mock implements AnalyticsService {}
+class FakeAnalyticsService extends Mock implements AnalyticsService {
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {}
+
+  @override
+  Future<void> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async {}
+
+  @override
+  Future<void> setUserProperty({
+    required String name,
+    required String? value,
+  }) async {}
+
+  @override
+  Future<void> setUserId(String? id) async {}
+
+  @override
+  FirebaseAnalyticsObserver getObserver() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> logAuthSignupComplete({required String method}) async {}
+
+  @override
+  Future<void> logMatchPointFilter({
+    required List<String> instruments,
+    required List<String> genres,
+    required double distance,
+  }) async {}
+
+  @override
+  Future<void> logFeedPostView({required String postId}) async {}
+
+  @override
+  Future<void> logProfileEdit({required String userId}) async {}
+}
 
 /// Testes de integração para o fluxo de perfil
 ///
@@ -96,7 +140,7 @@ void main() {
 
         // Assert
         expect(find.text('Johnny Rock'), findsOneWidget);
-        expect(find.text('Profissional'), findsOneWidget);
+        expect(find.text('PROFISSIONAL'), findsOneWidget);
       });
 
       testWidgets('should display band profile', (tester) async {
@@ -142,7 +186,7 @@ void main() {
 
         // Assert
         expect(find.text('The Rockers'), findsOneWidget);
-        expect(find.text('Banda'), findsOneWidget);
+        expect(find.text('BANDA'), findsOneWidget);
       });
 
       testWidgets('should display studio profile', (tester) async {
@@ -189,7 +233,7 @@ void main() {
 
         // Assert
         expect(find.text('Music Studio'), findsOneWidget);
-        expect(find.text('Estúdio'), findsOneWidget);
+        expect(find.text('ESTÚDIO'), findsOneWidget);
       });
 
       testWidgets('should show loading state', (tester) async {
@@ -202,14 +246,17 @@ void main() {
         ).thenReturn(MockUser(uid: 'test-uid'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: const ProfileScreen(),
-          ),
+          const ProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -221,9 +268,12 @@ void main() {
 
       testWidgets('should show error state', (tester) async {
         // Arrange
-        when(
-          mockAuthDataSource.watchUserProfile('test-uid'),
-        ).thenAnswer((_) => Stream.error('Error loading profile'));
+        final profileController = StreamController<AppUser?>.broadcast();
+
+        when(mockAuthDataSource.watchUserProfile('test-uid')).thenAnswer((_) {
+          return profileController.stream;
+        });
+
         when(
           mockAuthDataSource.currentUser,
         ).thenReturn(MockUser(uid: 'test-uid'));
@@ -236,16 +286,29 @@ void main() {
             ),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
+            authStateChangesProvider.overrideWith((ref) {
+              return Stream.value(MockUser(uid: 'test-uid'));
+            }),
+            // We don't override currentUserProfileProvider directly because we want to test its logic
+            // created from authRemoteDataSource -> authRepository -> currentUserProfileProvider
           ],
         );
 
         // Act
+        // Initial state is loading (Stream hasn't emitted)
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 100));
+
+        // Emit error
+        profileController.addError('Error loading profile');
+        await tester.pump(
+          const Duration(milliseconds: 100),
+        ); // Process stream event with delay
+        await tester.pumpAndSettle(); // Settle UI
+
+        // Assert - Deve mostrar mensagem de erro
+        expect(find.textContaining('Erro'), findsOneWidget);
+
+        await profileController.close();
 
         // Assert - Deve mostrar mensagem de erro
         expect(find.textContaining('Erro'), findsOneWidget);
@@ -274,14 +337,17 @@ void main() {
         ).thenReturn(MockUser(uid: 'test-uid'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: const EditProfileScreen(),
-          ),
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -309,14 +375,17 @@ void main() {
         ).thenReturn(MockUser(uid: 'test-uid'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: const EditProfileScreen(),
-          ),
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -342,17 +411,15 @@ void main() {
         ).thenAnswer((_) async {});
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              storageRepositoryProvider.overrideWithValue(
-                mockStorageRepository,
-              ),
-            ],
-            child: const EditProfileScreen(),
-          ),
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            storageRepositoryProvider.overrideWithValue(mockStorageRepository),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -372,17 +439,15 @@ void main() {
         ).thenThrow(Exception('Upload failed'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              storageRepositoryProvider.overrideWithValue(
-                mockStorageRepository,
-              ),
-            ],
-            child: const EditProfileScreen(),
-          ),
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            storageRepositoryProvider.overrideWithValue(mockStorageRepository),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -550,29 +615,29 @@ void main() {
         ).thenAnswer((_) async {});
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: Consumer(
-              builder: (context, ref, child) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    final controller = ref.read(
-                      profileControllerProvider.notifier,
-                    );
-                    await controller.updateProfile(
-                      currentUser: testUser,
-                      updates: {'nome': 'Jane Doe'},
-                    );
-                  },
-                  child: const Text('Update'),
-                );
-              },
-            ),
+          Consumer(
+            builder: (context, ref, child) {
+              return ElevatedButton(
+                onPressed: () async {
+                  final controller = ref.read(
+                    profileControllerProvider.notifier,
+                  );
+                  await controller.updateProfile(
+                    currentUser: testUser,
+                    updates: {'nome': 'Jane Doe'},
+                  );
+                },
+                child: const Text('Update'),
+              );
+            },
           ),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -598,33 +663,33 @@ void main() {
         ).thenThrow(Exception('Update failed'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: Consumer(
-              builder: (context, ref, child) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    final controller = ref.read(
-                      profileControllerProvider.notifier,
+          Consumer(
+            builder: (context, ref, child) {
+              return ElevatedButton(
+                onPressed: () async {
+                  final controller = ref.read(
+                    profileControllerProvider.notifier,
+                  );
+                  try {
+                    await controller.updateProfile(
+                      currentUser: testUser,
+                      updates: {'nome': 'Jane Doe'},
                     );
-                    try {
-                      await controller.updateProfile(
-                        currentUser: testUser,
-                        updates: {'nome': 'Jane Doe'},
-                      );
-                    } catch (e) {
-                      // Expected error
-                    }
-                  },
-                  child: const Text('Update'),
-                );
-              },
-            ),
+                  } catch (e) {
+                    // Expected error
+                  }
+                },
+                child: const Text('Update'),
+              );
+            },
           ),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -771,7 +836,7 @@ void main() {
 
         // Assert
         expect(find.text('Event Organizer'), findsOneWidget);
-        expect(find.text('Contratante'), findsOneWidget);
+        expect(find.text('CONTRATANTE'), findsOneWidget);
       });
     });
 
@@ -842,14 +907,17 @@ void main() {
         ).thenReturn(MockUser(uid: 'test-uid'));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-            ],
-            child: const ProfileScreen(),
-          ),
+          const ProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act

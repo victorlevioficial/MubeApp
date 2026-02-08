@@ -29,11 +29,18 @@ class _MatchpointExploreScreenState
     extends ConsumerState<MatchpointExploreScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
   bool _showTutorial = false;
+  bool _allCandidatesViewed = false; // Rastreia quando todos foram vistos
 
   @override
   void initState() {
     super.initState();
     _checkTutorialStatus();
+
+    // Força refresh dos candidatos ao entrar na tela
+    // Necessário porque o provider tem keepAlive e pode ter cache antigo
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(matchpointCandidatesProvider);
+    });
   }
 
   Future<void> _checkTutorialStatus() async {
@@ -70,18 +77,33 @@ class _MatchpointExploreScreenState
       children: [
         // Main Content
         candidatesAsync.when(
-          data: (candidates) => candidates.isNotEmpty
+          data: (candidates) => _allCandidatesViewed
+              ? _buildAllViewedState()
+              : candidates.isNotEmpty
               ? _buildSwipeDeck(candidates)
               : _buildEmptyState(),
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(AppSpacing.s16),
-              child: SkeletonShimmer(
-                child: SkeletonBox(
-                  width: double.infinity,
-                  height: 600,
-                  borderRadius: 24,
-                ),
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.s16),
+            child: SkeletonShimmer(
+              child: Column(
+                children: [
+                  // Card principal
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 480,
+                    borderRadius: 24,
+                  ),
+                  SizedBox(height: AppSpacing.s16),
+                  // Botões de ação
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      SkeletonBox(width: 60, height: 60, borderRadius: 30),
+                      SkeletonBox(width: 80, height: 80, borderRadius: 40),
+                      SkeletonBox(width: 60, height: 60, borderRadius: 30),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -113,6 +135,8 @@ class _MatchpointExploreScreenState
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
+        ref.read(likesQuotaProvider.notifier).decrementOptimistically();
+
         final swipeResult = await ref
             .read(matchpointControllerProvider.notifier)
             .swipeRight(user);
@@ -156,6 +180,8 @@ class _MatchpointExploreScreenState
         }
       },
       onSwipeLeft: (user) async {
+        // NÃO removemos da lista porque o CardSwiper gerencia os índices internamente
+
         final success = await ref
             .read(matchpointControllerProvider.notifier)
             .swipeLeft(user);
@@ -164,6 +190,91 @@ class _MatchpointExploreScreenState
           debugPrint('Disliked ${user.nome}');
         }
       },
+      onEnd: () {
+        if (mounted) {
+          setState(() {
+            _allCandidatesViewed = true;
+          });
+        }
+      },
+      currentUserGenres: _getCurrentUserGenres(),
+    );
+  }
+
+  /// Busca os gêneros musicais do usuário atual para calcular compatibilidade
+  List<String>? _getCurrentUserGenres() {
+    final userProfile = ref.read(currentUserProfileProvider).value;
+    if (userProfile == null) return null;
+
+    // Tenta buscar do matchpointProfile primeiro
+    final mpGenres = userProfile.matchpointProfile?['musicalGenres'] as List?;
+    if (mpGenres != null && mpGenres.isNotEmpty) {
+      return mpGenres.cast<String>();
+    }
+
+    // Fallback para dadosProfissional ou dadosBanda
+    final profGenres =
+        userProfile.dadosProfissional?['generosMusicais'] as List?;
+    if (profGenres != null && profGenres.isNotEmpty) {
+      return profGenres.cast<String>();
+    }
+
+    final bandGenres = userProfile.dadosBanda?['generosMusicais'] as List?;
+    if (bandGenres != null && bandGenres.isNotEmpty) {
+      return bandGenres.cast<String>();
+    }
+
+    return null;
+  }
+
+  /// Tela quando todos os candidatos foram vistos
+  Widget _buildAllViewedState() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.s24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.check_circle_outline_rounded,
+            size: 80,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: AppSpacing.s24),
+          Text(
+            'Você viu todos!',
+            style: AppTypography.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            'Não há mais perfis para avaliar no momento.\nVolte mais tarde para ver novos músicos!',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.s32),
+          SizedBox(
+            width: double.infinity,
+            child: AppButton.secondary(
+              onPressed: () {
+                // Invalida o provider primeiro - vai mostrar loading state
+                // O _allCandidatesViewed será resetado pelo listener quando houver dados
+                ref.invalidate(matchpointCandidatesProvider);
+                // Reseta após invalidar para evitar flash (loading aparece primeiro)
+                if (mounted) {
+                  setState(() {
+                    _allCandidatesViewed = false;
+                  });
+                }
+              },
+              icon: const Icon(Icons.refresh),
+              text: 'Buscar Novamente',
+              isFullWidth: true,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

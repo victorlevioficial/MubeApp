@@ -147,7 +147,6 @@ class _SupportActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: AppSpacing.s48,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
@@ -159,25 +158,28 @@ class _SupportActionCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: AppRadius.all16,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: AppSpacing.all8,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+          child: Padding(
+            padding: AppSpacing.all16,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: AppSpacing.all8,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 28),
                 ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              const SizedBox(height: AppSpacing.s8),
-              Text(
-                title,
-                style: AppTypography.bodyMedium.copyWith(
-                  fontWeight: AppTypography.titleSmall.fontWeight,
+                const SizedBox(height: AppSpacing.s8),
+                Text(
+                  title,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: AppTypography.titleSmall.fontWeight,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

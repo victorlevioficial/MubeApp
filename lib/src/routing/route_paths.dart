@@ -23,10 +23,13 @@ abstract final class RoutePaths {
   static const String favorites = '/favorites';
   static const String matchpoint = '/matchpoint';
   static const String matchpointWizard = '/matchpoint/wizard';
+  static const String matchpointHistory = '/matchpoint/history';
   static const String legal = '/legal';
   static const String support = '/settings/support';
   static const String supportCreate = 'create-ticket'; // relative to support
   static const String supportTickets = 'my-tickets'; // relative to support
+  static const String supportTicketDetail =
+      'ticket/:ticketId'; // relative to supportTickets
 
   // Dev routes
   static const String gallery = '/gallery';

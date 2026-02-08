@@ -1,0 +1,246 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart
+00:00 +0: Search Flow Integration Tests (setUpAll)
+00:00 +0: Search Flow Integration Tests Pagination should load more results on scroll
+[Search] Error: ProviderException: Tried to use a provider that is in error state.
+
+A provider threw the following exception:
+[core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+
+The stack trace of the exception:
+#0      MethodChannelFirebase.app (package:firebase_core_platform_interface/src/method_channel/method_channel_firebase.dart:190:5)
+#1      Firebase.app (package:firebase_core/src/firebase.dart:91:41)
+#2      FirebaseAnalytics.instance (package:firebase_analytics/src/firebase_analytics.dart:52:47)
+#3      firebaseAnalyticsProvider.<anonymous closure> (package:mube/src/core/services/analytics/analytics_provider.dart:7:28)
+#4      Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#5      $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#6      ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#7      ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#8      ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#9      $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#10     ProviderElement.listen (package:riverpod/src/core/element.dart:901:28)
+#11     Ref.watch (package:riverpod/src/core/ref.dart:639:20)
+#12     analyticsServiceProvider.<anonymous closure> (package:mube/src/core/services/analytics/analytics_provider.dart:12:25)
+#13     Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#14     $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#15     ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#16     ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#17     ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#18     $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#19     ProviderContainer.listen (package:riverpod/src/core/provider_container.dart:954:26)
+#20     ProviderContainer.read (package:riverpod/src/core/provider_container.dart:911:17)
+#21     Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#22     searchRepositoryProvider.<anonymous closure> (package:mube/src/features/search/data/search_repository.dart:353:25)
+#23     Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#24     $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#25     ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#26     ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#27     ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#28     $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#29     ProviderContainer.listen (package:riverpod/src/core/provider_container.dart:954:26)
+#30     ProviderContainer.read (package:riverpod/src/core/provider_container.dart:911:17)
+#31     Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#32     SearchController._performSearch (package:mube/src/features/search/presentation/search_controller.dart:333:30)
+#33     SearchController.build.<anonymous closure> (package:mube/src/features/search/presentation/search_controller.dart:121:28)
+#34     new Future.microtask.<anonymous closure> (dart:async/future.dart:287:40)
+#35     StackZoneSpecification._run (package:stack_trace/src/stack_zone_specification.dart:207:15)
+#36     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:48)
+#37     _rootRun (dart:async/zone.dart:1517:47)
+#38     _CustomZone.run (dart:async/zone.dart:1422:19)
+#39     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#40     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:1362:23)
+#41     _rootRun (dart:async/zone.dart:1517:47)
+#42     _CustomZone.run (dart:async/zone.dart:1422:19)
+#43     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#44     FakeAsync.run.<anonymous closure>.<anonymous closure> (package:fake_async/fake_async.dart:189:18)
+#45     FakeAsync.flushMicrotasks (package:fake_async/fake_async.dart:200:32)
+#46     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1337:26)
+#47     _rootRun (dart:async/zone.dart:1525:13)
+#48     _CustomZone.run (dart:async/zone.dart:1422:19)
+#49     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#50     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#51     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#52     _rootRun (dart:async/zone.dart:1525:13)
+#53     _CustomZone.run (dart:async/zone.dart:1422:19)
+#54     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#55     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#56     PumpApp.pumpApp (file:///C:/Users/Victor/Desktop/AppMube/test/helpers/pump_app.dart:17:11)
+#57     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:1202:22)
+#58     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#59     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+#60     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+
+
+And rethrown at:
+#0      throwProviderException (package:riverpod/src/common/stack_trace.dart:10:3)
+#1      $ResultError.valueOrProviderException (package:riverpod/src/common/result.dart:108:7)
+#2      Ref.watch (package:riverpod/src/core/ref.dart:646:27)
+#3      analyticsServiceProvider.<anonymous closure> (package:mube/src/core/services/analytics/analytics_provider.dart:12:25)
+#4      Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#5      $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#6      ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#7      ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#8      ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#9      $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#10     ProviderContainer.listen (package:riverpod/src/core/provider_container.dart:954:26)
+#11     ProviderContainer.read (package:riverpod/src/core/provider_container.dart:911:17)
+#12     Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#13     searchRepositoryProvider.<anonymous closure> (package:mube/src/features/search/data/search_repository.dart:353:25)
+#14     Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#15     $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#16     ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#17     ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#18     ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#19     $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#20     ProviderContainer.listen (package:riverpod/src/core/provider_container.dart:954:26)
+#21     ProviderContainer.read (package:riverpod/src/core/provider_container.dart:911:17)
+#22     Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#23     SearchController._performSearch (package:mube/src/features/search/presentation/search_controller.dart:333:30)
+#24     SearchController.build.<anonymous closure> (package:mube/src/features/search/presentation/search_controller.dart:121:28)
+#25     new Future.microtask.<anonymous closure> (dart:async/future.dart:287:40)
+#26     StackZoneSpecification._run (package:stack_trace/src/stack_zone_specification.dart:207:15)
+#27     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:48)
+#28     _rootRun (dart:async/zone.dart:1517:47)
+#29     _CustomZone.run (dart:async/zone.dart:1422:19)
+#30     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#31     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:1362:23)
+#32     _rootRun (dart:async/zone.dart:1517:47)
+#33     _CustomZone.run (dart:async/zone.dart:1422:19)
+#34     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#35     FakeAsync.run.<anonymous closure>.<anonymous closure> (package:fake_async/fake_async.dart:189:18)
+#36     FakeAsync.flushMicrotasks (package:fake_async/fake_async.dart:200:32)
+#37     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1337:26)
+#38     _rootRun (dart:async/zone.dart:1525:13)
+#39     _CustomZone.run (dart:async/zone.dart:1422:19)
+#40     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#41     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#42     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#43     _rootRun (dart:async/zone.dart:1525:13)
+#44     _CustomZone.run (dart:async/zone.dart:1422:19)
+#45     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#46     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#47     PumpApp.pumpApp (file:///C:/Users/Victor/Desktop/AppMube/test/helpers/pump_app.dart:17:11)
+#48     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:1202:22)
+#49     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#50     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+#51     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+
+
+And rethrown at:
+#0      throwProviderException (package:riverpod/src/common/stack_trace.dart:10:3)
+#1      $ResultError.valueOrProviderException (package:riverpod/src/common/result.dart:108:7)
+#2      ProviderContainer.read (package:riverpod/src/core/provider_container.dart:914:29)
+#3      Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#4      searchRepositoryProvider.<anonymous closure> (package:mube/src/features/search/data/search_repository.dart:353:25)
+#5      Provider.create (package:riverpod/src/providers/provider.dart:59:36)
+#6      $ProviderElement.create (package:riverpod/src/providers/provider.dart:343:32)
+#7      ProviderElement.buildState (package:riverpod/src/core/element.dart:665:28)
+#8      ProviderElement.mount (package:riverpod/src/core/element.dart:517:7)
+#9      ProviderElement.flush (package:riverpod/src/core/element.dart:620:7)
+#10     $ProviderBaseImpl._addListener (package:riverpod/src/core/provider/provider.dart:117:24)
+#11     ProviderContainer.listen (package:riverpod/src/core/provider_container.dart:954:26)
+#12     ProviderContainer.read (package:riverpod/src/core/provider_container.dart:911:17)
+#13     Ref.read (package:riverpod/src/core/ref.dart:524:30)
+#14     SearchController._performSearch (package:mube/src/features/search/presentation/search_controller.dart:333:30)
+#15     SearchController.build.<anonymous closure> (package:mube/src/features/search/presentation/search_controller.dart:121:28)
+#16     new Future.microtask.<anonymous closure> (dart:async/future.dart:287:40)
+#17     StackZoneSpecification._run (package:stack_trace/src/stack_zone_specification.dart:207:15)
+#18     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:48)
+#19     _rootRun (dart:async/zone.dart:1517:47)
+#20     _CustomZone.run (dart:async/zone.dart:1422:19)
+#21     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#22     _CustomZone.bindCallbackGuarded.<anonymous closure> (dart:async/zone.dart:1362:23)
+#23     _rootRun (dart:async/zone.dart:1517:47)
+#24     _CustomZone.run (dart:async/zone.dart:1422:19)
+#25     _CustomZone.runGuarded (dart:async/zone.dart:1321:7)
+#26     FakeAsync.run.<anonymous closure>.<anonymous closure> (package:fake_async/fake_async.dart:189:18)
+#27     FakeAsync.flushMicrotasks (package:fake_async/fake_async.dart:200:32)
+#28     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1337:26)
+#29     _rootRun (dart:async/zone.dart:1525:13)
+#30     _CustomZone.run (dart:async/zone.dart:1422:19)
+#31     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#32     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#33     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#34     _rootRun (dart:async/zone.dart:1525:13)
+#35     _CustomZone.run (dart:async/zone.dart:1422:19)
+#36     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#37     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#38     PumpApp.pumpApp (file:///C:/Users/Victor/Desktop/AppMube/test/helpers/pump_app.dart:17:11)
+#39     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:1202:22)
+#40     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#41     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+#42     StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY RENDERING LIBRARY Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 4735 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///C:/Users/Victor/Desktop/AppMube/lib/src/features/search/presentation/search_screen.dart:246:18
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#1a043 relayoutBoundary=up1 OVERFLOWING:
+  creator: Column ÔåÉ Center ÔåÉ _SliverFillRemainingWithScrollable ÔåÉ SliverFillRemaining ÔåÉ Viewport ÔåÉ
+    IgnorePointer-[GlobalKey#26dcf] ÔåÉ Semantics ÔåÉ Listener ÔåÉ _GestureSemantics ÔåÉ
+    RawGestureDetector-[LabeledGlobalKey<RawGestureDetectorState>#e42eb] ÔåÉ Listener ÔåÉ _ScrollableScope
+    ÔåÉ Ôï»
+  parentData: offset=Offset(0.0, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=800.0, 0.0<=h<=368.0)
+  size: Size(800.0, 368.0)
+  direction: vertical
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: center
+  verticalDirection: down
+  spacing: 0.0
+ÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñÔùóÔùñ
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following TestFailure was thrown running a test:
+No matching calls (actually, no calls at all).
+(If you called `verify(...).called(0);`, please instead use `verifyNever(...);`.)
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:149:31)
+#1      _VerifyCall._checkWith (package:mockito/src/mock.dart:853:7)
+#2      _makeVerify.<anonymous closure> (package:mockito/src/mock.dart:1153:18)
+#3      main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:1221:15)
+<asynchronous suspension>
+#4      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#5      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  should load more results on scroll
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:00 +0 -1: Search Flow Integration Tests Pagination should load more results on scroll [E]
+  Test failed. See exception logs above.
+  The test description was: should load more results on scroll
+  
+00:00 +0 -1: Search Flow Integration Tests (tearDownAll)
+00:00 +0 -1: Some tests failed.

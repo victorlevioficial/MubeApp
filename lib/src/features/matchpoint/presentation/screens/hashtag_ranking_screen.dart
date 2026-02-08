@@ -46,7 +46,7 @@ class HashtagRankingScreen extends ConsumerWidget {
           child: AppShimmer(
             child: Container(
               height: 72,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: AppRadius.all12,
               ),
@@ -106,7 +106,7 @@ class HashtagRankingScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
-          Divider(color: AppColors.border),
+          const Divider(color: AppColors.border),
         ],
       ),
     );

@@ -1,12 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
-
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
-import '../../../../core/services/image_cache_config.dart';
+
 import '../../domain/media_item.dart';
 
 /// Read-only gallery grid for public profile viewing.

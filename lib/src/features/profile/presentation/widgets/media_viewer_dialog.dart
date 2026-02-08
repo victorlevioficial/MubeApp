@@ -1,10 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../../domain/media_item.dart';
-import 'gallery_video_player.dart';
+
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../domain/media_item.dart';
+import 'gallery_video_player.dart';
 
 /// Full-screen media viewer dialog
 class MediaViewerDialog extends StatefulWidget {

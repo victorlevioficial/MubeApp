@@ -45,10 +45,7 @@ class SwipeActionResult {
   final bool success;
   final AppUser? matchedUser;
 
-  const SwipeActionResult({
-    required this.success,
-    this.matchedUser,
-  });
+  const SwipeActionResult({required this.success, this.matchedUser});
 }
 
 @Riverpod(keepAlive: true)
@@ -126,12 +123,18 @@ class MatchpointController extends _$MatchpointController {
     return result.success;
   }
 
-  Future<SwipeActionResult> _handleSwipe(AppUser targetUser, String type) async {
+  Future<SwipeActionResult> _handleSwipe(
+    AppUser targetUser,
+    String type,
+  ) async {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
     if (currentUser == null) {
       AppLogger.error('Swipe bloqueado: usuário sem sessão FirebaseAuth');
-      state = const AsyncError('Sessão expirada. Faça login novamente.', StackTrace.empty);
+      state = const AsyncError(
+        'Sessão expirada. Faça login novamente.',
+        StackTrace.empty,
+      );
       return const SwipeActionResult(success: false);
     }
 
@@ -139,7 +142,10 @@ class MatchpointController extends _$MatchpointController {
       final idToken = await currentUser.getIdToken();
       if (idToken == null || idToken.isEmpty) {
         AppLogger.error('Swipe bloqueado: token FirebaseAuth ausente');
-        state = const AsyncError('Sessão inválida. Faça login novamente.', StackTrace.empty);
+        state = const AsyncError(
+          'Sessão inválida. Faça login novamente.',
+          StackTrace.empty,
+        );
         return const SwipeActionResult(success: false);
       }
     } catch (e) {
@@ -165,10 +171,13 @@ class MatchpointController extends _$MatchpointController {
       (actionResult) async {
         // Atualizar quota de likes no provider
         if (actionResult.remainingLikes != null) {
-          ref.read(likesQuotaProvider.notifier).updateRemaining(
-            actionResult.remainingLikes!,
-          );
+          ref
+              .read(likesQuotaProvider.notifier)
+              .updateRemaining(actionResult.remainingLikes!);
         }
+
+        // Adicionar ao histórico local
+        ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
 
         if (actionResult.isMatch == true) {
           AppLogger.info("IT'S A MATCH!");
@@ -218,11 +227,13 @@ class MatchpointController extends _$MatchpointController {
         AppLogger.error('Erro ao buscar quota: ${failure.message}');
       },
       (quota) {
-        ref.read(likesQuotaProvider.notifier).setQuota(
-          remaining: quota.remaining,
-          limit: quota.limit,
-          resetTime: quota.resetTime,
-        );
+        ref
+            .read(likesQuotaProvider.notifier)
+            .setQuota(
+              remaining: quota.remaining,
+              limit: quota.limit,
+              resetTime: quota.resetTime,
+            );
       },
     );
   }
@@ -253,52 +264,74 @@ class LikesQuota extends _$LikesQuota {
     state = state.copyWith(remaining: remaining);
   }
 
+  /// Decrementa o contador otimisticamente (antes da resposta do backend)
+  void decrementOptimistically() {
+    if (state.remaining > 0) {
+      state = state.copyWith(remaining: state.remaining - 1);
+    }
+  }
+
   void setLoading(bool loading) {
     state = state.copyWith(isLoading: loading);
   }
 }
 
-@riverpod
-Future<List<AppUser>> matchpointCandidates(Ref ref) async {
-  final authRepo = ref.read(authRepositoryProvider);
-  final currentUser = authRepo.currentUser;
+/// Provider para lista de candidatos com estado mutável (UI otimista)
+@Riverpod(keepAlive: true)
+class MatchpointCandidates extends _$MatchpointCandidates {
+  @override
+  Future<List<AppUser>> build() async {
+    final authRepo = ref.read(authRepositoryProvider);
+    final currentUser = authRepo.currentUser;
 
-  if (currentUser == null) return [];
+    if (currentUser == null) return [];
 
-  // Get current user profile to know their genres
-  final userProfile = await ref.watch(currentUserProfileProvider.future);
-  if (userProfile == null) return [];
+    // Get current user profile ONCE (not reactively)
+    final userProfile = await ref.read(currentUserProfileProvider.future);
+    if (userProfile == null) return [];
 
-  final genres = List<String>.from(
-    userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
-  );
-  if (genres.isEmpty) {
-    AppLogger.warning('⚠️ MatchPoint: User has no genres.');
-    return [];
+    final genres = List<String>.from(
+      userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
+    );
+    if (genres.isEmpty) {
+      AppLogger.warning('⚠️ MatchPoint: User has no genres.');
+      return [];
+    }
+    AppLogger.info('🔍 MatchPoint Filters: Genres=$genres');
+
+    final blockedUsers = userProfile.blockedUsers;
+
+    final repo = ref.read(matchpointRepositoryProvider);
+    final result = await repo.fetchCandidates(
+      currentUserId: currentUser.uid,
+      genres: genres,
+      blockedUsers: blockedUsers,
+    );
+
+    return result.fold(
+      (l) {
+        AppLogger.error('❌ MatchPoint Query Error: ${l.message}');
+        throw l.message;
+      },
+      (r) {
+        AppLogger.info(
+          '✅ MatchPoint Query Success: Found ${r.length} candidates',
+        );
+        return r;
+      },
+    );
   }
-  AppLogger.info('🔍 MatchPoint Filters: Genres=$genres');
 
-  final blockedUsers = userProfile.blockedUsers;
+  /// Remove um candidato da lista local (UI otimista)
+  void removeCandidate(String uid) {
+    state = state.whenData((list) => list.where((u) => u.uid != uid).toList());
+  }
 
-  final repo = ref.watch(matchpointRepositoryProvider);
-  final result = await repo.fetchCandidates(
-    currentUserId: currentUser.uid,
-    genres: genres,
-    blockedUsers: blockedUsers,
-  );
-
-  return result.fold(
-    (l) {
-      AppLogger.error('❌ MatchPoint Query Error: ${l.message}');
-      throw l.message; // Throw string to show in UI
-    },
-    (r) {
-      AppLogger.info(
-        '✅ MatchPoint Query Success: Found ${r.length} candidates',
-      );
-      return r;
-    },
-  );
+  /// Recarrega a lista de candidatos do servidor
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    await future;
+  }
 }
 
 /// Provider para lista de matches do usuário
@@ -309,49 +342,73 @@ Future<List<MatchInfo>> matches(Ref ref) async {
 
   if (currentUser == null) return [];
 
-  final repo = ref.watch(matchpointRepositoryProvider);
+  final repo = ref.read(matchpointRepositoryProvider);
   final result = await repo.fetchMatches(currentUser.uid);
 
-  return result.fold(
-    (failure) {
-      AppLogger.error('Erro ao buscar matches: ${failure.message}');
-      throw failure.message;
-    },
-    (matches) => matches,
-  );
+  return result.fold((failure) {
+    AppLogger.error('Erro ao buscar matches: ${failure.message}');
+    throw failure.message;
+  }, (matches) => matches);
 }
 
 /// Provider para ranking de hashtags
 @riverpod
 Future<List<HashtagRanking>> hashtagRanking(Ref ref, int limit) async {
-  final repo = ref.watch(matchpointRepositoryProvider);
+  final repo = ref.read(matchpointRepositoryProvider);
   final result = await repo.fetchHashtagRanking(limit: limit);
 
-  return result.fold(
-    (failure) {
-      AppLogger.error('Erro ao buscar ranking: ${failure.message}');
-      return [];
-    },
-    (rankings) => rankings,
-  );
+  return result.fold((failure) {
+    AppLogger.error('Erro ao buscar ranking: ${failure.message}');
+    return [];
+  }, (rankings) => rankings);
 }
 
 /// Provider para busca de hashtags
 @riverpod
-Future<List<HashtagRanking>> hashtagSearch(
-  Ref ref,
-  String query,
-) async {
+Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   if (query.length < 2) return [];
 
-  final repo = ref.watch(matchpointRepositoryProvider);
+  final repo = ref.read(matchpointRepositoryProvider);
   final result = await repo.searchHashtags(query, limit: 20);
 
-  return result.fold(
-    (failure) {
-      AppLogger.error('Erro ao buscar hashtags: ${failure.message}');
-      return [];
-    },
-    (rankings) => rankings,
-  );
+  return result.fold((failure) {
+    AppLogger.error('Erro ao buscar hashtags: ${failure.message}');
+    return [];
+  }, (rankings) => rankings);
+}
+
+/// Item do histórico de swipes
+class SwipeHistoryItem {
+  final AppUser user;
+  final String type; // 'like', 'dislike', 'superlike'
+  final DateTime timestamp;
+
+  const SwipeHistoryItem({
+    required this.user,
+    required this.type,
+    required this.timestamp,
+  });
+}
+
+/// Provider para histórico de swipes local (sessão atual)
+@Riverpod(keepAlive: true)
+class SwipeHistory extends _$SwipeHistory {
+  @override
+  List<SwipeHistoryItem> build() {
+    return [];
+  }
+
+  void addSwipe(AppUser user, String type) {
+    state = [
+      SwipeHistoryItem(user: user, type: type, timestamp: DateTime.now()),
+      ...state,
+    ];
+  }
+
+  // Futuro: Implementar undo
+  void undoLast() {
+    if (state.isNotEmpty) {
+      state = state.sublist(1);
+    }
+  }
 }

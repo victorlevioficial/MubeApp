@@ -11,10 +11,11 @@ import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
+import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_card_vertical.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_loading_more.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
-import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
+
 
 import 'widgets/favorites_filter_bar.dart';
 

@@ -142,13 +142,13 @@ class AddressCard extends StatelessWidget {
                 },
                 itemBuilder: (context) => [
                   if (!address.isPrimary)
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: 'primary',
                       child: Row(
                         children: [
-                          const Icon(Icons.star_outline, size: 20),
-                          const SizedBox(width: AppSpacing.s12),
-                          const Text('Definir como principal'),
+                          Icon(Icons.star_outline, size: 20),
+                          SizedBox(width: AppSpacing.s12),
+                          Text('Definir como principal'),
                         ],
                       ),
                     ),

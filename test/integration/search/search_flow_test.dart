@@ -1,10 +1,13 @@
+import 'dart:async';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
+import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -13,6 +16,7 @@ import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
 
+import '../../helpers/firebase_mocks.dart';
 import '../../helpers/pump_app.dart';
 @GenerateNiceMocks([
   MockSpec<AuthRemoteDataSource>(),
@@ -37,6 +41,12 @@ void main() {
     late MockAuthRemoteDataSource mockAuthDataSource;
     late MockSearchRepository mockSearchRepository;
 
+    setUpAll(() {
+      provideDummy<Either<Failure, PaginatedSearchResponse>>(
+        const Right(PaginatedSearchResponse(items: [], hasMore: false)),
+      );
+    });
+
     setUp(() {
       mockAuthDataSource = MockAuthRemoteDataSource();
       mockSearchRepository = MockSearchRepository();
@@ -45,8 +55,8 @@ void main() {
     group('Search by Term', () {
       testWidgets('should search users by name', (tester) async {
         // Arrange
-        final testResults = PaginatedSearchResponse(
-          items: const [
+        const testResults = PaginatedSearchResponse(
+          items: [
             FeedItem(
               uid: 'user-1',
               nome: 'John Doe',
@@ -66,22 +76,21 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer((_) async => const Right(testResults));
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -116,15 +125,14 @@ void main() {
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -155,22 +163,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -207,22 +218,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -259,22 +273,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -313,22 +330,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -368,22 +388,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -422,22 +445,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -476,22 +502,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -529,22 +558,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -584,22 +616,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -638,22 +673,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -690,22 +728,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -745,15 +786,17 @@ void main() {
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -782,15 +825,17 @@ void main() {
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -817,15 +862,17 @@ void main() {
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act - Fazer várias buscas rapidamente
@@ -860,15 +907,17 @@ void main() {
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
         );
 
         // Act
@@ -897,33 +946,55 @@ void main() {
         );
 
         when(
+          mockAuthDataSource.currentUser,
+        ).thenReturn(MockUser(uid: 'current-user'));
+
+        when(
           mockSearchRepository.searchUsers(
             filters: anyNamed('filters'),
             startAfter: anyNamed('startAfter'),
             requestId: anyNamed('requestId'),
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: ['blocked-user-1', 'blocked-user-2'],
+            blockedUsers: anyNamed('blockedUsers'),
           ),
         ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
+
+        when(
+          mockAuthDataSource.currentUser,
+        ).thenReturn(MockUser(uid: 'current-user'));
 
         when(
           mockAuthDataSource.watchUserProfile('current-user'),
         ).thenAnswer((_) => Stream.value(currentUser));
 
+        // final profileController = StreamController<AppUser?>.broadcast(
+        //   onListen: () => debugPrint('[Test] profileController listened'),
+        // );
+
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+            // currentUserProfileProvider.overrideWith((ref) {
+            //   debugPrint('[Test] currentUserProfileProvider override created');
+            //   return Stream.value(currentUser);
+            // }),
+          ],
         );
 
-        // Act
+        // Emit cached user first (simulating loading then data)
+        await tester.pump(const Duration(seconds: 1));
         await tester.pumpAndSettle();
+
+        // profileController.add(currentUser);
+        // await tester.pumpAndSettle();
 
         // Assert
         verify(
@@ -932,9 +1003,14 @@ void main() {
             startAfter: anyNamed('startAfter'),
             requestId: anyNamed('requestId'),
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: ['blocked-user-1', 'blocked-user-2'],
+            blockedUsers: argThat(
+              containsAll(['blocked-user-1', 'blocked-user-2']),
+              named: 'blockedUsers',
+            ),
           ),
         ).called(greaterThanOrEqualTo(1));
+
+        // await profileController.close();
       });
     });
 
@@ -959,22 +1035,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -1013,22 +1092,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(testResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: testResults, hasMore: false),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -1068,22 +1150,25 @@ void main() {
             getCurrentRequestId: anyNamed('getCurrentRequestId'),
             blockedUsers: anyNamed('blockedUsers'),
           ),
-        ).thenAnswer((_) async => Right(initialResults));
+        ).thenAnswer(
+          (_) async => Right(
+            PaginatedSearchResponse(items: initialResults, hasMore: true),
+          ),
+        );
 
         when(
           mockAuthDataSource.watchUserProfile(any),
         ).thenAnswer((_) => Stream.value(null));
 
         await tester.pumpApp(
-          ProviderScope(
-            overrides: [
-              authRepositoryProvider.overrideWithValue(
-                AuthRepository(mockAuthDataSource),
-              ),
-              searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            ],
-            child: const SearchScreen(),
-          ),
+          const SearchScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          ],
         );
 
         // Act
@@ -1102,4 +1187,48 @@ void main() {
       });
     });
   });
+}
+
+class FakeAnalyticsService implements AnalyticsService {
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {}
+
+  @override
+  Future<void> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async {}
+
+  @override
+  Future<void> setUserProperty({
+    required String name,
+    required String? value,
+  }) async {}
+
+  @override
+  Future<void> setUserId(String? id) async {}
+
+  @override
+  FirebaseAnalyticsObserver getObserver() {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> logAuthSignupComplete({required String method}) async {}
+
+  @override
+  Future<void> logMatchPointFilter({
+    required List<String> instruments,
+    required List<String> genres,
+    required double distance,
+  }) async {}
+
+  @override
+  Future<void> logFeedPostView({required String postId}) async {}
+
+  @override
+  Future<void> logProfileEdit({required String userId}) async {}
 }

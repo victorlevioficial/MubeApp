@@ -1,6 +1,5 @@
-import 'dart:math';
-
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -13,11 +12,13 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import 'match_card.dart';
 
-class MatchSwipeDeck extends StatelessWidget {
+class MatchSwipeDeck extends StatefulWidget {
   final List<AppUser> candidates;
   final Future<void> Function(AppUser user) onSwipeRight;
   final Future<void> Function(AppUser user) onSwipeLeft;
   final CardSwiperController controller;
+  final VoidCallback? onEnd;
+  final List<String>? currentUserGenres;
 
   const MatchSwipeDeck({
     super.key,
@@ -25,11 +26,21 @@ class MatchSwipeDeck extends StatelessWidget {
     required this.onSwipeRight,
     required this.onSwipeLeft,
     required this.controller,
+    this.onEnd,
+    this.currentUserGenres,
   });
 
   @override
+  State<MatchSwipeDeck> createState() => _MatchSwipeDeckState();
+}
+
+class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
+  // Rastreia interações já enviadas para evitar duplicação no undo
+  final Set<String> _processedInteractions = {};
+
+  @override
   Widget build(BuildContext context) {
-    if (candidates.isEmpty) {
+    if (widget.candidates.isEmpty) {
       return Center(
         child: Text(
           'Não há mais perfis por perto.',
@@ -46,10 +57,12 @@ class MatchSwipeDeck extends StatelessWidget {
         Positioned.fill(
           bottom: 100, // Leave space for buttons
           child: CardSwiper(
-            controller: controller,
-            cardsCount: candidates.length,
+            controller: widget.controller,
+            cardsCount: widget.candidates.length,
+            isLoop:
+                false, // IMPORTANTE: Não fazer loop - cada perfil aparece só uma vez
             numberOfCardsDisplayed: min(
-              candidates.length,
+              widget.candidates.length,
               2,
             ), // Optimize performance
             backCardOffset: const Offset(0, 40),
@@ -67,7 +80,10 @@ class MatchSwipeDeck extends StatelessWidget {
 
                   return Stack(
                     children: [
-                      MatchCard(user: candidates[index]),
+                      MatchCard(
+                        user: widget.candidates[index],
+                        currentUserGenres: widget.currentUserGenres,
+                      ),
                       // Swipe Overlay
                       if (opacity > 0.05)
                         Positioned.fill(
@@ -96,13 +112,39 @@ class MatchSwipeDeck extends StatelessWidget {
                   );
                 },
             onSwipe: (previousIndex, currentIndex, direction) {
-              final user = candidates[previousIndex];
-              if (direction == CardSwiperDirection.right) {
-                unawaited(onSwipeRight(user));
-              } else if (direction == CardSwiperDirection.left) {
-                unawaited(onSwipeLeft(user));
+              final user = widget.candidates[previousIndex];
+              final interactionKey = '${user.uid}_${direction.name}';
+
+              // Evita duplicação: só envia se ainda não foi processado
+              if (!_processedInteractions.contains(interactionKey)) {
+                _processedInteractions.add(interactionKey);
+
+                if (direction == CardSwiperDirection.right) {
+                  unawaited(widget.onSwipeRight(user));
+                } else if (direction == CardSwiperDirection.left) {
+                  unawaited(widget.onSwipeLeft(user));
+                }
+              } else {
+                debugPrint(
+                  '⚠️ Interação já processada: $interactionKey (ignorando duplicata)',
+                );
               }
               return true;
+            },
+            onUndo: (previousIndex, currentIndex, direction) {
+              // previousIndex pode ser null em alguns casos
+              if (previousIndex == null) return false;
+
+              // Ao desfazer, removemos a interação do set para permitir nova decisão
+              final user = widget.candidates[previousIndex];
+              final interactionKey = '${user.uid}_${direction.name}';
+              _processedInteractions.remove(interactionKey);
+              debugPrint('🔄 Undo: removido $interactionKey do histórico');
+              return true;
+            },
+            onEnd: () {
+              debugPrint('🎯 MatchPoint: Todos os candidatos foram vistos');
+              widget.onEnd?.call();
             },
             allowedSwipeDirection: const AllowedSwipeDirection.only(
               right: true,
@@ -125,7 +167,8 @@ class MatchSwipeDeck extends StatelessWidget {
                 color: AppColors.textSecondary, // Grey
                 backgroundColor: AppColors.surfaceHighlight,
                 size: 64,
-                onPressed: () => controller.swipe(CardSwiperDirection.left),
+                onPressed: () =>
+                    widget.controller.swipe(CardSwiperDirection.left),
               ),
 
               const SizedBox(width: AppSpacing.s24),
@@ -136,7 +179,7 @@ class MatchSwipeDeck extends StatelessWidget {
                 color: AppColors.textSecondary,
                 backgroundColor: AppColors.surface,
                 size: 48,
-                onPressed: () => controller.undo(),
+                onPressed: () => widget.controller.undo(),
               ),
 
               const SizedBox(width: AppSpacing.s24),
@@ -147,7 +190,8 @@ class MatchSwipeDeck extends StatelessWidget {
                 color: AppColors.primary,
                 backgroundColor: AppColors.surface,
                 size: 64,
-                onPressed: () => controller.swipe(CardSwiperDirection.right),
+                onPressed: () =>
+                    widget.controller.swipe(CardSwiperDirection.right),
               ),
             ],
           ),

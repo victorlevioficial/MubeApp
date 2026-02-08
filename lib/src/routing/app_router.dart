@@ -23,6 +23,7 @@ import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/legal/presentation/legal_detail_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
+import '../features/matchpoint/presentation/screens/swipe_history_screen.dart';
 import '../features/notifications/presentation/notification_list_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
@@ -36,8 +37,10 @@ import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
+import '../features/support/domain/ticket_model.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/support_screen.dart';
+import '../features/support/presentation/ticket_detail_screen.dart';
 import '../features/support/presentation/ticket_list_screen.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
@@ -176,10 +179,17 @@ List<RouteBase> _buildRoutes(Ref ref) {
           routes: [
             GoRoute(
               path: RoutePaths.matchpoint,
-              pageBuilder: (context, state) => NoTransitionPage(
-                key: state.pageKey,
-                child: const MatchpointWrapperScreen(),
-              ),
+              pageBuilder: (context, state) =>
+                  NoTransitionPage(child: const MatchpointWrapperScreen()),
+              routes: [
+                GoRoute(
+                  path: 'history',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const SwipeHistoryScreen(),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -257,6 +267,22 @@ List<RouteBase> _buildRoutes(Ref ref) {
                         key: state.pageKey,
                         child: const TicketListScreen(),
                       ),
+                      routes: [
+                        GoRoute(
+                          path: RoutePaths.supportTicketDetail,
+                          pageBuilder: (context, state) {
+                            final ticketId = state.pathParameters['ticketId']!;
+                            final ticket = state.extra as Ticket?;
+                            return NoTransitionPage(
+                              key: state.pageKey,
+                              child: TicketDetailScreen(
+                                ticketId: ticketId,
+                                ticketObj: ticket,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),

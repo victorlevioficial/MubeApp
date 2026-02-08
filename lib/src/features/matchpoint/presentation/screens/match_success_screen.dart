@@ -10,6 +10,7 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../chat/data/chat_repository.dart';
+import '../widgets/confetti_overlay.dart';
 
 class MatchSuccessScreen extends ConsumerStatefulWidget {
   final AppUser currentUser;
@@ -59,8 +60,9 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
       body: Stack(
         alignment: Alignment.center,
         children: [
-          // Background Effects (Placeholder for Confetti)
-          // You can add a Lottie animation here later
+          // Confetti Animation
+          const Positioned.fill(child: ConfettiOverlay()),
+          // Main Content
           Padding(
             padding: const EdgeInsets.all(AppSpacing.s24),
             child: Column(

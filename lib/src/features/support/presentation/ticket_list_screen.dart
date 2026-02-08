@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
+import '../../../routing/route_paths.dart';
 
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -47,7 +50,8 @@ class TicketListScreen extends ConsumerWidget {
           return ListView.separated(
             padding: AppSpacing.all16,
             itemCount: tickets.length,
-            separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.s12),
+            separatorBuilder: (_, index) =>
+                const SizedBox(height: AppSpacing.s12),
             itemBuilder: (context, index) {
               final ticket = tickets[index];
               return _TicketCard(ticket: ticket);
@@ -92,13 +96,15 @@ class _TicketCard extends StatelessWidget {
         color: AppColors.transparent,
         child: InkWell(
           onTap: () {
-            // Navegação para detalhes será implementada na v2
+            final path =
+                '${RoutePaths.support}/${RoutePaths.supportTickets}/${RoutePaths.supportTicketDetail}'
+                    .replaceAll(':ticketId', ticket.id);
+            context.go(path, extra: ticket);
           },
           borderRadius: AppRadius.all12,
           child: Padding(
             padding: AppSpacing.all16,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

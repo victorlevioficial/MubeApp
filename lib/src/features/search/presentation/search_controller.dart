@@ -84,17 +84,17 @@ class SearchPaginationState extends PaginationState<FeedItem> {
 
   @override
   int get hashCode => Object.hash(
-        filters,
-        userLat,
-        userLng,
-        items,
-        status,
-        errorMessage,
-        lastDocument,
-        hasMore,
-        currentPage,
-        pageSize,
-      );
+    filters,
+    userLat,
+    userLng,
+    items,
+    status,
+    errorMessage,
+    lastDocument,
+    hasMore,
+    currentPage,
+    pageSize,
+  );
 }
 
 /// Controller para a tela de busca usando padrão unificado de paginação.
@@ -117,6 +117,13 @@ class SearchController extends Notifier<SearchPaginationState> {
       }
     });
 
+    // Listen to user changes to update search (e.g. blocked users)
+    ref.listen(currentUserProfileProvider, (prev, next) {
+      if (next.hasValue && next.value != prev?.value) {
+        _performSearch();
+      }
+    });
+
     // Inicializa a busca após o build
     Future.microtask(() => _performSearch());
 
@@ -130,94 +137,102 @@ class SearchController extends Notifier<SearchPaginationState> {
 
   /// Atualiza o termo de busca com debounce.
   void setTerm(String term) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(term: term),
-    ));
+    _updateState(
+      state.copyWithSearch(filters: state.filters.copyWith(term: term)),
+    );
     _debouncedSearch();
   }
 
   /// Atualiza o filtro de categoria.
   void setCategory(SearchCategory category) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(
-        category: category,
-        professionalSubcategory: null,
+    _updateState(
+      state.copyWithSearch(
+        filters: state.filters.copyWith(
+          category: category,
+          professionalSubcategory: null,
+        ),
       ),
-    ));
+    );
     _performSearch();
   }
 
   /// Atualiza a subcategoria profissional.
   void setProfessionalSubcategory(ProfessionalSubcategory? subcategory) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(professionalSubcategory: subcategory),
-    ));
+    _updateState(
+      state.copyWithSearch(
+        filters: state.filters.copyWith(professionalSubcategory: subcategory),
+      ),
+    );
     _performSearch();
   }
 
   /// Atualiza o filtro de gêneros.
   void setGenres(List<String> genres) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(genres: genres),
-    ));
+    _updateState(
+      state.copyWithSearch(filters: state.filters.copyWith(genres: genres)),
+    );
     _performSearch();
   }
 
   /// Atualiza o filtro de instrumentos.
   void setInstruments(List<String> instruments) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(instruments: instruments),
-    ));
+    _updateState(
+      state.copyWithSearch(
+        filters: state.filters.copyWith(instruments: instruments),
+      ),
+    );
     _performSearch();
   }
 
   /// Atualiza o filtro de funções (crew).
   void setRoles(List<String> roles) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(roles: roles),
-    ));
+    _updateState(
+      state.copyWithSearch(filters: state.filters.copyWith(roles: roles)),
+    );
     _performSearch();
   }
 
   /// Atualiza o filtro de serviços (estúdios).
   void setServices(List<String> services) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(services: services),
-    ));
+    _updateState(
+      state.copyWithSearch(filters: state.filters.copyWith(services: services)),
+    );
     _performSearch();
   }
 
   /// Atualiza o tipo de estúdio.
   void setStudioType(String? type) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(studioType: type),
-    ));
+    _updateState(
+      state.copyWithSearch(filters: state.filters.copyWith(studioType: type)),
+    );
     _performSearch();
   }
 
   /// Atualiza o filtro de backing vocal.
   void setBackingVocalFilter(bool? canDoBacking) {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.copyWith(canDoBackingVocal: canDoBacking),
-    ));
+    _updateState(
+      state.copyWithSearch(
+        filters: state.filters.copyWith(canDoBackingVocal: canDoBacking),
+      ),
+    );
     _performSearch();
   }
 
   /// Limpa todos os filtros.
   void clearFilters() {
-    _updateState(state.copyWithSearch(
-      filters: state.filters.clearFilters(),
-    ));
+    _updateState(state.copyWithSearch(filters: state.filters.clearFilters()));
     _performSearch();
   }
 
   /// Reseta tudo.
   void reset() {
-    _updateState(state.copyWithSearch(
-      filters: const SearchFilters(),
-      clearError: true,
-      clearLastDocument: true,
-    ));
+    _updateState(
+      state.copyWithSearch(
+        filters: const SearchFilters(),
+        clearError: true,
+        clearLastDocument: true,
+      ),
+    );
     _performSearch();
   }
 
@@ -232,10 +247,12 @@ class SearchController extends Notifier<SearchPaginationState> {
 
     final requestId = ++_currentRequestId;
 
-    _updateState(state.copyWithSearch(
-      status: PaginationStatus.loadingMore,
-      clearError: true,
-    ));
+    _updateState(
+      state.copyWithSearch(
+        status: PaginationStatus.loadingMore,
+        clearError: true,
+      ),
+    );
 
     try {
       final user = ref.read(currentUserProfileProvider).value;
@@ -257,10 +274,12 @@ class SearchController extends Notifier<SearchPaginationState> {
       result.fold(
         (failure) {
           if (_currentRequestId != requestId) return;
-          _updateState(state.copyWithSearch(
-            status: PaginationStatus.error,
-            errorMessage: failure.message,
-          ));
+          _updateState(
+            state.copyWithSearch(
+              status: PaginationStatus.error,
+              errorMessage: failure.message,
+            ),
+          );
         },
         (response) {
           if (_currentRequestId != requestId) return;
@@ -272,29 +291,34 @@ class SearchController extends Notifier<SearchPaginationState> {
           );
 
           final existingIds = state.items.map((item) => item.uid).toSet();
-          final newItems =
-              sortedResults.where((item) => !existingIds.contains(item.uid)).toList();
+          final newItems = sortedResults
+              .where((item) => !existingIds.contains(item.uid))
+              .toList();
 
           final allItems = [...state.items, ...newItems];
           final hasMore = response.hasMore;
 
-          _updateState(state.copyWithSearch(
-            items: allItems,
-            status: hasMore
-                ? PaginationStatus.loaded
-                : PaginationStatus.noMoreData,
-            hasMore: hasMore,
-            currentPage: state.currentPage + 1,
-            lastDocument: response.lastDocument,
-          ));
+          _updateState(
+            state.copyWithSearch(
+              items: allItems,
+              status: hasMore
+                  ? PaginationStatus.loaded
+                  : PaginationStatus.noMoreData,
+              hasMore: hasMore,
+              currentPage: state.currentPage + 1,
+              lastDocument: response.lastDocument,
+            ),
+          );
         },
       );
     } catch (e) {
       if (_currentRequestId != requestId) return;
-      _updateState(state.copyWithSearch(
-        status: PaginationStatus.error,
-        errorMessage: e.toString(),
-      ));
+      _updateState(
+        state.copyWithSearch(
+          status: PaginationStatus.error,
+          errorMessage: e.toString(),
+        ),
+      );
     }
   }
 
@@ -315,19 +339,23 @@ class SearchController extends Notifier<SearchPaginationState> {
     if (!_rateLimiter.allowRequest(userId)) {
       final timeUntil = _rateLimiter.timeUntilNextRequest(userId);
       debugPrint('[Search] Rate limit exceeded. Try again in $timeUntil');
-      _updateState(state.copyWithSearch(
-        status: PaginationStatus.error,
-        errorMessage: 'Muitas buscas. Tente novamente em alguns segundos.',
-      ));
+      _updateState(
+        state.copyWithSearch(
+          status: PaginationStatus.error,
+          errorMessage: 'Muitas buscas. Tente novamente em alguns segundos.',
+        ),
+      );
       return;
     }
 
-    _updateState(state.copyWithSearch(
-      status: PaginationStatus.loading,
-      hasMore: true,
-      clearError: true,
-      clearLastDocument: true,
-    ));
+    _updateState(
+      state.copyWithSearch(
+        status: PaginationStatus.loading,
+        hasMore: true,
+        clearError: true,
+        clearLastDocument: true,
+      ),
+    );
 
     try {
       final repository = ref.read(searchRepositoryProvider);
@@ -345,10 +373,12 @@ class SearchController extends Notifier<SearchPaginationState> {
         (failure) {
           if (_currentRequestId != requestId) return;
           debugPrint('[Search] Error: $failure');
-          _updateState(state.copyWithSearch(
-            status: PaginationStatus.error,
-            errorMessage: failure.message,
-          ));
+          _updateState(
+            state.copyWithSearch(
+              status: PaginationStatus.error,
+              errorMessage: failure.message,
+            ),
+          );
         },
         (response) {
           if (_currentRequestId != requestId) return;
@@ -361,24 +391,28 @@ class SearchController extends Notifier<SearchPaginationState> {
 
           final hasMore = response.hasMore;
 
-          _updateState(state.copyWithSearch(
-            items: sortedResults,
-            status: hasMore
-                ? PaginationStatus.loaded
-                : PaginationStatus.noMoreData,
-            hasMore: hasMore,
-            currentPage: 1,
-            lastDocument: response.lastDocument,
-          ));
+          _updateState(
+            state.copyWithSearch(
+              items: sortedResults,
+              status: hasMore
+                  ? PaginationStatus.loaded
+                  : PaginationStatus.noMoreData,
+              hasMore: hasMore,
+              currentPage: 1,
+              lastDocument: response.lastDocument,
+            ),
+          );
         },
       );
     } catch (e) {
       if (_currentRequestId != requestId) return;
       debugPrint('[Search] Error: $e');
-      _updateState(state.copyWithSearch(
-        status: PaginationStatus.error,
-        errorMessage: e.toString(),
-      ));
+      _updateState(
+        state.copyWithSearch(
+          status: PaginationStatus.error,
+          errorMessage: e.toString(),
+        ),
+      );
     }
   }
 
@@ -404,5 +438,5 @@ class SearchController extends Notifier<SearchPaginationState> {
 /// Provider para SearchController
 final searchControllerProvider =
     NotifierProvider<SearchController, SearchPaginationState>(() {
-  return SearchController();
-});
+      return SearchController();
+    });
