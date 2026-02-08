@@ -49,6 +49,8 @@ service cloud.firestore {
           'suspension_end_date',
           'daily_likes_count',
           'last_like_date',
+          'daily_swipes_count',
+          'last_swipe_date',
           'total_likes_sent',
           'total_dislikes_sent',
           'members'
@@ -106,9 +108,11 @@ service cloud.firestore {
     // ================================================================
     match /matches/{matchId} {
       // Ler se for um dos participantes
+      // Suporta tanto queries por user_id_1/user_id_2 quanto por user_ids (arrayContains)
       allow read: if request.auth != null && 
         (resource.data.user_id_1 == request.auth.uid || 
-         resource.data.user_id_2 == request.auth.uid);
+         resource.data.user_id_2 == request.auth.uid ||
+         request.auth.uid in resource.data.user_ids);
       
       // Apenas Cloud Functions podem criar matches
       allow create, update, delete: if false;

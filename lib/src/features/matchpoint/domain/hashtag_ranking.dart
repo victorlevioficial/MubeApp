@@ -4,7 +4,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'hashtag_ranking.freezed.dart';
 part 'hashtag_ranking.g.dart';
 
-/// Modelo de ranking de hashtags para o Matchpoint
+/// Modelo de ranking de hashtags para o Matchpoint.
+/// Domain layer — sem dependências de infraestrutura (Firebase) no campo freezed.
 @freezed
 abstract class HashtagRanking with _$HashtagRanking {
   const factory HashtagRanking({
@@ -17,8 +18,7 @@ abstract class HashtagRanking with _$HashtagRanking {
     required String trend,
     required int trendDelta,
     required bool isTrending,
-    @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
-    required Timestamp lastUpdated,
+    required DateTime lastUpdated, // DateTime puro, sem Timestamp
   }) = _HashtagRanking;
 
   factory HashtagRanking.fromJson(Map<String, dynamic> json) =>
@@ -30,39 +30,54 @@ abstract class HashtagRanking with _$HashtagRanking {
     return HashtagRanking(
       id: doc.id,
       hashtag: data['hashtag'] as String? ?? '',
-      displayName: data['display_name'] as String? ?? data['hashtag'] as String? ?? '',
+      displayName:
+          data['display_name'] as String? ?? data['hashtag'] as String? ?? '',
       useCount: data['use_count'] as int? ?? 0,
       currentPosition: data['current_position'] as int? ?? 0,
       previousPosition: data['previous_position'] as int? ?? 0,
       trend: data['trend'] as String? ?? 'stable',
       trendDelta: data['trend_delta'] as int? ?? 0,
       isTrending: data['is_trending'] as bool? ?? false,
-      lastUpdated: data['updated_at'] as Timestamp? ?? Timestamp.now(),
+      lastUpdated:
+          (data['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   /// Cria a partir da resposta da Cloud Function
   factory HashtagRanking.fromCloudFunction(Map<String, dynamic> data) {
+    final rawUpdatedAt = data['last_updated'] ?? data['updated_at'];
+
     return HashtagRanking(
       id: data['id'] as String? ?? '',
       hashtag: data['hashtag'] as String? ?? '',
-      displayName: data['display_name'] as String? ?? data['hashtag'] as String? ?? '',
+      displayName:
+          data['display_name'] as String? ?? data['hashtag'] as String? ?? '',
       useCount: data['use_count'] as int? ?? 0,
       currentPosition: data['current_position'] as int? ?? 0,
       previousPosition: data['previous_position'] as int? ?? 0,
       trend: data['trend'] as String? ?? 'stable',
       trendDelta: data['trend_delta'] as int? ?? 0,
       isTrending: data['is_trending'] as bool? ?? false,
-      lastUpdated: Timestamp.now(),
+      lastUpdated: _parseCloudFunctionDate(rawUpdatedAt),
     );
   }
+
+  static DateTime _parseCloudFunctionDate(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+
+    if (value is Timestamp) {
+      return value.toDate();
+    }
+
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+
+    return DateTime.now();
+  }
 }
-
-/// Converte Timestamp do Firestore para o formato JSON
-Timestamp _timestampFromJson(dynamic json) => json as Timestamp;
-
-/// Converte Timestamp para o formato JSON
-dynamic _timestampToJson(Timestamp timestamp) => timestamp;
 
 /// Extensão para facilitar o uso do model
 extension HashtagRankingX on HashtagRanking {

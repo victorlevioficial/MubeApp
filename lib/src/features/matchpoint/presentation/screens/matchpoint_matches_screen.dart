@@ -6,6 +6,7 @@ import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_radius.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
+import 'package:mube/src/features/matchpoint/domain/match_info.dart'; // ignore: unused_import
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/routing/route_paths.dart';
 
@@ -21,7 +22,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
       body: matchesAsync.when(
         data: (matches) {
           if (matches.isEmpty) {
-            return _buildEmptyState(context);
+            return _buildEmptyState(ref);
           }
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.s16),
@@ -31,7 +32,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final match = matches[index];
               final otherUser = match.otherUser;
-              
+
               return FadeInSlide(
                 duration: const Duration(milliseconds: 400),
                 child: _MatchTile(
@@ -101,7 +102,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(WidgetRef ref) {
     return EmptyStateWidget(
       title: 'Nenhum match ainda',
       subtitle: 'Curta perfis para conectar com outros músicos!',
@@ -109,8 +110,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
       actionButton: AppButton.primary(
         text: 'Explorar',
         onPressed: () {
-          // Voltar para a aba de explorar
-          // Isso será tratado pelo IndexedStack no parent
+          matchpointSelectedTabNotifier.value = 0;
         },
       ),
     );
@@ -150,20 +150,13 @@ class _MatchTile extends StatelessWidget {
           padding: AppSpacing.all12,
           child: Row(
             children: [
-              UserAvatar(
-                size: 56,
-                photoUrl: userPhoto,
-                name: userName,
-              ),
+              UserAvatar(size: 56, photoUrl: userPhoto, name: userName),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      userName,
-                      style: AppTypography.titleMedium,
-                    ),
+                    Text(userName, style: AppTypography.titleMedium),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
                       'Novo Match! Diga Olá 👋',
@@ -202,9 +195,7 @@ class _MatchTile extends StatelessWidget {
                           ),
                           onTap: () {
                             context.pop();
-                            context.push(
-                              '${RoutePaths.publicProfile}/$userId',
-                            );
+                            context.push('${RoutePaths.publicProfile}/$userId');
                           },
                         ),
                         ListTile(

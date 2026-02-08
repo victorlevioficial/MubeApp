@@ -23,8 +23,6 @@ class MatchpointTabsScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
-  int _selectedIndex = 0;
-
   final List<Widget> _screens = [
     const MatchpointExploreScreen(),
     const MatchpointMatchesScreen(),
@@ -34,6 +32,8 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   @override
   void initState() {
     super.initState();
+    matchpointSelectedTabNotifier.value = 0;
+
     // Carregar quota de swipes ao iniciar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(matchpointControllerProvider.notifier).fetchRemainingLikes();
@@ -44,136 +44,137 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   Widget build(BuildContext context) {
     final quotaState = ref.watch(likesQuotaProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppAppBar(
-        title: 'MatchPoint',
-        showBackButton: false,
-        actions: [
-          // Contador de swipes restantes
-          if (_selectedIndex == 0) ...[
-            Container(
-              margin: const EdgeInsets.only(right: AppSpacing.s8),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s12,
-                vertical: AppSpacing.s4,
-              ),
-              decoration: BoxDecoration(
-                color: quotaState.hasReachedLimit
-                    ? AppColors.error.withValues(alpha: 0.1)
-                    : AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: AppRadius.all8,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.swap_horiz_rounded,
-                    size: 16,
-                    color: quotaState.hasReachedLimit
-                        ? AppColors.error
-                        : AppColors.primary,
-                  ),
-                  const SizedBox(width: AppSpacing.s4),
-                  Text(
-                    '${quotaState.remaining}/${quotaState.limit}',
-                    style: AppTypography.labelMedium.copyWith(
+    return ValueListenableBuilder<int>(
+      valueListenable: matchpointSelectedTabNotifier,
+      builder: (context, selectedIndex, child) => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppAppBar(
+          title: 'MatchPoint',
+          showBackButton: false,
+          actions: [
+            // Contador de swipes restantes
+            if (selectedIndex == 0) ...[
+              Container(
+                margin: const EdgeInsets.only(right: AppSpacing.s8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s12,
+                  vertical: AppSpacing.s4,
+                ),
+                decoration: BoxDecoration(
+                  color: quotaState.hasReachedLimit
+                      ? AppColors.error.withValues(alpha: 0.1)
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: AppRadius.all8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.swap_horiz_rounded,
+                      size: 16,
                       color: quotaState.hasReachedLimit
                           ? AppColors.error
                           : AppColors.primary,
-                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(width: AppSpacing.s4),
+                    Text(
+                      '${quotaState.remaining}/${quotaState.limit}',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: quotaState.hasReachedLimit
+                            ? AppColors.error
+                            : AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            IconButton(
+              icon: const Icon(
+                Icons.history_rounded,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () => context.push(RoutePaths.matchpointHistory),
+            ),
+            IconButton(
+              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+              onPressed: () => context.push(RoutePaths.matchpointWizard),
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.help_outline,
+                color: AppColors.textSecondary,
+              ),
+              onPressed: () => _showHelpDialog(context),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Custom Google Nav Bar (Top Menu)
+            Container(
+              margin: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                AppSpacing.s8,
+                AppSpacing.s16,
+                AppSpacing.s16,
+              ),
+              padding: AppSpacing.all4,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
+                borderRadius: AppRadius.pill,
+                border: Border.all(
+                  color: AppColors.textPrimary.withValues(alpha: 0.05),
+                ),
+              ),
+              child: GNav(
+                gap: AppSpacing.s8,
+                backgroundColor: AppColors.transparent,
+                color: AppColors.textSecondary,
+                activeColor: AppColors.textPrimary,
+                tabBackgroundColor: AppColors.primary,
+                padding: AppSpacing.h16v12,
+                duration: const Duration(milliseconds: 300),
+                selectedIndex: selectedIndex,
+                onTabChange: (index) {
+                  matchpointSelectedTabNotifier.value = index;
+                },
+                tabs: [
+                  GButton(
+                    icon: Icons.explore_rounded,
+                    text: 'Explorar',
+                    textStyle: AppTypography.labelLarge.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                    ),
+                  ),
+                  GButton(
+                    icon: Icons.bolt_rounded,
+                    text: 'Matches',
+                    textStyle: AppTypography.labelLarge.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                    ),
+                  ),
+                  GButton(
+                    icon: Icons.trending_up_rounded,
+                    text: 'Trending',
+                    textStyle: AppTypography.labelLarge.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: AppTypography.buttonPrimary.fontWeight,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-          IconButton(
-            icon: const Icon(
-              Icons.history_rounded,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: () => context.push(RoutePaths.matchpointHistory),
-          ),
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
-            onPressed: () => context.push(RoutePaths.matchpointWizard),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.help_outline,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: () => _showHelpDialog(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Custom Google Nav Bar (Top Menu)
-          Container(
-            margin: const EdgeInsets.fromLTRB(
-              AppSpacing.s16,
-              AppSpacing.s8,
-              AppSpacing.s16,
-              AppSpacing.s16,
-            ),
-            padding: AppSpacing.all4,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
-              borderRadius: AppRadius.pill,
-              border: Border.all(
-                color: AppColors.textPrimary.withValues(alpha: 0.05),
-              ),
-            ),
-            child: GNav(
-              gap: AppSpacing.s8,
-              backgroundColor: AppColors.transparent,
-              color: AppColors.textSecondary,
-              activeColor: AppColors.textPrimary,
-              tabBackgroundColor: AppColors.primary,
-              padding: AppSpacing.h16v12,
-              duration: const Duration(milliseconds: 300),
-              selectedIndex: _selectedIndex,
-              onTabChange: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              tabs: [
-                GButton(
-                  icon: Icons.explore_rounded,
-                  text: 'Explorar',
-                  textStyle: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: AppTypography.buttonPrimary.fontWeight,
-                  ),
-                ),
-                GButton(
-                  icon: Icons.bolt_rounded,
-                  text: 'Matches',
-                  textStyle: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: AppTypography.buttonPrimary.fontWeight,
-                  ),
-                ),
-                GButton(
-                  icon: Icons.trending_up_rounded,
-                  text: 'Trending',
-                  textStyle: AppTypography.labelLarge.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: AppTypography.buttonPrimary.fontWeight,
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // Content without Sweep Gesture (Resolves Conflict)
-          Expanded(
-            child: IndexedStack(index: _selectedIndex, children: _screens),
-          ),
-        ],
+            // Content without Sweep Gesture (Resolves Conflict)
+            Expanded(
+              child: IndexedStack(index: selectedIndex, children: _screens),
+            ),
+          ],
+        ),
       ),
     );
   }

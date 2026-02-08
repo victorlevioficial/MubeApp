@@ -138,6 +138,7 @@ export const submitMatchpointAction = onCall(
               type: "dislike",
               updated_at: now,
               expires_at: expiresAt,
+              resulted_in_match: FieldValue.delete(),
             });
           }
         } else {
@@ -152,16 +153,19 @@ export const submitMatchpointAction = onCall(
           });
         }
 
-        await removeMatch(currentUserId, targetUserId);
+        const removedMatch = await removeMatch(currentUserId, targetUserId);
 
         return {
           success: true,
           remainingLikes: remainingQuota,
-          message: "Dislike registrado",
+          message: removedMatch ? "Match desfeito" : "Dislike registrado",
         };
       }
 
-      if (existingInteraction) {
+      const now = Timestamp.now();
+      let interactionRef = existingInteraction?.ref;
+
+      if (existingInteraction && existingType === "like") {
         return {
           success: true,
           remainingLikes: remainingQuota,
@@ -169,16 +173,24 @@ export const submitMatchpointAction = onCall(
         };
       }
 
-      const interactionRef = db.collection("interactions").doc();
-      const now = Timestamp.now();
-
-      await interactionRef.set({
-        source_user_id: currentUserId,
-        target_user_id: targetUserId,
-        type: "like",
-        created_at: now,
-        updated_at: now,
-      });
+      if (existingInteraction) {
+        await existingInteraction.ref.update({
+          type: "like",
+          updated_at: now,
+          expires_at: FieldValue.delete(),
+          resulted_in_match: FieldValue.delete(),
+        });
+        interactionRef = existingInteraction.ref;
+      } else {
+        interactionRef = db.collection("interactions").doc();
+        await interactionRef.set({
+          source_user_id: currentUserId,
+          target_user_id: targetUserId,
+          type: "like",
+          created_at: now,
+          updated_at: now,
+        });
+      }
 
       const mutualLikeQuery = await db
         .collection("interactions")
@@ -202,7 +214,10 @@ export const submitMatchpointAction = onCall(
       const matchResult = await createMatch(currentUserId, targetUserId);
 
       await Promise.all([
-        interactionRef.update({resulted_in_match: true}),
+        interactionRef.update({
+          resulted_in_match: true,
+          updated_at: Timestamp.now(),
+        }),
         mutualLikeQuery.docs[0].ref.update({resulted_in_match: true}),
       ]);
 
@@ -249,12 +264,10 @@ async function checkAndUpdateRateLimit(
     const today = new Date(now.toDate().setHours(0, 0, 0, 0));
     const todayTimestamp = Timestamp.fromDate(today);
 
-    let dailyLikesCount = userData.daily_swipes_count ??
-      userData.daily_likes_count ??
-      0;
-    const lastLikeDate = userData.last_swipe_date ?? userData.last_like_date;
+    let dailyLikesCount = readDailySwipeCount(userData);
+    const lastLikeDate = readLastLikeDate(userData);
 
-    if (!lastLikeDate || lastLikeDate.toDate() < today) {
+    if (!lastLikeDate || lastLikeDate < today) {
       dailyLikesCount = 0;
     }
 
@@ -289,13 +302,10 @@ function getRemainingLikesSnapshot(userData: DocumentData): {
 } {
   const now = Timestamp.now();
   const today = new Date(now.toDate().setHours(0, 0, 0, 0));
-  const lastLikeDate = userData.last_swipe_date ?? userData.last_like_date;
+  const lastLikeDate = readLastLikeDate(userData);
+  let dailyLikesCount = readDailySwipeCount(userData);
 
-  let dailyLikesCount = userData.daily_swipes_count ??
-    userData.daily_likes_count ??
-    0;
-
-  if (!lastLikeDate || lastLikeDate.toDate() < today) {
+  if (!lastLikeDate || lastLikeDate < today) {
     dailyLikesCount = 0;
   }
 
@@ -303,6 +313,45 @@ function getRemainingLikesSnapshot(userData: DocumentData): {
     remainingLikes: Math.max(0, DAILY_SWIPE_LIMIT - dailyLikesCount),
     dailyLikesCount,
   };
+}
+
+/**
+ * Lê e normaliza contador diário de swipes.
+ *
+ * @param {DocumentData} userData - Dados do usuário
+ * @return {number} contador diário >= 0
+ */
+function readDailySwipeCount(userData: DocumentData): number {
+  const rawCount = userData.daily_swipes_count ?? userData.daily_likes_count;
+  if (typeof rawCount !== "number" || !Number.isFinite(rawCount)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(rawCount));
+}
+
+/**
+ * Lê e normaliza a data de último swipe/like.
+ *
+ * @param {DocumentData} userData - Dados do usuário
+ * @return {Date|null} data válida ou null
+ */
+function readLastLikeDate(userData: DocumentData): Date | null {
+  const rawDate = userData.last_swipe_date ?? userData.last_like_date;
+  if (rawDate instanceof Timestamp) {
+    return rawDate.toDate();
+  }
+
+  if (rawDate && typeof rawDate.toDate === "function") {
+    try {
+      const parsed = rawDate.toDate();
+      if (parsed instanceof Date) return parsed;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -404,6 +453,7 @@ async function createMatch(
     transaction.set(matchRef, {
       user_id_1: userId1,
       user_id_2: userId2,
+      user_ids: [userId1, userId2],
       pair_key: pairKey,
       conversation_id: conversationId,
       created_at: now,
@@ -419,9 +469,9 @@ async function createMatch(
  *
  * @param {string} userId1 - UID do usuário atual
  * @param {string} userId2 - UID do usuário alvo
- * @return {Promise<void>} conclusão da remoção
+ * @return {Promise<boolean>} true quando removeu match
  */
-async function removeMatch(userId1: string, userId2: string): Promise<void> {
+async function removeMatch(userId1: string, userId2: string): Promise<boolean> {
   const pairKey = [userId1, userId2].sort().join("_");
   const matchId = `match_${pairKey}`;
   const conversationId = pairKey;
@@ -432,11 +482,11 @@ async function removeMatch(userId1: string, userId2: string): Promise<void> {
   const matchDoc = await matchRef.get();
   const conversationDoc = await conversationRef.get();
 
-  if (!matchDoc.exists && !conversationDoc.exists) return;
+  if (!matchDoc.exists) return false;
 
   const batch = db.batch();
 
-  if (matchDoc.exists) batch.delete(matchRef);
+  batch.delete(matchRef);
   if (conversationDoc.exists) batch.delete(conversationRef);
 
   const preview1Ref = db
@@ -454,6 +504,7 @@ async function removeMatch(userId1: string, userId2: string): Promise<void> {
   batch.delete(preview2Ref);
 
   await batch.commit();
+  return true;
 }
 
 /**

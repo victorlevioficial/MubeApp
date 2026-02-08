@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../constants/firestore_constants.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
@@ -13,6 +14,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../auth/data/auth_repository.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class MatchpointSetupWizardScreen extends ConsumerStatefulWidget {
@@ -37,6 +39,68 @@ class _MatchpointSetupWizardScreenState
   final List<String> _hashtags = [];
   final TextEditingController _tagController = TextEditingController();
   bool _isVisibleInHome = true;
+  bool _didPrefillFromProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillFromCurrentProfile();
+    });
+  }
+
+  void _prefillFromCurrentProfile() {
+    if (_didPrefillFromProfile) return;
+
+    final user = ref.read(currentUserProfileProvider).value;
+    final profile = user?.matchpointProfile;
+    if (user == null) return;
+    if (profile == null) {
+      _didPrefillFromProfile = true;
+      return;
+    }
+
+    final rawGenres =
+        profile[FirestoreFields.musicalGenres] ??
+        profile['musicalGenres'] ??
+        profile['musical_genres'];
+    final rawHashtags = profile[FirestoreFields.hashtags];
+    final visibleInHome = user.privacySettings['visible_in_home'];
+    final appConfig = ref.read(appConfigProvider).value;
+
+    setState(() {
+      _intent = profile[FirestoreFields.intent] as String? ?? _intent;
+
+      if (rawGenres is List) {
+        final storedGenres = rawGenres.whereType<String>().toList();
+        final selectedGenres = appConfig == null
+            ? storedGenres
+            : storedGenres.map((stored) {
+                final item = appConfig.genres.firstWhere(
+                  (genre) => genre.id == stored || genre.label == stored,
+                  orElse: () => ConfigItem(id: stored, label: stored, order: 0),
+                );
+                return item.label;
+              }).toList();
+
+        _selectedGenres
+          ..clear()
+          ..addAll(selectedGenres);
+      }
+
+      if (rawHashtags is List) {
+        _hashtags
+          ..clear()
+          ..addAll(rawHashtags.whereType<String>());
+      }
+
+      if (visibleInHome is bool) {
+        _isVisibleInHome = visibleInHome;
+      }
+
+      _didPrefillFromProfile = true;
+    });
+  }
 
   @override
   void dispose() {
@@ -46,6 +110,12 @@ class _MatchpointSetupWizardScreenState
 
   @override
   Widget build(BuildContext context) {
+    if (!_didPrefillFromProfile) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _prefillFromCurrentProfile();
+      });
+    }
+
     ref.listen(matchpointControllerProvider, (prev, next) {
       next.whenOrNull(
         error: (err, stack) {
@@ -59,6 +129,7 @@ class _MatchpointSetupWizardScreenState
         data: (_) {
           if (prev?.isLoading == true) {
             // Only pop if we were loading (avoids init pop)
+            ref.invalidate(matchpointCandidatesProvider);
             context.pop();
           }
         },
@@ -98,13 +169,12 @@ class _MatchpointSetupWizardScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (_currentStep > 0)
-                if (_currentStep > 0)
-                  AppButton.ghost(
-                    onPressed: () => setState(() => _currentStep--),
-                    text: 'Voltar',
-                  )
-                else
-                  const SizedBox(width: AppSpacing.s48),
+                AppButton.ghost(
+                  onPressed: () => setState(() => _currentStep--),
+                  text: 'Voltar',
+                )
+              else
+                const SizedBox(width: AppSpacing.s48),
 
               AppButton.primary(
                 onPressed: ref.watch(matchpointControllerProvider).isLoading
@@ -192,9 +262,7 @@ class _MatchpointSetupWizardScreenState
               : AppColors.surface,
           borderRadius: AppRadius.all12,
           border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.surfaceHighlight,
+            color: isSelected ? AppColors.primary : AppColors.surfaceHighlight,
             width: 2,
           ),
         ),
@@ -203,9 +271,7 @@ class _MatchpointSetupWizardScreenState
             Icon(
               icon,
               size: 32,
-              color: isSelected
-                  ? AppColors.primary
-                  : AppColors.textTertiary,
+              color: isSelected ? AppColors.primary : AppColors.textTertiary,
             ),
             const SizedBox(width: AppSpacing.s16),
             Expanded(
@@ -380,6 +446,8 @@ class _MatchpointSetupWizardScreenState
   }
 
   Future<void> _onNextPressed() async {
+    if (!_validateCurrentStep()) return;
+
     if (_currentStep < 3) {
       setState(() => _currentStep++);
     } else {
@@ -410,6 +478,31 @@ class _MatchpointSetupWizardScreenState
             isVisibleInHome: _isVisibleInHome,
           );
     }
+  }
+
+  bool _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0:
+        if (_intent == null) {
+          _showValidationError('Selecione seu objetivo para continuar.');
+          return false;
+        }
+        return true;
+      case 1:
+        if (_selectedGenres.isEmpty) {
+          _showValidationError('Selecione pelo menos 1 gênero musical.');
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
   }
 
   Widget _buildPrivacyStep() {

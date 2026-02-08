@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
+import '../../../../constants/firestore_constants.dart';
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_effects.dart';
@@ -273,8 +274,33 @@ class MatchCard extends StatelessWidget {
     }
 
     if (tags.isEmpty && user.matchpointProfile != null) {
-      final mpTags = user.matchpointProfile?['genres'] as List?;
-      if (mpTags != null) tags.addAll(mpTags.cast<String>());
+      final mpGenres =
+          user.matchpointProfile?[FirestoreFields.musicalGenres] as List?;
+      if (mpGenres != null) {
+        tags.addAll(mpGenres.cast<String>());
+      }
+
+      if (tags.isEmpty) {
+        final legacyMpGenres =
+            user.matchpointProfile?['musicalGenres'] as List?;
+        if (legacyMpGenres != null) {
+          tags.addAll(legacyMpGenres.cast<String>());
+        }
+      }
+
+      if (tags.isEmpty) {
+        final oldSnakeCase = user.matchpointProfile?['musical_genres'] as List?;
+        if (oldSnakeCase != null) {
+          tags.addAll(oldSnakeCase.cast<String>());
+        }
+      }
+
+      if (tags.isEmpty) {
+        final oldGenres = user.matchpointProfile?['genres'] as List?;
+        if (oldGenres != null) {
+          tags.addAll(oldGenres.cast<String>());
+        }
+      }
     }
 
     return tags;

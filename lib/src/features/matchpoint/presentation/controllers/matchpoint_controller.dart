@@ -1,14 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
+import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart'; // ignore: unused_import
+import 'package:mube/src/features/matchpoint/domain/match_info.dart'; // ignore: unused_import
+import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart'; // ignore: unused_import
+import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'matchpoint_controller.g.dart';
+
+final matchpointSelectedTabNotifier = ValueNotifier<int>(0);
 
 /// Estado do controller de quota de likes
 class LikesQuotaState {
@@ -44,8 +55,13 @@ class LikesQuotaState {
 class SwipeActionResult {
   final bool success;
   final AppUser? matchedUser;
+  final String? conversationId;
 
-  const SwipeActionResult({required this.success, this.matchedUser});
+  const SwipeActionResult({
+    required this.success,
+    this.matchedUser,
+    this.conversationId,
+  });
 }
 
 @Riverpod(keepAlive: true)
@@ -185,7 +201,11 @@ class MatchpointController extends _$MatchpointController {
           // Invalidar provider de matches para recarregar
           ref.invalidate(matchesProvider);
 
-          return SwipeActionResult(success: true, matchedUser: targetUser);
+          return SwipeActionResult(
+            success: true,
+            matchedUser: targetUser,
+            conversationId: actionResult.conversationId,
+          );
         }
         return const SwipeActionResult(success: true);
       },
@@ -299,7 +319,16 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     }
     AppLogger.info('🔍 MatchPoint Filters: Genres=$genres');
 
-    final blockedUsers = userProfile.blockedUsers;
+    List<String> blockedFromCollection = const [];
+    try {
+      blockedFromCollection = await ref.read(blockedUsersProvider.future);
+    } catch (_) {
+      // Fallback para blocked_users caso stream falhe temporariamente
+    }
+    final blockedUsers = {
+      ...userProfile.blockedUsers,
+      ...blockedFromCollection,
+    }.toList();
 
     final repo = ref.read(matchpointRepositoryProvider);
     final result = await repo.fetchCandidates(
@@ -377,38 +406,75 @@ Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   }, (rankings) => rankings);
 }
 
-/// Item do histórico de swipes
-class SwipeHistoryItem {
-  final AppUser user;
-  final String type; // 'like', 'dislike', 'superlike'
-  final DateTime timestamp;
-
-  const SwipeHistoryItem({
-    required this.user,
-    required this.type,
-    required this.timestamp,
-  });
-}
-
-/// Provider para histórico de swipes local (sessão atual)
+/// Provider para histórico de swipes — persistido em SharedPreferences
 @Riverpod(keepAlive: true)
 class SwipeHistory extends _$SwipeHistory {
+  static const _storageKeyPrefix = 'swipe_history_';
+  static const _maxEntries = 200;
+
   @override
-  List<SwipeHistoryItem> build() {
+  List<SwipeHistoryEntry> build() {
+    final authUser = ref.watch(authStateChangesProvider).value;
+    if (authUser == null) {
+      return [];
+    }
+
+    unawaited(_loadFromStorage(authUser.uid));
     return [];
   }
 
+  String _storageKeyForUser(String userId) => '$_storageKeyPrefix$userId';
+
+  Future<void> _loadFromStorage(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_storageKeyForUser(userId));
+      if (jsonStr == null) return;
+
+      final list = (jsonDecode(jsonStr) as List)
+          .map((e) => SwipeHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+      if (currentUserId != userId) return;
+
+      state = list;
+    } catch (_) {
+      // Se falhar ao carregar, manter lista vazia
+    }
+  }
+
+  Future<void> _saveToStorage() async {
+    try {
+      final userId = ref.read(authRepositoryProvider).currentUser?.uid;
+      if (userId == null) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(state.map((e) => e.toJson()).toList());
+      await prefs.setString(_storageKeyForUser(userId), jsonStr);
+    } catch (_) {
+      // Falha silenciosa ao salvar
+    }
+  }
+
   void addSwipe(AppUser user, String type) {
-    state = [
-      SwipeHistoryItem(user: user, type: type, timestamp: DateTime.now()),
-      ...state,
-    ];
+    final entry = SwipeHistoryEntry(
+      targetUserId: user.uid,
+      targetUserName: user.nome ?? 'Usuário',
+      targetUserPhoto: user.foto,
+      action: type,
+      timestamp: DateTime.now(),
+    );
+
+    state = [entry, ...state].take(_maxEntries).toList();
+    _saveToStorage();
   }
 
   // Futuro: Implementar undo
   void undoLast() {
     if (state.isNotEmpty) {
       state = state.sublist(1);
+      _saveToStorage();
     }
   }
 }

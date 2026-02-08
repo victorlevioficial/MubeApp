@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../constants/firestore_constants.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
@@ -30,6 +31,7 @@ class _MatchpointExploreScreenState
   final CardSwiperController _swiperController = CardSwiperController();
   bool _showTutorial = false;
   bool _allCandidatesViewed = false; // Rastreia quando todos foram vistos
+  String _lastCandidatesSignature = '';
 
   @override
   void initState() {
@@ -77,11 +79,24 @@ class _MatchpointExploreScreenState
       children: [
         // Main Content
         candidatesAsync.when(
-          data: (candidates) => _allCandidatesViewed
-              ? _buildAllViewedState()
-              : candidates.isNotEmpty
-              ? _buildSwipeDeck(candidates)
-              : _buildEmptyState(),
+          data: (candidates) {
+            final signature = candidates.map((c) => c.uid).join('|');
+            if (signature != _lastCandidatesSignature) {
+              _lastCandidatesSignature = signature;
+              if (_allCandidatesViewed && candidates.isNotEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  setState(() {
+                    _allCandidatesViewed = false;
+                  });
+                });
+              }
+            }
+
+            if (_allCandidatesViewed) return _buildAllViewedState();
+            if (candidates.isNotEmpty) return _buildSwipeDeck(candidates);
+            return _buildEmptyState();
+          },
           loading: () => const Padding(
             padding: EdgeInsets.all(AppSpacing.s16),
             child: SkeletonShimmer(
@@ -135,15 +150,13 @@ class _MatchpointExploreScreenState
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
-        ref.read(likesQuotaProvider.notifier).decrementOptimistically();
-
         final swipeResult = await ref
             .read(matchpointControllerProvider.notifier)
             .swipeRight(user);
 
         if (!swipeResult.success) {
           debugPrint('Swipe bloqueado: backend retornou falha.');
-          return;
+          return false;
         }
 
         debugPrint('Liked ${user.nome}');
@@ -154,7 +167,7 @@ class _MatchpointExploreScreenState
               .read(authRepositoryProvider)
               .currentUser;
 
-          if (currentUserProfile == null) return;
+          if (currentUserProfile == null) return true;
 
           // Construct a partial AppUser or get from provider
           final minimalUser = AppUser(
@@ -166,7 +179,7 @@ class _MatchpointExploreScreenState
           final fullProfile = ref.read(currentUserProfileProvider).value;
           final bestUser = fullProfile ?? minimalUser;
 
-          if (!context.mounted) return;
+          if (!context.mounted) return true;
           // ignore: use_build_context_synchronously
           final navigator = Navigator.of(context);
 
@@ -174,10 +187,16 @@ class _MatchpointExploreScreenState
             PageRouteBuilder(
               opaque: false,
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  MatchSuccessScreen(currentUser: bestUser, matchUser: match),
+                  MatchSuccessScreen(
+                    currentUser: bestUser,
+                    matchUser: match,
+                    conversationId: swipeResult.conversationId,
+                  ),
             ),
           );
         }
+
+        return true;
       },
       onSwipeLeft: (user) async {
         // NÃO removemos da lista porque o CardSwiper gerencia os índices internamente
@@ -189,6 +208,8 @@ class _MatchpointExploreScreenState
         if (success) {
           debugPrint('Disliked ${user.nome}');
         }
+
+        return success;
       },
       onEnd: () {
         if (mounted) {
@@ -207,9 +228,22 @@ class _MatchpointExploreScreenState
     if (userProfile == null) return null;
 
     // Tenta buscar do matchpointProfile primeiro
-    final mpGenres = userProfile.matchpointProfile?['musicalGenres'] as List?;
+    final mpGenres =
+        userProfile.matchpointProfile?[FirestoreFields.musicalGenres] as List?;
     if (mpGenres != null && mpGenres.isNotEmpty) {
       return mpGenres.cast<String>();
+    }
+
+    final legacyMpGenres =
+        userProfile.matchpointProfile?['musicalGenres'] as List?;
+    if (legacyMpGenres != null && legacyMpGenres.isNotEmpty) {
+      return legacyMpGenres.cast<String>();
+    }
+
+    final oldSnakeCase =
+        userProfile.matchpointProfile?['musical_genres'] as List?;
+    if (oldSnakeCase != null && oldSnakeCase.isNotEmpty) {
+      return oldSnakeCase.cast<String>();
     }
 
     // Fallback para dadosProfissional ou dadosBanda

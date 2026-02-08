@@ -14,8 +14,8 @@ import 'match_card.dart';
 
 class MatchSwipeDeck extends StatefulWidget {
   final List<AppUser> candidates;
-  final Future<void> Function(AppUser user) onSwipeRight;
-  final Future<void> Function(AppUser user) onSwipeLeft;
+  final Future<bool> Function(AppUser user) onSwipeRight;
+  final Future<bool> Function(AppUser user) onSwipeLeft;
   final CardSwiperController controller;
   final VoidCallback? onEnd;
   final List<String>? currentUserGenres;
@@ -37,6 +37,22 @@ class MatchSwipeDeck extends StatefulWidget {
 class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
   // Rastreia interações já enviadas para evitar duplicação no undo
   final Set<String> _processedInteractions = {};
+  bool _isActionInFlight = false;
+
+  Future<void> _processSwipe(
+    String interactionKey,
+    Future<bool> Function() action,
+  ) async {
+    try {
+      final success = await action();
+      if (success || !mounted) return;
+
+      _processedInteractions.remove(interactionKey);
+      widget.controller.undo();
+    } finally {
+      _isActionInFlight = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,17 +128,37 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                   );
                 },
             onSwipe: (previousIndex, currentIndex, direction) {
+              if (_isActionInFlight) {
+                return false;
+              }
+
+              if (direction != CardSwiperDirection.right &&
+                  direction != CardSwiperDirection.left) {
+                return true;
+              }
+
               final user = widget.candidates[previousIndex];
               final interactionKey = '${user.uid}_${direction.name}';
 
               // Evita duplicação: só envia se ainda não foi processado
               if (!_processedInteractions.contains(interactionKey)) {
                 _processedInteractions.add(interactionKey);
+                _isActionInFlight = true;
 
                 if (direction == CardSwiperDirection.right) {
-                  unawaited(widget.onSwipeRight(user));
+                  unawaited(
+                    _processSwipe(
+                      interactionKey,
+                      () => widget.onSwipeRight(user),
+                    ),
+                  );
                 } else if (direction == CardSwiperDirection.left) {
-                  unawaited(widget.onSwipeLeft(user));
+                  unawaited(
+                    _processSwipe(
+                      interactionKey,
+                      () => widget.onSwipeLeft(user),
+                    ),
+                  );
                 }
               } else {
                 debugPrint(

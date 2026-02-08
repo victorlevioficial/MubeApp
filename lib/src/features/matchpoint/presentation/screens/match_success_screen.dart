@@ -15,11 +15,13 @@ import '../widgets/confetti_overlay.dart';
 class MatchSuccessScreen extends ConsumerStatefulWidget {
   final AppUser currentUser;
   final AppUser matchUser;
+  final String? conversationId;
 
   const MatchSuccessScreen({
     super.key,
     required this.currentUser,
     required this.matchUser,
+    this.conversationId,
   });
 
   @override
@@ -138,10 +140,12 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                   isFullWidth: true,
                   onPressed: () {
                     final repo = ref.read(chatRepositoryProvider);
-                    final conversationId = repo.getConversationId(
-                      widget.currentUser.uid,
-                      widget.matchUser.uid,
-                    );
+                    final conversationId =
+                        widget.conversationId ??
+                        repo.getConversationId(
+                          widget.currentUser.uid,
+                          widget.matchUser.uid,
+                        );
                     context.pop(); // Close Success Screen
                     context.push(
                       '${RoutePaths.conversation}/$conversationId',
