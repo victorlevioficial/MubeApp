@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -55,7 +56,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       // Porém, como é late, acessar vai jogar erro se não tiver.
       // Então vamos usar uma flag boolean simples.
       if (_initializationDone) return;
-    } catch (_) {}
+    } catch (e) {
+      // Primeira inicialização - _otherUserId ainda não foi definido
+      AppLogger.debug('ChatScreen: primeira inicialização');
+    }
 
     _initializeData();
     _ensureConversationExists();
@@ -331,39 +335,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           // Input field
           Expanded(
-            child: TextField(
+            child: AppTextField(
               controller: _textController,
               maxLength: 1000,
               maxLines: 5,
               minLines: 1,
               onChanged: (_) => setState(() {}),
               textCapitalization: TextCapitalization.sentences,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Mensagem...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-                filled: true,
-                fillColor: AppColors.surface,
-                counterText: '',
-                isDense: true,
-                contentPadding: AppSpacing.h16v12,
-                border: const OutlineInputBorder(
-                  borderRadius: AppRadius.all24,
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: const OutlineInputBorder(
-                  borderRadius: AppRadius.all24,
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: AppRadius.all24,
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              hint: 'Mensagem...',
             ),
           ),
 
@@ -377,9 +356,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               height: 44,
               width: 44,
               decoration: BoxDecoration(
-                color: hasText
-                    ? AppColors.primary
-                    : AppColors.surfaceHighlight,
+                color: hasText ? AppColors.primary : AppColors.surfaceHighlight,
                 shape: BoxShape.circle,
               ),
               child: Center(

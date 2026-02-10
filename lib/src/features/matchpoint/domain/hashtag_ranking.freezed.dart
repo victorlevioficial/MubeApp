@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HashtagRanking {
 
- String get id; String get hashtag; String get displayName; int get useCount; int get currentPosition; int get previousPosition; String get trend; int get trendDelta; bool get isTrending;@JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) Timestamp get lastUpdated;
+ String get id; String get hashtag; String get displayName; int get useCount; int get currentPosition; int get previousPosition; String get trend; int get trendDelta; bool get isTrending; DateTime get lastUpdated;
 /// Create a copy of HashtagRanking
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $HashtagRankingCopyWith<$Res>  {
   factory $HashtagRankingCopyWith(HashtagRanking value, $Res Function(HashtagRanking) _then) = _$HashtagRankingCopyWithImpl;
 @useResult
 $Res call({
- String id, String hashtag, String displayName, int useCount, int currentPosition, int previousPosition, String trend, int trendDelta, bool isTrending,@JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) Timestamp lastUpdated
+ String id, String hashtag, String displayName, int useCount, int currentPosition, int previousPosition, String trend, int trendDelta, bool isTrending, DateTime lastUpdated
 });
 
 
@@ -77,7 +77,7 @@ as int,trend: null == trend ? _self.trend : trend // ignore: cast_nullable_to_no
 as String,trendDelta: null == trendDelta ? _self.trendDelta : trendDelta // ignore: cast_nullable_to_non_nullable
 as int,isTrending: null == isTrending ? _self.isTrending : isTrending // ignore: cast_nullable_to_non_nullable
 as bool,lastUpdated: null == lastUpdated ? _self.lastUpdated : lastUpdated // ignore: cast_nullable_to_non_nullable
-as Timestamp,
+as DateTime,
   ));
 }
 
@@ -162,7 +162,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending, @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)  Timestamp lastUpdated)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending,  DateTime lastUpdated)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HashtagRanking() when $default != null:
 return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.currentPosition,_that.previousPosition,_that.trend,_that.trendDelta,_that.isTrending,_that.lastUpdated);case _:
@@ -183,7 +183,7 @@ return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.cu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending, @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)  Timestamp lastUpdated)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending,  DateTime lastUpdated)  $default,) {final _that = this;
 switch (_that) {
 case _HashtagRanking():
 return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.currentPosition,_that.previousPosition,_that.trend,_that.trendDelta,_that.isTrending,_that.lastUpdated);case _:
@@ -203,7 +203,7 @@ return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.cu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending, @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)  Timestamp lastUpdated)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String hashtag,  String displayName,  int useCount,  int currentPosition,  int previousPosition,  String trend,  int trendDelta,  bool isTrending,  DateTime lastUpdated)?  $default,) {final _that = this;
 switch (_that) {
 case _HashtagRanking() when $default != null:
 return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.currentPosition,_that.previousPosition,_that.trend,_that.trendDelta,_that.isTrending,_that.lastUpdated);case _:
@@ -218,7 +218,7 @@ return $default(_that.id,_that.hashtag,_that.displayName,_that.useCount,_that.cu
 @JsonSerializable()
 
 class _HashtagRanking implements HashtagRanking {
-  const _HashtagRanking({required this.id, required this.hashtag, required this.displayName, required this.useCount, required this.currentPosition, required this.previousPosition, required this.trend, required this.trendDelta, required this.isTrending, @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) required this.lastUpdated});
+  const _HashtagRanking({required this.id, required this.hashtag, required this.displayName, required this.useCount, required this.currentPosition, required this.previousPosition, required this.trend, required this.trendDelta, required this.isTrending, required this.lastUpdated});
   factory _HashtagRanking.fromJson(Map<String, dynamic> json) => _$HashtagRankingFromJson(json);
 
 @override final  String id;
@@ -230,7 +230,7 @@ class _HashtagRanking implements HashtagRanking {
 @override final  String trend;
 @override final  int trendDelta;
 @override final  bool isTrending;
-@override@JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) final  Timestamp lastUpdated;
+@override final  DateTime lastUpdated;
 
 /// Create a copy of HashtagRanking
 /// with the given fields replaced by the non-null parameter values.
@@ -265,7 +265,7 @@ abstract mixin class _$HashtagRankingCopyWith<$Res> implements $HashtagRankingCo
   factory _$HashtagRankingCopyWith(_HashtagRanking value, $Res Function(_HashtagRanking) _then) = __$HashtagRankingCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String hashtag, String displayName, int useCount, int currentPosition, int previousPosition, String trend, int trendDelta, bool isTrending,@JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson) Timestamp lastUpdated
+ String id, String hashtag, String displayName, int useCount, int currentPosition, int previousPosition, String trend, int trendDelta, bool isTrending, DateTime lastUpdated
 });
 
 
@@ -294,7 +294,7 @@ as int,trend: null == trend ? _self.trend : trend // ignore: cast_nullable_to_no
 as String,trendDelta: null == trendDelta ? _self.trendDelta : trendDelta // ignore: cast_nullable_to_non_nullable
 as int,isTrending: null == isTrending ? _self.isTrending : isTrending // ignore: cast_nullable_to_non_nullable
 as bool,lastUpdated: null == lastUpdated ? _self.lastUpdated : lastUpdated // ignore: cast_nullable_to_non_nullable
-as Timestamp,
+as DateTime,
   ));
 }
 

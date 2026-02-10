@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../design_system/components/chips/mube_filter_chip.dart';
+
+import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 
 class QuickFilterBar extends StatelessWidget {
@@ -35,7 +36,7 @@ class QuickFilterBar extends StatelessWidget {
           final isSelected = selectedFilter == filter;
 
           return Center(
-            child: MubeFilterChip(
+            child: AppFilterChip(
               label: filter,
               isSelected: isSelected,
               icon: _getFilterIcon(filter),

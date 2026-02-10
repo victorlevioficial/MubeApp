@@ -22,7 +22,10 @@ class OnboardingController extends _$OnboardingController {
         tipoPerfil: AppUserType.values.firstWhere((e) => e.id == selectedType),
         cadastroStatus: 'perfil_pendente', // Avança o status
       );
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
+      final result = await ref
+          .read(authRepositoryProvider)
+          .updateUser(updatedUser);
+      result.fold((l) => throw l, (r) => null);
       // O Router vai detectar a mudança no currentUserProfileProvider stream
     });
   }
@@ -34,7 +37,10 @@ class OnboardingController extends _$OnboardingController {
         tipoPerfil: null, // Resetar tipo para forçar nova escolha
         cadastroStatus: 'tipo_pendente', // Retorna status anterior
       );
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
+      final result = await ref
+          .read(authRepositoryProvider)
+          .updateUser(updatedUser);
+      result.fold((l) => throw l, (r) => null);
       // Router vai notar status 'tipo_pendente' e redirecionar/manter em '/onboarding'
     });
   }
@@ -71,7 +77,10 @@ class OnboardingController extends _$OnboardingController {
         dadosContratante: dadosContratante,
       );
 
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
+      final result = await ref
+          .read(authRepositoryProvider)
+          .updateUser(updatedUser);
+      result.fold((l) => throw l, (r) => null);
     });
   }
 }

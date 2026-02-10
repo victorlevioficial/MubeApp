@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
+import 'package:mube/src/utils/app_logger.dart';
+
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
@@ -37,8 +39,9 @@ class _AppDatePickerFieldState extends State<AppDatePickerField> {
     if (widget.controller.text.isNotEmpty) {
       try {
         initialDate = DateFormat('dd/MM/yyyy').parse(widget.controller.text);
-      } catch (_) {
-        // Ignora erro de parse e usa data atual
+      } catch (e) {
+        // Parse inválido de data, usando data atual como fallback
+        AppLogger.debug('Erro ao parsear data "${widget.controller.text}": $e');
       }
     }
 

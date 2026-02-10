@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/utils/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common_widgets/location_service.dart';
@@ -225,8 +226,12 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
           // We don't necessarily save this to disk as it's transient/ephemeral
         }
       }
-    } catch (_) {
-      // Ignore errors for preview
+    } catch (e, st) {
+      AppLogger.warning(
+        'Falha ao buscar localização inicial no onboarding',
+        e,
+        st,
+      );
     }
   }
 

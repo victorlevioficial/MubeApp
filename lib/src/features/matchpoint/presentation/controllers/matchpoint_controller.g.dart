@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'9d781204a320a2cd656d7c7b14596882862fa324';
+    r'8d7382af740eb7a58b9d2e3d21ca79c947a34733';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -114,15 +114,15 @@ abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   }
 }
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
+/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
 
 @ProviderFor(MatchpointCandidates)
 const matchpointCandidatesProvider = MatchpointCandidatesProvider._();
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
+/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
 final class MatchpointCandidatesProvider
     extends $AsyncNotifierProvider<MatchpointCandidates, List<AppUser>> {
-  /// Provider para lista de candidatos com estado mutável (UI otimista)
+  /// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
   const MatchpointCandidatesProvider._()
     : super(
         from: null,
@@ -143,9 +143,9 @@ final class MatchpointCandidatesProvider
 }
 
 String _$matchpointCandidatesHash() =>
-    r'05c71d68abb8aa4821ae587084f7abdfd8b4a696';
+    r'01cea1f4b57bfc5cfb01cd14109ac943c929fa19';
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
+/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
 
 abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   FutureOr<List<AppUser>> build();
@@ -166,12 +166,12 @@ abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   }
 }
 
-/// Provider para lista de matches do usuário
+/// Provider para lista de matches do usuÃƒÂ¡rio
 
 @ProviderFor(matches)
 const matchesProvider = MatchesProvider._();
 
-/// Provider para lista de matches do usuário
+/// Provider para lista de matches do usuÃƒÂ¡rio
 
 final class MatchesProvider
     extends
@@ -181,7 +181,7 @@ final class MatchesProvider
           FutureOr<List<MatchInfo>>
         >
     with $FutureModifier<List<MatchInfo>>, $FutureProvider<List<MatchInfo>> {
-  /// Provider para lista de matches do usuário
+  /// Provider para lista de matches do usuÃƒÂ¡rio
   const MatchesProvider._()
     : super(
         from: null,
@@ -382,15 +382,15 @@ final class HashtagSearchFamily extends $Family
   String toString() => r'hashtagSearchProvider';
 }
 
-/// Provider para histórico de swipes local (sessão atual)
+/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
 
 @ProviderFor(SwipeHistory)
 const swipeHistoryProvider = SwipeHistoryProvider._();
 
-/// Provider para histórico de swipes local (sessão atual)
+/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
 final class SwipeHistoryProvider
-    extends $NotifierProvider<SwipeHistory, List<SwipeHistoryItem>> {
-  /// Provider para histórico de swipes local (sessão atual)
+    extends $NotifierProvider<SwipeHistory, List<SwipeHistoryEntry>> {
+  /// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
   const SwipeHistoryProvider._()
     : super(
         from: null,
@@ -410,31 +410,31 @@ final class SwipeHistoryProvider
   SwipeHistory create() => SwipeHistory();
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(List<SwipeHistoryItem> value) {
+  Override overrideWithValue(List<SwipeHistoryEntry> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<List<SwipeHistoryItem>>(value),
+      providerOverride: $SyncValueProvider<List<SwipeHistoryEntry>>(value),
     );
   }
 }
 
-String _$swipeHistoryHash() => r'69246f49bfb8ec3d48031ef382a5f638f9d10f9b';
+String _$swipeHistoryHash() => r'03dd387a5f91d32b00cdf6a0bdca6badf39da014';
 
-/// Provider para histórico de swipes local (sessão atual)
+/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
 
-abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryItem>> {
-  List<SwipeHistoryItem> build();
+abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryEntry>> {
+  List<SwipeHistoryEntry> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final created = build();
     final ref =
-        this.ref as $Ref<List<SwipeHistoryItem>, List<SwipeHistoryItem>>;
+        this.ref as $Ref<List<SwipeHistoryEntry>, List<SwipeHistoryEntry>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<List<SwipeHistoryItem>, List<SwipeHistoryItem>>,
-              List<SwipeHistoryItem>,
+              AnyNotifier<List<SwipeHistoryEntry>, List<SwipeHistoryEntry>>,
+              List<SwipeHistoryEntry>,
               Object?,
               Object?
             >;

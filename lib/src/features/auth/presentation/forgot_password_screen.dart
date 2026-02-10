@@ -8,7 +8,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
-import '../../../design_system/components/navigation/app_back_button.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
@@ -96,8 +96,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final state = ref.watch(forgotPasswordControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const AppBackButton(),
+      appBar: const AppAppBar(
+        title: SizedBox.shrink(),
         backgroundColor: AppColors.transparent,
         elevation: 0,
       ),

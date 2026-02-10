@@ -465,7 +465,9 @@ async function createMatch(
 }
 
 /**
- * Remove match e conversa vinculados a dois usuários.
+ * Remove apenas o match entre dois usuários.
+ *
+ * A conversa é mantida para não quebrar o chat direto fora do MatchPoint.
  *
  * @param {string} userId1 - UID do usuário atual
  * @param {string} userId2 - UID do usuário alvo
@@ -474,36 +476,14 @@ async function createMatch(
 async function removeMatch(userId1: string, userId2: string): Promise<boolean> {
   const pairKey = [userId1, userId2].sort().join("_");
   const matchId = `match_${pairKey}`;
-  const conversationId = pairKey;
 
   const matchRef = db.collection("matches").doc(matchId);
-  const conversationRef = db.collection("conversations").doc(conversationId);
 
   const matchDoc = await matchRef.get();
-  const conversationDoc = await conversationRef.get();
 
   if (!matchDoc.exists) return false;
 
-  const batch = db.batch();
-
-  batch.delete(matchRef);
-  if (conversationDoc.exists) batch.delete(conversationRef);
-
-  const preview1Ref = db
-    .collection("users")
-    .doc(userId1)
-    .collection("conversationPreviews")
-    .doc(conversationId);
-  const preview2Ref = db
-    .collection("users")
-    .doc(userId2)
-    .collection("conversationPreviews")
-    .doc(conversationId);
-
-  batch.delete(preview1Ref);
-  batch.delete(preview2Ref);
-
-  await batch.commit();
+  await matchRef.delete();
   return true;
 }
 

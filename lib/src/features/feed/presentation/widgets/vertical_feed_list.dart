@@ -134,24 +134,31 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final isWide = size.width >= 600;
+
     if (widget.useSliverMode) {
-      return _buildSliverList();
+      return _buildSliverLayout(isWide);
     } else {
-      return _buildRegularList();
+      return _buildRegularLayout(isWide);
     }
   }
 
-  /// Build as a regular ListView (for standalone screens)
-  Widget _buildRegularList() {
-    // Loading state
+  /// Build as a regular adaptive list/grid
+  Widget _buildRegularLayout(bool isWide) {
     if (widget.isLoading && widget.items.isEmpty) {
-      // Use centralized skeleton (no external padding, FeedItemSkeleton has margins)
       return Column(
-        children: List.generate(6, (index) => const FeedItemSkeleton()),
+        children: List.generate(
+          6,
+          (index) => FeedItemSkeleton(
+            margin: isWide
+                ? const EdgeInsets.symmetric(vertical: AppSpacing.s4)
+                : null,
+          ),
+        ),
       );
     }
 
-    // Empty state
     if (widget.items.isEmpty && !widget.isLoading) {
       return Center(
         child: Text(
@@ -163,36 +170,60 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       );
     }
 
-    // List with items
-    return ListView.builder(
+    if (!isWide) {
+      return ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: widget.padding,
+        itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= widget.items.length) {
+            return _buildLoadingIndicator();
+          }
+          return _buildItemCard(widget.items[index], index: index);
+        },
+      );
+    }
+
+    // Wide Grid Layout
+    return GridView.builder(
       controller: _scrollController,
-      physics: const AlwaysScrollableScrollPhysics(
-        parent: BouncingScrollPhysics(),
+      padding: widget.padding.add(const EdgeInsets.all(AppSpacing.s8)),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 450,
+        mainAxisExtent: 130, // Fixed height for feed cards
+        crossAxisSpacing: AppSpacing.s8,
+        mainAxisSpacing: AppSpacing.s8,
       ),
-      padding: widget.padding,
       itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= widget.items.length) {
           return _buildLoadingIndicator();
         }
-        return _buildItemCard(widget.items[index], index: index);
+        return _buildItemCard(widget.items[index], index: index, isGrid: true);
       },
     );
   }
 
-  /// Build as a SliverList (for CustomScrollView embedding)
-  Widget _buildSliverList() {
-    // Loading state inicial (quando não tem itens)
+  /// Build as a Sliver adaptive layout
+  Widget _buildSliverLayout(bool isWide) {
     if (widget.isLoading && widget.items.isEmpty) {
-      // Use centralized skeleton (sem padding externo, FeedItemSkeleton já tem margens)
       return SliverToBoxAdapter(
         child: Column(
-          children: List.generate(6, (index) => const FeedItemSkeleton()),
+          children: List.generate(
+            6,
+            (index) => FeedItemSkeleton(
+              margin: isWide
+                  ? const EdgeInsets.symmetric(vertical: AppSpacing.s4)
+                  : null,
+            ),
+          ),
         ),
       );
     }
 
-    // Empty state
     if (widget.items.isEmpty && !widget.isLoading) {
       return SliverToBoxAdapter(
         child: Padding(
@@ -209,39 +240,69 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       );
     }
 
-    // Sliver list com items + loader no final se necessário
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        if (index == widget.items.length) {
-          // Último item: mostra loading se está carregando mais
-          if (widget.isLoadingMore) {
-            return _buildLoadingIndicator();
+    if (!isWide) {
+      return SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index == widget.items.length) {
+            return widget.isLoadingMore
+                ? _buildLoadingIndicator()
+                : (widget.hasMore
+                      ? const SizedBox(height: AppSpacing.s48)
+                      : const SizedBox.shrink());
           }
-          // Ou espaço no final se tem mais para carregar
-          return widget.hasMore
-              ? const SizedBox(height: AppSpacing.s48)
-              : const SizedBox.shrink();
-        }
-        return _buildItemCard(widget.items[index], index: index);
-      }, childCount: widget.items.length + 1),
+          return _buildItemCard(widget.items[index], index: index);
+        }, childCount: widget.items.length + 1),
+      );
+    }
+
+    // Wide Sliver Grid Layout
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 450,
+          mainAxisExtent: 130,
+          crossAxisSpacing: AppSpacing.s12,
+          mainAxisSpacing: AppSpacing.s4,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          if (index >= widget.items.length) return null;
+          return _buildItemCard(
+            widget.items[index],
+            index: index,
+            isGrid: true,
+          );
+        }, childCount: widget.items.length),
+      ),
     );
   }
 
-  Widget _buildItemCard(FeedItem item, {int index = 0}) {
-    // Performance: Only animate the first 3 items (visible on initial load).
-    // Items loaded during scroll appear instantly to maintain 60fps.
-    if (index < 3) {
+  Widget _buildItemCard(FeedItem item, {int index = 0, bool isGrid = false}) {
+    // In grid mode, we remove the horizontal margin of the card
+    // since the grid handles spacing.
+    final card = FeedCardVertical(
+      item: item,
+      onTap: () => _onItemTap(item),
+      margin: isGrid
+          ? const EdgeInsets.symmetric(vertical: AppSpacing.s4)
+          : null,
+    );
+
+    if (index < 6) {
       return FadeInSlide(
-        duration: const Duration(milliseconds: 250),
-        delay: Duration(milliseconds: index * 40),
-        child: FeedCardVertical(item: item, onTap: () => _onItemTap(item)),
+        duration: const Duration(milliseconds: 300),
+        delay: Duration(milliseconds: index * 50),
+        direction: isGrid ? FadeInSlideDirection.btt : FadeInSlideDirection.rtl,
+        child: card,
       );
     }
-    // No animation for lazy-loaded items
-    return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
+    return card;
   }
 
   Widget _buildLoadingIndicator() {
-    return const FeedLoadingMore();
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.s16),
+      child: FeedLoadingMore(),
+    );
   }
 }

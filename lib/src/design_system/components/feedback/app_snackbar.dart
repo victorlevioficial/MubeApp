@@ -10,56 +10,31 @@ import '../../foundations/tokens/app_typography.dart';
 enum SnackBarType { success, error, info, warning }
 
 /// A themed snackbar system for consistent user feedback.
-///
-/// Provides semantic methods for different message types:
-/// - [success] - Green, for successful operations
-/// - [error] - Red, for errors and failures
-/// - [info] - Blue, for informational messages
-/// - [warning] - Orange, for warnings
-///
-/// Example:
-/// ```dart
-/// AppSnackBar.success(context, 'Perfil atualizado!');
-/// AppSnackBar.error(context, 'Falha ao salvar');
-/// ```
 class AppSnackBar {
   // Private constructor to prevent instantiation
   const AppSnackBar._();
 
-  // ---------------------------------------------------------------------------
-  // Semantic Colors - Using Design System
-  // ---------------------------------------------------------------------------
   static const Color _successColor = AppColors.success;
   static const Color _errorColor = AppColors.error;
   static const Color _infoColor = AppColors.info;
   static const Color _warningColor = AppColors.warning;
 
-  // ---------------------------------------------------------------------------
-  // Public API - Semantic Methods
-  // ---------------------------------------------------------------------------
-
-  /// Shows a success snackbar (green).
   static void success(BuildContext context, String message) {
     _show(context, message, SnackBarType.success);
   }
 
-  /// Shows an error snackbar (red).
   static void error(BuildContext context, String message) {
     _show(context, message, SnackBarType.error);
   }
 
-  /// Shows an info snackbar (blue).
   static void info(BuildContext context, String message) {
     _show(context, message, SnackBarType.info);
   }
 
-  /// Shows a warning snackbar (orange).
   static void warning(BuildContext context, String message) {
     _show(context, message, SnackBarType.warning);
   }
 
-  /// Legacy method for backward compatibility.
-  /// Use [success] or [error] instead for new code.
   static void show(
     BuildContext context,
     String message, {
@@ -72,13 +47,7 @@ class AppSnackBar {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Internal Implementation
-  // ---------------------------------------------------------------------------
-
   static void _show(BuildContext context, String message, SnackBarType type) {
-    // Use global messenger key if available (persists across navigation)
-    // Fall back to context-based messenger for compatibility
     final messenger =
         scaffoldMessengerKey.currentState ?? ScaffoldMessenger.maybeOf(context);
 
@@ -135,16 +104,7 @@ class AppSnackBar {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Predefined Messages
-// ---------------------------------------------------------------------------
-
-/// Centralized message constants for consistency.
-///
-/// Use these constants instead of hardcoded strings to ensure
-/// consistent wording across the application.
 abstract final class AppMessages {
-  // Auth
   static const String loginSuccess = 'Login realizado com sucesso!';
   static const String loginError = 'Email ou senha incorretos';
   static const String registerSuccess = 'Conta criada com sucesso!';
@@ -152,20 +112,14 @@ abstract final class AppMessages {
   static const String logoutSuccess = 'Você saiu da sua conta';
   static const String sessionExpired = 'Sessão expirada. Faça login novamente';
   static const String emailVerification = 'Verifique seu email para confirmar';
-
-  // Profile
   static const String profileUpdateSuccess = 'Perfil atualizado com sucesso!';
   static const String profileUpdateError = 'Erro ao atualizar perfil';
   static const String profileIncomplete = 'Por favor, complete seu cadastro';
-
-  // Validation
   static const String fieldRequired = 'Por favor, preencha todos os campos';
   static const String invalidEmail = 'Email inválido';
   static const String passwordMismatch = 'As senhas não coincidem';
   static const String passwordTooShort =
       'A senha deve ter no mínimo 6 caracteres';
-
-  // Network
   static const String networkError = 'Erro de conexão. Verifique sua internet';
   static const String serverError = 'Erro no servidor. Tente novamente';
   static const String unknownError = 'Ocorreu um erro inesperado';

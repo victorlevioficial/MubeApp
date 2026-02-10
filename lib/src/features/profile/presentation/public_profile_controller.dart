@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -59,53 +58,61 @@ class PublicProfileController extends _$PublicProfileController {
 
   Future<PublicProfileState> _loadProfile(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
+      final result = await ref.read(authRepositoryProvider).getUsersByIds([
+        uid,
+      ]);
 
-      if (!doc.exists) {
-        return const PublicProfileState(
+      return result.fold(
+        (failure) => PublicProfileState(
           isLoading: false,
-          error: 'Perfil não encontrado',
-        );
-      }
+          error: 'Erro ao carregar perfil: ${failure.message}',
+        ),
+        (users) {
+          if (users.isEmpty) {
+            return const PublicProfileState(
+              isLoading: false,
+              error: 'Perfil não encontrado',
+            );
+          }
 
-      final data = doc.data()!;
-      data['uid'] = doc.id;
-      final user = AppUser.fromJson(data);
+          final user = users.first;
 
-      // Load gallery items based on user type
-      List<dynamic> galleryData = [];
-      switch (user.tipoPerfil) {
-        case AppUserType.professional:
-          galleryData =
-              user.dadosProfissional?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.band:
-          galleryData = user.dadosBanda?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.studio:
-          galleryData = user.dadosEstudio?['gallery'] as List<dynamic>? ?? [];
-          break;
-        case AppUserType.contractor:
-          galleryData =
-              user.dadosContratante?['gallery'] as List<dynamic>? ?? [];
-          break;
-        default:
-          galleryData = [];
-      }
+          // Load gallery items based on user type
+          List<dynamic> galleryData = [];
+          switch (user.tipoPerfil) {
+            case AppUserType.professional:
+              galleryData =
+                  user.dadosProfissional?['gallery'] as List<dynamic>? ?? [];
+              break;
+            case AppUserType.band:
+              galleryData = user.dadosBanda?['gallery'] as List<dynamic>? ?? [];
+              break;
+            case AppUserType.studio:
+              galleryData =
+                  user.dadosEstudio?['gallery'] as List<dynamic>? ?? [];
+              break;
+            case AppUserType.contractor:
+              galleryData =
+                  user.dadosContratante?['gallery'] as List<dynamic>? ?? [];
+              break;
+            default:
+              galleryData = [];
+          }
 
-      final gallery =
-          galleryData
-              .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
-              .toList()
-            ..sort((a, b) => a.order.compareTo(b.order));
+          final gallery =
+              galleryData
+                  .map(
+                    (item) => MediaItem.fromJson(item as Map<String, dynamic>),
+                  )
+                  .toList()
+                ..sort((a, b) => a.order.compareTo(b.order));
 
-      return PublicProfileState(
-        user: user,
-        galleryItems: gallery,
-        isLoading: false,
+          return PublicProfileState(
+            user: user,
+            galleryItems: gallery,
+            isLoading: false,
+          );
+        },
       );
     } catch (e) {
       return PublicProfileState(

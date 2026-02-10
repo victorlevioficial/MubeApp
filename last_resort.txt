@@ -1,0 +1,8 @@
+00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart
+00:00 +0 -1: loading C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart [E]
+  Failed to load "C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart":
+  Compilation failed for testPath=C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: test/integration/auth/auth_flow_test.dart:41:12: Error: 'Override' isn't a type.
+        List<Override> overrides = const [],
+             ^^^^^^^^
+  .
+00:00 +0 -1: Some tests failed.

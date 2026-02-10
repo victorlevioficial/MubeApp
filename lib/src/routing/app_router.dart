@@ -180,7 +180,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
             GoRoute(
               path: RoutePaths.matchpoint,
               pageBuilder: (context, state) =>
-                  NoTransitionPage(child: const MatchpointWrapperScreen()),
+                  const NoTransitionPage(child: MatchpointWrapperScreen()),
               routes: [
                 GoRoute(
                   path: 'history',

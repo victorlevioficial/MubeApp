@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/chips/app_filter_chip.dart';
-import '../../../../design_system/components/chips/mube_filter_chip.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -215,13 +214,13 @@ class _FilterModalState extends ConsumerState<FilterModal> {
         const SizedBox(height: AppSpacing.s12),
         Row(
           children: [
-            MubeFilterChip(
+            AppFilterChip(
               label: 'Qualquer',
               isSelected: _canDoBackingVocal == null,
               onSelected: (_) => setState(() => _canDoBackingVocal = null),
             ),
             const SizedBox(width: AppSpacing.s8),
-            MubeFilterChip(
+            AppFilterChip(
               label: 'Faz backing',
               isSelected: _canDoBackingVocal == true,
               onSelected: (_) => setState(() => _canDoBackingVocal = true),

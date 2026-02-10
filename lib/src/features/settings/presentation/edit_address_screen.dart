@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../common_widgets/location_service.dart';
@@ -114,8 +115,8 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
           });
         }
       }
-    } catch (_) {
-      // Silent error for preview
+    } catch (e, st) {
+      AppLogger.warning('Falha ao obter preview de localização', e, st);
     } finally {
       if (mounted) setState(() => _isLoadingPreview = false);
     }

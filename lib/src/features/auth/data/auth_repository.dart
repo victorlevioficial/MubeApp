@@ -248,6 +248,93 @@ class AuthRepository {
   bool get isCurrentUserEmailVerified {
     return _dataSource.currentUser?.emailVerified ?? false;
   }
+
+  FutureResult<Unit> signInWithGoogle() async {
+    return _signInWithSocialProvider(
+      method: 'google',
+      signIn: _dataSource.signInWithGoogle,
+    );
+  }
+
+  FutureResult<Unit> signInWithApple() async {
+    return _signInWithSocialProvider(
+      method: 'apple',
+      signIn: _dataSource.signInWithApple,
+    );
+  }
+
+  FutureResult<Unit> _signInWithSocialProvider({
+    required String method,
+    required Future<UserCredential> Function() signIn,
+  }) async {
+    try {
+      final credential = await signIn();
+      final user = credential.user;
+
+      if (user == null) {
+        return const Left(
+          AuthFailure(message: 'Falha ao autenticar com provedor social.'),
+        );
+      }
+
+      final isNewUser = await _ensureUserProfileExists(user);
+
+      await _analytics?.setUserId(user.uid);
+      await _analytics?.logEvent(name: 'login', parameters: {'method': method});
+
+      if (isNewUser) {
+        await _analytics?.logEvent(
+          name: 'user_registration',
+          parameters: {'method': method, 'user_type': 'pending'},
+        );
+      }
+
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      await _analytics?.logEvent(
+        name: 'login_error',
+        parameters: {
+          'method': method,
+          'error_code': e.code,
+          'error_message': e.message ?? 'Unknown error',
+        },
+      );
+      return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
+    } catch (e) {
+      await _analytics?.logEvent(
+        name: 'login_error',
+        parameters: {
+          'method': method,
+          'error_code': 'unknown',
+          'error_message': e.toString(),
+        },
+      );
+      return Left(AuthFailure(message: e.toString()));
+    }
+  }
+
+  Future<bool> _ensureUserProfileExists(User user) async {
+    final existingProfile = await _dataSource.fetchUserProfile(user.uid);
+    if (existingProfile != null) {
+      return false;
+    }
+
+    final email = user.email;
+    if (email == null || email.isEmpty) {
+      throw Exception('A conta social não retornou um e-mail válido.');
+    }
+
+    final appUser = AppUser(
+      uid: user.uid,
+      email: email,
+      nome: user.displayName,
+      foto: user.photoURL,
+      cadastroStatus: RegistrationStatus.pending,
+      createdAt: FieldValue.serverTimestamp(),
+    );
+    await _dataSource.saveUserProfile(appUser);
+    return true;
+  }
 }
 
 // ---------------------------------------------------------------------------

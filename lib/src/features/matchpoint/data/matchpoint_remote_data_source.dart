@@ -3,60 +3,11 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
+import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
 import '../../../constants/firestore_constants.dart';
-
-/// Resultado de uma ação no Matchpoint
-class MatchpointActionResult {
-  final bool success;
-  final bool isMatch;
-  final String? matchId;
-  final String? conversationId;
-  final int? remainingLikes;
-  final String? message;
-
-  MatchpointActionResult({
-    required this.success,
-    this.isMatch = false,
-    this.matchId,
-    this.conversationId,
-    this.remainingLikes,
-    this.message,
-  });
-
-  factory MatchpointActionResult.fromJson(Map<String, dynamic> json) {
-    return MatchpointActionResult(
-      success: json['success'] ?? false,
-      isMatch: json['isMatch'] ?? false,
-      matchId: json['matchId'],
-      conversationId: json['conversationId'],
-      remainingLikes: json['remainingLikes'],
-      message: json['message'],
-    );
-  }
-}
-
-/// Informações de quota de likes
-class LikesQuotaInfo {
-  final int remaining;
-  final int limit;
-  final DateTime resetTime;
-
-  LikesQuotaInfo({
-    required this.remaining,
-    required this.limit,
-    required this.resetTime,
-  });
-
-  factory LikesQuotaInfo.fromJson(Map<String, dynamic> json) {
-    return LikesQuotaInfo(
-      remaining: json['remaining'] ?? 0,
-      limit: json['limit'] ?? 50,
-      resetTime: DateTime.parse(json['resetTime']),
-    );
-  }
-}
 
 abstract class MatchpointRemoteDataSource {
   Future<List<AppUser>> fetchCandidates({
@@ -89,6 +40,12 @@ abstract class MatchpointRemoteDataSource {
 
   /// Busca hashtags por termo de pesquisa
   Future<List<HashtagRanking>> searchHashtags(String query, {int limit = 20});
+
+  /// Salva o perfil do matchpoint
+  Future<void> saveProfile({
+    required String userId,
+    required Map<String, dynamic> profileData,
+  });
 }
 
 class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
@@ -147,7 +104,9 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         'action': action,
       });
 
-      return MatchpointActionResult.fromJson(result.data as Map<String, dynamic>);
+      return MatchpointActionResult.fromJson(
+        result.data as Map<String, dynamic>,
+      );
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
         'submitMatchpointAction falhou: code=${e.code}, message=${e.message}',
@@ -188,33 +147,17 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> fetchMatches(String currentUserId) async {
-    // Buscar matches onde o usuário é user_id_1 ou user_id_2
-    final [matches1, matches2] = await Future.wait([
-      _firestore
-          .collection(FirestoreCollections.matches)
-          .where('user_id_1', isEqualTo: currentUserId)
-          .orderBy('created_at', descending: true)
-          .get(),
-      _firestore
-          .collection(FirestoreCollections.matches)
-          .where('user_id_2', isEqualTo: currentUserId)
-          .orderBy('created_at', descending: true)
-          .get(),
-    ]);
+    // Query única usando campo array user_ids
+    // IMPORTANTE: Adicione o campo 'user_ids' ao documento de match no backend:
+    //   user_ids: [user_id_1, user_id_2]
+    final snapshot = await _firestore
+        .collection(FirestoreCollections.matches)
+        .where('user_ids', arrayContains: currentUserId)
+        .orderBy('created_at', descending: true)
+        .limit(50)
+        .get();
 
-    final allMatches = [
-      ...matches1.docs.map((d) => {...d.data(), 'id': d.id}),
-      ...matches2.docs.map((d) => {...d.data(), 'id': d.id}),
-    ];
-
-    // Ordenar por data de criação
-    allMatches.sort((a, b) {
-      final aTime = (a['created_at'] as Timestamp?)?.toDate() ?? DateTime(2000);
-      final bTime = (b['created_at'] as Timestamp?)?.toDate() ?? DateTime(2000);
-      return bTime.compareTo(aTime);
-    });
-
-    return allMatches;
+    return snapshot.docs.map((d) => {...d.data(), 'id': d.id}).toList();
   }
 
   @override
@@ -234,19 +177,20 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     try {
       final callable = _functions.httpsCallable('getTrendingHashtags');
 
-      final result = await callable.call({
-        'limit': limit,
-        'includeAll': false,
-      });
+      final result = await callable.call({'limit': limit, 'includeAll': false});
 
       final data = result.data as Map<String, dynamic>;
       final hashtags = data['hashtags'] as List<dynamic>? ?? [];
 
       return hashtags
-          .map((h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>))
+          .map(
+            (h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>),
+          )
           .toList();
     } catch (e) {
-      AppLogger.warning('Falha ao buscar trending via Function. Fallback Firestore: $e');
+      AppLogger.warning(
+        'Falha ao buscar trending via Function. Fallback Firestore: $e',
+      );
 
       final snapshot = await _firestore
           .collection('hashtagRanking')
@@ -259,38 +203,57 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }
 
   @override
-  Future<List<HashtagRanking>> searchHashtags(String query, {int limit = 20}) async {
+  Future<List<HashtagRanking>> searchHashtags(
+    String query, {
+    int limit = 20,
+  }) async {
     try {
       final callable = _functions.httpsCallable('searchHashtags');
 
-      final result = await callable.call({
-        'query': query,
-        'limit': limit,
-      });
+      final result = await callable.call({'query': query, 'limit': limit});
 
       final data = result.data as Map<String, dynamic>;
       final hashtags = data['hashtags'] as List<dynamic>? ?? [];
 
       return hashtags
-          .map((h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>))
+          .map(
+            (h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>),
+          )
           .toList();
     } catch (e) {
-      AppLogger.warning('Falha ao buscar hashtag via Function. Fallback Firestore: $e');
+      AppLogger.warning(
+        'Falha ao buscar hashtag via Function. Fallback Firestore: $e',
+      );
 
       final normalized = query.toLowerCase().trim();
       if (normalized.length < 2) return [];
 
+      // Removido orderBy conflitante — sort client-side
       final snapshot = await _firestore
           .collection('hashtagRanking')
           .where('hashtag', isGreaterThanOrEqualTo: normalized)
           .where('hashtag', isLessThanOrEqualTo: '$normalized\uf8ff')
           .orderBy('hashtag')
-          .orderBy('use_count', descending: true)
           .limit(limit)
           .get();
 
-      return snapshot.docs.map(HashtagRanking.fromFirestore).toList();
+      final results = snapshot.docs.map(HashtagRanking.fromFirestore).toList();
+
+      // Sort by use_count client-side
+      results.sort((a, b) => b.useCount.compareTo(a.useCount));
+
+      return results;
     }
+  }
+
+  @override
+  Future<void> saveProfile({
+    required String userId,
+    required Map<String, dynamic> profileData,
+  }) async {
+    await _firestore.collection(FirestoreCollections.users).doc(userId).update({
+      'matchpoint_profile': profileData,
+    });
   }
 }
 

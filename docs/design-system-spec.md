@@ -1,66 +1,112 @@
-# Design System Specification
+# Design System Spec (Current)
 
-**Name**: Mube Design System
-**Theme**: Dark Mode First (High Contrast, Neon Accents)
+Updated from code on 2026-02-09.
+Primary reference remains `design-system.md`.
 
-## 1. Design Tokens
+## 1. Architecture
 
-### 1.1 Color Palette (`AppColors`)
-The system uses a semantic token layer over a raw palette, ensuring consistence and easy theming.
+Design system location:
+- `lib/src/design_system/foundations/**`
+- `lib/src/design_system/components/**`
+- `lib/src/design_system/showcase/**`
 
-**Brand Colors**
-*   **Primary**: `Razzmatazz 300` (#D71E68) - Main brand identity.
-*   **Glow**: `#D71E68` - Neon effects.
-*   **Gradient**: Linear Gradient from Primary to `#990033`.
+App integration points:
+- `lib/src/app.dart` (global theme + scroll behavior)
+- `lib/src/routing/app_router.dart` (`MainScaffold` shell)
 
-**Backgrounds**
-*   **Deep**: `#0A0A0A` (App Background)
-*   **Surface**: `#161616` (Cards, Sheets)
-*   **Highlight**: `#202020` (Dividers, Borders)
+## 2. Foundation Tokens
 
-**Text**
-*   **Primary**: `#FFFFFF` (White)
-*   **Secondary**: `#B3B3B3` (Zinc 400)
-*   **Tertiary**: `#737373` (Zinc 600)
+### 2.1 Colors (`AppColors`)
+Path: `lib/src/design_system/foundations/tokens/app_colors.dart`
 
-**Feedback**
-*   **Error**: `Red 500` (#EF4444)
-*   **Success**: `Green 500` (#22C55E)
-*   **Warning**: `Amber 500` (#F59E0B)
+- Primary: `#E8466C`
+- Primary pressed: `#D13F61`
+- Background: `#0A0A0A`
+- Surface: `#141414`
+- Surface 2: `#1F1F1F`
+- Surface highlight: `#292929`
+- Border: `#383838`
+- Text primary/secondary/tertiary: `#FFFFFF`, `#B3B3B3`, `#8A8A8A`
+- Feedback: error `#EF4444`, success `#22C55E`, info `#3B82F6`, warning `#F59E0B`
 
-### 1.2 Typography (`AppTypography`)
-*   **Font Family**: Custom (likely generic sans-serif tailored via Google Fonts, e.g., Inter/Roboto).
-*   **Scale**:
-    *   `Display`: Large headers.
-    *   `Title`: Section headers.
-    *   `Body`: Standard content (Regular/Bold).
-    *   `Label`: Small tags and captions.
+### 2.2 Typography (`AppTypography`)
+Path: `lib/src/design_system/foundations/tokens/app_typography.dart`
 
-## 2. Component Library (`lib/src/design_system/components`)
+- Families: `Poppins` (display), `Inter` (body)
+- Scales: headline, title, body, label
+- Semantic styles: buttons, chip label, settings title, profile label, matchpoint hero text
 
-### 2.1 Atoms (Basic Building Blocks)
-*   **Buttons**: `AppButton` (Primary, Secondary, Ghost, Outline).
-*   **Inputs**: `AppTextField` (Standard, Password, Search).
-*   **Chips**:
-    *   `SkillChip`: For instruments/roles.
-    *   `GenreChip`: For musical genres.
-    *   `StatusChip`: For user statuses.
-*   **Feedback**: `AppSnackbar`, `AppConfirmationDialog`.
+### 2.3 Spacing (`AppSpacing`)
+Path: `lib/src/design_system/foundations/tokens/app_spacing.dart`
 
-### 2.2 Navigation
-*   **`AppAppBar`**: Custom top bar with back button support.
-*   **`MainScaffold`**: Wraps the bottom navigation logic.
+Scale: `2, 4, 8, 12, 16, 24, 32, 40, 48`
 
-### 2.3 Loading States
-*   **Skeletons**: Shimmer effects for loading lists (`AppColors.skeletonBase`).
-*   **Loaders**: Circular indicators customized with Brand Color.
+### 2.4 Radius (`AppRadius`)
+Path: `lib/src/design_system/foundations/tokens/app_radius.dart`
 
-## 3. UI Patterns
-*   **Cards**: Rounded corners (likely 12px-16px), Surface color background.
-*   **Lists**: Vertical scrolling with virtualization (`ListView.builder`).
-*   **Grids**: Used for Gallery (`AppReorderableGridView` implied).
-*   **Modals**: Bottom Sheets for filters/actions.
+Scale: `4, 8, 12, 16, 24, pill`
 
-## 4. Assets
-*   **Icons**: FontAwesome (`font_awesome_flutter`) + Custom SVGs.
-*   **Images**: Specialized handling for User Avatars (Circular + Cache).
+### 2.5 Motion/Effects
+Paths:
+- `lib/src/design_system/foundations/tokens/app_motion.dart`
+- `lib/src/design_system/foundations/tokens/app_effects.dart`
+
+Includes duration, curves, shadow stacks, glass tokens.
+
+## 3. Theme Contract
+
+Path: `lib/src/design_system/foundations/theme/app_theme.dart`
+
+- Material 3 dark theme
+- Themed elements: app bar, text, input decoration, buttons, snackbar, bottom sheet, checkbox, date/time pickers
+- Scroll behavior override at `lib/src/design_system/foundations/theme/app_scroll_behavior.dart`
+
+## 4. Component Inventory
+
+### 4.1 Category inventory
+
+| Category | Dart files |
+| --- | --- |
+| badges | 1 |
+| buttons | 4 |
+| chips | 3 |
+| data_display | 2 |
+| feedback | 5 |
+| inputs | 7 |
+| interactions | 1 |
+| loading | 4 |
+| navigation | 5 |
+| patterns | 5 |
+
+### 4.2 Canonical APIs for new screens
+
+- `AppAppBar`
+- `AppButton`
+- `AppTextField`
+- `AppFilterChip` (or `AppChip.filter`)
+- `AppSnackBar`
+- `AppLoadingIndicator`
+- `UserAvatar`
+- `MainScaffold`
+
+### 4.3 Transitional APIs
+
+- Deprecated alias: `MubeAppBar`
+- Transitional wrappers: `AppLoading`
+- Duplicate shell: `AppScaffold` (router uses `MainScaffold`)
+
+## 5. Adoption and Drift Summary
+
+Snapshot outside design_system folder:
+- Files with design-system imports: `83`
+- Token refs: `AppColors=800`, `AppSpacing=858`, `AppTypography=388`, `AppRadius=159`
+- Native exceptions in app code: button primitives and direct colors in `15` files
+
+Main exception examples:
+- Native app bar: resolved (migrated to `AppAppBar`)
+- Native text field: resolved (migrated to `AppTextField`)
+
+## 6. Next Document
+
+Migration backlog and priority list:
+- `docs/design-system-audit-2026-02-09.md`

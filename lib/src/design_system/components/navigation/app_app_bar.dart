@@ -5,37 +5,23 @@ import '../../foundations/tokens/app_typography.dart';
 import 'app_back_button.dart';
 
 /// AppBar padronizada do Design System Mube.
-///
-/// Substitui o AppBar padrão do Flutter para garantir consistência visual
-/// em todas as telas do aplicativo.
-///
-/// Features:
-/// - Ícone de voltar padronizado (iOS style)
-/// - Cores consistentes
-/// - Título centralizado por padrão
-/// - Suporte a ações e bottom widget
-///
-/// Uso:
-/// ```dart
-/// Scaffold(
-///   appBar: AppAppBar(title: 'Minha Tela'),
-///   body: ...,
-/// )
-/// ```
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
-  /// Título da AppBar (String ou Widget).
+  /// Titulo da AppBar (String ou Widget).
   final dynamic title;
 
-  /// Ações da AppBar (lado direito).
+  /// Acoes da AppBar (lado direito).
   final List<Widget>? actions;
 
-  /// Se deve mostrar o botão de voltar. Padrão: true se Navigator.canPop().
+  /// Widget customizado no lado esquerdo.
+  final Widget? leading;
+
+  /// Se deve mostrar o botao de voltar. Padrao: true se Navigator.canPop().
   final bool? showBackButton;
 
-  /// Callback customizado para o botão de voltar.
+  /// Callback customizado para o botao de voltar.
   final VoidCallback? onBackPressed;
 
-  /// Se o título deve ser centralizado. Padrão: true.
+  /// Se o titulo deve ser centralizado. Padrao: true.
   final bool centerTitle;
 
   /// Widget bottom (ex: TabBar).
@@ -44,13 +30,14 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Cor de fundo opcional.
   final Color? backgroundColor;
 
-  /// Elevação da sombra.
+  /// Elevacao da sombra.
   final double? elevation;
 
   const AppAppBar({
     super.key,
     required this.title,
     this.actions,
+    this.leading,
     this.showBackButton,
     this.onBackPressed,
     this.centerTitle = true,
@@ -67,12 +54,15 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
     final shouldShowBack = showBackButton ?? canPop;
+    final resolvedLeading =
+        leading ??
+        (shouldShowBack ? AppBackButton(onPressed: onBackPressed) : null);
 
     return AppBar(
       backgroundColor:
           backgroundColor ?? AppColors.background.withValues(alpha: 0.8),
       elevation: elevation,
-      leading: shouldShowBack ? AppBackButton(onPressed: onBackPressed) : null,
+      leading: resolvedLeading,
       title: title is String
           ? Text(
               title as String,

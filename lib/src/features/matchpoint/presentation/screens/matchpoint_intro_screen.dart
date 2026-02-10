@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../design_system/components/buttons/app_button.dart';
+
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
@@ -18,11 +20,7 @@ class MatchpointIntroScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.bolt_rounded,
-              size: 80,
-              color: AppColors.primary,
-            ),
+            const Icon(Icons.bolt_rounded, size: 80, color: AppColors.primary),
             const SizedBox(height: AppSpacing.s24),
             Text(
               'Bem-vindo ao MatchPoint',
@@ -38,11 +36,11 @@ class MatchpointIntroScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.s32),
-            ElevatedButton(
+            AppButton.primary(
+              text: 'Começar Configuração',
               onPressed: () {
                 context.push(RoutePaths.matchpointWizard);
               },
-              child: const Text('Começar Configuração'),
             ),
           ],
         ),

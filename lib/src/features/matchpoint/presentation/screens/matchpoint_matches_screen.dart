@@ -89,7 +89,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
       builder: (context) => AppConfirmationDialog(
         title: 'Desfazer Match com $name?',
         message:
-            'A conversa será apagada e vocês não aparecerão mais um para o outro.',
+            'Vocês sairão da lista de matches, mas a conversa será mantida no chat.',
         confirmText: 'Desfazer Match',
         isDestructive: true,
       ),

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
@@ -12,11 +11,13 @@ import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
+import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
 
 import '../../helpers/firebase_mocks.dart';
+import '../../helpers/firebase_test_config.dart';
 import '../../helpers/pump_app.dart';
 @GenerateNiceMocks([
   MockSpec<AuthRemoteDataSource>(),
@@ -41,7 +42,8 @@ void main() {
     late MockAuthRemoteDataSource mockAuthDataSource;
     late MockSearchRepository mockSearchRepository;
 
-    setUpAll(() {
+    setUpAll(() async {
+      await setupFirebaseCoreMocks();
       provideDummy<Either<Failure, PaginatedSearchResponse>>(
         const Right(PaginatedSearchResponse(items: [], hasMore: false)),
       );
@@ -94,7 +96,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -136,7 +139,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert - Deve mostrar estado vazio
         expect(find.byType(SearchScreen), findsOneWidget);
@@ -185,7 +189,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -240,7 +245,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -295,7 +301,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -352,7 +359,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -410,7 +418,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -467,7 +476,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -524,7 +534,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -580,7 +591,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -638,7 +650,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -695,7 +708,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -750,7 +764,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -803,7 +818,10 @@ void main() {
         await tester.pump(); // Pump once to show loading
 
         // Assert - Deve mostrar indicador de loading
-        expect(find.byType(CircularProgressIndicator), findsWidgets);
+        expect(find.byType(FeedItemSkeleton), findsWidgets);
+
+        // Wait for potential timers (e.g. debounce) to complete
+        await tester.pump(const Duration(seconds: 1));
       });
 
       testWidgets('should handle search errors', (tester) async {
@@ -839,7 +857,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert - Deve mostrar mensagem de erro
         expect(find.byType(SearchScreen), findsOneWidget);
@@ -876,7 +895,8 @@ void main() {
         );
 
         // Act - Fazer várias buscas rapidamente
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert - A busca deve ser executada
         verify(
@@ -921,7 +941,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -990,11 +1011,8 @@ void main() {
         );
 
         // Emit cached user first (simulating loading then data)
-        await tester.pump(const Duration(seconds: 1));
-        await tester.pumpAndSettle();
-
-        // profileController.add(currentUser);
-        // await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -1009,8 +1027,6 @@ void main() {
             ),
           ),
         ).called(greaterThanOrEqualTo(1));
-
-        // await profileController.close();
       });
     });
 
@@ -1057,7 +1073,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(
@@ -1114,7 +1131,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert - O repository deve filtrar usuários em ghost mode
         verify(
@@ -1172,7 +1190,8 @@ void main() {
         );
 
         // Act
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         verify(

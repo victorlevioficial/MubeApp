@@ -271,6 +271,46 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
             returnValueForMissingStub: _i4.Future<void>.value(),
           )
           as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>> signInWithGoogle() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithGoogle, []),
+            returnValue: _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>.value(
+              _i8.dummyValue<_i6.Either<_i7.Failure, _i6.Unit>>(
+                this,
+                Invocation.method(#signInWithGoogle, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>.value(
+                  _i8.dummyValue<_i6.Either<_i7.Failure, _i6.Unit>>(
+                    this,
+                    Invocation.method(#signInWithGoogle, []),
+                  ),
+                ),
+          )
+          as _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>);
+
+  @override
+  _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>> signInWithApple() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithApple, []),
+            returnValue: _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>.value(
+              _i8.dummyValue<_i6.Either<_i7.Failure, _i6.Unit>>(
+                this,
+                Invocation.method(#signInWithApple, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>.value(
+                  _i8.dummyValue<_i6.Either<_i7.Failure, _i6.Unit>>(
+                    this,
+                    Invocation.method(#signInWithApple, []),
+                  ),
+                ),
+          )
+          as _i4.Future<_i6.Either<_i7.Failure, _i6.Unit>>);
 }
 
 /// A class which mocks [AnalyticsService].

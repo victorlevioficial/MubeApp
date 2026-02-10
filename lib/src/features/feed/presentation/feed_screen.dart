@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/utils/app_logger.dart';
 
 import '../../../core/mixins/pagination_mixin.dart';
+import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -77,7 +79,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   String _getSectionTitle(FeedSectionType type) {
     try {
       return FeedSection.homeSections.firstWhere((s) => s.type == type).title;
-    } catch (_) {
+    } catch (e) {
+      AppLogger.debug('Seção não encontrada, usando fallback: ${type.name}');
       return type.name.toUpperCase();
     }
   }
@@ -126,9 +129,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             children: [
               Text('Erro ao carregar feed: ${stateAsync.error}'),
               const SizedBox(height: AppSpacing.s16),
-              ElevatedButton(
+              AppButton.primary(
+                text: 'Tentar novamente',
                 onPressed: () => controller.loadAllData(),
-                child: const Text('Tentar novamente'),
               ),
             ],
           ),
@@ -146,6 +149,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         onRefresh: () => controller.loadAllData(),
         child: CustomScrollView(
           controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
             FeedHeader(
@@ -239,7 +243,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 isLoadingMore: state.status == PaginationStatus.loadingMore,
                 hasMore: state.hasMore,
                 onLoadMore: controller.loadMoreMainFeed,
-                padding: EdgeInsets.zero, // Remove padding duplo, o skeleton já tem
+                padding:
+                    EdgeInsets.zero, // Remove padding duplo, o skeleton já tem
               ),
 
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.s48)),

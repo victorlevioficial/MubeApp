@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 
 /// Widget de confetti animado para celebração de match
+/// Usa LayoutBuilder para dimensões dinâmicas
 class ConfettiOverlay extends StatefulWidget {
   const ConfettiOverlay({super.key});
 
@@ -15,7 +16,9 @@ class ConfettiOverlay extends StatefulWidget {
 class _ConfettiOverlayState extends State<ConfettiOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late List<_ConfettiParticle> _particles;
+  final List<_ConfettiParticle> _particles = [];
+  final Random _random = Random();
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -23,9 +26,16 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
-    )..forward();
+    )..repeat();
+  }
 
-    _particles = List.generate(50, (_) => _ConfettiParticle());
+  void _initParticles(double width, double height) {
+    if (_initialized) return;
+    _initialized = true;
+
+    for (int i = 0; i < 100; i++) {
+      _particles.add(_ConfettiParticle(_random, width, height));
+    }
   }
 
   @override
@@ -36,15 +46,24 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: _ConfettiPainter(
-            particles: _particles,
-            progress: _controller.value,
-          ),
-          size: Size.infinite,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final height = constraints.maxHeight;
+
+        _initParticles(width, height);
+
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            for (var p in _particles) {
+              p.update(width, height);
+            }
+            return CustomPaint(
+              size: Size(width, height),
+              painter: _ConfettiPainter(_particles),
+            );
+          },
         );
       },
     );
@@ -52,77 +71,71 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
 }
 
 class _ConfettiParticle {
-  final double startX;
-  final double speed;
-  final double size;
-  final Color color;
-  final double rotation;
-  final double wobble;
-  final bool isCircle;
+  late double x;
+  late double y;
+  late double vx;
+  late double vy;
+  late Color color;
+  late double size;
+  late double rotation;
+  late double rotationSpeed;
+  late bool isCircle;
+  final Random random;
 
-  _ConfettiParticle()
-    : startX = Random().nextDouble(),
-      speed = 0.3 + Random().nextDouble() * 0.7,
-      size = 6 + Random().nextDouble() * 8,
-      color = _randomColor(),
-      rotation = Random().nextDouble() * 6.28,
-      wobble = Random().nextDouble() * 50,
-      isCircle = Random().nextBool();
+  _ConfettiParticle(this.random, double screenWidth, double screenHeight) {
+    reset(screenWidth);
+    y = random.nextDouble() * -screenHeight; // Começa acima da tela
+  }
 
-  static Color _randomColor() {
+  void reset(double screenWidth) {
+    x = random.nextDouble() * screenWidth;
+    y = -20;
+    vx = random.nextDouble() * 4 - 2;
+    vy = random.nextDouble() * 5 + 2;
+    size = random.nextDouble() * 8 + 4;
+    rotation = random.nextDouble() * 2 * pi;
+    rotationSpeed = random.nextDouble() * 0.2;
+    isCircle = random.nextBool();
+
     final colors = [
       AppColors.primary,
       AppColors.success,
       AppColors.info,
       AppColors.warning,
-      AppColors.badgeBand, // Fuchsia/Purple
-      const Color(0xFFFFD700), // Gold
-      const Color(0xFFFF69B4), // Hot Pink
+      AppColors.badgeBand,
+      AppColors.medalGold,
+      AppColors.celebrationPink,
     ];
-    return colors[Random().nextInt(colors.length)];
+    color = colors[random.nextInt(colors.length)];
+  }
+
+  void update(double screenWidth, double screenHeight) {
+    x += vx;
+    y += vy;
+    rotation += rotationSpeed;
+    if (y > screenHeight) {
+      reset(screenWidth);
+    }
   }
 }
 
 class _ConfettiPainter extends CustomPainter {
   final List<_ConfettiParticle> particles;
-  final double progress;
 
-  _ConfettiPainter({required this.particles, required this.progress});
+  _ConfettiPainter(this.particles);
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final particle in particles) {
-      // Fade out near the end
-      final opacity = progress < 0.8 ? 1.0 : (1.0 - progress) * 5;
-      if (opacity <= 0) continue;
-
-      final paint = Paint()
-        ..color = particle.color.withValues(alpha: opacity)
-        ..style = PaintingStyle.fill;
-
-      // Calculate position
-      final x =
-          particle.startX * size.width +
-          sin(progress * 6.28 * 2 + particle.wobble) * 30;
-      final y = -50 + progress * (size.height + 100) * particle.speed;
-
-      if (y < 0 || y > size.height) continue;
-
+    for (var p in particles) {
+      final paint = Paint()..color = p.color;
       canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate(particle.rotation + progress * 6.28 * 2);
+      canvas.translate(p.x % size.width, p.y);
+      canvas.rotate(p.rotation);
 
-      if (particle.isCircle) {
-        canvas.drawCircle(Offset.zero, particle.size / 2, paint);
+      if (p.isCircle) {
+        canvas.drawCircle(Offset.zero, p.size / 2, paint);
       } else {
-        canvas.drawRect(
-          Rect.fromCenter(
-            center: Offset.zero,
-            width: particle.size,
-            height: particle.size * 0.6,
-          ),
-          paint,
-        );
+        canvas.drawRect(Rect.fromLTWH(0, 0, p.size, p.size * 0.6), paint);
       }
 
       canvas.restore();
@@ -130,7 +143,5 @@ class _ConfettiPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) {
-    return oldDelegate.progress != progress;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

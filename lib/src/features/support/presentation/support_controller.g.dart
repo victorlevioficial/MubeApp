@@ -33,7 +33,7 @@ final class SupportControllerProvider
   SupportController create() => SupportController();
 }
 
-String _$supportControllerHash() => r'e19f63bba21770452a146aae8618a9d938c61359';
+String _$supportControllerHash() => r'22c95bab1747f078516685a5e0664dc10133d958';
 
 abstract class _$SupportController extends $AsyncNotifier<void> {
   FutureOr<void> build();

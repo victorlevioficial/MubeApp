@@ -177,10 +177,15 @@ class _MatchpointSetupWizardScreenState
                 const SizedBox(width: AppSpacing.s48),
 
               AppButton.primary(
-                onPressed: ref.watch(matchpointControllerProvider).isLoading
+                onPressed:
+                    ref.watch(
+                      matchpointControllerProvider.select((s) => s.isLoading),
+                    )
                     ? null
                     : _onNextPressed,
-                isLoading: ref.watch(matchpointControllerProvider).isLoading,
+                isLoading: ref.watch(
+                  matchpointControllerProvider.select((s) => s.isLoading),
+                ),
                 text: _currentStep == 3 ? 'Concluir' : 'Próximo',
                 size: AppButtonSize.medium,
               ),
@@ -306,7 +311,9 @@ class _MatchpointSetupWizardScreenState
 
   Widget _buildGenresStep() {
     final availableGenres = ref.watch(genreLabelsProvider);
-    final isConfigLoading = ref.watch(appConfigProvider).isLoading;
+    final isConfigLoading = ref.watch(
+      appConfigProvider.select((s) => s.isLoading),
+    );
 
     if (availableGenres.isEmpty && isConfigLoading) {
       return ListView(

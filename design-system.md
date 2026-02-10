@@ -1,113 +1,171 @@
 # Mube Design System
 
-> **Versão:** 1.0.0
-> **Última Atualização:** 26/01/2026
-> **Padrão Obrigatório:** Todas as novas telas e componentes DEVEM seguir rigorosamente estas definições.
+> Version: 2.1.0
+> Last Updated: 2026-02-09
+> Status: current implementation snapshot from codebase
 
-Este documento serve como a "Fonte da Verdade" para o design do aplicativo Mube. Agentes e Desenvolvedores devem consultar este arquivo antes de criar qualquer interface.
+This document reflects the real pattern currently implemented in code.
+Primary sources analyzed:
+- `lib/src/design_system/**`
+- `lib/src/app.dart`
+- `lib/src/routing/app_router.dart`
+- `lib/src/features/**` (usage and exceptions)
 
----
+## 1. Foundations
 
-## 1. Fundações (Foundations)
+### 1.1 Colors (`AppColors`)
+Path: `lib/src/design_system/foundations/tokens/app_colors.dart`
 
-### 1.1 Cores (`AppColors`)
+| Token | Hex | Notes |
+| --- | --- | --- |
+| `primary` | `#E8466C` | Main brand/action color |
+| `primaryPressed` | `#D13F61` | Pressed state |
+| `background` | `#0A0A0A` | Global dark background |
+| `surface` | `#141414` | Card/container base |
+| `surface2` | `#1F1F1F` | Elevated surface |
+| `surfaceHighlight` | `#292929` | Borders/dividers/highlight |
+| `border` | `#383838` | Default border token |
+| `textPrimary` | `#FFFFFF` | Main text |
+| `textSecondary` | `#B3B3B3` | Secondary text |
+| `textTertiary` | `#8A8A8A` | Tertiary/placeholder |
+| `error` | `#EF4444` | Error |
+| `success` | `#22C55E` | Success |
+| `info` | `#3B82F6` | Informational |
+| `warning` | `#F59E0B` | Warning |
 
-O sistema de cores é centralizado em `lib/src/design_system/foundations/app_colors.dart`.
-Evite usar cores hardcoded (`Color(0xFF...)`). Use sempre os tokens semânticos.
+Extra semantic groups:
+- `primaryGradient`
+- `avatarColors` palette
+- `badgeMusician`, `badgeBand`, `badgeStudio`
+- `skeletonBase`, `skeletonHighlight`
 
-| Token | Valor (Aprox) | Uso Recomendado |
-| :--- | :--- | :--- |
-| **`brandPrimary`** | `#D40055` (Razzmatazz) | Identidade da marca, logos, elementos institucionais. |
-| **`semanticAction`** | `#FF5C8D` (Neon Pink) | **Ações de Interface**: Botões, Links, Ícones clicáveis. Otimizado para contraste em fundo escuro. |
-| **`background`** | `#0A0A0A` (Deep Black) | Fundo padrão de todas as telas (`Scaffold`). |
-| **`surface`** | `#18181B` (Zinc 900) | Cartões, Modais, BottomSheets. |
-| **`surfaceHighlight`** | `#27272A` (Zinc 800) | Bordas, divisores, estados de hover/pressed. |
-| **`textPrimary`** | `#FFFFFF` (White) | Títulos, texto principal. |
-| **`textSecondary`** | `#A1A1AA` (Zinc 400) | Subtítulos, descrições secundárias. |
-| **`textTertiary`** | `#52525B` (Zinc 600) | Placeholders, textos desabilitados. |
-| **`error`** | `#EF4444` (Red) | Mensagens de erro, validação negativa. |
-| **`success`** | `#22C55E` (Green) | Mensagens de sucesso, validação positiva. |
+### 1.2 Typography (`AppTypography`)
+Path: `lib/src/design_system/foundations/tokens/app_typography.dart`
 
-### 1.2 Tipografia (`AppTypography`)
+Font families:
+- Display: `Poppins`
+- Body: `Inter`
 
-Fonte Padrão: **Inter** (Google Fonts).
-Centralizado em: `lib/src/design_system/foundations/app_typography.dart`.
+Core scales:
+- Headlines: `headlineLarge` (28), `headlineCompact` (24), `headlineMedium` (20), `headlineSmall` (18)
+- Titles: `titleLarge` (18), `titleMedium` (16), `titleSmall` (14)
+- Body: `bodyLarge` (16), `bodyMedium` (14), `bodySmall` (12)
+- Labels: `labelLarge` (14), `labelMedium` (13), `labelSmall` (11)
 
-| Token | Tamanho | Peso | Uso |
-| :--- | :--- | :--- | :--- |
-| **`headlineLarge`** | 28sp | Bold (700) | Cabeçalhos principais de telas grandes. |
-| **`headlineMedium`** | 20sp | Bold (700) | Títulos de seções importantes. |
-| **`titleLarge`** | 18sp | SemiBold (600) | Títulos de Cards ou Modais. |
-| **`bodyMedium`** | 14sp | Medium (500) | Texto padrão de leitura. |
-| **`bodySmall`** | 12sp | Medium (500) | Legendas, datas, metadados. |
-| **`cardTitle`** | 16sp | Bold (700) | *Específico:* Título dentro de Feed Cards. |
-| **`chipLabel`** | 10sp | Medium (500) | *Específico:* Texto dentro de Chips/Tags. |
+Semantic text styles in use:
+- `buttonPrimary`, `buttonSecondary`
+- `chipLabel`, `cardTitle`, `settingsGroupTitle`, `profileTypeLabel`
+- MatchPoint specific: `matchSuccessTitle`, `matchSuccessKicker`
 
-### 1.3 Espaçamento (`AppSpacing`)
+### 1.3 Spacing (`AppSpacing`)
+Path: `lib/src/design_system/foundations/tokens/app_spacing.dart`
 
-Use sempre múltiplos de 4.
-Centralizado em: `lib/src/design_system/foundations/app_spacing.dart`.
+Scale: `2, 4, 8, 12, 16, 24, 32, 40, 48`
 
-*   **Pequeno:** `s4`, `s8` (elementos relacionados)
-*   **Médio:** `s12`, `s16` (padding padrão de containers/cards)
-*   **Grande:** `s24`, `s32` (separação de seções)
-*   **Margem de Tela:** `s16` (Padding horizontal padrão)
+Common presets:
+- `all*`, `h*`, `v*`
+- `h16v12`, `h16v8`, `h24v16`
+- `screenPadding`, `screenHorizontal`
 
----
+### 1.4 Radius (`AppRadius`)
+Path: `lib/src/design_system/foundations/tokens/app_radius.dart`
 
-## 2. Componentes Globais (`Common Widgets`)
+Scale: `r4, r8, r12, r16, r24, rPill`
 
-### 2.1 MubeAppBar (OBRIGATÓRIO) 🚨
+Semantic radius:
+- `card`, `input`, `button`, `chip`, `bottomSheet`, `modal`, `chatBubble`
 
-**Nunca** use o widget `AppBar` nativo do Flutter diretamente. Use sempre `MubeAppBar`.
-Isso garante consistência no ícone de voltar (seta iOS), cores de texto e background.
+### 1.5 Motion and Effects
+Paths:
+- `lib/src/design_system/foundations/tokens/app_motion.dart`
+- `lib/src/design_system/foundations/tokens/app_effects.dart`
 
-**Caminho:** `lib/src/common_widgets/mube_app_bar.dart`
+Motion:
+- Durations: `short`, `medium`, `standard`, `long`
+- Curves: `standardCurve`, `emphasizedCurve`, `leavingCurve`, `bounceCurve`
 
-#### Como Usar:
+Effects:
+- Shadows: `cardShadow`, `floatingShadow`, `subtleShadow`, `buttonShadow`
+- Glass tokens: `glassDecoration`, `glassCardDecoration`
+- Opacity and animation duration helpers
 
-```dart
-import 'package:mube/src/common_widgets/mube_app_bar.dart';
+## 2. Theme Contract
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    // ✅ CORRETO:
-    appBar: MubeAppBar(
-      title: 'Minha Tela',
-      centerTitle: true, // Padrão é true
-      showBackButton: true, // Automático se houver histórico
-      actions: [
-        IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
-      ],
-    ),
-    // ❌ ERRADO:
-    // appBar: AppBar(title: Text('Minha Tela')),
-    body: ...
-  );
-}
-```
+Path: `lib/src/design_system/foundations/theme/app_theme.dart`
 
-### 2.2 Botões
+Current contract:
+- `ThemeData(useMaterial3: true, brightness: Brightness.dark)`
+- Dark `ColorScheme` wired to `AppColors`
+- Themed controls: `AppBar`, `InputDecoration`, `ElevatedButton`, `OutlinedButton`, `TextButton`, `Checkbox`, date/time pickers, snackbar, bottom sheet
+- App root uses this theme at `lib/src/app.dart`
 
-*   **`PrimaryButton`:** Ação principal da tela (ex: "Salvar", "Entrar").
-*   **`SecondaryButton`:** Ação secundária ou "Cancel" (Outlined style).
-*   **`AppFilterChip`:** Para filtros e seleção múltipla.
+## 3. Component System
 
-### 2.3 Inputs
+Base path: `lib/src/design_system/components/`
 
-*   **`AppTextField`:** Input de texto padrão com suporte a labels e ícones.
-*   **`AppDropdownField`:** Seleção de lista.
+Categories:
+- `badges`, `buttons`, `chips`, `data_display`, `feedback`, `inputs`, `interactions`, `loading`, `navigation`, `patterns`
 
-### 2.4 Feedback
+Most used components in app code (outside design_system):
+- `AppSnackBar` (82 refs)
+- `AppButton` (55 refs)
+- `AppTextField` (46 refs)
+- `AppAppBar` (25 refs)
+- `AppFilterChip` (14 refs)
+- `UserAvatar` (10 refs)
 
-*   **`AppSnackbar`:** Para toasts e feedback flutuante (Success/Error/Info).
-*   **`AppSkeleton`:** Para estados de loading (Shimmer effect).
+### 3.1 Canonical components for new code
 
----
+- Navigation: `AppAppBar`, `MainScaffold`
+- Buttons: `AppButton` (+ `SocialLoginButton` where needed)
+- Inputs/forms: `AppTextField`, `AppDropdownField`, `AppDatePickerField`, `AppSelectionModal`, `AppAutocompleteField`, `AppCheckbox`
+- Feedback: `AppSnackBar`, `AppConfirmationDialog`, `EmptyStateWidget`
+- Loading: `AppLoadingIndicator`, `AppShimmer`, skeletons from `app_skeleton.dart`
+- Data display: `UserAvatar`
 
-## 3. Diretrizes de Desenvolvimento
+### 3.2 Legacy or transitional APIs
 
-1.  **Impostos:** Sempre importe classes de fundação (`app_colors.dart`, etc.) ao invés de hardcodar valores.
-2.  **Responsividade:** Use `Expanded` e `Flexible` com sabedoria. Evite tamanhos fixos em pixels para alturas de containers grandes.
-3.  **Dark Mode:** O app é *Dark Mode First*. Assegure-se de que textos pretos não estão sendo usados sobre funco escuro. Use `AppColors.textPrimary` (Branco) como padrão.
+- `MubeAppBar` alias: deprecated (`typedef` to `AppAppBar`)
+- `AppLoading`: older loader API (still present; prefer `AppLoadingIndicator`)
+- `AppScaffold`: duplicate scaffold not used by router (`MainScaffold` is active)
+
+## 4. Real Adoption Snapshot (2026-02-09)
+
+Codebase metrics (outside `lib/src/design_system/**`):
+- Files importing design system: `83`
+- Token references:
+  - `AppColors`: `800`
+  - `AppSpacing`: `858`
+  - `AppTypography`: `388`
+  - `AppRadius`: `159`
+
+Exception metrics (native widgets or hardcoded colors still present):
+- Files with at least one native UI exception: `15`
+- Native `AppBar`: `0` occurrences outside `AppAppBar`
+- Native `TextField`: `0` occurrences
+- Native `ElevatedButton`: `3` occurrences
+- Native `OutlinedButton`: `2` occurrences
+- Native `TextButton`: `11` occurrences (mostly low emphasis actions)
+- Direct `Colors.*`: `6` occurrences
+- Direct `Color(0x...)`: `5` occurrences (mostly medal/confetti colors)
+
+## 5. Rules for New Work
+
+1. Prefer design-system components over raw Material widgets.
+2. Use tokens (`AppColors`, `AppSpacing`, `AppTypography`, `AppRadius`) instead of hardcoded style values.
+3. Use `AppAppBar` for screen app bars.
+4. Use `AppTextField` for forms and standard text input.
+5. Use `AppButton` for primary/secondary actions.
+6. Use `AppSnackBar` for transient feedback.
+7. If a screen needs a raw widget for a valid UX reason, document the reason in the PR.
+
+## 6. Known Exceptions (remaining)
+
+- Historical migration note:
+  - native app bars and native text fields were removed in favor of `AppAppBar` and `AppTextField`.
+  - legacy `MubeFilterChip` was removed; filters now use `AppFilterChip` only.
+
+## 7. Related Documents
+
+- Technical mirror spec: `docs/design-system-spec.md`
+- Audit and migration backlog: `docs/design-system-audit-2026-02-09.md`

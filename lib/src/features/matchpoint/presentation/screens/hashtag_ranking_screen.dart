@@ -58,7 +58,9 @@ class HashtagRankingScreen extends ConsumerWidget {
   }
 
   Widget _buildRankingList(List<HashtagRanking> rankings, WidgetRef ref) {
-    final visibleRankings = rankings.where((item) => item.useCount > 0).toList();
+    final visibleRankings = rankings
+        .where((item) => item.useCount > 0)
+        .toList();
 
     if (visibleRankings.isEmpty) {
       return const EmptyStateWidget(
@@ -77,7 +79,7 @@ class HashtagRankingScreen extends ConsumerWidget {
           if (index == 0) {
             return _buildHeader();
           }
-          
+
           final hashtag = visibleRankings[index - 1];
           return _buildHashtagCard(hashtag, fallbackPosition: index);
         },
@@ -132,7 +134,10 @@ class HashtagRankingScreen extends ConsumerWidget {
         borderRadius: AppRadius.all12,
         boxShadow: AppEffects.subtleShadow,
         border: item.isTrending
-            ? Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1)
+            ? Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                width: 1,
+              )
             : null,
       ),
       child: Padding(
@@ -220,11 +225,7 @@ class HashtagRankingScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      trendIcon,
-                      size: 16,
-                      color: trendColor,
-                    ),
+                    Icon(trendIcon, size: 16, color: trendColor),
                     const SizedBox(width: AppSpacing.s4),
                     Text(
                       '${item.trendDelta}',
@@ -245,11 +246,11 @@ class HashtagRankingScreen extends ConsumerWidget {
   Color _getPositionColor(int position) {
     switch (position) {
       case 1:
-        return const Color(0xFFFFD700); // Ouro
+        return AppColors.medalGold;
       case 2:
-        return const Color(0xFFC0C0C0); // Prata
+        return AppColors.medalSilver;
       case 3:
-        return const Color(0xFFCD7F32); // Bronze
+        return AppColors.medalBronze;
       default:
         return AppColors.surfaceHighlight;
     }

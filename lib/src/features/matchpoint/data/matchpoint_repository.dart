@@ -48,7 +48,11 @@ class MatchpointRepository {
           .where((u) => !existingIds.contains(u.uid))
           .toList();
 
-      return Right(filtered);
+      // Garantir unicidade local por UID para evitar cards duplicados.
+      final seen = <String>{};
+      final unique = filtered.where((u) => seen.add(u.uid)).toList();
+
+      return Right(unique);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }

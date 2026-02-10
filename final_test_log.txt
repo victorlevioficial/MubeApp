@@ -1,0 +1,91 @@
+00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart
+00:00 +0 -1: loading C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart [E]
+  Failed to load "C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart":
+  Compilation failed for testPath=C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: test/integration/profile/profile_flow_test.dart:282:7: Error: Variables must be declared using the keywords 'const', 'final', 'var' or a type name.
+  Try adding the name of the type of the variable or the keyword 'var'.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:102:7: Error: Local variable 'testWidgets' can't be referenced before it is declared.
+        testWidgets('should display professional profile', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:282:7: Context: This is the declaration of the variable 'testWidgets'.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:150:7: Error: Local variable 'testWidgets' can't be referenced before it is declared.
+        testWidgets('should display band profile', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:282:7: Context: This is the declaration of the variable 'testWidgets'.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:196:7: Error: Local variable 'testWidgets' can't be referenced before it is declared.
+        testWidgets('should display studio profile', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:282:7: Context: This is the declaration of the variable 'testWidgets'.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:243:7: Error: Local variable 'testWidgets' can't be referenced before it is declared.
+        testWidgets('should show loading state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:282:7: Context: This is the declaration of the variable 'testWidgets'.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  test/integration/profile/profile_flow_test.dart:282:7: Error: Expected ';' after this.
+        testWidgets('should show error state', (tester) async {
+        ^^^^^^^^^^^
+  .
+  Error: The Dart compiler exited unexpectedly.
+  package:flutter_tools/src/base/common.dart 34:3  throwToolExit
+  package:flutter_tools/src/compile.dart 911:11    DefaultResidentCompiler._compile.<fn>
+  dart:async/zone.dart 1538:47                     _rootRunUnary
+  dart:async/zone.dart 1429:19                     _CustomZone.runUnary
+  dart:async/future_impl.dart 948:45               Future._propagateToListeners.handleValueCallback
+  dart:async/future_impl.dart 977:13               Future._propagateToListeners
+  dart:async/future_impl.dart 862:9                Future._propagateToListeners
+  dart:async/future_impl.dart 720:5                Future._completeWithValue
+  dart:async/future_impl.dart 804:7                Future._asyncCompleteWithValue.<fn>
+  dart:async/zone.dart 1525:13                     _rootRun
+  dart:async/zone.dart 1422:19                     _CustomZone.run
+  dart:async/zone.dart 1321:7                      _CustomZone.runGuarded
+  dart:async/zone.dart 1362:23                     _CustomZone.bindCallbackGuarded.<fn>
+  dart:async/schedule_microtask.dart 40:35         _microtaskLoop
+  dart:async/schedule_microtask.dart 49:5          _startMicrotaskLoop
+  dart:isolate-patch/isolate_patch.dart 127:13     _runPendingImmediateCallback
+  dart:isolate-patch/isolate_patch.dart 194:5      _RawReceivePort._handleMessage
+  
+00:00 +0 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests (setUpAll)
+00:00 +0 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:00 +1 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +2 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +3 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +4 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +5 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Category Filters should filter by studios category
+00:00 +6 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should successfully login
+00:01 +7 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should successfully login
+00:01 +8 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should successfully login
+00:01 +9 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by instrumentalists
+00:01 +10 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show error on login failure
+00:01 +11 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show error on login failure
+LOGIN ERROR CAUGHT: Ocorreu um erro inesperado. Tente novamente. (Original: Not found)
+00:01 +12 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by DJs
+00:01 +13 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Registration Flow should successfully register
+00:01 +14 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Registration Flow should successfully register
+00:01 +15 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Registration Flow should successfully register
+00:01 +16 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Studio Filters should filter by studio type
+00:01 +17 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +18 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +18 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+[Search] Error: Failure: Erro na busca
+00:01 +19 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +20 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +21 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should clear filters
+00:01 +22 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Session Management should auto-logout if user already logged in
+LoginScreen: User already logged in. Forcing logout for clean state.
+00:01 +23 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Blocked Users should exclude blocked users from results
+00:01 +24 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +25 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+LOGIN ERROR CAUGHT: Ocorreu um erro inesperado. Tente novamente. (Original: Net Error)
+00:01 +26 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:01 +27 -1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should trim email
+00:01 +28 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Pagination should load more results on scroll
+00:01 +29 -1: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests (tearDownAll)
+00:01 +29 -1: Some tests failed.

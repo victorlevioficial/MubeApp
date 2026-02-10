@@ -77,57 +77,49 @@ class MatchpointController extends _$MatchpointController {
     required List<String> hashtags,
     required bool isVisibleInHome,
   }) async {
-    state = const AsyncLoading();
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final appUser = ref.read(currentUserProfileProvider).value;
+      if (appUser == null) {
+        throw Exception('Perfil não carregado');
+      }
 
-    final authRepo = ref.read(authRepositoryProvider);
-    final currentUser = authRepo.currentUser;
+      final authRepo = ref.read(authRepositoryProvider);
 
-    if (currentUser == null) {
-      state = const AsyncError('Usuário não autenticado', StackTrace.empty);
-      return;
-    }
+      final Map<String, dynamic> updatedMatchpointProfile = {
+        ...appUser.matchpointProfile ?? {},
+        FirestoreFields.intent: intent,
+        FirestoreFields.musicalGenres: genres,
+        FirestoreFields.hashtags: hashtags,
+        FirestoreFields.isActive: true,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
 
-    final appUserAsync = ref.read(currentUserProfileProvider);
-    if (!appUserAsync.hasValue || appUserAsync.value == null) {
-      state = const AsyncError('Perfil não carregado', StackTrace.empty);
-      return;
-    }
+      final Map<String, dynamic> updatedPrivacy = {
+        ...appUser.privacySettings,
+        'visible_in_home': isVisibleInHome,
+      };
 
-    final appUser = appUserAsync.value!;
-
-    final Map<String, dynamic> updatedMatchpointProfile = {
-      ...appUser.matchpointProfile ?? {},
-      FirestoreFields.intent: intent,
-      FirestoreFields.musicalGenres: genres,
-      FirestoreFields.hashtags: hashtags,
-      FirestoreFields.isActive: true,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-
-    final Map<String, dynamic> updatedPrivacy = {
-      ...appUser.privacySettings,
-      'visible_in_home': isVisibleInHome,
-    };
-
-    final updatedUser = appUser.copyWith(
-      matchpointProfile: updatedMatchpointProfile,
-      privacySettings: updatedPrivacy,
-    );
-
-    final result = await authRepo.updateUser(updatedUser);
-
-    if (result.isRight()) {
-      unawaited(
-        ref
-            .read(analyticsServiceProvider)
-            .logMatchPointFilter(instruments: [], genres: genres, distance: 0),
+      final updatedUser = appUser.copyWith(
+        matchpointProfile: updatedMatchpointProfile,
+        privacySettings: updatedPrivacy,
       );
-    }
 
-    result.fold(
-      (failure) => state = AsyncError(failure.message, StackTrace.current),
-      (_) => state = const AsyncData(null),
-    );
+      final result = await authRepo.updateUser(updatedUser);
+
+      return result.fold((failure) => throw failure.message, (_) {
+        unawaited(
+          ref
+              .read(analyticsServiceProvider)
+              .logMatchPointFilter(
+                instruments: [],
+                genres: genres,
+                distance: 0,
+              ),
+        );
+        return null;
+      });
+    });
   }
 
   Future<SwipeActionResult> swipeRight(AppUser targetUser) async {
@@ -146,9 +138,9 @@ class MatchpointController extends _$MatchpointController {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
     if (currentUser == null) {
-      AppLogger.error('Swipe bloqueado: usuário sem sessão FirebaseAuth');
+      AppLogger.error('Swipe bloqueado: usuÃƒÂ¡rio sem sessÃƒÂ£o FirebaseAuth');
       state = const AsyncError(
-        'Sessão expirada. Faça login novamente.',
+        'SessÃƒÂ£o expirada. FaÃƒÂ§a login novamente.',
         StackTrace.empty,
       );
       return const SwipeActionResult(success: false);
@@ -159,20 +151,20 @@ class MatchpointController extends _$MatchpointController {
       if (idToken == null || idToken.isEmpty) {
         AppLogger.error('Swipe bloqueado: token FirebaseAuth ausente');
         state = const AsyncError(
-          'Sessão inválida. Faça login novamente.',
+          'SessÃƒÂ£o invÃƒÂ¡lida. FaÃƒÂ§a login novamente.',
           StackTrace.empty,
         );
         return const SwipeActionResult(success: false);
       }
     } catch (e) {
       AppLogger.error('Swipe bloqueado: erro ao obter token FirebaseAuth: $e');
-      state = AsyncError('Erro de autenticação: $e', StackTrace.current);
+      state = AsyncError('Erro de autenticaÃƒÂ§ÃƒÂ£o: $e', StackTrace.current);
       return const SwipeActionResult(success: false);
     }
 
     final repo = ref.read(matchpointRepositoryProvider);
 
-    // Usar nova função submitAction que chama Cloud Function
+    // Usar nova funÃƒÂ§ÃƒÂ£o submitAction que chama Cloud Function
     final result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
@@ -192,7 +184,7 @@ class MatchpointController extends _$MatchpointController {
               .updateRemaining(actionResult.remainingLikes!);
         }
 
-        // Adicionar ao histórico local
+        // Adicionar ao histÃƒÂ³rico local
         ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
 
         if (actionResult.isMatch == true) {
@@ -219,7 +211,7 @@ class MatchpointController extends _$MatchpointController {
 
     final repo = ref.read(matchpointRepositoryProvider);
 
-    // Dar dislike (que remove o match)
+    // Dar dislike (remove o match, mas preserva a conversa no chat)
     final result = await repo.submitAction(
       targetUserId: targetUserId,
       type: 'dislike',
@@ -296,7 +288,7 @@ class LikesQuota extends _$LikesQuota {
   }
 }
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
+/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
 @Riverpod(keepAlive: true)
 class MatchpointCandidates extends _$MatchpointCandidates {
   @override
@@ -306,25 +298,33 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     if (currentUser == null) return [];
 
-    // Get current user profile ONCE (not reactively)
-    final userProfile = await ref.read(currentUserProfileProvider.future);
+    // Reativo ao perfil do usuÃƒÂ¡rio para evitar loading infinito
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final userProfile = profileAsync.value;
+
+    if (profileAsync.isLoading && userProfile == null) {
+      AppLogger.info('MatchPoint: aguardando perfil do usuÃƒÂ¡rio...');
+      return [];
+    }
+
     if (userProfile == null) return [];
 
     final genres = List<String>.from(
       userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
     );
     if (genres.isEmpty) {
-      AppLogger.warning('⚠️ MatchPoint: User has no genres.');
+      AppLogger.warning('Ã¢Å¡Â Ã¯Â¸Â MatchPoint: User has no genres.');
       return [];
     }
-    AppLogger.info('🔍 MatchPoint Filters: Genres=$genres');
+    AppLogger.info('Ã°Å¸â€Â MatchPoint Filters: Genres=$genres');
 
-    List<String> blockedFromCollection = const [];
-    try {
-      blockedFromCollection = await ref.read(blockedUsersProvider.future);
-    } catch (_) {
-      // Fallback para blocked_users caso stream falhe temporariamente
-    }
+    final blockedState = ref.watch(blockedUsersProvider);
+    final blockedFromCollection = blockedState.when(
+      data: (value) => value,
+      loading: () => const <String>[],
+      error: (_, _) => const <String>[],
+    );
+
     final blockedUsers = {
       ...userProfile.blockedUsers,
       ...blockedFromCollection,
@@ -339,12 +339,12 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     return result.fold(
       (l) {
-        AppLogger.error('❌ MatchPoint Query Error: ${l.message}');
+        AppLogger.error('Ã¢ÂÅ’ MatchPoint Query Error: ${l.message}');
         throw l.message;
       },
       (r) {
         AppLogger.info(
-          '✅ MatchPoint Query Success: Found ${r.length} candidates',
+          'Ã¢Å“â€¦ MatchPoint Query Success: Found ${r.length} candidates',
         );
         return r;
       },
@@ -363,7 +363,7 @@ class MatchpointCandidates extends _$MatchpointCandidates {
   }
 }
 
-/// Provider para lista de matches do usuário
+/// Provider para lista de matches do usuÃƒÂ¡rio
 @riverpod
 Future<List<MatchInfo>> matches(Ref ref) async {
   final authRepo = ref.read(authRepositoryProvider);
@@ -406,10 +406,11 @@ Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   }, (rankings) => rankings);
 }
 
-/// Provider para histórico de swipes — persistido em SharedPreferences
+/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
 @Riverpod(keepAlive: true)
 class SwipeHistory extends _$SwipeHistory {
   static const _storageKeyPrefix = 'swipe_history_';
+  static const _legacyStorageKey = 'swipe_history';
   static const _maxEntries = 200;
 
   @override
@@ -428,45 +429,63 @@ class SwipeHistory extends _$SwipeHistory {
   Future<void> _loadFromStorage(String userId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonStr = prefs.getString(_storageKeyForUser(userId));
+      final jsonStr =
+          prefs.getString(_storageKeyForUser(userId)) ??
+          prefs.getString(_legacyStorageKey);
       if (jsonStr == null) return;
 
       final list = (jsonDecode(jsonStr) as List)
           .map((e) => SwipeHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
-      if (currentUserId != userId) return;
+      // Higieniza historico legado com entradas repetidas do mesmo perfil.
+      final seenTargets = <String>{};
+      final normalized = list
+          .where((item) => seenTargets.add(item.targetUserId))
+          .toList();
 
-      state = list;
-    } catch (_) {
-      // Se falhar ao carregar, manter lista vazia
+      final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+      // Se houver usuario logado diferente, nao aplica estado.
+      if (currentUserId != null && currentUserId != userId) return;
+
+      state = normalized;
+    } catch (e, st) {
+      AppLogger.warning('Falha ao carregar histórico de swipes', e, st);
     }
   }
 
   Future<void> _saveToStorage() async {
     try {
       final userId = ref.read(authRepositoryProvider).currentUser?.uid;
-      if (userId == null) return;
-
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = jsonEncode(state.map((e) => e.toJson()).toList());
-      await prefs.setString(_storageKeyForUser(userId), jsonStr);
-    } catch (_) {
-      // Falha silenciosa ao salvar
+
+      // Chave por usuario (preferencial) quando autenticado.
+      if (userId != null) {
+        await prefs.setString(_storageKeyForUser(userId), jsonStr);
+      }
+
+      // Chave legado/fallback para cenarios de restauracao de sessao.
+      await prefs.setString(_legacyStorageKey, jsonStr);
+    } catch (e, st) {
+      AppLogger.warning('Falha ao salvar histórico de swipes', e, st);
     }
   }
 
   void addSwipe(AppUser user, String type) {
     final entry = SwipeHistoryEntry(
       targetUserId: user.uid,
-      targetUserName: user.nome ?? 'Usuário',
+      targetUserName: user.nome ?? 'Usuario',
       targetUserPhoto: user.foto,
       action: type,
       timestamp: DateTime.now(),
     );
 
-    state = [entry, ...state].take(_maxEntries).toList();
+    // Mantem apenas a acao mais recente por perfil no historico.
+    final withoutSameUser = state
+        .where((item) => item.targetUserId != user.uid)
+        .toList();
+    state = [entry, ...withoutSameUser].take(_maxEntries).toList();
     _saveToStorage();
   }
 

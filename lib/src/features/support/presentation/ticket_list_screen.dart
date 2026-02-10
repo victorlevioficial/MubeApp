@@ -3,14 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../routing/route_paths.dart';
-
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../domain/ticket_model.dart';
 import 'support_controller.dart';
 

@@ -1,0 +1,73 @@
+00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart
+00:00 +0: Search Flow Integration Tests (setUpAll)
+00:00 +0: Search Flow Integration Tests Search by Term should search users by name
+00:00 +1: Search Flow Integration Tests Search by Term should show empty state when no results
+00:00 +2: Search Flow Integration Tests Category Filters should filter by professionals category
+00:00 +3: Search Flow Integration Tests Category Filters should filter by bands category
+00:00 +4: Search Flow Integration Tests Category Filters should filter by studios category
+00:01 +5: Search Flow Integration Tests Genre Filters should filter by music genres
+00:01 +6: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +7: Search Flow Integration Tests Professional Subcategory Filters should filter by instrumentalists
+00:01 +8: Search Flow Integration Tests Professional Subcategory Filters should filter by crew
+00:01 +9: Search Flow Integration Tests Professional Subcategory Filters should filter by DJs
+00:01 +10: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:01 +11: Search Flow Integration Tests Studio Filters should filter by studio services
+00:01 +12: Search Flow Integration Tests Studio Filters should filter by studio type
+00:01 +13: Search Flow Integration Tests Search State Management should handle loading state
+Pending timers:
+Timer (duration: 0:00:00.500000, periodic: false), created:
+#0      new FakeTimer._ (package:fake_async/fake_async.dart:342:62)
+#1      FakeAsync._createTimer (package:fake_async/fake_async.dart:260:29)
+#2      FakeAsync.run.<anonymous closure> (package:fake_async/fake_async.dart:185:15)
+#6      main.<anonymous closure>.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:796:24)
+#7      Mock.noSuchMethod (package:mockito/src/mock.dart:194:47)
+#8      MockSearchRepository.searchUsers (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.mocks.dart:234:14)
+#9      SearchController._performSearch (package:mube/src/features/search/presentation/search_controller.dart:362:39)
+#10     SearchController.build.<anonymous closure> (package:mube/src/features/search/presentation/search_controller.dart:128:28)
+#21     FakeAsync.run.<anonymous closure>.<anonymous closure> (package:fake_async/fake_async.dart:189:18)
+#22     FakeAsync.flushMicrotasks (package:fake_async/fake_async.dart:200:32)
+#23     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1337:26)
+#26     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#27     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#28     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#31     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#32     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#33     PumpApp.pumpApp (file:///C:/Users/Victor/Desktop/AppMube/test/helpers/pump_app.dart:18:11)
+#34     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart:804:22)
+#35     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#36     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 18 frames from dart:async and package:stack_trace)
+
+????????? EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+The following assertion was thrown running a test:
+A Timer is still pending even after the widget tree was disposed.
+'package:flutter_test/src/binding.dart':
+Failed assertion: line 1617 pos 12: '!timersPending'
+
+When the exception was thrown, this was the stack:
+#2      AutomatedTestWidgetsFlutterBinding._verifyInvariants (package:flutter_test/src/binding.dart:1617:12)
+#3      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1078:7)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from class _AssertionError and package:stack_trace)
+
+The test description was:
+  should handle loading state
+????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+00:01 +13 -1: Search Flow Integration Tests Search State Management should handle loading state [E]
+  Test failed. See exception logs above.
+  The test description was: should handle loading state
+  
+00:01 +13 -1: Search Flow Integration Tests Search State Management should handle search errors
+[Search] Error: Failure: Erro na busca
+00:01 +14 -1: Search Flow Integration Tests Search State Management should handle rate limiting
+00:01 +15 -1: Search Flow Integration Tests Search State Management should clear filters
+00:01 +16 -1: Search Flow Integration Tests Blocked Users should exclude blocked users from results
+00:01 +17 -1: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:01 +18 -1: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:01 +19 -1: Search Flow Integration Tests Pagination should load more results on scroll
+00:01 +20 -1: Search Flow Integration Tests (tearDownAll)
+00:02 +20 -1: Some tests failed.

@@ -6,23 +6,27 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 
 class FeedItemSkeleton extends StatelessWidget {
-  const FeedItemSkeleton({super.key});
+  final EdgeInsets? margin;
+
+  const FeedItemSkeleton({super.key, this.margin});
 
   @override
   Widget build(BuildContext context) {
     // Base color for the shimmer effect - slightly lighter than background for visibility
     const baseColor = AppColors.skeletonBase;
-    final highlightColor = AppColors.skeletonHighlight.withValues(alpha: 0.5);
+    final highlightColor = AppColors.skeletonHighlight.withOpacity(0.5);
 
     return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s16,
-        vertical: AppSpacing.s8,
-      ),
+      margin:
+          margin ??
+          const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s8,
+          ),
       padding: AppSpacing.all12,
       decoration: BoxDecoration(
         color: AppColors.surface, // Background of the card itself
-      borderRadius: AppRadius.all16,
+        borderRadius: AppRadius.all16,
         border: Border.all(
           color: AppColors.surfaceHighlight.withValues(
             alpha: 0.5,

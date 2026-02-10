@@ -1,0 +1,15 @@
+00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart
+00:00 +0: (setUpAll)
+00:00 +0: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +1: Auth Flow Integration Tests Login Flow should successfully login
+00:00 +2: Auth Flow Integration Tests Login Flow should show error on login failure
+LOGIN ERROR CAUGHT: Ocorreu um erro inesperado. Tente novamente. (Original: Not found)
+00:01 +3: Auth Flow Integration Tests Registration Flow should successfully register
+00:01 +4: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +5: Auth Flow Integration Tests Session Management should auto-logout if user already logged in
+LoginScreen: User already logged in. Forcing logout for clean state.
+00:01 +6: Auth Flow Integration Tests Edge Cases should handle network error
+LOGIN ERROR CAUGHT: Ocorreu um erro inesperado. Tente novamente. (Original: Net Error)
+00:01 +7: Auth Flow Integration Tests Edge Cases should trim email
+00:01 +8: (tearDownAll)
+00:01 +8: All tests passed!

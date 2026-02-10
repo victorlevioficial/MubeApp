@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../design_system/components/loading/app_loading.dart';
+import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -70,7 +70,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen> {
       // backgroundColor: Use default Scaffold background from Theme
       body: userAsync.when(
         skipLoadingOnReload: true,
-        loading: () => const Center(child: AppLoading.medium()),
+        loading: () => const Center(child: AppLoadingIndicator.medium()),
         error: (err, stack) => Center(child: Text('Erro: $err')),
         data: (user) {
           if (user == null) {

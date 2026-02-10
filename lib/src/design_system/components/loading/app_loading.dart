@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
 
 /// Widget de loading centralizado.
+@Deprecated('Use AppLoadingIndicator instead. This will be removed in v2.0.0')
 class AppLoading extends StatelessWidget {
   final double size;
   final Color? color;
@@ -33,9 +34,7 @@ class AppLoading extends StatelessWidget {
       height: size,
       child: CircularProgressIndicator(
         strokeWidth: strokeWidth,
-        valueColor: AlwaysStoppedAnimation<Color>(
-          color ?? AppColors.primary,
-        ),
+        valueColor: AlwaysStoppedAnimation<Color>(color ?? AppColors.primary),
       ),
     );
   }

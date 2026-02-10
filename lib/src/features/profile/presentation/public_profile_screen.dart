@@ -10,6 +10,7 @@ import '../../../design_system/components/feedback/app_confirmation_dialog.dart'
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -45,9 +46,7 @@ class PublicProfileScreen extends ConsumerWidget {
             icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
             color: AppColors.surface,
             surfaceTintColor: AppColors.transparent,
-            shape: const RoundedRectangleBorder(
-              borderRadius: AppRadius.all12,
-            ),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.all12),
             onSelected: (value) => _handleMenuAction(context, ref, value, user),
             itemBuilder: (context) => [
               _buildMenuItem(
@@ -87,7 +86,7 @@ class PublicProfileScreen extends ConsumerWidget {
               child: Text(
                 state.error!,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary.withOpacity(0.8),
                 ),
               ),
             );
@@ -412,6 +411,13 @@ class PublicProfileScreen extends ConsumerWidget {
     AppUser user,
     List<MediaItem> galleryItems,
   ) {
+    final size = MediaQuery.sizeOf(context);
+    final isWide = size.width >= 900;
+
+    if (isWide) {
+      return _buildWideProfileContent(context, user, galleryItems);
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
       child: Column(
@@ -442,6 +448,51 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildWideProfileContent(
+    BuildContext context,
+    AppUser user,
+    List<MediaItem> galleryItems,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.s32),
+      child: ResponsiveCenter(
+        padding: EdgeInsets.zero,
+        maxContentWidth: 1200,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Coluna Esquerda: Header & Bio
+            SizedBox(
+              width: 320,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(user),
+                  const SizedBox(height: AppSpacing.s32),
+                  if (user.bio != null && user.bio!.isNotEmpty)
+                    _buildBioSection(user.bio!),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s48),
+            // Coluna Direita: Detalhes & Galeria
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTypeSpecificDetails(user),
+                  const SizedBox(height: AppSpacing.s32),
+                  _buildGallerySection(context, galleryItems),
+                  const SizedBox(height: AppSpacing.s48),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(AppUser user) {
     final displayName = _getDisplayName(user);
     final location = user.location;
@@ -449,8 +500,15 @@ class PublicProfileScreen extends ConsumerWidget {
     return Center(
       child: Column(
         children: [
-          // Avatar
-          UserAvatar(size: 120, photoUrl: user.foto, name: displayName),
+          // Avatar with Hero Transition
+          Hero(
+            tag: 'avatar-${user.uid}',
+            child: UserAvatar(
+              size: 120,
+              photoUrl: user.foto,
+              name: displayName,
+            ),
+          ),
           const SizedBox(height: AppSpacing.s16),
 
           // Display Name (artistic name / band name / studio name)
@@ -652,9 +710,7 @@ class PublicProfileScreen extends ConsumerWidget {
       ),
       child: Text(
         label,
-        style: AppTypography.chipLabel.copyWith(
-          color: AppColors.textPrimary,
-        ),
+        style: AppTypography.chipLabel.copyWith(color: AppColors.textPrimary),
       ),
     );
   }
@@ -757,8 +813,7 @@ class PublicProfileScreen extends ConsumerWidget {
             Icon(
               config['icon'] as IconData,
               size: 14,
-              color:
-                  AppColors.primary,
+              color: AppColors.primary,
             ),
             const SizedBox(width: AppSpacing.s4),
             Text(

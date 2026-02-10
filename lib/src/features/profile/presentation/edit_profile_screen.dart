@@ -460,8 +460,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             mediaId: item.id,
             isVideo: item.type == MediaType.video,
           );
-    } catch (_) {
-      // Ignore storage deletion errors
+    } catch (e, st) {
+      AppLogger.warning(
+        'Falha ao deletar mídia do storage (id: ${item.id})',
+        e,
+        st,
+      );
     }
 
     setState(() {

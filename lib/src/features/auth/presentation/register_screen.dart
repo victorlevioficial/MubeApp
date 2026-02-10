@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -53,6 +55,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _passwordController.text,
           );
     }
+  }
+
+  void _signInWithGoogle() {
+    if (ref.read(registerControllerProvider).isLoading) return;
+    unawaited(ref.read(registerControllerProvider.notifier).signInWithGoogle());
+  }
+
+  void _signInWithApple() {
+    if (ref.read(registerControllerProvider).isLoading) return;
+    unawaited(ref.read(registerControllerProvider.notifier).signInWithApple());
   }
 
   @override
@@ -227,13 +239,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     SocialLoginButton(
                       key: const Key('google_register_button'),
                       type: SocialType.google,
-                      onPressed: () {},
+                      onPressed: _signInWithGoogle,
                     ),
                     const SizedBox(height: AppSpacing.s16),
                     SocialLoginButton(
                       key: const Key('apple_register_button'),
                       type: SocialType.apple,
-                      onPressed: () {},
+                      onPressed: _signInWithApple,
                     ),
                   ],
                 ),

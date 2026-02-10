@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 
 /// Extension to simplify widget testing with Riverpod.
 extension PumpApp on WidgetTester {
@@ -17,7 +18,11 @@ extension PumpApp on WidgetTester {
     await pumpWidget(
       ProviderScope(
         overrides: overrides.cast(),
-        child: MaterialApp(home: widget, theme: ThemeData.dark()),
+        child: MaterialApp(
+          home: widget,
+          theme: ThemeData.dark(),
+          scaffoldMessengerKey: scaffoldMessengerKey,
+        ),
       ),
     );
   }

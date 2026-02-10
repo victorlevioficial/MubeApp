@@ -8,8 +8,8 @@ import '../../foundations/tokens/app_typography.dart';
 
 /// Campo de texto do Design System Mube.
 ///
-/// Componente consolidado que substitui AppTextField e AppTextInput.
-/// Suporta todos os casos de uso de formulários do app.
+/// Componente oficial para todos os casos de entrada de texto no app.
+/// Suporta formularios simples e campos multiline.
 ///
 /// Uso:
 /// ```dart
@@ -55,6 +55,7 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final bool readOnly;
   final bool canRequestFocus;
+  final VoidCallback? onTap;
   final Key? fieldKey;
   final int? minLines;
   final int? maxLines;
@@ -83,6 +84,7 @@ class AppTextField extends StatelessWidget {
     this.onSubmitted,
     this.readOnly = false,
     this.canRequestFocus = true,
+    this.onTap,
     this.fieldKey,
     this.minLines,
     this.maxLines = 1,
@@ -120,6 +122,7 @@ class AppTextField extends StatelessWidget {
             onFieldSubmitted: onSubmitted,
             readOnly: readOnly,
             canRequestFocus: canRequestFocus,
+            onTap: onTap,
             obscureText: obscureText,
             keyboardType: keyboardType,
             minLines: minLines,
@@ -161,10 +164,7 @@ class AppTextField extends StatelessWidget {
               ),
               focusedBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.all12,
-                borderSide: BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
+                borderSide: BorderSide(color: AppColors.primary, width: 1.5),
               ),
               errorBorder: const OutlineInputBorder(
                 borderRadius: AppRadius.all12,

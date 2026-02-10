@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/utils/app_logger.dart';
 
 import '../../../../common_widgets/location_service.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
@@ -113,8 +114,12 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           });
         }
       }
-    } catch (_) {
-      // Silent error for preview
+    } catch (e, st) {
+      AppLogger.warning(
+        'Falha ao obter preview de localização no onboarding',
+        e,
+        st,
+      );
     } finally {
       if (mounted) setState(() => _isLoadingPreview = false);
     }

@@ -195,6 +195,99 @@ void main() {
       });
     });
 
+    group('signInWithGoogle', () {
+      const uid = 'google-uid-123';
+      final googleUser = _MockUser(
+        uid: uid,
+        email: 'google@example.com',
+        displayName: 'Google User',
+        photoURL: 'https://example.com/google.jpg',
+      );
+
+      test('should return Right(Unit) when profile already exists', () async {
+        // Arrange
+        when(
+          mockDataSource.signInWithGoogle(),
+        ).thenAnswer((_) async => _MockUserCredential(user: googleUser));
+        when(
+          mockDataSource.fetchUserProfile(uid),
+        ).thenAnswer((_) async => const AppUser(uid: uid, email: 'old@x.com'));
+
+        // Act
+        final result = await repository.signInWithGoogle();
+
+        // Assert
+        expect(result.isRight(), true);
+        verify(mockDataSource.signInWithGoogle()).called(1);
+        verify(mockDataSource.fetchUserProfile(uid)).called(1);
+        verifyNever(mockDataSource.saveUserProfile(any));
+      });
+
+      test('should create profile on first social login', () async {
+        // Arrange
+        when(
+          mockDataSource.signInWithGoogle(),
+        ).thenAnswer((_) async => _MockUserCredential(user: googleUser));
+        when(
+          mockDataSource.fetchUserProfile(uid),
+        ).thenAnswer((_) async => null);
+        when(mockDataSource.saveUserProfile(any)).thenAnswer((_) async => {});
+
+        // Act
+        final result = await repository.signInWithGoogle();
+
+        // Assert
+        expect(result.isRight(), true);
+        verify(mockDataSource.saveUserProfile(any)).called(1);
+      });
+    });
+
+    group('signInWithApple', () {
+      const uid = 'apple-uid-123';
+      final appleUser = _MockUser(
+        uid: uid,
+        email: 'apple@example.com',
+        displayName: 'Apple User',
+      );
+
+      test('should return Right(Unit) on successful apple sign in', () async {
+        // Arrange
+        when(
+          mockDataSource.signInWithApple(),
+        ).thenAnswer((_) async => _MockUserCredential(user: appleUser));
+        when(
+          mockDataSource.fetchUserProfile(uid),
+        ).thenAnswer((_) async => const AppUser(uid: uid, email: 'old@x.com'));
+
+        // Act
+        final result = await repository.signInWithApple();
+
+        // Assert
+        expect(result.isRight(), true);
+        verify(mockDataSource.signInWithApple()).called(1);
+      });
+
+      test('should return Left(AuthFailure) when provider throws', () async {
+        // Arrange
+        when(mockDataSource.signInWithApple()).thenThrow(
+          FirebaseAuthException(
+            code: 'operation-not-allowed',
+            message: 'Apple sign-in disabled',
+          ),
+        );
+
+        // Act
+        final result = await repository.signInWithApple();
+
+        // Assert
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<AuthFailure>()),
+          (_) => fail('Expected Left'),
+        );
+      });
+    });
+
     group('updateUser', () {
       const testUser = AppUser(
         uid: 'test-uid',
@@ -318,13 +411,45 @@ void main() {
 // Simple mock implementation for User
 class _MockUser implements User {
   final String _uid;
+  final String? _email;
+  final String? _displayName;
+  final String? _photoURL;
 
-  _MockUser({required String uid}) : _uid = uid;
+  _MockUser({
+    required String uid,
+    String? email,
+    String? displayName,
+    String? photoURL,
+  }) : _uid = uid,
+       _email = email,
+       _displayName = displayName,
+       _photoURL = photoURL;
 
   @override
   String get uid => _uid;
 
+  @override
+  String? get email => _email;
+
+  @override
+  String? get displayName => _displayName;
+
+  @override
+  String? get photoURL => _photoURL;
+
   // Implement other required methods as stubs
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _MockUserCredential implements UserCredential {
+  final User? _user;
+
+  _MockUserCredential({required User? user}) : _user = user;
+
+  @override
+  User? get user => _user;
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

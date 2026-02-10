@@ -81,7 +81,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Verifique seu email'), findsOneWidget);
@@ -97,7 +99,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text(testEmail), findsOneWidget);
@@ -113,7 +117,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(
@@ -136,7 +142,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Reenviar email'), findsOneWidget);
@@ -150,7 +158,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Já verifiquei meu email'), findsOneWidget);
@@ -167,7 +177,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Sair e usar outra conta'), findsOneWidget);
@@ -181,7 +193,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.byIcon(Icons.mark_email_unread_outlined), findsOneWidget);
@@ -195,7 +209,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Não recebeu o email?'), findsOneWidget);
@@ -219,7 +235,9 @@ void main() {
         ).thenAnswer((_) async => const Right(unit));
 
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Act
         await tester.tap(find.text('Reenviar email'));
@@ -238,7 +256,9 @@ void main() {
         ).thenAnswer((_) async => false);
 
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Act - scroll to find the button and tap it
         await tester.ensureVisible(find.text('Já verifiquei meu email'));
@@ -264,7 +284,9 @@ void main() {
           ).thenAnswer((_) async => const Right(unit));
 
           await tester.pumpWidget(createTestWidget());
-          await tester.pumpAndSettle();
+          // Use pump instead of pumpAndSettle due to infinite animations/timers
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
 
           // Act - scroll to find the button and tap it
           await tester.ensureVisible(find.text('Sair e usar outra conta'));
@@ -272,7 +294,9 @@ void main() {
             find.text('Sair e usar outra conta'),
             warnIfMissed: false,
           );
-          await tester.pumpAndSettle();
+          // Use pump instead of pumpAndSettle due to infinite animations/timers
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
 
           // Assert
           verify(mockAuthRepository.signOut()).called(1);
@@ -294,7 +318,9 @@ void main() {
         ).thenAnswer((_) async => const Right(unit));
 
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Act
         await tester.tap(find.text('Reenviar email'));
@@ -302,7 +328,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
 
         // Complete the async operation
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('Email reenviado com sucesso!'), findsOneWidget);
@@ -317,7 +345,9 @@ void main() {
 
         // Act
         await tester.pumpWidget(createTestWidget());
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert
         expect(find.text('seu email'), findsOneWidget);
@@ -373,10 +403,13 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        // Use pump instead of pumpAndSettle due to infinite animations/timers
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-        // Trigger the auth state change
-        await tester.pump(const Duration(seconds: 1));
+        // Wait for the polling timer to fire and check verification (3 seconds)
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Assert - should navigate to onboarding
         expect(find.text('Onboarding Page'), findsOneWidget);

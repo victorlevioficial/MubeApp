@@ -134,11 +134,10 @@ class FeedController extends _$FeedController {
 
   /// Carrega todos os dados do feed (seções + feed principal).
   Future<void> loadAllData() async {
-    state = AsyncValue.data(
-      const FeedState().copyWithFeed(isInitialLoading: true),
-    );
+    final currentState = state.value ?? const FeedState();
+    state = AsyncValue.data(currentState.copyWithFeed(isInitialLoading: true));
 
-    try {
+    state = await AsyncValue.guard(() async {
       // 1. CRITICAL: Wait for the user's favorites to be loaded first.
       await ref.read(favoriteControllerProvider.notifier).waitForInitialLoad();
 
@@ -156,17 +155,13 @@ class FeedController extends _$FeedController {
       ]);
 
       final sections = results[0] as Map<FeedSectionType, List<FeedItem>>;
-      final currentState = state.value ?? const FeedState();
+      final midState = state.value ?? const FeedState();
 
-      state = AsyncValue.data(
-        currentState.copyWithFeed(
-          isInitialLoading: false,
-          sectionItems: sections,
-        ),
+      return midState.copyWithFeed(
+        isInitialLoading: false,
+        sectionItems: sections,
       );
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
+    });
   }
 
   /// Busca as seções horizontais do feed.
@@ -276,19 +271,22 @@ class FeedController extends _$FeedController {
       // 2. Scroll: paginação local
       // 3. Se acabou local E tem < 200 total: busca mais 50
       // 4. Se buscou e não encontrou nada: noMoreData
-      
+
       final localRemaining =
-          _allSortedUsers.length - (currentState.currentPage * currentState.pageSize);
+          _allSortedUsers.length -
+          (currentState.currentPage * currentState.pageSize);
       final canTryRemote =
-          _remoteHasMore && _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
-      final shouldFetchFromFirestore = reset || (localRemaining <= 0 && canTryRemote);
-      
+          _remoteHasMore &&
+          _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+      final shouldFetchFromFirestore =
+          reset || (localRemaining <= 0 && canTryRemote);
+
       AppLogger.debug(
         'Feed Debug: localRemaining=$localRemaining, '
         'shouldFetch=$shouldFetchFromFirestore, reset=$reset, '
         'total=${_allSortedUsers.length}',
       );
-      
+
       if (shouldFetchFromFirestore) {
         String? filterType;
         switch (currentState.currentFilter) {
@@ -323,10 +321,7 @@ class FeedController extends _$FeedController {
 
             result.fold(
               (failure) {
-                AppLogger.error(
-                  'Feed: Erro ao buscar usuários',
-                  failure,
-                );
+                AppLogger.error('Feed: Erro ao buscar usuários', failure);
                 if (reset) {
                   state = AsyncValue.data(
                     currentState.copyWithFeed(
@@ -348,9 +343,12 @@ class FeedController extends _$FeedController {
                 } else {
                   // Adiciona novos usuários à lista existente
                   final existingIds = _allSortedUsers.map((u) => u.uid).toSet();
-                  final newUsers =
-                      success.where((u) => !existingIds.contains(u.uid)).toList();
-                  AppLogger.debug('Feed: ${newUsers.length} usuários são novos');
+                  final newUsers = success
+                      .where((u) => !existingIds.contains(u.uid))
+                      .toList();
+                  AppLogger.debug(
+                    'Feed: ${newUsers.length} usuários são novos',
+                  );
 
                   if (newUsers.isEmpty) {
                     // Não encontrou usuários novos, tentar cursor
@@ -359,7 +357,8 @@ class FeedController extends _$FeedController {
                   } else {
                     _allSortedUsers.addAll(newUsers);
                     _allSortedUsers.sort(
-                      (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+                      (a, b) =>
+                          (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
                     );
                   }
                 }
@@ -411,7 +410,8 @@ class FeedController extends _$FeedController {
       final startIndex = page * currentState.pageSize;
       if (startIndex >= _allSortedUsers.length) {
         final hasMore =
-            _remoteHasMore && _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+            _remoteHasMore &&
+            _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
         final baseState = reset
             ? currentState.copyWithFeed(items: [], currentPage: 0)
             : currentState;
@@ -437,12 +437,13 @@ class FeedController extends _$FeedController {
       // Precache is handled by FeedImagePrecacheService in the UI layer
 
       final allItems = reset ? newItems : [...currentState.items, ...newItems];
-      
+
       // Verifica se tem mais usuários para mostrar
       final hasMoreLocal = endIndex < _allSortedUsers.length;
       // Só busca mais do Firestore se tiver menos de 200 usuários
       final canFetchMore =
-          _remoteHasMore && _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+          _remoteHasMore &&
+          _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
       final hasMore = hasMoreLocal || canFetchMore;
 
       AppLogger.debug(
@@ -475,7 +476,9 @@ class FeedController extends _$FeedController {
     required String? filterType,
     required bool reset,
   }) async {
-    final result = await ref.read(feedRepositoryProvider).getMainFeedPaginated(
+    final result = await ref
+        .read(feedRepositoryProvider)
+        .getMainFeedPaginated(
           currentUserId: userId,
           filterType: filterType,
           userLat: _userLat,
@@ -502,8 +505,9 @@ class FeedController extends _$FeedController {
         _remoteHasMore = response.hasMore;
 
         final existingIds = _allSortedUsers.map((u) => u.uid).toSet();
-        final newUsers =
-            response.items.where((u) => !existingIds.contains(u.uid)).toList();
+        final newUsers = response.items
+            .where((u) => !existingIds.contains(u.uid))
+            .toList();
 
         if (newUsers.isNotEmpty) {
           _allSortedUsers.addAll(newUsers);

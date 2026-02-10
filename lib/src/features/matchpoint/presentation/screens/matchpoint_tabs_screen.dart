@@ -34,7 +34,6 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
     super.initState();
     matchpointSelectedTabNotifier.value = 0;
 
-    // Carregar quota de swipes ao iniciar
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(matchpointControllerProvider.notifier).fetchRemainingLikes();
     });
@@ -42,83 +41,38 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final quotaState = ref.watch(likesQuotaProvider);
-
     return ValueListenableBuilder<int>(
       valueListenable: matchpointSelectedTabNotifier,
       builder: (context, selectedIndex, child) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppAppBar(
-          title: 'MatchPoint',
+          title: 'matchpoint',
           showBackButton: false,
+          leading: IconButton(
+            tooltip: 'Historico de swipes',
+            onPressed: () => context.push(RoutePaths.matchpointHistory),
+            icon: const Icon(
+              Icons.history_rounded,
+              color: AppColors.textSecondary,
+            ),
+          ),
           actions: [
-            // Contador de swipes restantes
-            if (selectedIndex == 0) ...[
-              Container(
-                margin: const EdgeInsets.only(right: AppSpacing.s8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s12,
-                  vertical: AppSpacing.s4,
-                ),
-                decoration: BoxDecoration(
-                  color: quotaState.hasReachedLimit
-                      ? AppColors.error.withValues(alpha: 0.1)
-                      : AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: AppRadius.all8,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.swap_horiz_rounded,
-                      size: 16,
-                      color: quotaState.hasReachedLimit
-                          ? AppColors.error
-                          : AppColors.primary,
-                    ),
-                    const SizedBox(width: AppSpacing.s4),
-                    Text(
-                      '${quotaState.remaining}/${quotaState.limit}',
-                      style: AppTypography.labelMedium.copyWith(
-                        color: quotaState.hasReachedLimit
-                            ? AppColors.error
-                            : AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             IconButton(
-              icon: const Icon(
-                Icons.history_rounded,
-                color: AppColors.textSecondary,
-              ),
-              onPressed: () => context.push(RoutePaths.matchpointHistory),
-            ),
-            IconButton(
-              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+              tooltip: 'Filtros avancados',
               onPressed: () => context.push(RoutePaths.matchpointWizard),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.help_outline,
-                color: AppColors.textSecondary,
-              ),
-              onPressed: () => _showHelpDialog(context),
+              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
             ),
           ],
         ),
         body: Column(
           children: [
-            // Custom Google Nav Bar (Top Menu)
+            // Custom Google Nav Bar (top menu)
             Container(
               margin: const EdgeInsets.fromLTRB(
                 AppSpacing.s16,
                 AppSpacing.s8,
                 AppSpacing.s16,
-                AppSpacing.s16,
+                AppSpacing.s8,
               ),
               padding: AppSpacing.all4,
               decoration: BoxDecoration(
@@ -168,44 +122,13 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.s8),
 
-            // Content without Sweep Gesture (Resolves Conflict)
             Expanded(
               child: IndexedStack(index: selectedIndex, children: _screens),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Sobre o MatchPoint', style: AppTypography.titleLarge),
-        content: Text(
-          'O MatchPoint é o lugar para formar sua próxima banda ou projeto musical.\n\n'
-          '1. Explorar: Descubra músicos que combinam com seus gêneros e objetivos.\n\n'
-          '2. Matches: Veja seus matches e inicie conversas.\n\n'
-          '3. Trending: Descubra as hashtags mais populares entre músicos.\n\n'
-          'Você tem 50 swipes por dia. Use com sabedoria!',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Entendi',
-              style: AppTypography.labelLarge.copyWith(
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

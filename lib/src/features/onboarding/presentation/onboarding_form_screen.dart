@@ -6,6 +6,7 @@ import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
@@ -210,19 +211,13 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
 
         // Generic Flow for other types
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Completar Perfil'),
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              onPressed: () {
-                ref
-                    .read(onboardingControllerProvider.notifier)
-                    .resetToTypeSelection(currentUser: user);
-              },
-            ),
+          appBar: AppAppBar(
+            title: 'Completar Perfil',
+            onBackPressed: () {
+              ref
+                  .read(onboardingControllerProvider.notifier)
+                  .resetToTypeSelection(currentUser: user);
+            },
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.s24),

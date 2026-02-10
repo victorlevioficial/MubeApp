@@ -1,12 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -129,36 +130,24 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
               const SizedBox(height: AppSpacing.s24),
 
               // Category Selector
-              Text('Categoria', style: AppTypography.labelLarge),
-              const SizedBox(height: AppSpacing.s8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: AppRadius.all12,
-                  border: Border.all(color: AppColors.surfaceHighlight),
-                ),
-                padding: AppSpacing.h16,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCategory,
-                    dropdownColor: AppColors.surface,
-                    style: AppTypography.bodyMedium,
-                    isExpanded: true,
-                    icon: const Icon(
-                      Icons.arrow_drop_down,
-                      color: AppColors.primary,
-                    ),
-                    items: _categories.entries.map((e) {
-                      return DropdownMenuItem(
-                        value: e.key,
-                        child: Text(e.value),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedCategory = v);
-                    },
-                  ),
-                ),
+              AppDropdownField<String>(
+                label: 'Categoria',
+                value: _selectedCategory,
+                items: _categories.entries
+                    .map(
+                      (entry) => DropdownMenuItem(
+                        value: entry.key,
+                        child: Text(entry.value),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() => _selectedCategory = value);
+                },
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Selecione uma categoria'
+                    : null,
               ),
               const SizedBox(height: AppSpacing.s16),
 
@@ -205,7 +194,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _attachments.length + 1,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(width: AppSpacing.s8),
                   itemBuilder: (context, index) {
                     if (index == _attachments.length) {

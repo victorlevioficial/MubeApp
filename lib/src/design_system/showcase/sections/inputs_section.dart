@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../design_system/components/inputs/app_checkbox.dart'; // Reusing existing checkbox
-import '../../components/inputs/app_text_input.dart';
+import '../../components/inputs/app_text_field.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
@@ -17,7 +17,7 @@ class InputsSection extends StatelessWidget {
         const _InputGroup(
           title: 'Text Inputs',
           children: [
-            AppTextInput(
+            AppTextField(
               label: 'Email Address',
               hint: 'Enter your email',
               prefixIcon: Icon(
@@ -27,7 +27,7 @@ class InputsSection extends StatelessWidget {
               ),
             ),
             SizedBox(height: AppSpacing.s16),
-            AppTextInput(
+            AppTextField(
               label: 'Password',
               hint: '••••••••',
               obscureText: true,
@@ -38,7 +38,7 @@ class InputsSection extends StatelessWidget {
               ),
             ),
             SizedBox(height: AppSpacing.s16),
-            AppTextInput(
+            AppTextField(
               label: 'Error State',
               hint: 'Enter something',
               errorText: 'This field is required',

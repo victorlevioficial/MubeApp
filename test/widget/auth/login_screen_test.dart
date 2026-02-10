@@ -308,6 +308,44 @@ void main() {
         // Assert
         expect(find.text('Register Page'), findsOneWidget);
       });
+
+      testWidgets('botão Google dispara login social', (tester) async {
+        // Arrange
+        when(
+          mockAuthRepository.signInWithGoogle(),
+        ).thenAnswer((_) async => const Right(unit));
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        // Act
+        await tester.ensureVisible(
+          find.byKey(const Key('google_login_button')),
+        );
+        await tester.tap(find.byKey(const Key('google_login_button')));
+        await tester.pumpAndSettle();
+
+        // Assert
+        verify(mockAuthRepository.signInWithGoogle()).called(1);
+      });
+
+      testWidgets('botão Apple dispara login social', (tester) async {
+        // Arrange
+        when(
+          mockAuthRepository.signInWithApple(),
+        ).thenAnswer((_) async => const Right(unit));
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        // Act
+        await tester.ensureVisible(find.byKey(const Key('apple_login_button')));
+        await tester.tap(find.byKey(const Key('apple_login_button')));
+        await tester.pumpAndSettle();
+
+        // Assert
+        verify(mockAuthRepository.signInWithApple()).called(1);
+      });
     });
 
     group('Estados', () {

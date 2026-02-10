@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../components/loading/app_loading.dart';
 import '../../components/loading/app_loading_indicator.dart';
 import '../../components/loading/app_shimmer.dart';
 import '../../foundations/tokens/app_colors.dart';
@@ -17,33 +16,19 @@ class LoadingSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('AppLoading (Simple)', style: AppTypography.titleSmall),
-        const SizedBox(height: AppSpacing.s8),
-        const Row(
-          children: [
-            AppLoading.small(),
-            SizedBox(width: AppSpacing.s16),
-            AppLoading.medium(),
-            SizedBox(width: AppSpacing.s16),
-            AppLoading.large(),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.s24),
-
-        Text(
-          'AppLoadingIndicator (With Message)',
-          style: AppTypography.titleSmall,
-        ),
+        Text('AppLoadingIndicator', style: AppTypography.titleSmall),
         const SizedBox(height: AppSpacing.s8),
         const Row(
           children: [
             AppLoadingIndicator.small(),
-            SizedBox(width: AppSpacing.s24),
+            SizedBox(width: AppSpacing.s16),
             AppLoadingIndicator.medium(),
-            SizedBox(width: AppSpacing.s24),
+            SizedBox(width: AppSpacing.s16),
             AppLoadingIndicator.large(),
           ],
         ),
+        const SizedBox(height: AppSpacing.s24),
+
         const SizedBox(height: AppSpacing.s16),
         const AppLoadingIndicator.withMessage('Carregando...'),
         const SizedBox(height: AppSpacing.s24),

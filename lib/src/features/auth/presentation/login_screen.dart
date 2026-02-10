@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/typedefs.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/buttons/app_social_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -26,10 +30,30 @@ class LoginController extends _$LoginController {
   }
 
   Future<void> login({required String email, required String password}) async {
+    await _runAuthAction(
+      action: () => ref
+          .read(authRepositoryProvider)
+          .signInWithEmailAndPassword(email, password),
+    );
+  }
+
+  Future<void> signInWithGoogle() async {
+    await _runAuthAction(
+      action: () => ref.read(authRepositoryProvider).signInWithGoogle(),
+    );
+  }
+
+  Future<void> signInWithApple() async {
+    await _runAuthAction(
+      action: () => ref.read(authRepositoryProvider).signInWithApple(),
+    );
+  }
+
+  Future<void> _runAuthAction({
+    required FutureResult<Unit> Function() action,
+  }) async {
     state = const AsyncLoading();
-    final result = await ref
-        .read(authRepositoryProvider)
-        .signInWithEmailAndPassword(email, password);
+    final result = await action();
 
     result.fold(
       (failure) {
@@ -87,6 +111,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _passwordController.text,
           );
     }
+  }
+
+  void _signInWithGoogle() {
+    if (ref.read(loginControllerProvider).isLoading) return;
+    unawaited(ref.read(loginControllerProvider.notifier).signInWithGoogle());
+  }
+
+  void _signInWithApple() {
+    if (ref.read(loginControllerProvider).isLoading) return;
+    unawaited(ref.read(loginControllerProvider.notifier).signInWithApple());
   }
 
   @override
@@ -235,13 +269,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SocialLoginButton(
                       key: const Key('google_login_button'),
                       type: SocialType.google,
-                      onPressed: () {},
+                      onPressed: _signInWithGoogle,
                     ),
                     const SizedBox(height: AppSpacing.s16),
                     SocialLoginButton(
                       key: const Key('apple_login_button'),
                       type: SocialType.apple,
-                      onPressed: () {},
+                      onPressed: _signInWithApple,
                     ),
                   ],
                 ),

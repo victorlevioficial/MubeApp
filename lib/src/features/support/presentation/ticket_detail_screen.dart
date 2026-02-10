@@ -68,7 +68,7 @@ class TicketDetailScreen extends ConsumerWidget {
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: ticket.imageUrls.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                       const SizedBox(width: AppSpacing.s12),
                   itemBuilder: (context, index) {
                     return GestureDetector(
@@ -114,7 +114,7 @@ class TicketDetailScreen extends ConsumerWidget {
                 vertical: AppSpacing.s4,
               ),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
+                color: statusColor.withValues(alpha: 0.1),
                 borderRadius: AppRadius.all16,
                 border: Border.all(color: statusColor),
               ),
@@ -132,7 +132,7 @@ class TicketDetailScreen extends ConsumerWidget {
                 horizontal: AppSpacing.s12,
                 vertical: AppSpacing.s4,
               ),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.surfaceHighlight,
                 borderRadius: AppRadius.all16,
               ),
@@ -164,7 +164,7 @@ class TicketDetailScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
-        color: AppColors.background.withOpacity(0.5),
+        color: AppColors.background.withValues(alpha: 0.5),
         borderRadius: AppRadius.all12,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
@@ -210,7 +210,7 @@ class TicketDetailScreen extends ConsumerWidget {
             GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
-                color: Colors.black.withOpacity(0.8),
+                color: Colors.black.withValues(alpha: 0.8),
                 width: double.infinity,
                 height: double.infinity,
               ),

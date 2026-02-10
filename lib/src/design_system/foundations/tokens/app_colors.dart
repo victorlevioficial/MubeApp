@@ -167,4 +167,20 @@ class AppColors {
 
   /// Opacidade da borda do avatar
   static const double avatarBorderOpacity = 1.0;
+
+  // ===========================================================================
+  // SEMANTIC TOKENS - MEDALS & CELEBRATIONS
+  // ===========================================================================
+
+  /// Cor de medalha de ouro (ranking/confetti)
+  static const Color medalGold = Color(0xFFFFD700);
+
+  /// Cor de medalha de prata (ranking)
+  static const Color medalSilver = Color(0xFFC0C0C0);
+
+  /// Cor de medalha de bronze (ranking)
+  static const Color medalBronze = Color(0xFFCD7F32);
+
+  /// Cor de celebração (confetti/match)
+  static const Color celebrationPink = Color(0xFFFF69B4);
 }

@@ -33,8 +33,7 @@ android {
     }
 
     defaultConfig {
-        // Temporariamente usando o app Firebase v2 para testes
-        applicationId = "com.mube.mubeoficial.v2"
+        applicationId = "com.mube.mubeoficial"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

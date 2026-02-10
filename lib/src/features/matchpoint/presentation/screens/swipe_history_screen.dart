@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../design_system/components/data_display/user_avatar.dart';
@@ -9,6 +8,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../domain/swipe_history_entry.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class SwipeHistoryScreen extends ConsumerWidget {
@@ -17,26 +17,32 @@ class SwipeHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(swipeHistoryProvider);
+    final dedupedHistory = _dedupeByTarget(history);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(
-        title: 'Histórico de Swipes',
+        title: 'Historico de Swipes',
         showBackButton: true,
       ),
-      body: history.isEmpty
+      body: dedupedHistory.isEmpty
           ? _buildEmptyState()
           : ListView.separated(
               padding: const EdgeInsets.all(AppSpacing.s16),
-              itemCount: history.length,
-              separatorBuilder: (_, __) =>
+              itemCount: dedupedHistory.length,
+              separatorBuilder: (context, index) =>
                   const SizedBox(height: AppSpacing.s12),
               itemBuilder: (context, index) {
-                final item = history[index];
+                final item = dedupedHistory[index];
                 return _buildHistoryItem(item);
               },
             ),
     );
+  }
+
+  List<SwipeHistoryEntry> _dedupeByTarget(List<SwipeHistoryEntry> input) {
+    final seen = <String>{};
+    return input.where((item) => seen.add(item.targetUserId)).toList();
   }
 
   Widget _buildEmptyState() {
@@ -47,14 +53,14 @@ class SwipeHistoryScreen extends ConsumerWidget {
           const Icon(Icons.history, size: 64, color: AppColors.textSecondary),
           const SizedBox(height: AppSpacing.s16),
           Text(
-            'Nenhum histórico recente',
+            'Nenhum historico recente',
             style: AppTypography.titleMedium.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Seus swipes aparecerão aqui',
+            'Seus swipes aparecerao aqui',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textTertiary,
             ),
@@ -64,8 +70,8 @@ class SwipeHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHistoryItem(SwipeHistoryItem item) {
-    final isLike = item.type == 'like' || item.type == 'superlike';
+  Widget _buildHistoryItem(SwipeHistoryEntry item) {
+    final isLike = item.action == 'like' || item.action == 'superlike';
     final actionColor = isLike ? AppColors.success : AppColors.error;
     final actionIcon = isLike ? Icons.favorite : Icons.close;
 
@@ -78,21 +84,19 @@ class SwipeHistoryScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Avatar
-          UserAvatar(photoUrl: item.user.foto, name: item.user.nome, size: 50),
+          UserAvatar(
+            photoUrl: item.targetUserPhoto,
+            name: item.targetUserName,
+            size: 50,
+          ),
           const SizedBox(width: AppSpacing.s16),
-
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(item.targetUserName, style: AppTypography.titleSmall),
                 Text(
-                  item.user.nome ?? 'Usuário',
-                  style: AppTypography.titleSmall,
-                ),
-                Text(
-                  DateFormat('HH:mm').format(item.timestamp),
+                  DateFormat('HH:mm - dd/MM').format(item.timestamp),
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textTertiary,
                   ),
@@ -100,8 +104,6 @@ class SwipeHistoryScreen extends ConsumerWidget {
               ],
             ),
           ),
-
-          // Action Indicator
           Container(
             padding: const EdgeInsets.all(AppSpacing.s8),
             decoration: BoxDecoration(

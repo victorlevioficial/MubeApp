@@ -64,7 +64,11 @@ class SettingsScreen extends ConsumerWidget {
                   customAccentColor: AppColors.primary,
                 ),
                 // Dynamic Tile: Band Management or My Bands
-                if (ref.watch(currentUserProfileProvider).value?.tipoPerfil ==
+                if (ref.watch(
+                      currentUserProfileProvider.select(
+                        (s) => s.value?.tipoPerfil,
+                      ),
+                    ) ==
                     AppUserType.band)
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,

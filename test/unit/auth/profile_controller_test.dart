@@ -28,6 +28,14 @@ void main() {
   // Provide dummy values for Either type used in mocks
   setUpAll(() {
     provideDummy<Either<Failure, Unit>>(const Right(unit));
+    provideDummy<ImageUrls>(
+      const ImageUrls(
+        thumbnail: 'https://example.com/thumb.jpg',
+        medium: 'https://example.com/medium.jpg',
+        large: 'https://example.com/large.jpg',
+        full: 'https://example.com/full.jpg',
+      ),
+    );
   });
 
   group('ProfileController', () {
@@ -327,11 +335,19 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/image.jpg');
+        ).thenAnswer(
+          (_) async => const ImageUrls(
+            thumbnail: 'https://example.com/thumb.jpg',
+            medium: 'https://example.com/medium.jpg',
+            large: 'https://example.com/large.jpg',
+            full: 'https://example.com/full.jpg',
+          ),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenAnswer((_) async => const Right(unit));
@@ -357,11 +373,14 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/image.jpg');
+        ).thenAnswer(
+          (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenAnswer((_) async => const Right(unit));
@@ -384,11 +403,14 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/image.jpg');
+        ).thenAnswer(
+          (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenAnswer((_) async => const Right(unit));
@@ -403,25 +425,28 @@ void main() {
 
         // Assert
         verify(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: testUser.uid,
             file: mockFile,
+            generateMultipleSizes: true,
           ),
         ).called(1);
       });
 
       test('should update user with new photo URL', () async {
         // Arrange
-        const downloadUrl = 'https://example.com/image.jpg';
         when(
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => downloadUrl);
+        ).thenAnswer(
+          (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenAnswer((_) async => const Right(unit));
@@ -444,11 +469,14 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/image.jpg');
+        ).thenAnswer(
+          (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenAnswer((_) async => const Right(unit));
@@ -475,11 +503,14 @@ void main() {
             mockContentModerationService.validateImage(any),
           ).thenAnswer((_) async => true);
           when(
-            mockStorageRepository.uploadProfileImage(
+            mockStorageRepository.uploadProfileImageWithSizes(
               userId: anyNamed('userId'),
               file: anyNamed('file'),
+              generateMultipleSizes: anyNamed('generateMultipleSizes'),
             ),
-          ).thenAnswer((_) async => 'https://example.com/image.jpg');
+          ).thenAnswer(
+            (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+          );
           when(
             mockAuthRepository.updateUser(any),
           ).thenAnswer((_) async => const Right(unit));
@@ -533,9 +564,10 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
         ).thenThrow(Exception('Upload failed'));
 
@@ -561,11 +593,14 @@ void main() {
           mockContentModerationService.validateImage(any),
         ).thenAnswer((_) async => true);
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/image.jpg');
+        ).thenAnswer(
+          (_) async => const ImageUrls(full: 'https://example.com/image.jpg'),
+        );
         when(
           mockAuthRepository.updateUser(any),
         ).thenThrow(Exception('Update failed'));

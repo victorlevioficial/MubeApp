@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
@@ -94,9 +95,7 @@ class InvitesScreen extends ConsumerWidget {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: AppTypography.headlineSmall.copyWith(
-        color: AppColors.textPrimary,
-      ),
+      style: AppTypography.headlineSmall.copyWith(color: AppColors.textPrimary),
     );
   }
 
@@ -185,24 +184,10 @@ class InvitesScreen extends ConsumerWidget {
                 Expanded(
                   child: SizedBox(
                     height: 48,
-                    child: ElevatedButton(
+                    child: AppButton.primary(
+                      text: 'Aceitar',
                       onPressed: () =>
                           _respond(context, ref, invite['id'], true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.textPrimary,
-                        elevation: 0,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadius.pill,
-                        ),
-                        minimumSize: const Size(0, 48),
-                      ),
-                      child: Text(
-                        'Aceitar',
-                        style: AppTypography.buttonPrimary.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -278,7 +263,7 @@ class InvitesScreen extends ConsumerWidget {
                   side: const BorderSide(color: AppColors.error),
                   foregroundColor: AppColors.error,
                   shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadius.pill,
+                    borderRadius: AppRadius.pill,
                   ),
                   splashFactory: NoSplash.splashFactory,
                 ),

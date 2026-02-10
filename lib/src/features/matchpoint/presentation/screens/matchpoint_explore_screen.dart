@@ -30,7 +30,7 @@ class _MatchpointExploreScreenState
     extends ConsumerState<MatchpointExploreScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
   bool _showTutorial = false;
-  bool _allCandidatesViewed = false; // Rastreia quando todos foram vistos
+  bool _allCandidatesViewed = false;
   String _lastCandidatesSignature = '';
 
   @override
@@ -38,8 +38,7 @@ class _MatchpointExploreScreenState
     super.initState();
     _checkTutorialStatus();
 
-    // Força refresh dos candidatos ao entrar na tela
-    // Necessário porque o provider tem keepAlive e pode ter cache antigo
+    // Force refresh when entering screen to avoid stale keepAlive cache.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(matchpointCandidatesProvider);
     });
@@ -77,7 +76,6 @@ class _MatchpointExploreScreenState
 
     return Stack(
       children: [
-        // Main Content
         candidatesAsync.when(
           data: (candidates) {
             final signature = candidates.map((c) => c.uid).join('|');
@@ -97,31 +95,7 @@ class _MatchpointExploreScreenState
             if (candidates.isNotEmpty) return _buildSwipeDeck(candidates);
             return _buildEmptyState();
           },
-          loading: () => const Padding(
-            padding: EdgeInsets.all(AppSpacing.s16),
-            child: SkeletonShimmer(
-              child: Column(
-                children: [
-                  // Card principal
-                  SkeletonBox(
-                    width: double.infinity,
-                    height: 480,
-                    borderRadius: 24,
-                  ),
-                  SizedBox(height: AppSpacing.s16),
-                  // Botões de ação
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      SkeletonBox(width: 60, height: 60, borderRadius: 30),
-                      SkeletonBox(width: 80, height: 80, borderRadius: 40),
-                      SkeletonBox(width: 60, height: 60, borderRadius: 30),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+          loading: _buildLoadingState,
           error: (err, stack) => Center(
             child: Padding(
               padding: AppSpacing.all24,
@@ -135,13 +109,36 @@ class _MatchpointExploreScreenState
             ),
           ),
         ),
-
-        // Tutorial Overlay (if active)
         if (_showTutorial)
           Positioned.fill(
             child: MatchpointTutorialOverlay(onDismiss: _dismissTutorial),
           ),
       ],
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Padding(
+      padding: EdgeInsets.all(AppSpacing.s16),
+      child: SkeletonShimmer(
+        child: Column(
+          children: [
+            // Main card uses available height to avoid overflow.
+            Expanded(
+              child: SkeletonBox(width: double.infinity, borderRadius: 24),
+            ),
+            SizedBox(height: AppSpacing.s16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                SkeletonBox(width: 60, height: 60, borderRadius: 30),
+                SkeletonBox(width: 80, height: 80, borderRadius: 40),
+                SkeletonBox(width: 60, height: 60, borderRadius: 30),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -155,7 +152,7 @@ class _MatchpointExploreScreenState
             .swipeRight(user);
 
         if (!swipeResult.success) {
-          debugPrint('Swipe bloqueado: backend retornou falha.');
+          debugPrint('Swipe blocked: backend returned failure.');
           return false;
         }
 
@@ -169,7 +166,6 @@ class _MatchpointExploreScreenState
 
           if (currentUserProfile == null) return true;
 
-          // Construct a partial AppUser or get from provider
           final minimalUser = AppUser(
             uid: currentUserProfile.uid,
             email: currentUserProfile.email ?? '',
@@ -199,8 +195,6 @@ class _MatchpointExploreScreenState
         return true;
       },
       onSwipeLeft: (user) async {
-        // NÃO removemos da lista porque o CardSwiper gerencia os índices internamente
-
         final success = await ref
             .read(matchpointControllerProvider.notifier)
             .swipeLeft(user);
@@ -218,16 +212,17 @@ class _MatchpointExploreScreenState
           });
         }
       },
+      onUndoSwipe: () {
+        ref.read(swipeHistoryProvider.notifier).undoLast();
+      },
       currentUserGenres: _getCurrentUserGenres(),
     );
   }
 
-  /// Busca os gêneros musicais do usuário atual para calcular compatibilidade
   List<String>? _getCurrentUserGenres() {
     final userProfile = ref.read(currentUserProfileProvider).value;
     if (userProfile == null) return null;
 
-    // Tenta buscar do matchpointProfile primeiro
     final mpGenres =
         userProfile.matchpointProfile?[FirestoreFields.musicalGenres] as List?;
     if (mpGenres != null && mpGenres.isNotEmpty) {
@@ -246,7 +241,6 @@ class _MatchpointExploreScreenState
       return oldSnakeCase.cast<String>();
     }
 
-    // Fallback para dadosProfissional ou dadosBanda
     final profGenres =
         userProfile.dadosProfissional?['generosMusicais'] as List?;
     if (profGenres != null && profGenres.isNotEmpty) {
@@ -261,7 +255,6 @@ class _MatchpointExploreScreenState
     return null;
   }
 
-  /// Tela quando todos os candidatos foram vistos
   Widget _buildAllViewedState() {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.s24),
@@ -275,13 +268,13 @@ class _MatchpointExploreScreenState
           ),
           const SizedBox(height: AppSpacing.s24),
           Text(
-            'Você viu todos!',
+            'VocÃª viu todos!',
             style: AppTypography.headlineMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Não há mais perfis para avaliar no momento.\nVolte mais tarde para ver novos músicos!',
+            'NÃ£o hÃ¡ mais perfis para avaliar no momento.\nVolte mais tarde para ver novos mÃºsicos!',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -292,10 +285,7 @@ class _MatchpointExploreScreenState
             width: double.infinity,
             child: AppButton.secondary(
               onPressed: () {
-                // Invalida o provider primeiro - vai mostrar loading state
-                // O _allCandidatesViewed será resetado pelo listener quando houver dados
                 ref.invalidate(matchpointCandidatesProvider);
-                // Reseta após invalidar para evitar flash (loading aparece primeiro)
                 if (mounted) {
                   setState(() {
                     _allCandidatesViewed = false;
@@ -331,7 +321,7 @@ class _MatchpointExploreScreenState
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Não encontramos ninguém com seus filtros no momento.\nTente ajustar suas preferências ou volte mais tarde.',
+            'NÃ£o encontramos ninguÃ©m com seus filtros no momento.\nTente ajustar suas preferÃªncias ou volte mais tarde.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -343,7 +333,6 @@ class _MatchpointExploreScreenState
             child: AppButton.primary(
               onPressed: () {
                 context.push(RoutePaths.matchpointWizard).then((_) {
-                  // Refresh the provider
                   ref.invalidate(matchpointCandidatesProvider);
                 });
               },

@@ -10,10 +10,14 @@ import '../../foundations/tokens/app_typography.dart';
 ///
 /// Usado como container principal do aplicativo com bottom navigation.
 ///
+/// **Deprecated:** Use [MainScaffold] instead. This widget will be removed
+/// in a future release. MainScaffold is the consolidated navigation shell.
+///
 /// Uso:
 /// ```dart
 /// AppScaffold(navigationShell: navigationShell)
 /// ```
+@Deprecated('Use MainScaffold instead. This will be removed in v2.0.0')
 class AppScaffold extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -114,10 +118,7 @@ class AppScaffold extends StatelessWidget {
               ),
             ),
             backgroundColor: AppColors.primary,
-            child: const Icon(
-              Icons.chat_bubble,
-              color: AppColors.primary,
-            ),
+            child: const Icon(Icons.chat_bubble, color: AppColors.primary),
           );
         },
       ),

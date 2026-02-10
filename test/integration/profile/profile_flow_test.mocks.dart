@@ -3,16 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i4;
+import 'dart:async' as _i5;
 import 'dart:io' as _i7;
 
-import 'package:firebase_auth/firebase_auth.dart' as _i5;
+import 'package:firebase_auth/firebase_auth.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart'
-    as _i3;
+    as _i4;
 import 'package:mube/src/features/auth/domain/app_user.dart' as _i6;
-import 'package:mube/src/features/storage/data/storage_repository.dart' as _i2;
+import 'package:mube/src/features/storage/data/storage_repository.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -29,14 +29,20 @@ import 'package:mube/src/features/storage/data/storage_repository.dart' as _i2;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-class _FakeImageUrls_0 extends _i1.SmartFake implements _i2.ImageUrls {
-  _FakeImageUrls_0(Object parent, Invocation parentInvocation)
+class _FakeUserCredential_0 extends _i1.SmartFake
+    implements _i2.UserCredential {
+  _FakeUserCredential_0(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeGalleryMediaUrls_1 extends _i1.SmartFake
-    implements _i2.GalleryMediaUrls {
-  _FakeGalleryMediaUrls_1(Object parent, Invocation parentInvocation)
+class _FakeImageUrls_1 extends _i1.SmartFake implements _i3.ImageUrls {
+  _FakeImageUrls_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeGalleryMediaUrls_2 extends _i1.SmartFake
+    implements _i3.GalleryMediaUrls {
+  _FakeGalleryMediaUrls_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -44,148 +50,186 @@ class _FakeGalleryMediaUrls_1 extends _i1.SmartFake
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockAuthRemoteDataSource extends _i1.Mock
-    implements _i3.AuthRemoteDataSource {
+    implements _i4.AuthRemoteDataSource {
   @override
-  _i4.Stream<_i5.User?> authStateChanges() =>
+  _i5.Stream<_i2.User?> authStateChanges() =>
       (super.noSuchMethod(
             Invocation.method(#authStateChanges, []),
-            returnValue: _i4.Stream<_i5.User?>.empty(),
-            returnValueForMissingStub: _i4.Stream<_i5.User?>.empty(),
+            returnValue: _i5.Stream<_i2.User?>.empty(),
+            returnValueForMissingStub: _i5.Stream<_i2.User?>.empty(),
           )
-          as _i4.Stream<_i5.User?>);
+          as _i5.Stream<_i2.User?>);
 
   @override
-  _i4.Future<void> signInWithEmailAndPassword(
+  _i5.Future<void> signInWithEmailAndPassword(
     String? email,
     String? password,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#signInWithEmailAndPassword, [email, password]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<_i5.User?> registerWithEmailAndPassword(
+  _i5.Future<_i2.User?> registerWithEmailAndPassword(
     String? email,
     String? password,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#registerWithEmailAndPassword, [email, password]),
-            returnValue: _i4.Future<_i5.User?>.value(),
-            returnValueForMissingStub: _i4.Future<_i5.User?>.value(),
+            returnValue: _i5.Future<_i2.User?>.value(),
+            returnValueForMissingStub: _i5.Future<_i2.User?>.value(),
           )
-          as _i4.Future<_i5.User?>);
+          as _i5.Future<_i2.User?>);
 
   @override
-  _i4.Future<void> saveUserProfile(_i6.AppUser? user) =>
+  _i5.Future<_i2.UserCredential> signInWithGoogle() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithGoogle, []),
+            returnValue: _i5.Future<_i2.UserCredential>.value(
+              _FakeUserCredential_0(
+                this,
+                Invocation.method(#signInWithGoogle, []),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<_i2.UserCredential>.value(
+              _FakeUserCredential_0(
+                this,
+                Invocation.method(#signInWithGoogle, []),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.UserCredential>);
+
+  @override
+  _i5.Future<_i2.UserCredential> signInWithApple() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithApple, []),
+            returnValue: _i5.Future<_i2.UserCredential>.value(
+              _FakeUserCredential_0(
+                this,
+                Invocation.method(#signInWithApple, []),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<_i2.UserCredential>.value(
+              _FakeUserCredential_0(
+                this,
+                Invocation.method(#signInWithApple, []),
+              ),
+            ),
+          )
+          as _i5.Future<_i2.UserCredential>);
+
+  @override
+  _i5.Future<void> saveUserProfile(_i6.AppUser? user) =>
       (super.noSuchMethod(
             Invocation.method(#saveUserProfile, [user]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<void> updateUserProfile(_i6.AppUser? user) =>
+  _i5.Future<void> updateUserProfile(_i6.AppUser? user) =>
       (super.noSuchMethod(
             Invocation.method(#updateUserProfile, [user]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<_i6.AppUser?> fetchUserProfile(String? uid) =>
+  _i5.Future<_i6.AppUser?> fetchUserProfile(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#fetchUserProfile, [uid]),
-            returnValue: _i4.Future<_i6.AppUser?>.value(),
-            returnValueForMissingStub: _i4.Future<_i6.AppUser?>.value(),
+            returnValue: _i5.Future<_i6.AppUser?>.value(),
+            returnValueForMissingStub: _i5.Future<_i6.AppUser?>.value(),
           )
-          as _i4.Future<_i6.AppUser?>);
+          as _i5.Future<_i6.AppUser?>);
 
   @override
-  _i4.Stream<_i6.AppUser?> watchUserProfile(String? uid) =>
+  _i5.Stream<_i6.AppUser?> watchUserProfile(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#watchUserProfile, [uid]),
-            returnValue: _i4.Stream<_i6.AppUser?>.empty(),
-            returnValueForMissingStub: _i4.Stream<_i6.AppUser?>.empty(),
+            returnValue: _i5.Stream<_i6.AppUser?>.empty(),
+            returnValueForMissingStub: _i5.Stream<_i6.AppUser?>.empty(),
           )
-          as _i4.Stream<_i6.AppUser?>);
+          as _i5.Stream<_i6.AppUser?>);
 
   @override
-  _i4.Future<void> signOut() =>
+  _i5.Future<void> signOut() =>
       (super.noSuchMethod(
             Invocation.method(#signOut, []),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<void> deleteAccount(String? uid) =>
+  _i5.Future<void> deleteAccount(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#deleteAccount, [uid]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<List<_i6.AppUser>> fetchUsersByIds(List<String>? uids) =>
+  _i5.Future<List<_i6.AppUser>> fetchUsersByIds(List<String>? uids) =>
       (super.noSuchMethod(
             Invocation.method(#fetchUsersByIds, [uids]),
-            returnValue: _i4.Future<List<_i6.AppUser>>.value(<_i6.AppUser>[]),
-            returnValueForMissingStub: _i4.Future<List<_i6.AppUser>>.value(
+            returnValue: _i5.Future<List<_i6.AppUser>>.value(<_i6.AppUser>[]),
+            returnValueForMissingStub: _i5.Future<List<_i6.AppUser>>.value(
               <_i6.AppUser>[],
             ),
           )
-          as _i4.Future<List<_i6.AppUser>>);
+          as _i5.Future<List<_i6.AppUser>>);
 
   @override
-  _i4.Future<void> sendPasswordResetEmail(String? email) =>
+  _i5.Future<void> sendPasswordResetEmail(String? email) =>
       (super.noSuchMethod(
             Invocation.method(#sendPasswordResetEmail, [email]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<void> sendEmailVerification() =>
+  _i5.Future<void> sendEmailVerification() =>
       (super.noSuchMethod(
             Invocation.method(#sendEmailVerification, []),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<bool> isEmailVerified() =>
+  _i5.Future<bool> isEmailVerified() =>
       (super.noSuchMethod(
             Invocation.method(#isEmailVerified, []),
-            returnValue: _i4.Future<bool>.value(false),
-            returnValueForMissingStub: _i4.Future<bool>.value(false),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
           )
-          as _i4.Future<bool>);
+          as _i5.Future<bool>);
 
   @override
-  _i4.Future<void> reloadUser() =>
+  _i5.Future<void> reloadUser() =>
       (super.noSuchMethod(
             Invocation.method(#reloadUser, []),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 }
 
 /// A class which mocks [StorageRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
+class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
-  _i4.Future<_i2.ImageUrls> uploadProfileImageWithSizes({
+  _i5.Future<_i3.ImageUrls> uploadProfileImageWithSizes({
     required String? userId,
     required _i7.File? file,
     bool? generateMultipleSizes = true,
@@ -196,8 +240,8 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #file: file,
               #generateMultipleSizes: generateMultipleSizes,
             }),
-            returnValue: _i4.Future<_i2.ImageUrls>.value(
-              _FakeImageUrls_0(
+            returnValue: _i5.Future<_i3.ImageUrls>.value(
+              _FakeImageUrls_1(
                 this,
                 Invocation.method(#uploadProfileImageWithSizes, [], {
                   #userId: userId,
@@ -206,8 +250,8 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i4.Future<_i2.ImageUrls>.value(
-              _FakeImageUrls_0(
+            returnValueForMissingStub: _i5.Future<_i3.ImageUrls>.value(
+              _FakeImageUrls_1(
                 this,
                 Invocation.method(#uploadProfileImageWithSizes, [], {
                   #userId: userId,
@@ -217,10 +261,10 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               ),
             ),
           )
-          as _i4.Future<_i2.ImageUrls>);
+          as _i5.Future<_i3.ImageUrls>);
 
   @override
-  _i4.Future<String> uploadProfileImage({
+  _i5.Future<String> uploadProfileImage({
     required String? userId,
     required _i7.File? file,
   }) =>
@@ -229,7 +273,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #userId: userId,
               #file: file,
             }),
-            returnValue: _i4.Future<String>.value(
+            returnValue: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadProfileImage, [], {
@@ -238,7 +282,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i4.Future<String>.value(
+            returnValueForMissingStub: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadProfileImage, [], {
@@ -248,10 +292,10 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               ),
             ),
           )
-          as _i4.Future<String>);
+          as _i5.Future<String>);
 
   @override
-  _i4.Future<_i2.GalleryMediaUrls> uploadGalleryMediaWithSizes({
+  _i5.Future<_i3.GalleryMediaUrls> uploadGalleryMediaWithSizes({
     required String? userId,
     required _i7.File? file,
     required String? mediaId,
@@ -266,8 +310,8 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #isVideo: isVideo,
               #onProgress: onProgress,
             }),
-            returnValue: _i4.Future<_i2.GalleryMediaUrls>.value(
-              _FakeGalleryMediaUrls_1(
+            returnValue: _i5.Future<_i3.GalleryMediaUrls>.value(
+              _FakeGalleryMediaUrls_2(
                 this,
                 Invocation.method(#uploadGalleryMediaWithSizes, [], {
                   #userId: userId,
@@ -278,8 +322,8 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i4.Future<_i2.GalleryMediaUrls>.value(
-              _FakeGalleryMediaUrls_1(
+            returnValueForMissingStub: _i5.Future<_i3.GalleryMediaUrls>.value(
+              _FakeGalleryMediaUrls_2(
                 this,
                 Invocation.method(#uploadGalleryMediaWithSizes, [], {
                   #userId: userId,
@@ -291,10 +335,10 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               ),
             ),
           )
-          as _i4.Future<_i2.GalleryMediaUrls>);
+          as _i5.Future<_i3.GalleryMediaUrls>);
 
   @override
-  _i4.Future<String> uploadGalleryMedia({
+  _i5.Future<String> uploadGalleryMedia({
     required String? userId,
     required _i7.File? file,
     required String? mediaId,
@@ -309,7 +353,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #isVideo: isVideo,
               #onProgress: onProgress,
             }),
-            returnValue: _i4.Future<String>.value(
+            returnValue: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadGalleryMedia, [], {
@@ -321,7 +365,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i4.Future<String>.value(
+            returnValueForMissingStub: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadGalleryMedia, [], {
@@ -334,10 +378,10 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               ),
             ),
           )
-          as _i4.Future<String>);
+          as _i5.Future<String>);
 
   @override
-  _i4.Future<String> uploadVideoThumbnail({
+  _i5.Future<String> uploadVideoThumbnail({
     required String? userId,
     required String? mediaId,
     required _i7.File? thumbnail,
@@ -348,7 +392,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #mediaId: mediaId,
               #thumbnail: thumbnail,
             }),
-            returnValue: _i4.Future<String>.value(
+            returnValue: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadVideoThumbnail, [], {
@@ -358,7 +402,7 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i4.Future<String>.value(
+            returnValueForMissingStub: _i5.Future<String>.value(
               _i8.dummyValue<String>(
                 this,
                 Invocation.method(#uploadVideoThumbnail, [], {
@@ -369,19 +413,19 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               ),
             ),
           )
-          as _i4.Future<String>);
+          as _i5.Future<String>);
 
   @override
-  _i4.Future<void> deleteImage(String? imageUrl) =>
+  _i5.Future<void> deleteImage(String? imageUrl) =>
       (super.noSuchMethod(
             Invocation.method(#deleteImage, [imageUrl]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<void> deleteGalleryItem({
+  _i5.Future<void> deleteGalleryItem({
     required String? userId,
     required String? mediaId,
     required bool? isVideo,
@@ -392,17 +436,48 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #mediaId: mediaId,
               #isVideo: isVideo,
             }),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
 
   @override
-  _i4.Future<void> deleteProfileImages(String? userId) =>
+  _i5.Future<void> deleteProfileImages(String? userId) =>
       (super.noSuchMethod(
             Invocation.method(#deleteProfileImages, [userId]),
-            returnValue: _i4.Future<void>.value(),
-            returnValueForMissingStub: _i4.Future<void>.value(),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
           )
-          as _i4.Future<void>);
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<String> uploadSupportAttachment({
+    required String? ticketId,
+    required _i7.File? file,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#uploadSupportAttachment, [], {
+              #ticketId: ticketId,
+              #file: file,
+            }),
+            returnValue: _i5.Future<String>.value(
+              _i8.dummyValue<String>(
+                this,
+                Invocation.method(#uploadSupportAttachment, [], {
+                  #ticketId: ticketId,
+                  #file: file,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<String>.value(
+              _i8.dummyValue<String>(
+                this,
+                Invocation.method(#uploadSupportAttachment, [], {
+                  #ticketId: ticketId,
+                  #file: file,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<String>);
 }

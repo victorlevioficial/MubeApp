@@ -288,6 +288,46 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>> signInWithGoogle() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithGoogle, []),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                this,
+                Invocation.method(#signInWithGoogle, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                    this,
+                    Invocation.method(#signInWithGoogle, []),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>);
+
+  @override
+  _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>> signInWithApple() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInWithApple, []),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                this,
+                Invocation.method(#signInWithApple, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                    this,
+                    Invocation.method(#signInWithApple, []),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>);
 }
 
 /// A class which mocks [StorageRepository].
@@ -515,6 +555,37 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+
+  @override
+  _i5.Future<String> uploadSupportAttachment({
+    required String? ticketId,
+    required _i11.File? file,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#uploadSupportAttachment, [], {
+              #ticketId: ticketId,
+              #file: file,
+            }),
+            returnValue: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(#uploadSupportAttachment, [], {
+                  #ticketId: ticketId,
+                  #file: file,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(#uploadSupportAttachment, [], {
+                  #ticketId: ticketId,
+                  #file: file,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<String>);
 }
 
 /// A class which mocks [ContentModerationService].

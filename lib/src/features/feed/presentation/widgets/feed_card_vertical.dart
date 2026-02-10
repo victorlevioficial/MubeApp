@@ -16,8 +16,14 @@ import 'profile_type_badge.dart';
 class FeedCardVertical extends ConsumerStatefulWidget {
   final FeedItem item;
   final VoidCallback onTap;
+  final EdgeInsets? margin;
 
-  const FeedCardVertical({super.key, required this.item, required this.onTap});
+  const FeedCardVertical({
+    super.key,
+    required this.item,
+    required this.onTap,
+    this.margin,
+  });
 
   @override
   ConsumerState<FeedCardVertical> createState() => _FeedCardVerticalState();
@@ -43,119 +49,130 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    // Favorites logic removed
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onDoubleTap: null,
-      child: AnimatedScale(
-        scale: _isPressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeInOut,
-        child: Container(
-          margin: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s16,
-            vertical: AppSpacing.s8,
-          ),
-          padding: AppSpacing.all12,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
-              width: 1,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isPressed = true),
+      onExit: (_) => setState(() => _isPressed = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        child: AnimatedScale(
+          scale: _isPressed ? 0.98 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeInOut,
+          child: Container(
+            margin:
+                widget.margin ??
+                const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s16,
+                  vertical: AppSpacing.s8,
+                ),
+            padding: AppSpacing.all12,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.all16,
+              border: Border.all(
+                color: _isPressed
+                    ? AppColors.primary.withOpacity(0.5)
+                    : AppColors.surfaceHighlight.withOpacity(0.5),
+                width: 1,
+              ),
+              boxShadow: _isPressed
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left: Large Avatar
-              UserAvatar(photoUrl: item.foto, name: item.displayName, size: 80),
-              const SizedBox(width: AppSpacing.s12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Esquerda: Avatar com transição Hero
+                Hero(
+                  tag: 'avatar-${item.uid}',
+                  child: UserAvatar(
+                    photoUrl: item.foto,
+                    name: item.displayName,
+                    size: 80,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s12),
 
-              // Middle: Info Column
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Name with Category Icons immediately after
-                    Row(
-                      children: [
-                        // Name (Bold White - Semantic Title)
-                        Flexible(
-                          child: Text(
-                            item.displayName,
-                            style: AppTypography.cardTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        // Removed category icons - replaced by ProfileTypeBadge
-                        const SizedBox(
-                          width: AppSpacing.s8,
-                        ), // Space before like button
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.s8),
-
-                    // 2. Distance Info + Profile Type Badge
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                      child: Row(
+                // Meio: Coluna de Informações
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          if (_hasLocationInfo) ...[
-                            const Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              item.displayName,
+                              style: AppTypography.cardTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: AppSpacing.s4),
-                            Text(
-                              widget.item.distanceText,
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.s8),
-                          ],
-                          ProfileTypeBadge(
-                            tipoPerfil: item.tipoPerfil,
-                            subCategories: item.subCategories,
                           ),
+                          const SizedBox(width: AppSpacing.s8),
                         ],
                       ),
-                    ),
-
-                    // 3. Skills Chips (filled style) - Single line, sorted by length
-                    if (item.skills.isNotEmpty)
+                      const SizedBox(height: AppSpacing.s8),
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                        child: _SingleLineChipList(
-                          // Already sorted in domain layer
-                          items: item.skills,
-                          chipBuilder: _buildSkillChip,
-                          overflowBuilder: (count) =>
-                              _buildSkillChip('+$count'),
+                        child: Row(
+                          children: [
+                            if (_hasLocationInfo) ...[
+                              const Icon(
+                                Icons.location_on,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: AppSpacing.s4),
+                              Text(
+                                widget.item.distanceText,
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.s8),
+                            ],
+                            ProfileTypeBadge(
+                              tipoPerfil: item.tipoPerfil,
+                              subCategories: item.subCategories,
+                            ),
+                          ],
                         ),
                       ),
-
-                    // 4. Genres Chips (outline style) - Single line, sorted by length
-                    if (item.formattedGenres.isNotEmpty)
-                      _SingleLineChipList(
-                        items: item.formattedGenres,
-                        chipBuilder: _buildGenreChip,
-                        overflowBuilder: (count) => _buildGenreChip('+$count'),
-                      ),
-                  ],
+                      if (item.skills.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                          child: _SingleLineChipList(
+                            items: item.skills,
+                            chipBuilder: _buildSkillChip,
+                            overflowBuilder: (count) =>
+                                _buildSkillChip('+$count'),
+                          ),
+                        ),
+                      if (item.formattedGenres.isNotEmpty)
+                        _SingleLineChipList(
+                          items: item.formattedGenres,
+                          chipBuilder: _buildGenreChip,
+                          overflowBuilder: (count) =>
+                              _buildGenreChip('+$count'),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Right: Like Button with Optimistic UI
-              AppLikeButton(targetId: item.uid, initialCount: item.likeCount),
-            ],
+                // Direita: Botão Curtir
+                AppLikeButton(targetId: item.uid, initialCount: item.likeCount),
+              ],
+            ),
           ),
         ),
       ),
@@ -206,9 +223,7 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
       ),
       child: Text(
         label,
-        style: AppTypography.chipLabel.copyWith(
-          color: AppColors.textPrimary,
-        ),
+        style: AppTypography.chipLabel.copyWith(color: AppColors.textPrimary),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         softWrap: false,

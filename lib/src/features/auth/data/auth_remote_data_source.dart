@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../constants/firestore_constants.dart';
 import '../../../utils/app_logger.dart';
@@ -13,6 +15,8 @@ abstract class AuthRemoteDataSource {
   User? get currentUser;
   Future<void> signInWithEmailAndPassword(String email, String password);
   Future<User?> registerWithEmailAndPassword(String email, String password);
+  Future<UserCredential> signInWithGoogle();
+  Future<UserCredential> signInWithApple();
   Future<void> saveUserProfile(AppUser user);
   Future<void> updateUserProfile(AppUser user);
   Future<AppUser?> fetchUserProfile(String uid);
@@ -53,6 +57,52 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       password: password,
     );
     return credential.user;
+  }
+
+  @override
+  Future<UserCredential> signInWithGoogle() async {
+    if (kIsWeb) {
+      final provider = GoogleAuthProvider();
+      provider.addScope('email');
+      provider.addScope('profile');
+      return _auth.signInWithPopup(provider);
+    }
+
+    await GoogleSignIn.instance.initialize();
+    if (!GoogleSignIn.instance.supportsAuthenticate()) {
+      throw FirebaseAuthException(
+        code: 'operation-not-supported',
+        message: 'Google Sign-In não é suportado nesta plataforma.',
+      );
+    }
+
+    final googleUser = await GoogleSignIn.instance.authenticate();
+    final googleAuth = googleUser.authentication;
+    final idToken = googleAuth.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'missing-google-id-token',
+        message: 'Falha ao obter token de autenticação do Google.',
+      );
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+
+    return _auth.signInWithCredential(credential);
+  }
+
+  @override
+  Future<UserCredential> signInWithApple() async {
+    final appleProvider = AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+
+    if (kIsWeb) {
+      return _auth.signInWithPopup(appleProvider);
+    }
+
+    return _auth.signInWithProvider(appleProvider);
   }
 
   @override

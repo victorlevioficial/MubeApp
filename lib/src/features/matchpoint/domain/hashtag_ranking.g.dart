@@ -17,7 +17,7 @@ _HashtagRanking _$HashtagRankingFromJson(Map<String, dynamic> json) =>
       trend: json['trend'] as String,
       trendDelta: (json['trendDelta'] as num).toInt(),
       isTrending: json['isTrending'] as bool,
-      lastUpdated: _timestampFromJson(json['lastUpdated']),
+      lastUpdated: DateTime.parse(json['lastUpdated'] as String),
     );
 
 Map<String, dynamic> _$HashtagRankingToJson(_HashtagRanking instance) =>
@@ -31,5 +31,5 @@ Map<String, dynamic> _$HashtagRankingToJson(_HashtagRanking instance) =>
       'trend': instance.trend,
       'trendDelta': instance.trendDelta,
       'isTrending': instance.isTrending,
-      'lastUpdated': _timestampToJson(instance.lastUpdated),
+      'lastUpdated': instance.lastUpdated.toIso8601String(),
     };

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 
+enum FadeInSlideDirection {
+  ttb, // top to bottom
+  btt, // bottom to top
+  ltr, // left to right
+  rtl, // right to left
+}
+
 class FadeInSlide extends StatefulWidget {
   final Widget child;
   final Duration duration;
   final Duration delay;
   final double offset;
+  final FadeInSlideDirection direction;
 
   const FadeInSlide({
     super.key,
@@ -12,6 +20,7 @@ class FadeInSlide extends StatefulWidget {
     this.duration = const Duration(milliseconds: 400),
     this.delay = Duration.zero,
     this.offset = 20.0,
+    this.direction = FadeInSlideDirection.rtl,
   });
 
   @override
@@ -55,12 +64,23 @@ class _FadeInSlideState extends State<FadeInSlide>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        final value = _translate.value;
+        Offset offset;
+
+        switch (widget.direction) {
+          case FadeInSlideDirection.ttb:
+            offset = Offset(0, -value);
+          case FadeInSlideDirection.btt:
+            offset = Offset(0, value);
+          case FadeInSlideDirection.ltr:
+            offset = Offset(-value, 0);
+          case FadeInSlideDirection.rtl:
+            offset = Offset(value, 0);
+        }
+
         return Opacity(
           opacity: _opacity.value,
-          child: Transform.translate(
-            offset: Offset(0, _translate.value),
-            child: widget.child,
-          ),
+          child: Transform.translate(offset: offset, child: widget.child),
         );
       },
     );

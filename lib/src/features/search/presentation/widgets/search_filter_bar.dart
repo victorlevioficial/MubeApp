@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../design_system/components/chips/mube_filter_chip.dart';
+import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../domain/search_filters.dart';
 
@@ -84,7 +84,7 @@ class SearchFilterBar extends StatelessWidget {
   Widget _buildSubcategoryChip(String label, ProfessionalSubcategory value) {
     final isSelected = filters.professionalSubcategory == value;
 
-    return MubeFilterChip(
+    return AppFilterChip(
       label: label,
       isSelected: isSelected,
       onSelected: (selected) {
@@ -107,7 +107,7 @@ class SearchFilterBar extends StatelessWidget {
       isSelected = filters.services.contains(value);
     }
 
-    return MubeFilterChip(
+    return AppFilterChip(
       label: label,
       isSelected: isSelected,
       onSelected: (_) {
@@ -161,7 +161,7 @@ class SearchFilterBar extends StatelessWidget {
     // I'll add an `VoidCallback onOpenFilters` to this widget constructor
     // so we can open the modal from here.
 
-    return MubeFilterChip(
+    return AppFilterChip(
       label: 'Gêneros',
       icon: Icons.music_note,
       isSelected: hasGenres,

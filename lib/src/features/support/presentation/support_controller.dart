@@ -1,8 +1,7 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import 'package:uuid/uuid.dart';
-
 import 'dart:io';
+
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../auth/data/auth_repository.dart';
 import '../../storage/data/storage_repository.dart';
@@ -25,8 +24,7 @@ class SupportController extends _$SupportController {
     List<File> attachments = const [],
   }) async {
     state = const AsyncLoading();
-
-    try {
+    state = await AsyncValue.guard(() async {
       final user = ref.read(currentUserProfileProvider).value;
       if (user == null) throw Exception('Usuário não autenticado');
 
@@ -58,11 +56,7 @@ class SupportController extends _$SupportController {
       );
 
       await ref.read(supportRepositoryProvider).createTicket(ticket);
-
-      state = const AsyncData(null);
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
+    });
   }
 }
 
