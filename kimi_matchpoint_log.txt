@@ -1,0 +1,24 @@
+00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/unit/matchpoint/matchpoint_controller_extended_test.dart
+00:00 +0: MatchpointController - L??gica de Compatibilidade swipeRight should handle quota exceeded error
+00:00 +1: MatchpointController - L??gica de Compatibilidade swipeRight should handle permission denied error
+00:00 +2: MatchpointController - L??gica de Compatibilidade swipeRight should update remaining likes when provided
+00:00 +3: MatchpointController - L??gica de Compatibilidade swipeLeft should return false on error
+00:00 +4: MatchpointController - L??gica de Compatibilidade fetchRemainingLikes should update quota state on success
+00:00 +5: MatchpointController - L??gica de Compatibilidade fetchRemainingLikes should handle error gracefully
+00:00 +6: MatchpointController - L??gica de Compatibilidade saveMatchpointProfile should handle update failure
+00:00 +7: MatchpointController - L??gica de Compatibilidade unmatchUser should handle error gracefully
+00:00 +8: LikesQuota - Regras de Neg??cio LikesQuotaState hasReachedLimit should be true when remaining is 0
+00:00 +9: LikesQuota - Regras de Neg??cio LikesQuotaState hasReachedLimit should be true when remaining is negative
+00:00 +10: LikesQuota - Regras de Neg??cio LikesQuotaState hasReachedLimit should be false when remaining is positive
+00:00 +11: LikesQuota - Regras de Neg??cio LikesQuota copyWith should update values correctly
+00:00 +12: LikesQuota - Regras de Neg??cio LikesQuota notifier should set quota correctly
+00:00 +13: LikesQuota - Regras de Neg??cio LikesQuota notifier should update remaining correctly
+00:00 +14: LikesQuota - Regras de Neg??cio LikesQuota decrementOptimistically should decrease remaining
+00:00 +15: LikesQuota - Regras de Neg??cio LikesQuota decrementOptimistically should not go below 0
+00:00 +16: LikesQuota - Regras de Neg??cio LikesQuota setLoading should update loading state
+00:00 +17: SwipeActionResult - Regras de Neg??cio SwipeActionResult should be created with correct values
+00:00 +18: SwipeActionResult - Regras de Neg??cio SwipeActionResult should handle non-match result
+00:00 +19: MatchpointActionResult - Regras de Neg??cio MatchpointActionResult equality should work correctly
+00:00 +20: MatchpointActionResult - Regras de Neg??cio MatchpointActionResult fromJson should parse correctly
+00:00 +21: MatchpointActionResult - Regras de Neg??cio MatchpointActionResult fromJson should handle missing fields
+00:00 +22: All tests passed!

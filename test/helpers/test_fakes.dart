@@ -325,6 +325,58 @@ class FakeFeedRepository extends Fake implements FeedRepository {
           ),
     );
   }
+
+  @override
+  FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
+    required String currentUserId,
+    required double userLat,
+    required double userLong,
+    String? filterType,
+    String? category,
+    String? excludeCategory,
+    List<String> excludedIds = const [],
+    int? limit,
+    String? userGeohash,
+    double? radiusKm,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    return Either.right(nearbyUsers);
+  }
+
+  @override
+  FutureResult<PaginatedFeedResponse> getUsersByTypePaginated({
+    required String type,
+    required String currentUserId,
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    return Either.right(
+      mainFeedResponse ??
+          PaginatedFeedResponse(
+            items: bands,
+            hasMore: false,
+            lastDocument: null,
+          ),
+    );
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getTechnicians({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    return Either.right(artists);
+  }
 }
 
 /// Fake implementation of FeedImagePrecacheService
@@ -518,12 +570,13 @@ class FakeSearchController extends SearchController {
   FakeSearchController({
     SearchPaginationState? state,
     AsyncValue<List<FeedItem>>? asyncValue,
-  })  : _fixedState = state ??
-            const SearchPaginationState(
-              status: PaginationStatus.loaded,
-              hasMore: false,
-            ),
-        _fixedAsyncValue = asyncValue ?? const AsyncValue.data([]);
+  }) : _fixedState =
+           state ??
+           const SearchPaginationState(
+             status: PaginationStatus.loaded,
+             hasMore: false,
+           ),
+       _fixedAsyncValue = asyncValue ?? const AsyncValue.data([]);
 
   @override
   SearchPaginationState build() {

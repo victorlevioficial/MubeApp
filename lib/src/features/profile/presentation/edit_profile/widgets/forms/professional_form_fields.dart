@@ -2,19 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../../../constants/app_constants.dart';
-import '../../../../core/providers/app_config_provider.dart';
-import '../../../../design_system/components/buttons/app_button.dart';
-import '../../../../design_system/components/chips/app_filter_chip.dart';
-import '../../../../design_system/components/inputs/app_date_picker_field.dart';
-import '../../../../design_system/components/inputs/app_dropdown_field.dart';
-import '../../../../design_system/components/inputs/app_selection_modal.dart';
-import '../../../../design_system/components/inputs/app_text_field.dart';
-import '../../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../../design_system/foundations/tokens/app_radius.dart';
-import '../../../../design_system/foundations/tokens/app_spacing.dart';
-import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../../utils/app_logger.dart';
+import '../../../../../../constants/app_constants.dart';
+import '../../../../../../core/providers/app_config_provider.dart';
+import '../../../../../../design_system/components/buttons/app_button.dart';
+import '../../../../../../design_system/components/chips/app_filter_chip.dart';
+import '../../../../../../design_system/components/inputs/app_date_picker_field.dart';
+import '../../../../../../design_system/components/inputs/app_dropdown_field.dart';
+import '../../../../../../design_system/components/inputs/app_selection_modal.dart';
+import '../../../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../../../design_system/foundations/tokens/app_typography.dart';
 
 class ProfessionalFormFields extends ConsumerStatefulWidget {
   final TextEditingController nomeArtisticoController;
@@ -22,6 +21,7 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
   final TextEditingController dataNascimentoController;
   final TextEditingController generoController;
   final TextEditingController instagramController;
+  final TextEditingController bioController;
   final MaskTextInputFormatter celularMask;
 
   final List<String> selectedCategories;
@@ -49,6 +49,7 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
     required this.dataNascimentoController,
     required this.generoController,
     required this.instagramController,
+    required this.bioController,
     required this.celularMask,
     required this.selectedCategories,
     required this.selectedGenres,
@@ -122,21 +123,32 @@ class _ProfessionalFormFieldsState
           label: 'Instagram',
           hint: '@usuario',
         ),
+        const SizedBox(height: AppSpacing.s16),
+        AppTextField(
+          controller: widget.bioController,
+          label: 'Bio',
+          maxLines: 3,
+          hint: 'Conte um pouco sobre você...',
+          onChanged: (_) => widget.onStateChanged(),
+        ),
 
-        const SizedBox(height: AppSpacing.s32),
-        const SizedBox(height: AppSpacing.s32),
+        const SizedBox(height: AppSpacing.s16),
 
         // --- Categories and Specific Questions ---
         _buildCategorySelector(),
 
         // 1. Singer Specifics
         if (widget.selectedCategories.contains('singer')) ...[
-          const SizedBox(height: AppSpacing.s24),
+          const SizedBox(height: AppSpacing.s16),
           Container(
             padding: const EdgeInsets.all(AppSpacing.s16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all16,
+              border: Border.all(
+                color: AppColors.background.withValues(alpha: 0.5),
+                width: 1,
+              ),
             ),
             child: AppDropdownField<String>(
               label: 'Faz Backing Vocal?',
@@ -174,9 +186,13 @@ class _ProfessionalFormFieldsState
           // Backing Vocal Checkbox for Instrumentalist
           Container(
             padding: const EdgeInsets.all(AppSpacing.s16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all16,
+              border: Border.all(
+                color: AppColors.background.withValues(alpha: 0.5),
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
@@ -234,81 +250,40 @@ class _ProfessionalFormFieldsState
     final options = professionalCategories
         .map((e) => e['id'] as String)
         .toList();
-    final selected = widget.selectedCategories;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
+    return _buildCard(
+      title: 'Categorias',
+      items: widget.selectedCategories.map((id) {
+        final cat = professionalCategories.firstWhere(
+          (e) => e['id'] == id,
+          orElse: () => <String, Object>{'label': id},
+        );
+        return cat['label'] as String;
+      }).toList(),
+      onAdd: () => _showSelectionModal(
+        title: 'Selecione as Categorias',
+        options: options,
+        selected: widget.selectedCategories,
+        onChanged: widget.onCategoriesChanged,
+        itemLabelBuilder: (item) {
+          final cat = professionalCategories.firstWhere(
+            (e) => e['id'] == item,
+            orElse: () => <String, Object>{'label': item},
+          );
+          return cat['label'] as String;
+        },
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text('Categorias', style: AppTypography.titleMedium),
-          const SizedBox(height: AppSpacing.s12),
-
-          AppButton.outline(
-            text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
-            icon: const Icon(Icons.add, size: 18),
-            onPressed: () async {
-              final result = await showModalBottomSheet<List<String>>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: AppColors.transparent,
-                builder: (context) => AppSelectionModal(
-                  title: 'Categorias',
-                  items: options,
-                  selectedItems: selected,
-                  allowMultiple: true,
-                  itemLabelBuilder: (item) {
-                    final cat = professionalCategories.firstWhere(
-                      (e) => e['id'] == item,
-                      orElse: () => <String, Object>{'label': item},
-                    );
-                    return cat['label'] as String;
-                  },
-                ),
-              );
-
-              if (result != null) {
-                // Use dedicated callback that allows parent to handle cascading clear
-                widget.onCategoriesChanged(result);
-              }
-            },
-          ),
-
-          if (selected.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.s12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: selected.map((item) {
-                String display = item;
-                final cat = professionalCategories.firstWhere(
-                  (e) => e['id'] == item,
-                  orElse: () => <String, Object>{'label': item},
-                );
-                if (cat['label'] != null) {
-                  display = cat['label'] as String;
-                }
-
-                return AppFilterChip(
-                  label: display,
-                  isSelected: true,
-                  onSelected: (_) {},
-                  onRemove: () {
-                    // Remove and notify parent via dedicated callback
-                    final updated = List<String>.from(selected);
-                    updated.remove(item);
-                    widget.onCategoriesChanged(updated);
-                  },
-                );
-              }).toList(),
-            ),
-          ],
-        ],
-      ),
+      onRemove: (itemLabel) {
+        final categoryId =
+            professionalCategories.firstWhere(
+                  (e) => e['label'] == itemLabel,
+                  orElse: () => <String, Object>{'id': itemLabel},
+                )['id']
+                as String;
+        final newSelected = List<String>.from(widget.selectedCategories)
+          ..remove(categoryId);
+        widget.onCategoriesChanged(newSelected);
+      },
     );
   }
 
@@ -318,64 +293,64 @@ class _ProfessionalFormFieldsState
     List<String> selected,
     ValueChanged<List<String>> onChanged,
   ) {
+    return _buildCard(
+      title: label,
+      items: selected,
+      onAdd: () => _showSelectionModal(
+        title: 'Selecione $label',
+        options: options,
+        selected: selected,
+        onChanged: onChanged,
+      ),
+      onRemove: (item) {
+        final newSelected = List<String>.from(selected)..remove(item);
+        onChanged(newSelected);
+      },
+    );
+  }
+
+  Widget _buildCard({
+    required String title,
+    required List<String> items,
+    required VoidCallback onAdd,
+    required Function(String) onRemove,
+  }) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.background.withValues(alpha: 0.5),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(label, style: AppTypography.titleMedium),
-          const SizedBox(height: AppSpacing.s12),
-
-          AppButton.outline(
-            text: selected.isEmpty ? 'Selecionar' : 'Editar seleção',
-            icon: const Icon(Icons.add, size: 18),
-            onPressed: () async {
-              final result = await showModalBottomSheet<List<String>>(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: AppColors.transparent,
-                builder: (context) => AppSelectionModal(
-                  title: label,
-                  items: options,
-                  selectedItems: selected,
-                  allowMultiple: true,
-                  // Items (instruments, roles, genres) are already
-                  // display-ready strings from providers
-                  itemLabelBuilder: (item) => item,
-                ),
-              );
-
-              AppLogger.info('📋 Modal returned: $result for $label');
-              if (result != null) {
-                AppLogger.info('📋 Calling onChanged callback with: $result');
-                onChanged(result);
-                AppLogger.info('📋 onChanged callback completed');
-              } else {
-                AppLogger.info('📋 Result was null, not calling callback');
-              }
-            },
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: AppTypography.titleMedium),
+              AppButton.ghost(
+                text: 'Adicionar',
+                onPressed: onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                size: AppButtonSize.small,
+              ),
+            ],
           ),
-
-          if (selected.isNotEmpty) ...[
+          if (items.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.s12),
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: selected.map((item) {
-                // Items are already display-ready strings from providers
+              spacing: AppSpacing.s8,
+              runSpacing: AppSpacing.s8,
+              children: items.map((item) {
                 return AppFilterChip(
                   label: item,
                   isSelected: true,
                   onSelected: (_) {},
-                  onRemove: () {
-                    final newList = List<String>.from(selected);
-                    newList.remove(item);
-                    onChanged(newList);
-                  },
+                  onRemove: () => onRemove(item),
                 );
               }).toList(),
             ),
@@ -383,5 +358,30 @@ class _ProfessionalFormFieldsState
         ],
       ),
     );
+  }
+
+  void _showSelectionModal({
+    required String title,
+    required List<String> options,
+    required List<String> selected,
+    required ValueChanged<List<String>> onChanged,
+    String Function(String)? itemLabelBuilder,
+  }) async {
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.transparent,
+      builder: (context) => AppSelectionModal(
+        title: title,
+        items: options,
+        selectedItems: selected,
+        allowMultiple: true,
+        itemLabelBuilder: itemLabelBuilder ?? (item) => item,
+      ),
+    );
+
+    if (result != null) {
+      onChanged(result);
+    }
   }
 }

@@ -91,9 +91,7 @@ class AppChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTypography.chipLabel.copyWith(
-          color: AppColors.textPrimary,
-        ),
+        style: AppTypography.chipLabel.copyWith(color: AppColors.textPrimary),
       ),
     );
   }
@@ -110,9 +108,7 @@ class AppChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTypography.chipLabel.copyWith(
-          color: AppColors.textPrimary,
-        ),
+        style: AppTypography.chipLabel.copyWith(color: AppColors.textPrimary),
       ),
     );
   }
@@ -127,8 +123,16 @@ class AppChip extends StatelessWidget {
           vertical: AppSpacing.s8,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceHighlight,
+          color: isSelected
+              ? AppColors.primaryMuted
+              : AppColors.surfaceHighlight,
           borderRadius: AppRadius.pill,
+          border: isSelected
+              ? Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                  width: 1,
+                )
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -137,7 +141,7 @@ class AppChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color: AppColors.textPrimary,
+                color: isSelected ? AppColors.primary : AppColors.textPrimary,
               ),
               const SizedBox(width: AppSpacing.s8),
             ],

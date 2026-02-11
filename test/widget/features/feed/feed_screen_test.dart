@@ -60,10 +60,14 @@ void main() {
 
   group('FeedScreen', () {
     testWidgets('shows skeleton when loading', (tester) async {
+      // Setup the completer to hang the repository request
       fakeFeedRepository.requestCompleter = Completer<void>();
 
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(createSubject());
+        // First pump renders initial frame
+        await tester.pump();
+        // Second pump processes addPostFrameCallback where loadAllData is called
         await tester.pump();
       });
 
@@ -75,8 +79,10 @@ void main() {
 
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(createSubject());
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 100));
+        // Trigger loadAllData
+        await tester.pump();
+        // Allow error propagation
+        await tester.pump();
       });
 
       expect(find.textContaining('Erro'), findsOneWidget);
@@ -85,8 +91,10 @@ void main() {
     testWidgets('shows empty state when no users found', (tester) async {
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(createSubject());
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pump(const Duration(milliseconds: 100));
+        // Trigger loadAllData
+        await tester.pump();
+        // Allow data loading to complete (fake repo returns empty list by default)
+        await tester.pump();
       });
 
       expect(find.byType(EmptyStateWidget), findsOneWidget);

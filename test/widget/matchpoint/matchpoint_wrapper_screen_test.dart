@@ -13,7 +13,7 @@ import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_int
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_tabs_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 
-import '../../unit/matchpoint/matchpoint_controller_test.mocks.dart';
+import '../features/matchpoint/matchpoint_test_fakes.dart';
 
 void main() {
   late MockMatchpointRepository mockRepo;
@@ -43,7 +43,9 @@ void main() {
         limit: anyNamed('limit'),
       ),
     ).thenAnswer((_) async => const Right([]));
+
     when(mockRepo.fetchMatches(any)).thenAnswer((_) async => const Right([]));
+
     when(
       mockRepo.fetchHashtagRanking(limit: anyNamed('limit')),
     ).thenAnswer((_) async => const Right([]));
