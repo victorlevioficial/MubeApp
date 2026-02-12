@@ -3,12 +3,11 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
-import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/paginated_search_response.dart';
@@ -135,10 +134,7 @@ class SearchRepository {
       // Log analytics event for search error
       await _analytics?.logEvent(
         name: 'search_error',
-        parameters: {
-          'query': filters.term,
-          'error_message': e.toString(),
-        },
+        parameters: {'query': filters.term, 'error_message': e.toString()},
       );
 
       return Left(ServerFailure(message: e.toString()));
@@ -247,7 +243,9 @@ class SearchRepository {
 
     // Services filter (studios only)
     if (filters.services.isNotEmpty && item.tipoPerfil == 'estudio') {
-      final itemServices = List<String>.from(studioData['services'] ?? []);
+      final itemServices = List<String>.from(
+        studioData['services'] ?? studioData['servicosOferecidos'] ?? [],
+      );
       if (!listContainsAny(itemServices, filters.services)) {
         return false;
       }
@@ -276,7 +274,10 @@ class SearchRepository {
 
       // Instrumentalist: check fazBackingVocal
       if (categories.contains('instrumentalist')) {
-        final fazBacking = profData['fazBackingVocal'] as bool? ?? false;
+        final fazBacking =
+            profData['fazBackingVocal'] as bool? ??
+            profData['instrumentalistBackingVocal'] as bool? ??
+            false;
         if (fazBacking) canDoBacking = true;
       }
 

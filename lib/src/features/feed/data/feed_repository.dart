@@ -174,7 +174,7 @@ class FeedRepository {
     userLong: userLong,
     limit: limit,
     excludedIds: excludedIds,
-    excludeCategory: ProfessionalCategory.techCrew,
+    techniciansOnly: false,
   );
 
   /// Fetches technical crew only.
@@ -190,7 +190,7 @@ class FeedRepository {
     userLong: userLong,
     limit: limit,
     excludedIds: excludedIds,
-    includeCategory: ProfessionalCategory.techCrew,
+    techniciansOnly: true,
   );
 
   /// Private method containing the shared logic for filtering professionals.
@@ -200,8 +200,7 @@ class FeedRepository {
     required double? userLong,
     required int limit,
     List<String> excludedIds = const [],
-    String? includeCategory,
-    String? excludeCategory,
+    required bool techniciansOnly,
   }) async {
     try {
       final userDoc = await _dataSource.getUser(currentUserId);
@@ -213,36 +212,31 @@ class FeedRepository {
           userLat: userLat,
           userLong: userLong,
           filterType: ProfileType.professional,
-          category: includeCategory,
-          excludeCategory: excludeCategory,
           userGeohash: userGeohash,
           excludedIds: excludedIds,
         );
-        return result.map((items) => items.take(limit).toList());
+        return result.map(
+          (items) => _filterProfessionals(
+            items,
+            techniciansOnly: techniciansOnly,
+          ).take(limit).toList(),
+        );
       }
 
       // Fallback without location
-      final snapshot = includeCategory != null
-          ? await _dataSource.getUsersByCategory(
-              category: includeCategory,
-              limit: limit,
-              startAfter: null,
-            )
-          : await _dataSource.getUsersByType(
-              type: ProfileType.professional,
-              limit: limit * 2,
-              startAfter: null,
-            );
+      final snapshot = await _dataSource.getUsersByType(
+        type: ProfileType.professional,
+        limit: limit * 4,
+        startAfter: null,
+      );
 
       var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
 
       // Apply filters
-      if (excludeCategory != null) {
-        items = items.where((i) => i.categoria != excludeCategory).toList();
-      }
       if (excludedIds.isNotEmpty) {
         items = items.where((i) => !excludedIds.contains(i.uid)).toList();
       }
+      items = _filterProfessionals(items, techniciansOnly: techniciansOnly);
 
       return Right(items.take(limit).toList());
     } catch (e) {
@@ -284,6 +278,88 @@ class FeedRepository {
     }
 
     return items;
+  }
+
+  List<FeedItem> _filterProfessionals(
+    List<FeedItem> items, {
+    required bool techniciansOnly,
+  }) {
+    return items.where((item) {
+      final pureTechnician = _isPureTechnician(item);
+      return techniciansOnly ? pureTechnician : !pureTechnician;
+    }).toList();
+  }
+
+  bool _isPureTechnician(FeedItem item) {
+    if (item.tipoPerfil != ProfileType.professional) return false;
+
+    final normalizedCategories = item.subCategories
+        .map(_normalizeCategory)
+        .where((value) => value.isNotEmpty)
+        .toSet();
+
+    final hasCrew = normalizedCategories.contains('crew');
+    final hasArtistCategory =
+        normalizedCategories.contains('singer') ||
+        normalizedCategories.contains('instrumentalist') ||
+        normalizedCategories.contains('dj');
+
+    return hasCrew && !hasArtistCategory;
+  }
+
+  String _normalizeCategory(String value) {
+    if (value.trim().isEmpty) return '';
+
+    final normalized = value
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('ä', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ë', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ì', 'i')
+        .replaceAll('î', 'i')
+        .replaceAll('ï', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ò', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ö', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+
+    switch (normalized) {
+      case 'crew':
+      case 'equipe_tecnica':
+      case 'equipe_tecnico':
+      case 'tecnico':
+      case 'tecnica':
+        return 'crew';
+      case 'cantor':
+      case 'cantora':
+      case 'cantor_a':
+      case 'vocalista':
+      case 'singer':
+        return 'singer';
+      case 'instrumentista':
+      case 'instrumentalist':
+        return 'instrumentalist';
+      case 'dj':
+        return 'dj';
+      default:
+        return normalized;
+    }
   }
 
   FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
@@ -500,13 +576,13 @@ class FeedRepository {
   }
 
   /// Busca usuários próximos usando geohash com busca progressiva otimizada.
-  /// 
+  ///
   /// Esta é a melhor prática para performance com grandes volumes:
   /// 1. Busca primeiro no geohash do usuário (5km x 5km)
   /// 2. Se não tiver suficientes, expande para vizinhos progressivamente
   /// 3. Limita a 20 resultados por query (eficiente no Firestore)
   /// 4. Ordena por distância real calculada
-  /// 
+  ///
   /// Com 50k usuários, isso lê apenas ~20-60 documentos em vez de 150+
   FutureResult<List<FeedItem>> getNearbyUsersOptimized({
     required String currentUserId,
@@ -519,17 +595,17 @@ class FeedRepository {
     try {
       final List<FeedItem> results = [];
       final Set<String> seenUids = {};
-      
+
       // Gera geohash do usuário com precisão 5 (~5km x 5km)
       final userGeohash = GeohashHelper.encode(userLat, userLong, precision: 5);
-      
+
       // 1. Primeiro busca no geohash do usuário (mais próximos)
       final centerSnapshot = await _dataSource.getUsersByGeohash(
         geohash: userGeohash,
         filterType: filterType,
         limit: targetResults,
       );
-      
+
       _processGeohashResults(
         centerSnapshot,
         results,
@@ -539,23 +615,23 @@ class FeedRepository {
         userLong,
         excludedIds,
       );
-      
+
       // 2. Se não tiver suficientes, expande para vizinhos (9 áreas ao todo)
       if (results.length < targetResults) {
         final neighbors = GeohashHelper.neighbors(userGeohash);
         // Remove o centro que já buscamos
         neighbors.remove(userGeohash);
-        
+
         // Busca em cada vizinho até ter resultados suficientes
         for (final neighborHash in neighbors) {
           if (results.length >= targetResults) break;
-          
+
           final neighborSnapshot = await _dataSource.getUsersByGeohash(
             geohash: neighborHash,
             filterType: filterType,
             limit: targetResults - results.length,
           );
-          
+
           _processGeohashResults(
             neighborSnapshot,
             results,
@@ -567,13 +643,17 @@ class FeedRepository {
           );
         }
       }
-      
+
       // 3. Ordena por distância real calculada
-      results.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
-      
+      results.sort(
+        (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
+      );
+
       // 4. Fallback: se não encontrou nada com geohash, busca todos
       if (results.isEmpty) {
-        AppLogger.info('⚠️ Nenhum usuário com geohash encontrado. Usando fallback...');
+        AppLogger.info(
+          '⚠️ Nenhum usuário com geohash encontrado. Usando fallback...',
+        );
         return _getAllUsersSortedByDistanceClassic(
           currentUserId: currentUserId,
           userLat: userLat,
@@ -583,13 +663,13 @@ class FeedRepository {
           limit: targetResults,
         );
       }
-      
+
       return Right(results);
     } catch (e) {
       return Left(mapExceptionToFailure(e));
     }
   }
-  
+
   /// Processa resultados de uma query de geohash
   void _processGeohashResults(
     QuerySnapshot<Map<String, dynamic>> snapshot,
@@ -603,29 +683,29 @@ class FeedRepository {
     for (final doc in snapshot.docs) {
       // Skip self
       if (doc.id == currentUserId) continue;
-      
+
       // Skip duplicates
       if (seenUids.contains(doc.id)) continue;
-      
+
       // Skip blocked
       if (excludedIds.contains(doc.id)) continue;
-      
+
       final data = doc.data();
-      
+
       // Skip contractors
       if (data['tipo_perfil'] == 'contratante') continue;
-      
+
       // Skip incomplete profiles
       final cadastroStatus = data['cadastro_status'] as String?;
       final status = data['status'] as String? ?? 'ativo';
       if (cadastroStatus != 'concluido' || status != 'ativo') continue;
-      
+
       // Skip ghost mode
       final privacy = data['privacy_settings'] as Map<String, dynamic>?;
       if (privacy != null && privacy['visible_in_home'] == false) continue;
-      
+
       var item = FeedItem.fromFirestore(data, doc.id);
-      
+
       // Calculate exact distance
       if (item.location != null) {
         final itemLat = item.location!['lat'] as double?;
@@ -641,7 +721,7 @@ class FeedRepository {
           );
         }
       }
-      
+
       seenUids.add(doc.id);
       results.add(item);
     }

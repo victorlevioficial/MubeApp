@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/typedefs.dart';
-import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
-import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
+import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 

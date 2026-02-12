@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -108,7 +108,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         otherUid: _otherUserId,
         otherUserName: _otherUserName,
         otherUserPhoto: _otherUserPhoto,
-        myName: user.nome ?? 'Usuário',
+        myName: user.appDisplayName.isNotEmpty
+            ? user.appDisplayName
+            : (user.nome ?? 'Usuario'),
         myPhoto: user.foto,
       );
 

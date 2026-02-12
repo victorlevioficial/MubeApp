@@ -7,14 +7,14 @@ import 'package:mube/src/features/search/presentation/widgets/user_card.dart';
 
 void main() {
   group('UserCard', () {
-    final testUser = AppUser(
+    const testUser = AppUser(
       uid: 'user-1',
       email: 'test@example.com',
       nome: 'João Silva',
       tipoPerfil: AppUserType.professional,
-      dadosProfissional: const {'nomeArtistico': 'João Rock'},
+      dadosProfissional: {'nomeArtistico': 'João Rock'},
       foto: 'https://example.com/photo.jpg',
-      location: const {'cidade': 'São Paulo', 'estado': 'SP'},
+      location: {'cidade': 'São Paulo', 'estado': 'SP'},
     );
 
     testWidgets('renders with user artistic name', (WidgetTester tester) async {
@@ -32,7 +32,7 @@ void main() {
     testWidgets('renders with user real name when no artistic name', (
       WidgetTester tester,
     ) async {
-      final userWithoutArtisticName = AppUser(
+      const userWithoutArtisticName = AppUser(
         uid: 'user-2',
         email: 'test2@example.com',
         nome: 'Maria Santos',
@@ -53,12 +53,12 @@ void main() {
     testWidgets('renders with studio name for studio type', (
       WidgetTester tester,
     ) async {
-      final studioUser = AppUser(
+      const studioUser = AppUser(
         uid: 'studio-1',
         email: 'studio@test.com',
         nome: 'Studio Real Name',
         tipoPerfil: AppUserType.studio,
-        dadosEstudio: const {'nomeArtistico': 'Studio Artístico'},
+        dadosEstudio: {'nomeArtistico': 'Studio Artístico'},
       );
 
       await tester.pumpWidget(
@@ -129,7 +129,7 @@ void main() {
     testWidgets('does not render location when not available', (
       WidgetTester tester,
     ) async {
-      final userWithoutLocation = AppUser(
+      const userWithoutLocation = AppUser(
         uid: 'user-3',
         email: 'test3@example.com',
         nome: 'Sem Localização',
@@ -199,7 +199,7 @@ void main() {
     testWidgets('handles long names with ellipsis', (
       WidgetTester tester,
     ) async {
-      final userWithLongName = AppUser(
+      const userWithLongName = AppUser(
         uid: 'user-4',
         email: 'test4@example.com',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado Para Caber No Card',
@@ -225,7 +225,7 @@ void main() {
 
     testWidgets('handles null onTap gracefully', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(body: UserCard(user: testUser, onTap: null)),
         ),
       );

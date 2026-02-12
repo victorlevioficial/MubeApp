@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
-import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 import 'package:mube/src/features/favorites/presentation/favorites_screen.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
@@ -43,8 +42,9 @@ void main() {
         ),
         GoRoute(
           path: '/user/:id',
-          builder: (context, state) =>
-              Scaffold(body: Text('User Profile: ${state.pathParameters['id']}')),
+          builder: (context, state) => Scaffold(
+            body: Text('User Profile: ${state.pathParameters['id']}'),
+          ),
         ),
       ],
     );

@@ -48,6 +48,9 @@ jobs:
       
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Verify text encoding (mojibake guard)
+        run: flutter test test/unit/quality/mojibake_guard_test.dart
       
       - name: Run tests
         run: flutter test --coverage

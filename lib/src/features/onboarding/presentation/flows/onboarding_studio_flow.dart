@@ -4,16 +4,12 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../constants/app_constants.dart';
-import '../../../../core/domain/app_config.dart';
-import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
-import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/inputs/enhanced_multi_select_modal.dart';
 import '../../../../design_system/components/navigation/responsive_center.dart';
 import '../../../../design_system/components/patterns/onboarding_header.dart';
-import '../../../../design_system/components/patterns/onboarding_section_card.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -23,6 +19,12 @@ import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
 import '../steps/onboarding_address_step.dart';
 
+/// Enhanced Studio Onboarding Flow with modern UI.
+///
+/// Steps:
+/// 1. Basic Info (Full name + Studio name + Contact)
+/// 2. Services Offered
+/// 3. Address
 class OnboardingStudioFlow extends ConsumerStatefulWidget {
   final AppUser user;
 
@@ -36,53 +38,58 @@ class OnboardingStudioFlow extends ConsumerStatefulWidget {
 class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
   final _formKey = GlobalKey<FormState>();
 
-  // State
   int _currentStep = 1;
   static const int _totalSteps = 3;
 
-  // Controllers Step 1
-  final _nomeController = TextEditingController();
+  final _nomeCompletoController = TextEditingController();
+  final _nomeEstudioController = TextEditingController();
   final _celularController = TextEditingController();
+  final _instagramController = TextEditingController();
 
   final _celularMask = MaskTextInputFormatter(
     mask: '(##) #####-####',
     filter: {'#': RegExp(r'[0-9]')},
   );
 
-  String? _studioType; // No default
-
-  // State Step 2
   List<String> _selectedServices = [];
 
   @override
   void initState() {
     super.initState();
     final formState = ref.read(onboardingFormProvider);
+    final studioData = widget.user.dadosEstudio ?? const <String, dynamic>{};
 
-    // Initialize with persisted state
-    // We map 'nomeArtistico' to 'Nome do Estúdio'
-    _nomeController.text = formState.nomeArtistico ?? '';
+    _nomeCompletoController.text = formState.nome ?? widget.user.nome ?? '';
+    _nomeEstudioController.text =
+        formState.nomeArtistico ??
+        (studioData['nomeEstudio'] as String?) ??
+        (studioData['nomeArtistico'] as String?) ??
+        widget.user.appDisplayName;
     _celularController.text = formState.celular ?? '';
-
-    // Initialize from persisted state if available
-    _studioType = formState.studioType;
+    _instagramController.text = formState.instagram ?? '';
     _selectedServices = List.from(formState.selectedServices);
 
-    // Listeners
-    _nomeController.addListener(() {
-      // Map Studio Name to Nome Artistico for consistency in storage
-      ref
+    _nomeCompletoController.addListener(
+      () => ref
           .read(onboardingFormProvider.notifier)
-          .updateNomeArtistico(_nomeController.text);
-    });
-
+          .updateNome(_nomeCompletoController.text),
+    );
+    _nomeEstudioController.addListener(
+      () => ref
+          .read(onboardingFormProvider.notifier)
+          .updateNomeArtistico(_nomeEstudioController.text),
+    );
     _celularController.addListener(
       () => ref
           .read(onboardingFormProvider.notifier)
           .updateCelular(_celularController.text),
     );
+    _instagramController.addListener(
+      () => ref
+          .read(onboardingFormProvider.notifier)
+          .updateInstagram(_instagramController.text),
+    );
 
-    // Try to fetch location preview silently via Provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });
@@ -90,30 +97,29 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
 
   @override
   void dispose() {
-    _nomeController.dispose();
+    _nomeCompletoController.dispose();
+    _nomeEstudioController.dispose();
     _celularController.dispose();
+    _instagramController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
     if (_currentStep == 1) {
       if (!_formKey.currentState!.validate()) return;
-
-      if (_studioType == null) {
-        AppSnackBar.show(context, 'Selecione o tipo de estúdio', isError: true);
-        return;
-      }
-
       setState(() => _currentStep++);
     } else if (_currentStep == 2) {
       if (_selectedServices.isEmpty) {
         AppSnackBar.show(
           context,
-          'Selecione pelo menos um serviço',
+          'Selecione pelo menos um servico',
           isError: true,
         );
         return;
       }
+      ref
+          .read(onboardingFormProvider.notifier)
+          .updateServices(_selectedServices);
       setState(() => _currentStep++);
     }
   }
@@ -129,35 +135,21 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
   }
 
   void _finishOnboarding() {
-    // Get AppConfig for ID mapping
-    final appConfigAsync = ref.read(appConfigProvider);
-    final appConfig = appConfigAsync.value;
+    final studioDisplayName = _nomeEstudioController.text.trim();
 
-    List<String> serviceIds = _selectedServices;
-
-    if (appConfig != null) {
-      serviceIds = _selectedServices.map<String>((label) {
-        return appConfig.studioServices
-            .firstWhere(
-              (s) => s.label == label,
-              orElse: () => ConfigItem(id: label, label: label, order: 0),
-            )
-            .id;
-      }).toList();
-    }
-
-    // Prepare Data
     final Map<String, dynamic> studioData = {
-      'nomeArtistico': _nomeController.text, // Studio Name
+      'nomeEstudio': studioDisplayName,
+      'nomeArtistico': studioDisplayName,
+      'nome': studioDisplayName,
       'celular': _celularController.text,
-      'studioType': _studioType,
-      'services': serviceIds,
+      'instagram': _instagramController.text,
+      'servicosOferecidos': _selectedServices,
+      'services': _selectedServices,
       'isPublic': true,
-      // 'categorias': ['studio'], // Optionally add a category if 'studio' isn't just the user type
     };
 
-    // Address
     final formState = ref.read(onboardingFormProvider);
+
     final location = {
       'cep': formState.cep,
       'logradouro': formState.logradouro,
@@ -173,15 +165,14 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
-          nome: widget.user.nome ?? '', // Keep original name
+          nome: _nomeCompletoController.text.trim(),
           location: location,
-          dadosProfissional: studioData, // Reusing generic map argument
+          dadosEstudio: studioData,
         );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Listen to persistence
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -189,7 +180,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           child: ResponsiveCenter(
             maxContentWidth: 600,
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s16,
+              horizontal: AppSpacing.s24,
               vertical: AppSpacing.s24,
             ),
             child: Form(
@@ -197,7 +188,6 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header
                   OnboardingHeader(
                     currentStep: _currentStep,
                     totalSteps: _totalSteps,
@@ -229,13 +219,13 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Perfil de Estúdio',
+          'Dados do Estudio',
           style: AppTypography.headlineLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Conte-nos sobre seu espaço',
+          'Informacoes basicas do seu espaco',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -244,209 +234,196 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         const SizedBox(height: AppSpacing.s32),
 
         AppTextField(
-          controller: _nomeController,
-          label: 'Nome do Estúdio',
+          controller: _nomeCompletoController,
+          label: 'Nome Completo (Responsavel)',
+          hint: 'Usado para cadastro interno',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => v!.isEmpty ? 'Nome do estúdio obrigatório' : null,
+          validator: (v) => v!.trim().isEmpty ? 'Nome obrigatorio' : null,
+          prefixIcon: const Icon(Icons.person_outline, size: 20),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        AppTextField(
+          controller: _nomeEstudioController,
+          label: 'Nome do Estudio',
+          hint: 'Nome exibido no app',
+          textCapitalization: TextCapitalization.words,
+          inputFormatters: [TitleCaseTextInputFormatter()],
+          validator: (v) =>
+              v!.trim().isEmpty ? 'Nome do estudio obrigatorio' : null,
+          prefixIcon: const Icon(Icons.business_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
           controller: _celularController,
-          label: 'Celular / WhatsApp',
+          label: 'Celular de Contato',
           hint: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
           inputFormatters: [_celularMask],
-          validator: (v) => v!.length < 14 ? 'Celular inválido' : null,
-        ),
-        const SizedBox(height: AppSpacing.s24),
-
-        Text(
-          'Tipo de Estúdio',
-          style: AppTypography.titleMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s8),
-
-        _buildRadioOption(
-          title: 'Home Studio',
-          value: 'home_studio',
-          description: 'Estúdio caseiro/amador',
+          validator: (v) => v!.length < 14 ? 'Celular invalido' : null,
+          prefixIcon: const Icon(Icons.phone_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
-        _buildRadioOption(
-          title: 'Estúdio Comercial',
-          value: 'commercial',
-          description: 'Estrutura profissional dedicada',
+        AppTextField(
+          controller: _instagramController,
+          label: 'Instagram (opcional)',
+          hint: '@nome_do_estudio',
+          prefixIcon: const Icon(Icons.alternate_email, size: 20),
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        AppButton.primary(text: 'Continuar', onPressed: _nextStep),
-        const SizedBox(height: AppSpacing.s24),
+
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Continuar',
+            size: AppButtonSize.large,
+            onPressed: _nextStep,
+            isFullWidth: true,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildRadioOption({
-    required String title,
-    required String value,
-    required String description,
-  }) {
-    final isSelected = _studioType == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _studioType = value);
-        ref.read(onboardingFormProvider.notifier).updateStudioType(value);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.s16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadius.all16,
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Radio<String>(
-              value: value,
-              // ignore: deprecated_member_use
-              groupValue: _studioType,
-              // ignore: deprecated_member_use
-              onChanged: (v) {
-                if (v != null) {
-                  setState(() => _studioType = v);
-                  ref.read(onboardingFormProvider.notifier).updateStudioType(v);
-                }
-              },
-              activeColor: AppColors.primary,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            const SizedBox(width: AppSpacing.s8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: AppTypography.buttonPrimary.fontWeight,
-                      color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    description,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildStep2UI() {
-    // Use provider for consistency with AppConfig
-    final availableServices = ref.watch(studioServiceLabelsProvider);
-
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        /* Title removed as it is now part of the card */
         Text(
-          'Serviços',
+          'Servicos Oferecidos',
           style: AppTypography.headlineLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'O que você oferece?',
+          'Quais servicos seu estudio oferece?',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
+
         const SizedBox(height: AppSpacing.s32),
 
-        OnboardingSectionCard(
-          title: 'Serviços do Estúdio',
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all16,
+            border: Border.all(
+              color: _selectedServices.isEmpty
+                  ? AppColors.error
+                  : AppColors.border,
+              width: 1,
+            ),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppButton.outline(
-                text: _selectedServices.isEmpty
-                    ? 'Selecionar Serviços'
-                    : 'Editar Serviços',
-                icon: const Icon(Icons.add, size: 18),
-                onPressed: () async {
-                  final result = await showModalBottomSheet<List<String>>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: AppColors.transparent,
-                    builder: (context) => AppSelectionModal(
-                      title: 'Serviços do Estúdio',
-                      items: availableServices.isNotEmpty
-                          ? availableServices
-                          : studioServices, // Fallback to constant if provider empty
-                      selectedItems: _selectedServices,
-                      allowMultiple: true,
-                    ),
-                  );
-
-                  if (result != null) {
-                    setState(() {
-                      // Simple update
-                      _selectedServices = result;
-                      ref
-                          .read(onboardingFormProvider.notifier)
-                          .updateSelectedServices(_selectedServices);
-                    });
-                  }
-                },
+              Text(
+                'Servicos *',
+                style: AppTypography.titleMedium.copyWith(
+                  color: _selectedServices.isEmpty
+                      ? AppColors.error
+                      : AppColors.textPrimary,
+                ),
               ),
-
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                _selectedServices.isEmpty
+                    ? 'Selecione os servicos disponiveis'
+                    : '${_selectedServices.length} servico${_selectedServices.length > 1 ? 's' : ''} selecionado${_selectedServices.length > 1 ? 's' : ''}',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
               if (_selectedServices.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.s12),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment
-                      .start, // Left align inside card looks better usually
-                  children: _selectedServices.map((service) {
-                    return AppFilterChip(
-                      label: service,
-                      isSelected: true,
-                      onSelected: (_) {},
-                      onRemove: () {
-                        setState(() {
-                          _selectedServices.remove(service);
-                          ref
-                              .read(onboardingFormProvider.notifier)
-                              .updateSelectedServices(_selectedServices);
-                        });
-                      },
-                    );
-                  }).toList(),
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  children: [
+                    ..._selectedServices.take(3).map((item) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s10,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHighlight,
+                          borderRadius: AppRadius.all8,
+                        ),
+                        child: Text(
+                          item,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      );
+                    }),
+                    if (_selectedServices.length > 3)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s10,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: AppRadius.all8,
+                        ),
+                        child: Text(
+                          '+${_selectedServices.length - 3}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
+              const SizedBox(height: AppSpacing.s16),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton.outline(
+                  text: _selectedServices.isEmpty
+                      ? 'Selecionar Servicos'
+                      : 'Editar Servicos',
+                  onPressed: () async {
+                    final result = await EnhancedMultiSelectModal.show<String>(
+                      context: context,
+                      title: 'Servicos do Estudio',
+                      subtitle: 'Selecione os servicos que voce oferece',
+                      items: studioServices,
+                      selectedItems: _selectedServices,
+                      searchHint: 'Buscar servico...',
+                    );
+                    if (result != null) {
+                      setState(() => _selectedServices = result);
+                    }
+                  },
+                  icon: Icon(
+                    _selectedServices.isEmpty ? Icons.add : Icons.edit_outlined,
+                    size: 18,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        AppButton.primary(
-          text: 'Continuar',
-          onPressed: _selectedServices.isNotEmpty ? _nextStep : null,
+
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Continuar',
+            size: AppButtonSize.large,
+            onPressed: _selectedServices.isNotEmpty ? _nextStep : null,
+            isFullWidth: true,
+          ),
         ),
-        const SizedBox(height: AppSpacing.s24),
       ],
     );
   }

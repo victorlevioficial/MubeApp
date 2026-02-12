@@ -200,8 +200,11 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           );
         }
       }
-    } catch (e) {
-      if (mounted) AppSnackBar.show(context, 'Erro: $e', isError: true);
+    } catch (e, stack) {
+      AppLogger.error('Erro ao obter localização', e, stack);
+      if (mounted) {
+        AppSnackBar.show(context, 'Erro detalhado: $e', isError: true);
+      }
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }

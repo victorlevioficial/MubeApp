@@ -179,36 +179,61 @@ class FeedController extends _$FeedController {
       return result.getOrElse((l) => []);
     }
 
+    // 1) Equipe tecnica (tecnico puro)
+    items[FeedSectionType.technicians] = await fetchOrEmpty(
+      feedRepo.getTechnicians(
+        currentUserId: user.uid,
+        userLat: _userLat,
+        userLong: _userLong,
+        limit: FeedDataConstants.sectionLimit,
+      ),
+    );
+
+    // 2) Bandas proximas / 3) Estudios proximos
     if (_userLat != null && _userLong != null) {
-      items[FeedSectionType.nearby] = await fetchOrEmpty(
-        feedRepo.getNearbyUsers(
-          lat: _userLat!,
-          long: _userLong!,
-          radiusKm: FeedDataConstants.nearbyRadiusKm,
+      final bandsNearbyResult = await feedRepo.getAllUsersSortedByDistance(
+        currentUserId: user.uid,
+        userLat: _userLat!,
+        userLong: _userLong!,
+        filterType: ProfileType.band,
+        userGeohash: user.geohash,
+      );
+      items[FeedSectionType.bands] = bandsNearbyResult
+          .getOrElse((_) => [])
+          .take(FeedDataConstants.sectionLimit)
+          .toList();
+
+      final studiosNearbyResult = await feedRepo.getAllUsersSortedByDistance(
+        currentUserId: user.uid,
+        userLat: _userLat!,
+        userLong: _userLong!,
+        filterType: ProfileType.studio,
+        userGeohash: user.geohash,
+      );
+      items[FeedSectionType.studios] = studiosNearbyResult
+          .getOrElse((_) => [])
+          .take(FeedDataConstants.sectionLimit)
+          .toList();
+    } else {
+      items[FeedSectionType.bands] = await fetchOrEmpty(
+        feedRepo.getUsersByType(
+          type: ProfileType.band,
           currentUserId: user.uid,
+          userLat: _userLat,
+          userLong: _userLong,
+          limit: FeedDataConstants.sectionLimit,
+        ),
+      );
+      items[FeedSectionType.studios] = await fetchOrEmpty(
+        feedRepo.getUsersByType(
+          type: ProfileType.studio,
+          currentUserId: user.uid,
+          userLat: _userLat,
+          userLong: _userLong,
           limit: FeedDataConstants.sectionLimit,
         ),
       );
     }
-
-    items[FeedSectionType.artists] = await fetchOrEmpty(
-      feedRepo.getArtists(
-        currentUserId: user.uid,
-        userLat: _userLat,
-        userLong: _userLong,
-        limit: FeedDataConstants.sectionLimit,
-      ),
-    );
-
-    items[FeedSectionType.bands] = await fetchOrEmpty(
-      feedRepo.getUsersByType(
-        type: ProfileType.band,
-        currentUserId: user.uid,
-        userLat: _userLat,
-        userLong: _userLong,
-        limit: FeedDataConstants.sectionLimit,
-      ),
-    );
 
     final allItems = items.values.expand((list) => list).toList();
     ref.read(feedItemsProvider.notifier).loadItems(allItems);

@@ -9,7 +9,7 @@ void main() {
 
   const tUserId = 'user-1';
 
-  Future<void> _seedNotification({
+  Future<void> seedNotification({
     required String id,
     String type = 'chat_message',
     String title = 'Nova mensagem',
@@ -39,8 +39,8 @@ void main() {
     group('watchNotifications', () {
       test('should emit list of notifications for user', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1', title: 'Msg 1');
-        await _seedNotification(id: 'notif-2', title: 'Msg 2');
+        await seedNotification(id: 'notif-1', title: 'Msg 1');
+        await seedNotification(id: 'notif-2', title: 'Msg 2');
 
         // Act
         final stream = repository.watchNotifications(tUserId);
@@ -64,7 +64,7 @@ void main() {
     group('markAsRead', () {
       test('should set isRead to true for specific notification', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1', isRead: false);
+        await seedNotification(id: 'notif-1', isRead: false);
 
         // Act
         await repository.markAsRead(tUserId, 'notif-1');
@@ -83,9 +83,9 @@ void main() {
     group('markAllAsRead', () {
       test('should mark all unread notifications as read', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1', isRead: false);
-        await _seedNotification(id: 'notif-2', isRead: false);
-        await _seedNotification(id: 'notif-3', isRead: true);
+        await seedNotification(id: 'notif-1', isRead: false);
+        await seedNotification(id: 'notif-2', isRead: false);
+        await seedNotification(id: 'notif-3', isRead: true);
 
         // Act
         await repository.markAllAsRead(tUserId);
@@ -103,7 +103,7 @@ void main() {
 
       test('should handle no unread notifications gracefully', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1', isRead: true);
+        await seedNotification(id: 'notif-1', isRead: true);
 
         // Act & Assert — should not throw
         await repository.markAllAsRead(tUserId);
@@ -113,8 +113,8 @@ void main() {
     group('deleteNotification', () {
       test('should delete specific notification', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1');
-        await _seedNotification(id: 'notif-2');
+        await seedNotification(id: 'notif-1');
+        await seedNotification(id: 'notif-2');
 
         // Act
         await repository.deleteNotification(tUserId, 'notif-1');
@@ -141,9 +141,9 @@ void main() {
     group('deleteAllNotifications', () {
       test('should delete all notifications for user', () async {
         // Arrange
-        await _seedNotification(id: 'notif-1');
-        await _seedNotification(id: 'notif-2');
-        await _seedNotification(id: 'notif-3');
+        await seedNotification(id: 'notif-1');
+        await seedNotification(id: 'notif-2');
+        await seedNotification(id: 'notif-3');
 
         // Act
         await repository.deleteAllNotifications(tUserId);

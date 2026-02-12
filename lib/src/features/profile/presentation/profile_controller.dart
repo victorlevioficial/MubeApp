@@ -56,6 +56,7 @@ class ProfileController extends _$ProfileController {
 
       final updatedUser = currentUser.copyWith(
         nome: updates['nome'] ?? currentUser.nome,
+        bio: updates['bio'] ?? currentUser.bio,
         location: updates['location'] ?? currentUser.location,
         foto: updates['foto'] ?? currentUser.foto,
         dadosProfissional: updatedDadosProfissional,

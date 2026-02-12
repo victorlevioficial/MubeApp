@@ -51,7 +51,7 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: ButtonStyle(
           foregroundColor: WidgetStateProperty.all(AppColors.primary),
-          textStyle: WidgetStateProperty.all(AppTypography.buttonSecondary),
+          textStyle: WidgetStateProperty.all(AppTypography.link),
           overlayColor: WidgetStateProperty.all(
             AppColors.primary.withValues(alpha: 0.12),
           ),
@@ -192,10 +192,7 @@ class AppTheme {
         style: ButtonStyle(
           foregroundColor: WidgetStateProperty.all(AppColors.textPrimary),
           side: WidgetStateProperty.all(
-            const BorderSide(
-              color: AppColors.textPrimary,
-              width: 1,
-            ), // White - High Contrast as requested
+            const BorderSide(color: AppColors.border, width: 1),
           ),
           minimumSize: WidgetStateProperty.all(const Size(64, 48)),
           overlayColor: WidgetStateProperty.all(

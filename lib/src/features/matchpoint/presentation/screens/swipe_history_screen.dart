@@ -8,7 +8,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../domain/swipe_history_entry.dart';
+import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class SwipeHistoryScreen extends ConsumerWidget {

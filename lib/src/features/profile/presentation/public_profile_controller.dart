@@ -71,7 +71,7 @@ class PublicProfileController extends _$PublicProfileController {
           if (users.isEmpty) {
             return const PublicProfileState(
               isLoading: false,
-              error: 'Perfil não encontrado',
+              error: 'Perfil n\u00E3o encontrado',
             );
           }
 
@@ -143,7 +143,9 @@ class PublicProfileController extends _$PublicProfileController {
 
       // 2. Prepare extra data for optimistic header
       final extra = {
-        'otherUserName': targetUser.nome ?? 'Usuário',
+        'otherUserName': targetUser.appDisplayName.isNotEmpty
+            ? targetUser.appDisplayName
+            : (targetUser.nome ?? 'Usuario'),
         'otherUserPhoto': targetUser.foto,
         'otherUserId': targetUser.uid,
       };

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,11 +40,11 @@ class FakeSearchRepository extends Fake implements SearchRepository {
     lastSearchFilters = filters;
 
     if (throwError) {
-      return Left(ServerFailure(message: 'Search failed'));
+      return const Left(ServerFailure(message: 'Search failed'));
     }
 
     if (rateLimitExceeded) {
-      return Left(ServerFailure(message: 'Rate limit exceeded'));
+      return const Left(ServerFailure(message: 'Rate limit exceeded'));
     }
 
     return Right(

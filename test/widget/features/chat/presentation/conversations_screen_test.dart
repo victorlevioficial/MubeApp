@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
-import 'package:mube/src/features/chat/data/chat_providers.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/chat/domain/conversation_preview.dart';
 import 'package:mube/src/features/chat/presentation/conversations_screen.dart';
@@ -63,7 +62,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Nenhuma conversa ainda'), findsOneWidget);
-      expect(find.text('Suas conexões e amigos aparecerão aqui.'), findsOneWidget);
+      expect(
+        find.text('Suas conexões e amigos aparecerão aqui.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders conversation list', (tester) async {
@@ -108,10 +110,7 @@ void main() {
 
     testWidgets('navigates to chat when conversation tapped', (tester) async {
       final conversations = [
-        TestData.conversationPreview(
-          id: 'conv-123',
-          otherUserName: 'John Doe',
-        ),
+        TestData.conversationPreview(id: 'conv-123', otherUserName: 'John Doe'),
       ];
 
       await tester.pumpWidget(createSubject(conversations: conversations));

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
-class NeonSettingsTile extends StatelessWidget {
+/// Professional settings tile with refined visual design
+///
+/// Features:
+/// - Refined icon container with subtle accent colors
+/// - Better typography hierarchy
+/// - Smooth hover and press states
+/// - Professional spacing and alignment
+/// - Optional subtitle for additional context
+class NeonSettingsTile extends StatefulWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
@@ -23,83 +32,196 @@ class NeonSettingsTile extends StatelessWidget {
   });
 
   @override
+  State<NeonSettingsTile> createState() => _NeonSettingsTileState();
+}
+
+class _NeonSettingsTileState extends State<NeonSettingsTile> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     // Define active color based on destructiveness or custom accent
-    final activeColor = isDestructive
+    final activeColor = widget.isDestructive
         ? AppColors.error
-        : (customAccentColor ?? AppColors.primary);
+        : (widget.customAccentColor ?? AppColors.primary);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s8),
       child: Material(
-        color: AppColors.transparent,
+        color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
           borderRadius: AppRadius.all16,
-          splashColor: activeColor.withValues(alpha: 0.1),
-          highlightColor: activeColor.withValues(alpha: 0.05),
-          child: Padding(
+          splashColor: activeColor.withValues(alpha: 0.08),
+          highlightColor: activeColor.withValues(alpha: 0.04),
+          child: AnimatedContainer(
+            duration: AppEffects.fast,
+            curve: Curves.easeOut,
             padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.s12,
-              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s14,
+              horizontal: AppSpacing.s14,
+            ),
+            decoration: BoxDecoration(
+              color: _isPressed
+                  ? AppColors.surface.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              borderRadius: AppRadius.all16,
+              border: Border.all(
+                color: _isPressed
+                    ? activeColor.withValues(alpha: 0.1)
+                    : Colors.transparent,
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
-                // Glowing Icon Container
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: activeColor.withValues(alpha: 0.1),
-                    borderRadius: AppRadius.all12,
-                    border: Border.all(
-                      color: activeColor.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(icon, color: activeColor, size: 20),
+                // Refined Icon Container
+                _IconContainer(
+                  icon: widget.icon,
+                  color: activeColor,
+                  isPressed: _isPressed,
                 ),
 
                 const SizedBox(width: AppSpacing.s16),
 
-                // Text Content
+                // Text Content with enhanced typography
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: isDestructive
-                              ? AppColors.error
-                              : AppColors.textPrimary,
-                          fontWeight: AppTypography.bodyLarge.fontWeight,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: AppSpacing.s2),
-                        Text(
-                          subtitle!,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: _TextContent(
+                    title: widget.title,
+                    subtitle: widget.subtitle,
+                    isDestructive: widget.isDestructive,
                   ),
                 ),
 
-                // Trailing Chevron (Minimal)
-                if (!isDestructive)
-                  Icon(
-                    Icons.arrow_forward_ios_rounded, // Better rounded chevron
-                    color: AppColors.textSecondary.withValues(alpha: 0.3),
-                    size: 14,
-                  ),
+                const SizedBox(width: AppSpacing.s8),
+
+                // Trailing Chevron (subtle)
+                if (!widget.isDestructive)
+                  _TrailingChevron(isPressed: _isPressed),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Icon container with refined styling
+class _IconContainer extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final bool isPressed;
+
+  const _IconContainer({
+    required this.icon,
+    required this.color,
+    required this.isPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: AppEffects.fast,
+      curve: Curves.easeOut,
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        // Refined background with gradient
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: isPressed ? 0.15 : 0.12),
+            color.withValues(alpha: isPressed ? 0.12 : 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: isPressed ? 0.25 : 0.15),
+          width: 1,
+        ),
+        boxShadow: isPressed
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+}
+
+/// Text content with title and optional subtitle
+class _TextContent extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final bool isDestructive;
+
+  const _TextContent({
+    required this.title,
+    required this.isDestructive,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: AppTypography.bodyLarge.copyWith(
+            color: isDestructive ? AppColors.error : AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            letterSpacing: -0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: AppSpacing.s4),
+          Text(
+            subtitle!,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary.withValues(alpha: 0.75),
+              fontSize: 12,
+              height: 1.3,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Subtle trailing chevron
+class _TrailingChevron extends StatelessWidget {
+  final bool isPressed;
+
+  const _TrailingChevron({required this.isPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: AppEffects.fast,
+      curve: Curves.easeOut,
+      transform: Matrix4.translationValues(isPressed ? 2 : 0, 0, 0),
+      child: Icon(
+        Icons.chevron_right_rounded,
+        color: AppColors.textSecondary.withValues(alpha: 0.4),
+        size: 20,
       ),
     );
   }

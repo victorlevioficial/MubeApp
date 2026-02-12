@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
@@ -6,7 +8,6 @@ import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/moderation/data/moderation_repository.dart';
 import 'package:mube/src/features/profile/presentation/public_profile_controller.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';

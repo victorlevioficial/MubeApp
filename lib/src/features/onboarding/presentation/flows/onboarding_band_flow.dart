@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
+import '../../../../constants/app_constants.dart';
 import '../../../../core/domain/app_config.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
-import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/inputs/enhanced_multi_select_modal.dart';
 import '../../../../design_system/components/navigation/responsive_center.dart';
 import '../../../../design_system/components/patterns/onboarding_header.dart';
-import '../../../../design_system/components/patterns/onboarding_section_card.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -21,6 +21,12 @@ import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
 import '../steps/onboarding_address_step.dart';
 
+/// Enhanced Band Onboarding Flow with modern UI.
+///
+/// Steps:
+/// 1. Basic Info (Full name + Band name + Contact)
+/// 2. Musical Genres
+/// 3. Address
 class OnboardingBandFlow extends ConsumerStatefulWidget {
   final AppUser user;
 
@@ -33,50 +39,86 @@ class OnboardingBandFlow extends ConsumerStatefulWidget {
 class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   final _formKey = GlobalKey<FormState>();
 
-  // State
   int _currentStep = 1;
   static const int _totalSteps = 3;
 
-  // Controllers
-  final _nomeController = TextEditingController();
+  final _nomeCompletoController = TextEditingController();
+  final _nomeBandaController = TextEditingController();
+  final _celularController = TextEditingController();
+  final _instagramController = TextEditingController();
+
+  final _celularMask = MaskTextInputFormatter(
+    mask: '(##) #####-####',
+    filter: {'#': RegExp(r'[0-9]')},
+  );
+
   List<String> _selectedGenres = [];
 
   @override
   void initState() {
     super.initState();
     final formState = ref.read(onboardingFormProvider);
+    final bandData = widget.user.dadosBanda ?? const <String, dynamic>{};
 
-    // Resume state if available
-    _nomeController.text = formState.nomeArtistico ?? '';
+    _nomeCompletoController.text = formState.nome ?? widget.user.nome ?? '';
+    _nomeBandaController.text =
+        formState.nomeArtistico ??
+        (bandData['nomeBanda'] as String?) ??
+        (bandData['nomeArtistico'] as String?) ??
+        widget.user.appDisplayName;
+    _celularController.text = formState.celular ?? '';
+    _instagramController.text = formState.instagram ?? '';
     _selectedGenres = List.from(formState.selectedGenres);
 
-    _nomeController.addListener(() {
-      ref
+    _nomeCompletoController.addListener(
+      () => ref
           .read(onboardingFormProvider.notifier)
-          .updateNomeArtistico(_nomeController.text);
+          .updateNome(_nomeCompletoController.text),
+    );
+    _nomeBandaController.addListener(
+      () => ref
+          .read(onboardingFormProvider.notifier)
+          .updateNomeArtistico(_nomeBandaController.text),
+    );
+    _celularController.addListener(
+      () => ref
+          .read(onboardingFormProvider.notifier)
+          .updateCelular(_celularController.text),
+    );
+    _instagramController.addListener(
+      () => ref
+          .read(onboardingFormProvider.notifier)
+          .updateInstagram(_instagramController.text),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });
   }
 
   @override
   void dispose() {
-    _nomeController.dispose();
+    _nomeCompletoController.dispose();
+    _nomeBandaController.dispose();
+    _celularController.dispose();
+    _instagramController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
     if (_currentStep == 1) {
-      // Tutorial Step
+      if (!_formKey.currentState!.validate()) return;
       setState(() => _currentStep++);
     } else if (_currentStep == 2) {
-      if (!_formKey.currentState!.validate()) return;
       if (_selectedGenres.isEmpty) {
         AppSnackBar.show(
           context,
-          'Selecione pelo menos um gênero musical',
+          'Selecione pelo menos um genero musical',
           isError: true,
         );
         return;
       }
+      ref.read(onboardingFormProvider.notifier).updateGenres(_selectedGenres);
       setState(() => _currentStep++);
     }
   }
@@ -92,14 +134,12 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   }
 
   void _finishOnboarding() {
-    // Get AppConfig for ID mapping
     final appConfigAsync = ref.read(appConfigProvider);
     final appConfig = appConfigAsync.value;
 
     List<String> genreIds = _selectedGenres;
 
     if (appConfig != null) {
-      // Map Labels to IDs
       genreIds = _selectedGenres.map((label) {
         return appConfig.genres
             .firstWhere(
@@ -110,19 +150,20 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
       }).toList();
     }
 
-    // Prepare Data
-    // Band specific data
+    final bandDisplayName = _nomeBandaController.text.trim();
+
     final Map<String, dynamic> bandData = {
-      'nome': _nomeController.text.trim(),
+      'nomeBanda': bandDisplayName,
+      'nomeArtistico': bandDisplayName,
+      'nome': bandDisplayName,
+      'celular': _celularController.text,
+      'instagram': _instagramController.text,
       'generosMusicais': genreIds,
-      'statusBanda': 'draft', // Critical requirement
-      'adminUid': widget.user.uid,
-      'integrantes': [widget.user.uid], // Admin is the first member
       'isPublic': true,
     };
 
-    // Address
     final formState = ref.read(onboardingFormProvider);
+
     final location = {
       'cep': formState.cep,
       'logradouro': formState.logradouro,
@@ -138,8 +179,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
-          nome: _nomeController.text
-              .trim(), // Use band name as profile name for now logic-wise
+          nome: _nomeCompletoController.text.trim(),
           location: location,
           dadosBanda: bandData,
         );
@@ -154,7 +194,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           child: ResponsiveCenter(
             maxContentWidth: 600,
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s16,
+              horizontal: AppSpacing.s24,
               vertical: AppSpacing.s24,
             ),
             child: Form(
@@ -162,7 +202,6 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Header
                   OnboardingHeader(
                     currentStep: _currentStep,
                     totalSteps: _totalSteps,
@@ -170,8 +209,8 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                   ),
                   const SizedBox(height: AppSpacing.s32),
 
-                  if (_currentStep == 1) _buildStep1Tutorial(),
-                  if (_currentStep == 2) _buildStep2BasicInfo(),
+                  if (_currentStep == 1) _buildStep1UI(),
+                  if (_currentStep == 2) _buildStep2UI(),
                   if (_currentStep == 3)
                     OnboardingAddressStep(
                       onNext: () async => _finishOnboarding(),
@@ -189,62 +228,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
     );
   }
 
-  Widget _buildStep1Tutorial() {
-    return Column(
-      children: [
-        const Icon(Icons.groups, size: 64, color: AppColors.primary),
-        const SizedBox(height: AppSpacing.s24),
-        Text(
-          'Criando sua Banda',
-          style: AppTypography.headlineLarge,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpacing.s16),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.s24),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: AppRadius.all16,
-            border: Border.all(color: AppColors.surfaceHighlight),
-          ),
-          child: Column(
-            children: [
-              Text(
-                'Sua banda será criada como Rascunho (Draft) e não aparecerá no feed do Mube.',
-                style: AppTypography.bodyMedium.copyWith(
-                  fontWeight: AppTypography.buttonPrimary.fontWeight,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              const Divider(color: AppColors.surfaceHighlight),
-              const SizedBox(height: AppSpacing.s16),
-              Text(
-                'Para ativá-la, é necessário que pelo menos 2 integrantes com perfil profissional no Mube aceitem o convite para a banda.',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              Text(
-                'Assim que os convites forem aceitos, a banda será ativada automaticamente e ficará visível para todos.',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s48),
-        AppButton.primary(text: 'Criar banda', onPressed: _nextStep),
-      ],
-    );
-  }
-
-  Widget _buildStep2BasicInfo() {
+  Widget _buildStep1UI() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -253,82 +237,207 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           style: AppTypography.headlineLarge,
           textAlign: TextAlign.center,
         ),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          'Informacoes basicas sobre o grupo',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: AppSpacing.s32),
 
         AppTextField(
-          controller: _nomeController,
-          label: 'Nome da Banda',
+          controller: _nomeCompletoController,
+          label: 'Nome Completo (Responsavel)',
+          hint: 'Usado para cadastro interno',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => v!.isEmpty ? 'Nome obrigatório' : null,
+          validator: (v) => v!.trim().isEmpty ? 'Nome obrigatorio' : null,
+          prefixIcon: const Icon(Icons.person_outline, size: 20),
         ),
-        const SizedBox(height: AppSpacing.s24),
+        const SizedBox(height: AppSpacing.s16),
+        AppTextField(
+          controller: _nomeBandaController,
+          label: 'Nome da Banda',
+          hint: 'Nome exibido no app',
+          textCapitalization: TextCapitalization.words,
+          inputFormatters: [TitleCaseTextInputFormatter()],
+          validator: (v) =>
+              v!.trim().isEmpty ? 'Nome da banda obrigatorio' : null,
+          prefixIcon: const Icon(Icons.people_outline, size: 20),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        AppTextField(
+          controller: _celularController,
+          label: 'Celular de Contato',
+          hint: '(00) 00000-0000',
+          keyboardType: TextInputType.phone,
+          inputFormatters: [_celularMask],
+          validator: (v) => v!.length < 14 ? 'Celular invalido' : null,
+          prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        AppTextField(
+          controller: _instagramController,
+          label: 'Instagram (opcional)',
+          hint: '@nome_da_banda',
+          prefixIcon: const Icon(Icons.alternate_email, size: 20),
+        ),
 
-        OnboardingSectionCard(
-          title: 'Gêneros Musicais',
+        const SizedBox(height: AppSpacing.s48),
+
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Continuar',
+            size: AppButtonSize.large,
+            onPressed: _nextStep,
+            isFullWidth: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep2UI() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Estilo Musical',
+          style: AppTypography.headlineLarge,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          'Quais generos a banda toca?',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: AppSpacing.s32),
+
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all16,
+            border: Border.all(
+              color: _selectedGenres.isEmpty
+                  ? AppColors.error
+                  : AppColors.border,
+              width: 1,
+            ),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppButton.outline(
-                text: _selectedGenres.isEmpty
-                    ? 'Selecionar Gêneros'
-                    : 'Editar Gêneros',
-                icon: const Icon(Icons.add, size: 18),
-                onPressed: () async {
-                  final result = await showModalBottomSheet<List<String>>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: AppColors.transparent,
-                    builder: (context) => AppSelectionModal(
-                      title: 'Gêneros Musicais',
-                      items: ref.read(genreLabelsProvider),
-                      selectedItems: _selectedGenres,
-                      allowMultiple: true,
-                    ),
-                  );
-
-                  if (result != null) {
-                    setState(() {
-                      // Simple update as per previous logic
-                      _selectedGenres = result;
-                      ref
-                          .read(onboardingFormProvider.notifier)
-                          .updateSelectedGenres(_selectedGenres);
-                    });
-                  }
-                },
+              Text(
+                'Generos Musicais *',
+                style: AppTypography.titleMedium.copyWith(
+                  color: _selectedGenres.isEmpty
+                      ? AppColors.error
+                      : AppColors.textPrimary,
+                ),
               ),
-
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                _selectedGenres.isEmpty
+                    ? 'Selecione os estilos que a banda toca'
+                    : '${_selectedGenres.length} genero${_selectedGenres.length > 1 ? 's' : ''} selecionado${_selectedGenres.length > 1 ? 's' : ''}',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
               if (_selectedGenres.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.s12),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _selectedGenres.map((genre) {
-                    return AppFilterChip(
-                      label: genre,
-                      isSelected: true,
-                      onSelected: (_) {},
-                      onRemove: () {
-                        setState(() {
-                          _selectedGenres.remove(genre);
-                          ref
-                              .read(onboardingFormProvider.notifier)
-                              .updateSelectedGenres(
-                                _selectedGenres,
-                              ); // Note: using updateSelectedServices for consistency or verify existing method
-                        });
-                      },
-                    );
-                  }).toList(),
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  children: [
+                    ..._selectedGenres.take(3).map((item) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s10,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceHighlight,
+                          borderRadius: AppRadius.all8,
+                        ),
+                        child: Text(
+                          item,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      );
+                    }),
+                    if (_selectedGenres.length > 3)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s10,
+                          vertical: AppSpacing.s4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: AppRadius.all8,
+                        ),
+                        child: Text(
+                          '+${_selectedGenres.length - 3}',
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ],
+              const SizedBox(height: AppSpacing.s16),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton.outline(
+                  text: _selectedGenres.isEmpty
+                      ? 'Selecionar Generos'
+                      : 'Editar Generos',
+                  onPressed: () async {
+                    final result = await EnhancedMultiSelectModal.show<String>(
+                      context: context,
+                      title: 'Generos Musicais',
+                      subtitle: 'Selecione os estilos da banda',
+                      items: genres,
+                      selectedItems: _selectedGenres,
+                      searchHint: 'Buscar genero...',
+                    );
+                    if (result != null) {
+                      setState(() => _selectedGenres = result);
+                    }
+                  },
+                  icon: Icon(
+                    _selectedGenres.isEmpty ? Icons.add : Icons.edit_outlined,
+                    size: 18,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
 
         const SizedBox(height: AppSpacing.s48),
-        AppButton.primary(text: 'Continuar', onPressed: _nextStep),
+
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Continuar',
+            size: AppButtonSize.large,
+            onPressed: _selectedGenres.isNotEmpty ? _nextStep : null,
+            isFullWidth: true,
+          ),
+        ),
       ],
     );
   }

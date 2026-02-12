@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -37,7 +37,7 @@ class MatchSwipeDeck extends StatefulWidget {
 }
 
 class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
-  // Rastreia interaÃ§Ãµes jÃ¡ enviadas para evitar duplicaÃ§Ã£o no undo
+  // Rastreia interações já enviadas para evitar duplicação no undo
   final Set<String> _processedInteractions = {};
   Timer? _swipeTransitionTimer;
   bool _isSwipeTransitioning = false;
@@ -106,7 +106,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
     if (widget.candidates.isEmpty) {
       return Center(
         child: Text(
-          'NÃ£o hÃ¡ mais perfis por perto.',
+          'Não há mais perfis por perto.',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textPrimary,
           ),
@@ -124,7 +124,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
             isDisabled: _isSwipeTransitioning,
             cardsCount: widget.candidates.length,
             isLoop:
-                false, // IMPORTANTE: NÃ£o fazer loop - cada perfil aparece sÃ³ uma vez
+                false, // IMPORTANTE: Não fazer loop - cada perfil aparece só uma vez
             numberOfCardsDisplayed: min(
               widget.candidates.length,
               2,
@@ -186,7 +186,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               final user = widget.candidates[previousIndex];
               final interactionKey = '${user.uid}_${direction.name}';
 
-              // Evita duplicaÃ§Ã£o: sÃ³ envia se ainda nÃ£o foi processado
+              // Evita duplicação: só envia se ainda não foi processado
               if (!_processedInteractions.contains(interactionKey)) {
                 _processedInteractions.add(interactionKey);
 
@@ -207,7 +207,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                 }
               } else {
                 debugPrint(
-                  'âš ï¸ InteraÃ§Ã£o jÃ¡ processada: $interactionKey (ignorando duplicata)',
+                  '⚠️ Interação já processada: $interactionKey (ignorando duplicata)',
                 );
               }
               return true;
@@ -218,12 +218,12 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               // previousIndex pode ser null em alguns casos
               if (previousIndex == null) return false;
 
-              // Ao desfazer, removemos a interaÃ§Ã£o do set para permitir nova decisÃ£o
+              // Ao desfazer, removemos a interação do set para permitir nova decisão
               final user = widget.candidates[previousIndex];
               final interactionKey = '${user.uid}_${direction.name}';
               _processedInteractions.remove(interactionKey);
               widget.onUndoSwipe?.call();
-              debugPrint('ðŸ”„ Undo: removido $interactionKey do histÃ³rico');
+              debugPrint('🔄 Undo: removido $interactionKey do histórico');
               return true;
             },
             onEnd: () {

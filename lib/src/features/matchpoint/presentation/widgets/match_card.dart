@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
@@ -230,12 +230,9 @@ class MatchCard extends StatelessWidget {
   }
 
   String _getDisplayName() {
-    if (user.tipoPerfil == AppUserType.professional) {
-      return user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '';
-    } else if (user.tipoPerfil == AppUserType.band) {
-      return user.dadosBanda?['nome'] ?? '';
-    }
-    return user.nome ?? 'Usuário';
+    final display = user.appDisplayName;
+    if (display.trim().isNotEmpty) return display.trim();
+    return user.nome ?? 'Usuario';
   }
 
   String? _getAge() {

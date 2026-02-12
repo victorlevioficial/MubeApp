@@ -161,12 +161,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   String _getDisplayName(AppUser user) {
-    if (user.tipoPerfil == AppUserType.professional) {
-      return user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '';
-    } else if (user.tipoPerfil == AppUserType.studio) {
-      return user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '';
-    }
-    return user.nome ?? '';
+    return user.appDisplayName;
   }
 
   Widget _buildProfessionalDetails(

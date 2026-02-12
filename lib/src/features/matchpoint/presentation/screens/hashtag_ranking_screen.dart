@@ -8,7 +8,7 @@ import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../domain/hashtag_ranking.dart';
+import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class HashtagRankingScreen extends ConsumerWidget {

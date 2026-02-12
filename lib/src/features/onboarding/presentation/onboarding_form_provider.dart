@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -265,6 +265,12 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     _saveState();
   }
 
+  void updateCategories(List<String> val) => updateSelectedCategories(val);
+  void updateGenres(List<String> val) => updateSelectedGenres(val);
+  void updateInstruments(List<String> val) => updateSelectedInstruments(val);
+  void updateRoles(List<String> val) => updateSelectedRoles(val);
+  void updateServices(List<String> val) => updateSelectedServices(val);
+
   void updateSelectedCategories(List<String> val) {
     state = state.copyWith(selectedCategories: val);
     _saveState();
@@ -335,3 +341,5 @@ final onboardingFormProvider =
     NotifierProvider<OnboardingFormNotifier, OnboardingFormState>(
       OnboardingFormNotifier.new,
     );
+
+

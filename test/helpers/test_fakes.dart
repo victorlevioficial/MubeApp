@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -16,20 +17,19 @@ import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/chat/domain/conversation_preview.dart';
 import 'package:mube/src/features/chat/domain/message.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
-import 'package:mube/src/features/feed/data/feed_repository.dart';
-import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/features/favorites/domain/paginated_favorites_response.dart';
+import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
+import 'package:mube/src/features/moderation/data/moderation_repository.dart';
 import 'package:mube/src/features/notifications/data/notification_repository.dart';
+import 'package:mube/src/features/notifications/domain/notification_model.dart';
 import 'package:mube/src/features/search/domain/search_filters.dart';
 import 'package:mube/src/features/search/presentation/search_controller.dart';
-import 'package:mube/src/features/notifications/domain/notification_model.dart';
 import 'package:mube/src/features/storage/data/storage_repository.dart';
 import 'package:mube/src/features/support/data/support_repository.dart';
 import 'package:mube/src/features/support/domain/ticket_model.dart';
-import 'package:mube/src/features/moderation/data/moderation_repository.dart';
 
 /// Fake implementation of Firebase User
 class FakeFirebaseUser extends Fake implements firebase_auth.User {
@@ -228,6 +228,9 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   List<FeedItem> nearbyUsers = [];
   List<FeedItem> artists = [];
   List<FeedItem> bands = [];
+  List<FeedItem> studios = [];
+  List<FeedItem> technicians = [];
+  List<FeedItem> professionals = [];
   PaginatedFeedResponse? mainFeedResponse;
 
   Future<void> _maybeWait() async {
@@ -273,7 +276,16 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(bands);
+    switch (type) {
+      case 'banda':
+        return Either.right(bands);
+      case 'estudio':
+        return Either.right(studios);
+      case 'profissional':
+        return Either.right(professionals.isNotEmpty ? professionals : artists);
+      default:
+        return Either.right(bands);
+    }
   }
 
   @override
@@ -300,7 +312,14 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: 'Failed'));
     // Retorna items que correspondem aos IDs solicitados
-    final allItems = [...nearbyUsers, ...artists, ...bands];
+    final allItems = [
+      ...nearbyUsers,
+      ...artists,
+      ...bands,
+      ...studios,
+      ...technicians,
+      ...professionals,
+    ];
     final result = allItems.where((item) => ids.contains(item.uid)).toList();
     return Either.right(result);
   }
@@ -341,7 +360,18 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(nearbyUsers);
+    switch (filterType) {
+      case 'banda':
+        return Either.right(bands);
+      case 'estudio':
+        return Either.right(studios);
+      case 'profissional':
+        return Either.right(
+          professionals.isNotEmpty ? professionals : nearbyUsers,
+        );
+      default:
+        return Either.right(nearbyUsers);
+    }
   }
 
   @override
@@ -355,10 +385,17 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
+    final List<FeedItem> fallbackItems = switch (type) {
+      'banda' => bands,
+      'estudio' => studios,
+      'profissional' => professionals.isNotEmpty ? professionals : artists,
+      _ => bands,
+    };
+
     return Either.right(
       mainFeedResponse ??
           PaginatedFeedResponse(
-            items: bands,
+            items: fallbackItems,
             hasMore: false,
             lastDocument: null,
           ),
@@ -375,7 +412,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(artists);
+    return Either.right(technicians);
   }
 }
 

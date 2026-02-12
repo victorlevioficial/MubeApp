@@ -20,24 +20,18 @@ class FeedSection {
   /// Predefined sections for the home feed.
   static const List<FeedSection> homeSections = [
     FeedSection(
-      type: FeedSectionType.artists,
-      title: 'Perfis em destaque',
-      filterValue: 'profissional',
+      type: FeedSectionType.technicians,
+      title: 'Equipe técnica',
+      filterValue: 'crew',
     ),
-    FeedSection(type: FeedSectionType.nearby, title: 'Perto de você'),
     FeedSection(
       type: FeedSectionType.bands,
-      title: 'Bandas',
+      title: 'Bandas próximas',
       filterValue: 'banda',
     ),
     FeedSection(
-      type: FeedSectionType.technicians,
-      title: 'Equipe Técnica',
-      filterValue: 'Equipe Técnica',
-    ),
-    FeedSection(
       type: FeedSectionType.studios,
-      title: 'Estúdios',
+      title: 'Estúdios próximos',
       filterValue: 'estudio',
     ),
   ];

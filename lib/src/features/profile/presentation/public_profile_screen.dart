@@ -622,7 +622,10 @@ class PublicProfileScreen extends ConsumerWidget {
     final estudio = user.dadosEstudio;
     if (estudio == null) return const SizedBox.shrink();
 
-    final services = (estudio['services'] as List?)?.cast<String>() ?? [];
+    final services =
+        (estudio['services'] as List?)?.cast<String>() ??
+        (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
+        [];
     final studioType = estudio['studioType'] as String?;
 
     return Column(
@@ -782,16 +785,7 @@ class PublicProfileScreen extends ConsumerWidget {
   }
 
   String _getDisplayName(AppUser user) {
-    switch (user.tipoPerfil) {
-      case AppUserType.professional:
-        return user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '';
-      case AppUserType.band:
-        return user.dadosBanda?['nomeBanda'] ?? user.nome ?? '';
-      case AppUserType.studio:
-        return user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '';
-      default:
-        return user.nome ?? '';
-    }
+    return user.appDisplayName;
   }
 
   Widget _buildSubCategoriesRow(AppUser user) {

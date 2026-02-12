@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +11,7 @@ import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../../features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/auth/data/auth_repository.dart';
 import '../../../../routing/route_paths.dart';
 import '../../presentation/controllers/matchpoint_controller.dart';
 import '../widgets/match_swipe_deck.dart';
@@ -268,13 +268,13 @@ class _MatchpointExploreScreenState
           ),
           const SizedBox(height: AppSpacing.s24),
           Text(
-            'VocÃª viu todos!',
+            'Você viu todos!',
             style: AppTypography.headlineMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'NÃ£o hÃ¡ mais perfis para avaliar no momento.\nVolte mais tarde para ver novos mÃºsicos!',
+            'Não há mais perfis para avaliar no momento.\nVolte mais tarde para ver novos músicos!',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -321,7 +321,7 @@ class _MatchpointExploreScreenState
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'NÃ£o encontramos ninguÃ©m com seus filtros no momento.\nTente ajustar suas preferÃªncias ou volte mais tarde.',
+            'Não encontramos ninguém com seus filtros no momento.\nTente ajustar suas preferências ou volte mais tarde.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
