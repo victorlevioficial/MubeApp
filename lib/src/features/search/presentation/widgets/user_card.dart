@@ -6,7 +6,6 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../features/auth/domain/app_user.dart';
-import '../../../../features/auth/domain/user_type.dart';
 
 /// Displays a user profile card in search results.
 class UserCard extends StatelessWidget {
@@ -97,12 +96,6 @@ class UserCard extends StatelessWidget {
   }
 
   String _getDisplayName(AppUser user) {
-    return switch (user.tipoPerfil) {
-      AppUserType.professional =>
-        user.dadosProfissional?['nomeArtistico'] ?? user.nome ?? '',
-      AppUserType.studio =>
-        user.dadosEstudio?['nomeArtistico'] ?? user.nome ?? '',
-      _ => user.nome ?? '',
-    };
+    return user.appDisplayName;
   }
 }

@@ -46,7 +46,7 @@ abstract class AppUser with _$AppUser {
     /// Account visibility status: 'ativo', 'inativo', 'suspenso'.
     @Default('ativo') String status,
 
-    /// User's display name.
+    /// User's registration name (full/legal name for internal records).
     String? nome,
 
     /// Profile photo URL.
@@ -118,6 +118,54 @@ abstract class AppUser with _$AppUser {
 
   /// Whether the user needs to complete their profile form.
   bool get isPerfilPendente => cadastroStatus == 'perfil_pendente';
+
+  /// Name used for internal registration data.
+  String get registrationName => (nome ?? '').trim();
+
+  /// Name shown in app surfaces (cards, profile headers, search, etc).
+  ///
+  /// Rules:
+  /// - Professional: `profissional.nomeArtistico`
+  /// - Band: `banda.nomeBanda` (fallbacks for legacy keys)
+  /// - Studio: `estudio.nomeEstudio` (fallbacks for legacy keys)
+  /// - Contractor: registration name
+  String get appDisplayName {
+    switch (tipoPerfil) {
+      case AppUserType.professional:
+        return _firstNonEmptyName([
+          dadosProfissional?['nomeArtistico'],
+          dadosProfissional?['nome'],
+          nome,
+        ]);
+      case AppUserType.band:
+        return _firstNonEmptyName([
+          dadosBanda?['nomeBanda'],
+          dadosBanda?['nomeArtistico'],
+          dadosBanda?['nome'],
+          nome,
+        ]);
+      case AppUserType.studio:
+        return _firstNonEmptyName([
+          dadosEstudio?['nomeEstudio'],
+          dadosEstudio?['nomeArtistico'],
+          dadosEstudio?['nome'],
+          nome,
+        ]);
+      case AppUserType.contractor:
+        return _firstNonEmptyName([nome]);
+      default:
+        return _firstNonEmptyName([nome]);
+    }
+  }
+
+  String _firstNonEmptyName(List<dynamic> candidates) {
+    for (final value in candidates) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return '';
+  }
 
   /// Converts to Firestore-compatible Map, properly serializing addresses.
   Map<String, dynamic> toFirestore() {

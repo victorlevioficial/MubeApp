@@ -6,7 +6,7 @@ import 'package:mube/src/features/feed/presentation/widgets/feed_card_compact.da
 
 void main() {
   group('FeedCardCompact', () {
-    final testItem = FeedItem(
+    const testItem = FeedItem(
       uid: 'user-1',
       nome: 'João Silva',
       nomeArtistico: 'João Rock',
@@ -32,7 +32,7 @@ void main() {
     testWidgets('renders with real name when artistic name is null', (
       WidgetTester tester,
     ) async {
-      final itemWithoutArtisticName = FeedItem(
+      const itemWithoutArtisticName = FeedItem(
         uid: 'user-2',
         nome: 'Maria Santos',
         tipoPerfil: 'profissional',
@@ -93,7 +93,7 @@ void main() {
     });
 
     testWidgets('renders band icon for band type', (WidgetTester tester) async {
-      final bandItem = FeedItem(
+      const bandItem = FeedItem(
         uid: 'band-1',
         nome: 'Banda Teste',
         tipoPerfil: 'banda',
@@ -113,7 +113,7 @@ void main() {
     testWidgets('renders studio icon for studio type', (
       WidgetTester tester,
     ) async {
-      final studioItem = FeedItem(
+      const studioItem = FeedItem(
         uid: 'studio-1',
         nome: 'Studio Teste',
         tipoPerfil: 'estudio',
@@ -180,7 +180,7 @@ void main() {
     testWidgets('handles long names with ellipsis', (
       WidgetTester tester,
     ) async {
-      final itemWithLongName = FeedItem(
+      const itemWithLongName = FeedItem(
         uid: 'user-3',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado',
         tipoPerfil: 'profissional',
@@ -204,7 +204,7 @@ void main() {
     testWidgets('does not show distance when not available', (
       WidgetTester tester,
     ) async {
-      final itemWithoutLocation = FeedItem(
+      const itemWithoutLocation = FeedItem(
         uid: 'user-4',
         nome: 'Sem Localização',
         tipoPerfil: 'profissional',

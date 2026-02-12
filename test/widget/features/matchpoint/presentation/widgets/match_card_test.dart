@@ -6,16 +6,16 @@ import 'package:mube/src/features/matchpoint/presentation/widgets/match_card.dar
 
 void main() {
   group('MatchCard', () {
-    final testUser = AppUser(
+    const testUser = AppUser(
       uid: 'user-1',
       email: 'test@example.com',
       nome: 'João Silva',
       tipoPerfil: AppUserType.professional,
-      dadosProfissional: const {
+      dadosProfissional: {
         'nomeArtistico': 'João Rock',
         'funcoes': ['Guitarrista', 'Vocalista'],
       },
-      matchpointProfile: const {
+      matchpointProfile: {
         'musicalGenres': ['rock', 'pop'],
       },
       foto: 'https://example.com/photo.jpg',
@@ -36,7 +36,7 @@ void main() {
     testWidgets('renders with user real name when no artistic name', (
       WidgetTester tester,
     ) async {
-      final userWithoutArtisticName = AppUser(
+      const userWithoutArtisticName = AppUser(
         uid: 'user-2',
         email: 'test2@example.com',
         nome: 'Maria Santos',
@@ -140,7 +140,7 @@ void main() {
     testWidgets('renders default subtitle for professional without roles', (
       WidgetTester tester,
     ) async {
-      final userWithoutRoles = AppUser(
+      const userWithoutRoles = AppUser(
         uid: 'user-3',
         email: 'test3@example.com',
         nome: 'Sem Funções',
@@ -161,7 +161,7 @@ void main() {
     testWidgets('renders band subtitle for band type', (
       WidgetTester tester,
     ) async {
-      final bandUser = AppUser(
+      const bandUser = AppUser(
         uid: 'band-1',
         email: 'band@test.com',
         nome: 'Banda Teste',
@@ -182,7 +182,7 @@ void main() {
     testWidgets('renders studio subtitle for studio type', (
       WidgetTester tester,
     ) async {
-      final studioUser = AppUser(
+      const studioUser = AppUser(
         uid: 'studio-1',
         email: 'studio@test.com',
         nome: 'Studio Teste',
@@ -252,7 +252,7 @@ void main() {
     testWidgets('renders without photo placeholder when no photo', (
       WidgetTester tester,
     ) async {
-      final userWithoutPhoto = AppUser(
+      const userWithoutPhoto = AppUser(
         uid: 'user-4',
         email: 'test4@example.com',
         nome: 'Sem Foto',
@@ -272,7 +272,7 @@ void main() {
 
     testWidgets('handles null onTap gracefully', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(body: MatchCard(user: testUser, onTap: null)),
         ),
       );

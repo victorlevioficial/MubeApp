@@ -26,11 +26,20 @@ class AppSpacing {
   /// 8px - Small
   static const double s8 = 8.0;
 
+  /// 10px - Small medium minus
+  static const double s10 = 10.0;
+
   /// 12px - Small medium
   static const double s12 = 12.0;
 
+  /// 14px - Medium minus
+  static const double s14 = 14.0;
+
   /// 16px - Medium (base)
   static const double s16 = 16.0;
+
+  /// 20px - Medium large
+  static const double s20 = 20.0;
 
   /// 24px - Large
   static const double s24 = 24.0;

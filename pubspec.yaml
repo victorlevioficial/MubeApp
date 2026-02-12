@@ -131,19 +131,20 @@ flutter:
     - assets/images/icons/
     - assets/images/app_icon/
 
-flutter_icons:
+flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/app_icon/playstore.png"
-  adaptive_icon_background: "#0E0E0E" # AppColors.background
-  adaptive_icon_foreground: "assets/images/app_icon/playstore.png"
+  image_path: "assets/images/app_icon/playstore.png" # AppAssets.appIconPlaystorePng
+  adaptive_icon_background: "#0A0A0A" # AppColors.background
+  adaptive_icon_foreground: "assets/images/app_icon/playstore.png" # AppAssets.appIconPlaystorePng
 
 flutter_native_splash:
-  color: "#0E0E0E"
-  image: "assets/images/logos_png/logo vertical.png"
+  # Keep splash values aligned with AppColors.background and AppAssets.
+  color: "#0A0A0A"
+  image: "assets/images/logos_png/logo_vertical.png" # AppAssets.logoVerticalPng
   android_12:
-    image: "assets/images/app_icon/playstore.png"
-    icon_background_color: "#0E0E0E"
+    image: "assets/images/app_icon/playstore.png" # AppAssets.appIconPlaystorePng
+    icon_background_color: "#0A0A0A"
   # Adicionado para evitar que a logo fique gigante em telas grandes
   ios_content_mode: scaleAspectFit
   android_gravity: center

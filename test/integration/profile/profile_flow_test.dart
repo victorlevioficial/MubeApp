@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
+import 'package:mube/src/design_system/components/loading/app_shimmer.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -16,7 +18,6 @@ import 'package:mube/src/features/profile/presentation/edit_profile_screen.dart'
 import 'package:mube/src/features/profile/presentation/profile_controller.dart';
 import 'package:mube/src/features/profile/presentation/profile_screen.dart';
 import 'package:mube/src/features/storage/data/storage_repository.dart';
-import 'package:mube/src/design_system/components/loading/app_shimmer.dart';
 
 import '../../helpers/firebase_mocks.dart';
 import '../../helpers/firebase_test_config.dart';

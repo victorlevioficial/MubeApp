@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../../core/providers/app_config_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -56,6 +57,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Preload app config to avoid empty option lists on first modal open.
+    unawaited(ref.read(appConfigProvider.future));
   }
 
   @override
@@ -76,7 +79,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   void _initializeControllers(AppUser user) {
     if (_isControllersInitialized) return;
 
-    _nomeController = TextEditingController(text: user.nome ?? '');
+    var registrationName = user.nome ?? '';
+    if (registrationName.trim().isEmpty &&
+        (user.tipoPerfil == AppUserType.band ||
+            user.tipoPerfil == AppUserType.studio)) {
+      registrationName = user.appDisplayName;
+    }
+
+    _nomeController = TextEditingController(text: registrationName);
     _bioController = TextEditingController(text: user.bio ?? '');
 
     String nomeArt = '';
@@ -94,9 +104,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         gen = data['genero'] ?? '';
         insta = data['instagram'] ?? '';
         break;
+      case AppUserType.band:
+        final data = user.dadosBanda ?? {};
+        nomeArt =
+            data['nomeBanda'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
+        break;
       case AppUserType.studio:
         final data = user.dadosEstudio ?? {};
-        nomeArt = data['nomeArtistico'] ?? '';
+        nomeArt =
+            data['nomeEstudio'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
         cel = data['celular'] ?? '';
         break;
       case AppUserType.contractor:
@@ -108,6 +124,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         break;
       default:
         break;
+    }
+
+    if (nomeArt.isEmpty) {
+      nomeArt = user.appDisplayName;
     }
 
     _nomeArtisticoController = TextEditingController(text: nomeArt);
@@ -272,12 +292,39 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               ],
             ),
             bottomNavigationBar: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s24,
-                  AppSpacing.s12,
-                  AppSpacing.s24,
-                  AppSpacing.s16,
+              child: Container(
+                margin: const EdgeInsets.only(
+                  left: AppSpacing.s16,
+                  right: AppSpacing.s16,
+                  bottom: AppSpacing.s16,
+                ),
+                padding: const EdgeInsets.all(AppSpacing.s10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.surface,
+                      AppColors.surface.withValues(alpha: 0.98),
+                    ],
+                  ),
+                  borderRadius: AppRadius.all24,
+                  border: Border.all(
+                    color: AppColors.textPrimary.withValues(alpha: 0.08),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.background.withValues(alpha: 0.6),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: AppButton.primary(
                   text: 'Salvar Alterações',
@@ -308,7 +355,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             const SizedBox(height: AppSpacing.s24),
             _buildTypeSpecificFields(user),
             // Bottom spacing
-            const SizedBox(height: AppSpacing.s48),
+            const SizedBox(height: AppSpacing.s48 + AppSpacing.s32),
           ],
         ),
       ),
@@ -346,6 +393,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         );
       case AppUserType.studio:
         return StudioFormFields(
+          nomeEstudioController: _nomeArtisticoController,
           celularController: _celularController,
           celularMask: _celularMask,
           studioType: editState.studioType,
@@ -353,12 +401,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           selectedServices: editState.selectedServices,
           onServicesChanged: notifier.updateServices,
           bioController: _bioController,
+          onChanged: notifier.markChanged,
         );
       case AppUserType.band:
         return BandFormFields(
+          nomeBandaController: _nomeArtisticoController,
           selectedGenres: editState.bandGenres,
           onGenresChanged: notifier.updateBandGenres,
           bioController: _bioController,
+          onChanged: notifier.markChanged,
         );
       case AppUserType.contractor:
         return ContractorFormFields(

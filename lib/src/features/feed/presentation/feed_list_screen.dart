@@ -33,8 +33,10 @@ class _FeedListScreenState extends ConsumerState<FeedListScreen> {
   String _getTitle() {
     final section = FeedSection.homeSections.firstWhere(
       (s) => s.type == widget.sectionType,
-      orElse: () =>
-          const FeedSection(type: FeedSectionType.artists, title: 'Resultados'),
+      orElse: () => const FeedSection(
+        type: FeedSectionType.technicians,
+        title: 'Resultados',
+      ),
     );
     return section.title;
   }

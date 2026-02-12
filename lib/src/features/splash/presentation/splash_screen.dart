@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -40,8 +41,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Reduzido para ser mais discreto e profissional
-    final logoWidth = min(screenWidth * 0.40, 140.0);
+    // Aumentado para combinar melhor com a splash nativa
+    final logoWidth = min(screenWidth * 0.60, 240.0);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -58,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
             width: logoWidth,
             // height: logoWidth, // Removed to allow natural aspect ratio (matches scaleAspectFit)
             child: Image.asset(
-              'assets/images/logos_png/logo vertical.png',
+              AppAssets.logoVerticalPng,
               fit: BoxFit.contain,
             ),
           ),

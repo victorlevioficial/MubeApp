@@ -138,9 +138,9 @@ class MatchpointController extends _$MatchpointController {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
     if (currentUser == null) {
-      AppLogger.error('Swipe bloqueado: usuÃƒÂ¡rio sem sessÃƒÂ£o FirebaseAuth');
+      AppLogger.error('Swipe bloqueado: usuário sem sessão FirebaseAuth');
       state = const AsyncError(
-        'SessÃƒÂ£o expirada. FaÃƒÂ§a login novamente.',
+        'Sessão expirada. Faça login novamente.',
         StackTrace.empty,
       );
       return const SwipeActionResult(success: false);
@@ -151,20 +151,20 @@ class MatchpointController extends _$MatchpointController {
       if (idToken == null || idToken.isEmpty) {
         AppLogger.error('Swipe bloqueado: token FirebaseAuth ausente');
         state = const AsyncError(
-          'SessÃƒÂ£o invÃƒÂ¡lida. FaÃƒÂ§a login novamente.',
+          'Sessão inválida. Faça login novamente.',
           StackTrace.empty,
         );
         return const SwipeActionResult(success: false);
       }
     } catch (e) {
       AppLogger.error('Swipe bloqueado: erro ao obter token FirebaseAuth: $e');
-      state = AsyncError('Erro de autenticaÃƒÂ§ÃƒÂ£o: $e', StackTrace.current);
+      state = AsyncError('Erro de autenticação: $e', StackTrace.current);
       return const SwipeActionResult(success: false);
     }
 
     final repo = ref.read(matchpointRepositoryProvider);
 
-    // Usar nova funÃƒÂ§ÃƒÂ£o submitAction que chama Cloud Function
+    // Usar nova função submitAction que chama Cloud Function
     final result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
@@ -184,7 +184,7 @@ class MatchpointController extends _$MatchpointController {
               .updateRemaining(actionResult.remainingLikes!);
         }
 
-        // Adicionar ao histÃƒÂ³rico local
+        // Adicionar ao histórico local
         ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
 
         if (actionResult.isMatch == true) {
@@ -288,7 +288,7 @@ class LikesQuota extends _$LikesQuota {
   }
 }
 
-/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
+/// Provider para lista de candidatos com estado mutável (UI otimista)
 @Riverpod(keepAlive: true)
 class MatchpointCandidates extends _$MatchpointCandidates {
   @override
@@ -298,12 +298,12 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     if (currentUser == null) return [];
 
-    // Reativo ao perfil do usuÃƒÂ¡rio para evitar loading infinito
+    // Reativo ao perfil do usuário para evitar loading infinito
     final profileAsync = ref.watch(currentUserProfileProvider);
     final userProfile = profileAsync.value;
 
     if (profileAsync.isLoading && userProfile == null) {
-      AppLogger.info('MatchPoint: aguardando perfil do usuÃƒÂ¡rio...');
+      AppLogger.info('MatchPoint: aguardando perfil do usuário...');
       return [];
     }
 
@@ -313,10 +313,10 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
     );
     if (genres.isEmpty) {
-      AppLogger.warning('Ã¢Å¡Â Ã¯Â¸Â MatchPoint: User has no genres.');
+      AppLogger.warning('⚠️ MatchPoint: User has no genres.');
       return [];
     }
-    AppLogger.info('Ã°Å¸â€Â MatchPoint Filters: Genres=$genres');
+    AppLogger.info('ðŸ” MatchPoint Filters: Genres=$genres');
 
     final blockedState = ref.watch(blockedUsersProvider);
     final blockedFromCollection = blockedState.when(
@@ -339,12 +339,12 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     return result.fold(
       (l) {
-        AppLogger.error('Ã¢ÂÅ’ MatchPoint Query Error: ${l.message}');
+        AppLogger.error('âŒ MatchPoint Query Error: ${l.message}');
         throw l.message;
       },
       (r) {
         AppLogger.info(
-          'Ã¢Å“â€¦ MatchPoint Query Success: Found ${r.length} candidates',
+          '✅ MatchPoint Query Success: Found ${r.length} candidates',
         );
         return r;
       },
@@ -363,7 +363,7 @@ class MatchpointCandidates extends _$MatchpointCandidates {
   }
 }
 
-/// Provider para lista de matches do usuÃƒÂ¡rio
+/// Provider para lista de matches do usuário
 @riverpod
 Future<List<MatchInfo>> matches(Ref ref) async {
   final authRepo = ref.read(authRepositoryProvider);
@@ -406,7 +406,7 @@ Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   }, (rankings) => rankings);
 }
 
-/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
+/// Provider para histórico de swipes — persistido em SharedPreferences
 @Riverpod(keepAlive: true)
 class SwipeHistory extends _$SwipeHistory {
   static const _storageKeyPrefix = 'swipe_history_';
@@ -475,7 +475,9 @@ class SwipeHistory extends _$SwipeHistory {
   void addSwipe(AppUser user, String type) {
     final entry = SwipeHistoryEntry(
       targetUserId: user.uid,
-      targetUserName: user.nome ?? 'Usuario',
+      targetUserName: user.appDisplayName.isNotEmpty
+          ? user.appDisplayName
+          : (user.nome ?? 'Usuario'),
       targetUserPhoto: user.foto,
       action: type,
       timestamp: DateTime.now(),

@@ -56,14 +56,12 @@ class FeedListController extends _$FeedListController {
 
   @override
   Future<FeedListState> build(FeedSectionType sectionType) async {
-    // Initial load
     return _loadInitial(sectionType);
   }
 
   Future<FeedListState> _loadInitial(FeedSectionType sectionType) async {
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) {
-      // Return empty if no user (should rely on auth redirect, but for safety)
       return const FeedListState(items: [], hasMore: false);
     }
 
@@ -72,7 +70,6 @@ class FeedListController extends _$FeedListController {
     final userLong = user.location?['lng'] as double?;
     final userGeohash = user.geohash;
 
-    // DECISION: Use Location-Based (All Sorted) OR Classic Pagination
     if (userLat != null && userLong != null) {
       return _loadWithLocation(
         feedRepo,
@@ -82,9 +79,9 @@ class FeedListController extends _$FeedListController {
         userGeohash,
         sectionType,
       );
-    } else {
-      return _loadClassic(feedRepo, user.uid, userLat, userLong, sectionType);
     }
+
+    return _loadClassic(feedRepo, user.uid, userLat, userLong, sectionType);
   }
 
   Future<FeedListState> _loadWithLocation(
@@ -96,20 +93,14 @@ class FeedListController extends _$FeedListController {
     FeedSectionType sectionType,
   ) async {
     String? filterType;
-    String? category;
-    String? excludeCategory;
 
     switch (sectionType) {
       case FeedSectionType.nearby:
         filterType = null;
         break;
       case FeedSectionType.artists:
-        filterType = 'profissional';
-        excludeCategory = 'Equipe Técnica';
-        break;
       case FeedSectionType.technicians:
         filterType = 'profissional';
-        category = 'Equipe Técnica';
         break;
       case FeedSectionType.bands:
         filterType = 'banda';
@@ -124,23 +115,20 @@ class FeedListController extends _$FeedListController {
       userLat: lat,
       userLong: long,
       filterType: filterType,
-      category: category,
-      excludeCategory: excludeCategory,
       userGeohash: geohash,
     );
 
-    return result.fold(
-      (failure) => throw failure, // Riverpod handles errors
-      (allSorted) {
-        final initialPage = allSorted.take(_pageSize).toList();
-        return FeedListState(
-          items: initialPage,
-          allSortedItems: allSorted,
-          currentPage: 1,
-          hasMore: allSorted.length > _pageSize,
-        );
-      },
-    );
+    return result.fold((failure) => throw failure, (allSorted) {
+      final filteredItems = _applySectionFilter(allSorted, sectionType);
+      final initialPage = filteredItems.take(_pageSize).toList();
+
+      return FeedListState(
+        items: initialPage,
+        allSortedItems: filteredItems,
+        currentPage: 1,
+        hasMore: filteredItems.length > _pageSize,
+      );
+    });
   }
 
   Future<FeedListState> _loadClassic(
@@ -151,18 +139,9 @@ class FeedListController extends _$FeedListController {
     FeedSectionType sectionType,
   ) async {
     if (sectionType == FeedSectionType.nearby) {
-      // Cannot load nearby without location
       return const FeedListState(items: [], hasMore: false);
     }
 
-    // Classic logic mapping
-    // Note: reused logic from original screen _loadItemsClassicFallback
-    // Simplified for brevity, handling specific calls logic
-
-    // Ideally we'd have a unified repository method, but current repo has specific methods
-    // We will use getUsersByTypePaginated for bands/studios, and explicit calls for others if needed
-
-    // For Bands/Studios
     if (sectionType == FeedSectionType.bands ||
         sectionType == FeedSectionType.studios) {
       final type = sectionType == FeedSectionType.bands ? 'banda' : 'estudio';
@@ -184,10 +163,6 @@ class FeedListController extends _$FeedListController {
       );
     }
 
-    // For Artists/Technicians (Classic fallback was non-paginated in original code?
-    // Wait, original code used getArtists/getTechnicians which return List<FeedItem> directly (no pagination struct exposed mostly)
-    // Actually getArtists DOES fallback to getUsersByType (...)
-
     List<FeedItem> items = [];
     if (sectionType == FeedSectionType.artists) {
       final result = await feedRepo.getArtists(
@@ -207,12 +182,7 @@ class FeedListController extends _$FeedListController {
       result.fold((l) => throw l, (r) => items = r);
     }
 
-    return FeedListState(
-      items: items,
-      hasMore:
-          items.length >=
-          _pageSize, // Approx guess since these APIs didn't return hasMore
-    );
+    return FeedListState(items: items, hasMore: items.length >= _pageSize);
   }
 
   Future<void> loadMore() async {
@@ -223,12 +193,10 @@ class FeedListController extends _$FeedListController {
       return;
     }
 
-    // Set loading more
     state = AsyncData(currentState.copyWith(isLoadingMore: true));
 
     try {
       if (currentState._allSortedItems.isNotEmpty) {
-        // Local Pagination
         final startIndex = currentState._currentPage * _pageSize;
         final endIndex = (startIndex + _pageSize).clamp(
           0,
@@ -239,7 +207,6 @@ class FeedListController extends _$FeedListController {
           endIndex,
         );
 
-        // Emulate delay? No need.
         state = AsyncData(
           currentState.copyWith(
             items: [...currentState.items, ...nextItems],
@@ -249,18 +216,12 @@ class FeedListController extends _$FeedListController {
           ),
         );
       } else if (currentState._lastDocument != null) {
-        // Remote Pagination
-        final user = ref
-            .read(currentUserProfileProvider)
-            .value!; // Should exist if we loaded initial
+        final user = ref.read(currentUserProfileProvider).value!;
         final feedRepo = ref.read(feedRepositoryProvider);
 
         String? type;
         if (sectionType == FeedSectionType.bands) type = 'banda';
         if (sectionType == FeedSectionType.studios) type = 'estudio';
-        // Note: Artists/Technicians didn't implement proper remote pagination in original fallback,
-        // so we only support it if we have types.
-        // Logic from original _loadMore: "case bands, studios, artists (professional), technicians (professional)"
         if (sectionType == FeedSectionType.artists ||
             sectionType == FeedSectionType.technicians) {
           type = 'profissional';
@@ -284,14 +245,21 @@ class FeedListController extends _$FeedListController {
 
         result.fold(
           (failure) {
-            // On error during load more, we just stop loading.
-            // Ideally we show toast via listener in UI.
             state = AsyncData(currentState.copyWith(isLoadingMore: false));
           },
           (response) {
+            final filteredItems = _applySectionFilter(
+              response.items,
+              sectionType,
+            );
+            final existingIds = currentState.items.map((e) => e.uid).toSet();
+            final uniqueItems = filteredItems
+                .where((item) => !existingIds.contains(item.uid))
+                .toList();
+
             state = AsyncData(
               currentState.copyWith(
-                items: [...currentState.items, ...response.items],
+                items: [...currentState.items, ...uniqueItems],
                 lastDocument: response.lastDocument,
                 hasMore: response.hasMore,
                 isLoadingMore: false,
@@ -300,14 +268,99 @@ class FeedListController extends _$FeedListController {
           },
         );
       } else {
-        // No pagination method available
         state = AsyncData(
           currentState.copyWith(isLoadingMore: false, hasMore: false),
         );
       }
     } catch (e) {
-      // Revert loading state
       state = AsyncData(currentState.copyWith(isLoadingMore: false));
+    }
+  }
+
+  List<FeedItem> _applySectionFilter(
+    List<FeedItem> items,
+    FeedSectionType sectionType,
+  ) {
+    if (sectionType == FeedSectionType.technicians) {
+      return items.where(_isPureTechnician).toList();
+    }
+
+    if (sectionType == FeedSectionType.artists) {
+      return items.where((item) => !_isPureTechnician(item)).toList();
+    }
+
+    return items;
+  }
+
+  bool _isPureTechnician(FeedItem item) {
+    if (item.tipoPerfil != 'profissional') return false;
+
+    final normalizedCategories = item.subCategories
+        .map(_normalizeCategory)
+        .where((value) => value.isNotEmpty)
+        .toSet();
+
+    final hasCrew = normalizedCategories.contains('crew');
+    final hasMusicCategory =
+        normalizedCategories.contains('singer') ||
+        normalizedCategories.contains('instrumentalist') ||
+        normalizedCategories.contains('dj');
+
+    return hasCrew && !hasMusicCategory;
+  }
+
+  String _normalizeCategory(String value) {
+    if (value.trim().isEmpty) return '';
+
+    final normalized = value
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('ä', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ë', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ì', 'i')
+        .replaceAll('î', 'i')
+        .replaceAll('ï', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ò', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ö', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+
+    switch (normalized) {
+      case 'crew':
+      case 'equipe_tecnica':
+      case 'equipe_tecnico':
+      case 'tecnico':
+      case 'tecnica':
+        return 'crew';
+      case 'cantor':
+      case 'cantora':
+      case 'cantor_a':
+      case 'vocalista':
+      case 'singer':
+        return 'singer';
+      case 'instrumentista':
+      case 'instrumentalist':
+        return 'instrumentalist';
+      case 'dj':
+        return 'dj';
+      default:
+        return normalized;
     }
   }
 }

@@ -29,7 +29,7 @@ class FakeMatchpointRepositoryExtended extends Fake
     required String type,
   }) async {
     if (throwError) {
-      return Left(ServerFailure(message: 'Action failed'));
+      return const Left(ServerFailure(message: 'Action failed'));
     }
     if (throwQuotaError) {
       return Left(QuotaExceededFailure.dailyLikes());
@@ -50,7 +50,7 @@ class FakeMatchpointRepositoryExtended extends Fake
   @override
   FutureResult<LikesQuotaInfo> getRemainingLikes() async {
     if (throwError) {
-      return Left(ServerFailure(message: 'Failed to get quota'));
+      return const Left(ServerFailure(message: 'Failed to get quota'));
     }
     return Either.right(
       nextQuotaInfo ??
@@ -70,7 +70,7 @@ class FakeMatchpointRepositoryExtended extends Fake
     int limit = 20,
   }) async {
     if (throwError) {
-      return Left(ServerFailure(message: 'Failed to fetch candidates'));
+      return const Left(ServerFailure(message: 'Failed to fetch candidates'));
     }
     return Right(candidates);
   }

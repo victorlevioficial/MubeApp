@@ -11,6 +11,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
+import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -312,13 +313,11 @@ class _EmailVerificationScreenState
                   children: [
                     Center(
                       child: SvgPicture.asset(
-                        'assets/images/logos_svg/logo horizontal.svg',
+                        AppAssets.logoHorizontalSvg,
                         height: AppSpacing.s48,
                         fit: BoxFit.scaleDown,
                         placeholderBuilder: (context) =>
-                            const SizedBox(
-                              height: AppSpacing.s48,
-                            ),
+                            const SizedBox(height: AppSpacing.s48),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s32),
@@ -508,9 +507,7 @@ class _EmailVerificationScreenState
                     },
                     child: Text(
                       'Sair e usar outra conta',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTypography.link,
                     ),
                   ),
                 ),

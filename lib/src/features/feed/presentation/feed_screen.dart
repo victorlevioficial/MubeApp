@@ -14,6 +14,7 @@ import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import 'feed_controller.dart';
 import 'feed_image_precache_service.dart';
+import 'widgets/featured_spotlight_carousel.dart';
 import 'widgets/feed_header.dart';
 import 'widgets/feed_section_widget.dart';
 import 'widgets/feed_skeleton.dart';
@@ -35,7 +36,6 @@ class FeedScreen extends ConsumerStatefulWidget {
 }
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
-  final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   bool _isScrolled = false;
 
@@ -50,7 +50,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -90,7 +89,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   void _navigateToSectionList(FeedSectionType type) {
-    context.push('/feed/list/${type.name}', extra: type);
+    context.push('/feed/list', extra: {'type': type});
+  }
+
+  List<FeedItem> _getSpotlightItems(FeedState state) {
+    final allItems = <FeedItem>[];
+    for (final items in state.sectionItems.values) {
+      allItems.addAll(items);
+    }
+    allItems.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+    return allItems.take(5).toList();
   }
 
   @override
@@ -170,10 +178,23 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               ),
             ),
 
+            // Spotlight carousel with top trending items
+            if (state.sectionItems.isNotEmpty &&
+                state.sectionItems.values.any((items) => items.isNotEmpty))
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s8),
+                  child: FeaturedSpotlightCarousel(
+                    items: _getSpotlightItems(state),
+                    onItemTap: _navigateToUser,
+                  ),
+                ),
+              ),
+
             // Horizontal Sections (Lazy Load)
             if (state.sectionItems.isNotEmpty)
               SliverPadding(
-                padding: const EdgeInsets.only(top: AppSpacing.s24),
+                padding: const EdgeInsets.only(top: AppSpacing.s8),
                 sliver: SliverList.builder(
                   itemCount: state.sectionItems.length,
                   itemBuilder: (context, index) {
@@ -216,12 +237,37 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s16,
+                  AppSpacing.s20,
                   AppSpacing.s24,
+                  AppSpacing.s20,
                   AppSpacing.s16,
-                  AppSpacing.s12,
                 ),
-                child: Text('Destaques', style: AppTypography.titleMedium),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryPressed],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        size: 16,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s8),
+                    Text(
+                      'Principais Perfis',
+                      style: AppTypography.titleLarge.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 

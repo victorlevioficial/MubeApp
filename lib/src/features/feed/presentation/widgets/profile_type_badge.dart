@@ -6,18 +6,13 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 
 /// Determines the profile classification based on selected categories.
 enum ProfileClassification {
-  musician, // Cantor/Instrumentista without "Equipe Técnica"
-  professional, // Has "Equipe Técnica" category
+  musician, // Cantor/Instrumentista without technical crew
+  professional, // Has technical crew category
   band,
   studio,
 }
 
 /// A badge that displays the profile type with a colored icon.
-///
-/// Design:
-/// - Filled dark gray chip background
-/// - White text label
-/// - Colored icon based on profile type
 class ProfileTypeBadge extends StatelessWidget {
   final String tipoPerfil;
   final List<String> subCategories;
@@ -62,9 +57,10 @@ class ProfileTypeBadge extends StatelessWidget {
       case 'estudio':
         return ProfileClassification.studio;
       case 'profissional':
-        // Check if has "Equipe Técnica" category
-        final hasEquipeTecnica = subCategories.contains('equipe_tecnica');
-        return hasEquipeTecnica
+        final hasTechnicalCrew = subCategories
+            .map(_normalizeCategory)
+            .contains('crew');
+        return hasTechnicalCrew
             ? ProfileClassification.professional
             : ProfileClassification.musician;
       default:
@@ -85,5 +81,34 @@ class ProfileTypeBadge extends StatelessWidget {
       case ProfileClassification.studio:
         return ('Estúdio', Icons.headphones, AppColors.badgeStudio);
     }
+  }
+
+  String _normalizeCategory(String value) {
+    final normalized = value
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+
+    if (normalized == 'crew' ||
+        normalized == 'equipe_tecnica' ||
+        normalized == 'tecnico' ||
+        normalized == 'tecnica') {
+      return 'crew';
+    }
+
+    return normalized;
   }
 }

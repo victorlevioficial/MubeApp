@@ -8,6 +8,7 @@ import '../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../auth/domain/app_user.dart';
+import '../../../../auth/domain/user_type.dart';
 import '../../../../profile/presentation/profile_controller.dart';
 import '../../services/media_picker_service.dart';
 
@@ -59,6 +60,9 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
 
   @override
   Widget build(BuildContext context) {
+    final nameLabel = _getRegistrationNameLabel();
+    final nameHint = _getRegistrationNameHint();
+
     return Column(
       children: [
         Center(
@@ -125,9 +129,30 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
         const SizedBox(height: AppSpacing.s24),
         AppTextField(
           controller: widget.nomeController,
-          label: 'Nome de Exibição',
+          label: nameLabel,
+          hint: nameHint,
         ),
       ],
     );
+  }
+
+  String _getRegistrationNameLabel() {
+    switch (widget.user.tipoPerfil) {
+      case AppUserType.band:
+      case AppUserType.studio:
+        return 'Nome Completo (Responsavel)';
+      default:
+        return 'Nome Completo';
+    }
+  }
+
+  String _getRegistrationNameHint() {
+    switch (widget.user.tipoPerfil) {
+      case AppUserType.band:
+      case AppUserType.studio:
+        return 'Usado para cadastro interno do responsavel';
+      default:
+        return 'Usado para cadastro interno';
+    }
   }
 }

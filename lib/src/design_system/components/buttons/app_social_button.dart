@@ -33,7 +33,8 @@ class SocialLoginButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           backgroundColor: AppColors.transparent,
-          // foregroundColor and side are inherited from specific OutlinedButtonTheme or default
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.border, width: 1),
           elevation: 0,
           padding: AppSpacing.h16,
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.pill),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
 import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
@@ -9,7 +9,7 @@ import 'package:mube/src/features/feed/presentation/widgets/profile_type_badge.d
 
 void main() {
   group('FeedCardVertical', () {
-    final testItem = FeedItem(
+    const testItem = FeedItem(
       uid: 'user-1',
       nome: 'João Silva',
       nomeArtistico: 'João Rock',
@@ -185,7 +185,7 @@ void main() {
     testWidgets('renders without distance when not available', (
       WidgetTester tester,
     ) async {
-      final itemWithoutLocation = FeedItem(
+      const itemWithoutLocation = FeedItem(
         uid: 'user-2',
         nome: 'Sem Localização',
         tipoPerfil: 'profissional',
@@ -207,7 +207,7 @@ void main() {
     testWidgets('renders without skills when empty', (
       WidgetTester tester,
     ) async {
-      final itemWithoutSkills = FeedItem(
+      const itemWithoutSkills = FeedItem(
         uid: 'user-3',
         nome: 'Sem Skills',
         tipoPerfil: 'profissional',
@@ -231,7 +231,7 @@ void main() {
     testWidgets('handles long names with ellipsis', (
       WidgetTester tester,
     ) async {
-      final itemWithLongName = FeedItem(
+      const itemWithLongName = FeedItem(
         uid: 'user-4',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado',
         tipoPerfil: 'profissional',

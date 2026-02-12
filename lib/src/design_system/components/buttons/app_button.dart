@@ -224,19 +224,22 @@ class AppButton extends StatelessWidget {
   TextStyle _getTextStyle() {
     switch (size) {
       case AppButtonSize.small:
-        return AppTypography.labelMedium.copyWith(
-          fontWeight: AppTypography.titleSmall.fontWeight,
+        return AppTypography.buttonSecondary.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
           color: _getTextColor(),
         );
       case AppButtonSize.medium:
-        return AppTypography.bodyMedium.copyWith(
-          fontWeight: AppTypography.titleSmall.fontWeight,
+        if (variant == AppButtonVariant.primary) {
+          return AppTypography.buttonPrimary.copyWith(color: _getTextColor());
+        }
+        return AppTypography.buttonSecondary.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
           color: _getTextColor(),
         );
       case AppButtonSize.large:
-        return AppTypography.buttonPrimary.copyWith(
-          color: _getTextColor(),
-        );
+        return AppTypography.buttonPrimary.copyWith(color: _getTextColor());
     }
   }
 

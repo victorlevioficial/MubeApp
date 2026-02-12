@@ -72,9 +72,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
               const SizedBox(height: AppSpacing.s8),
               Text(
                 'Interactive / Link',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: AppTypography.buttonPrimary.fontWeight,
+                style: AppTypography.link.copyWith(
                   decoration: TextDecoration.underline,
                   decorationColor: AppColors.primary,
                 ),
@@ -374,18 +372,18 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                Text(
-                  name,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.success,
-                  ),
+              Text(
+                name,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.success,
                 ),
-                Text(
-                  contextObj,
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              ),
+              Text(
+                contextObj,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
                 ),
+              ),
             ],
           ),
         ),
@@ -393,9 +391,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
         const SizedBox(width: AppSpacing.s8),
         Text(
           '${spacing.toInt()}px',
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
         ),
         const Spacer(),
         // Example visualization

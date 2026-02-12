@@ -1,16 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
-
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/feed_section.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -61,19 +60,20 @@ void main() {
       // Wait for user to be emitted
       await waitForUser(container);
 
-      final feedItem = FeedItem(
+      const feedItem = FeedItem(
         uid: 'item-1',
         nome: 'Artist 1',
         nomeArtistico: 'The Artist',
         foto: 'http://url.com',
-        tipoPerfil: 'artist',
+        tipoPerfil: 'profissional',
         generosMusicais: ['Rock'],
         skills: ['Guitar'],
       );
 
       fakeFeedRepository.nearbyUsers = [feedItem];
-      fakeFeedRepository.artists = [feedItem];
+      fakeFeedRepository.technicians = [feedItem];
       fakeFeedRepository.bands = [feedItem];
+      fakeFeedRepository.studios = [feedItem];
 
       // Act
       final controller = container.read(feedControllerProvider.notifier);
@@ -82,9 +82,9 @@ void main() {
       // Assert
       final state = container.read(feedControllerProvider).value!;
       expect(state.isInitialLoading, false);
-      expect(state.sectionItems[FeedSectionType.nearby], hasLength(1));
-      expect(state.sectionItems[FeedSectionType.artists], hasLength(1));
+      expect(state.sectionItems[FeedSectionType.technicians], hasLength(1));
       expect(state.sectionItems[FeedSectionType.bands], hasLength(1));
+      expect(state.sectionItems[FeedSectionType.studios], hasLength(1));
     });
 
     test('onFilterChanged updates filter and reloads feed', () async {
@@ -115,16 +115,16 @@ void main() {
       );
       await waitForUser(container);
 
-      final feedItem = FeedItem(
+      const feedItem = FeedItem(
         uid: 'item-1',
         nome: 'Artist 1',
         foto: 'http://url.com',
-        tipoPerfil: 'artist',
+        tipoPerfil: 'profissional',
         generosMusicais: ['Rock'],
         skills: ['Guitar'],
         likeCount: 0,
       );
-      fakeFeedRepository.nearbyUsers = [feedItem];
+      fakeFeedRepository.technicians = [feedItem];
 
       final controller = container.read(feedControllerProvider.notifier);
       await controller.loadAllData();
@@ -134,7 +134,8 @@ void main() {
 
       // Assert
       final state = container.read(feedControllerProvider).value!;
-      final updatedItem = state.sectionItems[FeedSectionType.nearby]?.first;
+      final updatedItem =
+          state.sectionItems[FeedSectionType.technicians]?.first;
       expect(updatedItem?.likeCount, 1);
     });
 

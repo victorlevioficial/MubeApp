@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
@@ -30,27 +29,62 @@ class FeedSectionWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with title and "Ver todos"
+        // Header with title and top-level action
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
-                style: AppTypography.titleMedium.copyWith(
-                  fontWeight: AppTypography.buttonPrimary.fontWeight,
+                style: AppTypography.titleLarge.copyWith(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              GestureDetector(
+                onTap: onSeeAllTap,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s12,
+                    vertical: AppSpacing.s8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.surfaceHighlight,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ver todos',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.s4),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.s12),
+        const SizedBox(height: AppSpacing.s16),
 
-        // Content
+        // Section content
         SizedBox(
-          height:
-              176, // Optimized height for compact card content (110 avatar + info)
+          height: 160,
           child: isLoading
               ? _buildLoadingState()
               : items.isEmpty
@@ -63,55 +97,18 @@ class FeedSectionWidget extends StatelessWidget {
 
   Widget _buildList() {
     final displayItems = items.take(10).toList();
-    final hasMore = items.length > 10;
 
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-      itemCount: displayItems.length + (hasMore ? 1 : 0),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
+      itemCount: displayItems.length,
       itemBuilder: (context, index) {
-        if (index < displayItems.length) {
-          final item = displayItems[index];
-          return FeedCardCompact(item: item, onTap: () => onItemTap(item));
-        } else {
-          return _buildSeeAllCard();
-        }
+        final item = displayItems[index];
+        return Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.s12),
+          child: FeedCardCompact(item: item, onTap: () => onItemTap(item)),
+        );
       },
-    );
-  }
-
-  Widget _buildSeeAllCard() {
-    return GestureDetector(
-      onTap: onSeeAllTap,
-      child: Column(
-        children: [
-          Container(
-            width: 110,
-            height: 110, // Match photo size
-            margin: const EdgeInsets.only(right: AppSpacing.s12),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.all12,
-            ),
-            child: const Icon(
-              Icons.arrow_forward_ios,
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.s12),
-            child: Text(
-              'Ver todos',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: AppTypography.buttonPrimary.fontWeight,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -119,13 +116,12 @@ class FeedSectionWidget extends StatelessWidget {
     return SkeletonShimmer(
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
         itemCount: 4,
         itemBuilder: (context, index) {
-          return Container(
-            width: 110,
-            margin: const EdgeInsets.only(right: AppSpacing.s12),
-            child: const Column(
+          return const SizedBox(
+            width: 122,
+            child: Column(
               children: [
                 // Image placeholder
                 SkeletonBox(width: 110, height: 110, borderRadius: 12),

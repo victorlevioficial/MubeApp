@@ -165,20 +165,30 @@ class LocationService {
   }
 
   Future<Position?> getCurrentPosition() async {
-    // Mesma lógica de antes...
     try {
       final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return null;
+      if (!serviceEnabled) {
+        debugPrint('LocationService: GPS service is disabled');
+        return null;
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) return null;
+        if (permission == LocationPermission.denied) {
+          debugPrint('LocationService: Permission denied');
+          return null;
+        }
       }
-      if (permission == LocationPermission.deniedForever) return null;
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('LocationService: Permission denied forever');
+        return null;
+      }
 
       return await Geolocator.getCurrentPosition();
     } catch (e) {
+      debugPrint('LocationService: Error getting location: $e');
       return null;
     }
   }

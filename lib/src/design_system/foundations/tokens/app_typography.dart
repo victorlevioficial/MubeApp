@@ -216,7 +216,7 @@ class AppTypography {
   );
 
   /// Estilo para botão primário
-  static TextStyle get buttonPrimary => GoogleFonts.inter(
+  static TextStyle get buttonPrimary => GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w700,
     color: AppColors.textPrimary,
@@ -224,7 +224,7 @@ class AppTypography {
   );
 
   /// Estilo para botão secundário
-  static TextStyle get buttonSecondary => GoogleFonts.inter(
+  static TextStyle get buttonSecondary => GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w500,
     color: AppColors.textPrimary,
@@ -252,6 +252,14 @@ class AppTypography {
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: AppColors.error,
+    letterSpacing: 0,
+  );
+
+  /// Estilo para links de texto
+  static TextStyle get link => GoogleFonts.poppins(
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    color: AppColors.primary,
     letterSpacing: 0,
   );
 }

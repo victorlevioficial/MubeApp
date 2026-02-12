@@ -1,4 +1,4 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+﻿import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'feed_item.freezed.dart';
 
@@ -76,11 +76,16 @@ sealed class FeedItem with _$FeedItem {
       if (profData['instrumentos'] != null) {
         extractedSkills.addAll(List<String>.from(profData['instrumentos']));
       }
-      if (profData['categorias'] != null) {
-        extractedSubCategories.addAll(
-          List<String>.from(profData['categorias']),
-        );
+      final rawCategories = (profData['categorias'] as List<dynamic>? ?? [])
+          .map((item) => item.toString())
+          .toList();
+      final legacyCategory = profData['categoria'];
+      if (legacyCategory is String && legacyCategory.isNotEmpty) {
+        rawCategories.add(legacyCategory);
       }
+      extractedSubCategories.addAll(
+        _normalizeProfessionalCategories(rawCategories),
+      );
       if (profData['funcoes'] != null) {
         extractedSkills.addAll(List<String>.from(profData['funcoes']));
       }
@@ -91,7 +96,10 @@ sealed class FeedItem with _$FeedItem {
       }
     } else if (tipoPerfil == 'banda') {
       // Band: nomeBanda (used as name), generosMusicais
-      artisticName = bandData['nomeBanda'] as String?;
+      artisticName =
+          bandData['nomeBanda'] as String? ??
+          bandData['nomeArtistico'] as String? ??
+          bandData['nome'] as String?;
       category = 'Banda';
 
       // Bands don't have instruments/skills in the same way, but have genres
@@ -100,12 +108,17 @@ sealed class FeedItem with _$FeedItem {
       }
     } else if (tipoPerfil == 'estudio') {
       // Studio: nomeArtistico (studio name), services
-      artisticName = studioData['nomeArtistico'] as String?;
+      artisticName =
+          studioData['nomeEstudio'] as String? ??
+          studioData['nomeArtistico'] as String? ??
+          studioData['nome'] as String?;
       category = 'Estúdio'; // Simple main category
 
       // Extract services as skills
-      if (studioData['services'] != null) {
-        extractedSkills.addAll(List<String>.from(studioData['services']));
+      final studioServices =
+          studioData['services'] ?? studioData['servicosOferecidos'];
+      if (studioServices != null) {
+        extractedSkills.addAll(List<String>.from(studioServices));
       }
     } else if (tipoPerfil == 'contratante') {
       // Contractor: usually not shown in public feed, but handle gracefully
@@ -120,7 +133,7 @@ sealed class FeedItem with _$FeedItem {
     return FeedItem(
       uid: docId,
       nome: data['nome'] ?? '',
-      nomeArtistico: artisticName,
+      nomeArtistico: artisticName ?? (data['nome'] as String?),
       foto: data['foto'],
       categoria: category,
       generosMusicais: extractedGenres,
@@ -128,7 +141,74 @@ sealed class FeedItem with _$FeedItem {
       location: data['location'] as Map<String, dynamic>?,
       likeCount: data['likeCount'] ?? 0,
       skills: extractedSkills,
-      subCategories: extractedSubCategories,
+      subCategories: extractedSubCategories.toSet().toList(),
     );
+  }
+
+  static List<String> _normalizeProfessionalCategories(List<String> raw) {
+    return raw
+        .map(_normalizeCategoryId)
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  static String _normalizeCategoryId(String raw) {
+    if (raw.trim().isEmpty) return '';
+
+    final normalized = _sanitizeCategoryValue(raw);
+    switch (normalized) {
+      case 'crew':
+      case 'equipe_tecnica':
+      case 'equipe_tecnico':
+      case 'tecnico':
+      case 'tecnica':
+        return 'crew';
+      case 'cantor':
+      case 'cantora':
+      case 'cantor_a':
+      case 'vocalista':
+      case 'singer':
+        return 'singer';
+      case 'instrumentista':
+      case 'instrumentalist':
+        return 'instrumentalist';
+      case 'dj':
+        return 'dj';
+      default:
+        return normalized;
+    }
+  }
+
+  static String _sanitizeCategoryValue(String value) {
+    final withoutAccents = value
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('à', 'a')
+        .replaceAll('â', 'a')
+        .replaceAll('ã', 'a')
+        .replaceAll('ä', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('è', 'e')
+        .replaceAll('ê', 'e')
+        .replaceAll('ë', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ì', 'i')
+        .replaceAll('î', 'i')
+        .replaceAll('ï', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ò', 'o')
+        .replaceAll('ô', 'o')
+        .replaceAll('õ', 'o')
+        .replaceAll('ö', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ù', 'u')
+        .replaceAll('û', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ç', 'c');
+
+    return withoutAccents
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
   }
 }

@@ -75,14 +75,14 @@ class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
               borderRadius: AppRadius.all16,
               border: Border.all(
                 color: _isPressed
-                    ? AppColors.primary.withOpacity(0.5)
-                    : AppColors.surfaceHighlight.withOpacity(0.5),
+                    ? AppColors.primary.withValues(alpha: 0.5)
+                    : AppColors.surfaceHighlight.withValues(alpha: 0.5),
                 width: 1,
               ),
               boxShadow: _isPressed
                   ? [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),

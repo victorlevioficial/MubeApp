@@ -21,6 +21,13 @@ void main() {
   FeedItem createItem(String id) =>
       FeedItem(uid: id, nome: 'User $id', tipoPerfil: 'profissional');
 
+  FeedItem createTechnicianItem(String id) => FeedItem(
+    uid: id,
+    nome: 'Tech $id',
+    tipoPerfil: 'profissional',
+    subCategories: const ['crew'],
+  );
+
   setUp(() {
     fakeAuthRepo = FakeAuthRepository();
     fakeFeedRepo = FakeFeedRepository();
@@ -75,17 +82,27 @@ void main() {
       });
 
       test(
-        'loads artists section with location (sorted by distance)',
+        'loads technicians section with location (pure crew only)',
         () async {
-          final items = List.generate(5, (i) => createItem('art-$i'));
-          fakeFeedRepo.nearbyUsers = items;
+          final items = [
+            createTechnicianItem('tech-1'),
+            createItem('artist-1'),
+            createTechnicianItem('tech-2'),
+          ];
+          fakeFeedRepo.professionals = items;
           await waitForUser();
 
-          final provider = feedListControllerProvider(FeedSectionType.artists);
+          final provider = feedListControllerProvider(
+            FeedSectionType.technicians,
+          );
           await container.read(provider.future);
           final state = container.read(provider).value!;
 
-          expect(state.items.length, 5);
+          expect(state.items.length, 2);
+          expect(
+            state.items.every((item) => item.subCategories.contains('crew')),
+            isTrue,
+          );
           expect(state.hasMore, isFalse);
         },
       );
@@ -104,7 +121,7 @@ void main() {
 
       test('loads bands section with location', () async {
         final items = List.generate(3, (i) => createItem('band-$i'));
-        fakeFeedRepo.nearbyUsers = items;
+        fakeFeedRepo.bands = items;
         await waitForUser();
 
         final provider = feedListControllerProvider(FeedSectionType.bands);
@@ -187,13 +204,15 @@ void main() {
     });
 
     group('loadMore', () {
-      test('local pagination with allSortedItems', () async {
+      test('local pagination with allSortedItems (technicians)', () async {
         // Create 25 items — initial load shows 20, loadMore shows rest.
-        final items = List.generate(25, (i) => createItem('item-$i'));
-        fakeFeedRepo.nearbyUsers = items;
+        final items = List.generate(25, (i) => createTechnicianItem('item-$i'));
+        fakeFeedRepo.professionals = items;
         await waitForUser();
 
-        final provider = feedListControllerProvider(FeedSectionType.artists);
+        final provider = feedListControllerProvider(
+          FeedSectionType.technicians,
+        );
         await container.read(provider.future);
 
         var state = container.read(provider).value!;
@@ -209,11 +228,13 @@ void main() {
       });
 
       test('does nothing when already loading', () async {
-        final items = List.generate(25, (i) => createItem('item-$i'));
-        fakeFeedRepo.nearbyUsers = items;
+        final items = List.generate(25, (i) => createTechnicianItem('item-$i'));
+        fakeFeedRepo.professionals = items;
         await waitForUser();
 
-        final provider = feedListControllerProvider(FeedSectionType.artists);
+        final provider = feedListControllerProvider(
+          FeedSectionType.technicians,
+        );
         await container.read(provider.future);
 
         // Trigger two concurrent loadMore calls.
@@ -227,11 +248,13 @@ void main() {
       });
 
       test('does nothing when hasMore is false', () async {
-        final items = List.generate(5, (i) => createItem('item-$i'));
-        fakeFeedRepo.nearbyUsers = items;
+        final items = List.generate(5, (i) => createTechnicianItem('item-$i'));
+        fakeFeedRepo.professionals = items;
         await waitForUser();
 
-        final provider = feedListControllerProvider(FeedSectionType.artists);
+        final provider = feedListControllerProvider(
+          FeedSectionType.technicians,
+        );
         await container.read(provider.future);
 
         var state = container.read(provider).value!;

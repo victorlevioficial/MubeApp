@@ -10,6 +10,7 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
+import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -119,7 +120,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   children: [
                     Center(
                       child: SvgPicture.asset(
-                        'assets/images/logos_svg/logo horizontal.svg',
+                        AppAssets.logoHorizontalSvg,
                         height: AppSpacing.s48,
                         fit: BoxFit.scaleDown,
                         placeholderBuilder: (context) =>

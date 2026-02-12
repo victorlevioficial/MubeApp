@@ -6,7 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
-import '../../../core/services/analytics/analytics_provider.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 
@@ -188,10 +188,7 @@ class ChatRepository {
       // Log analytics event for message sent
       await _analytics?.logEvent(
         name: 'message_sent',
-        parameters: {
-          'conversation_id': conversationId,
-          'has_media': false,
-        },
+        parameters: {'conversation_id': conversationId, 'has_media': false},
       );
 
       return const Right(unit);

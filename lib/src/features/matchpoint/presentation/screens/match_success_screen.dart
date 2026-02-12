@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/features/auth/domain/app_user.dart';
 
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
@@ -8,7 +9,6 @@ import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
-import '../../../auth/domain/app_user.dart';
 import '../../../chat/data/chat_repository.dart';
 import '../widgets/confetti_overlay.dart';
 
@@ -151,7 +151,10 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                       '${RoutePaths.conversation}/$conversationId',
                       extra: {
                         'otherUserId': widget.matchUser.uid,
-                        'otherUserName': widget.matchUser.nome ?? 'Usuário',
+                        'otherUserName':
+                            widget.matchUser.appDisplayName.isNotEmpty
+                            ? widget.matchUser.appDisplayName
+                            : (widget.matchUser.nome ?? 'Usuario'),
                         'otherUserPhoto': widget.matchUser.foto,
                       },
                     );

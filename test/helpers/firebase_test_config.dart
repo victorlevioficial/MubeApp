@@ -1,6 +1,5 @@
 // ignore_for_file: depend_on_referenced_packages
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,8 +66,7 @@ class MockFirebaseCorePlatform extends FirebasePlatform {
 }
 
 class _MockFirebaseAppPlatform extends FirebaseAppPlatform {
-  _MockFirebaseAppPlatform(String name, FirebaseOptions options)
-    : super(name, options);
+  _MockFirebaseAppPlatform(super.name, super.options);
 
   @override
   bool get isAutomaticDataCollectionEnabled => false;

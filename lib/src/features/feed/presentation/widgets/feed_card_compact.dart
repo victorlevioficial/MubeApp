@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -16,9 +17,8 @@ class FeedCardCompact extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: 110,
-        margin: const EdgeInsets.only(right: AppSpacing.s12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,

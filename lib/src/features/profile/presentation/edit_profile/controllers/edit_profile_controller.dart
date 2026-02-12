@@ -49,14 +49,19 @@ class EditProfileController extends _$EditProfileController {
         instruments = List<String>.from(data['instrumentos'] ?? []);
         roles = List<String>.from(data['funcoes'] ?? []);
         backingVocal = (data['backingVocalMode'] ?? '0').toString();
-        instBacking = data['instrumentalistBackingVocal'] ?? false;
+        instBacking =
+            data['instrumentalistBackingVocal'] ??
+            data['fazBackingVocal'] ??
+            false;
         gallery = _parseGallery(data['gallery']);
         break;
 
       case AppUserType.studio:
         final data = user.dadosEstudio ?? {};
         studioType = data['studioType'];
-        services = List<String>.from(data['servicosOferecidos'] ?? []);
+        services = List<String>.from(
+          data['servicosOferecidos'] ?? data['services'] ?? [],
+        );
         gallery = _parseGallery(data['gallery']);
         break;
 
@@ -426,23 +431,29 @@ class EditProfileController extends _$EditProfileController {
             'funcoes': state.selectedRoles,
             'backingVocalMode': state.backingVocalMode,
             'instrumentalistBackingVocal': state.instrumentalistBackingVocal,
+            'fazBackingVocal': state.instrumentalistBackingVocal,
             'gallery': _galleryToJson(),
           };
           break;
 
         case AppUserType.studio:
           updates['dadosEstudio'] = {
+            'nomeEstudio': nomeArtistico,
             'nomeArtistico': nomeArtistico,
+            'nome': nomeArtistico,
             'celular': celular,
             'studioType': state.studioType,
             'servicosOferecidos': state.selectedServices,
+            'services': state.selectedServices,
             'gallery': _galleryToJson(),
           };
           break;
 
         case AppUserType.band:
           updates['dadosBanda'] = {
-            'nomeArtistico': nome, // Band name is usually user name
+            'nomeBanda': nomeArtistico,
+            'nomeArtistico': nomeArtistico,
+            'nome': nomeArtistico,
             'bio': bio,
             'generosMusicais': state.bandGenres,
             'gallery': _galleryToJson(),

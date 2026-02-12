@@ -10,6 +10,7 @@ import '../../../design_system/components/feedback/app_confirmation_dialog.dart'
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
@@ -21,7 +22,14 @@ import 'widgets/bento_header.dart';
 import 'widgets/neon_settings_tile.dart';
 import 'widgets/settings_group.dart';
 
-/// Settings screen with "Option A" Bento Grid Redesign
+/// Professional Settings screen with enhanced UI/UX
+///
+/// Features:
+/// - Modern bento grid header with stats
+/// - Refined settings groups with better visual hierarchy
+/// - Professional spacing and typography
+/// - Smooth interactions and animations
+/// - Clear visual separation between sections
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -32,15 +40,21 @@ class SettingsScreen extends ConsumerWidget {
       appBar: const AppAppBar(title: 'Configurações', showBackButton: false),
       extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
-        padding: AppSpacing.h16v8,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s12,
+        ),
         child: Column(
           children: [
-            // 1. DASHBOARD HEADER (BENTO)
+            const SizedBox(height: AppSpacing.s4),
+
+            // 1. ENHANCED PROFILE HEADER
             const BentoHeader(),
 
-            const SizedBox(height: AppSpacing.s32),
+            const SizedBox(height: AppSpacing.s40),
 
-            // 2. SETTINGS GROUPS
+            // 2. ACCOUNT SETTINGS GROUP
             SettingsGroup(
               title: 'CONTA',
               children: [
@@ -101,11 +115,12 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
 
+            // 3. OTHER SETTINGS GROUP
             SettingsGroup(
               title: 'OUTROS',
               children: [
                 NeonSettingsTile(
-                  icon: Icons.help_outline,
+                  icon: Icons.help_outline_rounded,
                   title: 'Ajuda e Suporte',
                   onTap: () => context.push(RoutePaths.support),
                   customAccentColor: AppColors.info,
@@ -114,18 +129,23 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.description_outlined,
                   title: 'Termos de Uso',
                   onTap: () => context.push('${RoutePaths.legal}/termsOfUse'),
-                  customAccentColor: AppColors.textSecondary,
+                  customAccentColor: AppColors.textSecondary.withValues(
+                    alpha: 0.6,
+                  ),
                 ),
                 NeonSettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Política de Privacidade',
                   onTap: () =>
                       context.push('${RoutePaths.legal}/privacyPolicy'),
-                  customAccentColor: AppColors.textSecondary,
+                  customAccentColor: AppColors.textSecondary.withValues(
+                    alpha: 0.6,
+                  ),
                 ),
               ],
             ),
 
+            // 4. DEV ZONE (Debug Mode Only)
             if (kDebugMode)
               SettingsGroup(
                 title: 'DEV ZONE',
@@ -134,10 +154,12 @@ class SettingsScreen extends ConsumerWidget {
                     icon: Icons.build_circle_outlined,
                     title: 'Manutenção (Dev)',
                     onTap: () => context.push(RoutePaths.maintenance),
-                    customAccentColor: AppColors.textPrimary,
+                    customAccentColor: AppColors.textPrimary.withValues(
+                      alpha: 0.7,
+                    ),
                   ),
                   NeonSettingsTile(
-                    icon: Icons.developer_mode,
+                    icon: Icons.developer_mode_rounded,
                     title: 'Developer Tools 🛠️',
                     subtitle: 'Push Notifications, Logs, etc.',
                     onTap: () => context.push('/developer-tools'),
@@ -164,81 +186,31 @@ class SettingsScreen extends ConsumerWidget {
                     customAccentColor: AppColors.success,
                   ),
                   NeonSettingsTile(
-                    icon: Icons.settings_input_component,
+                    icon: Icons.settings_input_component_rounded,
                     title: 'Seed App Config',
                     subtitle: 'Resetar listas (Gêneros/Inst.)',
                     onTap: () => _seedAppConfig(context, ref),
                     customAccentColor: AppColors.info,
                   ),
-                  // REMOVIDO: Botão de limpar perfis fake não deve estar em produção
-                  // NeonSettingsTile(
-                  //   icon: Icons.delete_sweep_outlined,
-                  //   title: 'Limpar Perfis Fake',
-                  //   subtitle: 'Deletar usuários do seeder',
-                  //   onTap: () => _deleteSeededUsers(context, ref),
-                  //   customAccentColor: AppColors.error,
-                  // ),
                 ],
               ),
 
-            const SizedBox(height: AppSpacing.s16),
+            const SizedBox(height: AppSpacing.s8),
 
-            // 3. ACTION BUTTONS (Logout / Delete)
-            _buildLogoutButton(context, ref),
-
-            const SizedBox(height: AppSpacing.s12),
-
-            TextButton(
-              onPressed: () => _confirmDeactivate(context, ref),
-              child: Text(
-                'Desativar Conta',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.error.withValues(alpha: 0.7),
-                  decoration: TextDecoration.underline,
-                ),
-              ),
+            // 5. ACTION BUTTONS SECTION
+            _LogoutSection(
+              onLogout: () => _confirmLogout(context, ref),
+              onDeactivate: () => _confirmDeactivate(context, ref),
             ),
 
-            const SizedBox(height: AppSpacing.s40),
+            const SizedBox(height: AppSpacing.s48),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: Material(
-        color: AppColors.transparent,
-        child: InkWell(
-          onTap: () => _confirmLogout(context, ref),
-          borderRadius: AppRadius.all16,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.logout, color: AppColors.textPrimary, size: 20),
-              const SizedBox(width: AppSpacing.s8),
-              Text(
-                'Sair da Conta',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: AppTypography.titleSmall.fontWeight,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  // Action methods
   void _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -325,7 +297,7 @@ class SettingsScreen extends ConsumerWidget {
       final seeder = ref.read(appSeederProvider);
       final count = await seeder.seedUsers(count: 150);
       if (context.mounted) {
-        AppSnackBar.success(context, '✅ $count usuários criados!');
+        AppSnackBar.success(context, '$count usuários criados!');
       }
     } catch (e) {
       if (context.mounted) {
@@ -340,7 +312,7 @@ class SettingsScreen extends ConsumerWidget {
     try {
       await ref.read(appSeederProvider).seedAppConfig();
       if (context.mounted) {
-        AppSnackBar.success(context, '✅ Configuração salva no Firestore!');
+        AppSnackBar.success(context, 'Configuração salva no Firestore!');
       }
     } catch (e) {
       if (context.mounted) {
@@ -351,4 +323,134 @@ class SettingsScreen extends ConsumerWidget {
 
   // REMOVIDO: Método de deletar perfis fake não deve estar em produção
   // void _deleteSeededUsers(BuildContext context, WidgetRef ref) async { ... }
+}
+
+/// Logout and deactivate section component
+class _LogoutSection extends StatelessWidget {
+  final VoidCallback onLogout;
+  final VoidCallback onDeactivate;
+
+  const _LogoutSection({required this.onLogout, required this.onDeactivate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Logout Button with refined styling
+        _LogoutButton(onTap: onLogout),
+
+        const SizedBox(height: AppSpacing.s16),
+
+        // Deactivate Account Link
+        TextButton(
+          onPressed: onDeactivate,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s8,
+            ),
+          ),
+          child: Text(
+            'Desativar Conta',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.textSecondary.withValues(alpha: 0.4),
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Professional logout button
+class _LogoutButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _LogoutButton({required this.onTap});
+
+  @override
+  State<_LogoutButton> createState() => _LogoutButtonState();
+}
+
+class _LogoutButtonState extends State<_LogoutButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: AppEffects.fast,
+      curve: Curves.easeOut,
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: _isPressed
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.surface.withValues(alpha: 0.8),
+                  AppColors.surface.withValues(alpha: 0.6),
+                ],
+              )
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.surface.withValues(alpha: 0.7),
+                  AppColors.surface.withValues(alpha: 0.5),
+                ],
+              ),
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: _isPressed
+              ? AppColors.textPrimary.withValues(alpha: 0.12)
+              : AppColors.textPrimary.withValues(alpha: 0.08),
+          width: 1,
+        ),
+        boxShadow: _isPressed
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.background.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) => setState(() => _isPressed = false),
+          onTapCancel: () => setState(() => _isPressed = false),
+          borderRadius: AppRadius.all16,
+          splashColor: AppColors.textPrimary.withValues(alpha: 0.05),
+          highlightColor: AppColors.textPrimary.withValues(alpha: 0.03),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.logout_rounded,
+                color: AppColors.textPrimary.withValues(alpha: 0.9),
+                size: 20,
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Text(
+                'Sair da Conta',
+                style: AppTypography.titleMedium.copyWith(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

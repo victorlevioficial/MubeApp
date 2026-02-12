@@ -106,6 +106,9 @@ void main() {
 Future<void> _preloadFonts() async {
   try {
     await GoogleFonts.pendingFonts([
+      GoogleFonts.poppins(fontWeight: FontWeight.w500),
+      GoogleFonts.poppins(fontWeight: FontWeight.w600),
+      GoogleFonts.poppins(fontWeight: FontWeight.w700),
       GoogleFonts.inter(fontWeight: FontWeight.w400),
       GoogleFonts.inter(fontWeight: FontWeight.w500),
       GoogleFonts.inter(fontWeight: FontWeight.w600),
