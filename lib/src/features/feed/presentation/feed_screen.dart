@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,7 +39,9 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
+  Timer? _deferredPrecacheTimer;
   bool _isScrolled = false;
+  int _precacheFingerprint = 0;
 
   @override
   void initState() {
@@ -50,6 +54,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   void dispose() {
+    _deferredPrecacheTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -110,17 +115,37 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     // Precache logic listener
     ref.listen(feedControllerProvider, (previous, next) {
       next.whenData((state) {
-        // Precache all images as soon as data arrives (during skeleton phase)
+        // Precache in phases to reduce startup contention.
         final allItems = [
           ...state.items,
           ...state.sectionItems.values.expand((list) => list),
         ];
 
+        final fingerprint = Object.hashAll(allItems.map((item) => item.uid));
+        if (fingerprint == _precacheFingerprint) return;
+        _precacheFingerprint = fingerprint;
+
         if (allItems.isNotEmpty && context.mounted) {
-          // Use precache service to decode images into memory
-          ref
-              .read(feedImagePrecacheServiceProvider)
-              .precacheItems(context, allItems);
+          final precacheService = ref.read(feedImagePrecacheServiceProvider);
+
+          // First wave: only above-the-fold profiles.
+          precacheService.precacheItems(context, allItems, maxItems: 8);
+
+          // Second wave: deferred so first frames stay responsive.
+          _deferredPrecacheTimer?.cancel();
+          if (allItems.length > 8) {
+            _deferredPrecacheTimer = Timer(
+              const Duration(milliseconds: 600),
+              () {
+                if (!mounted) return;
+                precacheService.precacheItems(
+                  context,
+                  allItems.skip(8).toList(),
+                  maxItems: 12,
+                );
+              },
+            );
+          }
         }
       });
     });

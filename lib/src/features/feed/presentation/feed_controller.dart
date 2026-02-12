@@ -22,7 +22,7 @@ part 'feed_controller.g.dart';
 abstract final class FeedDataConstants {
   static const double nearbyRadiusKm = 50.0;
   static const int sectionLimit = 10;
-  static const int mainFeedBatchSize = 50;
+  static const int mainFeedBatchSize = 20;
 }
 
 // --- State Class (com PaginationState) ---
@@ -136,42 +136,50 @@ class FeedController extends _$FeedController {
   Future<void> loadAllData() async {
     final currentState = state.value ?? const FeedState();
     state = AsyncValue.data(currentState.copyWithFeed(isInitialLoading: true));
-
-    state = await AsyncValue.guard(() async {
-      // 1. CRITICAL: Wait for the user's favorites to be loaded first.
-      await ref
-          .read(favoriteControllerProvider.notifier)
-          .waitForInitialLoad()
-          .timeout(
-            const Duration(milliseconds: 1200),
-            onTimeout: () {
-              AppLogger.warning(
-                'Feed: timeout aguardando favoritos, continuando carregamento',
-              );
-            },
-          );
-
-      // 2. Set user location from auth profile
+    // Sync de favoritos sem bloquear o first paint da Home.
+    unawaited(ref.read(favoriteControllerProvider.notifier).loadFavorites());
+    try {
+      // Set user location from auth profile
       final user = await _resolveCurrentUserProfile();
       if (user != null) {
         _userLat = user.location?['lat'];
         _userLong = user.location?['lng'];
       }
-
-      // 3. Proceed with loading feed sections and main feed in parallel
-      final results = await Future.wait([
-        _fetchSections(),
-        _fetchMainFeed(reset: true),
-      ]);
-
-      final sections = results[0] as Map<FeedSectionType, List<FeedItem>>;
-      final midState = state.value ?? const FeedState();
-
-      return midState.copyWithFeed(
-        isInitialLoading: false,
-        sectionItems: sections,
+      // Prioriza o feed principal; secoes carregam em background.
+      final sectionsFuture = _fetchSections();
+      await _fetchMainFeed(reset: true);
+      final afterMainState = state.value ?? const FeedState();
+      if (afterMainState.isInitialLoading) {
+        state = AsyncValue.data(
+          afterMainState.copyWithFeed(isInitialLoading: false),
+        );
+      }
+      unawaited(
+        sectionsFuture
+            .then((sections) {
+              final latestState = state.value ?? const FeedState();
+              state = AsyncValue.data(
+                latestState.copyWithFeed(
+                  sectionItems: sections,
+                  isInitialLoading: false,
+                ),
+              );
+            })
+            .catchError((error, stack) {
+              AppLogger.error('Feed: erro ao carregar secoes', error, stack);
+            }),
       );
-    });
+    } catch (e, stack) {
+      AppLogger.error('Feed: erro ao carregar dados iniciais', e, stack);
+      final latest = state.value ?? currentState;
+      state = AsyncValue.data(
+        latest.copyWithFeed(
+          isInitialLoading: false,
+          status: PaginationStatus.error,
+          errorMessage: e.toString(),
+        ),
+      );
+    }
   }
 
   /// Busca as seções horizontais do feed.
@@ -189,62 +197,75 @@ class FeedController extends _$FeedController {
       return result.getOrElse((l) => []);
     }
 
-    // 1) Equipe tecnica (tecnico puro)
-    items[FeedSectionType.technicians] = await fetchOrEmpty(
-      feedRepo.getTechnicians(
-        currentUserId: user.uid,
-        userLat: _userLat,
-        userLong: _userLong,
-        limit: FeedDataConstants.sectionLimit,
-      ),
-    );
-
-    // 2) Bandas proximas / 3) Estudios proximos
     if (_userLat != null && _userLong != null) {
-      final bandsNearbyResult = await feedRepo.getAllUsersSortedByDistance(
-        currentUserId: user.uid,
-        userLat: _userLat!,
-        userLong: _userLong!,
-        filterType: ProfileType.band,
-        userGeohash: user.geohash,
-      );
-      items[FeedSectionType.bands] = bandsNearbyResult
-          .getOrElse((_) => [])
+      final results = await Future.wait<List<FeedItem>>([
+        fetchOrEmpty(
+          feedRepo.getTechnicians(
+            currentUserId: user.uid,
+            userLat: _userLat,
+            userLong: _userLong,
+            limit: FeedDataConstants.sectionLimit,
+          ),
+        ),
+        fetchOrEmpty(
+          feedRepo.getAllUsersSortedByDistance(
+            currentUserId: user.uid,
+            userLat: _userLat!,
+            userLong: _userLong!,
+            filterType: ProfileType.band,
+            userGeohash: user.geohash,
+          ),
+        ),
+        fetchOrEmpty(
+          feedRepo.getAllUsersSortedByDistance(
+            currentUserId: user.uid,
+            userLat: _userLat!,
+            userLong: _userLong!,
+            filterType: ProfileType.studio,
+            userGeohash: user.geohash,
+          ),
+        ),
+      ]);
+      items[FeedSectionType.technicians] = results[0];
+      items[FeedSectionType.bands] = results[1]
           .take(FeedDataConstants.sectionLimit)
           .toList();
-
-      final studiosNearbyResult = await feedRepo.getAllUsersSortedByDistance(
-        currentUserId: user.uid,
-        userLat: _userLat!,
-        userLong: _userLong!,
-        filterType: ProfileType.studio,
-        userGeohash: user.geohash,
-      );
-      items[FeedSectionType.studios] = studiosNearbyResult
-          .getOrElse((_) => [])
+      items[FeedSectionType.studios] = results[2]
           .take(FeedDataConstants.sectionLimit)
           .toList();
     } else {
-      items[FeedSectionType.bands] = await fetchOrEmpty(
-        feedRepo.getUsersByType(
-          type: ProfileType.band,
-          currentUserId: user.uid,
-          userLat: _userLat,
-          userLong: _userLong,
-          limit: FeedDataConstants.sectionLimit,
+      final results = await Future.wait<List<FeedItem>>([
+        fetchOrEmpty(
+          feedRepo.getTechnicians(
+            currentUserId: user.uid,
+            userLat: _userLat,
+            userLong: _userLong,
+            limit: FeedDataConstants.sectionLimit,
+          ),
         ),
-      );
-      items[FeedSectionType.studios] = await fetchOrEmpty(
-        feedRepo.getUsersByType(
-          type: ProfileType.studio,
-          currentUserId: user.uid,
-          userLat: _userLat,
-          userLong: _userLong,
-          limit: FeedDataConstants.sectionLimit,
+        fetchOrEmpty(
+          feedRepo.getUsersByType(
+            type: ProfileType.band,
+            currentUserId: user.uid,
+            userLat: _userLat,
+            userLong: _userLong,
+            limit: FeedDataConstants.sectionLimit,
+          ),
         ),
-      );
+        fetchOrEmpty(
+          feedRepo.getUsersByType(
+            type: ProfileType.studio,
+            currentUserId: user.uid,
+            userLat: _userLat,
+            userLong: _userLong,
+            limit: FeedDataConstants.sectionLimit,
+          ),
+        ),
+      ]);
+      items[FeedSectionType.technicians] = results[0];
+      items[FeedSectionType.bands] = results[1];
+      items[FeedSectionType.studios] = results[2];
     }
-
     final allItems = items.values.expand((list) => list).toList();
     ref.read(feedItemsProvider.notifier).loadItems(allItems);
     // Precache is handled by FeedImagePrecacheService in the UI layer
@@ -302,9 +323,9 @@ class FeedController extends _$FeedController {
 
     try {
       // Lógica simplificada:
-      // 1. Primeira carga (reset): busca 50 usuários
+      // 1. Primeira carga (reset): busca lote inicial no backend
       // 2. Scroll: paginação local
-      // 3. Se acabou local e o backend ainda tem mais: busca mais 50
+      // 3. Se acabou local e o backend ainda tem mais: busca novo lote
       // 4. Se buscou e não encontrou nada: noMoreData
 
       final localRemaining =

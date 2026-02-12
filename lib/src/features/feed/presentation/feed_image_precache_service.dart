@@ -1,88 +1,84 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/image_cache_config.dart';
 import '../domain/feed_item.dart';
-import 'feed_controller.dart'; // Using FeedController instead of FeedItemsProvider
 
 /// Provider for the Feed Image Precache Service.
 final feedImagePrecacheServiceProvider = Provider<FeedImagePrecacheService>((
   ref,
 ) {
-  return FeedImagePrecacheService(ref);
+  return FeedImagePrecacheService();
 });
 
 /// Service responsible for pre-caching images in the feed to prevent pop-in
 /// and improve scrolling smoothness.
 class FeedImagePrecacheService {
-  final Ref _ref;
-  final Set<String> _cachedUrls = {};
+  final Set<String> _seenUrls = {};
+  final Set<String> _inFlightUrls = {};
 
-  // Maximum number of images to keep tracking (simple LRU limit logic could be added)
-  static const int _maxCacheTrack = 100;
+  static const int _maxTrackedUrls = 200;
+  static const int _maxFailureLogs = 5;
+  int _failureLogCount = 0;
 
-  FeedImagePrecacheService(this._ref) {
-    _listenToFeedItems();
-  }
+  /// Trigger pre-caching for a list of items.
+  ///
+  /// [maxItems] limits the amount of work per call to avoid startup jank.
+  void precacheItems(
+    BuildContext context,
+    List<FeedItem> items, {
+    int maxItems = 10,
+  }) {
+    if (items.isEmpty || maxItems <= 0) return;
 
-  void _listenToFeedItems() {
-    // Correctly listening to FeedController which provides AsyncValue<FeedState>
-    _ref.listen<AsyncValue<FeedState>>(feedControllerProvider, (
-      previous,
-      next,
-    ) {
-      next.whenData((state) {
-        // Pre-cache main feed items
-        if (state.items.isNotEmpty) {
-          // Pre-cache the next batch
-          final itemsToCache = state.items.skip(_cachedUrls.length).take(10);
-          for (final item in itemsToCache) {
-            _precacheItemImages(item);
-          }
-        }
-      });
-    });
-  }
-
-  /// Manually trigger pre-caching for a list of items (e.g. from pagination)
-  void precacheItems(BuildContext context, List<FeedItem> items) {
+    final urlsToPrecache = <String>[];
     for (final item in items) {
       final url = item.foto;
-      if (url != null && url.isNotEmpty && !_cachedUrls.contains(url)) {
-        precacheImage(
+      if (url == null || url.isEmpty) continue;
+      if (_seenUrls.contains(url) || _inFlightUrls.contains(url)) continue;
+
+      urlsToPrecache.add(url);
+      if (urlsToPrecache.length >= maxItems) break;
+    }
+
+    for (final url in urlsToPrecache) {
+      _precacheUrl(context, url);
+    }
+  }
+
+  void _precacheUrl(BuildContext context, String url) {
+    _inFlightUrls.add(url);
+    _markAsSeen(url);
+
+    precacheImage(
           CachedNetworkImageProvider(
             url,
             cacheManager: ImageCacheConfig.profileCacheManager,
           ),
           context,
-          onError: (error, stackTrace) {
-            debugPrint('FeedImagePrecacheService: failed to precache $url');
-          },
-        ).catchError((_) {
+          onError: (error, stackTrace) => _logPrecacheFailure(url),
+        )
+        .catchError((_) {
           // Errors are handled in onError to avoid noisy uncaught exceptions.
+        })
+        .whenComplete(() {
+          _inFlightUrls.remove(url);
         });
-        _markAsCached(url);
-      }
-    }
   }
 
-  void _precacheItemImages(FeedItem item) {
-    final url = item.foto;
-    if (url == null || url.isEmpty || _cachedUrls.contains(url)) return;
-
-    // Actual precaching needs a context, which we don't have here seamlessly without a global key.
-    // However, precacheItems() is the public API intended to be called from UI.
-    // This internal method just tracks or prepares.
-
-    // For now, we will rely on precacheItems being called from UI or
-    // just track URLs to avoid redundant logic if we add more complex prefetching later.
+  void _logPrecacheFailure(String url) {
+    if (!kDebugMode) return;
+    if (_failureLogCount >= _maxFailureLogs) return;
+    _failureLogCount++;
+    debugPrint('FeedImagePrecacheService: failed to precache $url');
   }
 
-  void _markAsCached(String url) {
-    if (_cachedUrls.length >= _maxCacheTrack) {
-      _cachedUrls.remove(_cachedUrls.first);
+  void _markAsSeen(String url) {
+    if (_seenUrls.length >= _maxTrackedUrls) {
+      _seenUrls.remove(_seenUrls.first);
     }
-    _cachedUrls.add(url);
+    _seenUrls.add(url);
   }
 }

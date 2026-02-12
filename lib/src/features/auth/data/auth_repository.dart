@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fpdart/fpdart.dart';
@@ -34,15 +36,12 @@ class AuthRepository {
       await _dataSource.signInWithEmailAndPassword(email, password);
 
       // Log analytics event for successful login
-      await _analytics?.logEvent(
-        name: 'login',
-        parameters: {'method': 'email'},
-      );
+      _logAnalyticsEvent(name: 'login', parameters: {'method': 'email'});
 
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
       // Log analytics event for login error
-      await _analytics?.logEvent(
+      _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
           'method': 'email',
@@ -52,7 +51,7 @@ class AuthRepository {
       );
       return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
     } catch (e) {
-      await _analytics?.logEvent(
+      _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
           'method': 'email',
@@ -279,11 +278,11 @@ class AuthRepository {
 
       final isNewUser = await _ensureUserProfileExists(user);
 
-      await _analytics?.setUserId(user.uid);
-      await _analytics?.logEvent(name: 'login', parameters: {'method': method});
+      _setAnalyticsUserId(user.uid);
+      _logAnalyticsEvent(name: 'login', parameters: {'method': method});
 
       if (isNewUser) {
-        await _analytics?.logEvent(
+        _logAnalyticsEvent(
           name: 'user_registration',
           parameters: {'method': method, 'user_type': 'pending'},
         );
@@ -291,7 +290,7 @@ class AuthRepository {
 
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
-      await _analytics?.logEvent(
+      _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
           'method': method,
@@ -301,7 +300,7 @@ class AuthRepository {
       );
       return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
     } catch (e) {
-      await _analytics?.logEvent(
+      _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
           'method': method,
@@ -311,6 +310,23 @@ class AuthRepository {
       );
       return Left(AuthFailure(message: e.toString()));
     }
+  }
+
+  void _logAnalyticsEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) {
+    final analytics = _analytics;
+    if (analytics == null) return;
+    unawaited(
+      analytics.logEvent(name: name, parameters: parameters).catchError((_) {}),
+    );
+  }
+
+  void _setAnalyticsUserId(String userId) {
+    final analytics = _analytics;
+    if (analytics == null) return;
+    unawaited(analytics.setUserId(userId).catchError((_) {}));
   }
 
   Future<bool> _ensureUserProfileExists(User user) async {
