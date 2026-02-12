@@ -17,8 +17,8 @@ import '../features/chat/presentation/conversations_screen.dart';
 import '../features/developer/presentation/developer_tools_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/feed/domain/feed_section.dart';
-import '../features/feed/presentation/feed_screen.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
+import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
 import '../features/legal/presentation/legal_detail_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
@@ -36,7 +36,6 @@ import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
-import '../features/splash/presentation/splash_screen.dart';
 import '../features/support/domain/ticket_model.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/support_screen.dart';
@@ -78,11 +77,10 @@ List<RouteBase> _buildRoutes(Ref ref) {
       builder: (context, state) => const DeveloperToolsScreen(),
     ),
 
-    // Splash (initial loading screen)
+    // Root alias route to avoid rendering a second in-app splash.
     GoRoute(
       path: RoutePaths.splash,
-      pageBuilder: (context, state) =>
-          NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
+      redirect: (context, state) => RoutePaths.login,
     ),
 
     // Auth routes

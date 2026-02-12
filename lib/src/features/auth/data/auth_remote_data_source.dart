@@ -33,6 +33,22 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  static const Set<String> _blockedClientUpdateKeys = {
+    'status',
+    'report_count',
+    'report_count_total',
+    'suspended_until',
+    'suspension_end_date',
+    'daily_likes_count',
+    'last_like_date',
+    'daily_swipes_count',
+    'last_swipe_date',
+    'total_likes_sent',
+    'total_dislikes_sent',
+    'likeCount',
+    'favorites_count',
+    'members',
+  };
 
   AuthRemoteDataSourceImpl(this._auth, this._firestore);
 
@@ -116,7 +132,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> updateUserProfile(AppUser user) async {
-    final data = _prepareUserData(user);
+    final data = _prepareUserData(user, forUpdate: true);
     await _firestore
         .collection(FirestoreCollections.users)
         .doc(user.uid)
@@ -124,8 +140,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   /// Prepara os dados do usuário adicionando geohash automaticamente
-  Map<String, dynamic> _prepareUserData(AppUser user) {
+  Map<String, dynamic> _prepareUserData(
+    AppUser user, {
+    bool forUpdate = false,
+  }) {
     final data = user.toFirestore();
+
+    if (forUpdate) {
+      for (final key in _blockedClientUpdateKeys) {
+        data.remove(key);
+      }
+      // Avoid noisy writes/denied updates for null fields.
+      data.removeWhere((_, value) => value == null);
+    }
 
     // Adiciona geohash automaticamente se tiver localização
     if (user.location != null &&

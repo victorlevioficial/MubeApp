@@ -340,6 +340,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: AppTextField(
               controller: _textController,
               maxLength: 1000,
+              showCounter: false,
               maxLines: 5,
               minLines: 1,
               onChanged: (_) => setState(() {}),

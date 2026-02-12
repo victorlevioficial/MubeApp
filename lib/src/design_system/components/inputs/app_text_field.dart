@@ -60,6 +60,7 @@ class AppTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLines;
   final int? maxLength;
+  final bool showCounter;
   final EdgeInsets scrollPadding;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
@@ -89,6 +90,7 @@ class AppTextField extends StatelessWidget {
     this.minLines,
     this.maxLines = 1,
     this.maxLength,
+    this.showCounter = true,
     this.scrollPadding = AppSpacing.all16,
     this.focusNode,
     this.textInputAction,
@@ -128,6 +130,14 @@ class AppTextField extends StatelessWidget {
             minLines: minLines,
             maxLines: obscureText ? 1 : maxLines,
             maxLength: maxLength,
+            buildCounter: showCounter
+                ? null
+                : (
+                    BuildContext context, {
+                    required int currentLength,
+                    required bool isFocused,
+                    int? maxLength,
+                  }) => null,
             textCapitalization: textCapitalization,
             textInputAction: textInputAction,
             inputFormatters: inputFormatters,

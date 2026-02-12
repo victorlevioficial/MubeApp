@@ -47,10 +47,8 @@ class AppSnackBar {
     );
   }
 
-  static void _show(BuildContext context, String message, SnackBarType type) {
-    final messenger =
-        scaffoldMessengerKey.currentState ?? ScaffoldMessenger.maybeOf(context);
-
+  static void _show(BuildContext _, String message, SnackBarType type) {
+    final messenger = scaffoldMessengerKey.currentState;
     if (messenger == null) return;
 
     messenger.hideCurrentSnackBar();

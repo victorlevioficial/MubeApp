@@ -60,7 +60,7 @@ void main() {
         );
 
         if (kReleaseMode) {
-          // Initialize App Check apenas em release
+          // Initialize App Check in production
           await app_check.FirebaseAppCheck.instance.activate(
             // ignore: deprecated_member_use
             androidProvider: app_check.AndroidProvider.playIntegrity,
@@ -68,7 +68,13 @@ void main() {
             appleProvider: app_check.AppleProvider.deviceCheck,
           );
         } else {
-          AppLogger.info('App Check desativado no ambiente de desenvolvimento');
+          // Em debug, use o provider de debug para evitar bloqueios em Storage
+          // quando App Check estiver enforced no Firebase Console.
+          await app_check.FirebaseAppCheck.instance.activate(
+            // ignore: deprecated_member_use
+            androidProvider: app_check.AndroidProvider.debug,
+          );
+          AppLogger.info('App Check debug provider ativado em desenvolvimento');
         }
 
         // Initialize Crashlytics
@@ -83,11 +89,13 @@ void main() {
         // === SCRIPT DE LIMPEZA CONCLUÍDO E REMOVIDO ===
         AppLogger.info('✅ Database cleanup passed.');
 
-        // Initialize misc services in background to not block UI
-        await Future.wait([
-          PushNotificationService().init(),
-          _preloadFonts(),
-        ]).then((_) => AppLogger.info('Services initialized'));
+        // Initialize misc services without blocking first render.
+        unawaited(
+          Future.wait([
+            PushNotificationService().init(),
+            _preloadFonts(),
+          ]).then((_) => AppLogger.info('Services initialized')),
+        );
       } catch (e, stack) {
         AppLogger.error('Erro ao inicializar Firebase', e, stack);
       } finally {

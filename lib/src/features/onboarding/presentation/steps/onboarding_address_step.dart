@@ -109,8 +109,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
         );
         if (details != null && mounted) {
           setState(() {
-            _currentLocationLabel =
-                '${details['logradouro']} - ${details['bairro']} - ${details['cidade']}';
+            _currentLocationLabel = _buildLocationLabel(details);
           });
         }
       }
@@ -177,8 +176,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
         if (details != null) {
           _fillAddressFields(details);
           setState(() {
-            _currentLocationLabel =
-                '${details['logradouro']} - ${details['bairro']} - ${details['cidade']}';
+            _currentLocationLabel = _buildLocationLabel(details);
             _addressFound = true;
           });
           _persistAddress(lat: details['lat'], lng: details['lng']);
@@ -217,6 +215,19 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     _cidadeController.text = address['cidade'] ?? '';
     _estadoController.text = address['estado'] ?? '';
     _cepController.text = address['cep'] ?? '';
+  }
+
+  String _buildLocationLabel(Map<String, dynamic> details) {
+    final chunks = <String>[
+      (details['logradouro'] ?? '').toString(),
+      (details['bairro'] ?? '').toString(),
+      (details['cidade'] ?? '').toString(),
+    ].where((value) => value.trim().isNotEmpty).toList();
+
+    if (chunks.isEmpty) {
+      return 'Localizacao atual';
+    }
+    return chunks.join(' - ');
   }
 
   void _persistAddress({double? lat, double? lng}) {
@@ -439,17 +450,32 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
             decoration: BoxDecoration(
               borderRadius: AppRadius.all12,
               color: AppColors.surfaceHighlight,
-              image: DecorationImage(
-                image: CachedNetworkImageProvider(
-                  'https://maps.googleapis.com/maps/api/staticmap?center=${_selectedLat ?? -23.55},${_selectedLng ?? -46.63}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
-                ),
-                fit: BoxFit.cover,
-              ),
+              image:
+                  _selectedLat != null &&
+                      _selectedLng != null &&
+                      LocationService.googleApiKey.isNotEmpty
+                  ? DecorationImage(
+                      image: CachedNetworkImageProvider(
+                        'https://maps.googleapis.com/maps/api/staticmap?center=${_selectedLat ?? -23.55},${_selectedLng ?? -46.63}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
+                      ),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
             child: ClipRRect(
               borderRadius: AppRadius.all12,
               child: Stack(
                 children: [
+                  if (_selectedLat == null ||
+                      _selectedLng == null ||
+                      LocationService.googleApiKey.isEmpty)
+                    const Center(
+                      child: Icon(
+                        Icons.map_outlined,
+                        size: 48,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   Positioned(
                     bottom: 12,
                     right: 12,

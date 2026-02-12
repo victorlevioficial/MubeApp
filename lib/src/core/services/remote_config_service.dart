@@ -28,7 +28,7 @@ class RemoteConfigService {
     try {
       await _remoteConfig.setConfigSettings(
         RemoteConfigSettings(
-          fetchTimeout: const Duration(minutes: 1),
+          fetchTimeout: const Duration(seconds: 8),
           minimumFetchInterval: kDebugMode
               ? const Duration(seconds: 30) // Atualiza rápido em debug
               : const Duration(hours: 1), // Atualiza a cada hora em produção

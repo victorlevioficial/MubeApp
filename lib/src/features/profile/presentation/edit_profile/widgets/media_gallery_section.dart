@@ -38,6 +38,8 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     );
     final state = ref.read(editProfileControllerProvider(widget.user.uid));
 
+    if (state.isUploadingMedia) return;
+
     if (state.photoCount >= 6) {
       if (mounted) {
         AppSnackBar.warning(context, 'Limite de 6 fotos atingido.');
@@ -63,6 +65,8 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       editProfileControllerProvider(widget.user.uid).notifier,
     );
     final state = ref.read(editProfileControllerProvider(widget.user.uid));
+
+    if (state.isUploadingMedia) return;
 
     if (state.videoCount >= 3) {
       if (mounted) {
@@ -168,7 +172,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                     Expanded(
                       child: AppButton.outline(
                         text: 'Foto',
-                        onPressed: _handlePhotoUpload,
+                        onPressed: state.isUploadingMedia
+                            ? null
+                            : _handlePhotoUpload,
+                        isLoading:
+                            state.isUploadingMedia &&
+                            state.uploadStatus.toLowerCase().contains('foto'),
                         icon: const Icon(Icons.photo_outlined, size: 18),
                       ),
                     ),
@@ -176,7 +185,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                     Expanded(
                       child: AppButton.outline(
                         text: 'Video',
-                        onPressed: _handleVideoUpload,
+                        onPressed: state.isUploadingMedia
+                            ? null
+                            : _handleVideoUpload,
+                        isLoading:
+                            state.isUploadingMedia &&
+                            state.uploadStatus.toLowerCase().contains('video'),
                         icon: const Icon(
                           Icons.video_library_outlined,
                           size: 18,
@@ -188,6 +202,13 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
               ],
             ),
           ),
+          if (state.isUploadingMedia) ...[
+            const SizedBox(height: AppSpacing.s16),
+            _UploadProgressCard(
+              progress: state.uploadProgress,
+              status: state.uploadStatus,
+            ),
+          ],
           const SizedBox(height: AppSpacing.s48),
           if (state.galleryItems.isNotEmpty) ...[
             Text('Galeria', style: AppTypography.headlineMedium),
@@ -244,6 +265,55 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _UploadProgressCard extends StatelessWidget {
+  final double progress;
+  final String status;
+
+  const _UploadProgressCard({required this.progress, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = progress.clamp(0.0, 1.0);
+    final showDeterminate = normalized > 0.0 && normalized < 1.0;
+    final progressLabel = '${(normalized * 100).round()}%';
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            status.isNotEmpty ? status : 'Enviando midia...',
+            style: AppTypography.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          LinearProgressIndicator(
+            value: showDeterminate ? normalized : null,
+            minHeight: 6,
+            borderRadius: AppRadius.pill,
+            backgroundColor: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            showDeterminate ? progressLabel : 'Processando arquivo...',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );

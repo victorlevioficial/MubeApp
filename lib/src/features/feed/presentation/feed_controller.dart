@@ -9,6 +9,7 @@ import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/typedefs.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
@@ -22,7 +23,6 @@ abstract final class FeedDataConstants {
   static const double nearbyRadiusKm = 50.0;
   static const int sectionLimit = 10;
   static const int mainFeedBatchSize = 50;
-  static const int mainFeedMaxItems = 200;
 }
 
 // --- State Class (com PaginationState) ---
@@ -139,10 +139,20 @@ class FeedController extends _$FeedController {
 
     state = await AsyncValue.guard(() async {
       // 1. CRITICAL: Wait for the user's favorites to be loaded first.
-      await ref.read(favoriteControllerProvider.notifier).waitForInitialLoad();
+      await ref
+          .read(favoriteControllerProvider.notifier)
+          .waitForInitialLoad()
+          .timeout(
+            const Duration(milliseconds: 1200),
+            onTimeout: () {
+              AppLogger.warning(
+                'Feed: timeout aguardando favoritos, continuando carregamento',
+              );
+            },
+          );
 
       // 2. Set user location from auth profile
-      final user = ref.read(currentUserProfileProvider).value;
+      final user = await _resolveCurrentUserProfile();
       if (user != null) {
         _userLat = user.location?['lat'];
         _userLong = user.location?['lng'];
@@ -166,7 +176,7 @@ class FeedController extends _$FeedController {
 
   /// Busca as seções horizontais do feed.
   Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections() async {
-    final user = ref.read(currentUserProfileProvider).value;
+    final user = await _resolveCurrentUserProfile();
     if (user == null) return {};
 
     final feedRepo = ref.read(feedRepositoryProvider);
@@ -279,7 +289,7 @@ class FeedController extends _$FeedController {
       ),
     );
 
-    final user = ref.read(currentUserProfileProvider).value;
+    final user = await _resolveCurrentUserProfile();
     if (user == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
@@ -294,15 +304,13 @@ class FeedController extends _$FeedController {
       // Lógica simplificada:
       // 1. Primeira carga (reset): busca 50 usuários
       // 2. Scroll: paginação local
-      // 3. Se acabou local E tem < 200 total: busca mais 50
+      // 3. Se acabou local e o backend ainda tem mais: busca mais 50
       // 4. Se buscou e não encontrou nada: noMoreData
 
       final localRemaining =
           _allSortedUsers.length -
           (currentState.currentPage * currentState.pageSize);
-      final canTryRemote =
-          _remoteHasMore &&
-          _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+      final canTryRemote = _remoteHasMore;
       final shouldFetchFromFirestore =
           reset || (localRemaining <= 0 && canTryRemote);
 
@@ -434,9 +442,7 @@ class FeedController extends _$FeedController {
       final page = reset ? 0 : currentState.currentPage;
       final startIndex = page * currentState.pageSize;
       if (startIndex >= _allSortedUsers.length) {
-        final hasMore =
-            _remoteHasMore &&
-            _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+        final hasMore = _remoteHasMore;
         final baseState = reset
             ? currentState.copyWithFeed(items: [], currentPage: 0)
             : currentState;
@@ -465,10 +471,8 @@ class FeedController extends _$FeedController {
 
       // Verifica se tem mais usuários para mostrar
       final hasMoreLocal = endIndex < _allSortedUsers.length;
-      // Só busca mais do Firestore se tiver menos de 200 usuários
-      final canFetchMore =
-          _remoteHasMore &&
-          _allSortedUsers.length < FeedDataConstants.mainFeedMaxItems;
+      // Busca mais do Firestore enquanto o backend indicar que há mais dados.
+      final canFetchMore = _remoteHasMore;
       final hasMore = hasMoreLocal || canFetchMore;
 
       AppLogger.debug(
@@ -600,5 +604,27 @@ class FeedController extends _$FeedController {
     final currentState = state.value;
     if (currentState == null) return false;
     return currentState.isLoadingMore;
+  }
+
+  Future<AppUser?> _resolveCurrentUserProfile({
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    final immediate = ref.read(currentUserProfileProvider).value;
+    if (immediate != null) return immediate;
+
+    final uid = ref.read(authRepositoryProvider).currentUser?.uid;
+    if (uid == null) return null;
+
+    try {
+      return await ref
+          .read(authRepositoryProvider)
+          .watchUser(uid)
+          .where((user) => user != null)
+          .cast<AppUser>()
+          .first
+          .timeout(timeout);
+    } catch (_) {
+      return ref.read(currentUserProfileProvider).value;
+    }
   }
 }

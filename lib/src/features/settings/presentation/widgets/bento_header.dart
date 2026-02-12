@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -108,16 +110,32 @@ class _ProfileCard extends StatelessWidget {
             child: CircleAvatar(
               radius: 32,
               backgroundColor: AppColors.surface,
-              backgroundImage: photoUrl != null
-                  ? NetworkImage(photoUrl!)
-                  : null,
               child: photoUrl == null
                   ? Icon(
                       Icons.person_rounded,
                       color: AppColors.textSecondary.withValues(alpha: 0.5),
                       size: 32,
                     )
-                  : null,
+                  : ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: photoUrl!,
+                        fit: BoxFit.cover,
+                        width: 64,
+                        height: 64,
+                        cacheManager: ImageCacheConfig.profileCacheManager,
+                        memCacheWidth: 160,
+                        memCacheHeight: 160,
+                        fadeInDuration: Duration.zero,
+                        fadeOutDuration: Duration.zero,
+                        placeholder: (context, _) =>
+                            Container(color: AppColors.surface),
+                        errorWidget: (context, _, _) => Icon(
+                          Icons.person_rounded,
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          size: 32,
+                        ),
+                      ),
+                    ),
             ),
           ),
 

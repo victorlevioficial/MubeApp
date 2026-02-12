@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/services/image_cache_config.dart';
 import '../../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../../design_system/foundations/tokens/app_colors.dart';
@@ -28,6 +29,7 @@ class EditProfileHeader extends ConsumerStatefulWidget {
 
 class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
   final _mediaPickerService = MediaPickerService();
+  bool _isUploadingAvatar = false;
 
   @override
   void dispose() {
@@ -46,6 +48,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
 
       if (file == null || !mounted) return;
 
+      setState(() => _isUploadingAvatar = true);
       await controller.updateProfileImage(currentUser: widget.user, file: file);
 
       if (mounted) {
@@ -54,6 +57,10 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
     } catch (e) {
       if (mounted) {
         AppSnackBar.error(context, 'Erro ao atualizar foto: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
       }
     }
   }
@@ -67,7 +74,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
       children: [
         Center(
           child: GestureDetector(
-            onTap: _handlePhotoUpdate,
+            onTap: _isUploadingAvatar ? null : _handlePhotoUpdate,
             child: Column(
               children: [
                 Stack(
@@ -83,32 +90,72 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
                           width: 1,
                         ),
                       ),
-                      child: CircleAvatar(
-                        backgroundColor: AppColors.surface,
-                        backgroundImage: widget.user.foto != null
-                            ? CachedNetworkImageProvider(widget.user.foto!)
-                            : null,
-                        child: widget.user.foto == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: AppColors.textSecondary,
+                      child: ClipOval(
+                        child: widget.user.foto != null
+                            ? CachedNetworkImage(
+                                imageUrl: widget.user.foto!,
+                                fit: BoxFit.cover,
+                                width: 100,
+                                height: 100,
+                                cacheManager:
+                                    ImageCacheConfig.profileCacheManager,
+                                memCacheWidth: 240,
+                                memCacheHeight: 240,
+                                fadeInDuration: Duration.zero,
+                                fadeOutDuration: Duration.zero,
+                                placeholder: (context, _) =>
+                                    Container(color: AppColors.surface),
+                                errorWidget: (context, _, _) => const Center(
+                                  child: Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                               )
-                            : null,
+                            : const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                       ),
                     ),
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.background.withValues(alpha: 0.3),
+                    if (_isUploadingAvatar)
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.background.withValues(alpha: 0.5),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          ),
+                        ),
                       ),
-                      child: const Center(
-                        child: Icon(
+                    Positioned(
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.background,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
                           Icons.camera_alt,
                           color: AppColors.textPrimary,
-                          size: 32,
+                          size: 14,
                         ),
                       ),
                     ),
@@ -116,7 +163,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
                 ),
                 const SizedBox(height: AppSpacing.s8),
                 Text(
-                  'Alterar foto',
+                  _isUploadingAvatar ? 'Enviando foto...' : 'Alterar foto',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w500,

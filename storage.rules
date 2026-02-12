@@ -1,112 +1,121 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    
+
     // ========================================
-    // REGRAS DE PRODUÇÃO - SEGURAS
+    // PRODUCTION RULES - SECURE
     // ========================================
-    
-    // Funções auxiliares
+
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
+
+    // Legacy support for profile_photos/{uid}.webp|jpg|png
+    function isLegacyProfilePhotoOwner(fileName) {
+      return isAuthenticated() &&
+        fileName.matches('^' + request.auth.uid + '(\\.(jpg|jpeg|png|webp))?$');
+    }
+
     function isValidImage() {
       return request.resource.contentType.matches('image/(jpeg|png|webp|gif)');
     }
-    
+
     function isValidVideo() {
       return request.resource.contentType.matches('video/(mp4|quicktime|webm)');
     }
-    
+
     function isValidPhotoSize() {
       return request.resource.size < 10 * 1024 * 1024; // 10MB
     }
-    
+
     function isValidVideoSize() {
       return request.resource.size < 50 * 1024 * 1024; // 50MB
     }
-    
+
     // ========================================
-    // FOTOS DE PERFIL
+    // PROFILE PHOTOS
     // ========================================
-    
-    match /profile_photos/{userId} {
-      // Leitura pública - qualquer um pode ver fotos de perfil
+
+    // New format: profile_photos/{uid}/thumbnail.webp and profile_photos/{uid}/large.webp
+    match /profile_photos/{userId}/{allPaths=**} {
       allow read: if true;
-      
-      // Escrita apenas pelo próprio usuário
-      allow create, update: if isAuthenticated() 
+      allow create, update: if isAuthenticated()
                              && isOwner(userId)
-                             && isValidImage() 
+                             && isValidImage()
                              && isValidPhotoSize();
-      
-      // Deleção apenas pelo próprio usuário
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Legacy format: profile_photos/{uid}.webp or profile_photos/{uid}
+    match /profile_photos/{fileName} {
+      allow read: if true;
+      allow create, update: if isLegacyProfilePhotoOwner(fileName)
+                             && isValidImage()
+                             && isValidPhotoSize();
+      allow delete: if isLegacyProfilePhotoOwner(fileName);
+    }
+
+    // ========================================
+    // GALLERY PHOTOS
+    // ========================================
+
+    match /gallery_photos/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+                             && isOwner(userId)
+                             && isValidImage()
+                             && isValidPhotoSize();
       allow delete: if isAuthenticated() && isOwner(userId);
     }
 
     // ========================================
-    // FOTOS DA GALERIA
+    // GALLERY VIDEOS
     // ========================================
-    
-    match /gallery_photos/{userId}/{allPaths=**} {
-      // Leitura pública
-      allow read: if true;
-      
-      // Escrita apenas pelo dono da galeria
-      allow create, update: if isAuthenticated() 
-                             && isOwner(userId)
-                             && isValidImage() 
-                             && isValidPhotoSize();
-      
-      // Deleção apenas pelo dono
-      allow delete: if isAuthenticated() && isOwner(userId);
-    }
-    
-    // ========================================
-    // VÍDEOS DA GALERIA
-    // ========================================
-    
+
     match /gallery_videos/{userId}/{allPaths=**} {
-      // Leitura pública
       allow read: if true;
-      
-      // Escrita apenas pelo dono
-      allow create, update: if isAuthenticated() 
+      allow create, update: if isAuthenticated()
                              && isOwner(userId)
-                             && isValidVideo() 
+                             && isValidVideo()
                              && isValidVideoSize();
-      
-      // Deleção apenas pelo dono
       allow delete: if isAuthenticated() && isOwner(userId);
     }
-    
+
     // ========================================
-    // THUMBNAILS DE VÍDEOS
+    // VIDEO THUMBNAILS
     // ========================================
-    
+
     match /gallery_thumbnails/{userId}/{allPaths=**} {
-      // Leitura pública
       allow read: if true;
-      
-      // Escrita apenas pelo dono (gerado automaticamente pelo app)
-      allow create, update: if isAuthenticated() 
+      allow create, update: if isAuthenticated()
                              && isOwner(userId)
-                             && isValidImage() 
+                             && isValidImage()
                              && isValidPhotoSize();
-      
-      // Deleção apenas pelo dono
       allow delete: if isAuthenticated() && isOwner(userId);
     }
-    
+
     // ========================================
-    // FALLBACK - NEGAR TUDO O MAIS
+    // SUPPORT TICKET ATTACHMENTS
     // ========================================
-    
+
+    match /support_tickets/{userId}/{ticketId}/{allPaths=**} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create, update: if isAuthenticated()
+                             && isOwner(userId)
+                             && isValidImage()
+                             && isValidPhotoSize();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
+    // FALLBACK - DENY EVERYTHING ELSE
+    // ========================================
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

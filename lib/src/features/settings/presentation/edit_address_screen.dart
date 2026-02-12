@@ -110,8 +110,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         );
         if (details != null && mounted) {
           setState(() {
-            _currentLocationLabel =
-                '${details['logradouro']} - ${details['bairro']} - ${details['cidade']}';
+            _currentLocationLabel = _buildLocationLabel(details);
           });
         }
       }
@@ -174,8 +173,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         if (details != null) {
           _fillAddressFields(details);
           setState(() {
-            _currentLocationLabel =
-                '${details['logradouro']} - ${details['bairro']} - ${details['cidade']}';
+            _currentLocationLabel = _buildLocationLabel(details);
             _addressFound = true;
           });
         } else {
@@ -206,12 +204,33 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
     _selectedLng = address['lng'] as double?;
   }
 
+  String _buildLocationLabel(Map<String, dynamic> details) {
+    final chunks = <String>[
+      (details['logradouro'] ?? '').toString(),
+      (details['bairro'] ?? '').toString(),
+      (details['cidade'] ?? '').toString(),
+    ].where((value) => value.trim().isNotEmpty).toList();
+
+    if (chunks.isEmpty) {
+      return 'Localizacao atual';
+    }
+    return chunks.join(' - ');
+  }
+
   Future<void> _saveAddress() async {
     setState(() => _isSaving = true);
 
     try {
       final user = ref.read(currentUserProfileProvider).value;
-      if (user == null) return;
+      if (user == null) {
+        if (mounted) {
+          AppSnackBar.error(
+            context,
+            'Sessao expirada. Entre novamente para salvar o endereco.',
+          );
+        }
+        return;
+      }
 
       // Get existing addresses (including legacy migration)
       List<SavedAddress> existingAddresses = user.addresses.toList();
@@ -267,15 +286,25 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         addresses: updatedAddresses,
         location: primary.toLocationMap(),
       );
-      await ref.read(authRepositoryProvider).updateUser(updatedUser);
+      final result = await ref
+          .read(authRepositoryProvider)
+          .updateUser(updatedUser);
 
-      if (mounted) {
-        AppSnackBar.success(
-          context,
-          _isEditing ? 'Endereço atualizado!' : 'Endereço adicionado!',
-        );
-        context.pop();
-      }
+      if (!mounted) return;
+
+      result.fold(
+        (failure) {
+          AppLogger.error('Falha ao salvar endereco', failure.message);
+          AppSnackBar.error(context, 'Erro ao salvar: ${failure.message}');
+        },
+        (_) {
+          AppSnackBar.success(
+            context,
+            _isEditing ? 'Endereco atualizado!' : 'Endereco adicionado!',
+          );
+          context.pop();
+        },
+      );
     } catch (e) {
       if (mounted) {
         AppSnackBar.error(context, 'Erro ao salvar: $e');
@@ -491,7 +520,10 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
       decoration: BoxDecoration(
         borderRadius: AppRadius.all12,
         color: AppColors.surface,
-        image: (_selectedLat != null && _selectedLng != null)
+        image:
+            (_selectedLat != null &&
+                _selectedLng != null &&
+                LocationService.googleApiKey.isNotEmpty)
             ? DecorationImage(
                 image: CachedNetworkImageProvider(
                   'https://maps.googleapis.com/maps/api/staticmap?center=$_selectedLat,$_selectedLng&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
@@ -504,7 +536,7 @@ class _EditAddressScreenState extends ConsumerState<EditAddressScreen> {
         borderRadius: AppRadius.all12,
         child: Stack(
           children: [
-            if (_selectedLat == null)
+            if (_selectedLat == null || LocationService.googleApiKey.isEmpty)
               const Center(
                 child: Icon(
                   Icons.map_outlined,

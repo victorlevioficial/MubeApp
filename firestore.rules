@@ -53,6 +53,8 @@ service cloud.firestore {
           'last_swipe_date',
           'total_likes_sent',
           'total_dislikes_sent',
+          'likeCount',
+          'favorites_count',
           'members'
         ]);
       

@@ -63,7 +63,6 @@ class MainScaffold extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: ResponsiveCenter(padding: EdgeInsets.zero, child: navigationShell),
-      extendBody: true, // Allow content to extend behind nav bar
       bottomNavigationBar: _ModernNavBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onDestinationSelected,
@@ -73,10 +72,10 @@ class MainScaffold extends ConsumerWidget {
   }
 
   void _onDestinationSelected(int index) {
-    navigationShell.goBranch(
-      index,
-      initialLocation: index == navigationShell.currentIndex,
-    );
+    // Settings should always open at its root screen when switching tabs.
+    final shouldResetToRoot =
+        index == navigationShell.currentIndex || index == 4;
+    navigationShell.goBranch(index, initialLocation: shouldResetToRoot);
   }
 }
 
@@ -94,85 +93,91 @@ class _ModernNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(
-        left: AppSpacing.s16,
-        right: AppSpacing.s16,
-        bottom: AppSpacing.s16,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s8,
-        vertical: AppSpacing.s12,
-      ),
-      decoration: BoxDecoration(
-        // Solid background (nao mais transparente)
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.surface,
-            AppColors.surface.withValues(alpha: 0.98),
+    return SafeArea(
+      top: false,
+      left: false,
+      right: false,
+      minimum: const EdgeInsets.only(bottom: AppSpacing.s8),
+      child: Container(
+        margin: const EdgeInsets.only(
+          left: AppSpacing.s16,
+          right: AppSpacing.s16,
+          bottom: AppSpacing.s16,
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s8,
+          vertical: AppSpacing.s12,
+        ),
+        decoration: BoxDecoration(
+          // Solid background (nao mais transparente)
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.surface,
+              AppColors.surface.withValues(alpha: 0.98),
+            ],
+          ),
+          borderRadius: AppRadius.all24,
+          border: Border.all(
+            color: AppColors.textPrimary.withValues(alpha: 0.08),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.background.withValues(alpha: 0.6),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        borderRadius: AppRadius.all24,
-        border: Border.all(
-          color: AppColors.textPrimary.withValues(alpha: 0.08),
-          width: 1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavBarItem(
+              icon: Icons.home_outlined,
+              selectedIcon: Icons.home_rounded,
+              label: 'Home',
+              isSelected: selectedIndex == 0,
+              onTap: () => onDestinationSelected(0),
+            ),
+            _NavBarItem(
+              icon: Icons.search_outlined,
+              selectedIcon: Icons.search_rounded,
+              label: 'Busca',
+              isSelected: selectedIndex == 1,
+              onTap: () => onDestinationSelected(1),
+            ),
+            _NavBarItem(
+              icon: Icons.bolt_outlined,
+              selectedIcon: Icons.bolt_rounded,
+              label: 'Match',
+              isSelected: selectedIndex == 2,
+              onTap: () => onDestinationSelected(2),
+              isPrimary: true, // Highlight for main feature
+            ),
+            _NavBarItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              selectedIcon: Icons.chat_bubble_rounded,
+              label: 'Chat',
+              isSelected: selectedIndex == 3,
+              onTap: () => onDestinationSelected(3),
+              badgeCount: unreadCount,
+            ),
+            _NavBarItem(
+              icon: Icons.settings_outlined,
+              selectedIcon: Icons.settings_rounded,
+              label: 'Config',
+              isSelected: selectedIndex == 4,
+              onTap: () => onDestinationSelected(4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.background.withValues(alpha: 0.6),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavBarItem(
-            icon: Icons.home_outlined,
-            selectedIcon: Icons.home_rounded,
-            label: 'Home',
-            isSelected: selectedIndex == 0,
-            onTap: () => onDestinationSelected(0),
-          ),
-          _NavBarItem(
-            icon: Icons.search_outlined,
-            selectedIcon: Icons.search_rounded,
-            label: 'Busca',
-            isSelected: selectedIndex == 1,
-            onTap: () => onDestinationSelected(1),
-          ),
-          _NavBarItem(
-            icon: Icons.bolt_outlined,
-            selectedIcon: Icons.bolt_rounded,
-            label: 'Match',
-            isSelected: selectedIndex == 2,
-            onTap: () => onDestinationSelected(2),
-            isPrimary: true, // Highlight for main feature
-          ),
-          _NavBarItem(
-            icon: Icons.chat_bubble_outline_rounded,
-            selectedIcon: Icons.chat_bubble_rounded,
-            label: 'Chat',
-            isSelected: selectedIndex == 3,
-            onTap: () => onDestinationSelected(3),
-            badgeCount: unreadCount,
-          ),
-          _NavBarItem(
-            icon: Icons.settings_outlined,
-            selectedIcon: Icons.settings_rounded,
-            label: 'Config',
-            isSelected: selectedIndex == 4,
-            onTap: () => onDestinationSelected(4),
-          ),
-        ],
       ),
     );
   }

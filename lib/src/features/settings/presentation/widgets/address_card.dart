@@ -6,7 +6,7 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/saved_address.dart';
 
-/// Card widget displaying a saved address with actions.
+/// Address card with a muted chip-like visual style.
 class AddressCard extends StatelessWidget {
   final SavedAddress address;
   final VoidCallback onTap;
@@ -23,76 +23,83 @@ class AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: address.isPrimary
-          ? AppColors.primary.withValues(alpha: 0.08)
-          : AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.all12,
-        side: BorderSide(
-          color: address.isPrimary
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.surfaceHighlight,
-          width: address.isPrimary ? 1.5 : 1,
-        ),
-      ),
+    final isPrimary = address.isPrimary;
+    final backgroundColor = isPrimary
+        ? AppColors.primaryMuted
+        : AppColors.primaryMuted.withValues(alpha: 0.16);
+
+    return Material(
+      color: AppColors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppRadius.all12,
-        child: Padding(
+        borderRadius: AppRadius.all20,
+        child: Container(
           padding: const EdgeInsets.all(AppSpacing.s16),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: AppRadius.all20,
+            border: Border.all(
+              color: isPrimary
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : AppColors.primary.withValues(alpha: 0.2),
+            ),
+          ),
           child: Row(
             children: [
-              // Icon
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: address.isPrimary
-                      ? AppColors.primary.withValues(alpha: 0.15)
+                  color: isPrimary
+                      ? AppColors.primary.withValues(alpha: 0.2)
                       : AppColors.surfaceHighlight,
                   borderRadius: AppRadius.all12,
                 ),
                 child: Icon(
-                  address.isPrimary ? Icons.star : Icons.location_on_outlined,
-                  color: address.isPrimary
+                  isPrimary ? Icons.star : Icons.location_on_outlined,
+                  color: isPrimary
                       ? AppColors.primary
                       : AppColors.textSecondary,
                   size: 22,
                 ),
               ),
               const SizedBox(width: AppSpacing.s12),
-
-              // Address info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Text(
-                          address.nome.isNotEmpty ? address.nome : 'Endereço',
-                          style: AppTypography.bodyMedium.copyWith(
-                            fontWeight: AppTypography.titleSmall.fontWeight,
-                            color: AppColors.textPrimary,
+                        Expanded(
+                          child: Text(
+                            address.nome.isNotEmpty ? address.nome : 'Endereco',
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: AppTypography.titleSmall.fontWeight,
+                              color: AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (address.isPrimary) ...[
+                        if (isPrimary) ...[
                           const SizedBox(width: AppSpacing.s8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.s8,
                               vertical: AppSpacing.s2,
                             ),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: AppRadius.all12,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryMuted,
+                              borderRadius: AppRadius.pill,
+                              border: Border.all(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.45,
+                                ),
+                              ),
                             ),
                             child: Text(
                               'Principal',
                               style: AppTypography.chipLabel.copyWith(
-                                color: AppColors.background,
-                                fontWeight: AppTypography.titleSmall.fontWeight,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -103,7 +110,7 @@ class AddressCard extends StatelessWidget {
                     Text(
                       address.displayAddress.isNotEmpty
                           ? address.displayAddress
-                          : 'Endereço incompleto',
+                          : 'Endereco incompleto',
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -113,17 +120,12 @@ class AddressCard extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Actions
               PopupMenuButton<String>(
                 elevation: 16,
                 shadowColor: AppColors.background,
                 shape: const RoundedRectangleBorder(
                   borderRadius: AppRadius.all12,
-                  side: BorderSide(
-                    color: AppColors.surfaceHighlight,
-                    width: 1,
-                  ),
+                  side: BorderSide(color: AppColors.surfaceHighlight, width: 1),
                 ),
                 color: AppColors.surface,
                 icon: const Icon(
@@ -141,7 +143,7 @@ class AddressCard extends StatelessWidget {
                   }
                 },
                 itemBuilder: (context) => [
-                  if (!address.isPrimary)
+                  if (!isPrimary)
                     const PopupMenuItem(
                       value: 'primary',
                       child: Row(
@@ -162,10 +164,7 @@ class AddressCard extends StatelessWidget {
                           color: AppColors.error,
                         ),
                         const SizedBox(width: AppSpacing.s12),
-                        Text(
-                          'Excluir',
-                          style: AppTypography.bodyMedium,
-                        ),
+                        Text('Excluir', style: AppTypography.bodyMedium),
                       ],
                     ),
                   ),

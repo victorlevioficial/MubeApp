@@ -30,8 +30,7 @@ void main() {
   });
 
   group('FavoriteRepository', () {
-    test('loadFavorites returns set of IDs', () async {
-      // Arrange
+    test('loadFavorites returns set of ids', () async {
       await fakeFirestore
           .collection('users')
           .doc(tUserId)
@@ -39,47 +38,27 @@ void main() {
           .doc(tTargetId)
           .set({'favoritedAt': Timestamp.now()});
 
-      // Act
       final result = await repository.loadFavorites();
 
-      // Assert
       expect(result, contains(tTargetId));
       expect(result.length, 1);
     });
 
-    test(
-      'addFavorite updates user favorites and target user like count',
-      () async {
-        // Arrange
-        // Create target user doc (professional)
-        await fakeFirestore.collection('users').doc(tTargetId).set({
-          'likeCount': 0,
-        });
+    test('addFavorite writes current user favorites subcollection', () async {
+      await repository.addFavorite(tTargetId);
 
-        // Act
-        await repository.addFavorite(tTargetId);
+      final favoriteDoc = await fakeFirestore
+          .collection('users')
+          .doc(tUserId)
+          .collection('favorites')
+          .doc(tTargetId)
+          .get();
 
-        // Assert
-        // Check user favorites
-        final userFavorites = await fakeFirestore
-            .collection('users')
-            .doc(tUserId)
-            .collection('favorites')
-            .get();
-        expect(userFavorites.docs.map((d) => d.id), contains(tTargetId));
+      expect(favoriteDoc.exists, isTrue);
+      expect(favoriteDoc.data(), contains('favoritedAt'));
+    });
 
-        // Check target user like count
-        final targetUser = await fakeFirestore
-            .collection('users')
-            .doc(tTargetId)
-            .get();
-        expect(targetUser.data()?['likeCount'], 1);
-      },
-    );
-
-    test('removeFavorite removes favorite and decrements count', () async {
-      // Arrange
-      // Setup initial state
+    test('removeFavorite deletes favorite doc', () async {
       await fakeFirestore
           .collection('users')
           .doc(tUserId)
@@ -87,43 +66,62 @@ void main() {
           .doc(tTargetId)
           .set({'favoritedAt': Timestamp.now()});
 
-      await fakeFirestore.collection('users').doc(tTargetId).set({
-        'likeCount': 10,
-      });
-
-      // Act
       await repository.removeFavorite(tTargetId);
 
-      // Assert
-      final userFavorites = await fakeFirestore
+      final favoriteDoc = await fakeFirestore
           .collection('users')
           .doc(tUserId)
           .collection('favorites')
-          .get();
-      expect(userFavorites.docs, isEmpty);
-
-      final targetUser = await fakeFirestore
-          .collection('users')
           .doc(tTargetId)
           .get();
-      expect(targetUser.data()?['likeCount'], 9);
+
+      expect(favoriteDoc.exists, isFalse);
     });
 
-    test('getLikeCount returns correct count from profiles collection', () async {
-      // Note: Repository reads from 'profiles' for getLikeCount, but updates 'users' in add/remove
-      // This seems to be a discrepancy in the repository implementation or architecture
-      // But we test what IS implemented.
+    test('removeFavorite is idempotent when doc does not exist', () async {
+      await repository.removeFavorite(tTargetId);
 
-      // Arrange
-      await fakeFirestore.collection('profiles').doc(tTargetId).set({
-        'likeCount': 5,
+      final favoriteDoc = await fakeFirestore
+          .collection('users')
+          .doc(tUserId)
+          .collection('favorites')
+          .doc(tTargetId)
+          .get();
+
+      expect(favoriteDoc.exists, isFalse);
+    });
+
+    test('getLikeCount reads likeCount from users collection', () async {
+      await fakeFirestore.collection('users').doc(tTargetId).set({
+        'likeCount': 7,
       });
 
-      // Act
       final count = await repository.getLikeCount(tTargetId);
 
-      // Assert
-      expect(count, 5);
+      expect(count, 7);
     });
+
+    test('getLikeCount falls back to favorites_count in users', () async {
+      await fakeFirestore.collection('users').doc(tTargetId).set({
+        'favorites_count': 3,
+      });
+
+      final count = await repository.getLikeCount(tTargetId);
+
+      expect(count, 3);
+    });
+
+    test(
+      'getLikeCount falls back to profiles collection for legacy docs',
+      () async {
+        await fakeFirestore.collection('profiles').doc(tTargetId).set({
+          'likeCount': 5,
+        });
+
+        final count = await repository.getLikeCount(tTargetId);
+
+        expect(count, 5);
+      },
+    );
   });
 }

@@ -36,9 +36,7 @@ class FeedImagePrecacheService {
         // Pre-cache main feed items
         if (state.items.isNotEmpty) {
           // Pre-cache the next batch
-          final itemsToCache = state.items
-              .skip(_cachedUrls.length)
-              .take(10);
+          final itemsToCache = state.items.skip(_cachedUrls.length).take(10);
           for (final item in itemsToCache) {
             _precacheItemImages(item);
           }
@@ -58,7 +56,12 @@ class FeedImagePrecacheService {
             cacheManager: ImageCacheConfig.profileCacheManager,
           ),
           context,
-        );
+          onError: (error, stackTrace) {
+            debugPrint('FeedImagePrecacheService: failed to precache $url');
+          },
+        ).catchError((_) {
+          // Errors are handled in onError to avoid noisy uncaught exceptions.
+        });
         _markAsCached(url);
       }
     }

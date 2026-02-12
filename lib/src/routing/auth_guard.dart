@@ -66,7 +66,7 @@ class AuthGuard {
     // Check if email is verified first
     final authRepo = _ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
-    
+
     // If user is logged in but email is not verified, redirect to verification screen
     if (currentUser != null && !currentUser.emailVerified) {
       if (currentPath == RoutePaths.emailVerification) {
@@ -78,6 +78,10 @@ class AuthGuard {
 
     // Profile not loaded yet - don't redirect
     if (!userProfileAsync.hasValue || userProfileAsync.value == null) {
+      if (RoutePaths.isPublic(currentPath)) {
+        _log('Profile loading on public route - redirecting to feed');
+        return RoutePaths.feed;
+      }
       _log('Profile loading - waiting');
       return null;
     }

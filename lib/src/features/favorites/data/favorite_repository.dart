@@ -13,14 +13,14 @@ class FavoriteRepository {
 
   FavoriteRepository(this._firestore, this._auth);
 
-  /// Retorna o UID do usuário atual ou lança erro se não autenticado
+  /// Returns current user id or throws when unauthenticated.
   String get _uid {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Usuário não autenticado');
+    if (user == null) throw Exception('Usuario nao autenticado');
     return user.uid;
   }
 
-  /// Carrega os IDs dos itens favoritados pelo usuário
+  /// Loads current user's favorite target ids.
   Future<Set<String>> loadFavorites() async {
     try {
       final snapshot = await _firestore
@@ -31,13 +31,13 @@ class FavoriteRepository {
 
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e, stackTrace) {
-      // Em caso de erro (ex: offline), retorna vazio para não quebrar UI
+      // Keep UI resilient while offline/intermittent.
       AppLogger.warning('Erro ao carregar favoritos', e, stackTrace);
       return {};
     }
   }
 
-  /// Carrega os favoritos paginados ordenados por data de favoritado (desc).
+  /// Loads paginated favorites ordered by favorited date (desc).
   Future<PaginatedFavoritesResponse> loadFavoritesPage({
     DocumentSnapshot? startAfter,
     int limit = 20,
@@ -70,20 +70,35 @@ class FavoriteRepository {
     }
   }
 
-  /// Carrega a contagem de likes de um item específico (global)
+  /// Reads global like count for a target user.
+  ///
+  /// Source of truth is `users/{targetId}`. Legacy fallback to
+  /// `profiles/{targetId}` is preserved for compatibility.
   Future<int> getLikeCount(String targetId) async {
     try {
-      final doc = await _firestore.collection('profiles').doc(targetId).get();
-      if (doc.exists) {
-        return (doc.data()?['likeCount'] as int?) ?? 0;
+      final userDoc = await _firestore.collection('users').doc(targetId).get();
+      if (userDoc.exists) {
+        return _readLikeCount(userDoc.data());
       }
+
+      final profileDoc = await _firestore
+          .collection('profiles')
+          .doc(targetId)
+          .get();
+      if (profileDoc.exists) {
+        return _readLikeCount(profileDoc.data());
+      }
+
       return 0;
-    } catch (e) {
+    } catch (_) {
       return 0;
     }
   }
 
-  /// Adiciona um favorito (com transaction para contador global)
+  /// Adds a favorite for the current user.
+  ///
+  /// Client only writes to `users/{me}/favorites/{targetId}`.
+  /// Global counters are updated by backend triggers.
   Future<void> addFavorite(String targetId) async {
     final userRef = _firestore
         .collection('users')
@@ -91,28 +106,15 @@ class FavoriteRepository {
         .collection('favorites')
         .doc(targetId);
 
-    // Atualizar o contador na mesma coleção de onde lemos (users)
-    final targetUserRef = _firestore.collection('users').doc(targetId);
-
-    return _firestore.runTransaction((transaction) async {
-      final userDoc = await transaction.get(userRef);
-      final targetUserDoc = await transaction.get(targetUserRef);
-
-      if (userDoc.exists) return; // Já favoritado
-
-      // 1. Adiciona na lista do usuário
-      transaction.set(userRef, {'favoritedAt': FieldValue.serverTimestamp()});
-
-      // 2. Incrementa contador global no doc do usuário-alvo (não em 'profiles')
-      if (targetUserDoc.exists) {
-        transaction.update(targetUserRef, {
-          'likeCount': FieldValue.increment(1),
-        });
-      }
-    });
+    await userRef.set({
+      'favoritedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
-  /// Remove um favorito (com transaction para contador global)
+  /// Removes a favorite for the current user.
+  ///
+  /// Client only writes to `users/{me}/favorites/{targetId}`.
+  /// Global counters are updated by backend triggers.
   Future<void> removeFavorite(String targetId) async {
     final userRef = _firestore
         .collection('users')
@@ -120,27 +122,21 @@ class FavoriteRepository {
         .collection('favorites')
         .doc(targetId);
 
-    final targetUserRef = _firestore.collection('users').doc(targetId);
+    await userRef.delete();
+  }
 
-    return _firestore.runTransaction((transaction) async {
-      final userDoc = await transaction.get(userRef);
-      final targetUserDoc = await transaction.get(targetUserRef);
+  int _readLikeCount(Map<String, dynamic>? data) {
+    final likeCount = data?['likeCount'];
+    if (likeCount is num) {
+      return likeCount.toInt();
+    }
 
-      if (!userDoc.exists) return; // Já removido
+    final favoritesCount = data?['favorites_count'];
+    if (favoritesCount is num) {
+      return favoritesCount.toInt();
+    }
 
-      // 1. Remove da lista do usuário
-      transaction.delete(userRef);
-
-      // 2. Decrementa contador global
-      if (targetUserDoc.exists) {
-        final currentCount = (targetUserDoc.data()?['likeCount'] as int?) ?? 0;
-        if (currentCount > 0) {
-          transaction.update(targetUserRef, {
-            'likeCount': FieldValue.increment(-1),
-          });
-        }
-      }
-    });
+    return 0;
   }
 }
 

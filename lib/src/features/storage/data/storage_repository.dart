@@ -72,6 +72,23 @@ class StorageRepository {
     required File file,
     bool generateMultipleSizes = true,
   }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception(
+        'Voce precisa estar logado para atualizar a foto de perfil.',
+      );
+    }
+
+    if (currentUser.uid != userId) {
+      throw Exception(
+        'Erro de autenticacao: usuario logado diferente do perfil alvo.',
+      );
+    }
+
+    AppLogger.info(
+      'Profile image upload started: user=$userId, generateMultipleSizes=$generateMultipleSizes',
+    );
+
     // Validar arquivo antes do upload
     await UploadValidator.validateImage(file);
 
@@ -81,32 +98,40 @@ class StorageRepository {
         file,
       );
 
-      String? thumbnailUrl;
-      String? largeUrl;
+      final thumbnailFuture = compressedFiles.containsKey(ImageSize.thumbnail)
+          ? _uploadSingleImage(
+              file: compressedFiles[ImageSize.thumbnail]!,
+              path: 'profile_photos/$userId/thumbnail.webp',
+              contentType: 'image/webp',
+            )
+          : Future<String?>.value(null);
 
-      // Upload thumbnail
-      if (compressedFiles.containsKey(ImageSize.thumbnail)) {
-        thumbnailUrl = await _uploadSingleImage(
-          file: compressedFiles[ImageSize.thumbnail]!,
-          path: 'profile_photos/$userId/thumbnail.webp',
-          contentType: 'image/webp',
-        );
-      }
+      final largeFuture = compressedFiles.containsKey(ImageSize.large)
+          ? _uploadSingleImage(
+              file: compressedFiles[ImageSize.large]!,
+              path: 'profile_photos/$userId/large.webp',
+              contentType: 'image/webp',
+            )
+          : Future<String?>.value(null);
 
-      // Upload large (principal)
-      if (compressedFiles.containsKey(ImageSize.large)) {
-        largeUrl = await _uploadSingleImage(
-          file: compressedFiles[ImageSize.large]!,
-          path: 'profile_photos/$userId/large.webp',
-          contentType: 'image/webp',
-        );
-      }
+      final results = await Future.wait<String?>([
+        thumbnailFuture,
+        largeFuture,
+      ]);
+      final thumbnailUrl = results[0];
+      final largeUrl = results[1];
 
-      return ImageUrls(
+      final urls = ImageUrls(
         thumbnail: thumbnailUrl,
         large: largeUrl,
         full: largeUrl, // Usar large como full para perfil
       );
+
+      AppLogger.info(
+        'Profile image upload finished: user=$userId, thumb=${urls.thumbnail != null}, large=${urls.large != null}',
+      );
+
+      return urls;
     } else {
       // Upload simples (compatibilidade)
       final compressedFile = await ImageCompressor.compressProfilePhoto(
@@ -120,6 +145,9 @@ class StorageRepository {
         contentType: 'image/webp',
       );
 
+      AppLogger.info(
+        'Profile image upload finished (legacy mode): user=$userId',
+      );
       return ImageUrls(full: url, large: url);
     }
   }
@@ -219,47 +247,50 @@ class StorageRepository {
       file,
     );
 
-    String? thumbnailUrl;
-    String? mediumUrl;
-    String? largeUrl;
-    String? fullUrl;
+    final thumbnailFuture = compressedFiles.containsKey(ImageSize.thumbnail)
+        ? _uploadSingleImage(
+            file: compressedFiles[ImageSize.thumbnail]!,
+            path: 'gallery_photos/$userId/$mediaId/thumbnail.webp',
+            contentType: 'image/webp',
+          )
+        : Future<String?>.value(null);
 
-    // Upload thumbnail
-    if (compressedFiles.containsKey(ImageSize.thumbnail)) {
-      thumbnailUrl = await _uploadSingleImage(
-        file: compressedFiles[ImageSize.thumbnail]!,
-        path: 'gallery_photos/$userId/$mediaId/thumbnail.webp',
-        contentType: 'image/webp',
-      );
-    }
+    final mediumFuture = compressedFiles.containsKey(ImageSize.medium)
+        ? _uploadSingleImage(
+            file: compressedFiles[ImageSize.medium]!,
+            path: 'gallery_photos/$userId/$mediaId/medium.webp',
+            contentType: 'image/webp',
+          )
+        : Future<String?>.value(null);
 
-    // Upload medium
-    if (compressedFiles.containsKey(ImageSize.medium)) {
-      mediumUrl = await _uploadSingleImage(
-        file: compressedFiles[ImageSize.medium]!,
-        path: 'gallery_photos/$userId/$mediaId/medium.webp',
-        contentType: 'image/webp',
-      );
-    }
+    final largeFuture = compressedFiles.containsKey(ImageSize.large)
+        ? _uploadSingleImage(
+            file: compressedFiles[ImageSize.large]!,
+            path: 'gallery_photos/$userId/$mediaId/large.webp',
+            contentType: 'image/webp',
+          )
+        : Future<String?>.value(null);
 
-    // Upload large
-    if (compressedFiles.containsKey(ImageSize.large)) {
-      largeUrl = await _uploadSingleImage(
-        file: compressedFiles[ImageSize.large]!,
-        path: 'gallery_photos/$userId/$mediaId/large.webp',
-        contentType: 'image/webp',
-      );
-    }
+    final fullFuture = compressedFiles.containsKey(ImageSize.full)
+        ? _uploadSingleImageWithProgress(
+            file: compressedFiles[ImageSize.full]!,
+            path: 'gallery_photos/$userId/$mediaId/full.webp',
+            contentType: 'image/webp',
+            onProgress: onProgress,
+          )
+        : Future<String?>.value(null);
 
-    // Upload full (original comprimido)
-    if (compressedFiles.containsKey(ImageSize.full)) {
-      fullUrl = await _uploadSingleImageWithProgress(
-        file: compressedFiles[ImageSize.full]!,
-        path: 'gallery_photos/$userId/$mediaId/full.webp',
-        contentType: 'image/webp',
-        onProgress: onProgress,
-      );
-    }
+    final results = await Future.wait<String?>([
+      thumbnailFuture,
+      mediumFuture,
+      largeFuture,
+      fullFuture,
+    ]);
+
+    final thumbnailUrl = results[0];
+    final mediumUrl = results[1];
+    final largeUrl = results[2];
+    final fullUrl = results[3];
 
     return GalleryMediaUrls(
       thumbnail: thumbnailUrl,
@@ -543,6 +574,11 @@ class StorageRepository {
     required String ticketId,
     required File file,
   }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception('Voce precisa estar logado para enviar anexos.');
+    }
+
     // Validar arquivo
     await UploadValidator.validateImage(file);
 
@@ -554,7 +590,7 @@ class StorageRepository {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}.webp';
     return _uploadSingleImage(
       file: compressedFile,
-      path: 'support_tickets/$ticketId/$fileName',
+      path: 'support_tickets/${currentUser.uid}/$ticketId/$fileName',
       contentType: 'image/webp',
     );
   }

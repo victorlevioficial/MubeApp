@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../shared/services/content_moderation_service.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../storage/data/storage_repository.dart';
@@ -89,6 +90,9 @@ class ProfileController extends _$ProfileController {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
+      AppLogger.info(
+        'Profile image update started for user: ${currentUser.uid}',
+      );
       await moderationTest.validateImage(file);
 
       final imageUrls = await storageRepo.uploadProfileImageWithSizes(
@@ -96,8 +100,29 @@ class ProfileController extends _$ProfileController {
         file: file,
       );
 
-      final updatedUser = currentUser.copyWith(foto: imageUrls.full);
-      await authRepo.updateUser(updatedUser);
+      final photoUrl = imageUrls.full;
+      if (photoUrl == null || photoUrl.isEmpty) {
+        throw Exception('Upload retornou URL de foto vazia');
+      }
+
+      final updatedPhotoUrl = _withCacheBuster(photoUrl);
+      final updatedUser = currentUser.copyWith(foto: updatedPhotoUrl);
+      final result = await authRepo.updateUser(updatedUser);
+
+      result.fold(
+        (failure) {
+          AppLogger.error(
+            'Profile image update failed to persist user profile',
+            failure.message,
+          );
+          throw failure.message;
+        },
+        (_) {
+          AppLogger.info(
+            'Profile image updated successfully: $updatedPhotoUrl',
+          );
+        },
+      );
 
       unawaited(
         ref
@@ -106,6 +131,12 @@ class ProfileController extends _$ProfileController {
       );
       return;
     });
+  }
+
+  String _withCacheBuster(String url) {
+    final separator = url.contains('?') ? '&' : '?';
+    final version = DateTime.now().millisecondsSinceEpoch;
+    return '$url${separator}v=$version';
   }
 
   Future<void> deleteProfile() async {

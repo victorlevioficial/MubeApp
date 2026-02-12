@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -29,7 +30,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     List<SavedAddress> addresses;
 
-    // If user has no addresses but has legacy location, migrate it
+    // If user has no addresses but has legacy location, migrate it.
     if (user.addresses.isEmpty && user.location != null) {
       final legacyAddress = SavedAddress.fromLocationMap(user.location!);
       addresses = [legacyAddress];
@@ -37,7 +38,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       addresses = user.addresses.toList();
     }
 
-    // Sort so primary is always at the top
+    // Keep primary at top.
     addresses.sort((a, b) {
       if (a.isPrimary && !b.isPrimary) return -1;
       if (!a.isPrimary && b.isPrimary) return 1;
@@ -49,9 +50,10 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
   Future<void> _saveAddresses(List<SavedAddress> addresses) async {
     final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
+    if (user == null) {
+      throw Exception('Sessao expirada. Entre novamente.');
+    }
 
-    // Find primary address to sync with legacy location field
     final primary = addresses.firstWhere(
       (a) => a.isPrimary,
       orElse: () =>
@@ -63,14 +65,17 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       location: primary.toLocationMap(),
     );
 
-    await ref.read(authRepositoryProvider).updateUser(updatedUser);
+    final result = await ref
+        .read(authRepositoryProvider)
+        .updateUser(updatedUser);
+    result.fold((failure) => throw Exception(failure.message), (_) => null);
   }
 
   void _addAddress() {
     if (_addresses.length >= _maxAddresses) {
       AppSnackBar.warning(
         context,
-        'Limite de $_maxAddresses endereços atingido',
+        'Limite de $_maxAddresses enderecos atingido',
       );
       return;
     }
@@ -86,20 +91,25 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       return a.copyWith(isPrimary: a.id == address.id);
     }).toList();
 
-    await _saveAddresses(updatedList);
-    if (mounted) {
-      AppSnackBar.success(context, 'Endereço principal atualizado');
+    try {
+      await _saveAddresses(updatedList);
+      if (mounted) {
+        AppSnackBar.success(context, 'Endereco principal atualizado');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao atualizar endereco: $e');
+      }
     }
   }
 
   Future<void> _deleteAddress(SavedAddress address) async {
-    // Confirm deletion
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
-        title: 'Excluir endereço?',
+        title: 'Excluir endereco?',
         message:
-            'Deseja excluir "${address.nome.isNotEmpty ? address.nome : 'este endereço'}"?',
+            'Deseja excluir "${address.nome.isNotEmpty ? address.nome : 'este endereco'}"?',
         confirmText: 'Excluir',
         isDestructive: true,
       ),
@@ -109,7 +119,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     var updatedList = _addresses.where((a) => a.id != address.id).toList();
 
-    // If deleted was primary, make first remaining address primary
+    // If deleted was primary, mark first remaining as primary.
     if (address.isPrimary && updatedList.isNotEmpty) {
       updatedList = [
         updatedList.first.copyWith(isPrimary: true),
@@ -117,45 +127,61 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       ];
     }
 
-    await _saveAddresses(updatedList);
-    if (mounted) {
-      AppSnackBar.success(context, 'Endereço excluído');
+    try {
+      await _saveAddresses(updatedList);
+      if (mounted) {
+        AppSnackBar.success(context, 'Endereco excluido');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao excluir endereco: $e');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final addresses = _addresses;
+    final canAddMore = addresses.length < _maxAddresses;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Meus Endereços'),
-      body: addresses.isEmpty
-          ? _buildEmptyState()
-          : ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.s16),
-              itemCount: addresses.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: AppSpacing.s12),
-              itemBuilder: (context, index) {
-                final address = addresses[index];
-                return AddressCard(
-                  address: address,
-                  onTap: () => _editAddress(address),
-                  onSetPrimary: () => _setAsPrimary(address),
-                  onDelete: () => _deleteAddress(address),
-                );
-              },
-            ),
-      floatingActionButton: addresses.length < _maxAddresses
-          ? FloatingActionButton.extended(
-              onPressed: _addAddress,
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textPrimary,
+      appBar: const AppAppBar(title: 'Meus Enderecos'),
+      body: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppButton.primary(
+              text: canAddMore
+                  ? 'Adicionar Endereco'
+                  : 'Limite de $_maxAddresses enderecos',
+              onPressed: canAddMore ? _addAddress : null,
               icon: const Icon(Icons.add),
-              label: const Text('Adicionar'),
-            )
-          : null,
+              isFullWidth: true,
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            Expanded(
+              child: addresses.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.separated(
+                      itemCount: addresses.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: AppSpacing.s12),
+                      itemBuilder: (context, index) {
+                        final address = addresses[index];
+                        return AddressCard(
+                          address: address,
+                          onTap: () => _editAddress(address),
+                          onSetPrimary: () => _setAsPrimary(address),
+                          onDelete: () => _deleteAddress(address),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -173,27 +199,17 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
             ),
             const SizedBox(height: AppSpacing.s16),
             Text(
-              'Nenhum endereço salvo',
+              'Nenhum endereco salvo',
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.s8),
             Text(
-              'Adicione um endereço para aparecer\nna seção "Perto de mim"',
+              'Adicione um endereco para aparecer\nna secao "Perto de mim"',
               textAlign: TextAlign.center,
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s24),
-            ElevatedButton.icon(
-              onPressed: _addAddress,
-              icon: const Icon(Icons.add),
-              label: const Text('Adicionar Endereço'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
               ),
             ),
           ],

@@ -51,6 +51,12 @@ export {
   onTicketCreated,
 } from "./support";
 
+// Export Favorites functions
+export {
+  onFavoriteCreated,
+  onFavoriteDeleted,
+} from "./favorites";
+
 /**
  * Trigger: When a new message is created in a conversation.
  * Path: conversations/{conversationId}/messages/{messageId}

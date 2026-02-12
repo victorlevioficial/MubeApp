@@ -63,6 +63,13 @@ class _GalleryGridState extends State<GalleryGrid> {
               color: AppColors.textSecondary,
             ),
           ),
+          if (widget.isUploading) ...[
+            const SizedBox(height: AppSpacing.s16),
+            _GalleryUploadBanner(
+              progress: widget.uploadProgress,
+              status: widget.uploadStatus,
+            ),
+          ],
           const SizedBox(height: AppSpacing.s32),
 
           // --- Photos Section ---
@@ -105,6 +112,7 @@ class _GalleryGridState extends State<GalleryGrid> {
 
     return ReorderableBuilder<MediaItem>(
       onReorder: (reorderFunc) {
+        if (widget.isUploading) return;
         final reordered = reorderFunc(List<MediaItem>.from(photos));
         for (int i = 0; i < photos.length; i++) {
           if (i < reordered.length && photos[i].id != reordered[i].id) {
@@ -151,7 +159,9 @@ class _GalleryGridState extends State<GalleryGrid> {
           _FilledSlot(
             key: ValueKey(item.id),
             item: item,
-            onRemove: () => widget.onRemove(widget.items.indexOf(item)),
+            onRemove: widget.isUploading
+                ? () {}
+                : () => widget.onRemove(widget.items.indexOf(item)),
           ),
       ],
     );
@@ -163,6 +173,7 @@ class _GalleryGridState extends State<GalleryGrid> {
 
     return ReorderableBuilder<MediaItem>(
       onReorder: (reorderFunc) {
+        if (widget.isUploading) return;
         final reordered = reorderFunc(List<MediaItem>.from(videos));
         for (int i = 0; i < videos.length; i++) {
           if (i < reordered.length && videos[i].id != reordered[i].id) {
@@ -207,9 +218,57 @@ class _GalleryGridState extends State<GalleryGrid> {
           _VideoCard(
             key: ValueKey(item.id),
             item: item,
-            onRemove: () => widget.onRemove(widget.items.indexOf(item)),
+            onRemove: widget.isUploading
+                ? () {}
+                : () => widget.onRemove(widget.items.indexOf(item)),
           ),
       ],
+    );
+  }
+}
+
+class _GalleryUploadBanner extends StatelessWidget {
+  final double progress;
+  final String status;
+
+  const _GalleryUploadBanner({required this.progress, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = progress.clamp(0.0, 1.0);
+    final showDeterminate = normalized > 0.0 && normalized < 1.0;
+    final percent = '${(normalized * 100).round()}%';
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all12,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            status.isNotEmpty ? status : 'Enviando midia...',
+            style: AppTypography.bodyMedium,
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          LinearProgressIndicator(
+            value: showDeterminate ? normalized : null,
+            minHeight: 5,
+            borderRadius: AppRadius.pill,
+            backgroundColor: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          Text(
+            showDeterminate ? percent : 'Processando...',
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -282,8 +341,9 @@ class _VideoCard extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: item.thumbnailUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => AppShimmer.box(borderRadius: 12),
-                  errorWidget: (_, __, ___) => Container(
+                  placeholder: (context, url) =>
+                      AppShimmer.box(borderRadius: 12),
+                  errorWidget: (context, url, error) => Container(
                     color: AppColors.surface,
                     child: const Icon(
                       Icons.videocam_off,

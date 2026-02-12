@@ -10,8 +10,7 @@ import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
 
-/// An optimistic like button that manages its own animation state locally
-/// to provide a smooth user experience while syncing with a global state controller.
+/// Like button with optimistic state driven by FavoriteController.
 class AppLikeButton extends ConsumerStatefulWidget {
   final String targetId;
   final int initialCount;
@@ -31,84 +30,57 @@ class AppLikeButton extends ConsumerStatefulWidget {
 }
 
 class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
-  // Local, optimistic state for a smooth UI animation.
-  late bool _isLiked;
-  late int _displayCount;
-
   @override
   void initState() {
     super.initState();
-    // Initialize local state from the source of truth (widget props and Riverpod).
-    _isLiked = ref
-        .read(favoriteControllerProvider)
-        .localFavorites
-        .contains(widget.targetId);
-    _displayCount = widget.initialCount;
+    _seedCount();
   }
 
   @override
-  void didUpdateWidget(AppLikeButton oldWidget) {
+  void didUpdateWidget(covariant AppLikeButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // Sync local state if the external data changes (e.g., from a pull-to-refresh).
-    // This ensures the button reflects the true state if it's updated externally.
-    final latestIsLiked = ref
-        .read(favoriteControllerProvider)
-        .localFavorites
-        .contains(widget.targetId);
-    if (_isLiked != latestIsLiked) {
-      _isLiked = latestIsLiked;
-    }
-    if (widget.initialCount != _displayCount &&
-        widget.initialCount != oldWidget.initialCount) {
-      _displayCount = widget.initialCount;
+    if (oldWidget.targetId != widget.targetId ||
+        oldWidget.initialCount != widget.initialCount) {
+      _seedCount();
     }
   }
 
-  /// Handles the tap event by first updating the local UI optimistically
-  /// and then dispatching the state change to the global controller.
-  Future<bool> _onTap(bool currentIsLiked) async {
-    // 1. Optimistically update the local state for an instant, smooth animation.
-    setState(() {
-      _isLiked = !currentIsLiked;
-      if (_isLiked) {
-        _displayCount++;
-      } else {
-        // Prevent count from going below zero on the UI.
-        if (_displayCount > 0) {
-          _displayCount--;
-        }
-      }
+  void _seedCount() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(favoriteControllerProvider.notifier)
+          .ensureLikeCount(widget.targetId, widget.initialCount);
     });
+  }
 
-    // 2. Give haptic feedback.
+  Future<bool> _onTap(WidgetRef ref, bool currentIsLiked) async {
     unawaited(HapticFeedback.lightImpact());
-
-    // 3. Dispatch the action to the controller for background processing.
     ref.read(favoriteControllerProvider.notifier).toggle(widget.targetId);
 
-    // 4. Return the new optimistic state to the `LikeButton` package,
-    // which uses it to run its icon animation.
-    return _isLiked;
+    // `LikeButton` uses this value to run the tap animation immediately.
+    return !currentIsLiked;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch the provider. This is necessary so that `didUpdateWidget` is called
-    // when the global state changes from an external source.
-    ref.watch(
+    final isLiked = ref.watch(
       favoriteControllerProvider.select(
         (s) => s.localFavorites.contains(widget.targetId),
+      ),
+    );
+    final likeCount = ref.watch(
+      favoriteControllerProvider.select(
+        (s) => s.likeCounts[widget.targetId] ?? widget.initialCount,
       ),
     );
 
     return LikeButton(
       size: widget.size,
-      // The button's appearance is now driven by our local, optimistic state.
-      isLiked: _isLiked,
-      likeCount: _displayCount,
+      isLiked: isLiked,
+      likeCount: likeCount,
       padding: EdgeInsets.zero,
-      onTap: _onTap,
+      onTap: (current) => _onTap(ref, current),
       bubblesColor: const BubblesColor(
         dotPrimaryColor: AppColors.primary,
         dotSecondaryColor: AppColors.primaryPressed,
@@ -117,14 +89,14 @@ class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
         start: AppColors.primaryPressed,
         end: AppColors.primary,
       ),
-      likeBuilder: (bool isLiked) {
+      likeBuilder: (bool liked) {
         return Icon(
-          isLiked ? Icons.favorite : Icons.favorite_outline,
-          color: isLiked ? AppColors.primary : AppColors.textSecondary,
+          liked ? Icons.favorite : Icons.favorite_outline,
+          color: liked ? AppColors.primary : AppColors.textSecondary,
           size: widget.size,
         );
       },
-      countBuilder: (int? count, bool isLiked, String text) {
+      countBuilder: (int? count, bool liked, String text) {
         if (!widget.showCount || count == null) return const SizedBox.shrink();
 
         return Padding(
@@ -132,8 +104,8 @@ class _AppLikeButtonState extends ConsumerState<AppLikeButton> {
           child: Text(
             text,
             style: AppTypography.labelMedium.copyWith(
-              color: isLiked ? AppColors.primary : AppColors.textSecondary,
-              fontWeight: isLiked
+              color: liked ? AppColors.primary : AppColors.textSecondary,
+              fontWeight: liked
                   ? AppTypography.buttonPrimary.fontWeight
                   : AppTypography.labelMedium.fontWeight,
             ),

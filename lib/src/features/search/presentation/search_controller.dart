@@ -4,23 +4,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../constants/firestore_constants.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/utils/rate_limiter.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../feed/data/feed_repository.dart';
 import '../../feed/domain/feed_item.dart';
 import '../data/search_repository.dart';
 import '../domain/search_filters.dart';
 
-/// Estado de paginação específico para busca.
+/// Search pagination state.
 @immutable
 class SearchPaginationState extends PaginationState<FeedItem> {
-  /// Filtros atuais da busca.
+  /// Current search filters.
   final SearchFilters filters;
 
-  /// Latitude do usuário para ordenação por proximidade.
+  /// User latitude used for proximity sorting.
   final double? userLat;
 
-  /// Longitude do usuário para ordenação por proximidade.
+  /// User longitude used for proximity sorting.
   final double? userLng;
 
   const SearchPaginationState({
@@ -97,45 +99,50 @@ class SearchPaginationState extends PaginationState<FeedItem> {
   );
 }
 
-/// Controller para a tela de busca usando padrão unificado de paginação.
+/// Search controller using unified pagination state.
 class SearchController extends Notifier<SearchPaginationState> {
   Timer? _debounceTimer;
   int _currentRequestId = 0;
   final RateLimiter _rateLimiter = RateLimitConfigs.search;
 
+  // Local snapshot used when search runs with Home-compatible distance pipeline.
+  final List<FeedItem> _homeDistanceSnapshot = [];
+  bool _useHomeDistancePagination = false;
+
   @override
   SearchPaginationState build() {
-    // Inicializa com a localização do usuário
-    final userAsync = ref.read(currentUserProfileProvider);
+    final user = ref.read(currentUserProfileProvider).value;
+    final lat = (user?.location?['lat'] as num?)?.toDouble();
+    final lng = (user?.location?['lng'] as num?)?.toDouble();
 
-    double? lat;
-    double? lng;
-    userAsync.whenData((user) {
-      if (user?.location != null) {
-        lat = (user!.location!['lat'] as num?)?.toDouble();
-        lng = (user.location!['lng'] as num?)?.toDouble();
-      }
-    });
-
-    // Listen to user changes to update search (e.g. blocked users)
+    // Keep location in sync and refresh results if profile changed.
     ref.listen(currentUserProfileProvider, (prev, next) {
-      if (next.hasValue && next.value != prev?.value) {
+      if (!next.hasValue) return;
+
+      final nextUser = next.value;
+      final nextLat = (nextUser?.location?['lat'] as num?)?.toDouble();
+      final nextLng = (nextUser?.location?['lng'] as num?)?.toDouble();
+
+      if (nextLat != null &&
+          nextLng != null &&
+          (nextLat != state.userLat || nextLng != state.userLng)) {
+        _updateState(state.copyWithSearch(userLat: nextLat, userLng: nextLng));
+      }
+
+      if (next.value != prev?.value) {
         _performSearch();
       }
     });
 
-    // Inicializa a busca após o build
-    Future.microtask(() => _performSearch());
+    Future.microtask(_performSearch);
 
     return SearchPaginationState(userLat: lat, userLng: lng);
   }
 
-  /// Atualiza o estado interno.
   void _updateState(SearchPaginationState newState) {
     state = newState;
   }
 
-  /// Atualiza o termo de busca com debounce.
   void setTerm(String term) {
     _updateState(
       state.copyWithSearch(filters: state.filters.copyWith(term: term)),
@@ -143,7 +150,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _debouncedSearch();
   }
 
-  /// Atualiza o filtro de categoria.
   void setCategory(SearchCategory category) {
     _updateState(
       state.copyWithSearch(
@@ -156,7 +162,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza a subcategoria profissional.
   void setProfessionalSubcategory(ProfessionalSubcategory? subcategory) {
     _updateState(
       state.copyWithSearch(
@@ -166,7 +171,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o filtro de gêneros.
   void setGenres(List<String> genres) {
     _updateState(
       state.copyWithSearch(filters: state.filters.copyWith(genres: genres)),
@@ -174,7 +178,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o filtro de instrumentos.
   void setInstruments(List<String> instruments) {
     _updateState(
       state.copyWithSearch(
@@ -184,7 +187,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o filtro de funções (crew).
   void setRoles(List<String> roles) {
     _updateState(
       state.copyWithSearch(filters: state.filters.copyWith(roles: roles)),
@@ -192,7 +194,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o filtro de serviços (estúdios).
   void setServices(List<String> services) {
     _updateState(
       state.copyWithSearch(filters: state.filters.copyWith(services: services)),
@@ -200,7 +201,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o tipo de estúdio.
   void setStudioType(String? type) {
     _updateState(
       state.copyWithSearch(filters: state.filters.copyWith(studioType: type)),
@@ -208,7 +208,6 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza o filtro de backing vocal.
   void setBackingVocalFilter(bool? canDoBacking) {
     _updateState(
       state.copyWithSearch(
@@ -218,13 +217,11 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Limpa todos os filtros.
   void clearFilters() {
     _updateState(state.copyWithSearch(filters: state.filters.clearFilters()));
     _performSearch();
   }
 
-  /// Reseta tudo.
   void reset() {
     _updateState(
       state.copyWithSearch(
@@ -236,14 +233,17 @@ class SearchController extends Notifier<SearchPaginationState> {
     _performSearch();
   }
 
-  /// Atualiza os resultados (pull-to-refresh).
   Future<void> refresh() async {
     await _performSearch();
   }
 
-  /// Carrega mais resultados (paginação).
   Future<void> loadMore() async {
     if (!canLoadMore) return;
+
+    if (_useHomeDistancePagination) {
+      await _loadMoreFromHomeDistanceSnapshot();
+      return;
+    }
 
     final requestId = ++_currentRequestId;
 
@@ -257,10 +257,18 @@ class SearchController extends Notifier<SearchPaginationState> {
     try {
       final user = ref.read(currentUserProfileProvider).value;
       final blockedUsers = user?.blockedUsers ?? [];
+      final userLat =
+          (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
+      final userLng =
+          (user?.location?['lng'] as num?)?.toDouble() ?? state.userLng;
+
+      if (userLat != null &&
+          userLng != null &&
+          (userLat != state.userLat || userLng != state.userLng)) {
+        _updateState(state.copyWithSearch(userLat: userLat, userLng: userLng));
+      }
 
       final repository = ref.read(searchRepositoryProvider);
-
-      // Para busca, usamos o lastDocument do estado anterior
       final result = await repository.searchUsers(
         filters: state.filters,
         startAfter: state.lastDocument,
@@ -286,8 +294,8 @@ class SearchController extends Notifier<SearchPaginationState> {
 
           final sortedResults = SearchRepository.sortByProximity(
             response.items,
-            state.userLat,
-            state.userLng,
+            userLat,
+            userLng,
           );
 
           final existingIds = state.items.map((item) => item.uid).toSet();
@@ -295,7 +303,13 @@ class SearchController extends Notifier<SearchPaginationState> {
               .where((item) => !existingIds.contains(item.uid))
               .toList();
 
-          final allItems = [...state.items, ...newItems];
+          // Re-sort globally to keep one proximity ranking across pages.
+          final allItems = SearchRepository.sortByProximity(
+            [...state.items, ...newItems],
+            userLat,
+            userLng,
+          );
+
           final hasMore = response.hasMore;
 
           _updateState(
@@ -322,20 +336,27 @@ class SearchController extends Notifier<SearchPaginationState> {
     }
   }
 
-  /// Busca com debounce para entrada de texto.
   void _debouncedSearch() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), _performSearch);
   }
 
-  /// Executa a busca.
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
     final user = ref.read(currentUserProfileProvider).value;
     final blockedUsers = user?.blockedUsers ?? [];
     final userId = user?.uid ?? 'anonymous';
+    final userLat =
+        (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
+    final userLng =
+        (user?.location?['lng'] as num?)?.toDouble() ?? state.userLng;
 
-    // Rate limiting check
+    if (userLat != null &&
+        userLng != null &&
+        (userLat != state.userLat || userLng != state.userLng)) {
+      _updateState(state.copyWithSearch(userLat: userLat, userLng: userLng));
+    }
+
     if (!_rateLimiter.allowRequest(userId)) {
       final timeUntil = _rateLimiter.timeUntilNextRequest(userId);
       debugPrint('[Search] Rate limit exceeded. Try again in $timeUntil');
@@ -358,6 +379,62 @@ class SearchController extends Notifier<SearchPaginationState> {
     );
 
     try {
+      _homeDistanceSnapshot.clear();
+      _useHomeDistancePagination = false;
+
+      if (_canUseHomeDistancePipeline(
+        filters: state.filters,
+        userLat: userLat,
+        userLng: userLng,
+      )) {
+        final result = await ref
+            .read(feedRepositoryProvider)
+            .getNearbyUsersOptimized(
+              currentUserId: user!.uid,
+              userLat: userLat!,
+              userLong: userLng!,
+              filterType: _mapCategoryToProfileType(state.filters.category),
+              excludedIds: blockedUsers,
+              targetResults: SearchConfig.batchSize,
+            );
+
+        if (_currentRequestId != requestId) return;
+
+        result.fold(
+          (failure) {
+            if (_currentRequestId != requestId) return;
+            _updateState(
+              state.copyWithSearch(
+                status: PaginationStatus.error,
+                errorMessage: failure.message,
+              ),
+            );
+          },
+          (items) {
+            if (_currentRequestId != requestId) return;
+
+            _useHomeDistancePagination = true;
+            _homeDistanceSnapshot.addAll(items);
+
+            final firstPage = items.take(state.pageSize).toList();
+            final hasMore = items.length > firstPage.length;
+
+            _updateState(
+              state.copyWithSearch(
+                items: firstPage,
+                status: hasMore
+                    ? PaginationStatus.loaded
+                    : PaginationStatus.noMoreData,
+                hasMore: hasMore,
+                currentPage: firstPage.isEmpty ? 0 : 1,
+                clearLastDocument: true,
+              ),
+            );
+          },
+        );
+        return;
+      }
+
       final repository = ref.read(searchRepositoryProvider);
       final result = await repository.searchUsers(
         filters: state.filters,
@@ -385,8 +462,8 @@ class SearchController extends Notifier<SearchPaginationState> {
 
           final sortedResults = SearchRepository.sortByProximity(
             response.items,
-            state.userLat,
-            state.userLng,
+            userLat,
+            userLng,
           );
 
           final hasMore = response.hasMore;
@@ -416,26 +493,88 @@ class SearchController extends Notifier<SearchPaginationState> {
     }
   }
 
-  /// Verifica se pode carregar mais resultados.
+  Future<void> _loadMoreFromHomeDistanceSnapshot() async {
+    final currentState = state;
+
+    _updateState(
+      currentState.copyWithSearch(
+        status: PaginationStatus.loadingMore,
+        clearError: true,
+      ),
+    );
+
+    final startIndex = currentState.currentPage * currentState.pageSize;
+    if (startIndex >= _homeDistanceSnapshot.length) {
+      _updateState(
+        currentState.copyWithSearch(
+          status: PaginationStatus.noMoreData,
+          hasMore: false,
+          clearLastDocument: true,
+        ),
+      );
+      return;
+    }
+
+    final endIndex = (startIndex + currentState.pageSize).clamp(
+      0,
+      _homeDistanceSnapshot.length,
+    );
+
+    final nextItems = _homeDistanceSnapshot.sublist(startIndex, endIndex);
+    final allItems = [...currentState.items, ...nextItems];
+    final hasMore = endIndex < _homeDistanceSnapshot.length;
+
+    _updateState(
+      currentState.copyWithSearch(
+        items: allItems,
+        status: hasMore ? PaginationStatus.loaded : PaginationStatus.noMoreData,
+        hasMore: hasMore,
+        currentPage: currentState.currentPage + 1,
+        clearLastDocument: true,
+      ),
+    );
+  }
+
+  bool _canUseHomeDistancePipeline({
+    required SearchFilters filters,
+    required double? userLat,
+    required double? userLng,
+  }) {
+    // Disabled for now to avoid hard caps from local snapshots and ensure
+    // full Firestore pagination in Search.
+    if (userLat == null || userLng == null) return false;
+    if (filters.hasActiveFilters) return false;
+    return false;
+  }
+
+  String? _mapCategoryToProfileType(SearchCategory category) {
+    switch (category) {
+      case SearchCategory.professionals:
+        return ProfileType.professional;
+      case SearchCategory.bands:
+        return ProfileType.band;
+      case SearchCategory.studios:
+        return ProfileType.studio;
+      case SearchCategory.all:
+        return null;
+    }
+  }
+
   bool get canLoadMore {
     return state.hasMore &&
         !state.isLoading &&
         state.status != PaginationStatus.error;
   }
 
-  /// Verifica se está carregando mais resultados.
   bool get isLoadingMore => state.isLoadingMore;
 
-  /// Converte o estado para AsyncValue (para compatibilidade com UI).
   AsyncValue<List<FeedItem>> get resultsAsyncValue => state.toAsyncValue();
 
-  /// Cancela o debounce pendente.
   void cancelDebounce() {
     _debounceTimer?.cancel();
   }
 }
 
-/// Provider para SearchController
 final searchControllerProvider =
     NotifierProvider<SearchController, SearchPaginationState>(() {
       return SearchController();
