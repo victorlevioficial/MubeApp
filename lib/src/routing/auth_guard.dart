@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/data/auth_repository.dart';
+import '../features/splash/providers/splash_provider.dart';
 import 'route_paths.dart';
 
 /// Handles authentication and onboarding redirect logic.
@@ -25,26 +26,39 @@ class AuthGuard {
   String? redirect(BuildContext context, GoRouterState state) {
     final currentPath = state.uri.path;
 
-    // 1. Always allow splash screen
-    if (currentPath == RoutePaths.splash) {
-      _log('Splash screen - allowing pass-through');
-      return null;
-    }
-
     final authState = _ref.read(authStateChangesProvider);
     final userProfileAsync = _ref.read(currentUserProfileProvider);
+    final splashFinished = _ref.read(splashFinishedProvider);
+
+    // If splash timer is not finished or auth is loading, remain on splash
+    if (!splashFinished || authState.isLoading) {
+      if (currentPath == RoutePaths.splash) {
+        _log('Splash or Auth loading - waiting on splash screen');
+        return null; // Pass-through
+      }
+      // If we are anywhere else, let them load where they are (like link from email)
+      // or force them to splash? Forcing to splash is safer.
+      // But if they clicked a deep link, we don't want to lose it.
+      // For now, let's just let splash screen be the entry. If not splash, let's wait inline if not auth.
+      // Actually go_router initialLocation is '/', so it will hit splash first.
+      return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+    }
+
     final isLoggedIn = authState.value != null;
 
     _log(
       'path: $currentPath, auth: ${isLoggedIn ? authState.value?.email : 'null'}',
     );
 
-    // 2. Not logged in - redirect to login (unless already on public route)
+    // Not logged in - redirect to login
     if (!isLoggedIn) {
+      if (currentPath == RoutePaths.splash) {
+        return RoutePaths.login;
+      }
       return _handleUnauthenticated(currentPath);
     }
 
-    // 3. Logged in - check onboarding status
+    // Logged in - check profile and onboarding status
     return _handleAuthenticated(currentPath, userProfileAsync);
   }
 
@@ -76,19 +90,28 @@ class AuthGuard {
       return RoutePaths.emailVerification;
     }
 
-    // Profile not loaded yet - don't redirect
-    if (!userProfileAsync.hasValue || userProfileAsync.value == null) {
-      if (RoutePaths.isPublic(currentPath)) {
-        _log('Profile loading on public route - redirecting to feed');
-        return RoutePaths.feed;
+    // Profile not loaded yet - stay on splash if returning from startup
+    if (userProfileAsync.isLoading ||
+        !userProfileAsync.hasValue ||
+        userProfileAsync.value == null) {
+      if (currentPath == RoutePaths.splash) {
+        _log('Profile loading - waiting on splash');
+        return null; // Stay on splash
       }
-      _log('Profile loading - waiting');
-      return null;
+      // If they are on another screen (e.g. login) and profile is loading, redirect to splash to wait
+      return RoutePaths.splash;
     }
 
     final user = userProfileAsync.value!;
 
-    // Check onboarding status using domain model methods
+    // We have a fully loaded user profile. If they are on Splash, route them based on onboarding.
+    if (currentPath == RoutePaths.splash) {
+      if (user.isTipoPendente) return RoutePaths.onboarding;
+      if (user.isPerfilPendente) return RoutePaths.onboardingForm;
+      return RoutePaths.feed;
+    }
+
+    // Check onboarding status for current navigation
     if (user.isTipoPendente) {
       return _guardOnboardingType(currentPath);
     }
@@ -122,7 +145,7 @@ class AuthGuard {
   String? _guardCompletedUser(String currentPath) {
     final shouldRedirectToFeed =
         currentPath.startsWith(RoutePaths.onboarding) ||
-        RoutePaths.isPublic(currentPath) && currentPath != RoutePaths.gallery;
+        (RoutePaths.isPublic(currentPath) && currentPath != RoutePaths.gallery);
 
     if (shouldRedirectToFeed) {
       _log('Completed user on restricted route - redirecting to feed');

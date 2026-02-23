@@ -37,6 +37,8 @@ import '../features/settings/presentation/blocked_users_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/splash/presentation/splash_screen.dart';
+import '../features/splash/providers/splash_provider.dart';
 import '../features/support/domain/ticket_model.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/support_screen.dart';
@@ -59,6 +61,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   // Listen to state changes to trigger route re-evaluation
   ref.listen(authStateChangesProvider, (_, _) => notifier.notify());
   ref.listen(currentUserProfileProvider, (_, _) => notifier.notify());
+  ref.listen(splashFinishedProvider, (_, _) => notifier.notify());
 
   return GoRouter(
     initialLocation: RoutePaths.splash,
@@ -78,10 +81,11 @@ List<RouteBase> _buildRoutes(Ref ref) {
       builder: (context, state) => const DeveloperToolsScreen(),
     ),
 
-    // Root alias route to avoid rendering a second in-app splash.
+    // Root alias route indicating the initial app loading.
     GoRoute(
       path: RoutePaths.splash,
-      redirect: (context, state) => RoutePaths.login,
+      pageBuilder: (context, state) =>
+          NoTransitionPage(key: state.pageKey, child: const SplashScreen()),
     ),
 
     // Auth routes

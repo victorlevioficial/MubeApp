@@ -57,7 +57,7 @@ export const submitMatchpointAction = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: true,
     invoker: "public",
     cors: true,
   },
@@ -120,7 +120,7 @@ export const submitMatchpointAction = onCall(
           throw new HttpsError(
             "resource-exhausted",
             `Limite diário de ${DAILY_SWIPE_LIMIT} swipes atingido. ` +
-              "Tente novamente amanhã."
+            "Tente novamente amanhã."
           );
         }
         remainingQuota = rateLimitResult.remainingLikes;
@@ -249,7 +249,7 @@ export const submitMatchpointAction = onCall(
  */
 async function checkAndUpdateRateLimit(
   userId: string
-): Promise<{allowed: boolean; remainingLikes: number}> {
+): Promise<{ allowed: boolean; remainingLikes: number }> {
   const userRef = db.collection("users").doc(userId);
 
   return await db.runTransaction(async (transaction) => {
@@ -364,7 +364,7 @@ function readLastLikeDate(userData: DocumentData): Date | null {
 async function createMatch(
   userId1: string,
   userId2: string
-): Promise<{matchId: string; conversationId: string}> {
+): Promise<{ matchId: string; conversationId: string }> {
   const now = Timestamp.now();
 
   const pairKey = [userId1, userId2].sort().join("_");
@@ -528,7 +528,7 @@ export const getRemainingLikes = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 5,
-    enforceAppCheck: false,
+    enforceAppCheck: true,
     invoker: "public",
     cors: true,
   },

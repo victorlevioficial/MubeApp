@@ -1,0 +1,788 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart
+00:00 +0: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: (setUpAll)
+00:00 +0: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +1: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +2: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +3: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +4: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +5: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Login Flow should show validation errors
+00:00 +6: C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: Profile Flow Integration Tests Profile View should display professional profile
+00:00 +7: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:00 +8: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:00 +9: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +10: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +11: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +12: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +13: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +14: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +15: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +16: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +17: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +18: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +19: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +20: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +21: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +22: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +23: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +24: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +25: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +26: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should search users by name
+00:01 +27: C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: Profile Flow Integration Tests Profile Edit should update profile data
+00:01 +28: C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: Profile Flow Integration Tests Profile Edit should update profile data
+00:01 +29: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search by Term should show empty state when no results
+00:01 +30: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +31: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +32: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +33: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +34: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +35: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +36: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +37: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +38: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +39: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +40: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +41: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +42: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +43: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +44: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +45: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +46: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +47: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +48: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +49: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +50: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +51: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +52: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +53: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Navigation should navigate between login and register
+00:01 +54: C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: Profile Flow Integration Tests Logout should logout user
+00:01 +55: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Category Filters should filter by studios category
+00:01 +56: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +57: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +58: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +59: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +60: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +61: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +62: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +63: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +64: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should handle network error
+00:01 +65: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +66: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +67: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +68: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +69: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by singers
+00:01 +70: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should trim email
+00:02 +71: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should trim email
+00:02 +72: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should trim email
+00:02 +73: C:/Users/Victor/Desktop/AppMube/test/integration/auth/auth_flow_test.dart: Auth Flow Integration Tests Edge Cases should trim email
+00:02 +74: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by crew
+00:02 +75: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by crew
+00:02 +76: C:/Users/Victor/Desktop/AppMube/test/integration/profile/profile_flow_test.dart: Profile Flow Integration Tests Profile Location should display location info
+00:02 +77: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by DJs
+00:02 +78: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Professional Subcategory Filters should filter by DJs
+00:02 +79: C:/Users/Victor/Desktop/AppMube/test/unit/auth/forgot_password_controller_test.dart: ForgotPasswordController sendResetEmail should set state to AsyncLoading when called
+00:02 +80: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +81: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +82: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +83: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +84: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +85: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +86: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +87: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +88: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Instrument Filters should filter by instruments
+00:02 +89: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Studio Filters should filter by studio services
+00:02 +90: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Studio Filters should filter by studio type
+00:02 +91: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle loading state
+00:02 +92: C:/Users/Victor/Desktop/AppMube/test/unit/auth/login_controller_test.dart: LoginController should have AsyncData(null) as initial state
+00:02 +93: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +94: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +95: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +96: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +97: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +98: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+00:02 +99: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle search errors
+[Search] Error: Failure: Erro na busca
+00:02 +100: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should handle rate limiting
+00:02 +101: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Search State Management should clear filters
+00:02 +102: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Blocked Users should exclude blocked users from results
+00:02 +103: C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart: ProfileController should have AsyncData(null) as initial state
+00:02 +104: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +105: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +106: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +107: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +108: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +109: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +110: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +111: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +112: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Backing Vocal Filter should filter by backing vocal capability
+00:02 +113: C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart: ProfileController updateProfile should set state to AsyncError on failure
+00:02 +114: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +115: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +116: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +117: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +118: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +119: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +120: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +121: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +122: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +123: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +124: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +125: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Ghost Mode Exclusion should exclude users in ghost mode
+00:02 +126: C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart: ProfileController deleteProfile should call deleteAccount on repository
+00:02 +127: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Pagination should load more results on scroll
+00:02 +128: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Pagination should load more results on scroll
+00:02 +129: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests Pagination should load more results on scroll
+00:02 +130: C:/Users/Victor/Desktop/AppMube/test/integration/search/search_flow_test.dart: Search Flow Integration Tests (tearDownAll)
+00:02 +130: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: (setUpAll)
+00:02 +130: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController should have AsyncData(null) as initial state
+00:02 +131: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should set state to AsyncLoading when called
+00:03 +132: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should set state to AsyncData(null) on successful registration
+00:03 +133: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should call repository with correct parameters
+00:03 +134: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should set state to AsyncError on email already in use failure
+00:03 +135: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should set state to AsyncError on generic failure
+00:03 +136: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should set state to AsyncError with correct error message
+00:03 +137: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should handle weak password error
+00:03 +138: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: RegisterController register should handle invalid email error
+00:03 +139: C:/Users/Victor/Desktop/AppMube/test/unit/auth/register_controller_test.dart: (tearDownAll)
+00:03 +139: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig should have empty API keys when not configured
+00:03 +140: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig hasRequiredKeys should return false when keys are empty
+00:03 +141: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig validate should throw when API keys are not set
+00:03 +142: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig URL Builders visionApiUrl should throw when key is empty
+00:03 +143: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig URL Builders buildPlacesUrl should throw when key is empty
+00:03 +144: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig URL Builders buildPlaceDetailsUrl should throw when key is empty
+00:03 +145: C:/Users/Victor/Desktop/AppMube/test/unit/core/app_config_test.dart: AppConfig URL Builders buildGeocodeUrl should throw when key is empty
+00:03 +146: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures AuthFailure should create with message
+00:03 +147: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures AuthFailure should create with debug message
+00:03 +148: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures AuthFailure factory userNotFound should have correct message
+00:03 +149: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures AuthFailure factory wrongPassword should have correct message
+00:03 +150: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures AuthFailure factory emailAlreadyInUse should have correct message
+00:03 +151: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures NetworkFailure factory noConnection should have correct message
+00:03 +152: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures NetworkFailure factory timeout should have correct message
+00:03 +153: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures ServerFailure should create with message
+00:03 +154: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures ValidationFailure should create with message
+00:03 +155: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures UnknownFailure should create with default message
+00:03 +156: C:/Users/Victor/Desktop/AppMube/test/unit/core/failures_test.dart: Failures UnknownFailure should create with custom message
+00:03 +157: C:/Users/Victor/Desktop/AppMube/test/unit/core/image_cache_config_test.dart: ImageCacheConfig deve ter constantes definidas corretamente
+00:03 +158: C:/Users/Victor/Desktop/AppMube/test/unit/core/image_cache_config_test.dart: ImageCacheType deve ter todos os valores
+00:03 +159: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should create empty state with default values
+00:03 +160: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should create state with custom page size
+00:03 +161: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should correctly identify loading states
+00:03 +162: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should correctly identify loaded state
+00:03 +163: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should correctly identify error state
+00:03 +164: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should correctly identify no more data state
+00:03 +165: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState copyWith should update values correctly
+00:03 +166: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState copyWith with clearError should remove error message
+00:03 +167: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState should implement equality correctly
+00:03 +168: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationState toString should return meaningful representation
+00:03 +169: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStatus should have all expected values
+00:03 +170: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert initial state to AsyncValue.loading
+00:03 +171: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert loading state to AsyncValue.loading
+00:03 +172: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert loaded state to AsyncValue.data
+00:03 +173: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert loadingMore state to AsyncValue.data
+00:03 +174: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert noMoreData state to AsyncValue.data
+00:03 +175: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should convert error state to AsyncValue.error
+00:03 +176: C:/Users/Victor/Desktop/AppMube/test/unit/core/pagination_mixin_test.dart: PaginationStateAsyncValue should use default error message when errorMessage is null
+00:03 +177: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should allow requests within limit
+00:03 +178: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should block requests over limit
+00:03 +179: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should track different keys independently
+00:03 +180: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should report correct remaining requests
+00:03 +181: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should return zero remaining when limit reached
+00:03 +182: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should return time until next request when limited
+00:03 +183: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should return zero duration when not limited
+00:03 +184: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should clear specific key
+00:03 +185: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimiter should clear all keys
+00:03 +186: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs search config should have correct limits
+00:03 +187: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs apiCalls config should have correct limits
+00:03 +188: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs uploads config should have correct limits
+00:03 +189: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs chatMessages config should have correct limits
+00:03 +190: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs matchpointSwipes config should have correct limits
+00:03 +191: C:/Users/Victor/Desktop/AppMube/test/unit/core/rate_limiter_test.dart: RateLimitConfigs loginAttempts config should have correct limits
+00:04 +192: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage ImageResolution enum deve ter valores corretos
+00:04 +193: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Factory constructors avatarSmall deve criar widget correto
+00:04 +194: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Factory constructors avatarMedium deve criar widget correto
+00:04 +195: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Factory constructors avatarLarge deve criar widget correto
+00:04 +196: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Factory constructors card deve criar widget correto
+00:04 +197: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Factory constructors fullscreen deve criar widget correto
+00:04 +198: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Cache width calculation width deve ser acess├¡vel
+00:04 +199: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Cache width calculation width deve ser acess├¡vel quando menor que resolu├º├úo
+00:04 +200: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +201: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +202: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +203: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +204: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +205: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +206: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +207: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +208: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +209: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® nula
+00:04 +210: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImage Widget rendering deve mostrar error widget quando URL ├® vazia
+00:04 +211: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImageList deve renderizar GridView
+00:04 +212: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/favorite_repository_test.dart: FavoriteRepository loadFavorites returns set of ids
+00:04 +213: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImageHero deve renderizar Hero widget
+00:04 +214: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImageHero deve renderizar Hero widget
+00:04 +215: C:/Users/Victor/Desktop/AppMube/test/unit/design_system/optimized_image_test.dart: OptimizedImageHero deve renderizar Hero widget
+00:04 +216: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/favorite_repository_test.dart: FavoriteRepository removeFavorite is idempotent when doc does not exist
+00:04 +217: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/favorite_repository_test.dart: FavoriteRepository getLikeCount reads likeCount from users collection
+00:04 +218: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/favorite_repository_test.dart: FavoriteRepository getLikeCount falls back to favorites_count in users
+00:04 +219: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/favorite_repository_test.dart: FavoriteRepository getLikeCount falls back to profiles collection for legacy docs
+00:04 +220: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController initial state has empty sets
+00:04 +221: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController loadFavorites loads favorites from repository
+00:04 +222: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController loadFavorites handles load error gracefully
+00:04 +223: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController loadFavorites returns early when user is null
+00:04 +224: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController isLiked returns true when item is in localFavorites
+00:04 +225: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) adds item optimistically and syncs with server
+00:04 +226: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) removes item optimistically and syncs with server
+00:04 +227: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) rolls back on add failure
+00:04 +228: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) rolls back on remove failure
+00:04 +229: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) coalesces rapid toggles and keeps latest intent
+00:04 +230: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) ignores stale failed request when a newer intent exists
+00:04 +231: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) multiple toggles on different items work independently
+00:04 +232: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) keeps local like count when stale server count arrives
+00:04 +233: C:/Users/Victor/Desktop/AppMube/test/unit/features/favorites/presentation/favorite_controller_test.dart: FavoriteController toggle (optimistic UI) rolls back like count on add failure
+00:04 +234: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository getNearbyUsers returns list of FeedItem on success
+00:04 +235: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository getUsersByType returns list of FeedItem on success
+00:04 +236: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository getMainFeedPaginated returns PaginatedFeedResponse
+00:04 +237: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository getNearbyUsers returns empty list when no data
+00:04 +238: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository methods throw when throwError is true
+00:04 +239: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/feed_repository_test.dart: FeedRepository getArtists returns artists list
+00:04 +240: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController initial state is correct
+00:04 +241: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +242: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +243: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +244: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +245: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +246: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +247: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +248: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +249: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +250: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +251: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +252: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +253: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +254: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +255: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +256: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +257: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +258: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +259: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +260: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +261: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +262: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +263: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +264: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +265: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +266: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +267: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +268: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +269: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +270: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +271: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +272: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +273: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +274: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +275: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +276: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +277: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +278: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +279: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +280: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController loadAllData fetches sections and main feed
+00:05 +281: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController onFilterChanged updates filter and reloads feed
+00:05 +282: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +283: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +284: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +285: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +286: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +286: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/search_repository_test.dart: SearchRepository searchUsers should return list of matching users
+[Search] Request 1: 1 results from 1 docs
+00:06 +287: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +287: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/search_repository_test.dart: SearchRepository should filter out hidden profiles (Ghost Mode)
+[Search] Request 2: 1 results from 2 docs
+00:06 +288: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +289: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +290: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +291: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +292: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +293: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +294: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +295: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +296: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +297: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +298: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +299: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +300: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +301: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +302: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +303: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +304: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +305: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +306: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +307: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +308: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +309: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +310: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +311: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +312: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +313: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +314: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +315: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +316: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +317: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +318: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +319: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +320: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +321: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +322: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +323: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +324: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +325: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +326: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +327: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +328: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +329: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +330: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +331: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +332: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +333: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +334: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:06 +335: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +336: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +337: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +338: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +339: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +340: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +341: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +342: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +343: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +344: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +345: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +346: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +347: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +348: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +349: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController updateLikeCount updates state locally
+00:07 +350: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +351: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +352: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +353: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +354: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +355: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +356: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +357: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +358: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +359: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +360: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +361: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +362: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +363: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +364: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +365: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +366: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +367: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +368: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos cancelDebounce should prevent pending search
+00:07 +369: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +369: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos should handle error state gracefully
+[Search] Error: Failure: Search failed
+00:07 +370: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +371: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +372: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +373: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +374: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +375: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +376: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +377: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +378: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +379: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +380: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +381: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +382: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +383: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +384: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +385: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +386: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +387: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +388: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +389: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +390: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +391: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +391: C:/Users/Victor/Desktop/AppMube/test/unit/features/search/presentation/search_controller_test.dart: SearchController - Filtros Complexos should handle error state gracefully
+[Search] Error: Failure: Search failed
+00:07 +392: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +393: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +394: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +395: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +396: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +397: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +398: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +399: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +400: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +401: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +402: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:07 +403: C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart: FeedController handles error in loadAllData
+00:08 +404: C:/Users/Victor/Desktop/AppMube/test/widget/auth/email_verification_screen_test.dart: EmailVerificationScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +405: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +406: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +407: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +408: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +409: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +410: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:08 +411: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +412: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +413: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +414: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +415: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +416: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +417: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +418: C:/Users/Victor/Desktop/AppMube/test/widget/auth/login_screen_test.dart: LoginScreen Renderiza├º├úo renderiza tela com t├¡tulo correto
+00:09 +419: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/buttons/app_like_button_test.dart: AppLikeButton keeps optimistic count across screen recreation with stale initialCount
+00:09 +420: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/buttons/app_like_button_test.dart: AppLikeButton keeps optimistic count across screen recreation with stale initialCount
+00:09 +421: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/buttons/app_like_button_test.dart: AppLikeButton keeps optimistic count across screen recreation with stale initialCount
+00:09 +422: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/buttons/app_like_button_test.dart: AppLikeButton keeps optimistic count across screen recreation with stale initialCount
+00:09 +423: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_chip_test.dart: AppChip Skill Variant renders skill chip with label
+00:09 +424: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +425: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +426: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +427: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +428: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +429: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +430: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +431: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +432: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +433: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +434: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +435: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +436: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +437: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/chips/app_filter_chip_test.dart: AppFilterChip renders with label
+00:09 +438: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +439: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +440: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +441: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +442: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +443: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +444: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +445: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +446: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +447: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +448: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +449: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +450: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +451: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +452: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/data_display/user_avatar_test.dart: UserAvatar renders with photo URL
+00:09 +453: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +454: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +455: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +456: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +457: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +458: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +459: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +460: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +461: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +462: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:09 +463: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +464: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +465: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +466: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +467: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +468: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +469: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +470: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +471: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +472: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +473: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +474: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_confirmation_dialog_test.dart: AppConfirmationDialog renders with title and message
+00:10 +475: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +476: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +477: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +478: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +479: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +480: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/app_snackbar_test.dart: AppSnackBar shows success snackbar
+00:10 +481: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/empty_state_widget_test.dart: EmptyStateWidget renders with icon and title
+00:10 +482: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/empty_state_widget_test.dart: EmptyStateWidget renders with icon and title
+00:10 +483: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/empty_state_widget_test.dart: EmptyStateWidget renders with icon and title
+00:10 +484: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/feedback/empty_state_widget_test.dart: EmptyStateWidget renders with icon and title
+00:10 +485: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +486: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +487: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +488: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +489: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +490: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +491: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +492: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +493: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +494: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +495: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +496: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +497: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:10 +498: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:11 +499: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:11 +500: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:11 +501: C:/Users/Victor/Desktop/AppMube/test/widget/design_system/components/inputs/app_text_field_test.dart: AppTextField renders with label and hint
+00:11 +502: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +503: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +504: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +505: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +506: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +507: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +508: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +509: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +510: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +511: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +512: C:/Users/Victor/Desktop/AppMube/test/widget/features/auth/presentation/register_screen_test.dart: RegisterScreen renders correctly with all fields
+00:11 +513: C:/Users/Victor/Desktop/AppMube/test/widget/features/chat/presentation/conversations_screen_test.dart: ConversationsScreen renders correctly with app bar
+00:11 +514: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +515: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +516: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +517: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +518: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +519: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:11 +520: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:12 +521: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:12 +522: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:12 +523: C:/Users/Victor/Desktop/AppMube/test/widget/features/favorites/presentation/favorites_screen_test.dart: FavoritesScreen renders correctly with app bar
+00:12 +524: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +525: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +526: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +527: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +528: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +529: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +530: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +531: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:12 +532: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TypeWidgetFinder:<Found 0 widgets with type "FeedScreenSkeleton": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:74:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart line 74
+The test description was:
+  shows skeleton when loading
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:12 +532 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +532 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading [E]
+  Test failed. See exception logs above.
+  The test description was: shows skeleton when loading
+  
+00:12 +533 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +534 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +535 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +536 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +537 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +538 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:12 +539 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +540 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +541 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +542 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +543 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +544 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +544 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows error state when feed fails
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextContainingWidgetFinder:<Found 0 widgets with text containing Erro: []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:88:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart line 88
+The test description was:
+  shows error state when feed fails
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:12 +544 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +544 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows error state when feed fails [E]
+  Test failed. See exception logs above.
+  The test description was: shows error state when feed fails
+  
+00:12 +545 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +546 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/matchpoint/presentation/widgets/match_card_test.dart: MatchCard renders with user artistic name
+00:12 +547 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +548 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +548 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows empty state when no users found
+Pending timers:
+Timer (duration: 0:00:00.900000, periodic: false), created:
+#0      new FakeTimer._ (package:fake_async/fake_async.dart:342:62)
+#1      FakeAsync._createTimer (package:fake_async/fake_async.dart:260:29)
+#2      FakeAsync.run.<anonymous closure> (package:fake_async/fake_async.dart:185:15)
+#6      FeedController._loadFavoritesDeferred (package:mube/src/features/feed/presentation/feed_controller.dart:172:13)
+#7      FeedController.loadAllData (package:mube/src/features/feed/presentation/feed_controller.dart:140:15)
+#8      _FeedScreenState.initState.<anonymous closure> (package:mube/src/features/feed/presentation/feed_screen.dart:51:49)
+#9      SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1434:15)
+#10     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1361:11)
+#11     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1335:9)
+#14     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#15     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#16     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#19     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#20     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#21     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:93:22)
+#26     HttpOverrides.runZoned (dart:_http/overrides.dart:59:23)
+#27     mockNetworkImagesFor (package:network_image_mock/src/network_image_mock.dart:9:24)
+#28     main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:92:13)
+#29     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#30     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 12 frames from dart:async and package:stack_trace)
+
+Timer (duration: 0:00:00.350000, periodic: false), created:
+#0      new FakeTimer._ (package:fake_async/fake_async.dart:342:62)
+#1      FakeAsync._createTimer (package:fake_async/fake_async.dart:260:29)
+#2      FakeAsync.run.<anonymous closure> (package:fake_async/fake_async.dart:185:15)
+#6      FeedController._loadSectionsDeferred (package:mube/src/features/feed/presentation/feed_controller.dart:181:13)
+#7      FeedController.loadAllData (package:mube/src/features/feed/presentation/feed_controller.dart:156:17)
+<asynchronous suspension>
+(elided 3 frames from dart:async)
+
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following assertion was thrown running a test:
+A Timer is still pending even after the widget tree was disposed.
+'package:flutter_test/src/binding.dart':
+Failed assertion: line 1617 pos 12: '!timersPending'
+
+When the exception was thrown, this was the stack:
+#2      AutomatedTestWidgetsFlutterBinding._verifyInvariants (package:flutter_test/src/binding.dart:1617:12)
+#3      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1078:7)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from class _AssertionError and package:stack_trace)
+
+The test description was:
+  shows empty state when no users found
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:13 +548 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +548 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows empty state when no users found [E]
+  Test failed. See exception logs above.
+  The test description was: shows empty state when no users found
+  
+00:13 +549 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +550 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +551 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +552 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +553 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +554 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +555 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +556 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +557 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +558 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +559 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +560 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +561 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +562 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +563 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +564 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +565 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +566 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +567 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/notifications/presentation/notification_list_screen_test.dart: NotificationListScreen renders correctly with app bar
+00:13 +568 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +569 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +570 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +571 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +572 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +573 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +574 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +575 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +576 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +577 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +578 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/onboarding/presentation/onboarding_type_screen_test.dart: OnboardingTypeScreen renders all user type options
+00:13 +579 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:13 +580 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:13 +581 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:13 +582 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:13 +583 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:13 +584 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:14 +585 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/search_screen_test.dart: SearchScreen renders app bar and search field
+00:14 +586 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/widgets/user_card_test.dart: UserCard renders with user artistic name
+00:14 +587 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/search/presentation/widgets/user_card_test.dart: UserCard renders with user artistic name
+00:14 +588 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +589 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +590 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +591 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +592 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +593 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +594 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +595 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +596 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +597 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +598 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +599 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +600 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +601 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +602 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +603 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +604 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +605 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +606 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +607 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +608 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +608 -4: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +608 -4: C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart: renders AppLoadingIndicator when profile is loading [E]
+  type 'Future<Right<dynamic, LikesQuotaInfo>>' is not a subtype of type 'Future<Either<Failure, LikesQuotaInfo>>' in type cast
+  test\widget\features\matchpoint\matchpoint_test_fakes.dart 69:9   MockMatchpointRepository.getRemainingLikes
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:19  main.<fn>
+  
+00:14 +609 -4: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +609 -5: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen renders common tiles
+00:14 +609 -5: C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart: renders MatchpointIntroScreen when profile is active=false [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:14 +610 -5: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +610 -6: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +610 -6: C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart: renders MatchpointIntroScreen when matchpointProfile is null [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:14 +610 -7: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +610 -7: C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart: renders MatchpointTabsScreen when profile is active=true [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:14 +611 -7: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +611 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +611 -8: C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart: renders Error message when profile loading fails [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:14 +612 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +613 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen renders all form fields correctly
+00:14 +614 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders correctly with app bar
+00:14 +615 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders correctly with app bar
+00:15 +616 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders correctly with app bar
+00:15 +617 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen can change category
+00:15 +618 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen logout button shows confirmation dialog
+00:15 +619 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders intro card
+00:15 +620 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders intro card
+00:15 +621 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/settings/presentation/settings_screen_test.dart: SettingsScreen confirming logout calls signOut
+00:15 +622 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen validates short description (less than 10 chars)
+00:15 +623 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders action cards
+00:15 +624 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/create_ticket_screen_test.dart: CreateTicketScreen shows attachment counter (0/3)
+00:15 +625 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen navigates to create ticket screen
+00:15 +626 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen navigates to create ticket screen
+00:15 +627 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen navigates to tickets list screen
+00:15 +628 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders FAQ section
+00:16 +629 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders search field
+00:16 +630 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders category filters
+00:16 +631 -8: C:/Users/Victor/Desktop/AppMube/test/widget/features/support/presentation/support_screen_test.dart: SupportScreen renders contact section
+00:16 +632 -8: Some tests failed.

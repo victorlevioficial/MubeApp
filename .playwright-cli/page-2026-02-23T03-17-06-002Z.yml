@@ -1,0 +1,198 @@
+- generic [ref=e2]:
+  - link "← Voltar para o site" [ref=e3] [cursor=pointer]:
+    - /url: /
+  - heading "Política de Privacidade" [level=1] [ref=e4]
+  - paragraph [ref=e5]:
+    - strong [ref=e6]: Aplicativo MUBE
+    - text: "• Última atualização: 22 de fevereiro de 2026"
+  - separator [ref=e7]
+  - heading "1. IDENTIFICAÇÃO DO CONTROLADOR E ENCARREGADO DE DADOS" [level=2] [ref=e8]
+  - heading "Controlador dos Dados" [level=3] [ref=e9]
+  - paragraph [ref=e10]:
+    - strong [ref=e11]: "Responsável:"
+    - text: Victor de Sousa Ribeiro
+    - strong [ref=e12]: "CPF:"
+    - text: 145.791.557-00
+    - strong [ref=e13]: "Endereço:"
+    - text: Rua Bacairis, 801 — Taquara, Rio de Janeiro/RJ, CEP 22730-120
+    - strong [ref=e14]: "E-mail:"
+    - text: suporte@mubeapp.com.br
+    - strong [ref=e15]: "Website:"
+    - link "https://mubeapp.com.br" [ref=e16] [cursor=pointer]:
+      - /url: https://mubeapp.com.br
+  - heading "Encarregado de Proteção de Dados (DPO)" [level=3] [ref=e17]
+  - paragraph [ref=e18]:
+    - strong [ref=e19]: "Nome:"
+    - text: Victor de Sousa Ribeiro
+    - strong [ref=e20]: "E-mail de contato:"
+    - text: suporte@mubeapp.com.br
+  - separator [ref=e21]
+  - heading "2. INTRODUÇÃO" [level=2] [ref=e22]
+  - paragraph [ref=e23]: Esta Política de Privacidade descreve como o MUBE coleta, usa, armazena e compartilha seus dados pessoais. Ao utilizar nosso Serviço, você concorda com o tratamento de suas informações conforme descrito aqui, em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 - LGPD).
+  - separator [ref=e24]
+  - heading "3. DADOS QUE COLETAMOS" [level=2] [ref=e25]
+  - table [ref=e26]:
+    - rowgroup [ref=e27]:
+      - row "Dado Finalidade" [ref=e28]:
+        - columnheader "Dado" [ref=e29]
+        - columnheader "Finalidade" [ref=e30]
+    - rowgroup [ref=e31]:
+      - row "E-mail Autenticação, recuperação de senha, comunicações." [ref=e32]:
+        - cell "E-mail" [ref=e33]
+        - cell "Autenticação, recuperação de senha, comunicações." [ref=e34]
+      - row "Senha Autenticação (armazenada em formato criptografado por Firebase Auth)." [ref=e35]:
+        - cell "Senha" [ref=e36]
+        - cell "Autenticação (armazenada em formato criptografado por Firebase Auth)." [ref=e37]
+      - row "Nome de Perfil Identificação no ecossistema do aplicativo." [ref=e38]:
+        - cell "Nome de Perfil" [ref=e39]
+        - cell "Identificação no ecossistema do aplicativo." [ref=e40]
+      - row "Foto de Perfil Personalização e identificação visual por outros usuários." [ref=e41]:
+        - cell "Foto de Perfil" [ref=e42]
+        - cell "Personalização e identificação visual por outros usuários." [ref=e43]
+      - row "Instrumentos e Gêneros Funcionalidade principal de conexão e MatchPoint." [ref=e44]:
+        - cell "Instrumentos e Gêneros" [ref=e45]
+        - cell "Funcionalidade principal de conexão e MatchPoint." [ref=e46]
+      - row "Localização (Cidade/Estado) Exibição de proximidade e filtros de busca." [ref=e47]:
+        - cell "Localização (Cidade/Estado)" [ref=e48]
+        - cell "Exibição de proximidade e filtros de busca." [ref=e49]
+      - row "Geohash (Localização Aproximada) Cálculo de distância em consultas de banco de dados (precisão de ~5km)." [ref=e50]:
+        - cell "Geohash (Localização Aproximada)" [ref=e51]
+        - cell "Cálculo de distância em consultas de banco de dados (precisão de ~5km)." [ref=e52]
+      - row "Biografia/Mídia Exposição do talento e portfólio profissional." [ref=e53]:
+        - cell "Biografia/Mídia" [ref=e54]
+        - cell "Exposição do talento e portfólio profissional." [ref=e55]
+      - row "Contatos de Emergência/Banda Gestão de membros e colaboração." [ref=e56]:
+        - cell "Contatos de Emergência/Banda" [ref=e57]
+        - cell "Gestão de membros e colaboração." [ref=e58]
+  - separator [ref=e59]
+  - heading "4. BASES LEGAIS PARA O TRATAMENTO" [level=2] [ref=e60]
+  - paragraph [ref=e61]: "Tratamos seus dados sob as seguintes bases legais da LGPD:"
+  - list [ref=e62]:
+    - listitem [ref=e63]:
+      - strong [ref=e64]: "Execução de Contrato:"
+      - text: Para fornecer as funcionalidades do app solicitadas por você (Art. 7º, V).
+    - listitem [ref=e65]:
+      - strong [ref=e66]: "Consentimento:"
+      - text: Para comunicações de marketing ou uso de dados sensíveis, quando aplicável (Art. 7º, I).
+    - listitem [ref=e67]:
+      - strong [ref=e68]: "Legítimo Interesse:"
+      - text: Para melhoria contínua do Serviço e segurança (Art. 7º, IX).
+    - listitem [ref=e69]:
+      - strong [ref=e70]: "Cumprimento de Obrigação Legal:"
+      - text: Para guarda de logs de acesso conforme o Marco Civil da Internet (Art. 7º, II).
+  - separator [ref=e71]
+  - heading "5. COMPARTILHAMENTO DE DADOS" [level=2] [ref=e72]
+  - paragraph [ref=e73]: O MUBE utiliza a infraestrutura de nuvem do Google (Firebase) como subprocessador. Seus dados são armazenados em servidores seguros com criptografia de ponta.
+  - table [ref=e74]:
+    - rowgroup [ref=e75]:
+      - row "Prestador Serviço Dados Tratados" [ref=e76]:
+        - columnheader "Prestador" [ref=e77]
+        - columnheader "Serviço" [ref=e78]
+        - columnheader "Dados Tratados" [ref=e79]
+    - rowgroup [ref=e80]:
+      - row "Firebase Auth Autenticação E-mail, senha (hash), UID." [ref=e81]:
+        - cell "Firebase Auth" [ref=e82]:
+          - strong [ref=e83]: Firebase Auth
+        - cell "Autenticação" [ref=e84]
+        - cell "E-mail, senha (hash), UID." [ref=e85]
+      - row "Cloud Firestore Banco de dados Dados de perfil, interações, preferências." [ref=e86]:
+        - cell "Cloud Firestore" [ref=e87]:
+          - strong [ref=e88]: Cloud Firestore
+        - cell "Banco de dados" [ref=e89]
+        - cell "Dados de perfil, interações, preferências." [ref=e90]
+      - row "Firebase Storage Armazenamento Fotos e vídeos enviados pelo usuário." [ref=e91]:
+        - cell "Firebase Storage" [ref=e92]:
+          - strong [ref=e93]: Firebase Storage
+        - cell "Armazenamento" [ref=e94]
+        - cell "Fotos e vídeos enviados pelo usuário." [ref=e95]
+      - row "Cloud Functions Processamento Lógica de negócio e automações de conta." [ref=e96]:
+        - cell "Cloud Functions" [ref=e97]:
+          - strong [ref=e98]: Cloud Functions
+        - cell "Processamento" [ref=e99]
+        - cell "Lógica de negócio e automações de conta." [ref=e100]
+      - row "Firebase Analytics Telemetria Uso do app (anônimo), modelo do aparelho." [ref=e101]:
+        - cell "Firebase Analytics" [ref=e102]:
+          - strong [ref=e103]: Firebase Analytics
+        - cell "Telemetria" [ref=e104]
+        - cell "Uso do app (anônimo), modelo do aparelho." [ref=e105]
+      - row "Crashlytics Estabilidade Logs de erro e stack traces em caso de falha." [ref=e106]:
+        - cell "Crashlytics" [ref=e107]:
+          - strong [ref=e108]: Crashlytics
+        - cell "Estabilidade" [ref=e109]
+        - cell "Logs de erro e stack traces em caso de falha." [ref=e110]
+  - separator [ref=e111]
+  - heading "6. MATCHPOINT E PRIVACIDADE" [level=2] [ref=e112]
+  - paragraph [ref=e113]: O sistema MatchPoint processa seus dados de instrumentos e gêneros para sugerir conexões. Você pode desativar sua visibilidade no MatchPoint a qualquer momento nas configurações de privacidade do aplicativo.
+  - separator [ref=e114]
+  - heading "7. ARMAZENAMENTO E RETENÇÃO DOS DADOS" [level=2] [ref=e115]
+  - table [ref=e116]:
+    - rowgroup [ref=e117]:
+      - row "Categoria de Dado Prazo de Retenção Justificativa" [ref=e118]:
+        - columnheader "Categoria de Dado" [ref=e119]
+        - columnheader "Prazo de Retenção" [ref=e120]
+        - columnheader "Justificativa" [ref=e121]
+    - rowgroup [ref=e122]:
+      - row "Dados de perfil Enquanto a conta estiver ativa Prestação do Serviço." [ref=e123]:
+        - cell "Dados de perfil" [ref=e124]
+        - cell "Enquanto a conta estiver ativa" [ref=e125]
+        - cell "Prestação do Serviço." [ref=e126]
+      - row "Registros de acesso (IP, timestamps) 6 meses Marco Civil da Internet (art. 15)." [ref=e127]:
+        - cell "Registros de acesso (IP, timestamps)" [ref=e128]
+        - cell "6 meses" [ref=e129]
+        - cell "Marco Civil da Internet (art. 15)." [ref=e130]
+      - row "Comunicações de suporte 5 anos Prescrição legal (Código Civil)." [ref=e131]:
+        - cell "Comunicações de suporte" [ref=e132]
+        - cell "5 anos" [ref=e133]
+        - cell "Prescrição legal (Código Civil)." [ref=e134]
+      - row "Dados de conta excluída Até 30 dias Processamento técnico de deleção total." [ref=e135]:
+        - cell "Dados de conta excluída" [ref=e136]
+        - cell "Até 30 dias" [ref=e137]
+        - cell "Processamento técnico de deleção total." [ref=e138]
+  - separator [ref=e139]
+  - heading "8. SEGURANÇA DA INFORMAÇÃO" [level=2] [ref=e140]
+  - paragraph [ref=e141]: "Implementamos medidas técnicas organizacionais para proteger seus dados, incluindo:"
+  - list [ref=e142]:
+    - listitem [ref=e143]: Autenticação segura via Firebase.
+    - listitem [ref=e144]: Regras de segurança no banco de dados para impedir acesso não autorizado.
+    - listitem [ref=e145]: Uso de HTTPS para todo o tráfego de dados.
+  - separator [ref=e146]
+  - heading "9. DIREITOS DO TITULAR (LGPD — Art. 18)" [level=2] [ref=e147]
+  - paragraph [ref=e148]:
+    - text: Você pode exercer seus direitos enviando um e-mail para
+    - strong [ref=e149]: suporte@mubeapp.com.br
+    - text: ":"
+  - blockquote [ref=e150]:
+    - text: 1. Confirmar a existência de tratamento;
+    - text: 2. Acessar seus dados;
+    - text: 3. Corrigir dados incompletos ou inexatos;
+    - text: 4. Anonimizar, bloquear ou eliminar dados desnecessários;
+    - text: 5. Portabilidade dos dados;
+    - text: 6. Informação sobre compartilhamento;
+    - text: 7. Revogação do consentimento.
+  - paragraph [ref=e151]:
+    - strong [ref=e152]: "Prazo de resposta:"
+    - text: Atenderemos solicitações simples em até 48 horas e solicitações complexas em até 15 dias, conforme a lei.
+  - separator [ref=e153]
+  - heading "10. INCIDENTES DE SEGURANÇA" [level=2] [ref=e154]
+  - paragraph [ref=e155]: Em caso de qualquer violação de dados que possa acarretar risco ou dano relevante aos seus direitos e liberdades individuais, notificaremos você e a Autoridade Nacional de Proteção de Dados (ANPD) em tempo razoável.
+  - separator [ref=e156]
+  - heading "11. TRANSFERÊNCIA INTERNACIONAL" [level=2] [ref=e157]
+  - paragraph [ref=e158]: Seus dados são armazenados em servidores do Google, que podem estar localizados nos EUA ou outros países. O Google cumpre as cláusulas contratuais padrão para garantir um nível de proteção adequado aos dados brasileiros.
+  - separator [ref=e159]
+  - heading "12. COOKIES E TECNOLOGIAS DE RASTREIO" [level=2] [ref=e160]
+  - paragraph [ref=e161]: O aplicativo MUBE não utiliza cookies de terceiros para rastreamento publicitário. Utilizamos apenas tokens de sessão locais necessários para manter você conectado.
+  - separator [ref=e162]
+  - heading "13. DECISÕES AUTOMATIZADAS" [level=2] [ref=e163]
+  - paragraph [ref=e164]: Não utilizamos algoritmos para tomada de decisões que afetem seus direitos sem revisão humana, exceto para o funcionamento lógico do MatchPoint (sugestão de perfis).
+  - separator [ref=e165]
+  - heading "14. MENORES DE IDADE" [level=2] [ref=e166]
+  - paragraph [ref=e167]: O Serviço não é direcionado a menores de 13 anos. Se tomarmos conhecimento da coleta de dados de uma criança sem consentimento parental, excluiremos as informações imediatamente.
+  - separator [ref=e168]
+  - heading "15. ALTERAÇÕES NESTA POLÍTICA" [level=2] [ref=e169]
+  - paragraph [ref=e170]: Podemos atualizar esta Política periodicamente. Notificaremos você sobre mudanças materiais através do app ou por e-mail.
+  - separator [ref=e171]
+  - heading "16. CONTATO E RECLAMAÇÕES" [level=2] [ref=e172]
+  - paragraph [ref=e173]: Se você acredita que seus dados foram tratados de forma inadequada, entre em contato conosco primeiro. Se a solução não for satisfatória, você tem o direito de peticionar perante a ANPD.
+  - separator [ref=e174]
+  - paragraph [ref=e175]:
+    - strong [ref=e176]: MUBE Application © 2026 — Todos os direitos reservados.

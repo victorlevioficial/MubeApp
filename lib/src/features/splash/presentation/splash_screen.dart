@@ -3,19 +3,20 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../providers/splash_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -28,21 +29,19 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _startSplashTimer() async {
     debugPrint('SplashScreen: Starting timer...');
-    // Show splash for 1.2 seconds, then navigate.
-    // The Router's redirect logic will handle the actual destination
-    // (Login if not auth, Feed if auth, etc.) when we try to go to /login.
+    // Show splash for 1.2 seconds, then allow navigation.
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
-      debugPrint('SplashScreen: Configuring navigation to /login');
-      context.go('/login');
+      debugPrint('SplashScreen: Timer finished, updating provider');
+      ref.read(splashFinishedProvider.notifier).finish();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    // Aumentado para combinar melhor com a splash nativa
-    final logoWidth = min(screenWidth * 0.60, 240.0);
+    // Tamanho bem mais contido e moderno (30% da tela, com um máximo de 100px)
+    final logoWidth = min(screenWidth * 0.25, 100.0);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -52,16 +51,12 @@ class _SplashScreenState extends State<SplashScreen> {
           onTap: () {
             if (kDebugMode) {
               debugPrint('Splash skipped by tap');
-              context.go('/login');
+              ref.read(splashFinishedProvider.notifier).finish();
             }
           },
           child: SizedBox(
             width: logoWidth,
-            // height: logoWidth, // Removed to allow natural aspect ratio (matches scaleAspectFit)
-            child: Image.asset(
-              AppAssets.logoVerticalPng,
-              fit: BoxFit.contain,
-            ),
+            child: Image.asset(AppAssets.logoVerticalPng, fit: BoxFit.contain),
           ),
         ),
       ),

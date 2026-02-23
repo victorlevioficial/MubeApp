@@ -1,0 +1,190 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - link "Mube Home" [ref=e4] [cursor=pointer]:
+        - /url: "#"
+        - img "Mube" [ref=e5]
+      - button "Abrir menu" [ref=e6] [cursor=pointer]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - generic [ref=e13]: 🎵 A rede dos músicos brasileiros
+      - heading "ENCONTRE SUA BANDA. DESCUBRA SEU SOM." [level=1] [ref=e14]:
+        - text: ENCONTRE SUA BANDA.
+        - text: DESCUBRA SEU SOM.
+      - paragraph [ref=e15]: O app que conecta músicos, bandas, estúdios e profissionais da música em todo o Brasil. Crie conexões reais e faça música acontecer.
+      - generic [ref=e16]:
+        - link "Baixar Grátis" [ref=e17] [cursor=pointer]:
+          - /url: "#download"
+          - img [ref=e18]
+          - text: Baixar Grátis
+        - link "Saiba Mais" [ref=e21] [cursor=pointer]:
+          - /url: "#how-it-works"
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - img "Usuário" [ref=e24]
+          - img "Usuário" [ref=e25]
+          - img "Usuário" [ref=e26]
+          - img "Usuário" [ref=e27]
+        - generic [ref=e28]:
+          - strong [ref=e29]: +5.000 músicos
+          - generic [ref=e30]: já estão conectados
+    - generic [ref=e35]:
+      - generic [ref=e37]: mube
+      - generic [ref=e41]:
+        - img "Músico tocando teclado" [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: Yuri Ricardo
+          - generic [ref=e45]: Tecladista • Rio de Janeiro
+          - generic [ref=e46]:
+            - generic [ref=e47]: Rock
+            - generic [ref=e48]: Blues
+            - generic [ref=e49]: Indie
+      - generic [ref=e50]:
+        - generic [ref=e51]: ✕
+        - generic [ref=e52]: ♥
+  - generic [ref=e54]:
+    - generic [ref=e55]:
+      - generic [ref=e56]: Funcionalidades
+      - heading "Tudo que você precisa em um só app" [level=2] [ref=e57]
+      - paragraph [ref=e58]: Ferramentas poderosas para conectar, descobrir e criar música juntos.
+    - generic [ref=e59]:
+      - generic [ref=e60]:
+        - img [ref=e62]
+        - heading "MatchPoint" [level=3] [ref=e64]
+        - paragraph [ref=e65]: Sistema inteligente de match que conecta músicos compatíveis baseado em gêneros, instrumentos e localização. Deslize, conecte-se e faça música.
+        - generic [ref=e67]:
+          - img "Banda" [ref=e69]
+          - generic [ref=e70]:
+            - img "Músico" [ref=e71]
+            - generic [ref=e72]: ♥ Match
+      - generic [ref=e73]:
+        - img [ref=e75]
+        - heading "Busca Inteligente" [level=3] [ref=e78]
+        - paragraph [ref=e79]: Encontre músicos, bandas e estúdios por localização, gênero musical, instrumentos e muito mais. Filtros avançados para achar exatamente o que você procura.
+        - generic [ref=e80]:
+          - generic [ref=e81]: 🎸 Guitarra
+          - generic [ref=e82]: 🎤 Vocal
+          - generic [ref=e83]: 🥁 Bateria
+          - generic [ref=e84]: 📍 São Paulo
+          - generic [ref=e85]: 🎵 Rock
+      - generic [ref=e86]:
+        - img [ref=e88]
+        - heading "Chat em Tempo Real" [level=3] [ref=e90]
+        - paragraph [ref=e91]: Converse instantaneamente com seus matches e combinados. Troque ideias, marque ensaios e compartilhe músicas.
+      - generic [ref=e92]:
+        - img [ref=e94]
+        - heading "Perfis Completos" [level=3] [ref=e97]
+        - paragraph [ref=e98]: Mostre seu talento com galeria de fotos, vídeos, instrumentos, gêneros e experiência musical.
+      - generic [ref=e99]:
+        - img [ref=e101]
+        - heading "Favoritos" [level=3] [ref=e103]
+        - paragraph [ref=e104]: Salve perfis que chamaram sua atenção para acessar rapidamente depois.
+      - generic [ref=e105]:
+        - img [ref=e107]
+        - heading "Notificações" [level=3] [ref=e110]
+        - paragraph [ref=e111]: Receba alertas sobre novos matches, mensagens e atividades relevantes na sua região.
+  - generic [ref=e113]:
+    - generic [ref=e114]:
+      - generic [ref=e115]: Como Funciona
+      - heading "Comece em 3 passos simples" [level=2] [ref=e116]
+      - paragraph [ref=e117]: Do download até sua primeira conexão musical, tudo rápido e intuitivo.
+    - generic [ref=e118]:
+      - generic [ref=e119]:
+        - generic [ref=e120]: "01"
+        - img [ref=e122]
+        - heading "Crie seu Perfil" [level=3] [ref=e125]
+        - paragraph [ref=e126]: Monte seu perfil com suas habilidades, instrumentos, gêneros musicais e disponibilidade. Mostre ao mundo seu talento.
+      - generic [ref=e127]:
+        - generic [ref=e128]: "02"
+        - img [ref=e130]
+        - heading "Descubra Talentos" [level=3] [ref=e133]
+        - paragraph [ref=e134]: Explore milhares de músicos, bandas e estúdios próximos a você com filtros inteligentes de busca.
+      - generic [ref=e135]:
+        - generic [ref=e136]: "03"
+        - img [ref=e138]
+        - heading "Conecte-se & Crie" [level=3] [ref=e143]
+        - paragraph [ref=e144]: Dê match, converse em tempo real e comece a criar música juntos. Sua próxima banda está a um swipe de distância.
+  - generic [ref=e146]:
+    - generic [ref=e147]:
+      - heading "Pronto para encontrar sua conexão musical?" [level=2] [ref=e148]
+      - paragraph [ref=e149]: Junte-se a milhares de músicos que já estão usando o Mube para transformar a cena musical brasileira.
+    - generic [ref=e150]:
+      - link "Baixar na App Store" [ref=e151] [cursor=pointer]:
+        - /url: "#"
+        - img [ref=e152]
+        - generic [ref=e154]:
+          - generic [ref=e155]: Disponível na
+          - generic [ref=e156]: App Store
+      - link "Disponível no Google Play" [ref=e157] [cursor=pointer]:
+        - /url: "#"
+        - img [ref=e158]
+        - generic [ref=e160]:
+          - generic [ref=e161]: Disponível no
+          - generic [ref=e162]: Google Play
+  - contentinfo [ref=e163]:
+    - generic [ref=e164]:
+      - generic [ref=e165]:
+        - generic [ref=e166]:
+          - link "Mube" [ref=e167] [cursor=pointer]:
+            - /url: "#"
+            - img [ref=e168]
+            - generic [ref=e171]: mube
+          - paragraph [ref=e172]: Conectando músicos em todo o Brasil. Crie conexões reais e faça música acontecer.
+          - generic [ref=e173]:
+            - link "Instagram" [ref=e174] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e175]
+            - link "TikTok" [ref=e178] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e179]
+            - link "YouTube" [ref=e181] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e182]
+            - link "Twitter/X" [ref=e185] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e186]
+        - generic [ref=e188]:
+          - heading "Produto" [level=4] [ref=e189]
+          - list [ref=e190]:
+            - listitem [ref=e191]:
+              - link "Funcionalidades" [ref=e192] [cursor=pointer]:
+                - /url: "#features"
+            - listitem [ref=e193]:
+              - link "Como Funciona" [ref=e194] [cursor=pointer]:
+                - /url: "#how-it-works"
+            - listitem [ref=e195]:
+              - link "Download" [ref=e196] [cursor=pointer]:
+                - /url: "#download"
+        - generic [ref=e197]:
+          - heading "Empresa" [level=4] [ref=e198]
+          - list [ref=e199]:
+            - listitem [ref=e200]:
+              - link "Sobre nós" [ref=e201] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e202]:
+              - link "Blog" [ref=e203] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e204]:
+              - link "Carreiras" [ref=e205] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e206]:
+              - link "Imprensa" [ref=e207] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e208]:
+          - heading "Legal" [level=4] [ref=e209]
+          - list [ref=e210]:
+            - listitem [ref=e211]:
+              - link "Privacidade" [ref=e212] [cursor=pointer]:
+                - /url: /politicadeprivacidade
+            - listitem [ref=e213]:
+              - link "Termos de Uso" [ref=e214] [cursor=pointer]:
+                - /url: /termosdeuso
+            - listitem [ref=e215]:
+              - link "Contato" [ref=e216] [cursor=pointer]:
+                - /url: "#download"
+            - listitem [ref=e217]:
+              - link "suporte@mubeapp.com.br" [ref=e218] [cursor=pointer]:
+                - /url: mailto:suporte@mubeapp.com.br
+      - generic [ref=e219]:
+        - paragraph [ref=e220]: © 2026 Mube. Todos os direitos reservados.
+        - paragraph [ref=e221]: Feito com ❤️ para a música brasileira

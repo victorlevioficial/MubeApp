@@ -1,0 +1,158 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 10 10% 4%; /* #0A0A0A */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+    
+    --card: 220 13% 8%; /* #141414 */
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 220 13% 8%;
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 346 80% 59%; /* #E8466C */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 220 9% 12%; /* #1F1F1F */
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 220 6% 16%; /* #292929 */
+    --muted-foreground: 0 0% 70%; /* #B3B3B3 */
+    
+    --accent: 346 80% 59%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%; /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 220 7% 22%; /* #383838 */
+    --input: 220 7% 22%;
+    --ring: 346 80% 59%;
+    
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6, button {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+/* Custom font classes */
+.font-poppins {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.fade-in-50 {
+  animation: fade-in 0.5s ease-out;
+}
+
+.slide-in-from-bottom {
+  animation: slide-in-from-bottom 0.5s cubic-bezier(0.0, 0.0, 0.2, 1);
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141414;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #383838;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E8466C;
+}
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid #E8466C;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+/* Selection color */
+::selection {
+  background-color: #E8466C;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #E8466C;
+  color: white;
+}

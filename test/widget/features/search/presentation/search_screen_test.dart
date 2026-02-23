@@ -31,14 +31,12 @@ void main() {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const SearchScreen(),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const SearchScreen()),
         GoRoute(
           path: '/user/:id',
-          builder: (context, state) =>
-              Scaffold(body: Text('User Profile: ${state.pathParameters['id']}')),
+          builder: (context, state) => Scaffold(
+            body: Text('User Profile: ${state.pathParameters['id']}'),
+          ),
         ),
       ],
     );
@@ -94,14 +92,16 @@ void main() {
         TestData.feedItem(id: 'user-2', nome: 'Band 1'),
       ];
 
-      await tester.pumpWidget(createSubject(
-        searchState: SearchPaginationState(
-          items: feedItems,
-          status: PaginationStatus.loaded,
-          hasMore: false,
+      await tester.pumpWidget(
+        createSubject(
+          searchState: SearchPaginationState(
+            items: feedItems,
+            status: PaginationStatus.loaded,
+            hasMore: false,
+          ),
+          asyncValue: AsyncValue.data(feedItems),
         ),
-        asyncValue: AsyncValue.data(feedItems),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -110,13 +110,15 @@ void main() {
     });
 
     testWidgets('renders loading skeletons during loading', (tester) async {
-      await tester.pumpWidget(createSubject(
-        searchState: const SearchPaginationState(
-          status: PaginationStatus.loading,
-          hasMore: true,
+      await tester.pumpWidget(
+        createSubject(
+          searchState: const SearchPaginationState(
+            status: PaginationStatus.loading,
+            hasMore: true,
+          ),
+          asyncValue: const AsyncValue.loading(),
         ),
-        asyncValue: const AsyncValue.loading(),
-      ));
+      );
       await tester.pump();
 
       // Deve mostrar o CustomScrollView durante loading
@@ -124,14 +126,16 @@ void main() {
     });
 
     testWidgets('renders error state', (tester) async {
-      await tester.pumpWidget(createSubject(
-        searchState: const SearchPaginationState(
-          status: PaginationStatus.error,
-          errorMessage: 'Erro ao buscar',
-          hasMore: false,
+      await tester.pumpWidget(
+        createSubject(
+          searchState: const SearchPaginationState(
+            status: PaginationStatus.error,
+            errorMessage: 'Erro ao buscar',
+            hasMore: false,
+          ),
+          asyncValue: AsyncValue.error('Erro ao buscar', StackTrace.current),
         ),
-        asyncValue: AsyncValue.error('Erro ao buscar', StackTrace.current),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -148,18 +152,18 @@ void main() {
     });
 
     testWidgets('navigates to profile when result tapped', (tester) async {
-      final feedItems = [
-        TestData.feedItem(id: 'user-123', nome: 'Test User'),
-      ];
+      final feedItems = [TestData.feedItem(id: 'user-123', nome: 'Test User')];
 
-      await tester.pumpWidget(createSubject(
-        searchState: SearchPaginationState(
-          items: feedItems,
-          status: PaginationStatus.loaded,
-          hasMore: false,
+      await tester.pumpWidget(
+        createSubject(
+          searchState: SearchPaginationState(
+            items: feedItems,
+            status: PaginationStatus.loaded,
+            hasMore: false,
+          ),
+          asyncValue: AsyncValue.data(feedItems),
         ),
-        asyncValue: AsyncValue.data(feedItems),
-      ));
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 

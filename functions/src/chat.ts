@@ -50,6 +50,7 @@ export const initiateContact = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 10,
+    enforceAppCheck: true,
     cors: true,
   },
   async (request): Promise<InitiateContactResponse> => {
@@ -147,7 +148,7 @@ async function validateContactPermission(
   userId2: string,
   context: string,
   contextId?: string
-): Promise<{allowed: boolean; reason?: string}> {
+): Promise<{ allowed: boolean; reason?: string }> {
   switch (context) {
   case "match": {
     const pairKey = [userId1, userId2].sort().join("_");
@@ -240,7 +241,7 @@ async function createConversation(
   userId2: string,
   context: string,
   initialMessage?: string
-): Promise<{conversationId: string}> {
+): Promise<{ conversationId: string }> {
   const now = Timestamp.now();
   const conversationId = getConversationId(userId1, userId2);
   let conversationType = "direct";

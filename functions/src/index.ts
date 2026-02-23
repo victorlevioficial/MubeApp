@@ -3,8 +3,9 @@ import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
-// Export geohash migration functions (lowercase for v2 naming convention)
+// Export geohash and interactions migration functions
 export {migrategeohashes, updateusergeohash} from "./geohash_migration";
+export {migrateinteractions} from "./interaction_migration";
 
 // Export Matchpoint functions
 export {

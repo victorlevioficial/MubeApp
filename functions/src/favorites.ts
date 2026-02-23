@@ -48,9 +48,9 @@ async function applyReceivedFavoriteDelta(
     }
 
     const data = targetUserDoc.data() || {};
-    const currentLikeCount = toNonNegativeInt(data.likeCount);
-    const currentFavoritesCount = toNonNegativeInt(data.favorites_count);
-    const currentBase = Math.max(currentLikeCount, currentFavoritesCount);
+    // Canonical counter for runtime updates is `likeCount`.
+    // `favorites_count` is mirrored for legacy compatibility only.
+    const currentBase = toNonNegativeInt(data.likeCount);
     const nextCount = Math.max(0, currentBase + delta);
 
     transaction.update(targetUserRef, {

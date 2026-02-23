@@ -1,0 +1,9 @@
+﻿Analyzing AppMube...                                            
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\features\feed\presentation\widgets\feed_item_skeleton.dart:17:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\features\feed\presentation\widgets\feed_skeleton.dart:43:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\features\feed\presentation\widgets\feed_skeleton.dart:94:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\features\profile\presentation\public_profile_screen.dart:89:50 - deprecated_member_use
+   info - Use interpolation to compose strings and values - parse_test_results.dart:17:43 - prefer_interpolation_to_compose_strings
+   info - Don't invoke 'print' in production code - parse_test_results.dart:36:3 - avoid_print
+

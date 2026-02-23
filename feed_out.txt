@@ -1,0 +1,53 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart
+00:00 +0: FeedController initial state is correct
+00:00 +1: FeedController loadAllData fetches sections and main feed
+00:00 +1 -1: FeedController loadAllData fetches sections and main feed [E]
+  Expected: an object with length of <1>
+    Actual: <null>
+     Which: has no length property
+  
+  package:matcher                                                      expect
+  package:flutter_test/src/widget_tester.dart 473:18                   expect
+  test\unit\features\feed\presentation\feed_controller_test.dart 85:7  main.<fn>.<fn>
+  
+00:00 +1 -1: FeedController onFilterChanged updates filter and reloads feed
+00:00 +1 -2: FeedController onFilterChanged updates filter and reloads feed [E]
+  Cannot use the Ref of feedControllerProvider after it has been disposed. This typically happens if:
+  - A provider rebuilt, but the previous "build" was still pending and is still performing operations.
+    You should therefore either use `ref.onDispose` to cancel pending work, or
+    check `ref.mounted` after async gaps or anything that could invalidate the provider.
+  - You tried to use Ref inside `onDispose` or other life-cycles.
+    This is not supported, as the provider is already being disposed.
+  
+  package:riverpod/src/core/ref.dart 220:7                                 Ref._throwIfInvalidUsage
+  package:riverpod/src/core/provider/notifier_provider.dart 91:9           AnyNotifier.state=
+  package:mube/src/features/feed/presentation/feed_controller.dart 524:7   FeedController._fetchMainFeed
+  ===== asynchronous gap ===========================
+  dart:async                                                               _CustomZone.registerUnaryCallback
+  package:mube/src/features/feed/presentation/feed_controller.dart 323:18  FeedController._fetchMainFeed
+  package:mube/src/features/feed/presentation/feed_controller.dart 590:5   FeedController.onFilterChanged
+  test\unit\features\feed\presentation\feed_controller_test.dart 102:18    main.<fn>.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                               _CustomZone.registerUnaryCallback
+  test\unit\features\feed\presentation\feed_controller_test.dart 97:7      main.<fn>.<fn>
+  
+00:00 +1 -2: FeedController updateLikeCount updates state locally
+00:00 +1 -3: FeedController updateLikeCount updates state locally [E]
+  Expected: <1>
+    Actual: <null>
+  
+  package:matcher                                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18                    expect
+  test\unit\features\feed\presentation\feed_controller_test.dart 139:7  main.<fn>.<fn>
+  
+00:00 +1 -3: FeedController handles error in loadAllData
+00:00 +1 -4: FeedController handles error in loadAllData [E]
+  Expected: <Instance of 'AsyncError'>
+    Actual: AsyncData<FeedState>:<AsyncData<FeedState>(value: PaginationState(items: 0, status: PaginationStatus.error, hasMore: true, page: 0))>
+     Which: is not an instance of 'AsyncError'
+  
+  package:matcher                                                       expect
+  package:flutter_test/src/widget_tester.dart 473:18                    expect
+  test\unit\features\feed\presentation\feed_controller_test.dart 159:7  main.<fn>.<fn>
+  
+00:00 +1 -4: Some tests failed.

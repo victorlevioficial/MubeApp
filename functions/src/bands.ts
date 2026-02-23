@@ -46,6 +46,7 @@ export const manageBandInvite = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 10,
+    enforceAppCheck: true,
     cors: true,
   },
   async (request): Promise<ManageBandInviteResponse> => {
@@ -317,9 +318,10 @@ export const leaveBand = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 10,
+    enforceAppCheck: true,
     cors: true,
   },
-  async (request): Promise<{success: boolean; message: string}> => {
+  async (request): Promise<{ success: boolean; message: string }> => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Usuário não autenticado");
     }
@@ -372,9 +374,10 @@ export const getPendingInvites = onCall(
     region: "southamerica-east1",
     memory: "256MiB",
     timeoutSeconds: 5,
+    enforceAppCheck: true,
     cors: true,
   },
-  async (request): Promise<{invites: PendingInvite[]; count: number}> => {
+  async (request): Promise<{ invites: PendingInvite[]; count: number }> => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Usuário não autenticado");
     }

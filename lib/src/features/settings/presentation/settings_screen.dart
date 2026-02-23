@@ -181,7 +181,7 @@ class SettingsScreen extends ConsumerWidget {
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
                     title: 'Popular Banco (MatchPoint)',
-                    subtitle: 'Gerar 150 perfis diversos',
+                    subtitle: 'Gerar 150 perfis diversos (likes iniciam em 0)',
                     onTap: () => _seedDatabase(context, ref),
                     customAccentColor: AppColors.success,
                   ),

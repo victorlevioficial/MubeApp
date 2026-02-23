@@ -1,0 +1,68 @@
+- generic [ref=e2]:
+  - link "← Voltar para o site" [ref=e3] [cursor=pointer]:
+    - /url: /
+  - heading "Termos de Uso" [level=1] [ref=e4]
+  - paragraph [ref=e5]:
+    - strong [ref=e6]: Aplicativo MUBE
+    - text: "• Última atualização: 22 de fevereiro de 2026"
+  - separator [ref=e7]
+  - heading "1. IDENTIFICAÇÃO DO RESPONSÁVEL" [level=2] [ref=e8]
+  - paragraph [ref=e9]:
+    - strong [ref=e10]: "Responsável:"
+    - text: Victor de Sousa Ribeiro
+    - strong [ref=e11]: "CPF:"
+    - text: 145.791.557-00
+    - strong [ref=e12]: "Endereço:"
+    - text: Rua Bacairis, 801 — Taquara, Rio de Janeiro/RJ, CEP 22730-120
+    - strong [ref=e13]: "E-mail de contato:"
+    - text: suporte@mubeapp.com.br
+    - strong [ref=e14]: "Website:"
+    - link "https://mubeapp.com.br" [ref=e15] [cursor=pointer]:
+      - /url: https://mubeapp.com.br
+  - separator [ref=e16]
+  - heading "2. ACEITAÇÃO DOS TERMOS" [level=2] [ref=e17]
+  - paragraph [ref=e18]: Ao acessar ou usar o aplicativo MUBE ("Serviço"), você afirma que leu, compreendeu e concorda em cumprir estes Termos de Uso. Se você não concordar com qualquer parte destes termos, não deverá utilizar o Serviço.
+  - separator [ref=e19]
+  - heading "3. DESCRIÇÃO DO SERVIÇO" [level=2] [ref=e20]
+  - paragraph [ref=e21]: O MUBE é uma plataforma de rede social voltada para a conexão entre músicos, bandas, estúdios e profissionais da música, oferecendo funcionalidades de busca, perfil profissional, chat e o sistema de compatibilidade MatchPoint.
+  - separator [ref=e22]
+  - heading "4. ELEGIBILIDADE E CADASTRO" [level=2] [ref=e23]
+  - paragraph [ref=e24]:
+    - text: 4.1. Você deve ter pelo menos 13 anos de idade para usar o Serviço.
+    - text: 4.2. Você se compromete a fornecer informações verdadeiras e atualizadas em seu cadastro.
+    - text: 4.3. Você é o único responsável por manter a confidencialidade de sua senha e por todas as atividades que ocorrem em sua conta.
+  - separator [ref=e25]
+  - heading "5. REGRAS DE CONDUTA" [level=2] [ref=e26]
+  - paragraph [ref=e27]: "Ao utilizar o MUBE, você concorda em NÃO:"
+  - list [ref=e28]:
+    - listitem [ref=e29]: Violar qualquer lei ou regulamento local, estadual ou nacional.
+    - listitem [ref=e30]: Postar conteúdo ofensivo, discriminatório, difamatório ou ilegal.
+    - listitem [ref=e31]: Assediar, ameaçar ou fraudar outros usuários.
+    - listitem [ref=e32]: Usar o Serviço para fins de spam ou marketing não solicitado.
+    - listitem [ref=e33]: Tentar burlar as medidas de segurança do aplicativo.
+  - separator [ref=e34]
+  - heading "6. MATCHPOINT" [level=2] [ref=e35]
+  - paragraph [ref=e36]:
+    - text: 6.1. O MatchPoint é uma ferramenta de descoberta baseada em afinidade musical.
+    - text: 6.2. O MUBE não garante matches sucessivos, nem se responsabiliza pelo comportamento dos usuários após a conexão.
+    - text: 6.3. Encontros presenciais devem ser realizados com cautela e em locais públicos, sob responsabilidade total do usuário.
+  - separator [ref=e37]
+  - heading "7. PROPRIEDADE INTELECTUAL" [level=2] [ref=e38]
+  - paragraph [ref=e39]:
+    - text: 7.1. O design, código, marcas e logos do MUBE são de propriedade exclusiva de Victor de Sousa Ribeiro.
+    - text: 7.2. Ao postar mídia (fotos/vídeos), você concede ao MUBE uma licença mundial e gratuita para exibir esse conteúdo dentro do contexto da plataforma para outros usuários.
+  - separator [ref=e40]
+  - heading "8. MODERAÇÃO E DENÚNCIAS" [level=2] [ref=e41]
+  - paragraph [ref=e42]: O MUBE reserva-se o direito de remover qualquer conteúdo ou conta que viole estes Termos, independentemente de aviso prévio. Os usuários podem denunciar condutas impróprias através das ferramentas nativas do app.
+  - separator [ref=e43]
+  - heading "9. LIMITAÇÃO DE RESPONSABILIDADE" [level=2] [ref=e44]
+  - paragraph [ref=e45]: O Serviço é fornecido "como está". Não garantimos que o app estará livre de erros ou interrupções. Não nos responsabilizamos por perdas de dados ou condutas de terceiros na plataforma.
+  - separator [ref=e46]
+  - heading "10. DISPOSIÇÕES GERAIS" [level=2] [ref=e47]
+  - paragraph [ref=e48]:
+    - text: 10.1. Estes Termos podem ser alterados a qualquer momento.
+    - text: 10.2. A tolerância a infrações não implica em renúncia aos nossos direitos.
+    - text: 10.3. Fica eleito o Foro da Comarca do Rio de Janeiro/RJ para dirimir quaisquer controvérsias.
+  - separator [ref=e49]
+  - paragraph [ref=e50]:
+    - strong [ref=e51]: MUBE Application © 2026 — Todos os direitos reservados.

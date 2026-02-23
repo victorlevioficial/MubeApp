@@ -1,0 +1,32 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/widget/matchpoint/matchpoint_wrapper_screen_test.dart
+00:00 +0: renders AppLoadingIndicator when profile is loading
+00:00 +0 -1: renders AppLoadingIndicator when profile is loading [E]
+  type 'Future<Right<dynamic, LikesQuotaInfo>>' is not a subtype of type 'Future<Either<Failure, LikesQuotaInfo>>' in type cast
+  test\widget\features\matchpoint\matchpoint_test_fakes.dart 69:9   MockMatchpointRepository.getRemainingLikes
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:19  main.<fn>
+  
+00:00 +0 -1: renders MatchpointIntroScreen when profile is active=false
+00:00 +0 -2: renders MatchpointIntroScreen when profile is active=false [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:00 +0 -2: renders MatchpointIntroScreen when matchpointProfile is null
+00:00 +0 -3: renders MatchpointIntroScreen when matchpointProfile is null [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:00 +0 -3: renders MatchpointTabsScreen when profile is active=true
+00:00 +0 -4: renders MatchpointTabsScreen when profile is active=true [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:00 +0 -4: renders Error message when profile loading fails
+00:00 +0 -5: renders Error message when profile loading fails [E]
+  Bad state: Cannot call `when` within a stub response
+  package:mockito/src/mock.dart 1300:5                             when
+  test\widget\matchpoint\matchpoint_wrapper_screen_test.dart 33:5  main.<fn>
+  
+00:00 +0 -5: Some tests failed.

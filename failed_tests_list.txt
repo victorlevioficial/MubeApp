@@ -1,0 +1,33 @@
+FAILED TESTS:
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Login Flow should show validation errors
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Login Flow should successfully login
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Login Flow should show error on login failure
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Registration Flow should successfully register
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Navigation should navigate between login and register
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Session Management should auto-logout if user already logged in
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Edge Cases should handle network error
+package:flutter_test/src/widget_tester.dart :: Auth Flow Integration Tests Edge Cases should trim email
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController updateProfile should set state to AsyncError on failure
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController updateProfile should set state to AsyncError with correct error message
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController updateProfileImage should set state to AsyncError when image validation fails
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController updateProfileImage should set state to AsyncError when upload fails
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController updateProfileImage should set state to AsyncError when update user fails
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/auth/profile_controller_test.dart :: ProfileController deleteProfile should set state to AsyncError on deletion failure
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart :: FeedController loadAllData fetches sections and main feed
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart :: FeedController onFilterChanged updates filter and reloads feed
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart :: FeedController updateLikeCount updates state locally
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/features/feed/presentation/feed_controller_test.dart :: FeedController handles error in loadAllData
+file:///C:/Users/Victor/Desktop/AppMube/test/unit/notifications/notification_providers_test.dart :: notificationsStreamProvider should return empty list when user is null
+package:flutter_test/src/widget_tester.dart :: AppSnackBar shows success snackbar
+package:flutter_test/src/widget_tester.dart :: AppSnackBar shows error snackbar
+package:flutter_test/src/widget_tester.dart :: LoginScreen Estados mostra mensagem de erro quando login falha
+package:flutter_test/src/widget_tester.dart :: FeedScreen shows skeleton when loading
+package:flutter_test/src/widget_tester.dart :: FeedScreen shows error state when feed fails
+package:flutter_test/src/widget_tester.dart :: FeedScreen shows empty state when no users found
+package:flutter_test/src/widget_tester.dart :: renders AppLoadingIndicator when profile is loading
+package:flutter_test/src/widget_tester.dart :: renders MatchpointIntroScreen when profile is active=false
+package:flutter_test/src/widget_tester.dart :: renders MatchpointIntroScreen when matchpointProfile is null
+package:flutter_test/src/widget_tester.dart :: renders MatchpointTabsScreen when profile is active=true
+package:flutter_test/src/widget_tester.dart :: CreateTicketScreen renders all form fields correctly
+package:flutter_test/src/widget_tester.dart :: CreateTicketScreen validates empty title
+package:flutter_test/src/widget_tester.dart :: CreateTicketScreen validates short description (less than 10 chars)

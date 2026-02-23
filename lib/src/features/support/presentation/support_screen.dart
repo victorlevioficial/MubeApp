@@ -495,26 +495,49 @@ class _SupportScreenState extends State<SupportScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.s12),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton.outline(
-                  text: 'Enviar e-mail',
-                  isFullWidth: true,
-                  icon: const Icon(Icons.mail_outline, size: 18),
-                  onPressed: () => unawaited(_openSupportEmail()),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Expanded(
-                child: AppButton.ghost(
-                  text: 'Copiar e-mail',
-                  isFullWidth: true,
-                  icon: const Icon(Icons.copy_rounded, size: 18),
-                  onPressed: () => unawaited(_copySupportEmail()),
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 400) {
+                return Column(
+                  children: [
+                    AppButton.outline(
+                      text: 'Enviar e-mail',
+                      isFullWidth: true,
+                      icon: const Icon(Icons.mail_outline, size: 18),
+                      onPressed: () => unawaited(_openSupportEmail()),
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    AppButton.ghost(
+                      text: 'Copiar e-mail',
+                      isFullWidth: true,
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      onPressed: () => unawaited(_copySupportEmail()),
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(
+                    child: AppButton.outline(
+                      text: 'Enviar e-mail',
+                      isFullWidth: true,
+                      icon: const Icon(Icons.mail_outline, size: 18),
+                      onPressed: () => unawaited(_openSupportEmail()),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  Expanded(
+                    child: AppButton.ghost(
+                      text: 'Copiar e-mail',
+                      isFullWidth: true,
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      onPressed: () => unawaited(_copySupportEmail()),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.s12),
           Text(

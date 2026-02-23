@@ -1004,7 +1004,8 @@ class AppSeeder {
       'tipo_perfil': AppUserType.professional.id,
       'status': 'ativo',
       'plan': _random.nextDouble() > 0.8 ? 'premium' : 'free',
-      'favorites_count': _random.nextInt(80),
+      'likeCount': 0,
+      'favorites_count': 0,
       'location': {
         'cidade': neighborhood['name'],
         'estado': 'RJ',
@@ -1095,7 +1096,8 @@ class AppSeeder {
       'tipo_perfil': AppUserType.band.id,
       'status': 'ativo',
       'plan': _random.nextDouble() > 0.7 ? 'premium' : 'free',
-      'favorites_count': _random.nextInt(100),
+      'likeCount': 0,
+      'favorites_count': 0,
       'location': {
         'cidade': neighborhood['name'],
         'estado': 'RJ',
@@ -1196,7 +1198,8 @@ class AppSeeder {
       'tipo_perfil': AppUserType.studio.id,
       'status': 'ativo',
       'plan': _random.nextDouble() > 0.5 ? 'premium' : 'free',
-      'favorites_count': _random.nextInt(120),
+      'likeCount': 0,
+      'favorites_count': 0,
       'location': {
         'cidade': neighborhood['name'],
         'estado': 'RJ',

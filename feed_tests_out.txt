@@ -1,0 +1,138 @@
+﻿00:00 +0: loading C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart
+00:00 +0: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:00 +1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:00 +2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+00:00 +3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TypeWidgetFinder:<Found 0 widgets with type "FeedScreenSkeleton": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:74:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart line 74
+The test description was:
+  shows skeleton when loading
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:00 +3 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +3 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows skeleton when loading [E]
+  Test failed. See exception logs above.
+  The test description was: shows skeleton when loading
+  
+00:00 +4 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +5 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +6 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +7 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +8 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +9 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +10 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +11 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +11 -1: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows error state when feed fails
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextContainingWidgetFinder:<Found 0 widgets with text containing Erro: []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:88:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart line 88
+The test description was:
+  shows error state when feed fails
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:00 +11 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:00 +11 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows error state when feed fails [E]
+  Test failed. See exception logs above.
+  The test description was: shows error state when feed fails
+  
+00:01 +12 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders with artist name
+00:01 +13 -2: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows empty state when no users found
+Pending timers:
+Timer (duration: 0:00:00.900000, periodic: false), created:
+#0      new FakeTimer._ (package:fake_async/fake_async.dart:342:62)
+#1      FakeAsync._createTimer (package:fake_async/fake_async.dart:260:29)
+#2      FakeAsync.run.<anonymous closure> (package:fake_async/fake_async.dart:185:15)
+#6      FeedController._loadFavoritesDeferred (package:mube/src/features/feed/presentation/feed_controller.dart:172:13)
+#7      FeedController.loadAllData (package:mube/src/features/feed/presentation/feed_controller.dart:140:15)
+#8      _FeedScreenState.initState.<anonymous closure> (package:mube/src/features/feed/presentation/feed_screen.dart:51:49)
+#9      SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1434:15)
+#10     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1361:11)
+#11     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1335:9)
+#14     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#15     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1324:27)
+#16     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:598:22)
+#19     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#20     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:595:27)
+#21     main.<anonymous closure>.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:93:22)
+#26     HttpOverrides.runZoned (dart:_http/overrides.dart:59:23)
+#27     mockNetworkImagesFor (package:network_image_mock/src/network_image_mock.dart:9:24)
+#28     main.<anonymous closure>.<anonymous closure> (file:///C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart:92:13)
+#29     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:29)
+<asynchronous suspension>
+#30     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1059:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 12 frames from dart:async and package:stack_trace)
+
+Timer (duration: 0:00:00.350000, periodic: false), created:
+#0      new FakeTimer._ (package:fake_async/fake_async.dart:342:62)
+#1      FakeAsync._createTimer (package:fake_async/fake_async.dart:260:29)
+#2      FakeAsync.run.<anonymous closure> (package:fake_async/fake_async.dart:185:15)
+#6      FeedController._loadSectionsDeferred (package:mube/src/features/feed/presentation/feed_controller.dart:181:13)
+#7      FeedController.loadAllData (package:mube/src/features/feed/presentation/feed_controller.dart:156:17)
+<asynchronous suspension>
+(elided 3 frames from dart:async)
+
+ÔòÉÔòÉÔòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Ôò×ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+The following assertion was thrown running a test:
+A Timer is still pending even after the widget tree was disposed.
+'package:flutter_test/src/binding.dart':
+Failed assertion: line 1617 pos 12: '!timersPending'
+
+When the exception was thrown, this was the stack:
+#2      AutomatedTestWidgetsFlutterBinding._verifyInvariants (package:flutter_test/src/binding.dart:1617:12)
+#3      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1078:7)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 3 frames from class _AssertionError and package:stack_trace)
+
+The test description was:
+  shows empty state when no users found
+ÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉÔòÉ
+00:01 +13 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical triggers onTap when tapped
+00:01 +13 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/feed_screen_test.dart: FeedScreen shows empty state when no users found [E]
+  Test failed. See exception logs above.
+  The test description was: shows empty state when no users found
+  
+00:01 +14 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders distance when available
+00:01 +15 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders profile type badge
+00:01 +16 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders skills chips when available
+00:01 +17 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders genres chips when available
+00:01 +18 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders UserAvatar
+00:01 +19 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders AppLikeButton
+00:01 +20 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical has Hero widget for avatar
+00:01 +21 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical applies scale animation on press
+00:01 +22 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders without distance when not available
+00:01 +23 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical renders without skills when empty
+00:01 +24 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical handles long names with ellipsis
+00:01 +25 -3: C:/Users/Victor/Desktop/AppMube/test/widget/features/feed/presentation/widgets/feed_card_vertical_test.dart: FeedCardVertical applies custom margin when provided
+00:01 +26 -3: Some tests failed.
