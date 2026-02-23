@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 /// Interface for Analytics Service to allow mocking
 abstract class AnalyticsService {
@@ -14,7 +15,7 @@ abstract class AnalyticsService {
 
   Future<void> setUserId(String? id);
 
-  FirebaseAnalyticsObserver getObserver();
+  NavigatorObserver getObserver();
 
   // --- Business Specific Events ---
 
@@ -30,14 +31,17 @@ abstract class AnalyticsService {
 
 class FirebaseAnalyticsService implements AnalyticsService {
   final FirebaseAnalytics _analytics;
+  final bool _isEnabled;
 
-  FirebaseAnalyticsService(this._analytics);
+  FirebaseAnalyticsService(this._analytics) : _isEnabled = kReleaseMode;
 
   @override
   Future<void> logEvent({
     required String name,
     Map<String, Object>? parameters,
   }) async {
+    if (!_isEnabled) return;
+
     try {
       final normalized = _normalizeParameters(parameters);
       await _analytics.logEvent(name: name, parameters: normalized);
@@ -68,6 +72,8 @@ class FirebaseAnalyticsService implements AnalyticsService {
     required String screenName,
     String? screenClass,
   }) async {
+    if (!_isEnabled) return;
+
     await _analytics.logScreenView(
       screenName: screenName,
       screenClass: screenClass,
@@ -79,16 +85,23 @@ class FirebaseAnalyticsService implements AnalyticsService {
     required String name,
     required String? value,
   }) async {
+    if (!_isEnabled) return;
+
     await _analytics.setUserProperty(name: name, value: value);
   }
 
   @override
   Future<void> setUserId(String? id) async {
+    if (!_isEnabled) return;
+
     await _analytics.setUserId(id: id);
   }
 
   @override
-  FirebaseAnalyticsObserver getObserver() {
+  NavigatorObserver getObserver() {
+    if (!_isEnabled) {
+      return _NoopNavigatorObserver();
+    }
     return FirebaseAnalyticsObserver(analytics: _analytics);
   }
 
@@ -127,4 +140,8 @@ class FirebaseAnalyticsService implements AnalyticsService {
   Future<void> logProfileEdit({required String userId}) async {
     await logEvent(name: 'profile_edit', parameters: {'user_id': userId});
   }
+}
+
+class _NoopNavigatorObserver extends NavigatorObserver {
+  _NoopNavigatorObserver();
 }

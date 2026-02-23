@@ -101,17 +101,20 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
     } else {
       return InteractiveViewer(
         child: Center(
-          child: CachedNetworkImage(
-            imageUrl: item.url,
-            fit: BoxFit.contain,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            useOldImageOnUrlChange: true,
-            cacheManager: ImageCacheConfig.optimizedCacheManager,
-            placeholder: (context, url) =>
-                const Center(child: CircularProgressIndicator()),
-            errorWidget: (context, url, error) =>
-                const Icon(Icons.error, color: AppColors.error),
+          child: Hero(
+            tag: 'media_${item.id}',
+            child: CachedNetworkImage(
+              imageUrl: item.url,
+              fit: BoxFit.contain,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              useOldImageOnUrlChange: true,
+              cacheManager: ImageCacheConfig.optimizedCacheManager,
+              placeholder: (context, url) =>
+                  const Center(child: CircularProgressIndicator()),
+              errorWidget: (context, url, error) =>
+                  const Icon(Icons.error, color: AppColors.error),
+            ),
           ),
         ),
       );

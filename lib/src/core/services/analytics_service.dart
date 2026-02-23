@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import '../../utils/app_logger.dart';
 
 /// Serviço centralizado para analytics do aplicativo.
-/// 
+///
 /// Rastreia eventos importantes do funil de conversão e comportamento do usuário.
-/// 
+///
 /// Eventos principais:
 /// - user_registration: Novo usuário cadastrado
 /// - onboarding_complete: Onboarding finalizado
@@ -22,12 +22,12 @@ class AnalyticsService {
 
   /// Inicializa o serviço de analytics
   static Future<void> initialize() async {
-    if (!kDebugMode) {
+    if (kReleaseMode) {
       await _analytics.setAnalyticsCollectionEnabled(true);
       _isEnabled = true;
       AppLogger.info('📊 Analytics inicializado');
     } else {
-      AppLogger.info('📊 Analytics em modo debug (logs apenas)');
+      AppLogger.info('📊 Analytics desabilitado fora do release');
     }
   }
 
@@ -39,12 +39,9 @@ class AnalyticsService {
     final normalized = _normalizeParameters(parameters);
 
     if (_isEnabled) {
-      await _analytics.logEvent(
-        name: name,
-        parameters: normalized,
-      );
+      await _analytics.logEvent(name: name, parameters: normalized);
     }
-    
+
     AppLogger.info('📊 Evento: $name | Params: $normalized');
   }
 
@@ -92,10 +89,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'user_registration',
-      parameters: {
-        'method': method,
-        'user_type': userType,
-      },
+      parameters: {'method': method, 'user_type': userType},
     );
   }
 
@@ -106,10 +100,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'onboarding_complete',
-      parameters: {
-        'user_type': userType,
-        'steps_completed': stepsCompleted,
-      },
+      parameters: {'user_type': userType, 'steps_completed': stepsCompleted},
     );
   }
 
@@ -120,10 +111,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'profile_view',
-      parameters: {
-        'viewed_user_id': viewedUserId,
-        'source': source,
-      },
+      parameters: {'viewed_user_id': viewedUserId, 'source': source},
     );
   }
 
@@ -166,22 +154,15 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'message_sent',
-      parameters: {
-        'conversation_id': conversationId,
-        'has_media': hasMedia,
-      },
+      parameters: {'conversation_id': conversationId, 'has_media': hasMedia},
     );
   }
 
   /// Registra quando um perfil é favoritado
-  static Future<void> logFavoriteAdded({
-    required String targetUserId,
-  }) async {
+  static Future<void> logFavoriteAdded({required String targetUserId}) async {
     await logEvent(
       name: 'favorite_added',
-      parameters: {
-        'target_user_id': targetUserId,
-      },
+      parameters: {'target_user_id': targetUserId},
     );
   }
 
@@ -208,10 +189,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'support_ticket_created',
-      parameters: {
-        'category': category,
-        'priority': priority,
-      },
+      parameters: {'category': category, 'priority': priority},
     );
   }
 
@@ -238,10 +216,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'band_invite_sent',
-      parameters: {
-        'band_id': bandId,
-        'target_user_id': targetUserId,
-      },
+      parameters: {'band_id': bandId, 'target_user_id': targetUserId},
     );
   }
 
@@ -252,10 +227,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'band_invite_accepted',
-      parameters: {
-        'band_id': bandId,
-        'user_id': userId,
-      },
+      parameters: {'band_id': bandId, 'user_id': userId},
     );
   }
 
@@ -266,10 +238,7 @@ class AnalyticsService {
   }) async {
     await logEvent(
       name: 'tool_used',
-      parameters: {
-        'tool_name': toolName,
-        'duration_seconds': durationSeconds,
-      },
+      parameters: {'tool_name': toolName, 'duration_seconds': durationSeconds},
     );
   }
 }

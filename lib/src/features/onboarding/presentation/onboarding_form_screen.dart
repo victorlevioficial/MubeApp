@@ -13,6 +13,8 @@ import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../profile/presentation/services/media_picker_service.dart';
+import '../../storage/data/storage_repository.dart';
 import 'flows/onboarding_band_flow.dart';
 import 'flows/onboarding_contractor_flow.dart';
 import 'flows/onboarding_professional_flow.dart';
@@ -46,8 +48,10 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   // Controllers Específicos (Estudio)
   final _servicosController = TextEditingController();
 
-  // Foto (Simulada por URL ou deixar vazia se não tiver picker ainda)
+  // Foto
   String? _fotoUrl;
+  final MediaPickerService _mediaPicker = MediaPickerService();
+  bool _isUploadingPhoto = false;
 
   @override
   void dispose() {
@@ -59,7 +63,47 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     _instrumentoController.dispose();
     _generosMusicaisController.dispose();
     _servicosController.dispose();
+    _mediaPicker.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final user = ref.read(currentUserProfileProvider).value;
+    if (user == null) return;
+
+    final file = await _mediaPicker.pickAndCropPhoto(context);
+    if (file == null) return; // User canceled
+
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final storageRepo = ref.read(storageRepositoryProvider);
+
+      final urls = await storageRepo.uploadProfileImageWithSizes(
+        userId: user.uid,
+        file: file,
+      );
+
+      setState(() {
+        _fotoUrl = urls.full ?? urls.firstAvailable;
+      });
+
+      if (mounted) {
+        AppSnackBar.success(context, 'Foto enviada com sucesso!');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao enviar foto');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+        });
+      }
+    }
   }
 
   void _submit(AppUser currentUser) {
@@ -282,7 +326,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                   // Contratante não tem campos extras além de nome/loc (mas já é handled acima)
                   const SizedBox(height: AppSpacing.s24),
 
-                  // Foto Upload Fake
+                  // Foto Upload Real
                   if (user.tipoPerfil != AppUserType.contractor)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,15 +340,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                         const SizedBox(height: AppSpacing.s8),
                         GestureDetector(
                           key: const Key('onboarding_photo_upload'),
-                          onTap: () {
-                            setState(() {
-                              _fotoUrl = 'https://placeholder.com/user.jpg';
-                            });
-                            AppSnackBar.success(
-                              context,
-                              'Foto "enviada" com sucesso!',
-                            );
-                          },
+                          onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
                           child: Container(
                             height: 100,
                             width: 100,
@@ -316,22 +352,28 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
                                     ).colorScheme.surfaceContainerHighest,
                               borderRadius: AppRadius.all12,
                               image: _fotoUrl != null
-                                  ? const DecorationImage(
+                                  ? DecorationImage(
                                       image: CachedNetworkImageProvider(
-                                        'https://via.placeholder.com/150',
+                                        _fotoUrl!,
                                       ),
                                       fit: BoxFit.cover,
                                     )
                                   : null,
                             ),
-                            child: _fotoUrl == null
-                                ? Icon(
-                                    Icons.camera_alt,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
+                            child: _isUploadingPhoto
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
-                                : null,
+                                : (_fotoUrl == null
+                                      ? Icon(
+                                          Icons.camera_alt,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        )
+                                      : null),
                           ),
                         ),
                         if (_fotoUrl == null)

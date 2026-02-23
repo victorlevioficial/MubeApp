@@ -110,15 +110,15 @@ void main() {
     });
 
     test('supports legacy studio data saved in professional map', () {
-      final user = AppUser(
+      const user = AppUser(
         uid: 'studio-1',
         email: 'studio@example.com',
         cadastroStatus: 'concluido',
         tipoPerfil: AppUserType.studio,
         nome: 'Studio User',
         foto: 'https://example.com/studio.jpg',
-        location: const {'lat': -23.5, 'lng': -46.6},
-        dadosProfissional: const {
+        location: {'lat': -23.5, 'lng': -46.6},
+        dadosProfissional: {
           'nomeArtistico': 'Studio Legacy',
           'celular': '(11) 98888-8888',
           'studioType': 'home_studio',

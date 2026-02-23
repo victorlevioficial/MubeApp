@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/l10n/generated/app_localizations.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/presentation/login_screen.dart';
@@ -63,6 +64,7 @@ void main() {
           authRepositoryProvider.overrideWithValue(mockAuthRepository),
         ],
         child: MaterialApp.router(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,

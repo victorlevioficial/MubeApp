@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 
 import '../../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
@@ -8,7 +9,6 @@ import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class HashtagRankingScreen extends ConsumerWidget {

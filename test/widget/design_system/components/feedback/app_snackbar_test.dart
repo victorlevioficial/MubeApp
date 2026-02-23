@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/design_system/components/buttons/app_button.dart';
 import 'package:mube/src/design_system/components/feedback/app_snackbar.dart';
 
@@ -8,6 +9,7 @@ void main() {
     testWidgets('shows success snackbar', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           home: Scaffold(
             body: Builder(
               builder: (context) => AppButton.primary(
@@ -33,6 +35,7 @@ void main() {
     testWidgets('shows error snackbar', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          scaffoldMessengerKey: scaffoldMessengerKey,
           home: Scaffold(
             body: Builder(
               builder: (context) => AppButton.primary(

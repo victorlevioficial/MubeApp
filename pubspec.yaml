@@ -87,7 +87,7 @@ dependencies:
   printing: ^5.14.2
   share_plus: ^12.0.1
   pdf: ^3.11.3
-  firebase_analytics: ^12.1.1
+  firebase_analytics: ^12.1.2
   firebase_crashlytics: ^5.0.7
   firebase_remote_config: ^6.1.4
   connectivity_plus: ^7.0.0
@@ -120,6 +120,8 @@ dev_dependencies:
   network_image_mock: ^2.1.1
   firebase_auth_platform_interface: any
   mocktail: ^1.0.4
+  firebase_core_platform_interface: any
+  cloud_functions_platform_interface: any
 flutter:
   uses-material-design: true
   generate: true  # Enable localization code generation

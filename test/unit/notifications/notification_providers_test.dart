@@ -76,19 +76,6 @@ void main() {
   });
 
   group('notificationsStreamProvider', () {
-    test('should return empty list when user is null', () async {
-      // Arrange
-      when(mockAuthRepo.watchUser(any)).thenAnswer((_) => Stream.value(null));
-      container.refresh(currentUserProfileProvider);
-
-      // Act
-      final value = await container.read(notificationsStreamProvider.future);
-
-      // Assert
-      expect(value, isEmpty);
-      verifyNever(mockRepo.watchNotifications(any));
-    });
-
     test('should emit empty list when user is null', () async {
       // Arrange: User is null
       when(mockAuthRepo.watchUser(any)).thenAnswer((_) => Stream.value(null));

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
@@ -78,6 +79,7 @@ void main() {
       // Act
       final controller = container.read(feedControllerProvider.notifier);
       await controller.loadAllData();
+      await Future.delayed(const Duration(milliseconds: 1000));
 
       // Assert
       final state = container.read(feedControllerProvider).value!;
@@ -99,7 +101,7 @@ void main() {
       final controller = container.read(feedControllerProvider.notifier);
 
       // Act
-      controller.onFilterChanged('Bandas');
+      await controller.onFilterChanged('Bandas');
 
       // Assert
       final state = container.read(feedControllerProvider).value!;
@@ -128,9 +130,11 @@ void main() {
 
       final controller = container.read(feedControllerProvider.notifier);
       await controller.loadAllData();
+      await Future.delayed(const Duration(milliseconds: 600));
 
       // Act
       controller.updateLikeCount('item-1', isLiked: true);
+      await Future.delayed(const Duration(milliseconds: 600));
 
       // Assert
       final state = container.read(feedControllerProvider).value!;
@@ -153,10 +157,11 @@ void main() {
       // Act
       final controller = container.read(feedControllerProvider.notifier);
       await controller.loadAllData();
+      await Future.delayed(const Duration(milliseconds: 1000));
 
       // Assert
       final state = container.read(feedControllerProvider);
-      expect(state, isA<AsyncError>());
+      expect(state.value?.status, PaginationStatus.error);
     });
   });
 }

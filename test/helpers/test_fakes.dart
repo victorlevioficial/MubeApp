@@ -420,7 +420,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
 class FakeFeedImagePrecacheService extends Fake
     implements FeedImagePrecacheService {
   @override
-  Future<void> precacheItems(dynamic context, List<FeedItem> items) async {}
+  void precacheItems(
+    dynamic context,
+    List<FeedItem> items, {
+    int maxItems = 10,
+  }) {}
 }
 
 /// Fake implementation of NotificationRepository

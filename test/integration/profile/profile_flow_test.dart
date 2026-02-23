@@ -313,18 +313,23 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         expect(find.byType(ProfileSkeleton), findsOneWidget);
 
-        // Emit error
-        profileController.addError(Exception('Error loading profile'));
+        // Emit error and ensure event loop processes it
+        await tester.runAsync(() async {
+          profileController.addError(Exception('Error loading profile'));
+          await Future.delayed(Duration.zero);
+        });
 
-        // Use pump instead of pumpAndSettle to avoid timeouts with infinite animations
-        await tester.pump(); // Process error
+        // Process stream emission and rebuild UI
+        await tester.pump(); // Start error propagation
+        await tester.pump(); // Process error state rebuild
         await tester.pump(
-          const Duration(seconds: 1),
-        ); // Allow UI to settle/animate
+          const Duration(milliseconds: 100),
+        ); // Allow for state stability
 
-        // Assert - Deve mostrar mensagem de erro
-        // TODO: Fix expectation - UI currently not showing error text despite controller emitting error
-        // expect(find.textContaining('Error loading profile'), findsOneWidget);
+        // Assert - Deve mostrar mensagem de erro e NÃO mostrar o skeleton
+        expect(find.byType(ProfileSkeleton), findsNothing);
+        expect(find.byKey(const Key('profile_error_center')), findsOneWidget);
+        expect(find.textContaining('Error loading profile'), findsOneWidget);
 
         await profileController.close();
       });

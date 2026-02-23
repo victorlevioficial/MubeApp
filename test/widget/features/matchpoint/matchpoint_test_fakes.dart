@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
@@ -22,7 +23,7 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
             #type: type,
           }),
           returnValue: Future.value(
-            Right(
+            Right<Failure, MatchpointActionResult>(
               MatchpointActionResult(
                 success: true,
                 isMatch: false,
@@ -31,7 +32,7 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
             ),
           ),
           returnValueForMissingStub: Future.value(
-            Right(
+            Right<Failure, MatchpointActionResult>(
               MatchpointActionResult(
                 success: true,
                 isMatch: false,
@@ -48,7 +49,7 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
     return super.noSuchMethod(
           Invocation.method(#getRemainingLikes, []),
           returnValue: Future.value(
-            Right(
+            Right<Failure, LikesQuotaInfo>(
               LikesQuotaInfo(
                 remaining: 50,
                 limit: 50,
@@ -57,7 +58,7 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
             ),
           ),
           returnValueForMissingStub: Future.value(
-            Right(
+            Right<Failure, LikesQuotaInfo>(
               LikesQuotaInfo(
                 remaining: 50,
                 limit: 50,
@@ -83,8 +84,10 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
             #blockedUsers: blockedUsers,
             #limit: limit,
           }),
-          returnValue: Future.value(const Right([])),
-          returnValueForMissingStub: Future.value(const Right([])),
+          returnValue: Future.value(const Right<Failure, List<AppUser>>([])),
+          returnValueForMissingStub: Future.value(
+            const Right<Failure, List<AppUser>>([]),
+          ),
         )
         as FutureResult<List<AppUser>>;
   }
@@ -93,8 +96,10 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
   FutureResult<List<MatchInfo>> fetchMatches(String? currentUserId) {
     return super.noSuchMethod(
           Invocation.method(#fetchMatches, [currentUserId]),
-          returnValue: Future.value(const Right([])),
-          returnValueForMissingStub: Future.value(const Right([])),
+          returnValue: Future.value(const Right<Failure, List<MatchInfo>>([])),
+          returnValueForMissingStub: Future.value(
+            const Right<Failure, List<MatchInfo>>([]),
+          ),
         )
         as FutureResult<List<MatchInfo>>;
   }
@@ -103,8 +108,12 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
   FutureResult<List<HashtagRanking>> fetchHashtagRanking({int? limit = 20}) {
     return super.noSuchMethod(
           Invocation.method(#fetchHashtagRanking, [], {#limit: limit}),
-          returnValue: Future.value(const Right([])),
-          returnValueForMissingStub: Future.value(const Right([])),
+          returnValue: Future.value(
+            const Right<Failure, List<HashtagRanking>>([]),
+          ),
+          returnValueForMissingStub: Future.value(
+            const Right<Failure, List<HashtagRanking>>([]),
+          ),
         )
         as FutureResult<List<HashtagRanking>>;
   }

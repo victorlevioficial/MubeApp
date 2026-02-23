@@ -29,6 +29,13 @@ void main() {
     fakeAuthRepository = FakeAuthRepository();
     fakeUser = FakeFirebaseUser();
 
+    fakeAuthRepository.appUser = const AppUser(
+      uid: 'test-user-id',
+      nome: 'Test User',
+      email: 'test@example.com',
+      location: {'lat': -23.5505, 'lng': -46.6333},
+    );
+
     fakeAuthRepository.emitUser(fakeUser);
   });
 
@@ -72,6 +79,10 @@ void main() {
       });
 
       expect(find.byType(FeedScreenSkeleton), findsOneWidget);
+
+      // Clean up the completer so the test can finish without unresolved promises
+      fakeFeedRepository.requestCompleter!.complete();
+      await tester.pumpAndSettle(const Duration(seconds: 2));
     });
 
     testWidgets('shows error state when feed fails', (tester) async {
@@ -82,7 +93,7 @@ void main() {
         // Trigger loadAllData
         await tester.pump();
         // Allow error propagation
-        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
       expect(find.textContaining('Erro'), findsOneWidget);
@@ -94,7 +105,7 @@ void main() {
         // Trigger loadAllData
         await tester.pump();
         // Allow data loading to complete (fake repo returns empty list by default)
-        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
       expect(find.byType(EmptyStateWidget), findsOneWidget);

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
@@ -164,7 +164,7 @@ class _EnhancedMultiSelectModalState<T>
                     width: 40,
                     height: 4,
                     margin: const EdgeInsets.only(bottom: AppSpacing.s16),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.surfaceHighlight,
                       borderRadius: AppRadius.all8,
                     ),
@@ -248,20 +248,20 @@ class _EnhancedMultiSelectModalState<T>
                       : null,
                   filled: true,
                   fillColor: AppColors.surface,
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: AppRadius.all12,
                     borderSide: BorderSide.none,
                   ),
-                  enabledBorder: OutlineInputBorder(
+                  enabledBorder: const OutlineInputBorder(
                     borderRadius: AppRadius.all12,
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: AppColors.border,
                       width: 1,
                     ),
                   ),
-                  focusedBorder: OutlineInputBorder(
+                  focusedBorder: const OutlineInputBorder(
                     borderRadius: AppRadius.all12,
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: AppColors.primary,
                       width: 1,
                     ),

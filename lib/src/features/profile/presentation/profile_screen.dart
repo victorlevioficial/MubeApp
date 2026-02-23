@@ -21,141 +21,154 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProfileProvider);
 
+    // Prioritize error state
+    if (userAsync.hasError) {
+      final err = userAsync.error;
+      debugPrint('[ProfileScreen] Error state: $err');
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          key: const Key('profile_error_center'),
+          child: Text('Erro: $err'),
+        ),
+      );
+    }
+
+    // Secondary priority: loading state
+    if (userAsync.isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: ProfileSkeleton(),
+      );
+    }
+
+    // Default: data state
+    final user = userAsync.value;
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: Text('Usuário não encontrado')),
+      );
+    }
+
+    // Pre-cache avatar for faster loading on edit screen
+    if (user.foto != null && user.foto!.isNotEmpty) {
+      precacheImage(CachedNetworkImageProvider(user.foto!), context);
+    }
+
+    // Helper to format categories
+    String formatCategory(String cat) {
+      switch (cat) {
+        case 'singer':
+          return 'Cantor(a)';
+        case 'instrumentalist':
+          return 'Instrumentista';
+        case 'band':
+          return 'Banda';
+        case 'dj':
+          return 'DJ';
+        case 'crew':
+          return 'Equipe Técnica';
+        case 'other':
+          return 'Outro';
+        default:
+          return cat;
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: userAsync.when(
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('Usuário não encontrado'));
-          }
-
-          // Pre-cache avatar for faster loading on edit screen
-          if (user.foto != null && user.foto!.isNotEmpty) {
-            precacheImage(CachedNetworkImageProvider(user.foto!), context);
-          }
-
-          // Helper to format categories
-          String formatCategory(String cat) {
-            switch (cat) {
-              case 'singer':
-                return 'Cantor(a)';
-              case 'instrumentalist':
-                return 'Instrumentista';
-              case 'band':
-                return 'Banda';
-              case 'dj':
-                return 'DJ';
-              case 'crew':
-                return 'Equipe Técnica';
-              case 'other':
-                return 'Outro';
-              default:
-                return cat;
-            }
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s24,
-              vertical: AppSpacing.s24,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Header (Avatar + Name)
-                Center(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSpacing.s32),
-                      UserAvatar(
-                        size: 100,
-                        photoUrl: user.foto,
-                        name: _getDisplayName(user),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s24,
+          vertical: AppSpacing.s24,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header (Avatar + Name)
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.s32),
+                  UserAvatar(
+                    size: 100,
+                    photoUrl: user.foto,
+                    name: _getDisplayName(user),
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  Text(
+                    _getDisplayName(user),
+                    style: AppTypography.headlineMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.s4),
+                  Text(
+                    user.tipoPerfil?.label.toUpperCase() ?? '',
+                    style: AppTypography.profileTypeLabel,
+                  ),
+                  if (_getDisplayName(user) != user.nome) ...[
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      user.nome ?? '',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
                       ),
-                      const SizedBox(height: AppSpacing.s12),
-                      Text(
-                        _getDisplayName(user),
-                        style: AppTypography.headlineMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.s4),
-                      Text(
-                        user.tipoPerfil?.label.toUpperCase() ?? '',
-                        style: AppTypography.profileTypeLabel,
-                      ),
-                      if (_getDisplayName(user) != user.nome) ...[
-                        const SizedBox(height: AppSpacing.s4),
+                    ),
+                  ],
+                  if (user.location != null) ...[
+                    const SizedBox(height: AppSpacing.s8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: AppSpacing.s4),
                         Text(
-                          user.nome ?? '',
+                          '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
                       ],
-                      if (user.location != null) ...[
-                        const SizedBox(height: AppSpacing.s8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 16,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: AppSpacing.s4),
-                            Text(
-                              '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.s32),
-                const Divider(color: AppColors.surfaceHighlight),
-                const SizedBox(height: AppSpacing.s24),
-
-                // Type Specific Details
-                if (user.tipoPerfil == AppUserType.professional)
-                  _buildProfessionalDetails(user, formatCategory),
-                if (user.tipoPerfil == AppUserType.band)
-                  _buildBandDetails(user),
-                if (user.tipoPerfil == AppUserType.studio)
-                  _buildStudioDetails(user),
-                if (user.tipoPerfil == AppUserType.contractor)
-                  _buildContractorDetails(user),
-
-                const SizedBox(height: AppSpacing.s24),
-                // Actions
-                AppButton.primary(
-                  text: 'Editar Perfil',
-                  onPressed: () => context.go('/profile/edit'),
-                ),
-                const SizedBox(height: AppSpacing.s48),
-                const SizedBox(height: AppSpacing.s40),
-                Align(
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.logout,
-                      color: AppColors.textPrimary,
                     ),
-                    onPressed: () => ref.read(authRepositoryProvider).signOut(),
-                  ),
-                ),
-              ],
+                  ],
+                ],
+              ),
             ),
-          );
-        },
-        loading: () => const ProfileSkeleton(),
-        error: (err, stack) {
-          debugPrint('[ProfileScreen] Error state: $err');
-          return Center(child: Text('Erro: $err'));
-        },
+
+            const SizedBox(height: AppSpacing.s32),
+            const Divider(color: AppColors.surfaceHighlight),
+            const SizedBox(height: AppSpacing.s24),
+
+            // Type Specific Details
+            if (user.tipoPerfil == AppUserType.professional)
+              _buildProfessionalDetails(user, formatCategory),
+            if (user.tipoPerfil == AppUserType.band) _buildBandDetails(user),
+            if (user.tipoPerfil == AppUserType.studio)
+              _buildStudioDetails(user),
+            if (user.tipoPerfil == AppUserType.contractor)
+              _buildContractorDetails(user),
+
+            const SizedBox(height: AppSpacing.s24),
+            // Actions
+            AppButton.primary(
+              text: 'Editar Perfil',
+              onPressed: () => context.go('/profile/edit'),
+            ),
+            const SizedBox(height: AppSpacing.s48),
+            const SizedBox(height: AppSpacing.s40),
+            Align(
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: AppColors.textPrimary),
+                onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

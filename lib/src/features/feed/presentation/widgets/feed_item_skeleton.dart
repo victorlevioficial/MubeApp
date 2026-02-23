@@ -14,7 +14,7 @@ class FeedItemSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     // Base color for the shimmer effect - slightly lighter than background for visibility
     const baseColor = AppColors.skeletonBase;
-    final highlightColor = AppColors.skeletonHighlight.withOpacity(0.5);
+    final highlightColor = AppColors.skeletonHighlight.withValues(alpha: 0.5);
 
     return Container(
       margin:

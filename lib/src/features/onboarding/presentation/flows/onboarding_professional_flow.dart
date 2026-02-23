@@ -676,7 +676,7 @@ class _OnboardingProfessionalFlowState
                       horizontal: AppSpacing.s10,
                       vertical: AppSpacing.s4,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.surfaceHighlight,
                       borderRadius: AppRadius.all8,
                     ),

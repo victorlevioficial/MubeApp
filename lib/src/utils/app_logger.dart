@@ -18,12 +18,12 @@ class AppLogger {
 
   /// Inicializa o Crashlytics. Deve ser chamado no main() antes de usar o app.
   static Future<void> initialize() async {
-    if (!kDebugMode) {
+    if (kReleaseMode) {
       await _crashlytics.setCrashlyticsCollectionEnabled(true);
       _isCrashlyticsEnabled = true;
       AppLogger.info('🔥 Crashlytics inicializado');
     } else {
-      AppLogger.info('🔧 Crashlytics desabilitado em modo debug');
+      AppLogger.info('🔧 Crashlytics desabilitado fora do release');
     }
   }
 
@@ -83,12 +83,7 @@ class AppLogger {
 
     if (_isCrashlyticsEnabled) {
       _crashlytics.log('[FATAL] $message');
-      _crashlytics.recordError(
-        error,
-        stackTrace,
-        reason: message,
-        fatal: true,
-      );
+      _crashlytics.recordError(error, stackTrace, reason: message, fatal: true);
     }
   }
 

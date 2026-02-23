@@ -50,11 +50,32 @@
     }
   ],
   "hosting": {
-    "public": "public",
+    "public": "landing_page",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/politicadeprivacidade",
+        "destination": "/politicadeprivacidade/index.html"
+      },
+      {
+        "source": "/termosdeuso",
+        "destination": "/termosdeuso/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
     ]
   }
 }

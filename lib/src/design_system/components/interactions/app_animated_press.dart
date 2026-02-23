@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../foundations/tokens/app_motion.dart';
 
 /// Um wrapper que adiciona feedback visual de toque (scale down) a qualquer widget.
@@ -63,6 +64,7 @@ class _AppAnimatedPressState extends State<AppAnimatedPress>
 
   void _handleTapDown(PointerDownEvent event) {
     if (widget.onPressed != null) {
+      HapticFeedback.lightImpact();
       _controller.forward();
     }
   }

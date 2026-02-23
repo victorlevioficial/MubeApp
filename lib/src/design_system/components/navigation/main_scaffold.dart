@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,29 +19,54 @@ import 'responsive_center.dart';
 /// - Smooth animations and transitions
 /// - Elegant active indicator
 /// - Adaptive layout (rail for wide screens, bottom bar for narrow)
-class MainScaffold extends ConsumerWidget {
+class MainScaffold extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainScaffold({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
+}
+
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
+  Timer? _enableUnreadTimer;
+  bool _enableUnreadCount = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _enableUnreadTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (!mounted) return;
+        setState(() => _enableUnreadCount = true);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _enableUnreadTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final isWide = size.width >= 600;
 
     if (isWide) {
-      return _buildWideLayout(context, ref);
+      return _buildWideLayout(context);
     }
 
-    return _buildNarrowLayout(context, ref);
+    return _buildNarrowLayout(context);
   }
 
-  Widget _buildWideLayout(BuildContext context, WidgetRef ref) {
+  Widget _buildWideLayout(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
           _AdaptiveRail(
-            selectedIndex: navigationShell.currentIndex,
+            selectedIndex: widget.navigationShell.currentIndex,
             onDestinationSelected: _onDestinationSelected,
           ),
           const VerticalDivider(
@@ -51,7 +78,7 @@ class MainScaffold extends ConsumerWidget {
             child: ResponsiveCenter(
               padding: EdgeInsets.zero,
               maxContentWidth: double.infinity,
-              child: navigationShell,
+              child: widget.navigationShell,
             ),
           ),
         ],
@@ -59,14 +86,21 @@ class MainScaffold extends ConsumerWidget {
     );
   }
 
-  Widget _buildNarrowLayout(BuildContext context, WidgetRef ref) {
+  Widget _buildNarrowLayout(BuildContext context) {
+    final unreadCount = _enableUnreadCount
+        ? (ref.watch(unreadMessagesCountProvider).value ?? 0)
+        : 0;
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: ResponsiveCenter(padding: EdgeInsets.zero, child: navigationShell),
+      body: ResponsiveCenter(
+        padding: EdgeInsets.zero,
+        child: widget.navigationShell,
+      ),
       bottomNavigationBar: _ModernNavBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onDestinationSelected: _onDestinationSelected,
-        unreadCount: ref.watch(unreadMessagesCountProvider).value ?? 0,
+        unreadCount: unreadCount,
       ),
     );
   }
@@ -74,8 +108,8 @@ class MainScaffold extends ConsumerWidget {
   void _onDestinationSelected(int index) {
     // Settings should always open at its root screen when switching tabs.
     final shouldResetToRoot =
-        index == navigationShell.currentIndex || index == 4;
-    navigationShell.goBranch(index, initialLocation: shouldResetToRoot);
+        index == widget.navigationShell.currentIndex || index == 4;
+    widget.navigationShell.goBranch(index, initialLocation: shouldResetToRoot);
   }
 }
 

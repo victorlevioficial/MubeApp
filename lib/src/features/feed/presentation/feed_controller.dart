@@ -136,8 +136,8 @@ class FeedController extends _$FeedController {
   Future<void> loadAllData() async {
     final currentState = state.value ?? const FeedState();
     state = AsyncValue.data(currentState.copyWithFeed(isInitialLoading: true));
-    // Sync de favoritos sem bloquear o first paint da Home.
-    unawaited(ref.read(favoriteControllerProvider.notifier).loadFavorites());
+    // Sync de favoritos com pequeno atraso para evitar competir com first paint.
+    unawaited(_loadFavoritesDeferred());
     try {
       // Set user location from auth profile
       final user = await _resolveCurrentUserProfile();
@@ -145,8 +145,7 @@ class FeedController extends _$FeedController {
         _userLat = user.location?['lat'];
         _userLong = user.location?['lng'];
       }
-      // Prioriza o feed principal; secoes carregam em background.
-      final sectionsFuture = _fetchSections();
+      // Prioriza o feed principal; secoes carregam depois.
       await _fetchMainFeed(reset: true);
       final afterMainState = state.value ?? const FeedState();
       if (afterMainState.isInitialLoading) {
@@ -154,21 +153,7 @@ class FeedController extends _$FeedController {
           afterMainState.copyWithFeed(isInitialLoading: false),
         );
       }
-      unawaited(
-        sectionsFuture
-            .then((sections) {
-              final latestState = state.value ?? const FeedState();
-              state = AsyncValue.data(
-                latestState.copyWithFeed(
-                  sectionItems: sections,
-                  isInitialLoading: false,
-                ),
-              );
-            })
-            .catchError((error, stack) {
-              AppLogger.error('Feed: erro ao carregar secoes', error, stack);
-            }),
-      );
+      unawaited(_loadSectionsDeferred());
     } catch (e, stack) {
       AppLogger.error('Feed: erro ao carregar dados iniciais', e, stack);
       final latest = state.value ?? currentState;
@@ -182,7 +167,32 @@ class FeedController extends _$FeedController {
     }
   }
 
-  /// Busca as seções horizontais do feed.
+  Future<void> _loadFavoritesDeferred() async {
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+      await ref.read(favoriteControllerProvider.notifier).loadFavorites();
+    } catch (e, stack) {
+      AppLogger.error('Feed: erro no sync diferido de favoritos', e, stack);
+    }
+  }
+
+  Future<void> _loadSectionsDeferred() async {
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      final sections = await _fetchSections();
+      final latestState = state.value ?? const FeedState();
+      state = AsyncValue.data(
+        latestState.copyWithFeed(
+          sectionItems: sections,
+          isInitialLoading: false,
+        ),
+      );
+    } catch (error, stack) {
+      AppLogger.error('Feed: erro ao carregar secoes', error, stack);
+    }
+  }
+
+  // Loads horizontal feed sections in the background.
   Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections() async {
     final user = await _resolveCurrentUserProfile();
     if (user == null) return {};
@@ -572,12 +582,12 @@ class FeedController extends _$FeedController {
   }
 
   /// Atualiza o filtro e recarrega o feed.
-  void onFilterChanged(String filter) {
+  Future<void> onFilterChanged(String filter) async {
     final currentState = state.value;
     if (currentState == null || currentState.currentFilter == filter) return;
 
     state = AsyncValue.data(currentState.copyWithFeed(currentFilter: filter));
-    _fetchMainFeed(reset: true);
+    await _fetchMainFeed(reset: true);
   }
 
   /// Atualiza o contador de likes de um item.

@@ -16,9 +16,7 @@
     href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
     rel="stylesheet" />
 
-  <!-- Favicon (using inline SVG data URI) -->
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23E8466C'/%3E%3Cpath d='M14 28V15.5C14 13.567 15.567 12 17.5 12C19.433 12 21 13.567 21 15.5V24.5C21 26.433 22.567 28 24.5 28C26.433 28 28 26.433 28 24.5V22' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='24.5' cy='21' r='2.5' fill='white'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -35,8 +33,6 @@
       <ul class="header__links" id="navLinks">
         <li><a href="#features" class="header__link">Funcionalidades</a></li>
         <li><a href="#how-it-works" class="header__link">Como Funciona</a></li>
-        <li><a href="#profiles" class="header__link">Para Quem</a></li>
-        <li><a href="#matchpoint" class="header__link">MatchPoint</a></li>
       </ul>
 
       <a href="#download" class="btn btn--primary header__cta">Baixar App</a>
@@ -53,8 +49,6 @@
       <ul class="mobile-menu__links">
         <li><a href="#features" class="mobile-menu__link">Funcionalidades</a></li>
         <li><a href="#how-it-works" class="mobile-menu__link">Como Funciona</a></li>
-        <li><a href="#profiles" class="mobile-menu__link">Para Quem</a></li>
-        <li><a href="#matchpoint" class="mobile-menu__link">MatchPoint</a></li>
         <li><a href="#download" class="btn btn--primary mobile-menu__cta">Baixar App</a></li>
       </ul>
     </div>
@@ -353,259 +347,9 @@
     </div>
   </section>
 
-  <!-- ========== PROFILE TYPES ========== -->
-  <section class="profiles" id="profiles">
-    <div class="container">
-      <div class="section-header animate-on-scroll">
-        <span class="section-tag">Para Quem</span>
-        <h2 class="section-title">Para quem é <span class="text-gradient">o Mube?</span></h2>
-        <p class="section-subtitle">Não importa seu papel na música — temos um espaço para você.</p>
-      </div>
 
-      <div class="profiles__grid">
-        <div class="profile-card animate-on-scroll" data-delay="0" data-accent="primary">
-          <div class="profile-card__img-wrap">
-            <img
-              src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/SohoSessions-JUN26-16-Photoroom.png?alt=media&token=d0f4a374-4eeb-4733-86f4-190cc05153f3"
-              alt="Músico tocando guitarra - Alena Darmel on Pexels" class="profile-card__img" />
-            <div class="profile-card__badge profile-card__badge--musician">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-              </svg>
-              Músico
-            </div>
-          </div>
-          <div class="profile-card__content">
-            <h3 class="profile-card__title">Músico</h3>
-            <p class="profile-card__desc">Encontre bandas, projetos e oportunidades que combinam com seu estilo e
-              habilidades musicais.</p>
-            <ul class="profile-card__list">
-              <li>Crie seu portfólio musical</li>
-              <li>Encontre bandas que precisam de você</li>
-              <li>Conecte-se com outros músicos</li>
-            </ul>
-          </div>
-        </div>
 
-        <div class="profile-card animate-on-scroll" data-delay="100" data-accent="fuchsia">
-          <div class="profile-card__img-wrap">
-            <img
-              src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/KON_7934.jpg?alt=media&token=80fc2b26-25b4-47cd-a84f-33f9dbb6b3c5"
-              alt="Banda tocando em estúdio - ANTONI SHKRABA on Pexels" class="profile-card__img" />
-            <div class="profile-card__badge profile-card__badge--band">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M12 12.75c1.63 0 3.07.39 4.24.9 1.08.48 1.76 1.56 1.76 2.73V18H6v-1.61c0-1.18.68-2.26 1.76-2.73 1.17-.52 2.61-.91 4.24-.91zM4 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm1.13 1.1c-.37-.06-.74-.1-1.13-.1-.99 0-1.93.21-2.78.58C.48 14.9 0 15.62 0 16.43V18h4.5v-1.61c0-.83.23-1.61.63-2.29zM20 13c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm4 3.43c0-.81-.48-1.53-1.22-1.85C21.93 14.21 20.99 14 20 14c-.39 0-.76.04-1.13.1.4.68.63 1.46.63 2.29V18H24v-1.57zM12 6c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3z" />
-              </svg>
-              Banda
-            </div>
-          </div>
-          <div class="profile-card__content">
-            <h3 class="profile-card__title">Banda</h3>
-            <p class="profile-card__desc">Descubra músicos talentosos para completar sua formação e criar algo incrível
-              juntos.</p>
-            <ul class="profile-card__list">
-              <li>Anuncie vagas na sua banda</li>
-              <li>Encontre o músico perfeito</li>
-              <li>Gerencie sua formação</li>
-            </ul>
-          </div>
-        </div>
 
-        <div class="profile-card animate-on-scroll" data-delay="200" data-accent="red">
-          <div class="profile-card__img-wrap">
-            <img
-              src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/Eo_tQAEXEAMkXdH.jpg?alt=media&token=69ec7905-fe58-46bd-8e8d-3cd3de65a54a"
-              alt="Estúdio de gravação profissional - TStudio on Pexels" class="profile-card__img" />
-            <div class="profile-card__badge profile-card__badge--studio">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-              Estúdio
-            </div>
-          </div>
-          <div class="profile-card__content">
-            <h3 class="profile-card__title">Estúdio</h3>
-            <p class="profile-card__desc">Divulgue seu espaço, equipamentos e serviços para músicos e bandas da sua
-              região.</p>
-            <ul class="profile-card__list">
-              <li>Mostre sua infraestrutura</li>
-              <li>Atraia novos clientes</li>
-              <li>Gerencie agendamentos</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="profile-card animate-on-scroll" data-delay="300" data-accent="blue">
-          <div class="profile-card__img-wrap">
-            <img
-              src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/freepik__uma-mulher-profissional-da-msica-bem-estilosa-rock__36720.png?alt=media&token=a31e1e40-cfd3-4f47-8213-c04e40fc2659"
-              alt="Produtor musical criando música - Ernest Ghazaryan on Pexels" class="profile-card__img" />
-            <div class="profile-card__badge profile-card__badge--pro">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
-              </svg>
-              Profissional
-            </div>
-          </div>
-          <div class="profile-card__content">
-            <h3 class="profile-card__title">Profissional</h3>
-            <p class="profile-card__desc">Conecte-se com artistas e bandas que precisam de serviços técnicos e de
-              produção musical.</p>
-            <ul class="profile-card__list">
-              <li>Ofereça seus serviços</li>
-              <li>Amplie sua rede de contatos</li>
-              <li>Encontre projetos interessantes</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== MATCHPOINT SPOTLIGHT ========== -->
-  <section class="matchpoint" id="matchpoint">
-    <div class="matchpoint__bg">
-      <img
-        src="https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=1920&h=800&dpr=1"
-        alt="Festival de música - Wendy Wei on Pexels" class="matchpoint__bg-img" />
-      <div class="matchpoint__bg-overlay"></div>
-    </div>
-
-    <div class="container matchpoint__content">
-      <div class="matchpoint__text animate-on-scroll">
-        <span class="section-tag section-tag--light">⚡ MatchPoint</span>
-        <h2 class="matchpoint__title">Seu próximo match musical <span class="text-gradient">está aqui</span></h2>
-        <p class="matchpoint__desc">Deslize, conecte-se e faça música acontecer. O MatchPoint usa inteligência para
-          encontrar as melhores conexões musicais para você.</p>
-
-        <div class="matchpoint__features">
-          <div class="matchpoint__feature">
-            <div class="matchpoint__feature-icon">🎯</div>
-            <div>
-              <strong>Compatibilidade inteligente</strong>
-              <span>Baseado em gêneros, instrumentos e localização</span>
-            </div>
-          </div>
-          <div class="matchpoint__feature">
-            <div class="matchpoint__feature-icon">💬</div>
-            <div>
-              <strong>Chat instantâneo</strong>
-              <span>Converse com seus matches em tempo real</span>
-            </div>
-          </div>
-          <div class="matchpoint__feature">
-            <div class="matchpoint__feature-icon">🏆</div>
-            <div>
-              <strong>Ranking de hashtags</strong>
-              <span>Descubra as tendências musicais da sua região</span>
-            </div>
-          </div>
-          <div class="matchpoint__feature">
-            <div class="matchpoint__feature-icon">🔄</div>
-            <div>
-              <strong>Histórico de swipes</strong>
-              <span>Reveja perfis que já passaram por você</span>
-            </div>
-          </div>
-        </div>
-
-        <a href="#download" class="btn btn--primary btn--lg matchpoint__cta">
-          Experimentar Agora
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== STATS ========== -->
-  <section class="stats" id="stats">
-    <div class="container">
-      <div class="stats__grid">
-        <div class="stat animate-on-scroll" data-delay="0">
-          <div class="stat__number" data-target="5000">0</div>
-          <div class="stat__label">músicos conectados</div>
-        </div>
-        <div class="stat animate-on-scroll" data-delay="100">
-          <div class="stat__number" data-target="12000">0</div>
-          <div class="stat__label">matches realizados</div>
-        </div>
-        <div class="stat animate-on-scroll" data-delay="200">
-          <div class="stat__number" data-target="150">0</div>
-          <div class="stat__label">cidades ativas</div>
-        </div>
-        <div class="stat animate-on-scroll" data-delay="300">
-          <div class="stat__number" data-target="50">0</div>
-          <div class="stat__label">gêneros musicais</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== GALLERY ========== -->
-  <section class="gallery" id="gallery">
-    <div class="container">
-      <div class="section-header animate-on-scroll">
-        <span class="section-tag">Comunidade</span>
-        <h2 class="section-title">Uma comunidade <span class="text-gradient">vibrante</span></h2>
-        <p class="section-subtitle">Músicos de todos os estilos e regiões do Brasil já fazem parte do Mube.</p>
-      </div>
-
-      <div class="gallery__grid animate-on-scroll">
-        <div class="gallery__item gallery__item--tall">
-          <img
-            src="https://images.pexels.com/photos/9418570/pexels-photo-9418570.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1"
-            alt="Guitarrista em performance - cottonbro studio on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎸 Rock & Blues</span>
-          </div>
-        </div>
-        <div class="gallery__item">
-          <img
-            src="https://images.pexels.com/photos/8512640/pexels-photo-8512640.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"
-            alt="Banda ensaiando - Big Bag Films on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎤 Pop & Indie</span>
-          </div>
-        </div>
-        <div class="gallery__item">
-          <img
-            src="https://images.pexels.com/photos/7586265/pexels-photo-7586265.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"
-            alt="Músico em estúdio - Los Muertos Crew on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎧 Produção</span>
-          </div>
-        </div>
-        <div class="gallery__item gallery__item--tall">
-          <img
-            src="https://images.pexels.com/photos/7715352/pexels-photo-7715352.jpeg?auto=compress&cs=tinysrgb&w=400&h=600&dpr=1"
-            alt="Músico no palco - Alena Darmel on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎶 Acústico</span>
-          </div>
-        </div>
-        <div class="gallery__item">
-          <img
-            src="https://images.pexels.com/photos/12427774/pexels-photo-12427774.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"
-            alt="Banda de rock - Ryan Hiebendahl on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎵 Metal & Punk</span>
-          </div>
-        </div>
-        <div class="gallery__item">
-          <img
-            src="https://images.pexels.com/photos/4031037/pexels-photo-4031037.jpeg?auto=compress&cs=tinysrgb&w=400&h=300&dpr=1"
-            alt="Estúdio profissional - Brett Sayles on Pexels" />
-          <div class="gallery__overlay">
-            <span>🎹 Estúdio</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- ========== DOWNLOAD CTA ========== -->
   <section class="download" id="download">
@@ -647,66 +391,7 @@
         </a>
       </div>
 
-      <div class="download__qr animate-on-scroll">
-        <p class="download__qr-text">Ou escaneie o QR Code com seu celular</p>
-        <div class="download__qr-box">
-          <svg viewBox="0 0 100 100" width="120" height="120" fill="white">
-            <rect x="5" y="5" width="25" height="25" rx="3" />
-            <rect x="70" y="5" width="25" height="25" rx="3" />
-            <rect x="5" y="70" width="25" height="25" rx="3" />
-            <rect x="10" y="10" width="15" height="15" rx="1" fill="#0A0A0A" />
-            <rect x="75" y="10" width="15" height="15" rx="1" fill="#0A0A0A" />
-            <rect x="10" y="75" width="15" height="15" rx="1" fill="#0A0A0A" />
-            <rect x="13" y="13" width="9" height="9" rx="1" />
-            <rect x="78" y="13" width="9" height="9" rx="1" />
-            <rect x="13" y="78" width="9" height="9" rx="1" />
-            <rect x="35" y="5" width="5" height="5" />
-            <rect x="45" y="5" width="5" height="5" />
-            <rect x="55" y="5" width="5" height="5" />
-            <rect x="35" y="15" width="5" height="5" />
-            <rect x="50" y="15" width="5" height="5" />
-            <rect x="60" y="15" width="5" height="5" />
-            <rect x="35" y="25" width="5" height="5" />
-            <rect x="45" y="25" width="5" height="5" />
-            <rect x="35" y="35" width="5" height="5" />
-            <rect x="45" y="35" width="5" height="5" />
-            <rect x="55" y="35" width="5" height="5" />
-            <rect x="5" y="35" width="5" height="5" />
-            <rect x="15" y="35" width="5" height="5" />
-            <rect x="25" y="35" width="5" height="5" />
-            <rect x="5" y="45" width="5" height="5" />
-            <rect x="25" y="45" width="5" height="5" />
-            <rect x="35" y="45" width="5" height="5" />
-            <rect x="45" y="45" width="15" height="5" />
-            <rect x="5" y="55" width="5" height="5" />
-            <rect x="15" y="55" width="5" height="5" />
-            <rect x="25" y="55" width="5" height="5" />
-            <rect x="45" y="55" width="5" height="5" />
-            <rect x="55" y="55" width="5" height="5" />
-            <rect x="65" y="35" width="5" height="5" />
-            <rect x="75" y="35" width="5" height="5" />
-            <rect x="85" y="35" width="5" height="5" />
-            <rect x="65" y="45" width="5" height="5" />
-            <rect x="85" y="45" width="5" height="5" />
-            <rect x="65" y="55" width="5" height="5" />
-            <rect x="75" y="55" width="5" height="5" />
-            <rect x="85" y="55" width="5" height="5" />
-            <rect x="35" y="65" width="5" height="5" />
-            <rect x="55" y="65" width="5" height="5" />
-            <rect x="65" y="65" width="5" height="5" />
-            <rect x="75" y="65" width="5" height="5" />
-            <rect x="35" y="75" width="5" height="5" />
-            <rect x="45" y="75" width="5" height="5" />
-            <rect x="65" y="75" width="5" height="5" />
-            <rect x="85" y="75" width="5" height="5" />
-            <rect x="35" y="85" width="5" height="5" />
-            <rect x="55" y="85" width="5" height="5" />
-            <rect x="65" y="85" width="5" height="5" />
-            <rect x="75" y="85" width="5" height="5" />
-            <rect x="85" y="85" width="5" height="5" />
-          </svg>
-        </div>
-      </div>
+
     </div>
   </section>
 
@@ -716,12 +401,11 @@
       <div class="footer__grid">
         <div class="footer__brand">
           <a href="#" class="footer__logo" aria-label="Mube">
-            <svg class="footer__logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="20" cy="20" r="20" fill="#E8466C" />
+            <svg class="footer__logo-icon" viewBox="0 0 750 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="375" cy="375" r="375" fill="#e8466c" />
               <path
-                d="M14 28V15.5C14 13.567 15.567 12 17.5 12C19.433 12 21 13.567 21 15.5V24.5C21 26.433 22.567 28 24.5 28C26.433 28 28 26.433 28 24.5V22"
-                stroke="white" stroke-width="3.5" stroke-linecap="round" />
-              <circle cx="24.5" cy="21" r="2.5" fill="white" />
+                d="M586.09,443.47c0,37.28-30.22,67.5-67.5,67.5-9.54,0-18.61-1.98-26.84-5.55-23.92-10.37-40.66-34.21-40.66-61.95v-241.87c0-4.81-1.97-9.19-5.14-12.36-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,.47-.01.94-.04,1.41v6.23c-.08,37.22-30.27,67.36-67.5,67.36-6.04,0-11.89-.79-17.45-2.28-28.09-7.49-48.96-32.65-50-62.85v-194.24c0-.43-.02-.86-.05-1.28-.31-4.3-2.2-8.19-5.09-11.08-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,13.75-11.25,25-25,25s-25-11.25-25-25v-284.37c.08-37.22,30.27-67.36,67.5-67.36,6.03,0,11.88.79,17.45,2.29,28.09,7.48,48.96,32.64,50,62.84v194.24c0,.43.02.86.05,1.28.31,4.3,2.2,8.19,5.09,11.08,3.17,3.17,7.55,5.14,12.36,5.14,9.62,0,17.5-7.87,17.5-17.5V209.24c0-.47,0-.94.04-1.41v-6.23c.08-37.22,30.27-67.36,67.5-67.36s67.42,30.14,67.5,67.36v176.66c5.58-1.49,11.45-2.29,17.5-2.29,37.28,0,67.5,30.22,67.5,67.5Z"
+                fill="#fff" />
             </svg>
             <span class="footer__logo-text">mube</span>
           </a>
@@ -763,8 +447,7 @@
           <h4 class="footer__links-title">Produto</h4>
           <ul class="footer__links">
             <li><a href="#features">Funcionalidades</a></li>
-            <li><a href="#matchpoint">MatchPoint</a></li>
-            <li><a href="#profiles">Para Quem</a></li>
+            <li><a href="#how-it-works">Como Funciona</a></li>
             <li><a href="#download">Download</a></li>
           </ul>
         </div>
@@ -782,10 +465,10 @@
         <div class="footer__links-group">
           <h4 class="footer__links-title">Legal</h4>
           <ul class="footer__links">
-            <li><a href="#">Privacidade</a></li>
-            <li><a href="#">Termos de Uso</a></li>
-            <li><a href="#">Contato</a></li>
-            <li><a href="mailto:suporte@mube.app">suporte@mube.app</a></li>
+            <li><a href="/politicadeprivacidade">Privacidade</a></li>
+            <li><a href="/termosdeuso">Termos de Uso</a></li>
+            <li><a href="#download">Contato</a></li>
+            <li><a href="mailto:suporte@mubeapp.com.br">suporte@mubeapp.com.br</a></li>
           </ul>
         </div>
       </div>

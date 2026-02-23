@@ -4,6 +4,7 @@ import 'dart:ui'; // For PlatformDispatcher
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -33,6 +34,7 @@ void main() {
       // 1. Configure global error handlers.
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
         AppLogger.error(
           'Flutter Framework Error',
           details.exception,
@@ -41,6 +43,7 @@ void main() {
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         AppLogger.error('Platform Dispatcher Error', error, stack);
         return true;
       };
@@ -77,6 +80,7 @@ void main() {
       }
     },
     (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       AppLogger.error('Erro nao tratado no Zone Guarded', error, stack);
     },
   );
@@ -86,13 +90,19 @@ Future<void> _initializeDeferredServices() async {
   try {
     await _initializeAppCheck();
     await AppLogger.initialize();
+
+    // Stage non-critical services to reduce startup contention on Home.
+    await Future<void>.delayed(const Duration(milliseconds: 900));
     await AnalyticsService.initialize();
+
+    await Future<void>.delayed(const Duration(milliseconds: 700));
     await RemoteConfigService.initialize();
 
-    // Delay permission prompt to avoid contention with first frames.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    // Push permission/initialization is expensive on some devices.
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
     await PushNotificationService().init();
 
+    await Future<void>.delayed(const Duration(milliseconds: 500));
     await _preloadFonts();
     AppLogger.info('Services initialized');
   } catch (e, stack) {

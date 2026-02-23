@@ -128,20 +128,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         if (allItems.isNotEmpty && context.mounted) {
           final precacheService = ref.read(feedImagePrecacheServiceProvider);
 
-          // First wave: only above-the-fold profiles.
-          precacheService.precacheItems(context, allItems, maxItems: 8);
+          // First wave: keep startup light.
+          precacheService.precacheItems(context, allItems, maxItems: 4);
 
           // Second wave: deferred so first frames stay responsive.
           _deferredPrecacheTimer?.cancel();
-          if (allItems.length > 8) {
+          if (allItems.length > 4) {
             _deferredPrecacheTimer = Timer(
-              const Duration(milliseconds: 600),
+              const Duration(milliseconds: 900),
               () {
                 if (!mounted) return;
                 precacheService.precacheItems(
                   context,
-                  allItems.skip(8).toList(),
-                  maxItems: 12,
+                  allItems.skip(4).toList(),
+                  maxItems: 8,
                 );
               },
             );
@@ -154,13 +154,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return const FeedScreenSkeleton();
     }
 
-    if (stateAsync.hasError && state.sectionItems.isEmpty) {
+    final hasError =
+        stateAsync.hasError || state.status == PaginationStatus.error;
+    final errorMessage =
+        state.errorMessage ??
+        stateAsync.error?.toString() ??
+        'Erro desconhecido';
+
+    if (hasError && state.sectionItems.isEmpty) {
       return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Erro ao carregar feed: ${stateAsync.error}'),
+              Text('Erro ao carregar feed: $errorMessage'),
               const SizedBox(height: AppSpacing.s16),
               AppButton.primary(
                 text: 'Tentar novamente',

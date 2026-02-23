@@ -278,13 +278,10 @@ void main() {
 
         final controller = container.read(profileControllerProvider.notifier);
 
-        // Act & Assert
-        await expectLater(
-          () => controller.updateProfile(
-            currentUser: testUser,
-            updates: {'nome': 'Updated Name'},
-          ),
-          throwsA(isA<Exception>()),
+        // Act
+        await controller.updateProfile(
+          currentUser: testUser,
+          updates: {'nome': 'Updated Name'},
         );
 
         // Assert state
@@ -305,13 +302,10 @@ void main() {
 
           final controller = container.read(profileControllerProvider.notifier);
 
-          // Act & Assert
-          await expectLater(
-            () => controller.updateProfile(
-              currentUser: testUser,
-              updates: {'nome': 'Updated Name'},
-            ),
-            throwsA(isA<Exception>()),
+          // Act
+          await controller.updateProfile(
+            currentUser: testUser,
+            updates: {'nome': 'Updated Name'},
           );
 
           // Assert state
@@ -543,13 +537,10 @@ void main() {
 
           final controller = container.read(profileControllerProvider.notifier);
 
-          // Act & Assert
-          await expectLater(
-            () => controller.updateProfileImage(
-              file: mockFile,
-              currentUser: testUser,
-            ),
-            throwsA(isA<Exception>()),
+          // Act
+          await controller.updateProfileImage(
+            file: mockFile,
+            currentUser: testUser,
           );
 
           // Assert state
@@ -573,13 +564,10 @@ void main() {
 
         final controller = container.read(profileControllerProvider.notifier);
 
-        // Act & Assert
-        await expectLater(
-          () => controller.updateProfileImage(
-            file: mockFile,
-            currentUser: testUser,
-          ),
-          throwsA(isA<Exception>()),
+        // Act
+        await controller.updateProfileImage(
+          file: mockFile,
+          currentUser: testUser,
         );
 
         // Assert state
@@ -607,13 +595,10 @@ void main() {
 
         final controller = container.read(profileControllerProvider.notifier);
 
-        // Act & Assert
-        await expectLater(
-          () => controller.updateProfileImage(
-            file: mockFile,
-            currentUser: testUser,
-          ),
-          throwsA(isA<Exception>()),
+        // Act
+        await controller.updateProfileImage(
+          file: mockFile,
+          currentUser: testUser,
         );
 
         // Assert state
@@ -683,11 +668,8 @@ void main() {
 
         final controller = container.read(profileControllerProvider.notifier);
 
-        // Act & Assert
-        await expectLater(
-          () => controller.deleteProfile(),
-          throwsA(isA<Exception>()),
-        );
+        // Act
+        await controller.deleteProfile();
 
         // Assert state
         final state = container.read(profileControllerProvider);

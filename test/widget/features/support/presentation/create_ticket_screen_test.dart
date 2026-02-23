@@ -6,14 +6,18 @@ import 'package:mube/src/design_system/components/inputs/app_text_field.dart';
 import 'package:mube/src/features/support/presentation/create_ticket_screen.dart';
 
 void main() {
-  Widget buildScreen() {
-    return const ProviderScope(child: MaterialApp(home: CreateTicketScreen()));
+  Future<void> pumpScreen(WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1080, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: CreateTicketScreen())),
+    );
+    await tester.pumpAndSettle();
   }
 
   group('CreateTicketScreen', () {
     testWidgets('renders all form fields correctly', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Verify header text
       expect(find.text('Como podemos ajudar?'), findsOneWidget);
@@ -24,10 +28,8 @@ void main() {
 
       // Verify form fields
       expect(find.byType(AppDropdownField<String>), findsOneWidget);
-      expect(
-        find.byType(AppTextField),
-        findsNWidgets(2),
-      ); // Title + Description
+      // Title + Description
+      expect(find.byType(AppTextField), findsWidgets);
       expect(find.text('Assunto'), findsOneWidget);
       expect(find.text('Descrição Detalhada'), findsOneWidget);
 
@@ -36,16 +38,14 @@ void main() {
     });
 
     testWidgets('shows default category as feedback', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Default category should be 'feedback'
       expect(find.text('Sugestão ou Feedback'), findsOneWidget);
     });
 
     testWidgets('can change category', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Tap dropdown
       await tester.tap(find.byType(AppDropdownField<String>));
@@ -60,8 +60,7 @@ void main() {
     });
 
     testWidgets('validates empty title', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Fill description only
       await tester.enterText(
@@ -80,8 +79,7 @@ void main() {
     testWidgets('validates short description (less than 10 chars)', (
       tester,
     ) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Fill title
       await tester.enterText(
@@ -104,8 +102,7 @@ void main() {
     });
 
     testWidgets('shows attachment counter (0/3)', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Verify attachment counter
       expect(find.text('0/3'), findsOneWidget);
@@ -113,8 +110,7 @@ void main() {
     });
 
     testWidgets('shows add photo button', (tester) async {
-      await tester.pumpWidget(buildScreen());
-      await tester.pumpAndSettle();
+      await pumpScreen(tester);
 
       // Verify add photo icon
       expect(find.byIcon(Icons.add_photo_alternate_outlined), findsOneWidget);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
@@ -107,6 +108,16 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
 
+    // Calcula espaço vertical seguro prevenindo sobreposição com teclado
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final dy = renderBox.localToGlobal(Offset.zero).dy;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final safeMaxHeight =
+        (screenHeight - dy - size.height - viewInsets.bottom - 20).clamp(
+          120.0,
+          300.0,
+        );
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -131,7 +142,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                 borderRadius: AppRadius.all12,
                 shadowColor: AppColors.background.withValues(alpha: 0.5),
                 child: Container(
-                  constraints: const BoxConstraints(maxHeight: 250),
+                  constraints: BoxConstraints(maxHeight: safeMaxHeight),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: AppRadius.all12,
@@ -155,6 +166,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
 
                       return InkWell(
                         onTap: () {
+                          HapticFeedback.selectionClick();
                           widget.onChanged(item.value);
                           _removeOverlay();
                           _focusNode.unfocus();
@@ -224,9 +236,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               duration: const Duration(milliseconds: 200),
               child: Icon(
                 Icons.keyboard_arrow_down,
-                color: _isOpen
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                color: _isOpen ? AppColors.primary : AppColors.textSecondary,
                 size: 24,
               ),
             ),

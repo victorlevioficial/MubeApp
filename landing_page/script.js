@@ -76,62 +76,7 @@
     observer.observe(el);
   });
 
-  /* ---- Counter Animation ---- */
-  var counters = document.querySelectorAll('.stat__number[data-target]');
-  var counterStarted = {};
 
-  var counterObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting) {
-        var el = entry.target;
-        var id = el.getAttribute('data-target');
-
-        if (counterStarted[id]) return;
-        counterStarted[id] = true;
-
-        animateCounter(el, parseInt(id, 10));
-        counterObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  counters.forEach(function (counter) {
-    counterObserver.observe(counter);
-  });
-
-  function animateCounter(element, target) {
-    var duration = 2000;
-    var startTime = null;
-    var startVal = 0;
-
-    function easeOutExpo(t) {
-      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-    }
-
-    function step(timestamp) {
-      if (!startTime) startTime = timestamp;
-      var progress = Math.min((timestamp - startTime) / duration, 1);
-      var easedProgress = easeOutExpo(progress);
-      var currentVal = Math.floor(startVal + (target - startVal) * easedProgress);
-
-      element.textContent = formatNumber(currentVal);
-
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      } else {
-        element.textContent = formatNumber(target);
-      }
-    }
-
-    requestAnimationFrame(step);
-  }
-
-  function formatNumber(num) {
-    if (num >= 1000) {
-      return num.toLocaleString('pt-BR');
-    }
-    return num.toString();
-  }
 
   /* ---- Active Nav Link Highlighting ---- */
   var sections = document.querySelectorAll('section[id]');

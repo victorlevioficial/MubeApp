@@ -86,7 +86,7 @@ class PublicProfileScreen extends ConsumerWidget {
               child: Text(
                 state.error!,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary.withOpacity(0.8),
+                  color: AppColors.textSecondary.withValues(alpha: 0.8),
                 ),
               ),
             );

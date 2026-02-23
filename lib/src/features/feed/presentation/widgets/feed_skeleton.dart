@@ -40,7 +40,7 @@ class FeedScreenSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.s16),
       child: Shimmer.fromColors(
         baseColor: AppColors.skeletonBase,
-        highlightColor: AppColors.skeletonHighlight.withOpacity(0.5),
+        highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
         child: Row(
           children: [
             Container(
@@ -91,7 +91,7 @@ class FeedScreenSkeleton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
           child: Shimmer.fromColors(
             baseColor: AppColors.skeletonBase,
-            highlightColor: AppColors.skeletonHighlight.withOpacity(0.5),
+            highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
             child: Container(
               width: 150,
               height: 20,

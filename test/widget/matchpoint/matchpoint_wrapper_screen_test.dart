@@ -8,7 +8,9 @@ import 'package:mube/src/design_system/components/loading/app_loading_indicator.
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
+import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_intro_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_tabs_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
@@ -24,14 +26,12 @@ void main() {
     // Stub default behavior
     try {
       provideDummy<Either<Failure, LikesQuotaInfo>>(
-        Right(
-          LikesQuotaInfo(remaining: 10, limit: 10, resetTime: DateTime.now()),
-        ),
+        const Left(ServerFailure(message: 'dummy')),
       );
     } catch (_) {}
 
     when(mockRepo.getRemainingLikes()).thenAnswer(
-      (_) async => Right(
+      (_) async => Right<Failure, LikesQuotaInfo>(
         LikesQuotaInfo(remaining: 10, limit: 10, resetTime: DateTime.now()),
       ),
     );
@@ -42,13 +42,15 @@ void main() {
         blockedUsers: anyNamed('blockedUsers'),
         limit: anyNamed('limit'),
       ),
-    ).thenAnswer((_) async => const Right([]));
+    ).thenAnswer((_) async => const Right<Failure, List<AppUser>>([]));
 
-    when(mockRepo.fetchMatches(any)).thenAnswer((_) async => const Right([]));
+    when(
+      mockRepo.fetchMatches(any),
+    ).thenAnswer((_) async => const Right<Failure, List<MatchInfo>>([]));
 
     when(
       mockRepo.fetchHashtagRanking(limit: anyNamed('limit')),
-    ).thenAnswer((_) async => const Right([]));
+    ).thenAnswer((_) async => const Right<Failure, List<HashtagRanking>>([]));
   });
 
   Widget createTestWidget(AsyncValue<AppUser?> userProfileState) {

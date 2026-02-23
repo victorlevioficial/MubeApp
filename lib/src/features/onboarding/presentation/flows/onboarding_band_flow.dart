@@ -364,7 +364,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                           horizontal: AppSpacing.s10,
                           vertical: AppSpacing.s4,
                         ),
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.surfaceHighlight,
                           borderRadius: AppRadius.all8,
                         ),

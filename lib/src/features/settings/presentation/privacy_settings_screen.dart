@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
-import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
-import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
-import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
-import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
+import '../../auth/data/auth_repository.dart';
+import '../../moderation/data/blocked_users_provider.dart';
 
 class PrivacySettingsScreen extends ConsumerWidget {
   const PrivacySettingsScreen({super.key});
@@ -26,7 +30,11 @@ class PrivacySettingsScreen extends ConsumerWidget {
               user.matchpointProfile?['is_active'] == true;
           final isVisibleHome =
               (user.privacySettings['visible_in_home'] as bool?) ?? true;
-          final blockedCount = user.blockedUsers.length;
+
+          final legacyBlockedCount = user.blockedUsers.length;
+          final stateBlockedCount =
+              ref.watch(blockedUsersProvider).value?.length ?? 0;
+          final totalBlockedCount = legacyBlockedCount + stateBlockedCount;
 
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.s16),
@@ -74,7 +82,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 subtitle: Text(
-                  '$blockedCount usuários',
+                  '$totalBlockedCount usuários',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -84,13 +92,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
                   color: AppColors.textTertiary,
                 ),
                 onTap: () {
-                  // Navigate to blocked users list (ToDo)
-                  // context.push(RoutePaths.blockedUsers);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Lista de bloqueados em breve'),
-                    ),
-                  );
+                  context.push(RoutePaths.blockedUsers);
                 },
               ),
             ],

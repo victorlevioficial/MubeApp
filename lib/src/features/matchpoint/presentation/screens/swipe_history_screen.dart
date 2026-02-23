@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
@@ -8,7 +9,6 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class SwipeHistoryScreen extends ConsumerWidget {

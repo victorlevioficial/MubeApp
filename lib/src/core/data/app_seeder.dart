@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -662,6 +663,11 @@ class AppSeeder {
     AppConfig config,
     void Function(String) onProgress,
   ) async {
+    if (!kDebugMode) {
+      onProgress('Seeding is only allowed in debug mode.');
+      return;
+    }
+
     // Basic seeded users for testing interactions
     // These 20 users are consistent and will be used for predictable testing
     await _seedBasicUsers(config, onProgress);
@@ -685,6 +691,11 @@ class AppSeeder {
 
   /// Deletes all users created by the seeder
   Future<void> deleteSeededProfiles(void Function(String) onProgress) async {
+    if (!kDebugMode) {
+      onProgress('Deletion of seeded profiles is only allowed in debug mode.');
+      return;
+    }
+
     onProgress('Searching for seeded profiles...');
 
     // Find all users with email ending in @seeded.mube.app
@@ -1258,6 +1269,10 @@ class AppSeeder {
   // SEED APP CONFIG
   // ============================================================================
   Future<void> seedAppConfig() async {
+    if (!kDebugMode) {
+      print('[AppSeeder] Cannot seed app config: only allowed in debug mode.');
+      return;
+    }
     print('[AppSeeder] Seeding App Config...');
     final configCollection = _firestore.collection('config');
 

@@ -1,0 +1,45 @@
+﻿{
+  "brand": "MubeApp",
+  "version": "2026-02-21",
+  "recommended": {
+    "horizontal": {
+      "dark_background": "brand-horizontal-primary.svg",
+      "light_background": "brand-horizontal-light.svg",
+      "photo_with_dark_overlay": "brand-horizontal-white-cutout.svg",
+      "disabled_or_grayscale": "brand-horizontal-neutral.svg"
+    },
+    "vertical": {
+      "dark_background": "brand-vertical-primary.svg",
+      "light_background": "brand-vertical-light.svg",
+      "photo_with_dark_overlay": "brand-vertical-white-cutout.svg",
+      "mono_dark": "brand-vertical-dark-mono.svg",
+      "disabled_or_grayscale": "brand-vertical-neutral.svg"
+    },
+    "icon": {
+      "primary": "brand-icon-primary.svg",
+      "white_cutout": "brand-icon-white-cutout.svg",
+      "mono_dark": "brand-icon-dark-mono.svg",
+      "disabled_or_grayscale": "brand-icon-neutral.svg"
+    }
+  },
+  "files": [
+    "brand-horizontal-primary.svg",
+    "brand-horizontal-light.svg",
+    "brand-horizontal-white-cutout.svg",
+    "brand-horizontal-neutral.svg",
+    "brand-vertical-primary.svg",
+    "brand-vertical-light.svg",
+    "brand-vertical-white-cutout.svg",
+    "brand-vertical-dark-mono.svg",
+    "brand-vertical-neutral.svg",
+    "brand-icon-primary.svg",
+    "brand-icon-white-cutout.svg",
+    "brand-icon-dark-mono.svg",
+    "brand-icon-neutral.svg",
+    "brand-wordmark-dark.svg",
+    "brand-wordmark-light.svg",
+    "brand-wordmark-dark-alt.svg",
+    "brand-square-card.svg",
+    "brand-square-primary.svg"
+  ]
+}

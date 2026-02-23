@@ -1,0 +1,21 @@
+﻿{
+  "brand": "MubeApp",
+  "updated_at": "2026-02-21",
+  "colors": {
+    "primary": "#E8466C",
+    "primary_pressed": "#D13F61",
+    "celebration_pink": "#FF69B4",
+    "background_deep": "#0A0A0A",
+    "surface_1": "#141414",
+    "surface_2": "#1F1F1F",
+    "highlight": "#292929",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#B3B3B3",
+    "text_muted": "#737373",
+    "text_disabled": "#525252",
+    "success": "#22C55E",
+    "warning": "#F59E0B",
+    "error": "#EF4444",
+    "info": "#3B82F6"
+  }
+}

@@ -54,22 +54,25 @@ class _GalleryItem extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ClipRRect(
-            borderRadius: AppRadius.all8,
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              fadeInDuration: Duration.zero,
-              fadeOutDuration: Duration.zero,
-              useOldImageOnUrlChange: true,
-              cacheManager: ImageCacheConfig.thumbnailCacheManager,
-              placeholder: (context, url) =>
-                  AppShimmer.box(borderRadius: AppRadius.r8),
-              errorWidget: (context, url, error) => Container(
-                color: AppColors.surface,
-                child: const Icon(
-                  Icons.broken_image,
-                  color: AppColors.textSecondary,
+          Hero(
+            tag: 'media_${item.id}',
+            child: ClipRRect(
+              borderRadius: AppRadius.all8,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
+                useOldImageOnUrlChange: true,
+                cacheManager: ImageCacheConfig.thumbnailCacheManager,
+                placeholder: (context, url) =>
+                    AppShimmer.box(borderRadius: AppRadius.r8),
+                errorWidget: (context, url, error) => Container(
+                  color: AppColors.surface,
+                  child: const Icon(
+                    Icons.broken_image,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ),
