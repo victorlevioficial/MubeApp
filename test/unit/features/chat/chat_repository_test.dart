@@ -90,7 +90,7 @@ void main() {
     });
 
     group('deleteConversation', () {
-      test('should delete conversation and previews successfully', () async {
+      test('should delete only my preview and keep conversation', () async {
         await repository.getOrCreateConversation(
           myUid: myUid,
           otherUid: otherUid,
@@ -110,7 +110,23 @@ void main() {
             .collection('conversations')
             .doc(conversationId)
             .get();
-        expect(conversation.exists, false);
+        expect(conversation.exists, true);
+
+        final myPreview = await fakeFirestore
+            .collection('users')
+            .doc(myUid)
+            .collection('conversationPreviews')
+            .doc(conversationId)
+            .get();
+        expect(myPreview.exists, false);
+
+        final otherPreview = await fakeFirestore
+            .collection('users')
+            .doc(otherUid)
+            .collection('conversationPreviews')
+            .doc(conversationId)
+            .get();
+        expect(otherPreview.exists, true);
       });
     });
   });

@@ -31,8 +31,8 @@ class LocationService {
     String url, {
     Map<String, String>? headers,
   }) async {
-    if (kIsWeb) {
-      // CORS helper for web dev only.
+    if (kIsWeb && kDebugMode) {
+      // CORS helper strictly for local web debugging.
       final proxyUrl = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
       return await http.get(Uri.parse(proxyUrl), headers: headers);
     }

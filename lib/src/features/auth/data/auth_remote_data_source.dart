@@ -48,6 +48,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'likeCount',
     'favorites_count',
     'members',
+    'private_stats',
+    'plan',
   };
 
   AuthRemoteDataSourceImpl(this._auth, this._firestore);

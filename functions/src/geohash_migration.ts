@@ -1,6 +1,44 @@
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import {defineSecret} from "firebase-functions/params";
+import {onRequest} from "firebase-functions/v2/https";
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
+import type {Request, Response} from "express";
+
+const migrationToken = defineSecret("MIGRATION_TOKEN");
+
+/**
+ * Validates migration endpoint authorization using an HTTP header token.
+ *
+ * @param {Request} req Incoming HTTP request.
+ * @param {Response} res HTTP response writer.
+ * @return {boolean} True when authorized, false otherwise.
+ */
+function ensureMigrationAuthorized(
+  req: Request,
+  res: Response
+): boolean {
+  if (req.method !== "POST") {
+    res.status(405).json({success: false, error: "Method Not Allowed"});
+    return false;
+  }
+
+  const configuredToken = migrationToken.value();
+  if (!configuredToken) {
+    res.status(500).json({
+      success: false,
+      error: "MIGRATION_TOKEN is not configured",
+    });
+    return false;
+  }
+
+  const providedToken = req.get("x-migration-token");
+  if (!providedToken || providedToken !== configuredToken) {
+    res.status(403).json({success: false, error: "Forbidden"});
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Cloud Function para migrar usuários existentes adicionando geohash.
@@ -10,97 +48,109 @@ import {onDocumentUpdated} from "firebase-functions/v2/firestore";
  *
  * URL: https://us-central1-<project-id>.cloudfunctions.net/migrategeohashes
  */
-export const migrategeohashes = functions.https.onRequest(async (req, res) => {
-  try {
-    console.log("🚀 Iniciando migração de geohashes...");
+export const migrategeohashes = onRequest(
+  {
+    region: "us-central1",
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    secrets: [migrationToken],
+  },
+  async (req, res) => {
+    if (!ensureMigrationAuthorized(req, res)) {
+      return;
+    }
 
-    const db = admin.firestore();
-    const usersRef = db.collection("users");
+    try {
+      console.log("🚀 Iniciando migração de geohashes...");
 
-    // Busca todos os usuários
-    const snapshot = await usersRef.get();
+      const db = admin.firestore();
+      const usersRef = db.collection("users");
 
-    let updatedCount = 0;
-    let skippedCount = 0;
-    let errorCount = 0;
+      // Busca todos os usuários
+      const snapshot = await usersRef.get();
 
-    const batch = db.batch();
-    let batchCount = 0;
-    const BATCH_SIZE = 500; // Firestore limit
+      let updatedCount = 0;
+      let skippedCount = 0;
+      let errorCount = 0;
 
-    for (const doc of snapshot.docs) {
-      const userData = doc.data();
+      const batch = db.batch();
+      let batchCount = 0;
+      const BATCH_SIZE = 500; // Firestore limit
 
-      // Pula se já tiver geohash
-      if (userData.geohash) {
-        skippedCount++;
-        continue;
-      }
+      for (const doc of snapshot.docs) {
+        const userData = doc.data();
 
-      // Verifica se tem localização válida
-      const location = userData.location;
-      if (!location ||
-          location.lat == null ||
-          location.lng == null ||
-          isNaN(location.lat) ||
-          isNaN(location.lng)) {
-        console.log(`⚠️ Usuário ${doc.id} sem localização válida`);
-        skippedCount++;
-        continue;
-      }
-
-      try {
-        // Calcula geohash
-        const lat = parseFloat(location.lat);
-        const lng = parseFloat(location.lng);
-        const geohash = encodeGeohash(lat, lng, 5);
-
-        // Atualiza no batch
-        batch.update(doc.ref, {
-          geohash: geohash,
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        updatedCount++;
-        batchCount++;
-
-        // Commit a cada BATCH_SIZE
-        if (batchCount >= BATCH_SIZE) {
-          await batch.commit();
-          console.log(`✅ Batch de ${batchCount} usuários atualizado`);
-          batchCount = 0;
+        // Pula se já tiver geohash
+        if (userData.geohash) {
+          skippedCount++;
+          continue;
         }
-      } catch (error) {
-        console.error(`❌ Erro ao processar usuário ${doc.id}:`, error);
-        errorCount++;
+
+        // Verifica se tem localização válida
+        const location = userData.location;
+        if (!location ||
+            location.lat == null ||
+            location.lng == null ||
+            isNaN(location.lat) ||
+            isNaN(location.lng)) {
+          console.log(`⚠️ Usuário ${doc.id} sem localização válida`);
+          skippedCount++;
+          continue;
+        }
+
+        try {
+          // Calcula geohash
+          const lat = parseFloat(location.lat);
+          const lng = parseFloat(location.lng);
+          const geohash = encodeGeohash(lat, lng, 5);
+
+          // Atualiza no batch
+          batch.update(doc.ref, {
+            geohash: geohash,
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          updatedCount++;
+          batchCount++;
+
+          // Commit a cada BATCH_SIZE
+          if (batchCount >= BATCH_SIZE) {
+            await batch.commit();
+            console.log(`✅ Batch de ${batchCount} usuários atualizado`);
+            batchCount = 0;
+          }
+        } catch (error) {
+          console.error(`❌ Erro ao processar usuário ${doc.id}:`, error);
+          errorCount++;
+        }
       }
+
+      // Commit do batch final
+      if (batchCount > 0) {
+        await batch.commit();
+        console.log(`✅ Batch final de ${batchCount} usuários atualizado`);
+      }
+
+      const result = {
+        success: true,
+        totalUsers: snapshot.size,
+        updated: updatedCount,
+        skipped: skippedCount,
+        errors: errorCount,
+        message: `Migração concluída! ${updatedCount} usuários atualizados.`,
+      };
+
+      console.log("✅ Migração concluída:", result);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("❌ Erro na migração:", error);
+      res.status(500).json({
+        success: false,
+        error: (error as Error).message,
+      });
     }
-
-    // Commit do batch final
-    if (batchCount > 0) {
-      await batch.commit();
-      console.log(`✅ Batch final de ${batchCount} usuários atualizado`);
-    }
-
-    const result = {
-      success: true,
-      totalUsers: snapshot.size,
-      updated: updatedCount,
-      skipped: skippedCount,
-      errors: errorCount,
-      message: `Migração concluída! ${updatedCount} usuários atualizados.`,
-    };
-
-    console.log("✅ Migração concluída:", result);
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("❌ Erro na migração:", error);
-    res.status(500).json({
-      success: false,
-      error: (error as Error).message,
-    });
   }
-});
+);
 
 /**
  * Cloud Function para atualizar geohash quando localização muda.

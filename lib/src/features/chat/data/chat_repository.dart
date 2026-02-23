@@ -2,11 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
-import 'package:mube/src/core/services/analytics/analytics_provider.dart';
+
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 
@@ -291,8 +291,8 @@ class ChatRepository {
         .snapshots();
   }
 
-  /// Deleta a conversa e os previews dos usuários.
-  /// (As mensagens permanecem na subcollection, mas inacessíveis pelo app)
+  /// Oculta a conversa para o usuário atual removendo apenas seu preview.
+  /// Mantém conversa e preview do outro usuário para respeitar as rules.
   FutureResult<Unit> deleteConversation({
     required String conversationId,
     required String myUid,
@@ -308,23 +308,6 @@ class ChatRepository {
           .collection('conversationPreviews')
           .doc(conversationId);
       batch.delete(myPreviewRef);
-
-      // 2. Deletar preview do outro usuário (Opcional: Se for Unmatch, ambos somem?)
-      // Se for apenas "apagar conversa", só o meu some.
-      // Se for "Unmatch", ambos somem.
-      // Vou assumir que deleteConversation apaga para AMBOS se passado both UIDs.
-      final otherPreviewRef = _firestore
-          .collection('users')
-          .doc(otherUid)
-          .collection('conversationPreviews')
-          .doc(conversationId);
-      batch.delete(otherPreviewRef);
-
-      // 3. Deletar metadados da conversa (Doc pai)
-      final conversationRef = _firestore
-          .collection('conversations')
-          .doc(conversationId);
-      batch.delete(conversationRef);
 
       await batch.commit();
 

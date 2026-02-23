@@ -33,6 +33,7 @@ import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/domain/saved_address.dart';
 import '../features/settings/presentation/addresses_screen.dart';
+import '../features/settings/presentation/blocked_users_screen.dart';
 import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -223,6 +224,8 @@ List<RouteBase> _buildRoutes(Ref ref) {
                 ),
                 GoRoute(
                   path: 'maintenance',
+                  redirect: (context, state) =>
+                      kDebugMode ? null : RoutePaths.settings,
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
                     child: const MaintenanceScreen(),
@@ -243,6 +246,13 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
                     child: const PrivacySettingsScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'blocked-users',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const BlockedUsersScreen(),
                   ),
                 ),
                 GoRoute(
