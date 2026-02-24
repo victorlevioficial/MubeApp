@@ -7,7 +7,11 @@
  * - members é um array dentro do documento de banda
  */
 
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {
+  onCall,
+  HttpsError,
+  CallableRequest,
+} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
@@ -31,6 +35,16 @@ interface ManageBandInviteResponse {
 }
 
 type PendingInvite = Record<string, unknown>;
+
+/**
+ * Retorna true quando o token de Auth indica email verificado.
+ *
+ * @param {CallableRequest<unknown>} request - Requisição callable.
+ * @return {boolean} Status de verificação do email no token.
+ */
+function hasVerifiedEmail(request: CallableRequest<unknown>): boolean {
+  return request.auth?.token?.["email_verified"] === true;
+}
 
 /**
  * Cloud Function: manageBandInvite
@@ -72,6 +86,12 @@ export const manageBandInvite = onCall(
     try {
       switch (action) {
       case "send":
+        if (!hasVerifiedEmail(request)) {
+          throw new HttpsError(
+            "permission-denied",
+            "Verifique seu email para enviar convites"
+          );
+        }
         if (!bandId || !targetUid) {
           throw new HttpsError(
             "invalid-argument",

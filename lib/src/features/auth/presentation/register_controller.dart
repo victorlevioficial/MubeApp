@@ -48,12 +48,15 @@ class RegisterController extends _$RegisterController {
   }) async {
     state = const AsyncLoading();
     final result = await action();
+    if (!ref.mounted) return;
 
     result.fold(
       (failure) {
+        if (!ref.mounted) return;
         state = AsyncError(failure.message, StackTrace.current);
       },
       (success) {
+        if (!ref.mounted) return;
         if (logSignupComplete) {
           ref
               .read(analyticsServiceProvider)

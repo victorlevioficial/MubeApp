@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -425,6 +426,24 @@ class FakeFeedImagePrecacheService extends Fake
     List<FeedItem> items, {
     int maxItems = 10,
   }) {}
+
+  @override
+  Future<void> precacheCriticalItems(
+    dynamic context,
+    List<FeedItem> items, {
+    int maxItems = 6,
+    Duration timeout = const Duration(milliseconds: 1800),
+  }) async {}
+
+  @override
+  Future<void> precacheCriticalUrls(
+    dynamic context,
+    List<String> urls, {
+    required CacheManager cacheManager,
+    int? maxWidth,
+    int? maxHeight,
+    Duration timeout = const Duration(milliseconds: 1800),
+  }) async {}
 }
 
 /// Fake implementation of NotificationRepository
@@ -557,6 +576,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
     required String text,
     required String myUid,
     required String otherUid,
+    String? clientMessageId,
   }) async {
     if (throwError) return const Left(ServerFailure(message: 'Failed'));
     return const Right(unit);

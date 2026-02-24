@@ -9,6 +9,7 @@ class Message {
   final String text;
   final Timestamp createdAt;
   final String type;
+  final String? clientMessageId;
 
   const Message({
     required this.id,
@@ -16,6 +17,7 @@ class Message {
     required this.text,
     required this.createdAt,
     this.type = 'text',
+    this.clientMessageId,
   });
 
   /// Cria Message a partir de DocumentSnapshot do Firestore
@@ -29,6 +31,7 @@ class Message {
       // Handle optimistic writes locally where serverTimestamp is not yet resolved
       createdAt: data['createdAt'] as Timestamp? ?? Timestamp.now(),
       type: data['type'] as String? ?? 'text',
+      clientMessageId: data['clientMessageId'] as String?,
     );
   }
 
@@ -39,6 +42,7 @@ class Message {
       'text': text,
       'createdAt': createdAt,
       'type': type,
+      if (clientMessageId != null) 'clientMessageId': clientMessageId,
     };
   }
 }

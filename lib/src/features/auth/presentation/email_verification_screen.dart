@@ -16,6 +16,7 @@ import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../data/auth_repository.dart';
 
 part 'email_verification_screen.g.dart';
@@ -122,12 +123,20 @@ class EmailVerificationController extends _$EmailVerificationController {
   /// Silent check that doesn't show loading state (for background polling)
   Future<void> _silentCheckVerificationStatus() async {
     try {
-      final isVerified = await ref
-          .read(authRepositoryProvider)
-          .isEmailVerified();
-      if (isVerified) {
+      final authRepository = ref.read(authRepositoryProvider);
+      final isEmailVerified = await authRepository.isEmailVerified();
+      if (isEmailVerified) {
+        final isTokenSynced = await authRepository.hasVerifiedEmailTokenClaim(
+          forceRefresh: true,
+        );
+        if (!isTokenSynced) return;
+
         _checkTimer?.cancel();
         _verificationStopwatch.stop();
+
+        // Force provider to emit updated value so guard sees emailVerified == true
+        ref.invalidate(authStateChangesProvider);
+
         state = state.copyWith(
           isVerified: true,
           verificationTimeSeconds: _verificationStopwatch.elapsed.inSeconds,
@@ -144,12 +153,27 @@ class EmailVerificationController extends _$EmailVerificationController {
       // Reset polling to be more aggressive when user clicks
       _currentIntervalIndex = 0;
 
-      final isVerified = await ref
-          .read(authRepositoryProvider)
-          .isEmailVerified();
-      if (isVerified) {
+      final authRepository = ref.read(authRepositoryProvider);
+      final isEmailVerified = await authRepository.isEmailVerified();
+      if (isEmailVerified) {
+        final isTokenSynced = await authRepository.hasVerifiedEmailTokenClaim(
+          forceRefresh: true,
+        );
+        if (!isTokenSynced) {
+          state = state.copyWith(
+            isLoading: false,
+            error:
+                'Email verificado. Aguarde alguns segundos para sincronizar e tente novamente.',
+          );
+          return;
+        }
+
         _checkTimer?.cancel();
         _verificationStopwatch.stop();
+
+        // Force provider to emit updated value so guard sees emailVerified == true
+        ref.invalidate(authStateChangesProvider);
+
         state = state.copyWith(
           isLoading: false,
           isVerified: true,
@@ -240,6 +264,9 @@ class _EmailVerificationScreenState
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  ProviderSubscription<EmailVerificationState>? _errorSubscription;
+  ProviderSubscription<EmailVerificationState>? _verificationSubscription;
+  bool _handledVerifiedNavigation = false;
 
   @override
   void initState() {
@@ -253,12 +280,51 @@ class _EmailVerificationScreenState
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _errorSubscription = ref.listenManual<EmailVerificationState>(
+      emailVerificationControllerProvider,
+      (previous, next) {
+        if (next.error != null && previous?.error != next.error && mounted) {
+          AppSnackBar.show(context, next.error!, isError: true);
+        }
+      },
+    );
+
+    _verificationSubscription = ref.listenManual<EmailVerificationState>(
+      emailVerificationControllerProvider,
+      (previous, next) {
+        final becameVerified =
+            next.isVerified && !(previous?.isVerified ?? false);
+        if (becameVerified) {
+          _handleVerifiedNavigation();
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
+    _errorSubscription?.close();
+    _verificationSubscription?.close();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  void _handleVerifiedNavigation() {
+    if (!mounted || _handledVerifiedNavigation) return;
+    _handledVerifiedNavigation = true;
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    final router = GoRouter.of(context);
+    final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+    if (currentPath != RoutePaths.splash) {
+      router.go(RoutePaths.splash);
+    }
   }
 
   @override
@@ -267,30 +333,6 @@ class _EmailVerificationScreenState
     if (l10n == null) return const SizedBox.shrink();
 
     final state = ref.watch(emailVerificationControllerProvider);
-
-    // Listen for errors and show snackbar
-    ref.listen<EmailVerificationState>(emailVerificationControllerProvider, (
-      previous,
-      next,
-    ) {
-      if (next.error != null && previous?.error != next.error) {
-        if (context.mounted) {
-          AppSnackBar.show(context, next.error!, isError: true);
-        }
-      }
-    });
-
-    // Navigate when verified
-    ref.listen<EmailVerificationState>(emailVerificationControllerProvider, (
-      previous,
-      next,
-    ) {
-      if (next.isVerified && !(previous?.isVerified ?? false)) {
-        if (context.mounted) {
-          context.go('/onboarding');
-        }
-      }
-    });
 
     final user = ref.watch(authRepositoryProvider).currentUser;
     final email = user?.email ?? 'seu email';

@@ -15,6 +15,17 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  /// The conversation currently being viewed by the user.
+  /// When set, push notifications for this conversation are suppressed
+  /// (messages still arrive via real-time listeners).
+  static String? activeConversationId;
+
+  /// Sets the active conversation to suppress push notifications for it.
+  static void setActiveConversation(String? conversationId) {
+    activeConversationId = conversationId;
+    AppLogger.info('Active conversation set to: ${conversationId ?? "none"}');
+  }
+
   Future<void> init() async {
     try {
       // 0. Init Local Notifications
@@ -71,7 +82,6 @@ class PushNotificationService {
         final apnsToken = await _fcm.getAPNSToken();
         if (apnsToken == null) {
           AppLogger.warning('APNS Token not yet available');
-          // Wait a bit? Or just return? Usually getting FCM token handles this internally but good to check.
         }
       }
 
@@ -84,36 +94,8 @@ class PushNotificationService {
       // 3. Listen for Token Refresh
       _fcm.onTokenRefresh.listen(_saveTokenToFirestore);
 
-      // 4. Handle Foreground Messages
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        AppLogger.info('Got a message whilst in the foreground!');
-
-        // Emit to global event bus for Riverpod consumers
-        PushNotificationEventBus.instance.emitMessage(message);
-
-        final notification = message.notification;
-        final android = message.notification?.android;
-
-        // Show local banner if notification exists
-        if (notification != null && android != null) {
-          _localNotifications.show(
-            notification.hashCode,
-            notification.title,
-            notification.body,
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'high_importance_channel',
-                'Notificações Importantes',
-                channelDescription:
-                    'Usado para mensagens e alertas importantes.',
-                icon: '@mipmap/launcher_icon',
-                importance: Importance.max,
-                priority: Priority.high,
-              ),
-            ),
-          );
-        }
-      });
+      // 4. Handle Foreground Messages (with anti-flood suppression)
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
       // 5. Handle Background/Terminated Message Tap
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
@@ -123,6 +105,61 @@ class PushNotificationService {
       });
     } catch (e, stack) {
       AppLogger.error('Failed to init PushNotificationService', e, stack);
+    }
+  }
+
+  /// Handles foreground messages with contextual suppression.
+  ///
+  /// If the user is currently viewing the conversation that the message
+  /// belongs to, the push notification banner is NOT shown (the message
+  /// is already visible in real-time via Firestore listeners).
+  void _handleForegroundMessage(RemoteMessage message) {
+    AppLogger.info('Got a message whilst in the foreground!');
+
+    // Emit to global event bus for Riverpod consumers (always)
+    PushNotificationEventBus.instance.emitMessage(message);
+
+    final notification = message.notification;
+    final conversationId = message.data['conversation_id'];
+
+    // Suppress push banner if user is viewing this conversation
+    if (conversationId != null && conversationId == activeConversationId) {
+      AppLogger.info(
+        'Push suppressed — user is viewing conversation $conversationId',
+      );
+      return;
+    }
+
+    // Show local notification with grouping and stable ID
+    if (notification != null) {
+      // Use conversation-based ID so pushes from the same
+      // conversation REPLACE each other instead of stacking
+      final notificationId = conversationId?.hashCode ?? notification.hashCode;
+
+      final groupKey = conversationId != null
+          ? 'chat_$conversationId'
+          : 'general';
+
+      _localNotifications.show(
+        notificationId,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            'high_importance_channel',
+            'Notificações Importantes',
+            channelDescription: 'Usado para mensagens e alertas importantes.',
+            icon: '@mipmap/launcher_icon',
+            importance: Importance.max,
+            priority: Priority.high,
+            groupKey: groupKey,
+            setAsGroupSummary: false,
+          ),
+          iOS: DarwinNotificationDetails(
+            threadIdentifier: conversationId ?? 'general',
+          ),
+        ),
+      );
     }
   }
 
@@ -137,7 +174,6 @@ class PushNotificationService {
       });
       AppLogger.info('FCM Token saved to Firestore for user ${user.uid}');
     } catch (e) {
-      // Ignore if user doc doesn't exist or other error, but verify rules allow update.
       AppLogger.warning('Error saving FCM token: $e');
     }
   }

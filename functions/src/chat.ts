@@ -6,7 +6,11 @@
  * - Validações de segurança e privacidade
  */
 
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {
+  onCall,
+  HttpsError,
+  CallableRequest,
+} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
@@ -34,6 +38,16 @@ interface InitiateContactResponse {
 const ALLOWED_CONTEXTS = ["match", "band", "event"] as const;
 
 /**
+ * Retorna true quando o token de Auth indica email verificado.
+ *
+ * @param {CallableRequest<unknown>} request - Requisição callable.
+ * @return {boolean} Status de verificação do email no token.
+ */
+function hasVerifiedEmail(request: CallableRequest<unknown>): boolean {
+  return request.auth?.token?.["email_verified"] === true;
+}
+
+/**
  * Cloud Function: initiateContact
  *
  * Inicia uma conversa entre dois usuários:
@@ -56,6 +70,13 @@ export const initiateContact = onCall(
   async (request): Promise<InitiateContactResponse> => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Usuário não autenticado");
+    }
+
+    if (!hasVerifiedEmail(request)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Verifique seu email para iniciar contato"
+      );
     }
 
     const currentUserId = request.auth.uid;

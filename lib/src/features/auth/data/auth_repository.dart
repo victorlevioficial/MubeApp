@@ -10,6 +10,7 @@ import '../../../core/errors/failures.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
+import '../../../utils/auth_exception_handler.dart';
 import '../domain/app_user.dart';
 import 'auth_remote_data_source.dart';
 
@@ -105,7 +106,10 @@ class AuthRepository {
           'error_message': e.message ?? 'Unknown error',
         },
       );
-      return Left(AuthFailure(message: e.message ?? 'Registration failed'));
+      // Use AuthExceptionHandler to get user-friendly pt-BR message
+      return Left(
+        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+      );
     } catch (e) {
       await _analytics?.logEvent(
         name: 'registration_error',
@@ -115,7 +119,9 @@ class AuthRepository {
           'error_message': e.toString(),
         },
       );
-      return Left(AuthFailure(message: e.toString()));
+      return Left(
+        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+      );
     }
   }
 
@@ -240,12 +246,43 @@ class AuthRepository {
     return await _dataSource.isEmailVerified();
   }
 
+  /// Verifica o claim `email_verified` presente no ID token usado pelas Rules.
+  ///
+  /// Use isso para garantir que regras do Firestore que dependem desse claim
+  /// já reconhecerão o usuário como verificado.
+  Future<bool> hasVerifiedEmailTokenClaim({bool forceRefresh = false}) async {
+    final user = _dataSource.currentUser;
+    if (user == null) return false;
+
+    final tokenResult = await user.getIdTokenResult(forceRefresh);
+    final claim = tokenResult.claims?['email_verified'];
+    return claim == true;
+  }
+
   Future<void> reloadUser() async {
     await _dataSource.reloadUser();
   }
 
   bool get isCurrentUserEmailVerified {
     return _dataSource.currentUser?.emailVerified ?? false;
+  }
+
+  /// Ensures the authenticated user has a profile document in Firestore.
+  ///
+  /// Useful to recover from inconsistent states where Auth user exists
+  /// but profile creation failed previously.
+  FutureResult<Unit> ensureCurrentUserProfileExists() async {
+    try {
+      final user = _dataSource.currentUser;
+      if (user == null) {
+        return const Left(AuthFailure(message: 'No user logged in'));
+      }
+
+      await _ensureUserProfileExists(user);
+      return const Right(unit);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   FutureResult<Unit> signInWithGoogle() async {

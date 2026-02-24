@@ -17,14 +17,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.66"
-  accessibility_tools:
-    dependency: transitive
-    description:
-      name: accessibility_tools
-      sha256: c29732e423175a51e0a6ace7df1255f5d77812c7c7b7101d8ba0186a43d533aa
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.8.0"
   analyzer:
     dependency: transitive
     description:
@@ -393,14 +385,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
-  device_frame_plus:
-    dependency: transitive
-    description:
-      name: device_frame_plus
-      sha256: ccc94abccd4d9f0a9f19ef239001b3a59896e678ad42601371d7065889f2bf78
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.5.0"
   diacritic:
     dependency: "direct main"
     description:
@@ -450,7 +434,7 @@ packages:
     source: hosted
     version: "0.5.3"
   faker:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: faker
       sha256: "544c34e9e1d322824156d5a8d451bc1bb778263b892aded24ec7ba77b0706624"
@@ -1215,14 +1199,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
-  inspector:
-    dependency: transitive
-    description:
-      name: inspector
-      sha256: a01ea538b15947a9189835cc910041bab91aea3ad7c421684118aa1040189ded
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.1.0"
   integration_test:
     dependency: "direct dev"
     description: flutter
@@ -1412,14 +1388,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.17.4"
-  nested:
-    dependency: transitive
-    description:
-      name: nested
-      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   network_image_mock:
     dependency: "direct dev"
     description:
@@ -1660,14 +1628,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
-  resizable_widget:
-    dependency: transitive
-    description:
-      name: resizable_widget
-      sha256: db2919754b93f386b9b3fb15e9f48f6c9d6d41f00a24397629133c99df86606a
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.5"
   riverpod:
     dependency: "direct main"
     description:
@@ -2289,30 +2249,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.1"
-  widgetbook:
-    dependency: "direct main"
-    description:
-      name: widgetbook
-      sha256: "0ffadb039b1811870b2f643e1730d419d38435b0e1931cc83f32ecd7e50200e4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.20.2"
-  widgetbook_annotation:
-    dependency: "direct main"
-    description:
-      name: widgetbook_annotation
-      sha256: "55504431b15eedef3c1fc4af2d108ac98b32610b59d4a4e2eea87a8515d17eef"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.9.0"
-  widgetbook_generator:
-    dependency: "direct dev"
-    description:
-      name: widgetbook_generator
-      sha256: d4fd5989abeac63825746e52e4497b3bac7c59dff3565c261040b07581d22f8e
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.20.1"
   win32:
     dependency: transitive
     description:

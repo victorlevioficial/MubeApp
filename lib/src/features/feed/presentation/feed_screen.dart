@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
 import '../../../core/mixins/pagination_mixin.dart';
+import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -42,6 +43,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Timer? _deferredPrecacheTimer;
   bool _isScrolled = false;
   int _precacheFingerprint = 0;
+  int _criticalWarmupFingerprint = 0;
+  bool _criticalWarmupInProgress = false;
+  bool _isInitialBatchWarmed = false;
 
   @override
   void initState() {
@@ -97,13 +101,90 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     context.push('/feed/list', extra: {'type': type});
   }
 
+  void _maybeWarmCriticalBatch(FeedState state) {
+    if (!mounted) return;
+
+    if (state.isInitialLoading) {
+      _criticalWarmupFingerprint = 0;
+      _criticalWarmupInProgress = false;
+      _isInitialBatchWarmed = false;
+      return;
+    }
+
+    if (_isInitialBatchWarmed || _criticalWarmupInProgress) return;
+
+    final criticalItems = state.items.take(10).toList();
+    final spotlightUrls = _getSpotlightItems(state)
+        .map((item) => item.foto)
+        .whereType<String>()
+        .where((url) => url.isNotEmpty)
+        .take(3)
+        .toList();
+
+    if (criticalItems.isEmpty && spotlightUrls.isEmpty) {
+      _isInitialBatchWarmed = true;
+      return;
+    }
+
+    final fingerprint = Object.hashAll([
+      ...criticalItems.map((item) => item.uid),
+      ...spotlightUrls,
+    ]);
+    if (fingerprint == _criticalWarmupFingerprint) return;
+    _criticalWarmupFingerprint = fingerprint;
+    _criticalWarmupInProgress = true;
+
+    final precacheService = ref.read(feedImagePrecacheServiceProvider);
+    final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+    final spotlightWidth =
+        (MediaQuery.sizeOf(context).width * 0.92 * pixelRatio)
+            .round()
+            .clamp(300, 1400)
+            .toInt();
+    final spotlightHeight = (200 * pixelRatio).round().clamp(200, 900).toInt();
+
+    unawaited(
+      Future.wait<void>([
+        precacheService.precacheCriticalItems(
+          context,
+          criticalItems,
+          maxItems: 10,
+          timeout: const Duration(milliseconds: 2200),
+        ),
+        if (spotlightUrls.isNotEmpty)
+          precacheService.precacheCriticalUrls(
+            context,
+            spotlightUrls,
+            cacheManager: ImageCacheConfig.optimizedCacheManager,
+            maxWidth: spotlightWidth,
+            maxHeight: spotlightHeight,
+            timeout: const Duration(milliseconds: 2200),
+          ),
+      ]).whenComplete(() {
+        if (!mounted) return;
+        setState(() {
+          _criticalWarmupInProgress = false;
+          _isInitialBatchWarmed = true;
+        });
+      }),
+    );
+  }
+
   List<FeedItem> _getSpotlightItems(FeedState state) {
     final allItems = <FeedItem>[];
     for (final items in state.sectionItems.values) {
       allItems.addAll(items);
     }
-    allItems.sort((a, b) => b.likeCount.compareTo(a.likeCount));
-    return allItems.take(5).toList();
+    if (allItems.isEmpty) {
+      allItems.addAll(state.items);
+    }
+    final uniqueItems = <String, FeedItem>{};
+    for (final item in allItems) {
+      uniqueItems[item.uid] = item;
+    }
+    final sortedItems = uniqueItems.values.toList();
+    sortedItems.sort((a, b) => b.likeCount.compareTo(a.likeCount));
+    return sortedItems.take(5).toList();
   }
 
   @override
@@ -115,6 +196,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     // Precache logic listener
     ref.listen(feedControllerProvider, (previous, next) {
       next.whenData((state) {
+        _maybeWarmCriticalBatch(state);
+
         // Precache in phases to reduce startup contention.
         final allItems = [
           ...state.items,
@@ -150,7 +233,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       });
     });
 
-    if (state.isInitialLoading) {
+    final shouldKeepSkeletonForWarmup =
+        !state.isInitialLoading &&
+        !_isInitialBatchWarmed &&
+        state.items.isNotEmpty;
+
+    if (state.isInitialLoading || shouldKeepSkeletonForWarmup) {
       return const FeedScreenSkeleton();
     }
 
@@ -180,13 +268,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
 
     final currentUser = ref.watch(currentUserProfileProvider).value;
+    final spotlightItems = _getSpotlightItems(state);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
-        onRefresh: () => controller.loadAllData(),
+        onRefresh: () async {
+          setState(() {
+            _criticalWarmupFingerprint = 0;
+            _criticalWarmupInProgress = false;
+            _isInitialBatchWarmed = false;
+          });
+          await controller.loadAllData();
+        },
         child: CustomScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
@@ -211,13 +307,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             ),
 
             // Spotlight carousel with top trending items
-            if (state.sectionItems.isNotEmpty &&
-                state.sectionItems.values.any((items) => items.isNotEmpty))
+            if (spotlightItems.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.s8),
                   child: FeaturedSpotlightCarousel(
-                    items: _getSpotlightItems(state),
+                    items: spotlightItems,
                     onItemTap: _navigateToUser,
                   ),
                 ),

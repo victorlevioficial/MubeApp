@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
@@ -41,7 +42,11 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       final conversationId = message.data['conversation_id'];
       if (conversationId != null && mounted) {
         final router = ref.read(goRouterProvider);
-        router.push('/conversation/$conversationId');
+        final targetPath = '/conversation/$conversationId';
+        final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+        if (currentPath != targetPath) {
+          router.push(targetPath);
+        }
       }
     });
   }
@@ -63,6 +68,11 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: goRouter,
+
+      // Wrap all screens with offline indicator banner
+      builder: (context, child) {
+        return OfflineIndicator(child: child ?? const SizedBox.shrink());
+      },
 
       // Localization configuration
       localizationsDelegates: const [

@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 /// Configuração otimizada para cache de imagens do AppMube.
@@ -7,18 +8,21 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 class ImageCacheConfig {
   /// Número máximo de objetos em cache na memória
   static const int maxMemoryCacheCount = 200;
+  static const int maxMemoryCacheSizeBytes = 120 * 1024 * 1024;
 
   /// Tamanho máximo do cache em disco (100 MB)
   static const int maxDiskCacheSize = 100 * 1024 * 1024;
 
   /// Tamanho máximo de arquivo individual para cache (10 MB)
   static const int maxFileSize = 10 * 1024 * 1024;
+  static const int minDecodeDimensionPx = 64;
+  static const int feedPrecacheMaxDimension = 720;
 
   /// Tempo de expiração do cache em disco (7 dias)
   static const Duration cacheDuration = Duration(days: 7);
 
   /// Cache manager customizado para imagens
-  static final CacheManager optimizedCacheManager = CacheManager(
+  static final CacheManager optimizedCacheManager = _MubeImageCacheManager(
     Config(
       'optimized_image_cache',
       stalePeriod: cacheDuration,
@@ -28,7 +32,7 @@ class ImageCacheConfig {
   );
 
   /// Cache manager para thumbnails (mais agressivo)
-  static final CacheManager thumbnailCacheManager = CacheManager(
+  static final CacheManager thumbnailCacheManager = _MubeImageCacheManager(
     Config(
       'thumbnail_cache',
       stalePeriod: const Duration(days: 14),
@@ -38,7 +42,7 @@ class ImageCacheConfig {
   );
 
   /// Cache manager para imagens de perfil (persistente)
-  static final CacheManager profileCacheManager = CacheManager(
+  static final CacheManager profileCacheManager = _MubeImageCacheManager(
     Config(
       'profile_cache',
       stalePeriod: const Duration(days: 30),
@@ -75,6 +79,17 @@ class ImageCacheConfig {
         return DefaultCacheManager();
     }
   }
+
+  /// Configura limites do cache de imagens em memoria do Flutter.
+  /// Deve ser chamado no bootstrap do app.
+  static void configureFlutterImageCache({
+    int? maximumSize,
+    int? maximumSizeBytes,
+  }) {
+    final imageCache = PaintingBinding.instance.imageCache;
+    imageCache.maximumSize = maximumSize ?? maxMemoryCacheCount;
+    imageCache.maximumSizeBytes = maximumSizeBytes ?? maxMemoryCacheSizeBytes;
+  }
 }
 
 /// Enum para tipos de cache de imagem
@@ -90,4 +105,9 @@ enum ImageCacheType {
 
   /// Cache padrão do sistema
   default_,
+}
+
+/// Cache manager com suporte a resize em disco para `maxWidth/maxHeight`.
+class _MubeImageCacheManager extends CacheManager with ImageCacheManager {
+  _MubeImageCacheManager(super.config);
 }

@@ -81,7 +81,7 @@ class MediaPickerService {
     return compressedFile;
   }
 
-  /// Pick a video, validate duration <= 60s, compress and generate thumbnail.
+  /// Pick a video, validate duration <= 30s, compress and generate thumbnail.
   /// Returns (videoFile, thumbnailFile) or null if cancelled/invalid.
   Future<(File video, File thumbnail)?> pickAndProcessVideo(
     BuildContext context,
@@ -95,39 +95,50 @@ class MediaPickerService {
 
     if (picked == null) return null;
 
-    // Get video info to check duration
-    final mediaInfo = await VideoCompress.getMediaInfo(picked.path);
-    final durationSeconds = (mediaInfo.duration ?? 0) / 1000;
+    try {
+      // Get video info to check duration
+      final mediaInfo = await VideoCompress.getMediaInfo(picked.path);
+      final durationSeconds = (mediaInfo.duration ?? 0) / 1000;
 
-    if (durationSeconds > maxVideoDurationSeconds) {
-      // Duration exceeds limit - show error
+      if (durationSeconds > maxVideoDurationSeconds) {
+        // Duration exceeds limit - show error
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'Vídeo muito longo! Máximo de $maxVideoDurationSeconds segundos.',
+          );
+        }
+        return null;
+      }
+
+      // Compress video to 480p for smaller file size
+      final compressedVideo = await VideoCompress.compressVideo(
+        picked.path,
+        quality: VideoQuality.Res640x480Quality,
+        deleteOrigin: false,
+        includeAudio: true,
+      );
+
+      if (compressedVideo?.file == null) return null;
+
+      // Generate thumbnail
+      final thumbnail = await VideoCompress.getFileThumbnail(
+        picked.path,
+        quality: 75,
+        position: 0,
+      );
+
+      return (compressedVideo!.file!, thumbnail);
+    } catch (e) {
+      // video_compress can crash on low-end devices — show friendly error
       if (context.mounted) {
         AppSnackBar.error(
           context,
-          'Vídeo muito longo! Máximo de $maxVideoDurationSeconds segundos.',
+          'Erro ao processar vídeo. Tente um vídeo menor.',
         );
       }
       return null;
     }
-
-    // Compress video to 480p for smaller file size
-    final compressedVideo = await VideoCompress.compressVideo(
-      picked.path,
-      quality: VideoQuality.Res640x480Quality,
-      deleteOrigin: false,
-      includeAudio: true,
-    );
-
-    if (compressedVideo?.file == null) return null;
-
-    // Generate thumbnail
-    final thumbnail = await VideoCompress.getFileThumbnail(
-      picked.path,
-      quality: 75,
-      position: 0,
-    );
-
-    return (compressedVideo!.file!, thumbnail);
   }
 
   /// Compress an image file.

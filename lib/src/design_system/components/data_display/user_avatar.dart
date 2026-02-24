@@ -50,13 +50,16 @@ class UserAvatar extends StatelessWidget {
       child: ClipOval(
         child: Container(
           color: AppColors.surface, // Background for the image area
-          child: _buildContent(),
+          child: _buildContent(context),
         ),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
+    final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+    final cacheSize = (size * pixelRatio).round().clamp(64, 1024).toInt();
+
     // If photo URL exists and is not empty, show image
     if (photoUrl != null && photoUrl!.isNotEmpty) {
       return CachedNetworkImage(
@@ -66,7 +69,10 @@ class UserAvatar extends StatelessWidget {
         fadeOutDuration: Duration.zero,
         useOldImageOnUrlChange: true,
         cacheManager: ImageCacheConfig.profileCacheManager,
-        memCacheWidth: (size * 2).toInt(),
+        memCacheWidth: cacheSize,
+        memCacheHeight: cacheSize,
+        maxWidthDiskCache: cacheSize,
+        maxHeightDiskCache: cacheSize,
         placeholder: (context, url) => _buildLoadingPlaceholder(),
         errorWidget: (context, url, error) => _buildInitialsAvatar(),
         // Use imageBuilder to ensure smooth rendering

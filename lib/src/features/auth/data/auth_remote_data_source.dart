@@ -125,7 +125,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> saveUserProfile(AppUser user) async {
-    final data = _prepareUserData(user);
+    final data = _prepareUserData(user, forCreate: true);
     await _firestore
         .collection(FirestoreCollections.users)
         .doc(user.uid)
@@ -144,11 +144,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   /// Prepara os dados do usuário adicionando geohash automaticamente
   Map<String, dynamic> _prepareUserData(
     AppUser user, {
+    bool forCreate = false,
     bool forUpdate = false,
   }) {
     final data = user.toFirestore();
 
-    if (forUpdate) {
+    if (forCreate || forUpdate) {
       for (final key in _blockedClientUpdateKeys) {
         data.remove(key);
       }

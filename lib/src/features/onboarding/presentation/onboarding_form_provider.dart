@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -179,30 +181,58 @@ class OnboardingFormState {
 
 class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   static const _storageKey = 'onboarding_form_state';
+  static const _persistDebounce = Duration(milliseconds: 350);
   final _locationService = LocationService();
+  SharedPreferences? _prefs;
+  Timer? _persistTimer;
 
   @override
   OnboardingFormState build() {
+    ref.onDispose(() {
+      _persistTimer?.cancel();
+    });
     _loadState();
     return const OnboardingFormState();
   }
 
+  Future<SharedPreferences> _getPrefs() async {
+    final prefs = _prefs;
+    if (prefs != null) return prefs;
+    final instance = await SharedPreferences.getInstance();
+    _prefs = instance;
+    return instance;
+  }
+
   Future<void> _loadState() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
+    if (!ref.mounted) return;
     final jsonStr = prefs.getString(_storageKey);
     if (jsonStr != null) {
-      state = OnboardingFormState.fromJson(jsonStr);
+      try {
+        state = OnboardingFormState.fromJson(jsonStr);
+      } catch (e, st) {
+        AppLogger.warning('Falha ao restaurar estado do onboarding', e, st);
+      }
     }
   }
 
   Future<void> _saveState() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
+    if (!ref.mounted) return;
     await prefs.setString(_storageKey, state.toJson());
   }
 
+  void _scheduleSave() {
+    _persistTimer?.cancel();
+    _persistTimer = Timer(_persistDebounce, () {
+      unawaited(_saveState());
+    });
+  }
+
   Future<void> clearState() async {
+    _persistTimer?.cancel();
     state = const OnboardingFormState();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.remove(_storageKey);
   }
 
@@ -240,33 +270,39 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   }
 
   void updateNome(String val) {
+    if (state.nome == val) return;
     state = state.copyWith(nome: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateNomeArtistico(String val) {
+    if (state.nomeArtistico == val) return;
     state = state.copyWith(nomeArtistico: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateCelular(String val) {
+    if (state.celular == val) return;
     state = state.copyWith(celular: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateDataNascimento(String val) {
+    if (state.dataNascimento == val) return;
     state = state.copyWith(dataNascimento: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateGenero(String val) {
+    if (state.genero == val) return;
     state = state.copyWith(genero: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateInstagram(String val) {
+    if (state.instagram == val) return;
     state = state.copyWith(instagram: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateCategories(List<String> val) => updateSelectedCategories(val);
@@ -277,43 +313,46 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
 
   void updateSelectedCategories(List<String> val) {
     state = state.copyWith(selectedCategories: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateSelectedGenres(List<String> val) {
     state = state.copyWith(selectedGenres: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateSelectedInstruments(List<String> val) {
     state = state.copyWith(selectedInstruments: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateSelectedRoles(List<String> val) {
     state = state.copyWith(selectedRoles: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateBackingVocalMode(String val) {
+    if (state.backingVocalMode == val) return;
     state = state.copyWith(backingVocalMode: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateInstrumentalistBackingVocal(bool val) {
+    if (state.instrumentalistBackingVocal == val) return;
     state = state.copyWith(instrumentalistBackingVocal: val);
-    _saveState();
+    _scheduleSave();
   }
 
   // Studio
   void updateStudioType(String val) {
+    if (state.studioType == val) return;
     state = state.copyWith(studioType: val);
-    _saveState();
+    _scheduleSave();
   }
 
   void updateSelectedServices(List<String> val) {
     state = state.copyWith(selectedServices: val);
-    _saveState();
+    _scheduleSave();
   }
 
   // Address
@@ -337,7 +376,7 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
       selectedLat: lat ?? state.selectedLat,
       selectedLng: lng ?? state.selectedLng,
     );
-    _saveState();
+    _scheduleSave();
   }
 }
 

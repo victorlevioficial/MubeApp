@@ -132,16 +132,15 @@ class PublicProfileController extends _$PublicProfileController {
     final targetUser = state.value?.user;
 
     if (currentUser == null || targetUser == null) return;
+    if (currentUser.uid == targetUser.uid) return;
 
     try {
-      // 1. Calculate conversation ID
       final repository = ref.read(chatRepositoryProvider);
       final conversationId = repository.getConversationId(
         currentUser.uid,
         targetUser.uid,
       );
 
-      // 2. Prepare extra data for optimistic header
       final extra = {
         'otherUserName': targetUser.appDisplayName.isNotEmpty
             ? targetUser.appDisplayName
@@ -150,7 +149,6 @@ class PublicProfileController extends _$PublicProfileController {
         'otherUserId': targetUser.uid,
       };
 
-      // 3. Navigate
       if (context.mounted) {
         await context.push(
           '${RoutePaths.conversation}/$conversationId',

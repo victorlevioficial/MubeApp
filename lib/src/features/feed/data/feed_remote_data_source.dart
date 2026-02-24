@@ -27,6 +27,7 @@ abstract class FeedRemoteDataSource {
     required List<String> neighbors,
     String? filterType,
     String? category,
+    int? limit,
   });
 
   Future<QuerySnapshot<Map<String, dynamic>>> getMainFeed({
@@ -130,6 +131,7 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
     required List<String> neighbors,
     String? filterType,
     String? category,
+    int? limit,
   }) {
     var query = _firestore
         .collection(FirestoreCollections.users)
@@ -157,6 +159,10 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
         '${FirestoreFields.professional}.${FirestoreFields.category}',
         isEqualTo: category,
       );
+    }
+
+    if (limit != null && limit > 0) {
+      query = query.limit(limit);
     }
 
     return query.get();

@@ -214,6 +214,8 @@ class FeedRepository {
           filterType: ProfileType.professional,
           userGeohash: userGeohash,
           excludedIds: excludedIds,
+          // Busca mais que o limite final para compensar filtro de tecnicos/artistas.
+          limit: limit * 4,
         );
         return result.map(
           (items) => _filterProfessionals(
@@ -385,6 +387,7 @@ class FeedRepository {
           excludeCategory: excludeCategory,
           userGeohash: userGeohash,
           excludedIds: excludedIds,
+          limit: limit,
           radiusKm: radiusKm,
         );
       }
@@ -414,6 +417,7 @@ class FeedRepository {
     String? excludeCategory,
     required String userGeohash,
     List<String> excludedIds = const [],
+    int? limit,
     double? radiusKm,
   }) async {
     final neighbors = GeohashHelper.neighbors(userGeohash);
@@ -422,6 +426,7 @@ class FeedRepository {
       neighbors: neighbors,
       filterType: filterType,
       category: category,
+      limit: limit,
     );
 
     final items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
@@ -443,6 +448,10 @@ class FeedRepository {
     }
 
     items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
+
+    if (limit != null && limit > 0 && items.length > limit) {
+      return Right(items.take(limit).toList());
+    }
 
     return Right(items);
   }

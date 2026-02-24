@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../features/auth/data/auth_repository.dart';
 import '../features/splash/providers/splash_provider.dart';
@@ -23,25 +25,27 @@ class AuthGuard {
   /// Returns:
   /// - `null` if no redirect is needed (allow navigation)
   /// - A path string if redirect is required
-  String? redirect(BuildContext context, GoRouterState state) {
+  FutureOr<String?> redirect(BuildContext context, GoRouterState state) async {
     final currentPath = state.uri.path;
 
     final authState = _ref.read(authStateChangesProvider);
     final userProfileAsync = _ref.read(currentUserProfileProvider);
     final splashFinished = _ref.read(splashFinishedProvider);
 
-    // If splash timer is not finished or auth is loading, remain on splash
-    if (!splashFinished || authState.isLoading) {
+    // During initial boot, keep splash as entry point.
+    if (!splashFinished) {
       if (currentPath == RoutePaths.splash) {
-        _log('Splash or Auth loading - waiting on splash screen');
+        _log('Splash loading - waiting on splash screen');
         return null; // Pass-through
       }
-      // If we are anywhere else, let them load where they are (like link from email)
-      // or force them to splash? Forcing to splash is safer.
-      // But if they clicked a deep link, we don't want to lose it.
-      // For now, let's just let splash screen be the entry. If not splash, let's wait inline if not auth.
-      // Actually go_router initialLocation is '/', so it will hit splash first.
       return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+    }
+
+    // After initial boot, avoid forcing a splash redirect on transient auth loading.
+    // This prevents register/login flows from bouncing through splash.
+    if (authState.isLoading) {
+      _log('Auth loading - waiting on current route');
+      return null;
     }
 
     final isLoggedIn = authState.value != null;
@@ -59,7 +63,7 @@ class AuthGuard {
     }
 
     // Logged in - check profile and onboarding status
-    return _handleAuthenticated(currentPath, userProfileAsync);
+    return await _handleAuthenticated(currentPath, userProfileAsync);
   }
 
   /// Handles redirect logic for unauthenticated users.
@@ -73,33 +77,50 @@ class AuthGuard {
   }
 
   /// Handles redirect logic for authenticated users based on profile status.
-  String? _handleAuthenticated(
+  Future<String?> _handleAuthenticated(
     String currentPath,
     AsyncValue<dynamic> userProfileAsync,
-  ) {
-    // Check if email is verified first
-    final authRepo = _ref.read(authRepositoryProvider);
-    final currentUser = authRepo.currentUser;
-
-    // If user is logged in but email is not verified, redirect to verification screen
-    if (currentUser != null && !currentUser.emailVerified) {
-      if (currentPath == RoutePaths.emailVerification) {
-        return null; // Already on verification screen
-      }
-      _log('Email not verified - redirecting to verification');
-      return RoutePaths.emailVerification;
+  ) async {
+    // Email verification can be opened from authenticated flows (e.g. chat send gate).
+    // Keep this route accessible to avoid redirect collisions with imperative push().
+    if (currentPath == RoutePaths.emailVerification) {
+      return null;
     }
 
-    // Profile not loaded yet - stay on splash if returning from startup
-    if (userProfileAsync.isLoading ||
-        !userProfileAsync.hasValue ||
-        userProfileAsync.value == null) {
+    // Profile not loaded yet.
+    if (userProfileAsync.isLoading || !userProfileAsync.hasValue) {
       if (currentPath == RoutePaths.splash) {
         _log('Profile loading - waiting on splash');
         return null; // Stay on splash
       }
-      // If they are on another screen (e.g. login) and profile is loading, redirect to splash to wait
+      // Keep auth-flow routes inline so signup/login doesn't bounce to splash.
+      if (_isAuthFlowRoute(currentPath)) {
+        _log('Profile loading on auth route - waiting inline');
+        return null;
+      }
+      // Outside auth-flow routes, keep previous behavior.
       return RoutePaths.splash;
+    }
+
+    // Recover from inconsistent state: Auth user exists but profile document
+    // was not created (for example, previous permission failures).
+    if (userProfileAsync.value == null) {
+      _log('Profile missing for authenticated user - attempting recovery');
+      final result = await _ref
+          .read(authRepositoryProvider)
+          .ensureCurrentUserProfileExists();
+
+      result.fold(
+        (failure) => _log('Profile recovery failed: ${failure.message}'),
+        (_) => _log('Profile recovery requested successfully'),
+      );
+
+      // While recovering, keep auth-flow routes inline to avoid splash bounce.
+      if (_isAuthFlowRoute(currentPath)) {
+        return null;
+      }
+      // Wait on splash while currentUserProfileProvider receives the new doc.
+      return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
     }
 
     final user = userProfileAsync.value!;
@@ -108,7 +129,7 @@ class AuthGuard {
     if (currentPath == RoutePaths.splash) {
       if (user.isTipoPendente) return RoutePaths.onboarding;
       if (user.isPerfilPendente) return RoutePaths.onboardingForm;
-      return RoutePaths.feed;
+      return await _guardCompletedUser(RoutePaths.splash);
     }
 
     // Check onboarding status for current navigation
@@ -121,7 +142,7 @@ class AuthGuard {
     }
 
     if (user.isCadastroConcluido) {
-      return _guardCompletedUser(currentPath);
+      return await _guardCompletedUser(currentPath);
     }
 
     return null;
@@ -141,11 +162,35 @@ class AuthGuard {
     return RoutePaths.onboardingForm;
   }
 
+  bool _isAuthFlowRoute(String path) {
+    return path == RoutePaths.login ||
+        path == RoutePaths.register ||
+        path == RoutePaths.forgotPassword ||
+        path == RoutePaths.emailVerification;
+  }
+
   /// User completed registration - redirect away from auth/onboarding screens.
-  String? _guardCompletedUser(String currentPath) {
+  Future<String?> _guardCompletedUser(String currentPath) async {
+    // Check if we need to show the notification permission screen
+    final prefs = await SharedPreferences.getInstance();
+    final hasShownPermission =
+        prefs.getBool('notification_permission_shown') ?? false;
+
+    if (!hasShownPermission) {
+      if (currentPath == RoutePaths.notificationPermission) return null;
+      _log('Redirecting to notification permission screen');
+      return RoutePaths.notificationPermission;
+    }
+
+    // Allow user to stay on notification permission screen even if already shown
+    // but typically they will navigate away by clicking a button.
+    if (currentPath == RoutePaths.notificationPermission) return null;
+
     final shouldRedirectToFeed =
         currentPath.startsWith(RoutePaths.onboarding) ||
-        (RoutePaths.isPublic(currentPath) && currentPath != RoutePaths.gallery);
+        (RoutePaths.isPublic(currentPath) &&
+            currentPath != RoutePaths.gallery) ||
+        currentPath == RoutePaths.splash;
 
     if (shouldRedirectToFeed) {
       _log('Completed user on restricted route - redirecting to feed');

@@ -14,7 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'src/app.dart';
 import 'src/core/services/analytics_service.dart';
-import 'src/core/services/push_notification_service.dart';
+import 'src/core/services/image_cache_config.dart';
 import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
@@ -30,6 +30,7 @@ void main() {
       final WidgetsBinding widgetsBinding =
           WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+      ImageCacheConfig.configureFlutterImageCache();
 
       // 1. Configure global error handlers.
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -98,10 +99,8 @@ Future<void> _initializeDeferredServices() async {
     await Future<void>.delayed(const Duration(milliseconds: 700));
     await RemoteConfigService.initialize();
 
-    // Push permission/initialization is expensive on some devices.
-    await Future<void>.delayed(const Duration(milliseconds: 1400));
-    await PushNotificationService().init();
-
+    // Push Notification é inicializado ao final do onboarding pela NotificationPermissionScreen
+    // ou no momento de login caso o usuário já tenha passado pela tela.
     await Future<void>.delayed(const Duration(milliseconds: 500));
     await _preloadFonts();
     AppLogger.info('Services initialized');

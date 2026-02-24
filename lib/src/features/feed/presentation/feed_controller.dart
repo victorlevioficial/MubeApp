@@ -124,6 +124,7 @@ class FeedController extends _$FeedController {
   bool _remoteHasMore = true;
   bool _geoFetchCompleted = false;
   DocumentSnapshot? _lastMainFeedDocument;
+  int _sectionsRequestToken = 0;
 
   @override
   FutureOr<FeedState> build() {
@@ -139,13 +140,14 @@ class FeedController extends _$FeedController {
     // Sync de favoritos com pequeno atraso para evitar competir com first paint.
     unawaited(_loadFavoritesDeferred());
     try {
+      final requestToken = ++_sectionsRequestToken;
       // Set user location from auth profile
       final user = await _resolveCurrentUserProfile();
       if (user != null) {
         _userLat = user.location?['lat'];
         _userLong = user.location?['lng'];
       }
-      // Prioriza o feed principal; secoes carregam depois.
+      // Prioriza o feed principal e libera a UI.
       await _fetchMainFeed(reset: true);
       final afterMainState = state.value ?? const FeedState();
       if (afterMainState.isInitialLoading) {
@@ -153,7 +155,10 @@ class FeedController extends _$FeedController {
           afterMainState.copyWithFeed(isInitialLoading: false),
         );
       }
-      unawaited(_loadSectionsDeferred());
+      if (user != null) {
+        // Sem atraso artificial para evitar que "Em Destaque" apareca tarde.
+        _loadSectionsInBackground(user, requestToken);
+      }
     } catch (e, stack) {
       AppLogger.error('Feed: erro ao carregar dados iniciais', e, stack);
       final latest = state.value ?? currentState;
@@ -176,27 +181,28 @@ class FeedController extends _$FeedController {
     }
   }
 
-  Future<void> _loadSectionsDeferred() async {
+  void _loadSectionsInBackground(AppUser user, int requestToken) {
+    unawaited(_loadSections(user: user, requestToken: requestToken));
+  }
+
+  Future<void> _loadSections({
+    required AppUser user,
+    required int requestToken,
+  }) async {
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      final sections = await _fetchSections();
+      final sections = await _fetchSections(user: user);
+      if (requestToken != _sectionsRequestToken) return;
       final latestState = state.value ?? const FeedState();
-      state = AsyncValue.data(
-        latestState.copyWithFeed(
-          sectionItems: sections,
-          isInitialLoading: false,
-        ),
-      );
+      state = AsyncValue.data(latestState.copyWithFeed(sectionItems: sections));
     } catch (error, stack) {
       AppLogger.error('Feed: erro ao carregar secoes', error, stack);
     }
   }
 
   // Loads horizontal feed sections in the background.
-  Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections() async {
-    final user = await _resolveCurrentUserProfile();
-    if (user == null) return {};
-
+  Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections({
+    required AppUser user,
+  }) async {
     final feedRepo = ref.read(feedRepositoryProvider);
     final items = <FeedSectionType, List<FeedItem>>{};
 
@@ -224,6 +230,7 @@ class FeedController extends _$FeedController {
             userLong: _userLong!,
             filterType: ProfileType.band,
             userGeohash: user.geohash,
+            limit: FeedDataConstants.sectionLimit * 3,
           ),
         ),
         fetchOrEmpty(
@@ -233,6 +240,7 @@ class FeedController extends _$FeedController {
             userLong: _userLong!,
             filterType: ProfileType.studio,
             userGeohash: user.geohash,
+            limit: FeedDataConstants.sectionLimit * 3,
           ),
         ),
       ]);

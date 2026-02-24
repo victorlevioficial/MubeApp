@@ -123,6 +123,7 @@ class ChatRepository {
     required String text,
     required String myUid,
     required String otherUid,
+    String? clientMessageId,
   }) async {
     try {
       final batch = _firestore.batch();
@@ -134,24 +135,28 @@ class ChatRepository {
           .collection('messages')
           .doc(); // Auto-gera ID
 
-      batch.set(messageRef, {
+      final messageData = <String, dynamic>{
         'senderId': myUid,
         'text': text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
         'type': 'text',
-      });
+      };
+      if (clientMessageId != null) {
+        messageData['clientMessageId'] = clientMessageId;
+      }
+      batch.set(messageRef, messageData);
 
       // 2. Metadata da conversa
       final conversationRef = _firestore
           .collection('conversations')
           .doc(conversationId);
 
-      batch.update(conversationRef, {
+      batch.set(conversationRef, {
         'lastMessageText': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       // 3. Preview do remetente (eu) - zera unread
       final myPreviewRef = _firestore
@@ -160,13 +165,13 @@ class ChatRepository {
           .collection('conversationPreviews')
           .doc(conversationId);
 
-      batch.update(myPreviewRef, {
+      batch.set(myPreviewRef, {
         'lastMessageText': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'unreadCount': 0,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       // 4. Preview do destinatário (outro) - incrementa unread
       final otherPreviewRef = _firestore
@@ -175,13 +180,13 @@ class ChatRepository {
           .collection('conversationPreviews')
           .doc(conversationId);
 
-      batch.update(otherPreviewRef, {
+      batch.set(otherPreviewRef, {
         'lastMessageText': text.trim(),
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'unreadCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       await batch.commit();
 

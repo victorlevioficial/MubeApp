@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../../core/services/image_cache_config.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
@@ -212,8 +213,15 @@ class OptimizedImage extends StatelessWidget {
     }
 
     // Calcula dimensões de cache baseadas na resolução e tamanho do widget
-    final cacheWidth = _calculateCacheWidth();
-    final cacheHeight = _calculateCacheHeight();
+    final cacheWidth = _calculateCacheWidth(context);
+    final cacheHeight = _calculateCacheHeight(context);
+    final effectiveCacheManager = cacheManager ?? _resolveCacheManager();
+    final maxWidthDiskCache = resolution == ImageResolution.full
+        ? null
+        : cacheWidth;
+    final maxHeightDiskCache = resolution == ImageResolution.full
+        ? null
+        : cacheHeight;
 
     Widget imageWidget = CachedNetworkImage(
       imageUrl: imageUrl!,
@@ -223,51 +231,79 @@ class OptimizedImage extends StatelessWidget {
       fadeInDuration: fadeInDuration,
       fadeOutDuration: const Duration(milliseconds: 100),
       httpHeaders: headers,
-      cacheManager: cacheManager,
-      placeholder: (context, url) =>
-          placeholder ?? _buildShimmerPlaceholder(),
-      errorWidget: (context, url, error) =>
-          errorWidget ?? _buildErrorWidget(),
+      cacheManager: effectiveCacheManager,
+      placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
+      errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),
       // Limita cache em memória para otimizar performance
       memCacheWidth: cacheWidth,
       memCacheHeight: cacheHeight,
       // Limita cache em disco
-      maxWidthDiskCache: cacheWidth != null ? cacheWidth * 2 : 1200,
-      maxHeightDiskCache: cacheHeight != null ? cacheHeight * 2 : 1200,
+      maxWidthDiskCache: maxWidthDiskCache,
+      maxHeightDiskCache: maxHeightDiskCache,
     );
 
     if (borderRadius != null) {
-      imageWidget = ClipRRect(
-        borderRadius: borderRadius!,
-        child: imageWidget,
-      );
+      imageWidget = ClipRRect(borderRadius: borderRadius!, child: imageWidget);
     }
 
     return imageWidget;
   }
 
   /// Calcula a largura do cache baseada na resolução e tamanho do widget
-  int? _calculateCacheWidth() {
-    if (resolution == ImageResolution.full) {
-      return width?.toInt();
-    }
-    final maxRes = resolution.maxDimension;
-    if (width != null && maxRes != null) {
-      return width! > maxRes ? maxRes : width!.toInt();
-    }
-    return maxRes ?? width?.toInt();
+  int? _calculateCacheWidth(BuildContext context) {
+    return _calculateCacheDimension(
+      context: context,
+      logicalSize: width,
+      maxResolution: resolution.maxDimension,
+    );
   }
 
   /// Calcula a altura do cache baseada na resolução e tamanho do widget
-  int? _calculateCacheHeight() {
+  int? _calculateCacheHeight(BuildContext context) {
+    return _calculateCacheDimension(
+      context: context,
+      logicalSize: height,
+      maxResolution: resolution.maxDimension,
+    );
+  }
+
+  int? _calculateCacheDimension({
+    required BuildContext context,
+    required double? logicalSize,
+    required int? maxResolution,
+  }) {
+    final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+    final scaledSize = logicalSize != null
+        ? (logicalSize * pixelRatio).round()
+        : null;
+
     if (resolution == ImageResolution.full) {
-      return height?.toInt();
+      if (scaledSize == null || scaledSize <= 0) return null;
+      return scaledSize;
     }
-    final maxRes = resolution.maxDimension;
-    if (height != null && maxRes != null) {
-      return height! > maxRes ? maxRes : height!.toInt();
+
+    if (scaledSize != null && scaledSize > 0 && maxResolution != null) {
+      return scaledSize
+          .clamp(ImageCacheConfig.minDecodeDimensionPx, maxResolution)
+          .toInt();
     }
-    return maxRes ?? height?.toInt();
+
+    if (scaledSize != null && scaledSize > 0) {
+      return scaledSize;
+    }
+
+    return maxResolution;
+  }
+
+  CacheManager _resolveCacheManager() {
+    switch (resolution) {
+      case ImageResolution.thumbnail:
+        return ImageCacheConfig.thumbnailCacheManager;
+      case ImageResolution.medium:
+      case ImageResolution.large:
+      case ImageResolution.full:
+        return ImageCacheConfig.optimizedCacheManager;
+    }
   }
 
   Widget _buildShimmerPlaceholder() {
@@ -321,7 +357,7 @@ extension OptimizedImageCache on OptimizedImage {
 
   /// Limpa todo o cache de imagens
   static Future<void> clearAllCache() async {
-    await DefaultCacheManager().emptyCache();
+    await ImageCacheConfig.clearAllCaches();
   }
 
   /// Pré-carrega uma lista de URLs para cache
@@ -330,17 +366,40 @@ extension OptimizedImageCache on OptimizedImage {
     List<String> urls, {
     ImageResolution resolution = ImageResolution.medium,
   }) async {
-    for (final url in urls) {
-      if (url.isNotEmpty) {
-        final maxDimension = resolution.maxDimension ?? 800;
-        await precacheImage(
-          CachedNetworkImageProvider(
-            url,
-            maxWidth: maxDimension,
-            maxHeight: maxDimension,
-          ),
-          context,
-        );
+    final filteredUrls = urls.where((url) => url.isNotEmpty).toList();
+    if (filteredUrls.isEmpty) return;
+
+    final maxDimension =
+        resolution.maxDimension ?? ImageCacheConfig.feedPrecacheMaxDimension;
+    final cacheManager = resolution == ImageResolution.thumbnail
+        ? ImageCacheConfig.thumbnailCacheManager
+        : ImageCacheConfig.optimizedCacheManager;
+    const batchSize = 3;
+
+    for (var i = 0; i < filteredUrls.length; i += batchSize) {
+      final end = (i + batchSize).clamp(0, filteredUrls.length);
+      final batch = filteredUrls.sublist(i, end);
+
+      await Future.wait(
+        batch.map((url) async {
+          try {
+            await precacheImage(
+              CachedNetworkImageProvider(
+                url,
+                cacheManager: cacheManager,
+                maxWidth: maxDimension,
+                maxHeight: maxDimension,
+              ),
+              context,
+            );
+          } catch (_) {
+            // Ignore individual image failures to keep preload pipeline flowing.
+          }
+        }),
+      );
+
+      if (end < filteredUrls.length) {
+        await Future<void>.delayed(const Duration(milliseconds: 16));
       }
     }
   }
@@ -388,10 +447,7 @@ class OptimizedImageList extends StatelessWidget {
           return itemBuilder!(context, url, index);
         }
 
-        return OptimizedImage.card(
-          imageUrl: url,
-          resolution: resolution,
-        );
+        return OptimizedImage.card(imageUrl: url, resolution: resolution);
       },
     );
   }

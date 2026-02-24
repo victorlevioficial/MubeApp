@@ -14,7 +14,7 @@ import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../design_system/presentation/widgetbook_screen.dart';
+
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_type.dart';
@@ -165,19 +165,7 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push('/developer-tools'),
                     customAccentColor: AppColors.warning,
                   ),
-                  NeonSettingsTile(
-                    icon: Icons.palette_outlined,
-                    title: 'Widgetbook (Style Guide)',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const WidgetbookScreen(),
-                        ),
-                      );
-                    },
-                    customAccentColor: AppColors.primary,
-                  ),
+
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
                     title: 'Popular Banco (MatchPoint)',
