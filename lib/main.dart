@@ -19,9 +19,9 @@ import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 
-const bool _enableDebugAppCheck = bool.fromEnvironment(
-  'ENABLE_APP_CHECK_DEBUG',
-  defaultValue: false,
+const String _appCheckDebugToken = String.fromEnvironment(
+  'APP_CHECK_DEBUG_TOKEN',
+  defaultValue: '11111111-2222-4333-8444-555555555555',
 );
 
 void main() {
@@ -71,6 +71,10 @@ void main() {
         AppLogger.error('Erro ao inicializar Firebase', e, stack);
       }
 
+      if (firebaseReady) {
+        await _initializeAppCheck();
+      }
+
       runApp(const ProviderScope(child: MubeApp()));
       FlutterNativeSplash.remove();
 
@@ -89,7 +93,6 @@ void main() {
 
 Future<void> _initializeDeferredServices() async {
   try {
-    await _initializeAppCheck();
     await AppLogger.initialize();
 
     // Stage non-critical services to reduce startup contention on Home.
@@ -116,23 +119,22 @@ Future<void> _initializeAppCheck() async {
         // ignore: deprecated_member_use
         androidProvider: app_check.AndroidProvider.playIntegrity,
         // ignore: deprecated_member_use
-        appleProvider: app_check.AppleProvider.deviceCheck,
-      );
-      return;
-    }
-
-    if (!_enableDebugAppCheck) {
-      AppLogger.info(
-        'App Check desativado em debug. Ative com --dart-define=ENABLE_APP_CHECK_DEBUG=true',
+        appleProvider: app_check.AppleProvider.appAttestWithDeviceCheckFallback,
       );
       return;
     }
 
     await app_check.FirebaseAppCheck.instance.activate(
-      // ignore: deprecated_member_use
-      androidProvider: app_check.AndroidProvider.debug,
+      providerAndroid: const app_check.AndroidDebugProvider(),
+      providerApple: const app_check.AppleDebugProvider(
+        debugToken: _appCheckDebugToken,
+      ),
     );
-    AppLogger.info('App Check debug provider ativado em desenvolvimento');
+    AppLogger.info(
+      'App Check debug provider ativado em desenvolvimento. '
+      'Token iOS atual: $_appCheckDebugToken. '
+      'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
+    );
   } catch (e, stack) {
     AppLogger.warning('Falha ao inicializar App Check', e, stack);
   }

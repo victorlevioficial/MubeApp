@@ -8,8 +8,10 @@ import '../../../constants/firestore_constants.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/utils/rate_limiter.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/app_user.dart';
 import '../../feed/data/feed_repository.dart';
 import '../../feed/domain/feed_item.dart';
+import '../../moderation/data/blocked_users_provider.dart';
 import '../data/search_repository.dart';
 import '../domain/search_filters.dart';
 
@@ -130,6 +132,12 @@ class SearchController extends Notifier<SearchPaginationState> {
       }
 
       if (next.value != prev?.value) {
+        _performSearch();
+      }
+    });
+
+    ref.listen(blockedUsersProvider, (prev, next) {
+      if (prev != next) {
         _performSearch();
       }
     });
@@ -256,7 +264,7 @@ class SearchController extends Notifier<SearchPaginationState> {
 
     try {
       final user = ref.read(currentUserProfileProvider).value;
-      final blockedUsers = user?.blockedUsers ?? [];
+      final blockedUsers = await _resolveBlockedUsers(user);
       final userLat =
           (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
       final userLng =
@@ -344,7 +352,7 @@ class SearchController extends Notifier<SearchPaginationState> {
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
     final user = ref.read(currentUserProfileProvider).value;
-    final blockedUsers = user?.blockedUsers ?? [];
+    final blockedUsers = await _resolveBlockedUsers(user);
     final userId = user?.uid ?? 'anonymous';
     final userLat =
         (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
@@ -572,6 +580,33 @@ class SearchController extends Notifier<SearchPaginationState> {
 
   void cancelDebounce() {
     _debounceTimer?.cancel();
+  }
+
+  Future<List<String>> _resolveBlockedUsers(
+    AppUser? user, {
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    final blocked = <String>{};
+    if (user != null) {
+      blocked.addAll(user.blockedUsers);
+    }
+
+    final blockedState = ref.read(blockedUsersProvider);
+    final immediate = blockedState.value;
+    if (immediate != null) {
+      blocked.addAll(immediate);
+    } else if (blockedState.isLoading) {
+      try {
+        final streamed = await ref
+            .read(blockedUsersProvider.future)
+            .timeout(timeout);
+        blocked.addAll(streamed);
+      } catch (_) {
+        // fallback com dados já disponíveis
+      }
+    }
+
+    return blocked.toList();
   }
 }
 

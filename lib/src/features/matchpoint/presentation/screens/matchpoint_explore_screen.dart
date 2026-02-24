@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../constants/firestore_constants.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -153,6 +154,12 @@ class _MatchpointExploreScreenState
 
         if (!swipeResult.success) {
           debugPrint('Swipe blocked: backend returned failure.');
+          final message = ref
+                  .read(matchpointControllerProvider)
+                  .whenOrNull(error: (err, _) => err.toString()) ??
+              'Não foi possível registrar seu like agora. Tente novamente.';
+          if (!mounted) return false;
+          AppSnackBar.error(context, message);
           return false;
         }
 
@@ -201,6 +208,13 @@ class _MatchpointExploreScreenState
 
         if (success) {
           debugPrint('Disliked ${user.nome}');
+        } else {
+          final message = ref
+                  .read(matchpointControllerProvider)
+                  .whenOrNull(error: (err, _) => err.toString()) ??
+              'Não foi possível registrar seu dislike agora. Tente novamente.';
+          if (!mounted) return false;
+          AppSnackBar.error(context, message);
         }
 
         return success;

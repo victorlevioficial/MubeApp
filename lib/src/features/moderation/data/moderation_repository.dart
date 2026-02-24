@@ -44,16 +44,28 @@ class ModerationRepository {
     required String blockedUserId,
   }) async {
     try {
-      // Add to user's blocked collection
-      await _firestore
+      final userRef = _firestore
           .collection(FirestoreCollections.users)
-          .doc(currentUserId)
+          .doc(currentUserId);
+      final blockedRef = userRef
           .collection(FirestoreCollections.blocked)
-          .doc(blockedUserId)
-          .set({
-            'blockedUserId': blockedUserId,
-            'blockedAt': FieldValue.serverTimestamp(),
-          });
+          .doc(blockedUserId);
+
+      final batch = _firestore.batch();
+
+      // Fonte nova (subcoleção)
+      batch.set(blockedRef, {
+        'blockedUserId': blockedUserId,
+        'blockedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Fonte legada (array no documento) para compatibilidade com listas já existentes.
+      batch.update(userRef, {
+        'blocked_users': FieldValue.arrayUnion([blockedUserId]),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
 
       return const Right(null);
     } catch (e) {
@@ -67,12 +79,21 @@ class ModerationRepository {
     required String blockedUserId,
   }) async {
     try {
-      await _firestore
+      final userRef = _firestore
           .collection(FirestoreCollections.users)
-          .doc(currentUserId)
+          .doc(currentUserId);
+      final blockedRef = userRef
           .collection(FirestoreCollections.blocked)
-          .doc(blockedUserId)
-          .delete();
+          .doc(blockedUserId);
+
+      final batch = _firestore.batch();
+      batch.delete(blockedRef);
+      batch.update(userRef, {
+        'blocked_users': FieldValue.arrayRemove([blockedUserId]),
+        'updated_at': FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
 
       return const Right(null);
     } catch (e) {

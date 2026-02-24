@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
@@ -54,6 +56,59 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   MatchpointRemoteDataSourceImpl(this._firestore, this._functions);
 
+  bool _isAuthContextError(FirebaseFunctionsException e) {
+    final code = e.code.toLowerCase();
+    final message = (e.message ?? '').toLowerCase();
+    if (code == 'unauthenticated') return true;
+
+    final appCheckHint = message.contains('app check');
+    return appCheckHint &&
+        (code == 'failed-precondition' || code == 'permission-denied');
+  }
+
+  Future<void> _refreshSecurityTokens() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        await currentUser.getIdToken(true);
+      } catch (e, stack) {
+        AppLogger.warning(
+          'Falha ao forçar refresh do FirebaseAuth token antes do retry',
+          e,
+          stack,
+        );
+      }
+    }
+
+    try {
+      await app_check.FirebaseAppCheck.instance.getToken(true);
+    } catch (e, stack) {
+      AppLogger.warning(
+        'Falha ao obter token App Check antes do retry',
+        e,
+        stack,
+      );
+    }
+  }
+
+  Future<HttpsCallableResult<dynamic>> _callWithRecovery(
+    String functionName, {
+    Map<String, dynamic>? data,
+  }) async {
+    final callable = _functions.httpsCallable(functionName);
+    try {
+      return await callable.call(data);
+    } on FirebaseFunctionsException catch (e) {
+      if (!_isAuthContextError(e)) rethrow;
+
+      AppLogger.warning(
+        '$functionName retornou ${e.code}. Fazendo refresh de sessão e retry único.',
+      );
+      await _refreshSecurityTokens();
+      return await callable.call(data);
+    }
+  }
+
   @override
   Future<List<AppUser>> fetchCandidates({
     required String currentUserId,
@@ -83,13 +138,95 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     final snapshot = await query.limit(limit).get();
 
     // 2. Map to AppUser and filter blocked users
-    return snapshot.docs
+    final primaryCandidates = snapshot.docs
         .where(
           (doc) => doc.id != currentUserId && !excludedUserIds.contains(doc.id),
         )
         .map((doc) => AppUser.fromJson(doc.data() as Map<String, dynamic>))
         .toList();
+
+    if (primaryCandidates.isNotEmpty || genres.isEmpty) {
+      return primaryCandidates;
+    }
+
+    // Fallback para dados legados:
+    // alguns perfis antigos salvaram gêneros em chaves diferentes dentro de
+    // matchpoint_profile (musicalGenres/musical_genres) ou só no perfil base.
+    final fallbackSnapshot = await _firestore
+        .collection(FirestoreCollections.users)
+        .where(
+          '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
+          isEqualTo: true,
+        )
+        .limit(limit * 5)
+        .get();
+
+    final targetGenres = genres
+        .map((genre) => _normalizeGenreToken(genre))
+        .where((genre) => genre.isNotEmpty)
+        .toSet();
+
+    final fallbackCandidates = fallbackSnapshot.docs
+        .where((doc) {
+          if (doc.id == currentUserId || excludedUserIds.contains(doc.id)) {
+            return false;
+          }
+          final data = doc.data();
+          return _hasAnyGenreMatch(data, targetGenres);
+        })
+        .map((doc) => AppUser.fromJson(doc.data()))
+        .take(limit);
+
+    final result = fallbackCandidates.toList();
+    if (result.isNotEmpty) {
+      AppLogger.info(
+        'MatchPoint fallback de gêneros acionado. candidatos=${result.length}',
+      );
+    }
+    return result;
   }
+
+  bool _hasAnyGenreMatch(
+    Map<String, dynamic> userData,
+    Set<String> targetGenres,
+  ) {
+    final genres = _extractCandidateGenres(
+      userData,
+    ).map(_normalizeGenreToken).where((genre) => genre.isNotEmpty);
+    return genres.any(targetGenres.contains);
+  }
+
+  List<String> _extractCandidateGenres(Map<String, dynamic> userData) {
+    final genres = <String>[];
+
+    final matchpointProfile =
+        userData[FirestoreFields.matchpointProfile] as Map<String, dynamic>?;
+    final fromMatchpoint =
+        matchpointProfile?[FirestoreFields.musicalGenres] ??
+        matchpointProfile?['musicalGenres'] ??
+        matchpointProfile?['musical_genres'] ??
+        matchpointProfile?['genres'];
+
+    if (fromMatchpoint is List) {
+      genres.addAll(fromMatchpoint.whereType<String>());
+    }
+
+    final professional = userData[FirestoreFields.professional];
+    if (professional is Map<String, dynamic>) {
+      final list = professional[FirestoreFields.musicalGenres];
+      if (list is List) genres.addAll(list.whereType<String>());
+    }
+
+    final band = userData[FirestoreFields.band];
+    if (band is Map<String, dynamic>) {
+      final list = band[FirestoreFields.musicalGenres];
+      if (list is List) genres.addAll(list.whereType<String>());
+    }
+
+    return genres;
+  }
+
+  String _normalizeGenreToken(String token) => token.trim().toLowerCase();
 
   @override
   Future<MatchpointActionResult> submitAction({
@@ -97,12 +234,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     required String action,
   }) async {
     try {
-      final callable = _functions.httpsCallable('submitMatchpointAction');
-
-      final result = await callable.call({
-        'targetUserId': targetUserId,
-        'action': action,
-      });
+      final result = await _callWithRecovery(
+        'submitMatchpointAction',
+        data: {'targetUserId': targetUserId, 'action': action},
+      );
 
       return MatchpointActionResult.fromJson(
         result.data as Map<String, dynamic>,
@@ -132,9 +267,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   @override
   Future<LikesQuotaInfo> getRemainingLikes() async {
     try {
-      final callable = _functions.httpsCallable('getRemainingLikes');
-
-      final result = await callable.call();
+      final result = await _callWithRecovery('getRemainingLikes');
 
       return LikesQuotaInfo.fromJson(result.data as Map<String, dynamic>);
     } on FirebaseFunctionsException catch (e) {

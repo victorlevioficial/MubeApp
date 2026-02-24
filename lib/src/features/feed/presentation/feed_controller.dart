@@ -11,6 +11,7 @@ import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
+import '../../moderation/data/blocked_users_provider.dart';
 import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
@@ -205,6 +206,7 @@ class FeedController extends _$FeedController {
   }) async {
     final feedRepo = ref.read(feedRepositoryProvider);
     final items = <FeedSectionType, List<FeedItem>>{};
+    final blockedIds = await _resolveBlockedIds(user: user);
 
     Future<List<FeedItem>> fetchOrEmpty(
       FutureResult<List<FeedItem>> call,
@@ -218,6 +220,7 @@ class FeedController extends _$FeedController {
         fetchOrEmpty(
           feedRepo.getTechnicians(
             currentUserId: user.uid,
+            excludedIds: blockedIds,
             userLat: _userLat,
             userLong: _userLong,
             limit: FeedDataConstants.sectionLimit,
@@ -230,6 +233,7 @@ class FeedController extends _$FeedController {
             userLong: _userLong!,
             filterType: ProfileType.band,
             userGeohash: user.geohash,
+            excludedIds: blockedIds,
             limit: FeedDataConstants.sectionLimit * 3,
           ),
         ),
@@ -240,6 +244,7 @@ class FeedController extends _$FeedController {
             userLong: _userLong!,
             filterType: ProfileType.studio,
             userGeohash: user.geohash,
+            excludedIds: blockedIds,
             limit: FeedDataConstants.sectionLimit * 3,
           ),
         ),
@@ -256,6 +261,7 @@ class FeedController extends _$FeedController {
         fetchOrEmpty(
           feedRepo.getTechnicians(
             currentUserId: user.uid,
+            excludedIds: blockedIds,
             userLat: _userLat,
             userLong: _userLong,
             limit: FeedDataConstants.sectionLimit,
@@ -265,6 +271,7 @@ class FeedController extends _$FeedController {
           feedRepo.getUsersByType(
             type: ProfileType.band,
             currentUserId: user.uid,
+            excludedIds: blockedIds,
             userLat: _userLat,
             userLong: _userLong,
             limit: FeedDataConstants.sectionLimit,
@@ -274,6 +281,7 @@ class FeedController extends _$FeedController {
           feedRepo.getUsersByType(
             type: ProfileType.studio,
             currentUserId: user.uid,
+            excludedIds: blockedIds,
             userLat: _userLat,
             userLong: _userLong,
             limit: FeedDataConstants.sectionLimit,
@@ -338,6 +346,7 @@ class FeedController extends _$FeedController {
       );
       return;
     }
+    final blockedIds = await _resolveBlockedIds(user: user);
 
     try {
       // Lógica simplificada:
@@ -387,7 +396,7 @@ class FeedController extends _$FeedController {
                   userLat: _userLat!,
                   userLong: _userLong!,
                   filterType: filterType,
-                  excludedIds: user.blockedUsers,
+                  excludedIds: blockedIds,
                   targetResults: FeedDataConstants.mainFeedBatchSize,
                 );
 
@@ -469,12 +478,17 @@ class FeedController extends _$FeedController {
             userId: user.uid,
             filterType: filterType,
             reset: reset,
+            blockedIds: blockedIds,
           );
         }
       } else {
         AppLogger.debug(
           'Feed: Usando paginação local, $localRemaining usuários restantes',
         );
+      }
+
+      if (blockedIds.isNotEmpty) {
+        _allSortedUsers.removeWhere((item) => blockedIds.contains(item.uid));
       }
 
       // Paginação local na lista ordenada
@@ -543,6 +557,7 @@ class FeedController extends _$FeedController {
     required String userId,
     required String? filterType,
     required bool reset,
+    required List<String> blockedIds,
   }) async {
     final result = await ref
         .read(feedRepositoryProvider)
@@ -572,8 +587,14 @@ class FeedController extends _$FeedController {
         _lastMainFeedDocument = response.lastDocument;
         _remoteHasMore = response.hasMore;
 
+        final remoteItems = blockedIds.isEmpty
+            ? response.items
+            : response.items
+                  .where((item) => !blockedIds.contains(item.uid))
+                  .toList();
+
         final existingIds = _allSortedUsers.map((u) => u.uid).toSet();
-        final newUsers = response.items
+        final newUsers = remoteItems
             .where((u) => !existingIds.contains(u.uid))
             .toList();
 
@@ -665,5 +686,27 @@ class FeedController extends _$FeedController {
     } catch (_) {
       return ref.read(currentUserProfileProvider).value;
     }
+  }
+
+  Future<List<String>> _resolveBlockedIds({
+    required AppUser user,
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    final blocked = <String>{...user.blockedUsers};
+    final blockedState = ref.read(blockedUsersProvider);
+    final immediate = blockedState.value;
+    if (immediate != null) {
+      blocked.addAll(immediate);
+    } else if (blockedState.isLoading) {
+      try {
+        final streamed = await ref
+            .read(blockedUsersProvider.future)
+            .timeout(timeout);
+        blocked.addAll(streamed);
+      } catch (_) {
+        // fallback com dados já disponíveis
+      }
+    }
+    return blocked.toList();
   }
 }

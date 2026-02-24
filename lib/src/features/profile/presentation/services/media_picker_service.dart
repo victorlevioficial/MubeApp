@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_compress/video_compress.dart';
@@ -14,9 +13,6 @@ class MediaPickerService {
   final ImagePicker _picker = ImagePicker();
 
   static const int maxVideoDurationSeconds = 30;
-  static const int photoQuality = 80;
-  static const int photoMaxWidth = 1080;
-  static const int photoMaxHeight = 1080;
 
   /// Pick and crop a photo with 1:1 aspect ratio.
   /// Returns null if user cancels.
@@ -28,6 +24,7 @@ class MediaPickerService {
       source: ImageSource.gallery,
       maxWidth: 2000,
       maxHeight: 2000,
+      imageQuality: 90,
     );
 
     if (picked == null) return null;
@@ -76,9 +73,9 @@ class MediaPickerService {
 
     if (croppedFile == null) return null;
 
-    // Compress the cropped image
-    final compressedFile = await _compressImage(File(croppedFile.path));
-    return compressedFile;
+    // Não comprime aqui para evitar trabalho duplicado.
+    // A compressão/derivação de tamanhos já ocorre no StorageRepository.
+    return File(croppedFile.path);
   }
 
   /// Pick a video, validate duration <= 30s, compress and generate thumbnail.
@@ -139,25 +136,6 @@ class MediaPickerService {
       }
       return null;
     }
-  }
-
-  /// Compress an image file.
-  Future<File?> _compressImage(File file) async {
-    final String targetPath = file.path.replaceAll(
-      RegExp(r'\.[^.]+$'),
-      '_compressed.jpg',
-    );
-
-    final XFile? result = await FlutterImageCompress.compressAndGetFile(
-      file.path,
-      targetPath,
-      quality: photoQuality,
-      minWidth: photoMaxWidth,
-      minHeight: photoMaxHeight,
-      format: CompressFormat.jpeg,
-    );
-
-    return result != null ? File(result.path) : null;
   }
 
   /// Dispose video compress resources.

@@ -25,6 +25,8 @@ class MediaGallerySection extends ConsumerStatefulWidget {
 
 class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
   final _mediaPickerService = MediaPickerService();
+  bool _isPickingPhoto = false;
+  bool _isPickingVideo = false;
 
   @override
   void dispose() {
@@ -38,7 +40,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     );
     final state = ref.read(editProfileControllerProvider(widget.user.uid));
 
-    if (state.isUploadingMedia) return;
+    if (state.isUploadingMedia || _isPickingPhoto || _isPickingVideo) return;
 
     if (state.photoCount >= 6) {
       if (mounted) {
@@ -48,6 +50,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     }
 
     try {
+      if (mounted) {
+        setState(() {
+          _isPickingPhoto = true;
+        });
+      }
+
       final file = await _mediaPickerService.pickAndCropPhoto(
         context,
         lockAspectRatio: false,
@@ -57,6 +65,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       await controller.addPhoto(file: file, userId: widget.user.uid);
     } catch (e) {
       if (mounted) AppSnackBar.error(context, 'Erro ao adicionar foto: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingPhoto = false;
+        });
+      }
     }
   }
 
@@ -66,7 +80,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     );
     final state = ref.read(editProfileControllerProvider(widget.user.uid));
 
-    if (state.isUploadingMedia) return;
+    if (state.isUploadingMedia || _isPickingPhoto || _isPickingVideo) return;
 
     if (state.videoCount >= 3) {
       if (mounted) {
@@ -76,6 +90,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     }
 
     try {
+      if (mounted) {
+        setState(() {
+          _isPickingVideo = true;
+        });
+      }
+
       final result = await _mediaPickerService.pickAndProcessVideo(context);
       if (result == null || !mounted) return;
 
@@ -87,6 +107,12 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       );
     } catch (e) {
       if (mounted) AppSnackBar.error(context, 'Erro ao adicionar video: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPickingVideo = false;
+        });
+      }
     }
   }
 
@@ -172,12 +198,17 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                     Expanded(
                       child: AppButton.outline(
                         text: 'Foto',
-                        onPressed: state.isUploadingMedia
+                        onPressed:
+                            state.isUploadingMedia ||
+                                _isPickingPhoto ||
+                                _isPickingVideo
                             ? null
                             : _handlePhotoUpload,
-                        isLoading:
-                            state.isUploadingMedia &&
-                            state.uploadStatus.toLowerCase().contains('foto'),
+                        isLoading: _isPickingPhoto ||
+                            (state.isUploadingMedia &&
+                                state.uploadStatus.toLowerCase().contains(
+                                  'foto',
+                                )),
                         icon: const Icon(Icons.photo_outlined, size: 18),
                       ),
                     ),
@@ -185,12 +216,23 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                     Expanded(
                       child: AppButton.outline(
                         text: 'Video',
-                        onPressed: state.isUploadingMedia
+                        onPressed:
+                            state.isUploadingMedia ||
+                                _isPickingPhoto ||
+                                _isPickingVideo
                             ? null
                             : _handleVideoUpload,
-                        isLoading:
-                            state.isUploadingMedia &&
-                            state.uploadStatus.toLowerCase().contains('video'),
+                        isLoading: _isPickingVideo ||
+                            (state.isUploadingMedia &&
+                                (state.uploadStatus.toLowerCase().contains(
+                                      'video',
+                                    ) ||
+                                    state.uploadStatus.toLowerCase().contains(
+                                      'vídeo',
+                                    ) ||
+                                    state.uploadStatus.toLowerCase().contains(
+                                      'thumbnail',
+                                    ))),
                         icon: const Icon(
                           Icons.video_library_outlined,
                           size: 18,

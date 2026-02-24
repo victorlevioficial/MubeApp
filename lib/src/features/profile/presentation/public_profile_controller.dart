@@ -10,7 +10,10 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../../chat/data/chat_repository.dart';
+import '../../feed/presentation/feed_controller.dart';
+import '../../matchpoint/presentation/controllers/matchpoint_controller.dart';
 import '../../moderation/data/moderation_repository.dart';
+import '../../search/presentation/search_controller.dart';
 // import '../../feed/data/favorites_provider.dart'; // Removed
 import '../domain/media_item.dart';
 
@@ -180,7 +183,13 @@ class PublicProfileController extends _$PublicProfileController {
           blockedUserId: targetUser.uid,
         );
 
-    return result.fold((failure) => false, (_) => true);
+    return result.fold((failure) => false, (_) {
+      // Evita corrida de invalidações: recarrega o feed de forma determinística.
+      unawaited(ref.read(feedControllerProvider.notifier).loadAllData());
+      ref.invalidate(matchpointCandidatesProvider);
+      ref.invalidate(searchControllerProvider);
+      return true;
+    });
   }
 
   Future<bool> reportUser(String reason, String? description) async {

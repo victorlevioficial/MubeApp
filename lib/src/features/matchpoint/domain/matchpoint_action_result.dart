@@ -23,6 +23,7 @@ class MatchpointActionResult {
       isMatch: json['isMatch'] ?? false,
       matchId: json['matchId'],
       conversationId: json['conversationId'],
+      remainingLikes: json['remainingLikes'] as int?,
       message: json['message'],
     );
   }

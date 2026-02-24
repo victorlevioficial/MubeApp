@@ -59,6 +59,7 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
   late TextEditingController _controller;
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
+  final Object _tapRegionGroupId = Object();
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
@@ -99,7 +100,7 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
   @override
   void dispose() {
     _focusNode.removeListener(_handleFocusChange);
-    _removeOverlay();
+    _removeOverlay(notify: false);
     if (widget.controller == null) _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -143,16 +144,6 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
         children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: () {
-                _focusNode.unfocus();
-                _removeOverlay();
-              },
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: AppColors.transparent),
-            ),
-          ),
           Positioned(
             width: size.width,
             child: CompositedTransformFollower(
@@ -165,44 +156,47 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
                   ? Alignment.bottomLeft
                   : Alignment.topLeft,
               offset: Offset(0.0, showAbove ? -4.0 : 4.0),
-              child: Material(
-                elevation: 8,
-                color: AppColors.surface,
-                borderRadius: AppRadius.all12,
-                shadowColor: AppColors.background.withValues(alpha: 0.15),
-                child: Container(
-                  constraints: const BoxConstraints(maxHeight: 250),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: AppRadius.all12,
-                    border: Border.all(
-                      color: AppColors.textTertiary.withValues(alpha: 0.2),
-                      width: 1,
+              child: TapRegion(
+                groupId: _tapRegionGroupId,
+                child: Material(
+                  elevation: 8,
+                  color: AppColors.surface,
+                  borderRadius: AppRadius.all12,
+                  shadowColor: AppColors.background.withValues(alpha: 0.15),
+                  child: Container(
+                    constraints: const BoxConstraints(maxHeight: 250),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.all12,
+                      border: Border.all(
+                        color: AppColors.textTertiary.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: widget.options.isEmpty
-                      ? const SizedBox.shrink()
-                      : ListView.separated(
-                          padding: AppSpacing.v8,
-                          shrinkWrap: true,
-                          itemCount: widget.options.length,
-                          separatorBuilder: (context, index) => Divider(
-                            height: 1,
-                            thickness: 0.5,
-                            color: AppColors.textTertiary.withValues(
-                              alpha: 0.2,
+                    child: widget.options.isEmpty
+                        ? const SizedBox.shrink()
+                        : ListView.separated(
+                            padding: AppSpacing.v8,
+                            shrinkWrap: true,
+                            itemCount: widget.options.length,
+                            separatorBuilder: (context, index) => Divider(
+                              height: 1,
+                              thickness: 0.5,
+                              color: AppColors.textTertiary.withValues(
+                                alpha: 0.2,
+                              ),
                             ),
+                            itemBuilder: (context, index) {
+                              final item = widget.options[index];
+                              return InkWell(
+                                onTap: () {
+                                  _selectItem(item);
+                                },
+                                child: widget.itemBuilder(context, item),
+                              );
+                            },
                           ),
-                          itemBuilder: (context, index) {
-                            final item = widget.options[index];
-                            return InkWell(
-                              onTap: () {
-                                _selectItem(item);
-                              },
-                              child: widget.itemBuilder(context, item),
-                            );
-                          },
-                        ),
+                  ),
                 ),
               ),
             ),
@@ -215,10 +209,15 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
     setState(() => _isOpen = true);
   }
 
-  void _removeOverlay() {
+  void _removeOverlay({bool notify = true}) {
+    final hadOverlay = _overlayEntry != null;
     _overlayEntry?.remove();
     _overlayEntry = null;
-    if (mounted) setState(() => _isOpen = false);
+    if (notify && mounted && (_isOpen || hadOverlay)) {
+      setState(() => _isOpen = false);
+    } else {
+      _isOpen = false;
+    }
   }
 
   void _selectItem(T item) {
@@ -230,44 +229,53 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: AppTextField(
-        focusNode: _focusNode,
-        controller: _controller,
-        label: widget.label,
-        hint: widget.hint,
-        validator: widget.validator,
-        prefixIcon: widget.prefixIcon,
-        onChanged: (val) {
-          widget.onChanged?.call(val);
-          // Se o usuário digita, reabrimos o overlay se tiver opções ou loading
-          if (!_isOpen && (widget.options.isNotEmpty || widget.isLoading)) {
-            // _showOverlay é chamado no didUpdateWidget se options mudar,
-            // mas se options já estiver lá e fechamos, reabrimos
-            _showOverlay();
-          }
-        },
-        suffixIcon: widget.isLoading
-            ? const UnconstrainedBox(
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
+    return TapRegion(
+      groupId: _tapRegionGroupId,
+      onTapOutside: (_) {
+        if (_isOpen) {
+          _removeOverlay();
+          _focusNode.unfocus();
+        }
+      },
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: AppTextField(
+          focusNode: _focusNode,
+          controller: _controller,
+          label: widget.label,
+          hint: widget.hint,
+          validator: widget.validator,
+          prefixIcon: widget.prefixIcon,
+          onChanged: (val) {
+            widget.onChanged?.call(val);
+            // Se o usuário digita, reabrimos o overlay se tiver opções ou loading
+            if (!_isOpen && (widget.options.isNotEmpty || widget.isLoading)) {
+              // _showOverlay é chamado no didUpdateWidget se options mudar,
+              // mas se options já estiver lá e fechamos, reabrimos
+              _showOverlay();
+            }
+          },
+          suffixIcon: widget.isLoading
+              ? const UnconstrainedBox(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                )
+              : AnimatedRotation(
+                  turns: _isOpen ? 0.5 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.textSecondary,
+                    size: 24,
                   ),
                 ),
-              )
-            : AnimatedRotation(
-                turns: _isOpen ? 0.5 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: AppColors.textSecondary,
-                  size: 24,
-                ),
-              ),
+        ),
       ),
     );
   }

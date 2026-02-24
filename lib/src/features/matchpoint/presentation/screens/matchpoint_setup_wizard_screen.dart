@@ -3,18 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../constants/firestore_constants.dart';
-import '../../../../core/domain/app_config.dart';
-import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/chips/app_filter_chip.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
-import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/domain/app_user.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class MatchpointSetupWizardScreen extends ConsumerStatefulWidget {
@@ -28,14 +26,11 @@ class MatchpointSetupWizardScreen extends ConsumerStatefulWidget {
 class _MatchpointSetupWizardScreenState
     extends ConsumerState<MatchpointSetupWizardScreen> {
   int _currentStep = 0;
+  static const int _totalSteps = 3;
 
   // Temporary state for the form
-  // ignore: unused_field
   String? _intent;
-  // ignore: unused_field
-  final List<String> _selectedGenres = [];
-  // ignore: unused_field
-  // ignore: unused_field
+  final List<String> _profileGenreIds = [];
   final List<String> _hashtags = [];
   final TextEditingController _tagController = TextEditingController();
   bool _isVisibleInHome = true;
@@ -53,40 +48,18 @@ class _MatchpointSetupWizardScreenState
     if (_didPrefillFromProfile) return;
 
     final user = ref.read(currentUserProfileProvider).value;
-    final profile = user?.matchpointProfile;
     if (user == null) return;
-    if (profile == null) {
-      _didPrefillFromProfile = true;
-      return;
-    }
 
-    final rawGenres =
-        profile[FirestoreFields.musicalGenres] ??
-        profile['musicalGenres'] ??
-        profile['musical_genres'];
-    final rawHashtags = profile[FirestoreFields.hashtags];
+    final profile = user.matchpointProfile;
+    final rawHashtags = profile?[FirestoreFields.hashtags];
     final visibleInHome = user.privacySettings['visible_in_home'];
-    final appConfig = ref.read(appConfigProvider).value;
 
     setState(() {
-      _intent = profile[FirestoreFields.intent] as String? ?? _intent;
+      _intent = profile?[FirestoreFields.intent] as String? ?? _intent;
 
-      if (rawGenres is List) {
-        final storedGenres = rawGenres.whereType<String>().toList();
-        final selectedGenres = appConfig == null
-            ? storedGenres
-            : storedGenres.map((stored) {
-                final item = appConfig.genres.firstWhere(
-                  (genre) => genre.id == stored || genre.label == stored,
-                  orElse: () => ConfigItem(id: stored, label: stored, order: 0),
-                );
-                return item.label;
-              }).toList();
-
-        _selectedGenres
-          ..clear()
-          ..addAll(selectedGenres);
-      }
+      _profileGenreIds
+        ..clear()
+        ..addAll(_resolveUserGenreIds(user));
 
       if (rawHashtags is List) {
         _hashtags
@@ -100,6 +73,28 @@ class _MatchpointSetupWizardScreenState
 
       _didPrefillFromProfile = true;
     });
+  }
+
+  List<String> _resolveUserGenreIds(AppUser user) {
+    final matchpointGenres =
+        user.matchpointProfile?[FirestoreFields.musicalGenres] ??
+        user.matchpointProfile?['musicalGenres'] ??
+        user.matchpointProfile?['musical_genres'];
+    if (matchpointGenres is List && matchpointGenres.isNotEmpty) {
+      return matchpointGenres.whereType<String>().toList();
+    }
+
+    final professionalGenres = user.dadosProfissional?['generosMusicais'];
+    if (professionalGenres is List && professionalGenres.isNotEmpty) {
+      return professionalGenres.whereType<String>().toList();
+    }
+
+    final bandGenres = user.dadosBanda?['generosMusicais'];
+    if (bandGenres is List && bandGenres.isNotEmpty) {
+      return bandGenres.whereType<String>().toList();
+    }
+
+    return const <String>[];
   }
 
   @override
@@ -148,7 +143,7 @@ class _MatchpointSetupWizardScreenState
           children: [
             // Progress Indicator
             LinearProgressIndicator(
-              value: (_currentStep + 1) / 4,
+              value: (_currentStep + 1) / _totalSteps,
               backgroundColor: AppColors.surfaceHighlight,
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
@@ -186,7 +181,7 @@ class _MatchpointSetupWizardScreenState
                 isLoading: ref.watch(
                   matchpointControllerProvider.select((s) => s.isLoading),
                 ),
-                text: _currentStep == 3 ? 'Concluir' : 'Próximo',
+                text: _currentStep == (_totalSteps - 1) ? 'Concluir' : 'Próximo',
                 size: AppButtonSize.medium,
               ),
             ],
@@ -201,14 +196,12 @@ class _MatchpointSetupWizardScreenState
       case 0:
         return _buildIntentStep();
       case 1:
-        return _buildGenresStep();
-      case 2:
         return _buildHashtagsStep();
-      case 3:
+      case 2:
         return _buildPrivacyStep();
       default:
         return const SizedBox();
-    }
+      }
   }
 
   Widget _buildIntentStep() {
@@ -309,75 +302,6 @@ class _MatchpointSetupWizardScreenState
     );
   }
 
-  Widget _buildGenresStep() {
-    final availableGenres = ref.watch(genreLabelsProvider);
-    final isConfigLoading = ref.watch(
-      appConfigProvider.select((s) => s.isLoading),
-    );
-
-    if (availableGenres.isEmpty && isConfigLoading) {
-      return ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          _buildStepHeader(
-            icon: Icons.music_note_rounded,
-            title: 'Suas influências',
-            subtitle: 'Escolha quais gêneros representam seu estilo.',
-          ),
-          const SizedBox(height: AppSpacing.s24),
-          SkeletonShimmer(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: List.generate(12, (index) {
-                return const SkeletonBox(
-                  width: 80,
-                  height: 32,
-                  borderRadius: 20,
-                );
-              }),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        _buildStepHeader(
-          icon: Icons.music_note_rounded,
-          title: 'Suas influências',
-          subtitle: 'Escolha quais gêneros representam seu estilo.',
-        ),
-        const SizedBox(height: AppSpacing.s24),
-
-        Wrap(
-          spacing: 8,
-          runSpacing: 12,
-          alignment: WrapAlignment.center,
-          children: availableGenres.map((genre) {
-            final isSelected = _selectedGenres.contains(genre);
-            return AppFilterChip(
-              label: genre,
-              isSelected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedGenres.add(genre);
-                  } else {
-                    _selectedGenres.remove(genre);
-                  }
-                });
-              },
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
   Widget _buildHashtagsStep() {
     return ListView(
       padding: EdgeInsets.zero,
@@ -389,6 +313,24 @@ class _MatchpointSetupWizardScreenState
               'Adicione hashtags específicas (ex: Cover, Autoral, PinkFloyd).',
         ),
         const SizedBox(height: AppSpacing.s24),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all12,
+            border: Border.all(color: AppColors.surfaceHighlight),
+          ),
+          child: Text(
+            _profileGenreIds.isEmpty
+                ? 'Os gêneros do cadastro não foram encontrados. Complete seu perfil musical para o MatchPoint funcionar melhor.'
+                : 'Usaremos automaticamente os gêneros do seu cadastro para buscar perfis compatíveis.',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s16),
 
         AppTextField(
           controller: _tagController,
@@ -455,25 +397,19 @@ class _MatchpointSetupWizardScreenState
   Future<void> _onNextPressed() async {
     if (!_validateCurrentStep()) return;
 
-    if (_currentStep < 3) {
+    if (_currentStep < (_totalSteps - 1)) {
       setState(() => _currentStep++);
     } else {
-      // Get AppConfig to map Labels to IDs
-      final appConfigAsync = ref.read(appConfigProvider);
-      final appConfig = appConfigAsync.value;
+      final user = ref.read(currentUserProfileProvider).value;
+      final genreIds = user == null
+          ? List<String>.from(_profileGenreIds)
+          : _resolveUserGenreIds(user);
 
-      List<String> genreIds = [];
-      if (appConfig != null) {
-        genreIds = _selectedGenres.map((label) {
-          final item = appConfig.genres.firstWhere(
-            (g) => g.label == label,
-            orElse: () => ConfigItem(id: label, label: label, order: 0),
-          );
-          return item.id;
-        }).toList();
-      } else {
-        // Fallback: simple lowercase (should not happen if loaded)
-        genreIds = _selectedGenres.map((e) => e.toLowerCase()).toList();
+      if (genreIds.isEmpty) {
+        _showValidationError(
+          'Não encontramos seus gêneros musicais. Complete seu cadastro primeiro.',
+        );
+        return;
       }
 
       await ref
@@ -492,12 +428,6 @@ class _MatchpointSetupWizardScreenState
       case 0:
         if (_intent == null) {
           _showValidationError('Selecione seu objetivo para continuar.');
-          return false;
-        }
-        return true;
-      case 1:
-        if (_selectedGenres.isEmpty) {
-          _showValidationError('Selecione pelo menos 1 gênero musical.');
           return false;
         }
         return true;

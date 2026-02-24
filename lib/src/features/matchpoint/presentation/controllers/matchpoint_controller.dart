@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
+import 'package:mube/src/core/domain/app_config.dart';
+import 'package:mube/src/core/providers/app_config_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -309,14 +311,16 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     if (userProfile == null) return [];
 
-    final genres = List<String>.from(
-      userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ?? [],
-    );
-    if (genres.isEmpty) {
+    final rawGenres = _resolveGenres(userProfile);
+    if (rawGenres.isEmpty) {
       AppLogger.warning('⚠️ MatchPoint: User has no genres.');
       return [];
     }
-    AppLogger.info('ðŸ” MatchPoint Filters: Genres=$genres');
+    final appConfig = ref
+        .watch(appConfigProvider)
+        .maybeWhen(data: (config) => config, orElse: () => null);
+    final genres = _buildQueryGenres(rawGenres, appConfig?.genres ?? const []);
+    AppLogger.info('🔍 MatchPoint Filters: raw=$rawGenres query=$genres');
 
     final blockedState = ref.watch(blockedUsersProvider);
     final blockedFromCollection = blockedState.when(
@@ -349,6 +353,75 @@ class MatchpointCandidates extends _$MatchpointCandidates {
         return r;
       },
     );
+  }
+
+  List<String> _resolveGenres(AppUser userProfile) {
+    final matchpointGenres =
+        userProfile.matchpointProfile?[FirestoreFields.musicalGenres] ??
+        userProfile.matchpointProfile?['musicalGenres'] ??
+        userProfile.matchpointProfile?['musical_genres'];
+    if (matchpointGenres is List && matchpointGenres.isNotEmpty) {
+      return matchpointGenres.whereType<String>().toList();
+    }
+
+    final professionalGenres =
+        userProfile.dadosProfissional?['generosMusicais'];
+    if (professionalGenres is List && professionalGenres.isNotEmpty) {
+      return professionalGenres.whereType<String>().toList();
+    }
+
+    final bandGenres = userProfile.dadosBanda?['generosMusicais'];
+    if (bandGenres is List && bandGenres.isNotEmpty) {
+      return bandGenres.whereType<String>().toList();
+    }
+
+    return const <String>[];
+  }
+
+  List<String> _buildQueryGenres(
+    List<String> rawGenres,
+    List<ConfigItem> configGenres,
+  ) {
+    final canonicalIds = <String>[];
+    final expanded = <String>[];
+
+    for (final raw in rawGenres) {
+      final token = raw.trim();
+      if (token.isEmpty) continue;
+
+      final configItem = _findConfigGenre(token, configGenres);
+      if (configItem != null) {
+        canonicalIds.add(configItem.id);
+        expanded.add(configItem.label);
+        expanded.addAll(configItem.aliases);
+      }
+      expanded.add(token);
+    }
+
+    final seen = <String>{};
+    final queryGenres = <String>[];
+    for (final token in [...canonicalIds, ...expanded]) {
+      final normalized = token.trim();
+      if (normalized.isEmpty) continue;
+      final dedupeKey = normalized.toLowerCase();
+      if (seen.add(dedupeKey)) {
+        queryGenres.add(normalized);
+      }
+    }
+
+    return queryGenres.take(10).toList();
+  }
+
+  ConfigItem? _findConfigGenre(String token, List<ConfigItem> configGenres) {
+    final normalized = token.trim().toLowerCase();
+    for (final item in configGenres) {
+      if (item.id.toLowerCase() == normalized) return item;
+      if (item.label.toLowerCase() == normalized) return item;
+      if (item.aliases.any((alias) => alias.toLowerCase() == normalized)) {
+        return item;
+      }
+    }
+    return null;
   }
 
   /// Remove um candidato da lista local (UI otimista)

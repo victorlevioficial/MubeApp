@@ -31,10 +31,10 @@ class PrivacySettingsScreen extends ConsumerWidget {
           final isVisibleHome =
               (user.privacySettings['visible_in_home'] as bool?) ?? true;
 
-          final legacyBlockedCount = user.blockedUsers.length;
-          final stateBlockedCount =
-              ref.watch(blockedUsersProvider).value?.length ?? 0;
-          final totalBlockedCount = legacyBlockedCount + stateBlockedCount;
+          final totalBlockedCount = {
+            ...user.blockedUsers,
+            ...?ref.watch(blockedUsersProvider).value,
+          }.length;
 
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.s16),

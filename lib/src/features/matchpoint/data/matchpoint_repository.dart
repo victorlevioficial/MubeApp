@@ -103,6 +103,19 @@ class MatchpointRepository {
       if (e.code == 'resource-exhausted') {
         return Left(QuotaExceededFailure.dailyLikes());
       }
+      if (e.code == 'unauthenticated') {
+        return Left(AuthFailure.sessionExpired());
+      }
+      if (e.code == 'failed-precondition' &&
+          (e.message?.toLowerCase().contains('app check') ?? false)) {
+        return const Left(
+          ServerFailure(
+            message:
+                'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
+            debugMessage: 'app-check-failed-precondition',
+          ),
+        );
+      }
       if (e.code == 'permission-denied') {
         return Left(PermissionFailure.firestore());
       }

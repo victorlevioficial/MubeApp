@@ -46,7 +46,7 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
       builder: (context, selectedIndex, child) => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppAppBar(
-          title: 'matchpoint',
+          title: 'Matchpoint',
           showBackButton: false,
           leading: IconButton(
             tooltip: 'Historico de swipes',

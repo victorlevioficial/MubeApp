@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAtvjOvIDIVzdnIW1A9Piv4SuAXb3kw6CU',
-    appId: '1:798301748829:ios:83fd689a9de5f7eb47d7b4',
+    appId: '1:798301748829:ios:f87792294b0a913847d7b4',
     messagingSenderId: '798301748829',
     projectId: 'mube-63a93',
     storageBucket: 'mube-63a93.firebasestorage.app',

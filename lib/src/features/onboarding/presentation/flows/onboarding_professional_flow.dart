@@ -584,6 +584,47 @@ class _OnboardingProfessionalFlowState
               }
             },
           ),
+          const SizedBox(height: AppSpacing.s16),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.s16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.all16,
+              border: Border.all(color: AppColors.border, width: 1),
+            ),
+            child: Row(
+              children: [
+                Transform.scale(
+                  scale: 1.2,
+                  child: Checkbox(
+                    value: _instrumentalistBackingVocal,
+                    activeColor: AppColors.primary,
+                    side: const BorderSide(
+                      color: AppColors.textSecondary,
+                      width: 2,
+                    ),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.all4,
+                    ),
+                    onChanged: (value) {
+                      final enabled = value ?? false;
+                      setState(() => _instrumentalistBackingVocal = enabled);
+                      ref
+                          .read(onboardingFormProvider.notifier)
+                          .updateInstrumentalistBackingVocal(enabled);
+                    },
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s12),
+                Expanded(
+                  child: Text(
+                    'Faço backing vocal tocando',
+                    style: AppTypography.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
 
         // Crew Section

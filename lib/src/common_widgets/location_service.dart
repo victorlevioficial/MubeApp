@@ -86,7 +86,25 @@ class LocationService {
 
       final data = json.decode(response.body);
       if (data['status'] == 'OK') {
-        return List<Map<String, dynamic>>.from(data['predictions']);
+        final predictions = List<Map<String, dynamic>>.from(
+          data['predictions'] as List,
+        );
+        return predictions
+            .map((prediction) {
+              final description = (prediction['description'] ?? '')
+                  .toString()
+                  .trim();
+              final placeId = (prediction['place_id'] ?? '').toString().trim();
+              if (description.isEmpty || placeId.isEmpty) return null;
+
+              return <String, dynamic>{
+                'description': description,
+                'place_id': placeId,
+                'number_hint': _extractHouseNumberFromText(description),
+              };
+            })
+            .whereType<Map<String, dynamic>>()
+            .toList();
       }
 
       debugPrint(
@@ -189,13 +207,28 @@ class LocationService {
         final data = json.decode(response.body);
         if (data['status'] == 'OK') {
           final result = data['result'];
-          final map = _parseGoogleComponents(result['address_components']);
+          final map = _parseGoogleComponents(
+            List<dynamic>.from(result['address_components'] ?? const []),
+          );
 
           if (result['geometry'] != null &&
               result['geometry']['location'] != null) {
             map['lat'] = result['geometry']['location']['lat'];
             map['lng'] = result['geometry']['location']['lng'];
           }
+
+          final formattedAddress = (result['formatted_address'] ?? '')
+              .toString()
+              .trim();
+          if ((map['numero'] ?? '').toString().trim().isEmpty &&
+              formattedAddress.isNotEmpty) {
+            map['numero'] = _extractHouseNumberFromText(formattedAddress);
+          }
+
+          if ((map['logradouro'] ?? '').toString().trim().isEmpty) {
+            map['logradouro'] = (result['name'] ?? '').toString().trim();
+          }
+
           _googlePlaceDetailsCache[placeId] = _TimedCacheEntry(
             value: Map<String, dynamic>.from(map),
             cachedAt: DateTime.now(),
@@ -212,6 +245,53 @@ class LocationService {
     }
 
     return null;
+  }
+
+  /// Resolve endereço completo a partir de texto livre (incluindo número).
+  Future<Map<String, dynamic>?> resolveAddressFromQuery(String query) async {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.length < 3) return null;
+
+    if (AppConfig.googleMapsApiKey.isNotEmpty) {
+      try {
+        final response = await _makeRequest(
+          AppConfig.buildGeocodeUrl(normalizedQuery),
+        );
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'OK' && (data['results'] as List).isNotEmpty) {
+            final result = data['results'][0] as Map<String, dynamic>;
+            final map = _parseGoogleComponents(
+              List<dynamic>.from(result['address_components'] ?? const []),
+            );
+
+            final formattedAddress = (result['formatted_address'] ?? '')
+                .toString()
+                .trim();
+            if ((map['numero'] ?? '').toString().trim().isEmpty &&
+                formattedAddress.isNotEmpty) {
+              map['numero'] = _extractHouseNumberFromText(formattedAddress);
+            }
+
+            if (result['geometry'] != null &&
+                result['geometry']['location'] != null) {
+              map['lat'] = result['geometry']['location']['lat'];
+              map['lng'] = result['geometry']['location']['lng'];
+            }
+            return map;
+          }
+        }
+      } catch (e) {
+        debugPrint('Erro geocode por query (Google): $e');
+      }
+    }
+
+    final fallbackResults = await _searchAddressOpenStreetMap(normalizedQuery);
+    if (fallbackResults.isEmpty) return null;
+    final placeId = fallbackResults.first['place_id']?.toString();
+    if (placeId == null || placeId.isEmpty) return null;
+
+    return getPlaceDetails(placeId);
   }
 
   /// Reverse geocoding from coordinates.
@@ -377,23 +457,26 @@ class LocationService {
     final direct = (address['house_number'] ?? '').toString().trim();
     if (direct.isNotEmpty) return direct;
 
-    String findNumber(String source) {
-      final match = RegExp(r'\b\d+[A-Za-z0-9\-\/]*\b').firstMatch(source);
-      return match?.group(0) ?? '';
-    }
-
     if (displayName != null && displayName.isNotEmpty) {
       final firstChunks = displayName.split(',').take(2).join(' ');
-      final found = findNumber(firstChunks);
+      final found = _extractHouseNumberFromText(firstChunks);
       if (found.isNotEmpty) return found;
     }
 
     if (name != null && name.isNotEmpty) {
-      final found = findNumber(name);
+      final found = _extractHouseNumberFromText(name);
       if (found.isNotEmpty) return found;
     }
 
     return '';
+  }
+
+  String _extractHouseNumberFromText(String source) {
+    final normalized = source.trim();
+    if (normalized.isEmpty) return '';
+
+    final match = RegExp(r'\b\d{1,6}[A-Za-z0-9\-\/]*\b').firstMatch(normalized);
+    return match?.group(0) ?? '';
   }
 
   String _buildOpenStreetMapDescription(Map<String, dynamic> details) {
@@ -452,11 +535,15 @@ class LocationService {
 
       if (types.contains('route')) logradouro = val;
       if (types.contains('street_number')) numero = val;
+      if (types.contains('neighborhood') && bairro.isEmpty) bairro = val;
       if (types.contains('sublocality') ||
           types.contains('sublocality_level_1')) {
         bairro = val;
       }
-      if (types.contains('administrative_area_level_2')) cidade = val;
+      if (types.contains('locality') && cidade.isEmpty) cidade = val;
+      if (types.contains('administrative_area_level_2') && cidade.isEmpty) {
+        cidade = val;
+      }
       if (types.contains('administrative_area_level_1')) {
         estado = shortVal;
       }

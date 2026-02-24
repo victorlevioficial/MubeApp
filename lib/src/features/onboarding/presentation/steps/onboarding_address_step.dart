@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -8,6 +7,7 @@ import 'package:mube/src/utils/app_logger.dart';
 import '../../../../common_widgets/location_service.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_autocomplete_field.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../design_system/components/patterns/or_divider.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
@@ -37,11 +37,8 @@ class OnboardingAddressStep extends ConsumerStatefulWidget {
 class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
   final _locationService = LocationService();
   Timer? _debounce;
-  List<Map<String, dynamic>> _searchResults = [];
-  bool _isLoadingLocation = false;
-  bool _isLoadingPreview = false; // New state for initial preview
-  bool _addressFound = false;
 
+  final _searchController = TextEditingController();
   final _cepController = TextEditingController();
   final _logradouroController = TextEditingController();
   final _numeroController = TextEditingController();
@@ -49,7 +46,13 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
   final _cidadeController = TextEditingController();
   final _estadoController = TextEditingController();
 
-  // Local state for map preview
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isLoadingLocation = false;
+  bool _isLoadingPreview = false;
+  bool _isLoadingSearch = false;
+  bool _isResolvingManual = false;
+  bool _addressFound = false;
+
   double? _selectedLat;
   double? _selectedLng;
   String? _currentLocationLabel;
@@ -68,15 +71,12 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     _selectedLat = formState.selectedLat;
     _selectedLng = formState.selectedLng;
 
-    if (widget.initialLocationLabel != null) {
-      _currentLocationLabel = widget.initialLocationLabel;
-    }
-
     if (_logradouroController.text.isNotEmpty) {
       _addressFound = true;
+      _searchController.text = _buildAddressSummary();
     }
 
-    // Always ensure we have a preview label for the button, in case user clicks "Edit"
+    _currentLocationLabel = widget.initialLocationLabel;
     if (_currentLocationLabel == null) {
       _fetchCurrentLocationPreview();
     }
@@ -85,6 +85,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
     _cepController.dispose();
     _logradouroController.dispose();
     _numeroController.dispose();
@@ -94,24 +95,22 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     super.dispose();
   }
 
-  // --- Logic copied from Contractor Flow ---
-
   Future<void> _fetchCurrentLocationPreview() async {
     if (!mounted) return;
     setState(() => _isLoadingPreview = true);
 
     try {
       final position = await _locationService.getCurrentPosition();
-      if (position != null) {
-        final details = await _locationService.getAddressFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (details != null && mounted) {
-          setState(() {
-            _currentLocationLabel = _buildLocationLabel(details);
-          });
-        }
+      if (position == null) return;
+
+      final details = await _locationService.getAddressFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (details != null && mounted) {
+        setState(() {
+          _currentLocationLabel = _buildLocationLabel(details);
+        });
       }
     } catch (e, st) {
       AppLogger.warning(
@@ -125,109 +124,227 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
   }
 
   void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
 
-    if (query.length < 3) {
-      setState(() => _searchResults = []);
+    final normalized = query.trim();
+    if (normalized.length < 3) {
+      setState(() {
+        _searchResults = [];
+        _isLoadingSearch = false;
+      });
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final results = await _locationService.searchAddress(query);
-      if (mounted) {
-        setState(() {
-          _searchResults = results;
-        });
-      }
+    setState(() => _isLoadingSearch = true);
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      final results = await _locationService.searchAddress(normalized);
+      if (!mounted) return;
+      setState(() {
+        _searchResults = results;
+        _isLoadingSearch = false;
+      });
     });
   }
 
-  void _selectAddress(Map<String, dynamic> item) async {
-    final placeId = item['place_id'];
-    if (placeId != null) {
-      final details = await _locationService.getPlaceDetails(placeId);
-      if (details != null && mounted) {
-        _fillAddressFields(details);
-        setState(() {
-          _addressFound = true;
-          _searchResults = [];
+  Future<void> _selectAddress(Map<String, dynamic> item) async {
+    if (_isResolvingManual) return;
 
-          FocusManager.instance.primaryFocus?.unfocus();
-        });
-        _persistAddress(lat: details['lat'], lng: details['lng']);
-      } else {
-        if (mounted) {
-          AppSnackBar.show(context, 'Erro ao obter detalhes.', isError: true);
-        }
+    setState(() => _isResolvingManual = true);
+    try {
+      final placeId = item['place_id']?.toString();
+      final description = (item['description'] ?? '').toString();
+      final numberHint = (item['number_hint'] ?? description).toString();
+
+      Map<String, dynamic>? details;
+      if (placeId != null && placeId.isNotEmpty) {
+        details = await _locationService.getPlaceDetails(placeId);
       }
+      details ??= await _locationService.resolveAddressFromQuery(description);
+
+      if (details == null) {
+        if (mounted) {
+          AppSnackBar.error(
+            context,
+            'Não foi possível obter esse endereço. Tente outro resultado.',
+          );
+        }
+        return;
+      }
+
+      final enriched = _applyNumberHint(details, numberHint);
+      _fillAddressFields(enriched);
+      _persistAddress(lat: _selectedLat, lng: _selectedLng);
+
+      if (!mounted) return;
+      setState(() {
+        _addressFound = true;
+        _searchResults = [];
+        _searchController.text = description.isNotEmpty
+            ? description
+            : _buildAddressSummary();
+      });
+      FocusManager.instance.primaryFocus?.unfocus();
+    } catch (e, st) {
+      AppLogger.error('Falha ao selecionar endereço', e, st);
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao carregar endereço. Tente novamente.');
+      }
+    } finally {
+      if (mounted) setState(() => _isResolvingManual = false);
+    }
+  }
+
+  Future<void> _resolveTypedAddress() async {
+    final query = _searchController.text.trim();
+    if (query.length < 5 || _isResolvingManual) return;
+
+    setState(() {
+      _isResolvingManual = true;
+      _searchResults = [];
+    });
+
+    try {
+      final details = await _locationService.resolveAddressFromQuery(query);
+      if (details == null) {
+        if (mounted) {
+          AppSnackBar.error(
+            context,
+            'Endereço não encontrado. Inclua rua, número e cidade.',
+          );
+        }
+        return;
+      }
+
+      final enriched = _applyNumberHint(details, query);
+      _fillAddressFields(enriched);
+      _persistAddress(lat: _selectedLat, lng: _selectedLng);
+
+      if (!mounted) return;
+      setState(() => _addressFound = true);
+      FocusManager.instance.primaryFocus?.unfocus();
+    } catch (e, st) {
+      AppLogger.error('Falha ao buscar endereço digitado', e, st);
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao buscar endereço. Tente novamente.');
+      }
+    } finally {
+      if (mounted) setState(() => _isResolvingManual = false);
     }
   }
 
   Future<void> _useCurrentLocation() async {
+    if (_isLoadingLocation) return;
     setState(() => _isLoadingLocation = true);
+
     try {
       final position = await _locationService.getCurrentPosition();
-      if (position != null) {
-        final details = await _locationService.getAddressFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-
-        if (details != null) {
-          _fillAddressFields(details);
-          setState(() {
-            _currentLocationLabel = _buildLocationLabel(details);
-            _addressFound = true;
-          });
-          _persistAddress(lat: details['lat'], lng: details['lng']);
-        } else {
-          if (mounted) {
-            AppSnackBar.show(
-              context,
-              'Endereço não encontrado.',
-              isError: true,
-            );
-          }
-        }
-      } else {
+      if (position == null) {
         if (mounted) {
-          AppSnackBar.show(
-            context,
-            'Não foi possível obter localização.',
-            isError: true,
-          );
+          AppSnackBar.error(context, 'Não foi possível obter localização.');
         }
+        return;
       }
-    } catch (e, stack) {
-      AppLogger.error('Erro ao obter localização', e, stack);
+
+      final details = await _locationService.getAddressFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (details == null) {
+        if (mounted) {
+          AppSnackBar.error(context, 'Endereço não encontrado.');
+        }
+        return;
+      }
+
+      _fillAddressFields(details);
+      _persistAddress(lat: _selectedLat, lng: _selectedLng);
+
+      if (!mounted) return;
+      setState(() {
+        _addressFound = true;
+        _currentLocationLabel = _buildLocationLabel(details);
+        _searchController.text = _buildAddressSummary();
+      });
+    } catch (e, st) {
+      AppLogger.error('Erro ao obter localização no onboarding', e, st);
       if (mounted) {
-        AppSnackBar.show(context, 'Erro detalhado: $e', isError: true);
+        AppSnackBar.error(context, 'Erro ao obter localização: $e');
       }
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
     }
   }
 
+  Map<String, dynamic> _applyNumberHint(
+    Map<String, dynamic> address,
+    String hintSource,
+  ) {
+    final result = Map<String, dynamic>.from(address);
+    final current = (result['numero'] ?? '').toString().trim();
+    if (current.isNotEmpty) return result;
+
+    final extracted = _extractHouseNumber(hintSource);
+    if (extracted.isNotEmpty) {
+      result['numero'] = extracted;
+    }
+    return result;
+  }
+
+  String _extractHouseNumber(String source) {
+    final head = source.split(',').take(2).join(' ');
+    final match = RegExp(r'\b\d{1,6}[A-Za-z0-9\-\/]*\b').firstMatch(head);
+    return match?.group(0) ?? '';
+  }
+
   void _fillAddressFields(Map<String, dynamic> address) {
-    _logradouroController.text = address['logradouro'] ?? '';
-    _numeroController.text = address['numero'] ?? '';
-    _bairroController.text = address['bairro'] ?? '';
-    _cidadeController.text = address['cidade'] ?? '';
-    _estadoController.text = address['estado'] ?? '';
-    _cepController.text = address['cep'] ?? '';
+    _logradouroController.text = (address['logradouro'] ?? '').toString().trim();
+    _numeroController.text = (address['numero'] ?? '').toString().trim();
+    _bairroController.text = (address['bairro'] ?? '').toString().trim();
+    _cidadeController.text = (address['cidade'] ?? '').toString().trim();
+    _estadoController.text = (address['estado'] ?? '').toString().trim();
+    _cepController.text = (address['cep'] ?? '').toString().trim();
+
+    final lat = address['lat'];
+    final lng = address['lng'];
+    if (lat is num) _selectedLat = lat.toDouble();
+    if (lng is num) _selectedLng = lng.toDouble();
   }
 
   String _buildLocationLabel(Map<String, dynamic> details) {
+    final street = (details['logradouro'] ?? '').toString();
+    final number = (details['numero'] ?? '').toString();
+    final mainStreet = [street, number]
+        .where((value) => value.trim().isNotEmpty)
+        .join(', ');
+
     final chunks = <String>[
-      (details['logradouro'] ?? '').toString(),
+      mainStreet,
       (details['bairro'] ?? '').toString(),
       (details['cidade'] ?? '').toString(),
     ].where((value) => value.trim().isNotEmpty).toList();
 
-    if (chunks.isEmpty) {
-      return 'Localizacao atual';
-    }
+    if (chunks.isEmpty) return 'Localização atual';
     return chunks.join(' - ');
+  }
+
+  String _buildAddressSummary() {
+    final street = _logradouroController.text.trim();
+    final number = _numeroController.text.trim();
+    final bairro = _bairroController.text.trim();
+    final cidade = _cidadeController.text.trim();
+    final estado = _estadoController.text.trim();
+
+    final streetLine = [street, number]
+        .where((value) => value.isNotEmpty)
+        .join(', ');
+
+    final parts = <String>[
+      streetLine,
+      bairro,
+      [cidade, estado].where((value) => value.isNotEmpty).join(' - '),
+    ].where((value) => value.trim().isNotEmpty).toList();
+
+    return parts.join(' • ');
   }
 
   void _persistAddress({double? lat, double? lng}) {
@@ -237,15 +354,41 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     ref
         .read(onboardingFormProvider.notifier)
         .updateAddress(
-          cep: _cepController.text,
-          logradouro: _logradouroController.text,
-          numero: _numeroController.text,
-          bairro: _bairroController.text,
-          cidade: _cidadeController.text,
-          estado: _estadoController.text,
+          cep: _cepController.text.trim(),
+          logradouro: _logradouroController.text.trim(),
+          numero: _numeroController.text.trim(),
+          bairro: _bairroController.text.trim(),
+          cidade: _cidadeController.text.trim(),
+          estado: _estadoController.text.trim(),
           lat: _selectedLat,
           lng: _selectedLng,
         );
+  }
+
+  bool _validateBeforeFinish() {
+    if (_logradouroController.text.trim().isEmpty) {
+      AppSnackBar.warning(context, 'Informe o logradouro.');
+      return false;
+    }
+    if (_numeroController.text.trim().isEmpty) {
+      AppSnackBar.warning(context, 'Informe o número (ou "s/n").');
+      return false;
+    }
+    if (_cidadeController.text.trim().isEmpty) {
+      AppSnackBar.warning(context, 'Informe a cidade.');
+      return false;
+    }
+    if (_estadoController.text.trim().isEmpty) {
+      AppSnackBar.warning(context, 'Informe o estado.');
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _finishStep() async {
+    if (!_validateBeforeFinish()) return;
+    _persistAddress();
+    await widget.onNext();
   }
 
   @override
@@ -253,306 +396,310 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Title
         Text(
           'Qual seu endereço?',
           textAlign: TextAlign.center,
-          style: AppTypography.headlineMedium,
+          style: AppTypography.headlineLarge.copyWith(
+            fontSize: 32,
+            letterSpacing: -1,
+            height: 1.2,
+          ),
         ),
-        const SizedBox(height: AppSpacing.s8),
+        const SizedBox(height: AppSpacing.s12),
         Text(
-          'Para encontrarmos as melhores conexões perto de você.',
+          'Vamos usar essa localização para conectar você com oportunidades próximas.',
           textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(
+          style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
+            height: 1.5,
           ),
         ),
         const SizedBox(height: AppSpacing.s32),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _addressFound ? _buildConfirmState() : _buildSearchState(),
+        ),
+      ],
+    );
+  }
 
-        if (!_addressFound) ...[
-          // 1. Use My Location Button (Top)
-          InkWell(
-            onTap: _isLoadingLocation ? null : _useCurrentLocation,
-            borderRadius: AppRadius.all12,
-            child: Container(
-              padding: const EdgeInsets.all(AppSpacing.s16),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-                borderRadius: AppRadius.all12,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.05),
+  Widget _buildSearchState() {
+    return Column(
+      key: const ValueKey('address-search-state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildLocationButton(),
+        const SizedBox(height: AppSpacing.s24),
+        const OrDivider(text: 'Ou'),
+        const SizedBox(height: AppSpacing.s24),
+        AppAutocompleteField<Map<String, dynamic>>(
+          controller: _searchController,
+          label: 'Buscar Endereço',
+          hint: 'Ex: Rua Augusta, 1500, São Paulo',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          options: _searchResults,
+          isLoading: _isLoadingSearch,
+          onChanged: (value) {
+            _onSearchChanged(value);
+            if (mounted) setState(() {});
+          },
+          displayStringForOption: (item) =>
+              (item['description'] ?? '').toString(),
+          onSelected: _selectAddress,
+          itemBuilder: (context, item) {
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s4,
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: AppSpacing.s40,
-                    height: AppSpacing.s40,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+              leading: const Icon(Icons.location_on_outlined, size: 20),
+              title: Text(
+                (item['description'] ?? '').toString().split(',').first.trim(),
+              ),
+              subtitle: Text(
+                (item['description'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmall,
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          'Dica: inclua número e cidade para melhorar a precisão.',
+          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.s20),
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Confirmar endereço digitado',
+            size: AppButtonSize.large,
+            isLoading: _isResolvingManual,
+            onPressed: _searchController.text.trim().length < 5
+                ? null
+                : _resolveTypedAddress,
+            isFullWidth: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConfirmState() {
+    return Column(
+      key: const ValueKey('address-confirm-state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.08),
+            borderRadius: AppRadius.all16,
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: AppColors.success),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Text(
+                  _buildAddressSummary(),
+                  style: AppTypography.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s20),
+        AppTextField(
+          controller: _logradouroController,
+          label: 'Logradouro',
+          hint: 'Rua / Avenida',
+          prefixIcon: const Icon(Icons.route_outlined, size: 20),
+          onChanged: (_) => _persistAddress(),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        Row(
+          children: [
+            Expanded(
+              child: AppTextField(
+                controller: _numeroController,
+                label: 'Número',
+                hint: 'Ex: 123',
+                keyboardType: TextInputType.streetAddress,
+                prefixIcon: const Icon(Icons.pin_outlined, size: 20),
+                onChanged: (_) => _persistAddress(),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s12),
+            Expanded(
+              child: AppTextField(
+                controller: _cepController,
+                label: 'CEP',
+                hint: 'Ex: 01310-100',
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(Icons.markunread_mailbox_outlined, size: 20),
+                onChanged: (_) => _persistAddress(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        AppTextField(
+          controller: _bairroController,
+          label: 'Bairro',
+          hint: 'Seu bairro',
+          prefixIcon: const Icon(Icons.map_outlined, size: 20),
+          onChanged: (_) => _persistAddress(),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        Row(
+          children: [
+            Expanded(
+              child: AppTextField(
+                controller: _cidadeController,
+                label: 'Cidade',
+                hint: 'Sua cidade',
+                prefixIcon: const Icon(Icons.location_city_outlined, size: 20),
+                onChanged: (_) => _persistAddress(),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s12),
+            Expanded(
+              child: AppTextField(
+                controller: _estadoController,
+                label: 'Estado',
+                hint: 'UF',
+                textCapitalization: TextCapitalization.characters,
+                prefixIcon: const Icon(Icons.flag_outlined, size: 20),
+                onChanged: (_) => _persistAddress(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s24),
+        SizedBox(
+          height: 56,
+          child: AppButton.outline(
+            text: 'Buscar novamente',
+            size: AppButtonSize.large,
+            onPressed: () {
+              setState(() {
+                _addressFound = false;
+                _searchController.text = _buildAddressSummary();
+              });
+            },
+            isFullWidth: true,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        SizedBox(
+          height: 56,
+          child: AppButton.primary(
+            text: 'Finalizar',
+            size: AppButtonSize.large,
+            onPressed: _finishStep,
+            isFullWidth: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLocationButton() {
+    return InkWell(
+      onTap: _isLoadingLocation ? null : _useCurrentLocation,
+      borderRadius: AppRadius.all12,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          borderRadius: AppRadius.all12,
+          color: AppColors.primary.withValues(alpha: 0.05),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: AppSpacing.s40,
+              height: AppSpacing.s40,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: _isLoadingLocation
+                  ? const SizedBox(
+                      width: AppSpacing.s24,
+                      height: AppSpacing.s24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.my_location,
+                      color: AppColors.primary,
+                      size: AppSpacing.s24,
                     ),
-                    alignment: Alignment.center,
-                    child: _isLoadingLocation
-                        ? SizedBox(
-                            width: AppSpacing.s24,
-                            height: AppSpacing.s24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : Icon(
-                            Icons.my_location,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: AppSpacing.s24,
-                          ),
+            ),
+            const SizedBox(width: AppSpacing.s16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _isLoadingLocation
+                        ? 'Obtendo localização...'
+                        : 'Usar minha localização atual',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
-                  const SizedBox(width: AppSpacing.s16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isLoadingLocation
-                              ? 'Obtendo localização...'
-                              : 'Usar minha localização atual',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        if (_isLoadingPreview)
-                          Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.s4),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: AppSpacing.s12,
-                                  height: AppSpacing.s12,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outline,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.s8),
-                                Text(
-                                  'Carregando prévia...',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.outline,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                ),
-                              ],
+                  if (_isLoadingPreview)
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.s4),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: AppSpacing.s12,
+                            height: AppSpacing.s12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppColors.textSecondary,
                             ),
-                          )
-                        else if (_currentLocationLabel != null) ...[
-                          const SizedBox(height: AppSpacing.s4),
+                          ),
+                          const SizedBox(width: AppSpacing.s8),
                           Text(
-                            _currentLocationLabel!,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                            'Carregando prévia...',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontStyle: FontStyle.italic,
+                            ),
                           ),
                         ],
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.s24),
-          const OrDivider(text: 'Ou'),
-          const SizedBox(height: AppSpacing.s24),
-
-          // 2. Search Field (Now directly on background for consistency)
-          AppTextField(
-            controller: _logradouroController,
-            label: 'Buscar Endereço',
-            hint: 'Digitar endereço manual...',
-            prefixIcon: const Icon(Icons.search),
-            onChanged: (val) {
-              _onSearchChanged(val);
-              setState(() {});
-            },
-          ),
-
-          if (_searchResults.isNotEmpty)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              margin: const EdgeInsets.only(top: AppSpacing.s8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: AppRadius.all16,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: _searchResults.length,
-                separatorBuilder: (context, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final item = _searchResults[index];
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s16,
-                      vertical: AppSpacing.s4,
-                    ),
-                    leading: const Icon(Icons.location_on_outlined, size: 20),
-                    title: Text(item['description']?.split(',')[0] ?? ''),
-                    subtitle: Text(
-                      item['description'] ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    onTap: () => _selectAddress(item),
-                  );
-                },
-              ),
-            ),
-
-          const SizedBox(height: AppSpacing.s16),
-          AppButton.primary(
-            text: 'Buscar Manualmente',
-            onPressed: _logradouroController.text.length > 3
-                ? () => setState(() => _addressFound = true)
-                : null,
-          ),
-        ] else ...[
-          // Confirm Mode
-          Container(
-            height: 150,
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: AppSpacing.s16),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.all12,
-              color: AppColors.surfaceHighlight,
-              image:
-                  _selectedLat != null &&
-                      _selectedLng != null &&
-                      LocationService.googleApiKey.isNotEmpty
-                  ? DecorationImage(
-                      image: CachedNetworkImageProvider(
-                        'https://maps.googleapis.com/maps/api/staticmap?center=${_selectedLat ?? -23.55},${_selectedLng ?? -46.63}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$_selectedLat,$_selectedLng&key=${LocationService.googleApiKey}',
                       ),
-                      fit: BoxFit.cover,
                     )
-                  : null,
-            ),
-            child: ClipRRect(
-              borderRadius: AppRadius.all12,
-              child: Stack(
-                children: [
-                  if (_selectedLat == null ||
-                      _selectedLng == null ||
-                      LocationService.googleApiKey.isEmpty)
-                    const Center(
-                      child: Icon(
-                        Icons.map_outlined,
-                        size: 48,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  Positioned(
-                    bottom: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: const BoxDecoration(
-                        color: AppColors.textPrimary,
-                        borderRadius: AppRadius.all16,
-                      ),
-                      child: Text(
-                        'Ajustar no mapa',
-                        style: AppTypography.bodySmall.copyWith(
-                          fontWeight: AppTypography.buttonPrimary.fontWeight,
-                          color: AppColors.background,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Address Details
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  else if (_currentLocationLabel != null) ...[
+                    const SizedBox(height: AppSpacing.s4),
                     Text(
-                      '${_logradouroController.text}, ${_numeroController.text}',
-                      style: AppTypography.titleMedium.copyWith(
-                        fontWeight: AppTypography.buttonPrimary.fontWeight,
-                      ),
-                    ),
-                    Text(
-                      '${_bairroController.text}, ${_cidadeController.text} - ${_estadoController.text}',
-                      style: AppTypography.bodyMedium.copyWith(
+                      _currentLocationLabel!,
+                      style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () {
-                  setState(() {
-                    _addressFound = false;
-                    // Ideally we don't clear everything, just allow edit
-                  });
-                },
-              ),
-            ],
-          ),
-
-          const SizedBox(height: AppSpacing.s48),
-          const SizedBox(height: AppSpacing.s48),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: AppButton.primary(
-              text: 'Finalizar',
-              onPressed: () {
-                _persistAddress();
-                widget.onNext();
-              },
             ),
-          ),
-          const SizedBox(height: AppSpacing.s24),
-        ],
-      ],
+            const Icon(Icons.chevron_right, color: AppColors.primary),
+          ],
+        ),
+      ),
     );
   }
 }

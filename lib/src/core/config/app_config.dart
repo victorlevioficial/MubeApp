@@ -63,7 +63,17 @@ class AppConfig {
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
       );
     }
-    return '$_placesUrl?input=$query&components=country:$country&language=pt_BR&key=$googleMapsApiKey';
+
+    final uri = Uri.parse(_placesUrl).replace(
+      queryParameters: {
+        'input': query,
+        'components': 'country:$country',
+        'language': 'pt-BR',
+        'types': 'address',
+        'key': googleMapsApiKey,
+      },
+    );
+    return uri.toString();
   }
 
   /// Builds the Place Details URL
@@ -74,7 +84,16 @@ class AppConfig {
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
       );
     }
-    return '$_detailsUrl?place_id=$placeId&fields=address_component,geometry&key=$googleMapsApiKey';
+
+    final uri = Uri.parse(_detailsUrl).replace(
+      queryParameters: {
+        'place_id': placeId,
+        'fields': 'address_component,formatted_address,geometry,name',
+        'language': 'pt-BR',
+        'key': googleMapsApiKey,
+      },
+    );
+    return uri.toString();
   }
 
   /// Builds the Geocoding URL
@@ -85,7 +104,16 @@ class AppConfig {
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
       );
     }
-    return '$_geocodeUrl?address=$address&key=$googleMapsApiKey';
+
+    final uri = Uri.parse(_geocodeUrl).replace(
+      queryParameters: {
+        'address': address,
+        'language': 'pt-BR',
+        'region': 'BR',
+        'key': googleMapsApiKey,
+      },
+    );
+    return uri.toString();
   }
 
   // ===========================================================================

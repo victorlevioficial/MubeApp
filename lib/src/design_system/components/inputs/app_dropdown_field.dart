@@ -33,6 +33,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
   final TextEditingController _controller = TextEditingController();
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
+  final Object _tapRegionGroupId = Object();
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
@@ -54,7 +55,7 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
 
   @override
   void dispose() {
-    _removeOverlay();
+    _removeOverlay(notify: false);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -121,14 +122,6 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // Transparent detector to close when tapping outside
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _removeOverlay,
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: AppColors.transparent),
-            ),
-          ),
           // The Dropdown List
           Positioned(
             width: size.width,
@@ -136,63 +129,66 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
               link: _layerLink,
               showWhenUnlinked: false,
               offset: Offset(0.0, size.height + 4.0),
-              child: Material(
-                elevation: 8,
-                color: AppColors.surface,
-                borderRadius: AppRadius.all12,
-                shadowColor: AppColors.background.withValues(alpha: 0.5),
-                child: Container(
-                  constraints: BoxConstraints(maxHeight: safeMaxHeight),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: AppRadius.all12,
-                    border: Border.all(
-                      color: AppColors.textTertiary.withValues(alpha: 0.2),
-                      width: 1,
+              child: TapRegion(
+                groupId: _tapRegionGroupId,
+                child: Material(
+                  elevation: 8,
+                  color: AppColors.surface,
+                  borderRadius: AppRadius.all12,
+                  shadowColor: AppColors.background.withValues(alpha: 0.5),
+                  child: Container(
+                    constraints: BoxConstraints(maxHeight: safeMaxHeight),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.all12,
+                      border: Border.all(
+                        color: AppColors.textTertiary.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  child: ListView.separated(
-                    padding: AppSpacing.v8,
-                    shrinkWrap: true,
-                    itemCount: widget.items.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      color: AppColors.textTertiary.withValues(alpha: 0.2),
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = widget.items[index];
-                      final isSelected = item.value == widget.value;
+                    child: ListView.separated(
+                      padding: AppSpacing.v8,
+                      shrinkWrap: true,
+                      itemCount: widget.items.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        thickness: 0.5,
+                        color: AppColors.textTertiary.withValues(alpha: 0.2),
+                      ),
+                      itemBuilder: (context, index) {
+                        final item = widget.items[index];
+                        final isSelected = item.value == widget.value;
 
-                      return InkWell(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          widget.onChanged(item.value);
-                          _removeOverlay();
-                          _focusNode.unfocus();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.s16,
-                            vertical: AppSpacing.s12,
-                          ),
-                          color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : null,
-                          child: DefaultTextStyle(
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.textPrimary,
-                              fontWeight: isSelected
-                                  ? AppTypography.titleSmall.fontWeight
-                                  : AppTypography.bodyMedium.fontWeight,
+                        return InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            widget.onChanged(item.value);
+                            _removeOverlay();
+                            _focusNode.unfocus();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s16,
+                              vertical: AppSpacing.s12,
                             ),
-                            child: item.child,
+                            color: isSelected
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : null,
+                            child: DefaultTextStyle(
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? AppTypography.titleSmall.fontWeight
+                                    : AppTypography.bodyMedium.fontWeight,
+                              ),
+                              child: item.child,
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -206,38 +202,49 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
     setState(() => _isOpen = true);
   }
 
-  void _removeOverlay() {
+  void _removeOverlay({bool notify = true}) {
+    final hadOverlay = _overlayEntry != null;
     _overlayEntry?.remove();
     _overlayEntry = null;
-    // Only call setState if the widget is still mounted and not defunct
-    if (mounted && context.mounted) {
+    if (notify && mounted && (_isOpen || hadOverlay)) {
       setState(() => _isOpen = false);
+    } else {
+      _isOpen = false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: GestureDetector(
-        onTap: _toggleDropdown,
-        child: AbsorbPointer(
-          // Allow focus but block typing
-          absorbing: true,
-          child: AppTextField(
-            focusNode: _focusNode,
-            controller: _controller,
-            label: widget.label,
-            hint: widget.hint,
-            readOnly: true,
-            validator: (val) => widget.validator?.call(widget.value),
-            suffixIcon: AnimatedRotation(
-              turns: _isOpen ? 0.5 : 0.0,
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.keyboard_arrow_down,
-                color: _isOpen ? AppColors.primary : AppColors.textSecondary,
-                size: 24,
+    return TapRegion(
+      groupId: _tapRegionGroupId,
+      onTapOutside: (_) {
+        if (_isOpen) {
+          _removeOverlay();
+          _focusNode.unfocus();
+        }
+      },
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: GestureDetector(
+          onTap: _toggleDropdown,
+          child: AbsorbPointer(
+            // Allow focus but block typing
+            absorbing: true,
+            child: AppTextField(
+              focusNode: _focusNode,
+              controller: _controller,
+              label: widget.label,
+              hint: widget.hint,
+              readOnly: true,
+              validator: (val) => widget.validator?.call(widget.value),
+              suffixIcon: AnimatedRotation(
+                turns: _isOpen ? 0.5 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: _isOpen ? AppColors.primary : AppColors.textSecondary,
+                  size: 24,
+                ),
               ),
             ),
           ),

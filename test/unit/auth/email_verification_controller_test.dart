@@ -46,7 +46,7 @@ void main() {
 
         // Assert - verify loading state
         expect(
-          container.read(emailVerificationControllerProvider).isLoading,
+          container.read(emailVerificationControllerProvider).isResending,
           true,
         );
 
@@ -69,7 +69,7 @@ void main() {
 
         // Assert
         final state = container.read(emailVerificationControllerProvider);
-        expect(state.isLoading, false);
+        expect(state.isResending, false);
         expect(state.error, isNull);
         verify(mockAuthRepository.sendEmailVerification()).called(1);
       });
@@ -90,7 +90,7 @@ void main() {
 
         // Assert
         final state = container.read(emailVerificationControllerProvider);
-        expect(state.isLoading, false);
+        expect(state.isResending, false);
         expect(state.error, 'Failed to send email');
       });
     });
@@ -155,8 +155,8 @@ void main() {
 
         // Assert
         expect(states.length, 2);
-        expect(states[0].isLoading, true);
-        expect(states[1].isLoading, false);
+        expect(states[0].isResending, true);
+        expect(states[1].isResending, false);
         expect(states[1].error, isNull);
       });
 
@@ -184,8 +184,8 @@ void main() {
 
         // Assert
         expect(states.length, 2);
-        expect(states[0].isLoading, true);
-        expect(states[1].isLoading, false);
+        expect(states[0].isResending, true);
+        expect(states[1].isResending, false);
         expect(states[1].error, 'Error');
       });
     });

@@ -23,7 +23,8 @@ part 'email_verification_screen.g.dart';
 
 /// State class for email verification with cooldown and polling info
 class EmailVerificationState {
-  final bool isLoading;
+  final bool isChecking;
+  final bool isResending;
   final String? error;
   final int resendCooldownSeconds;
   final int nextPollSeconds;
@@ -31,7 +32,8 @@ class EmailVerificationState {
   final int verificationTimeSeconds;
 
   const EmailVerificationState({
-    this.isLoading = false,
+    this.isChecking = false,
+    this.isResending = false,
     this.error,
     this.resendCooldownSeconds = 0,
     this.nextPollSeconds = 0,
@@ -40,7 +42,8 @@ class EmailVerificationState {
   });
 
   EmailVerificationState copyWith({
-    bool? isLoading,
+    bool? isChecking,
+    bool? isResending,
     String? error,
     int? resendCooldownSeconds,
     int? nextPollSeconds,
@@ -48,7 +51,8 @@ class EmailVerificationState {
     int? verificationTimeSeconds,
   }) {
     return EmailVerificationState(
-      isLoading: isLoading ?? this.isLoading,
+      isChecking: isChecking ?? this.isChecking,
+      isResending: isResending ?? this.isResending,
       error: error,
       resendCooldownSeconds:
           resendCooldownSeconds ?? this.resendCooldownSeconds,
@@ -126,10 +130,15 @@ class EmailVerificationController extends _$EmailVerificationController {
       final authRepository = ref.read(authRepositoryProvider);
       final isEmailVerified = await authRepository.isEmailVerified();
       if (isEmailVerified) {
-        final isTokenSynced = await authRepository.hasVerifiedEmailTokenClaim(
-          forceRefresh: true,
-        );
-        if (!isTokenSynced) return;
+        // Mantém validação por claim como melhor esforço sem bloquear navegação.
+        final isTokenSynced = await authRepository
+            .hasVerifiedEmailTokenClaim(forceRefresh: true)
+            .catchError((_) => false);
+        if (!isTokenSynced) {
+          debugPrint(
+            'Email verificado no Auth; claim ainda sincronizando. Continuando fluxo.',
+          );
+        }
 
         _checkTimer?.cancel();
         _verificationStopwatch.stop();
@@ -148,7 +157,7 @@ class EmailVerificationController extends _$EmailVerificationController {
   }
 
   Future<void> checkVerificationStatus() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isChecking: true, error: null);
     try {
       // Reset polling to be more aggressive when user clicks
       _currentIntervalIndex = 0;
@@ -156,16 +165,13 @@ class EmailVerificationController extends _$EmailVerificationController {
       final authRepository = ref.read(authRepositoryProvider);
       final isEmailVerified = await authRepository.isEmailVerified();
       if (isEmailVerified) {
-        final isTokenSynced = await authRepository.hasVerifiedEmailTokenClaim(
-          forceRefresh: true,
-        );
+        final isTokenSynced = await authRepository
+            .hasVerifiedEmailTokenClaim(forceRefresh: true)
+            .catchError((_) => false);
         if (!isTokenSynced) {
-          state = state.copyWith(
-            isLoading: false,
-            error:
-                'Email verificado. Aguarde alguns segundos para sincronizar e tente novamente.',
+          debugPrint(
+            'Claim email_verified ainda não sincronizou, mas o e-mail já está verificado.',
           );
-          return;
         }
 
         _checkTimer?.cancel();
@@ -175,13 +181,13 @@ class EmailVerificationController extends _$EmailVerificationController {
         ref.invalidate(authStateChangesProvider);
 
         state = state.copyWith(
-          isLoading: false,
+          isChecking: false,
           isVerified: true,
           verificationTimeSeconds: _verificationStopwatch.elapsed.inSeconds,
         );
       } else {
         state = state.copyWith(
-          isLoading: false,
+          isChecking: false,
           error:
               'Email ainda não verificado. Verifique sua caixa de entrada e spam.',
         );
@@ -189,18 +195,18 @@ class EmailVerificationController extends _$EmailVerificationController {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'too-many-requests') {
         state = state.copyWith(
-          isLoading: false,
+          isChecking: false,
           error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
         );
       } else {
         state = state.copyWith(
-          isLoading: false,
+          isChecking: false,
           error: e.message ?? 'Erro ao verificar email. Tente novamente.',
         );
       }
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
+        isChecking: false,
         error: 'Erro ao verificar email: $e',
       );
     }
@@ -208,9 +214,9 @@ class EmailVerificationController extends _$EmailVerificationController {
 
   Future<void> resendVerificationEmail() async {
     // Don't allow resend if in cooldown
-    if (state.resendCooldownSeconds > 0) return;
+    if (state.resendCooldownSeconds > 0 || state.isResending) return;
 
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isResending: true, error: null);
     try {
       final result = await ref
           .read(authRepositoryProvider)
@@ -218,11 +224,14 @@ class EmailVerificationController extends _$EmailVerificationController {
 
       result.fold(
         (failure) {
-          state = state.copyWith(isLoading: false, error: failure.message);
+          state = state.copyWith(isResending: false, error: failure.message);
         },
         (success) {
           // Start 60 second cooldown
-          state = state.copyWith(isLoading: false, resendCooldownSeconds: 60);
+          state = state.copyWith(
+            isResending: false,
+            resendCooldownSeconds: 60,
+          );
 
           // Reset polling to be more aggressive after resend
           _currentIntervalIndex = 0;
@@ -232,19 +241,19 @@ class EmailVerificationController extends _$EmailVerificationController {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'too-many-requests') {
         state = state.copyWith(
-          isLoading: false,
+          isResending: false,
           error: 'Muitas tentativas de envio. Aguarde alguns minutos.',
           resendCooldownSeconds: 120, // Longer cooldown on rate limit
         );
       } else {
         state = state.copyWith(
-          isLoading: false,
+          isResending: false,
           error: e.message ?? 'Erro ao enviar email. Tente novamente.',
         );
       }
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
+        isResending: false,
         error: 'Erro ao enviar email: $e',
       );
     }
@@ -502,9 +511,11 @@ class _EmailVerificationScreenState
                     text: state.resendCooldownSeconds > 0
                         ? 'Reenviar em ${state.resendCooldownSeconds}s'
                         : 'Reenviar email',
-                    isLoading: state.isLoading,
+                    isLoading: state.isResending,
                     onPressed:
-                        state.isLoading || state.resendCooldownSeconds > 0
+                        state.isResending ||
+                            state.isChecking ||
+                            state.resendCooldownSeconds > 0
                         ? null
                         : () {
                             ref
@@ -523,8 +534,8 @@ class _EmailVerificationScreenState
                   height: 56,
                   child: AppButton.secondary(
                     text: 'Já verifiquei meu email',
-                    isLoading: state.isLoading,
-                    onPressed: state.isLoading
+                    isLoading: state.isChecking,
+                    onPressed: state.isChecking || state.isResending
                         ? null
                         : () {
                             ref

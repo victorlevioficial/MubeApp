@@ -87,6 +87,35 @@ class AuthGuard {
       return null;
     }
 
+    if (userProfileAsync.hasError) {
+      final error = userProfileAsync.error;
+      _log('Profile stream error: $error');
+
+      final recoveryResult = await _ref
+          .read(authRepositoryProvider)
+          .ensureCurrentUserProfileExists();
+
+      if (recoveryResult.isLeft()) {
+        final failureMessage = recoveryResult.fold(
+          (failure) => failure.message,
+          (_) => 'unknown',
+        );
+        _log('Profile recovery failed after stream error: $failureMessage');
+
+        if (_isPermissionRelatedFailure(failureMessage)) {
+          _log('Signing out due to permission-related profile failure');
+          await _ref.read(authRepositoryProvider).signOut();
+          return RoutePaths.login;
+        }
+
+        if (_isAuthFlowRoute(currentPath)) return null;
+        return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+      }
+
+      if (_isAuthFlowRoute(currentPath)) return null;
+      return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+    }
+
     // Profile not loaded yet.
     if (userProfileAsync.isLoading || !userProfileAsync.hasValue) {
       if (currentPath == RoutePaths.splash) {
@@ -106,14 +135,32 @@ class AuthGuard {
     // was not created (for example, previous permission failures).
     if (userProfileAsync.value == null) {
       _log('Profile missing for authenticated user - attempting recovery');
-      final result = await _ref
+      final recoveryResult = await _ref
           .read(authRepositoryProvider)
           .ensureCurrentUserProfileExists();
 
-      result.fold(
-        (failure) => _log('Profile recovery failed: ${failure.message}'),
-        (_) => _log('Profile recovery requested successfully'),
-      );
+      if (recoveryResult.isLeft()) {
+        final failureMessage = recoveryResult.fold(
+          (failure) => failure.message,
+          (_) => 'unknown',
+        );
+        _log('Profile recovery failed: $failureMessage');
+
+        if (_isPermissionRelatedFailure(failureMessage)) {
+          _log('Signing out due to permission-related profile failure');
+          await _ref.read(authRepositoryProvider).signOut();
+          return RoutePaths.login;
+        }
+
+        // While recovering/failing for non-permission reasons, keep auth-flow
+        // routes inline to avoid splash bounce.
+        if (_isAuthFlowRoute(currentPath)) {
+          return null;
+        }
+        return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+      }
+
+      _log('Profile recovery requested successfully');
 
       // While recovering, keep auth-flow routes inline to avoid splash bounce.
       if (_isAuthFlowRoute(currentPath)) {
@@ -204,5 +251,13 @@ class AuthGuard {
     if (kDebugMode) {
       developer.log(message, name: 'AuthGuard');
     }
+  }
+
+  bool _isPermissionRelatedFailure(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('permission-denied') ||
+        normalized.contains('permission denied') ||
+        normalized.contains('insufficient permissions') ||
+        normalized.contains('cloud_firestore/permission-denied');
   }
 }

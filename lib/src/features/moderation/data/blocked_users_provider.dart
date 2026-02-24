@@ -6,12 +6,12 @@ import '../../auth/data/auth_repository.dart';
 
 /// Provides a list of blocked user IDs for the current user.
 final blockedUsersProvider = StreamProvider<List<String>>((ref) {
-  final user = ref.watch(currentUserProfileProvider).value;
-  if (user == null) return Stream.value([]);
+  final authUser = ref.watch(authStateChangesProvider).value;
+  if (authUser == null) return Stream.value([]);
 
   return FirebaseFirestore.instance
       .collection(FirestoreCollections.users)
-      .doc(user.uid)
+      .doc(authUser.uid)
       .collection(FirestoreCollections.blocked)
       .snapshots()
       .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
