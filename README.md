@@ -151,3 +151,7 @@ Para suporte ou dúvidas, entre em contato através do app ou pelo email: suport
 
 **Versão**: 1.0.0+1  
 **Última atualização**: Fevereiro 2026
+
+## Fluxo Windows + MacBook
+
+Guia operacional: `docs/windows-mac-ios-workflow.md`

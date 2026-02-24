@@ -2,12 +2,16 @@ name: Flutter CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  FLUTTER_VERSION: '3.24.0'
+  FLUTTER_VERSION: "3.38.6"
 
 jobs:
   analyze:
@@ -15,20 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: stable
           cache: true
-      
+
       - name: Get dependencies
         run: flutter pub get
-      
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
-      
+
       - name: Analyze project source
         run: flutter analyze --fatal-infos
 
@@ -38,25 +42,25 @@ jobs:
     needs: analyze
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: stable
           cache: true
-      
+
       - name: Get dependencies
         run: flutter pub get
 
       - name: Verify text encoding (mojibake guard)
         run: flutter test test/unit/quality/mojibake_guard_test.dart
-      
+
       - name: Run tests
         run: flutter test --coverage
-      
+
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: coverage/lcov.info
           fail_ci_if_error: false
@@ -67,60 +71,81 @@ jobs:
     needs: [analyze, test]
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: stable
           cache: true
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-      
+          java-version: "17"
+          distribution: temurin
+
       - name: Get dependencies
         run: flutter pub get
-      
+
       - name: Build APK
         run: flutter build apk --release
         env:
           GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-      
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  security-check:
-    name: Security Audit
-    runs-on: ubuntu-latest
+  build-ios:
+    name: Build iOS (No Codesign)
+    runs-on: macos-latest
+    needs: [analyze, test]
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+          channel: stable
           cache: true
-      
+
       - name: Get dependencies
         run: flutter pub get
-      
+
+      - name: Build iOS without code signing
+        run: flutter build ios --release --no-codesign
+
+  security-check:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    needs: analyze
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
       - name: Check for outdated dependencies
         run: flutter pub outdated
         continue-on-error: true
-      
+
       - name: Check for API keys in code
         run: |
-          # Check for potential API key patterns
-          if grep -r "AIzaSy" lib/ --include="*.dart" 2>/dev/null; then
-            echo "❌ Potential API keys found in code!"
+          if grep -R "AIzaSy" lib/ --include="*.dart" 2>/dev/null; then
+            echo "Potential API keys found in code."
             exit 1
           fi
-          echo "✅ No API keys found in code"
+          echo "No API keys found in code."
+
