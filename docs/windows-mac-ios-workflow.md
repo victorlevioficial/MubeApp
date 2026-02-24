@@ -42,7 +42,7 @@ Este eh o fluxo oficial do projeto para evitar bagunca e retrabalho.
    - `git pull`
 2. Preparar iOS
    - `fvm flutter pub get`
-   - `cd ios && pod install && cd ..`
+   - Se existir `ios/Podfile` no futuro, rode `pod install`.
 3. Rodar no iPhone
    - `fvm flutter run -d <iphone_id>`
    - ou abrir `ios/Runner.xcworkspace` no Xcode e rodar por la
