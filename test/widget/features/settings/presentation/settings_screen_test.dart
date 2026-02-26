@@ -84,7 +84,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Meus Endereços'), findsOneWidget);
-      expect(find.text('Editar Dados'), findsOneWidget);
+      expect(find.text('Editar Perfil'), findsOneWidget);
       expect(find.text('Meus Favoritos'), findsOneWidget);
       expect(find.text('Alterar Senha'), findsOneWidget);
       expect(find.text('Sair da Conta'), findsOneWidget);
