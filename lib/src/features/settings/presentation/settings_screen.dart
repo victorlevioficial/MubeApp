@@ -188,7 +188,7 @@ class SettingsScreen extends ConsumerWidget {
             // 5. ACTION BUTTONS SECTION
             _LogoutSection(
               onLogout: () => _confirmLogout(context, ref),
-              onDeactivate: () => _confirmDeactivate(context, ref),
+              onDelete: () => _confirmDelete(context, ref),
             ),
 
             const SizedBox(height: AppSpacing.s48),
@@ -212,6 +212,9 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirm == true) {
       unawaited(ref.read(authRepositoryProvider).signOut());
+      if (context.mounted) {
+        context.go('/login');
+      }
     }
   }
 
@@ -254,22 +257,29 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  void _confirmDeactivate(BuildContext context, WidgetRef ref) async {
+  void _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
-        title: 'Desativar conta?',
+        title: 'Excluir conta?',
         message:
-            'Sua conta e todos os dados serão excluídos permanentemente. '
+            'Sua conta e todos os dados associados a ela serão excluídos permanentemente. '
             'Esta ação não pode ser desfeita.',
-        confirmText: 'Desativar',
+        confirmText: 'Excluir',
         isDestructive: true,
       ),
     );
 
     if (confirm == true) {
       try {
+        if (context.mounted) {
+          AppSnackBar.info(context, 'Excluindo conta...');
+        }
         await ref.read(authRepositoryProvider).deleteAccount();
+        if (context.mounted) {
+          context.go('/login');
+          AppSnackBar.success(context, 'Conta excluída com sucesso.');
+        }
       } catch (e) {
         if (context.mounted) {
           AppSnackBar.error(context, 'Erro: $e');
@@ -313,12 +323,12 @@ class SettingsScreen extends ConsumerWidget {
   // void _deleteSeededUsers(BuildContext context, WidgetRef ref) async { ... }
 }
 
-/// Logout and deactivate section component
+/// Logout and delete section component
 class _LogoutSection extends StatelessWidget {
   final VoidCallback onLogout;
-  final VoidCallback onDeactivate;
+  final VoidCallback onDelete;
 
-  const _LogoutSection({required this.onLogout, required this.onDeactivate});
+  const _LogoutSection({required this.onLogout, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -329,9 +339,9 @@ class _LogoutSection extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.s16),
 
-        // Deactivate Account Link
+        // Delete Account Link
         TextButton(
-          onPressed: onDeactivate,
+          onPressed: onDelete,
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s16,
@@ -339,11 +349,13 @@ class _LogoutSection extends StatelessWidget {
             ),
           ),
           child: Text(
-            'Desativar Conta',
+            'Excluir Conta',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              color: AppColors.error.withValues(
+                alpha: 0.9,
+              ), // Changed to explicitly show this is a destructive action
               decoration: TextDecoration.underline,
-              decorationColor: AppColors.textSecondary.withValues(alpha: 0.4),
+              decorationColor: AppColors.error.withValues(alpha: 0.5),
               fontSize: 13,
             ),
           ),

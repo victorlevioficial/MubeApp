@@ -1,11 +1,11 @@
-import {onDocumentCreated} from "firebase-functions/v2/firestore";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
 admin.initializeApp();
 
 // Export geohash and interactions migration functions
-export {migrategeohashes, updateusergeohash} from "./geohash_migration";
-export {migrateinteractions} from "./interaction_migration";
+export { migrategeohashes, updateusergeohash } from "./geohash_migration";
+export { migrateinteractions } from "./interaction_migration";
 
 // Export Matchpoint functions
 export {
@@ -66,6 +66,8 @@ export {
   listTickets,
   updateTicket,
   getDashboardStats,
+  listConversations,
+  getConversationMessages,
 } from "./admin";
 
 // Export Favorites functions
@@ -73,6 +75,11 @@ export {
   onFavoriteCreated,
   onFavoriteDeleted,
 } from "./favorites";
+
+// Export Users functions
+export {
+  deleteAccount,
+} from "./users";
 
 /**
  * Push notification throttle cooldown in milliseconds.
@@ -265,7 +272,7 @@ export const onMessageCreated = onDocumentCreated(
       });
 
       // Reset message count after push is sent
-      await notificationRef.update({messageCount: 1});
+      await notificationRef.update({ messageCount: 1 });
     } catch (error) {
       console.error("Error processing onMessageCreated:", error);
     }

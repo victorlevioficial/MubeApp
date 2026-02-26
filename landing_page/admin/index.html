@@ -71,6 +71,10 @@
           <span class="material-icons-round">support_agent</span>
           <span>Tickets</span>
         </li>
+        <li class="nav-item" data-section="chats">
+          <span class="material-icons-round">forum</span>
+          <span>Chats</span>
+        </li>
       </ul>
       <div class="sidebar-footer">
         <button id="logout-btn" class="btn btn-ghost btn-full">
@@ -254,6 +258,26 @@
         </div>
         <div id="tickets-list" class="table-container">
           <p class="empty-state">Carregando...</p>
+        </div>
+      </section>
+
+      <!-- CHATS -->
+      <section id="section-chats" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Todas as Conversas</h3>
+        </div>
+        <div id="chats-list" class="table-container">
+          <p class="empty-state">Carregando...</p>
+        </div>
+        <!-- View chat modal -->
+        <div id="chat-modal" class="modal hidden">
+          <div class="modal-content" style="max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;">
+            <button class="modal-close" id="chat-modal-close" onclick="closeModal('chat-modal')">&times;</button>
+            <h3 style="margin-bottom: 20px;">Mensagens da Conversa</h3>
+            <div id="chat-messages-body"
+              style="display: flex; flex-direction: column; gap: 12px; font-size: 14px; overflow-y: auto; flex: 1;">
+            </div>
+          </div>
         </div>
       </section>
     </main>

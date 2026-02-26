@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -211,25 +212,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw Exception('No matching auth user');
     }
 
-    // Archive
-    final userDoc = await _firestore
-        .collection(FirestoreCollections.users)
-        .doc(uid)
-        .get();
-    if (userDoc.exists && userDoc.data() != null) {
-      final userData = userDoc.data()!;
-      userData[FirestoreFields.deletedAt] = FieldValue.serverTimestamp();
-      await _firestore
-          .collection(FirestoreCollections.deletedUsers)
-          .doc(uid)
-          .set(userData);
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'deleteAccount',
+      );
+      final result = await callable.call();
+
+      if (result.data['success'] != true) {
+        throw Exception('Failed to delete account from server');
+      }
+
+      // After successful server-side deletion, sign out the client
+      await signOut();
+    } catch (e) {
+      AppLogger.error('Error calling deleteAccount function:', e);
+      throw Exception('Error deleting account: $e');
     }
-
-    // Delete Doc
-    await _firestore.collection(FirestoreCollections.users).doc(uid).delete();
-
-    // Delete Auth
-    await user.delete();
   }
 
   @override

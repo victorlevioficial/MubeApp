@@ -1,0 +1,39 @@
+﻿[2026-02-26T16:57:11.421Z] Object "" in "firebase.json" has unknown property: {"additionalProperty":"flutter"}
+[2026-02-26T16:57:11.424Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[2026-02-26T16:57:11.424Z] > authorizing via signed-in user (vitinho.levi@gmail.com)
+[2026-02-26T16:57:11.424Z] [iam] checking project mube-63a93 for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[2026-02-26T16:57:11.425Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:11.425Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:11.425Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93:testIamPermissions [none]
+[2026-02-26T16:57:11.426Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93:testIamPermissions  x-goog-user-project=mube-63a93
+[2026-02-26T16:57:11.426Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2026-02-26T16:57:12.379Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93:testIamPermissions 200
+[2026-02-26T16:57:12.379Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2026-02-26T16:57:12.379Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:12.379Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:12.379Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/mube-63a93/serviceAccounts/mube-63a93@appspot.gserviceaccount.com:testIamPermissions [none]
+[2026-02-26T16:57:12.379Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/mube-63a93/serviceAccounts/mube-63a93@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[2026-02-26T16:57:13.305Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/mube-63a93/serviceAccounts/mube-63a93@appspot.gserviceaccount.com:testIamPermissions 200
+[2026-02-26T16:57:13.305Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/mube-63a93/serviceAccounts/mube-63a93@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+
+=== Deploying to 'mube-63a93'...
+
+i  deploying functions 
+Running command: npm --prefix "$RESOURCE_DIR" run lint
+
+> lint
+> eslint --ext .js,.ts .
+
+Running command: npm --prefix "$RESOURCE_DIR" run build
+
+> build
+> tsc
+
++  functions: Finished running predeploy script. 
+[2026-02-26T16:57:19.442Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:19.442Z] Checked if tokens are valid: true, expires at: 1772128274951
+[2026-02-26T16:57:19.442Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93 [none]
+[2026-02-26T16:57:20.330Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93 200
+[2026-02-26T16:57:20.330Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/mube-63a93 {"projectNumber":"798301748829","projectId":"mube-63a93","lifecycleState":"ACTIVE","name":"Mube","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-02-26T01:26:13.347015Z"}
+
+Error: No function matches given --only filters. Aborting deployment.

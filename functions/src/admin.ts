@@ -5,9 +5,9 @@
  * antes de executar qualquer operação.
  */
 
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import {Timestamp} from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 
 const db = admin.firestore();
 
@@ -31,7 +31,7 @@ function assertAdmin(context: { auth?: { token?: Record<string, unknown> } }) {
 // AUTH: Definir custom claim admin
 // ================================================================
 export const setAdminClaim = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     // Bootstrap: permite que o primeiro admin se configure
     // OR já é admin e está configurando outro
@@ -58,7 +58,7 @@ export const setAdminClaim = onCall(
 
     try {
       const userRecord = await admin.auth().getUserByEmail(targetEmail);
-      await admin.auth().setCustomUserClaims(userRecord.uid, {admin: true});
+      await admin.auth().setCustomUserClaims(userRecord.uid, { admin: true });
 
       // Gravar registro no Firestore
       await db.collection("config").doc("admin").set(
@@ -67,13 +67,13 @@ export const setAdminClaim = onCall(
           updatedAt: Timestamp.now(),
           updatedBy: callerUid || "bootstrap",
         },
-        {merge: true}
+        { merge: true }
       );
 
       console.log(
         `Admin claim definido para ${targetEmail} (${userRecord.uid})`
       );
-      return {success: true, uid: userRecord.uid};
+      return { success: true, uid: userRecord.uid };
     } catch (error) {
       console.error("Erro ao definir admin claim:", error);
       throw new HttpsError("internal", "Erro ao configurar admin.");
@@ -85,7 +85,7 @@ export const setAdminClaim = onCall(
 // FEATURED PROFILES
 // ================================================================
 export const setFeaturedProfiles = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -112,18 +112,18 @@ export const setFeaturedProfiles = onCall(
     });
 
     console.log(`Featured profiles atualizados: ${validUids.length} perfis`);
-    return {success: true, uids: validUids};
+    return { success: true, uids: validUids };
   }
 );
 
 export const getFeaturedProfiles = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
     const doc = await db.collection("config").doc("featuredProfiles").get();
     if (!doc.exists) {
-      return {uids: [], profiles: []};
+      return { uids: [], profiles: [] };
     }
 
     const data = doc.data() || {};
@@ -146,7 +146,7 @@ export const getFeaturedProfiles = onCall(
       }
     }
 
-    return {uids, profiles};
+    return { uids, profiles };
   }
 );
 
@@ -154,7 +154,7 @@ export const getFeaturedProfiles = onCall(
 // USER LOOKUP & SEARCH
 // ================================================================
 export const lookupUser = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -194,22 +194,35 @@ export const lookupUser = onCall(
 );
 
 export const searchUsers = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
-    const query = request.data?.query as string;
+    const query = request.data?.query as string || "";
     const limit = Math.min((request.data?.limit as number) || 20, 50);
+    const results: Record<string, unknown>[] = [];
 
     if (!query || query.length < 2) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Query deve ter pelo menos 2 caracteres."
-      );
+      // Retornar usuários recentes
+      const snap = await db.collection("users")
+        .orderBy("createdAt", "desc")
+        .limit(limit)
+        .get();
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        results.push({
+          uid: doc.id,
+          nome: data.nome || data.name || "",
+          email: data.email || "",
+          foto: data.foto || data.photoUrl || "",
+          tipoPerfil: data.tipo_perfil || data.tipoPerfil || "",
+          status: data.status || "active",
+        });
+      }
+      return { results, total: results.length };
     }
 
     const queryLower = query.toLowerCase();
-    const results: Record<string, unknown>[] = [];
 
     // Busca por nome (prefixo)
     const nameSnap = await db
@@ -231,7 +244,7 @@ export const searchUsers = onCall(
       });
     }
 
-    return {results, total: results.length};
+    return { results, total: results.length };
   }
 );
 
@@ -239,7 +252,7 @@ export const searchUsers = onCall(
 // REPORTS / DENÚNCIAS
 // ================================================================
 export const listReports = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -254,27 +267,41 @@ export const listReports = onCall(
     }
 
     const snap = await query.limit(limit).get();
-    const reports = snap.docs.map((doc) => {
+
+    // Processar de forma paralela as leituras de nomes
+    const reports = await Promise.all(snap.docs.map(async (doc) => {
       const data = doc.data();
+
+      let reportedName = data.reported_item_id || "";
+      if (data.reported_item_type === "user" && data.reported_item_id) {
+        const u = await db.collection("users").doc(data.reported_item_id).get();
+        if (u.exists) {
+          reportedName = u.data()?.nome ||
+            u.data()?.name ||
+            data.reported_item_id;
+        }
+      }
+
       return {
         id: doc.id,
         reporterUserId: data.reporter_user_id || "",
         reportedItemId: data.reported_item_id || "",
         reportedItemType: data.reported_item_type || "",
+        reportedName,
         reason: data.reason || "",
         description: data.description || "",
         status: data.status || "pending",
         createdAt: data.created_at || null,
         processedAt: data.processed_at || null,
       };
-    });
+    }));
 
-    return {reports, total: reports.length};
+    return { reports, total: reports.length };
   }
 );
 
 export const updateReportStatus = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -300,7 +327,7 @@ export const updateReportStatus = onCall(
       processed_by: request.auth?.uid,
     });
 
-    return {success: true};
+    return { success: true };
   }
 );
 
@@ -308,7 +335,7 @@ export const updateReportStatus = onCall(
 // SUSPENSÕES
 // ================================================================
 export const listSuspensions = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -323,11 +350,22 @@ export const listSuspensions = onCall(
     }
 
     const snap = await query.limit(limit).get();
-    const suspensions = snap.docs.map((doc) => {
+
+    const suspensions = await Promise.all(snap.docs.map(async (doc) => {
       const data = doc.data();
+
+      let userName = data.user_id || "";
+      if (data.user_id) {
+        const u = await db.collection("users").doc(data.user_id).get();
+        if (u.exists) {
+          userName = u.data()?.nome || u.data()?.name || data.user_id;
+        }
+      }
+
       return {
         id: doc.id,
         userId: data.user_id || "",
+        userName,
         reason: data.reason || "",
         status: data.status || "active",
         createdAt: data.created_at || null,
@@ -335,14 +373,14 @@ export const listSuspensions = onCall(
         liftedAt: data.lifted_at || null,
         liftedBy: data.lifted_by || null,
       };
-    });
+    }));
 
-    return {suspensions, total: suspensions.length};
+    return { suspensions, total: suspensions.length };
   }
 );
 
 export const manageSuspension = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -382,7 +420,7 @@ export const manageSuspension = onCall(
         updated_at: now,
       });
 
-      return {success: true, action: "created"};
+      return { success: true, action: "created" };
     }
 
     if (action === "lift") {
@@ -416,7 +454,7 @@ export const manageSuspension = onCall(
         updated_at: now,
       });
 
-      return {success: true, action: "lifted"};
+      return { success: true, action: "lifted" };
     }
 
     throw new HttpsError(
@@ -430,7 +468,7 @@ export const manageSuspension = onCall(
 // TICKETS DE SUPORTE
 // ================================================================
 export const listTickets = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -460,12 +498,12 @@ export const listTickets = onCall(
       };
     });
 
-    return {tickets, total: tickets.length};
+    return { tickets, total: tickets.length };
   }
 );
 
 export const updateTicket = onCall(
-  {region: "southamerica-east1", memory: "256MiB"},
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
 
@@ -487,7 +525,7 @@ export const updateTicket = onCall(
 
     await db.collection("tickets").doc(ticketId).update(updateData);
 
-    return {success: true};
+    return { success: true };
   }
 );
 
@@ -495,7 +533,7 @@ export const updateTicket = onCall(
 // DASHBOARD STATS
 // ================================================================
 export const getDashboardStats = onCall(
-  {region: "southamerica-east1", memory: "512MiB"},
+  { region: "southamerica-east1", memory: "512MiB" },
   async (request) => {
     assertAdmin(request);
 
@@ -546,3 +584,90 @@ export const getDashboardStats = onCall(
     };
   }
 );
+
+// ================================================================
+// CHAT MODERATION
+// ================================================================
+export const listConversations = onCall(
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
+  async (request) => {
+    assertAdmin(request);
+
+    const limit = Math.min((request.data?.limit as number) || 20, 100);
+
+    const query = db.collection("conversations")
+      .orderBy("updatedAt", "desc") as FirebaseFirestore.Query;
+
+    const snap = await query.limit(limit).get();
+
+    // Processar nomes dos participantes
+    const conversations = await Promise.all(snap.docs.map(async (doc) => {
+      const data = doc.data();
+      const participants = data.participants || [];
+      const usersData: Record<string, unknown>[] = [];
+
+      for (const uid of participants) {
+        if (typeof uid === "string") {
+          const u = await db.collection("users").doc(uid).get();
+          if (u.exists) {
+            const uInfo = u.data() || {};
+            usersData.push({
+              uid,
+              name: uInfo.nome || uInfo.name || uid,
+              email: uInfo.email || "",
+              photo: uInfo.foto || uInfo.photoUrl || "",
+            });
+          } else {
+            usersData.push({ uid, name: "Usuário Desconhecido" });
+          }
+        }
+      }
+
+      return {
+        id: doc.id,
+        participants: usersData,
+        type: data.type || "direct",
+        createdAt: data.createdAt || null,
+        updatedAt: data.updatedAt || null,
+        lastMessageText: data.lastMessageText || null,
+      };
+    }));
+
+    return { conversations, total: conversations.length };
+  }
+);
+
+export const getConversationMessages = onCall(
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
+  async (request) => {
+    assertAdmin(request);
+
+    const conversationId = request.data?.conversationId as string;
+    const limit = Math.min((request.data?.limit as number) || 50, 200);
+
+    if (!conversationId) {
+      throw new HttpsError("invalid-argument", "conversationId é obrigatório.");
+    }
+
+    const snap = await db.collection("conversations")
+      .doc(conversationId)
+      .collection("messages")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
+      .get();
+
+    const messages = snap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        senderId: data.senderId,
+        text: data.text || "",
+        type: data.type || "text",
+        createdAt: data.createdAt || null,
+      };
+    }).reverse();
+
+    return { messages };
+  }
+);
+

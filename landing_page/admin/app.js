@@ -132,6 +132,12 @@ function loadSectionData(section) {
     case "reports": loadReports(); break;
     case "suspensions": loadSuspensions(); break;
     case "tickets": loadTickets(); break;
+    case "chats": loadChats(); break;
+    case "users":
+      if ($("#user-search-results").innerHTML === "") {
+        $("#user-search-btn").click();
+      }
+      break;
   }
 }
 
@@ -434,7 +440,7 @@ async function loadReports() {
         <thead>
           <tr>
             <th>Tipo</th>
-            <th>ID Reportado</th>
+            <th>Usuário Reportado</th>
             <th>Motivo</th>
             <th>Status</th>
             <th>Data</th>
@@ -445,13 +451,18 @@ async function loadReports() {
           ${reports.map((r) => `
             <tr>
               <td>${esc(r.reportedItemType)}</td>
-              <td style="font-family:monospace;font-size:12px">${r.reportedItemId.substring(0, 16)}...</td>
+              <td>
+                ${r.reportedItemType === 'user' ? `<div style="font-weight:600">${esc(r.reportedName)}</div>` : ''}
+                <div style="font-family:monospace;font-size:11px;color:var(--text-muted)">${r.reportedItemId}</div>
+              </td>
               <td>${esc(r.reason)}</td>
               <td><span class="badge badge-${r.status}">${r.status}</span></td>
               <td>${formatDate(r.createdAt)}</td>
               <td>
-                ${r.status !== 'processed' ? `<button class="btn btn-sm btn-primary" onclick="updateReport('${r.id}','processed')">Processar</button>` : ''}
-                ${r.status !== 'rejected' ? `<button class="btn btn-sm btn-secondary" onclick="updateReport('${r.id}','rejected')">Rejeitar</button>` : ''}
+                ${r.status === 'pending' ? `
+                  <button class="btn btn-sm btn-primary" onclick="updateReport('${r.id}','processed')">Processar</button>
+                  <button class="btn btn-sm btn-secondary" onclick="updateReport('${r.id}','rejected')">Rejeitar</button>
+                ` : '—'}
               </td>
             </tr>
           `).join("")}
@@ -507,7 +518,10 @@ async function loadSuspensions() {
         <tbody>
           ${suspensions.map((s) => `
             <tr>
-              <td style="font-family:monospace;font-size:12px">${s.userId.substring(0, 16)}...</td>
+              <td>
+                <div style="font-weight:600">${esc(s.userName)}</div>
+                <div style="font-family:monospace;font-size:11px;color:var(--text-muted)">${s.userId}</div>
+              </td>
               <td>${esc(s.reason)}</td>
               <td><span class="badge badge-${s.status === 'active' ? 'suspended' : 'lifted'}">${s.status}</span></td>
               <td>${formatDate(s.suspendedUntil)}</td>
@@ -600,17 +614,20 @@ async function loadTickets() {
           </tr>
         </thead>
         <tbody>
-          ${tickets.map((t) => `
+          ${tickets.map((t) => {
+      // encode for html
+      const encT = encodeURIComponent(JSON.stringify(t));
+      return `
             <tr>
               <td>${esc(t.subject || t.message?.substring(0, 40) || '—')}</td>
               <td>${esc(t.category || '—')}</td>
               <td><span class="badge badge-${t.status}">${t.status}</span></td>
               <td>${formatDate(t.createdAt)}</td>
               <td>
-                <button class="btn btn-sm btn-secondary" onclick="viewTicket('${t.id}', ${JSON.stringify(t).replace(/'/g, "\\'")})"">Ver</button>
+                <button class="btn btn-sm btn-secondary" onclick="viewTicket('${t.id}', decodeURIComponent('${encT}'))">Ver</button>
               </td>
             </tr>
-          `).join("")}
+          `}).join("")}
         </tbody>
       </table>
     `;
@@ -622,7 +639,8 @@ async function loadTickets() {
 
 $("#tickets-filter").addEventListener("change", loadTickets);
 
-window.viewTicket = function (ticketId, ticket) {
+window.viewTicket = function (ticketId, ticketStr) {
+  const ticket = JSON.parse(ticketStr);
   const modal = $("#user-detail-modal");
   const body = $("#user-detail-body");
 
@@ -654,6 +672,129 @@ window.changeTicketStatus = async function (ticketId, status) {
   } catch (err) {
     toast("Erro ao atualizar ticket", "error");
   }
+};
+
+// ============================================
+// CHATS
+// ============================================
+let currentChats = [];
+
+async function loadChats() {
+  const container = $("#chats-list");
+  container.innerHTML = '<p class="empty-state">Carregando...</p>';
+
+  try {
+    const result = await functions.httpsCallable("listConversations")({ limit: 50 });
+    const chats = result.data.conversations || [];
+    currentChats = chats;
+
+    if (chats.length === 0) {
+      container.innerHTML = '<p class="empty-state">Nenhuma conversa encontrada.</p>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Participantes</th>
+            <th>Tipo</th>
+            <th>Última Mensagem</th>
+            <th>Atualização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${chats.map((c) => {
+      const participantsHtml = c.participants.map(p => `
+               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                 ${p.photo ? `<img src="${p.photo}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">` : `<div style="width:24px;height:24px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;">${p.name.charAt(0)}</div>`}
+                 <div style="display:flex; flex-direction:column; line-height: 1.2;">
+                    <span style="font-weight:600;font-size:13px;">${esc(p.name)}</span>
+                    <span style="font-family:monospace;font-size:11px;color:var(--text-muted)">${p.uid}</span>
+                 </div>
+               </div>
+             `).join('');
+
+      const encC = encodeURIComponent(JSON.stringify(c));
+      return `
+            <tr>
+              <td>${participantsHtml}</td>
+              <td><span class="badge badge-${c.type === 'matchpoint' ? 'processed' : 'pending'}">${c.type}</span></td>
+              <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(c.lastMessageText || '')}">
+                ${esc(c.lastMessageText || '—')}
+              </td>
+              <td>${formatDate(c.updatedAt)}</td>
+              <td>
+                <button class="btn btn-sm btn-secondary" onclick="viewConversation('${c.id}', decodeURIComponent('${encC}'))">Ver Chat</button>
+              </td>
+            </tr>
+          `}).join("")}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    console.error("Erro ao carregar chats:", err);
+    container.innerHTML = '<p class="error-text">Erro ao carregar conversas.</p>';
+  }
+}
+
+window.viewConversation = async function (conversationId, chatStr) {
+  const chat = JSON.parse(chatStr);
+  const modal = $("#chat-modal");
+  const body = $("#chat-messages-body");
+
+  body.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;padding:20px;">
+      <span class="btn-loader" style="display:block;border-color:var(--primary);border-top-color:transparent;"></span>
+      <span style="margin-top:10px;color:var(--text-muted);">Carregando mensagens...</span>
+    </div>
+  `;
+  modal.classList.remove("hidden");
+
+  try {
+    const result = await functions.httpsCallable("getConversationMessages")({ conversationId, limit: 100 });
+    const messages = result.data.messages || [];
+
+    if (messages.length === 0) {
+      body.innerHTML = '<p class="empty-state" style="margin-top:20px;">Nenhuma mensagem registrada.</p>';
+      return;
+    }
+
+    const participantsMap = {};
+    chat.participants.forEach(p => participantsMap[p.uid] = p);
+
+    body.innerHTML = messages.map(m => {
+      const sender = participantsMap[m.senderId] || { name: 'Desconhecido' };
+      const isSystem = m.senderId === 'system';
+      const isSender1 = Object.keys(participantsMap)[0] === m.senderId;
+      const align = isSystem ? 'center' : (isSender1 ? 'flex-start' : 'flex-end');
+      const bgColor = isSystem ? 'transparent' : (isSender1 ? 'var(--bg-card)' : 'var(--primary)');
+      const color = isSystem ? 'var(--text-muted)' : (isSender1 ? 'var(--text-main)' : 'white');
+      const border = isSystem ? 'none' : '1px solid var(--border-color)';
+
+      return `
+        <div style="display:flex; flex-direction:column; align-items:${align}; margin-bottom:4px;">
+           ${!isSystem ? `<span style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">${esc(sender.name)} • ${formatDate(m.createdAt)}</span>` : ''}
+           <div style="background:${bgColor}; color:${color}; border:${border}; padding:8px 12px; border-radius:12px; max-width:85%; word-break:break-word;">
+              ${isSystem ? `<i style="font-size:11px;">${esc(m.text)}</i>` : esc(m.text)}
+           </div>
+        </div>
+      `;
+    }).join("");
+
+    // Auto scroll bottom
+    setTimeout(() => {
+      body.scrollTop = body.scrollHeight;
+    }, 100);
+  } catch (err) {
+    console.error("Erro ao carregar mensagens:", err);
+    body.innerHTML = '<p class="error-text">Erro ao buscar mensagens.</p>';
+  }
+};
+
+window.closeModal = function (id) {
+  $("#" + id).classList.add("hidden");
 };
 
 // ============================================

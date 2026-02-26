@@ -1,0 +1,84 @@
+﻿
+C:\Users\Victor\Desktop\AppMube\functions\make_admin.js
+  0:0  error  Parsing error: ESLint was configured to run on `<tsconfigRootDir>/make_admin.js` using `parserOptions.project`: 
+- <tsconfigRootDir>/tsconfig.json
+- <tsconfigRootDir>/tsconfig.dev.json
+However, none of those TSConfigs include this file. Either:
+- Change ESLint's list of included files to not include this file
+- Change one of those TSConfigs to include this file
+- Create a new TSConfig that includes this file and include it in your parserOptions.project
+See the typescript-eslint docs for more info: https://typescript-eslint.io/linting/troubleshooting#i-get-errors-telling-me-eslint-was-configured-to-run--however-that-tsconfig-does-not--none-of-those-tsconfigs-include-this-file
+
+C:\Users\Victor\Desktop\AppMube\functions\src\admin.ts
+    8:9   error  There should be no space after '{'   object-curly-spacing
+    8:28  error  There should be no space before '}'  object-curly-spacing
+   10:9   error  There should be no space after '{'   object-curly-spacing
+   10:19  error  There should be no space before '}'  object-curly-spacing
+   34:4   error  There should be no space after '{'   object-curly-spacing
+   34:51  error  There should be no space before '}'  object-curly-spacing
+   61:63  error  There should be no space after '{'   object-curly-spacing
+   61:75  error  There should be no space before '}'  object-curly-spacing
+   70:10  error  There should be no space after '{'   object-curly-spacing
+   70:22  error  There should be no space before '}'  object-curly-spacing
+   76:15  error  There should be no space after '{'   object-curly-spacing
+   76:50  error  There should be no space before '}'  object-curly-spacing
+   88:4   error  There should be no space after '{'   object-curly-spacing
+   88:51  error  There should be no space before '}'  object-curly-spacing
+  115:13  error  There should be no space after '{'   object-curly-spacing
+  115:44  error  There should be no space before '}'  object-curly-spacing
+  120:4   error  There should be no space after '{'   object-curly-spacing
+  120:51  error  There should be no space before '}'  object-curly-spacing
+  126:15  error  There should be no space after '{'   object-curly-spacing
+  126:38  error  There should be no space before '}'  object-curly-spacing
+  149:13  error  There should be no space after '{'   object-curly-spacing
+  149:28  error  There should be no space before '}'  object-curly-spacing
+  157:4   error  There should be no space after '{'   object-curly-spacing
+  157:51  error  There should be no space before '}'  object-curly-spacing
+  197:4   error  There should be no space after '{'   object-curly-spacing
+  197:51  error  There should be no space before '}'  object-curly-spacing
+  222:15  error  There should be no space after '{'   object-curly-spacing
+  222:46  error  There should be no space before '}'  object-curly-spacing
+  247:13  error  There should be no space after '{'   object-curly-spacing
+  247:44  error  There should be no space before '}'  object-curly-spacing
+  255:4   error  There should be no space after '{'   object-curly-spacing
+  255:51  error  There should be no space before '}'  object-curly-spacing
+  299:13  error  There should be no space after '{'   object-curly-spacing
+  299:44  error  There should be no space before '}'  object-curly-spacing
+  304:4   error  There should be no space after '{'   object-curly-spacing
+  304:51  error  There should be no space before '}'  object-curly-spacing
+  330:13  error  There should be no space after '{'   object-curly-spacing
+  330:27  error  There should be no space before '}'  object-curly-spacing
+  338:4   error  There should be no space after '{'   object-curly-spacing
+  338:51  error  There should be no space before '}'  object-curly-spacing
+  378:13  error  There should be no space after '{'   object-curly-spacing
+  378:52  error  There should be no space before '}'  object-curly-spacing
+  383:4   error  There should be no space after '{'   object-curly-spacing
+  383:51  error  There should be no space before '}'  object-curly-spacing
+  423:15  error  There should be no space after '{'   object-curly-spacing
+  423:48  error  There should be no space before '}'  object-curly-spacing
+  457:15  error  There should be no space after '{'   object-curly-spacing
+  457:47  error  There should be no space before '}'  object-curly-spacing
+  471:4   error  There should be no space after '{'   object-curly-spacing
+  471:51  error  There should be no space before '}'  object-curly-spacing
+  501:13  error  There should be no space after '{'   object-curly-spacing
+  501:44  error  There should be no space before '}'  object-curly-spacing
+  506:4   error  There should be no space after '{'   object-curly-spacing
+  506:51  error  There should be no space before '}'  object-curly-spacing
+  528:13  error  There should be no space after '{'   object-curly-spacing
+  528:27  error  There should be no space before '}'  object-curly-spacing
+  536:4   error  There should be no space after '{'   object-curly-spacing
+  536:51  error  There should be no space before '}'  object-curly-spacing
+  592:4   error  There should be no space after '{'   object-curly-spacing
+  592:51  error  There should be no space before '}'  object-curly-spacing
+  621:29  error  There should be no space after '{'   object-curly-spacing
+  621:63  error  There should be no space before '}'  object-curly-spacing
+  636:13  error  There should be no space after '{'   object-curly-spacing
+  636:56  error  There should be no space before '}'  object-curly-spacing
+  641:4   error  There should be no space after '{'   object-curly-spacing
+  641:51  error  There should be no space before '}'  object-curly-spacing
+  670:13  error  There should be no space after '{'   object-curly-spacing
+  670:22  error  There should be no space before '}'  object-curly-spacing
+
+Ô£û 69 problems (69 errors, 0 warnings)
+  68 errors and 0 warnings potentially fixable with the `--fix` option.
+
