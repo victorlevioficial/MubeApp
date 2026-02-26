@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -18,7 +20,7 @@ class GalleryVideoPlayer extends StatefulWidget {
 }
 
 class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
-  late VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
   bool _showControls = true;
@@ -30,62 +32,119 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     _initializePlayer();
   }
 
+  @override
+  void didUpdateWidget(covariant GalleryVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _hideControlsTimer?.cancel();
+      _disposeController();
+      _isInitialized = false;
+      _hasError = false;
+      _initializePlayer();
+    }
+  }
+
   Future<void> _initializePlayer() async {
+    final initialized = await _tryInitializeController();
+    if (initialized || !mounted) return;
+
+    AppLogger.warning(
+      'Falha ao iniciar video sem formatHint; tentando fallback com formatHint=other.',
+    );
+
+    _disposeController();
+    final fallbackInitialized = await _tryInitializeController(
+      formatHint: VideoFormat.other,
+    );
+
+    if (!fallbackInitialized && mounted) {
+      setState(() => _hasError = true);
+    }
+  }
+
+  Future<bool> _tryInitializeController({VideoFormat? formatHint}) async {
+    VideoPlayerController? controller;
     try {
-      _controller = VideoPlayerController.networkUrl(
+      controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.videoUrl),
+        formatHint: formatHint,
       );
 
-      await _controller.initialize();
-      await _controller.setLooping(true);
+      await controller.initialize();
+      await controller.setLooping(true);
+      controller.addListener(_onControllerChanged);
 
-      // Listen to player state changes
-      _controller.addListener(() {
-        if (mounted) setState(() {});
+      if (!mounted) {
+        await controller.dispose();
+        return false;
+      }
+
+      setState(() {
+        _controller = controller;
+        _isInitialized = true;
+        _hasError = false;
       });
 
-      if (mounted) {
-        setState(() => _isInitialized = true);
-        await _controller.play();
+      await controller.play();
+      _showControlsWithTimer();
+      return true;
+    } catch (e, s) {
+      final controllerError = controller?.value.errorDescription;
+      AppLogger.error(
+        'Erro ao inicializar video | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=${widget.videoUrl}',
+        e,
+        s,
+      );
+      await controller?.dispose();
+      return false;
+    }
+  }
 
-        // Show controls initially, then hide after 3 seconds
-        _showControlsWithTimer();
-      }
-    } catch (e) {
-      AppLogger.error('❌ Erro ao inicializar vídeo', e);
-      if (mounted) {
-        setState(() => _hasError = true);
-      }
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _disposeController() {
+    final controller = _controller;
+    _controller = null;
+    if (controller != null) {
+      controller.removeListener(_onControllerChanged);
+      controller.dispose();
     }
   }
 
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
-    _controller.dispose();
+    _disposeController();
     super.dispose();
   }
 
   void _showControlsWithTimer() {
-    setState(() => _showControls = true);
+    if (mounted) {
+      setState(() => _showControls = true);
+    }
 
-    // Cancel existing timer
     _hideControlsTimer?.cancel();
-
-    // Hide controls after 3 seconds
     _hideControlsTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _controller.value.isPlaying) {
+      final controller = _controller;
+      if (mounted && controller != null && controller.value.isPlaying) {
         setState(() => _showControls = false);
       }
     });
   }
 
   void _togglePlayPause() {
+    final controller = _controller;
+    if (controller == null) return;
+
     setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
+      if (controller.value.isPlaying) {
+        controller.pause();
       } else {
-        _controller.play();
+        controller.play();
       }
     });
     _showControlsWithTimer();
@@ -108,7 +167,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
             const Icon(Icons.error, color: AppColors.error, size: 64),
             const SizedBox(height: AppSpacing.s16),
             Text(
-              'Erro ao carregar vídeo',
+              'Erro ao carregar video',
               style: AppTypography.bodyLarge.copyWith(
                 color: AppColors.textPrimary,
                 decoration: TextDecoration.none,
@@ -119,28 +178,31 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
       );
     }
 
-    if (!_isInitialized) {
+    final controller = _controller;
+    if (!_isInitialized || controller == null) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.textPrimary),
       );
     }
 
+    final durationMs = controller.value.duration.inMilliseconds.toDouble();
+    final maxSlider = durationMs > 0 ? durationMs : 1.0;
+    final sliderValue = controller.value.position.inMilliseconds
+        .toDouble()
+        .clamp(0.0, maxSlider)
+        .toDouble();
+
     return GestureDetector(
-      onTap: () {
-        _showControlsWithTimer();
-      },
+      onTap: _showControlsWithTimer,
       child: Container(
         color: AppColors.background,
         child: Center(
           child: AspectRatio(
-            aspectRatio: _controller.value.aspectRatio,
+            aspectRatio: controller.value.aspectRatio,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Video
-                VideoPlayer(_controller),
-
-                // Controls overlay with animation
+                VideoPlayer(controller),
                 AnimatedOpacity(
                   opacity: _showControls ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
@@ -159,8 +221,6 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                     ),
                   ),
                 ),
-
-                // Play/Pause button (center) with animation
                 AnimatedOpacity(
                   opacity: _showControls ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
@@ -175,7 +235,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                         ),
                         padding: AppSpacing.all16,
                         child: Icon(
-                          _controller.value.isPlaying
+                          controller.value.isPlaying
                               ? Icons.pause
                               : Icons.play_arrow,
                           color: AppColors.textPrimary,
@@ -185,8 +245,6 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                     ),
                   ),
                 ),
-
-                // Bottom controls with animation
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   bottom: _showControls ? 0 : -100,
@@ -200,16 +258,15 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.transparent,
-                          AppColors.background.withValues(alpha: 0.8),
-                        ],
+                          colors: [
+                            AppColors.transparent,
+                            AppColors.background.withValues(alpha: 0.8),
+                          ],
                         ),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Progress bar - Professional implementation
                           SizedBox(
                             height: 32,
                             child: Material(
@@ -224,29 +281,26 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                                     overlayRadius: 14,
                                   ),
                                   activeTrackColor: AppColors.primary,
-                                  inactiveTrackColor:
-                                      AppColors.textPrimary.withValues(
-                                    alpha: 0.24,
-                                  ),
+                                  inactiveTrackColor: AppColors.textPrimary
+                                      .withValues(alpha: 0.24),
                                   thumbColor: AppColors.primary,
                                   overlayColor: AppColors.primary.withValues(
                                     alpha: 0.3,
                                   ),
                                 ),
                                 child: Slider(
-                                  value: _controller
-                                      .value
-                                      .position
-                                      .inMilliseconds
-                                      .toDouble(),
+                                  value: sliderValue,
                                   min: 0,
-                                  max: _controller.value.duration.inMilliseconds
-                                      .toDouble(),
-                                  onChanged: (value) {
-                                    _controller.seekTo(
-                                      Duration(milliseconds: value.toInt()),
-                                    );
-                                  },
+                                  max: maxSlider,
+                                  onChanged: durationMs <= 0
+                                      ? null
+                                      : (value) {
+                                          controller.seekTo(
+                                            Duration(
+                                              milliseconds: value.toInt(),
+                                            ),
+                                          );
+                                        },
                                   onChangeStart: (value) {
                                     _hideControlsTimer?.cancel();
                                   },
@@ -257,14 +311,13 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                               ),
                             ),
                           ),
-                          // Time display
                           Padding(
                             padding: const EdgeInsets.only(top: AppSpacing.s4),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  _formatDuration(_controller.value.position),
+                                  _formatDuration(controller.value.position),
                                   style: AppTypography.labelMedium.copyWith(
                                     color: AppColors.textPrimary,
                                     decoration: TextDecoration.none,
@@ -278,7 +331,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                                   ),
                                 ),
                                 Text(
-                                  _formatDuration(_controller.value.duration),
+                                  _formatDuration(controller.value.duration),
                                   style: AppTypography.labelMedium.copyWith(
                                     color: AppColors.textPrimary,
                                     decoration: TextDecoration.none,

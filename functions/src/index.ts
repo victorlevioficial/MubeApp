@@ -81,6 +81,11 @@ export {
   deleteAccount,
 } from "./users";
 
+// Export Video transcode functions
+export {
+  onGalleryVideoUploaded,
+} from "./video_transcode";
+
 /**
  * Push notification throttle cooldown in milliseconds.
  * Messages within this window from the same sender won't trigger

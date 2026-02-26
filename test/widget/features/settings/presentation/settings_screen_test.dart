@@ -138,6 +138,31 @@ void main() {
       expect(find.text('Sair'), findsOneWidget);
     });
 
+    testWidgets('delete account button shows confirmation dialog', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      // Scroll to the bottom
+      final scrollable = find.byType(Scrollable);
+      await tester.drag(scrollable, const Offset(0, -2000));
+      await tester.pumpAndSettle();
+
+      final deleteTile = find.text('Excluir Conta');
+      expect(deleteTile, findsOneWidget);
+
+      await tester.tap(deleteTile);
+      // Explicitly pump several times to ensure dialog shows up
+      for (int i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+    });
+
     testWidgets('confirming logout calls signOut', (tester) async {
       // We set current user initially
       fakeAuthRepository.emitUser(

@@ -29,7 +29,7 @@ class BentoHeader extends ConsumerWidget {
       children: [
         // ENHANCED PROFILE CARD
         _ProfileCard(
-          name: user?.nome ?? 'Bem-vindo',
+          name: user?.appDisplayName ?? 'Bem-vindo',
           email: user?.email ?? 'Visitante',
           photoUrl: user?.foto,
           onEditTap: () => context.push('/profile/edit'),

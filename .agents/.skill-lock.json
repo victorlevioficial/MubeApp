@@ -1,0 +1,30 @@
+{
+  "version": 3,
+  "skills": {
+    "flutter-expert": {
+      "source": "xfstudio/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/xfstudio/skills.git",
+      "skillFolderHash": "",
+      "installedAt": "2026-02-26T19:42:21.434Z",
+      "updatedAt": "2026-02-26T19:42:49.572Z"
+    },
+    "Flutter": {
+      "source": "openclaw/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/openclaw/skills.git",
+      "skillFolderHash": "",
+      "installedAt": "2026-02-26T19:45:03.755Z",
+      "updatedAt": "2026-02-26T19:45:03.755Z"
+    },
+    "automate-flutter-app-releases": {
+      "source": "rodydavis/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/rodydavis/skills.git",
+      "skillFolderHash": "",
+      "installedAt": "2026-02-26T19:46:13.913Z",
+      "updatedAt": "2026-02-26T19:46:13.913Z"
+    }
+  },
+  "dismissed": {}
+}

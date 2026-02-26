@@ -87,6 +87,16 @@ service firebase.storage {
     }
 
     // ========================================
+    // TRANSCODED GALLERY VIDEOS
+    // ========================================
+
+    match /gallery_videos_transcoded/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if false; // Server-side only (Cloud Functions)
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
     // VIDEO THUMBNAILS
     // ========================================
 

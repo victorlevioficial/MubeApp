@@ -393,6 +393,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.6"
+  dispose_scope:
+    dependency: transitive
+    description:
+      name: dispose_scope
+      sha256: "48ec38ca2631c53c4f8fa96b294c801e55c335db5e3fb9f82cede150cfe5a2af"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
   easy_refresh:
     dependency: "direct main"
     description:
@@ -1524,6 +1532,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
+  patrol:
+    dependency: "direct dev"
+    description:
+      name: patrol
+      sha256: "0688a00e0fda2e42f102863bbac969b7b5ea836d4dc365b750e0e5aed59d34b0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.1"
+  patrol_finders:
+    dependency: transitive
+    description:
+      name: patrol_finders
+      sha256: ac0bfaf3eaaa6cc3d49c8a365329cc7f4361a5f486f1adb45edc96dbfc854da9
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
+  patrol_log:
+    dependency: transitive
+    description:
+      name: patrol_log
+      sha256: "26af8e1a8bbea313c82664d4eff1cace4fc8acbc2893799dd67fe4c5d3fa47df"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.0"
   pdf:
     dependency: "direct main"
     description:
@@ -2157,10 +2189,10 @@ packages:
     dependency: "direct main"
     description:
       name: video_player
-      sha256: "096bc28ce10d131be80dfb00c223024eb0fba301315a406728ab43dd99c45bdf"
+      sha256: "08bfba72e311d48219acad4e191b1f9c27ff8cf928f2c7234874592d9c9d7341"
       url: "https://pub.dev"
     source: hosted
-    version: "2.10.1"
+    version: "2.11.0"
   video_player_android:
     dependency: transitive
     description:
