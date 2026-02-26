@@ -101,7 +101,7 @@ dev_dependencies:
   patrol: ^4.1.1
   
   # Generators
-  build_runner: ^2.10.5
+  build_runner: ^2.11.1
   riverpod_generator: ^3.0.3
   freezed: ^3.2.3
   json_serializable: ^6.11.2
