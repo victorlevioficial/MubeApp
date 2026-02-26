@@ -67,7 +67,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 NeonSettingsTile(
                   icon: Icons.person_outline,
-                  title: 'Editar Dados',
+                  title: 'Editar Perfil',
                   onTap: () => context.push('/profile/edit'),
                   customAccentColor: AppColors.primary,
                 ),

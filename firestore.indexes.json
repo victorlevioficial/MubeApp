@@ -1,353 +1,47 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
+    "indexes": [
         {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
+            "collectionGroup": "suspensions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
         },
         {
-          "fieldPath": "tipo_perfil",
-          "order": "DESCENDING"
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "reports",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "tipo_perfil",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "conversations",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "lastActivity",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "unreadCount",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "target_uid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "band_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "invites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "band_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "target_uid",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "interactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "source_user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "interactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "source_user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "target_user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "interactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "target_user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "interactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "expires_at",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "interactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "matches",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "user_id_1",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "matches",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "user_id_2",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "matches",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "user_ids",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "bandInvites",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "invited_user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "bandMemberships",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "band_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "user_id",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "hashtagRanking",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "is_trending",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "current_position",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "hashtagRanking",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "hashtag",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "use_count",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "suspensions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "suspended_until",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "reports",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "created_at",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tickets",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "userId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "updatedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    }
-  ],
-  "fieldOverrides": []
+    ],
+    "fieldOverrides": []
 }

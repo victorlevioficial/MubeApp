@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mube — Material para Reunião com Músicos</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
+
+    :root {
+      --bg: #0A0A0A;
+      --surface: #141414;
+      --surface-2: #1E1E1E;
+      --border: #2A2A2A;
+      --text: #F5F5F5;
+      --text-muted: #999;
+      --accent: #e8466c;
+      --accent-light: #ff6b8a;
+      --blue: #4A9EFF;
+      --green: #34D399;
+      --amber: #FBBF24;
+      --purple: #A78BFA;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    @media print {
+      body { padding: 20px; background: #fff; color: #111; }
+      :root {
+        --bg: #fff;
+        --surface: #f8f8f8;
+        --surface-2: #f0f0f0;
+        --border: #ddd;
+        --text: #111;
+        --text-muted: #666;
+      }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+      h1, h2, h3 { color: #111 !important; }
+      .accent-text { color: #e8466c !important; }
+      table { font-size: 11px; }
+    }
+
+    /* Header */
+    .doc-header {
+      text-align: center;
+      padding: 40px 20px;
+      border-bottom: 2px solid var(--accent);
+      margin-bottom: 40px;
+    }
+
+    .doc-header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .accent-text { color: var(--accent); }
+
+    .doc-header .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .doc-header .date {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-number {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 28px 0 12px;
+      color: var(--accent-light);
+    }
+
+    /* Pitch Box */
+    .pitch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 28px;
+      margin: 20px 0;
+    }
+
+    .pitch-box p {
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .pitch-box strong {
+      color: var(--accent-light);
+    }
+
+    .features-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .features-list li {
+      padding: 6px 0;
+      padding-left: 8px;
+      border-left: 2px solid var(--accent);
+      margin-bottom: 6px;
+      margin-left: 12px;
+    }
+
+    .features-list li strong {
+      color: var(--accent-light);
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+
+    thead th {
+      background: var(--surface);
+      color: var(--accent-light);
+      font-weight: 600;
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tbody tr:hover { background: var(--surface); }
+
+    td:first-child {
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+      width: 30px;
+    }
+
+    /* Tip Box */
+    .tip-box {
+      background: rgba(52, 211, 153, 0.08);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+    }
+
+    .tip-box::before {
+      content: '💡 Dica: ';
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    /* Important Box */
+    .important-box {
+      background: rgba(74, 158, 255, 0.08);
+      border: 1px solid rgba(74, 158, 255, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+    }
+
+    .important-box strong {
+      color: var(--blue);
+    }
+
+    /* Warning Box */
+    .warning-box {
+      background: rgba(232, 70, 108, 0.08);
+      border: 1px solid rgba(232, 70, 108, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 0.9rem;
+    }
+
+    .warning-box ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 8px;
+    }
+
+    .warning-box li {
+      padding: 4px 0;
+    }
+
+    /* Annotation Model */
+    .annotation-card {
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin: 20px 0;
+      font-family: 'Inter', monospace;
+      font-size: 0.9rem;
+    }
+
+    .annotation-card .field {
+      display: flex;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px dotted var(--border);
+    }
+
+    .annotation-card .field-label {
+      color: var(--accent-light);
+      font-weight: 600;
+      min-width: 200px;
+    }
+
+    .annotation-card .field-line {
+      flex: 1;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Block Title */
+    .block-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 32px 0 12px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--text);
+    }
+
+    .block-emoji {
+      font-size: 1.3rem;
+    }
+
+    /* Print button */
+    .print-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(232, 70, 108, 0.4);
+      transition: transform 0.2s;
+    }
+
+    .print-btn:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn no-print" onclick="window.print()">🖨️ Salvar como PDF</button>
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <h1>🎵 <span class="accent-text">Mube</span></h1>
+    <div class="subtitle">Material para Reunião com Músicos</div>
+    <div class="date">24 de Fevereiro de 2026</div>
+  </div>
+
+  <!-- SECTION 1: PITCH -->
+  <div class="section">
+    <span class="section-number">SEÇÃO 1</span>
+    <h2>Apresentação Rápida do App (Pitch de 30s)</h2>
+
+    <div class="pitch-box">
+      <p><strong>Mube</strong> é um app gratuito que conecta músicos, bandas, estúdios e profissionais da música em todo o Brasil.</p>
+
+      <p>Pensa assim: você é guitarrista e tá procurando uma banda? Ou tem uma banda e precisa de um baterista perto de você? O Mube resolve isso.</p>
+
+      <p>Você cria seu perfil com seus instrumentos, gêneros musicais, localização e experiência. Aí o app mostra pessoas compatíveis perto de você — como um <strong>Tinder musical</strong>, mas focado em <strong>conexão profissional e criativa</strong>.</p>
+
+      <ul class="features-list">
+        <li><strong>MatchPoint</strong> — Sistema de conexões inteligentes por compatibilidade musical</li>
+        <li><strong>Busca com filtros</strong> — Encontre por instrumento, gênero, cidade</li>
+        <li><strong>Chat em tempo real</strong> — Combina ensaio, troca ideia, manda referência</li>
+        <li><strong>Perfis completos</strong> — Fotos, vídeos, instrumentos, gêneros, bio</li>
+        <li><strong>Favoritos e Notificações</strong> — Salva quem te interessou, recebe alertas</li>
+      </ul>
+
+      <p style="margin-top: 16px;">O app já está disponível para <strong>Android</strong> e <strong>iOS</strong>, 100% gratuito.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: QUIZ -->
+  <div class="section page-break">
+    <span class="section-number">SEÇÃO 2</span>
+    <h2>Mini Quiz sobre o Mube (10 perguntas)</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Pergunta</th>
+          <th>Resposta</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>O que o Mube faz em uma frase?</td>
+          <td>Conecta músicos, bandas, estúdios e profissionais da música no Brasil.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Qual é o nome do sistema de "match" do Mube?</td>
+          <td><strong>MatchPoint</strong></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Quais tipos de perfil existem no Mube?</td>
+          <td>Músico, Banda, Estúdio, Contratante</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Posso filtrar músicos por instrumento e cidade?</td>
+          <td>Sim! A busca tem filtros por instrumento, gênero musical, localização e mais.</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Preciso pagar para usar o Mube?</td>
+          <td>Não. O Mube é 100% gratuito.</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>O Mube funciona só para quem toca instrumento?</td>
+          <td>Não. Estúdios, técnicos de som, produtores e contratantes também podem usar.</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Como funciona o chat do Mube?</td>
+          <td>É em tempo real — parecido com WhatsApp, direto no app, entre conexões.</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>Em quais plataformas o Mube está disponível?</td>
+          <td>Android (Google Play) e iOS (App Store).</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td>Posso salvar perfis para ver depois?</td>
+          <td>Sim! É a funcionalidade de <strong>Favoritos</strong>.</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td>O que é preciso para começar a usar?</td>
+          <td>Baixar o app, criar uma conta, montar seu perfil e começar a explorar.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="tip-box">
+      Faça o quiz oral e dê "prêmios simbólicos" pra quem acertar mais — funciona muito bem pra engajar o grupo.
+    </div>
+  </div>
+
+  <!-- SECTION 3: QUESTIONS -->
+  <div class="section page-break">
+    <span class="section-number">SEÇÃO 3</span>
+    <h2>Roteiro de Perguntas para os Músicos</h2>
+
+    <h3>🎯 Objetivo</h3>
+    <p>Coletar diferentes visões de quem <strong>vive de música</strong> sobre problemas reais, necessidades e oportunidades que o Mube pode resolver.</p>
+
+    <div class="important-box">
+      <strong>Regras de ouro para entrevistar:</strong>
+      <ul style="margin-top: 8px; padding-left: 16px;">
+        <li>1. <strong>Perguntas abertas</strong> — Evite "sim/não". Use "como?", "por quê?", "me conta sobre..."</li>
+        <li>2. <strong>Não induza a resposta</strong> — Errado: "Você não acha que falta um app assim?" Certo: "Como você encontra músicos?"</li>
+        <li>3. <strong>Escute mais, fale menos</strong> — O objetivo é ouvir eles, não vender o app</li>
+        <li>4. <strong>Anote tudo</strong> — Use o celular pra gravar (com permissão) ou anote palavras-chave</li>
+        <li>5. <strong>Faça individuamente</strong> — Pergunte um a um pra não ter "efeito manada"</li>
+      </ul>
+    </div>
+
+    <!-- BLOCO 1 -->
+    <div class="block-title"><span class="block-emoji">🔥</span> Bloco 1 — Dor e Necessidade</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Pergunta</th><th>O que você quer descobrir</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><strong>"Como você fez pra encontrar os músicos com quem toca hoje?"</strong></td>
+          <td>Qual é o processo atual? Boca a boca? WhatsApp? Redes sociais?</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><strong>"Qual foi a maior dificuldade pra achar alguém pra tocar?"</strong></td>
+          <td>Valida se o problema que o Mube resolve é real</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>"Já perdeu oportunidade por não conhecer o músico certo na hora certa?"</strong></td>
+          <td>Identifica dores emocionais e urgência</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><strong>"Se pudesse resolver UMA coisa na sua vida como músico com um app, o que seria?"</strong></td>
+          <td>Prioriza features futuras</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BLOCO 2 -->
+    <div class="block-title"><span class="block-emoji">📱</span> Bloco 2 — Hábitos e Ferramentas</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Pergunta</th><th>O que você quer descobrir</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>5</td>
+          <td><strong>"Que apps ou redes sociais você mais usa pra coisas de música?"</strong></td>
+          <td>Mapa competitivo real</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><strong>"Participa de algum grupo de WhatsApp/Facebook de músicos?"</strong></td>
+          <td>Entender a comunidade existente</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><strong>"Quando precisa de um substituto pra um show, como faz?"</strong></td>
+          <td>Caso de uso de urgência — feature futura</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BLOCO 3 -->
+    <div class="block-title page-break"><span class="block-emoji">👀</span> Bloco 3 — Reação ao Mube</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Pergunta</th><th>O que você quer descobrir</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>8</td>
+          <td><strong>"Olhando o app agora, o que te chamou atenção primeiro?"</strong></td>
+          <td>Primeira impressão = UX</td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td><strong>"Tem alguma coisa que você sentiu falta aqui?"</strong></td>
+          <td>Features que faltam na visão de quem vive disso</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><strong>"Você usaria isso? Por quê sim ou por quê não?"</strong></td>
+          <td>Validação honesta</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td><strong>"Pra quem você indicaria esse app?"</strong></td>
+          <td>Público-alvo na visão deles</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BLOCO 4 -->
+    <div class="block-title"><span class="block-emoji">💰</span> Bloco 4 — Monetização e Valor</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Pergunta</th><th>O que você quer descobrir</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>12</td>
+          <td><strong>"Já pagou por alguma ferramenta digital pra sua carreira musical?"</strong></td>
+          <td>Disposição a pagar</td>
+        </tr>
+        <tr>
+          <td>13</td>
+          <td><strong>"Se o Mube tivesse versão premium, o que teria que ter pra valer?"</strong></td>
+          <td>Features de valor premium</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- BLOCO 5 -->
+    <div class="block-title"><span class="block-emoji">🚀</span> Bloco 5 — Visão de Futuro</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Pergunta</th><th>O que você quer descobrir</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>14</td>
+          <td><strong>"Se pudesse inventar uma funcionalidade nova, qual seria?"</strong></td>
+          <td>Ideias criativas do usuário real</td>
+        </tr>
+        <tr>
+          <td>15</td>
+          <td><strong>"O que faria você abrir esse app todo dia?"</strong></td>
+          <td>Gatilho de retenção — a resposta mais valiosa</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ANNOTATION MODEL -->
+  <div class="section page-break">
+    <span class="section-number">ANOTAÇÕES</span>
+    <h2>Modelo de Anotação Rápida (por pessoa)</h2>
+
+    <div class="annotation-card">
+      <div class="field"><span class="field-label">Nome:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Instrumento / Função:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Cidade:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Anos no mercado:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Maior dor:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Ideia mais interessante:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Usaria o app? (S/N):</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Por quê:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Feature que pediu:</span><span class="field-line"></span></div>
+    </div>
+
+    <!-- Repeat for more people -->
+    <div class="annotation-card">
+      <div class="field"><span class="field-label">Nome:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Instrumento / Função:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Cidade:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Anos no mercado:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Maior dor:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Ideia mais interessante:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Usaria o app? (S/N):</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Por quê:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Feature que pediu:</span><span class="field-line"></span></div>
+    </div>
+
+    <div class="annotation-card">
+      <div class="field"><span class="field-label">Nome:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Instrumento / Função:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Cidade:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Anos no mercado:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Maior dor:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Ideia mais interessante:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Usaria o app? (S/N):</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Por quê:</span><span class="field-line"></span></div>
+      <div class="field"><span class="field-label">Feature que pediu:</span><span class="field-line"></span></div>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ Evite esses erros na reunião:</strong>
+      <ul>
+        <li>❌ Não fique na defensiva se criticarem o app — crítica é OURO</li>
+        <li>❌ Não explique demais antes de perguntar — deixe eles descobrirem</li>
+        <li>❌ Não force ninguém a baixar na hora — deixe natural</li>
+        <li>✅ Agradeça cada feedback como se fosse consultoria (porque é)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="text-align: center; padding: 32px 0; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 24px;">
+    <p>© 2026 Mube — Conectando Músicos</p>
+    <p>Documento preparado para reunião presencial</p>
+  </div>
+
+</body>
+</html>

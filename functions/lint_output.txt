@@ -1,0 +1,18 @@
+
+> lint
+> eslint --ext .js,.ts .
+
+
+C:\Users\Victor\Desktop\AppMube\functions\src\index.ts
+    1:9   error  There should be no space after '{'   object-curly-spacing
+    1:27  error  There should be no space before '}'  object-curly-spacing
+    7:9   error  There should be no space after '{'   object-curly-spacing
+    7:45  error  There should be no space before '}'  object-curly-spacing
+    8:9   error  There should be no space after '{'   object-curly-spacing
+    8:29  error  There should be no space before '}'  object-curly-spacing
+  252:37  error  There should be no space after '{'   object-curly-spacing
+  252:53  error  There should be no space before '}'  object-curly-spacing
+
+✖ 8 problems (8 errors, 0 warnings)
+  8 errors and 0 warnings potentially fixable with the `--fix` option.
+

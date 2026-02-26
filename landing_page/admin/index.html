@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mube Admin</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+
+<body>
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="material-icons-round logo-icon">music_note</span>
+        <h1>Mube Admin</h1>
+        <p class="login-subtitle">Painel de Administração</p>
+      </div>
+      <form id="login-form">
+        <div class="input-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="admin@email.com" required>
+        </div>
+        <div class="input-group">
+          <label for="login-password">Senha</label>
+          <input type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          <span class="btn-text">Entrar</span>
+          <span class="btn-loader hidden"></span>
+        </button>
+        <p id="login-error" class="error-text hidden"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="admin-panel" class="admin-layout hidden">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <span class="material-icons-round logo-icon-sm">music_note</span>
+        <span class="sidebar-title">Mube</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-item active" data-section="dashboard">
+          <span class="material-icons-round">dashboard</span>
+          <span>Dashboard</span>
+        </li>
+        <li class="nav-item" data-section="featured">
+          <span class="material-icons-round">stars</span>
+          <span>Em Destaque</span>
+        </li>
+        <li class="nav-item" data-section="users">
+          <span class="material-icons-round">people</span>
+          <span>Usuários</span>
+        </li>
+        <li class="nav-item" data-section="reports">
+          <span class="material-icons-round">flag</span>
+          <span>Denúncias</span>
+        </li>
+        <li class="nav-item" data-section="suspensions">
+          <span class="material-icons-round">block</span>
+          <span>Suspensões</span>
+        </li>
+        <li class="nav-item" data-section="tickets">
+          <span class="material-icons-round">support_agent</span>
+          <span>Tickets</span>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="btn btn-ghost btn-full">
+          <span class="material-icons-round">logout</span>
+          <span>Sair</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+      <!-- HEADER -->
+      <header class="content-header">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="header-actions">
+          <span id="admin-email" class="admin-email"></span>
+        </div>
+      </header>
+
+      <!-- SECTIONS -->
+
+      <!-- DASHBOARD -->
+      <section id="section-dashboard" class="section">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon">people</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-users">—</span>
+              <span class="stat-label">Total Usuários</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon accent">person_add</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-new24h">—</span>
+              <span class="stat-label">Novos (24h)</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon green">trending_up</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-new7d">—</span>
+              <span class="stat-label">Novos (7 dias)</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon orange">flag</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-reports">—</span>
+              <span class="stat-label">Reports Pendentes</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon red">block</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-suspensions">—</span>
+              <span class="stat-label">Suspensões Ativas</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="material-icons-round stat-icon blue">support_agent</span>
+            <div class="stat-info">
+              <span class="stat-value" id="stat-tickets">—</span>
+              <span class="stat-label">Tickets Abertos</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURED PROFILES -->
+      <section id="section-featured" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Perfis em Destaque</h3>
+        </div>
+        <div class="featured-add-form">
+          <div class="input-row">
+            <input type="text" id="featured-uid-input" placeholder="Cole o UID do usuário aqui..." class="input-lg">
+            <button id="featured-lookup-btn" class="btn btn-secondary">
+              <span class="material-icons-round">search</span> Buscar
+            </button>
+            <button id="featured-add-btn" class="btn btn-primary hidden">
+              <span class="material-icons-round">add</span> Adicionar
+            </button>
+          </div>
+          <!-- Preview -->
+          <div id="featured-preview" class="user-preview hidden"></div>
+        </div>
+        <div class="featured-list" id="featured-list">
+          <p class="empty-state">Carregando...</p>
+        </div>
+        <button id="featured-save-btn" class="btn btn-primary hidden">
+          <span class="material-icons-round">save</span> Salvar Alterações
+        </button>
+      </section>
+
+      <!-- USERS -->
+      <section id="section-users" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Buscar Usuários</h3>
+        </div>
+        <div class="input-row">
+          <input type="text" id="user-search-input" placeholder="Buscar por nome ou UID..." class="input-lg">
+          <button id="user-search-btn" class="btn btn-secondary">
+            <span class="material-icons-round">search</span> Buscar
+          </button>
+        </div>
+        <div id="user-search-results" class="user-list"></div>
+        <!-- User detail modal -->
+        <div id="user-detail-modal" class="modal hidden">
+          <div class="modal-content">
+            <button class="modal-close" id="user-modal-close">&times;</button>
+            <div id="user-detail-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="section-reports" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Denúncias</h3>
+          <select id="reports-filter" class="select-sm">
+            <option value="all">Todas</option>
+            <option value="pending">Pendentes</option>
+            <option value="processed">Processadas</option>
+            <option value="rejected">Rejeitadas</option>
+          </select>
+        </div>
+        <div id="reports-list" class="table-container">
+          <p class="empty-state">Carregando...</p>
+        </div>
+      </section>
+
+      <!-- SUSPENSIONS -->
+      <section id="section-suspensions" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Suspensões</h3>
+          <select id="suspensions-filter" class="select-sm">
+            <option value="active">Ativas</option>
+            <option value="lifted">Levantadas</option>
+            <option value="all">Todas</option>
+          </select>
+        </div>
+        <div id="suspensions-list" class="table-container">
+          <p class="empty-state">Carregando...</p>
+        </div>
+        <!-- Create suspension modal -->
+        <div id="suspension-modal" class="modal hidden">
+          <div class="modal-content modal-sm">
+            <button class="modal-close" id="suspension-modal-close">&times;</button>
+            <h3>Criar Suspensão</h3>
+            <div class="input-group">
+              <label>UID do Usuário</label>
+              <input type="text" id="suspend-uid" placeholder="UID">
+            </div>
+            <div class="input-group">
+              <label>Motivo</label>
+              <input type="text" id="suspend-reason" placeholder="Motivo da suspensão">
+            </div>
+            <div class="input-group">
+              <label>Duração (dias)</label>
+              <input type="number" id="suspend-days" value="7" min="1" max="365">
+            </div>
+            <button id="suspend-confirm-btn" class="btn btn-primary btn-full">Suspender</button>
+          </div>
+        </div>
+        <button id="create-suspension-btn" class="btn btn-primary fab">
+          <span class="material-icons-round">add</span>
+        </button>
+      </section>
+
+      <!-- TICKETS -->
+      <section id="section-tickets" class="section hidden">
+        <div class="section-toolbar">
+          <h3>Tickets de Suporte</h3>
+          <select id="tickets-filter" class="select-sm">
+            <option value="all">Todos</option>
+            <option value="open">Abertos</option>
+            <option value="in_progress">Em Andamento</option>
+            <option value="resolved">Resolvidos</option>
+          </select>
+        </div>
+        <div id="tickets-list" class="table-container">
+          <p class="empty-state">Carregando...</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-functions-compat.js"></script>
+  <!-- Initialize Firebase automatically when deployed to Firebase Hosting -->
+  <script src="/__/firebase/init.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

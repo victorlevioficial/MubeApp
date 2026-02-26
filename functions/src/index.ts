@@ -52,6 +52,22 @@ export {
   onTicketCreated,
 } from "./support";
 
+// Export Admin panel functions
+export {
+  setAdminClaim,
+  setFeaturedProfiles,
+  getFeaturedProfiles,
+  lookupUser,
+  searchUsers,
+  listReports,
+  updateReportStatus,
+  listSuspensions,
+  manageSuspension,
+  listTickets,
+  updateTicket,
+  getDashboardStats,
+} from "./admin";
+
 // Export Favorites functions
 export {
   onFavoriteCreated,

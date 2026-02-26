@@ -171,6 +171,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   List<FeedItem> _getSpotlightItems(FeedState state) {
+    if (state.featuredItems.isNotEmpty) {
+      return state.featuredItems;
+    }
+
     final allItems = <FeedItem>[];
     for (final items in state.sectionItems.values) {
       allItems.addAll(items);

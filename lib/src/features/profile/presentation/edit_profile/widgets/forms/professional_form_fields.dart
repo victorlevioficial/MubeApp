@@ -129,10 +129,6 @@ class _ProfessionalFormFieldsState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Basic Info Section
-          Text('Informações Pessoais', style: AppTypography.headlineMedium),
-          const SizedBox(height: AppSpacing.s16),
-
           AppTextField(
             controller: widget.nomeArtisticoController,
             label: 'Nome Artístico',

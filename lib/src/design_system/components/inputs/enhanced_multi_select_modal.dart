@@ -102,8 +102,9 @@ class _EnhancedMultiSelectModalState<T>
   List<T> get _filteredItems {
     if (_searchQuery.isEmpty) return widget.items;
     return widget.items
-        .where((item) =>
-            widget.itemLabel(item).toLowerCase().contains(_searchQuery))
+        .where(
+          (item) => widget.itemLabel(item).toLowerCase().contains(_searchQuery),
+        )
         .toList();
   }
 
@@ -254,17 +255,11 @@ class _EnhancedMultiSelectModalState<T>
                   ),
                   enabledBorder: const OutlineInputBorder(
                     borderRadius: AppRadius.all12,
-                    borderSide: BorderSide(
-                      color: AppColors.border,
-                      width: 1,
-                    ),
+                    borderSide: BorderSide(color: AppColors.border, width: 1),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderRadius: AppRadius.all12,
-                    borderSide: BorderSide(
-                      color: AppColors.primary,
-                      width: 1,
-                    ),
+                    borderSide: BorderSide(color: AppColors.primary, width: 1),
                   ),
                 ),
               ),
@@ -289,6 +284,7 @@ class _EnhancedMultiSelectModalState<T>
                   onTap: () => _toggleItem(item),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
+                    clipBehavior: Clip.antiAlias,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.s16,
                       vertical: AppSpacing.s14,
@@ -299,7 +295,9 @@ class _EnhancedMultiSelectModalState<T>
                           : AppColors.surface,
                       borderRadius: AppRadius.all12,
                       border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.border,
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -313,8 +311,8 @@ class _EnhancedMultiSelectModalState<T>
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.primary
-                                : AppColors.transparent,
-                            borderRadius: AppRadius.all8,
+                                : Colors.transparent,
+                            shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected
                                   ? AppColors.primary
@@ -323,10 +321,12 @@ class _EnhancedMultiSelectModalState<T>
                             ),
                           ),
                           child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: AppColors.textPrimary,
+                              ? const Center(
+                                  child: Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 )
                               : null,
                         ),
@@ -376,7 +376,8 @@ class _EnhancedMultiSelectModalState<T>
                 Expanded(
                   flex: 2,
                   child: AppButton.primary(
-                    text: 'Confirmar${_selected.isNotEmpty ? ' (${_selected.length})' : ''}',
+                    text:
+                        'Confirmar${_selected.isNotEmpty ? ' (${_selected.length})' : ''}',
                     onPressed: _selected.isNotEmpty
                         ? () => Navigator.of(context).pop(_selected)
                         : null,
@@ -390,5 +391,3 @@ class _EnhancedMultiSelectModalState<T>
     );
   }
 }
-
-

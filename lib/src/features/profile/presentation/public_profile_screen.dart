@@ -599,13 +599,13 @@ class PublicProfileScreen extends ConsumerWidget {
     final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
     final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
 
-    final skills = [...instrumentos, ...funcoes];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (skills.isNotEmpty)
-          _buildChipsSection('Habilidades', skills, isSkill: true),
+        if (instrumentos.isNotEmpty)
+          _buildChipsSection('Instrumentos', instrumentos, isSkill: true),
+        if (funcoes.isNotEmpty)
+          _buildChipsSection('Funções Técnicas', funcoes, isSkill: true),
         if (generos.isNotEmpty)
           _buildChipsSection('Gêneros Musicais', generos, isSkill: false),
       ],

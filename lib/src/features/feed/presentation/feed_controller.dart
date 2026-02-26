@@ -12,6 +12,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../../moderation/data/blocked_users_provider.dart';
+import '../data/featured_profiles_repository.dart';
 import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
@@ -31,6 +32,9 @@ abstract final class FeedDataConstants {
 /// Estado específico do feed, estendendo [PaginationState].
 @immutable
 class FeedState extends PaginationState<FeedItem> {
+  /// Itens em destaque configurados pelo admin.
+  final List<FeedItem> featuredItems;
+
   /// Itens das seções horizontais (destaques).
   final Map<FeedSectionType, List<FeedItem>> sectionItems;
 
@@ -42,6 +46,7 @@ class FeedState extends PaginationState<FeedItem> {
   final bool isInitialLoading;
 
   const FeedState({
+    this.featuredItems = const [],
     this.sectionItems = const {},
     this.currentFilter = 'Todos',
     this.isInitialLoading = true,
@@ -55,6 +60,7 @@ class FeedState extends PaginationState<FeedItem> {
   });
 
   FeedState copyWithFeed({
+    List<FeedItem>? featuredItems,
     Map<FeedSectionType, List<FeedItem>>? sectionItems,
     String? currentFilter,
     bool? isInitialLoading,
@@ -69,6 +75,7 @@ class FeedState extends PaginationState<FeedItem> {
     bool clearLastDocument = false,
   }) {
     return FeedState(
+      featuredItems: featuredItems ?? this.featuredItems,
       sectionItems: sectionItems ?? this.sectionItems,
       currentFilter: currentFilter ?? this.currentFilter,
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
@@ -88,6 +95,7 @@ class FeedState extends PaginationState<FeedItem> {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is FeedState &&
+        listEquals(other.featuredItems, featuredItems) &&
         mapEquals(other.sectionItems, sectionItems) &&
         other.currentFilter == currentFilter &&
         other.isInitialLoading == isInitialLoading &&
@@ -102,6 +110,7 @@ class FeedState extends PaginationState<FeedItem> {
 
   @override
   int get hashCode => Object.hash(
+    featuredItems,
     sectionItems,
     currentFilter,
     isInitialLoading,
@@ -120,12 +129,26 @@ class FeedState extends PaginationState<FeedItem> {
 @Riverpod(keepAlive: true)
 class FeedController extends _$FeedController {
   List<FeedItem> _allSortedUsers = [];
+  List<FeedItem> _featuredItems = [];
   double? _userLat;
   double? _userLong;
   bool _remoteHasMore = true;
   bool _geoFetchCompleted = false;
   DocumentSnapshot? _lastMainFeedDocument;
   int _sectionsRequestToken = 0;
+
+  /// Atualiza o state sempre injetando os featured mais recentes
+  /// para evitar race condition entre chamadas concorrentes.
+  void _emitState(FeedState Function(FeedState current) updater) {
+    final current = state.value ?? const FeedState();
+    final updated = updater(current);
+    // Sempre garante que os featured do campo privado estejam presentes
+    state = AsyncValue.data(
+      updated.featuredItems.isNotEmpty
+          ? updated
+          : updated.copyWithFeed(featuredItems: _featuredItems),
+    );
+  }
 
   @override
   FutureOr<FeedState> build() {
@@ -140,6 +163,32 @@ class FeedController extends _$FeedController {
     state = AsyncValue.data(currentState.copyWithFeed(isInitialLoading: true));
     // Sync de favoritos com pequeno atraso para evitar competir com first paint.
     unawaited(_loadFavoritesDeferred());
+
+    // Busca os perfis em destaque do painel admin concorrentemente
+    unawaited(
+      ref
+          .read(featuredProfilesRepositoryProvider)
+          .getFeaturedProfiles()
+          .then((featured) {
+            AppLogger.debug(
+              'FeedController: featured profiles carregados: ${featured.length}',
+            );
+            if (featured.isNotEmpty) {
+              _featuredItems = featured;
+              _emitState((s) => s.copyWithFeed(featuredItems: featured));
+              AppLogger.debug(
+                'FeedController: state atualizado com ${featured.length} destaques',
+              );
+            }
+          })
+          .catchError((Object e, StackTrace stack) {
+            AppLogger.error(
+              'FeedController: erro ao carregar featured',
+              e,
+              stack,
+            );
+          }),
+    );
     try {
       final requestToken = ++_sectionsRequestToken;
       // Set user location from auth profile
@@ -193,8 +242,7 @@ class FeedController extends _$FeedController {
     try {
       final sections = await _fetchSections(user: user);
       if (requestToken != _sectionsRequestToken) return;
-      final latestState = state.value ?? const FeedState();
-      state = AsyncValue.data(latestState.copyWithFeed(sectionItems: sections));
+      _emitState((s) => s.copyWithFeed(sectionItems: sections));
     } catch (error, stack) {
       AppLogger.error('Feed: erro ao carregar secoes', error, stack);
     }

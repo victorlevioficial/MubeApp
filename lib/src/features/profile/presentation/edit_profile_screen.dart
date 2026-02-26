@@ -14,6 +14,7 @@ import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -365,6 +366,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (user.tipoPerfil == AppUserType.professional) ...[
+              Text('Informações Pessoais', style: AppTypography.headlineMedium),
+              const SizedBox(height: AppSpacing.s16),
+            ],
             EditProfileHeader(user: user, nomeController: _nomeController),
             const SizedBox(height: AppSpacing.s24),
             _buildTypeSpecificFields(user),

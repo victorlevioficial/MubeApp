@@ -56,8 +56,17 @@ jobs:
       - name: Verify text encoding (mojibake guard)
         run: flutter test test/unit/quality/mojibake_guard_test.dart
 
-      - name: Run tests
-        run: flutter test --coverage
+      - name: Run stable tests (unit + widget + routing + src)
+        run: flutter test test/unit test/widget test/routing test/src --coverage
+
+      - name: Run integration tests (informative on PR)
+        if: github.event_name == 'pull_request'
+        run: flutter test test/integration
+        continue-on-error: true
+
+      - name: Run integration tests (blocking on push)
+        if: github.event_name == 'push'
+        run: flutter test test/integration
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -148,4 +157,3 @@ jobs:
             exit 1
           fi
           echo "No API keys found in code."
-
