@@ -11,9 +11,7 @@ part 'featured_profiles_repository.g.dart';
 /// Lê o documento `config/featuredProfiles` no Firestore, que contém
 /// uma lista de UIDs definidos manualmente pelo painel admin.
 @Riverpod(keepAlive: true)
-FeaturedProfilesRepository featuredProfilesRepository(
-  FeaturedProfilesRepositoryRef ref,
-) {
+FeaturedProfilesRepository featuredProfilesRepository(Ref ref) {
   return FeaturedProfilesRepository(FirebaseFirestore.instance);
 }
 
