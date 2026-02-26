@@ -220,20 +220,45 @@ class EditProfileController extends _$EditProfileController {
 
   // --- Gallery Logic ---
 
+  /// Helper: update upload progress on a specific gallery item.
+  void _updateItemProgress(String mediaId, double progress) {
+    final newGallery = state.galleryItems.map((item) {
+      if (item.id == mediaId) {
+        return item.copyWith(uploadProgress: progress);
+      }
+      return item;
+    }).toList();
+    state = state.copyWith(galleryItems: newGallery);
+  }
+
   Future<void> addPhoto({required File file, required String userId}) async {
     if (state.galleryItems.length >= _maxTotal ||
         state.photoCount >= _maxPhotos) {
       throw 'Limite de fotos atingido';
     }
 
+    final mediaId = const Uuid().v4();
+
+    // Optimistic: add placeholder immediately with local file preview
+    final placeholder = MediaItem(
+      id: mediaId,
+      url: '',
+      type: MediaType.photo,
+      order: state.galleryItems.length,
+      localPath: file.path,
+      isUploading: true,
+      uploadProgress: 0.0,
+    );
+
     state = state.copyWith(
+      galleryItems: [...state.galleryItems, placeholder],
       isUploadingMedia: true,
       uploadProgress: 0.0,
       uploadStatus: 'Enviando foto...',
+      hasChanges: true,
     );
 
     try {
-      final mediaId = const Uuid().v4();
       final storage = ref.read(storageRepositoryProvider);
 
       final mediaUrls = await storage.uploadGalleryMediaWithSizes(
@@ -242,28 +267,41 @@ class EditProfileController extends _$EditProfileController {
         mediaId: mediaId,
         isVideo: false,
         onProgress: (progress) {
+          // Update progress on the specific placeholder item
+          _updateItemProgress(mediaId, progress);
           state = state.copyWith(uploadProgress: progress);
         },
       );
 
-      final newItem = MediaItem(
+      // Replace placeholder with final item (remote URL, no local state)
+      final finalItem = MediaItem(
         id: mediaId,
         url: mediaUrls.full ?? '',
         type: MediaType.photo,
-        order: state.galleryItems.length,
+        order: placeholder.order,
       );
 
-      final newGallery = [...state.galleryItems, newItem];
+      final newGallery = state.galleryItems
+          .map((item) => item.id == mediaId ? finalItem : item)
+          .toList();
+
       state = state.copyWith(
         galleryItems: newGallery,
         isUploadingMedia: false,
         uploadProgress: 0.0,
-        hasChanges: true,
       );
 
       ref.invalidate(publicProfileControllerProvider(userId));
     } catch (e) {
-      state = state.copyWith(isUploadingMedia: false, uploadProgress: 0.0);
+      // Remove placeholder on failure
+      final newGallery = state.galleryItems
+          .where((item) => item.id != mediaId)
+          .toList();
+      state = state.copyWith(
+        galleryItems: newGallery,
+        isUploadingMedia: false,
+        uploadProgress: 0.0,
+      );
       rethrow;
     }
   }
@@ -278,14 +316,29 @@ class EditProfileController extends _$EditProfileController {
       throw 'Limite de vídeos atingido';
     }
 
+    final mediaId = const Uuid().v4();
+
+    // Optimistic: add placeholder immediately with local thumbnail preview
+    final placeholder = MediaItem(
+      id: mediaId,
+      url: '',
+      type: MediaType.video,
+      order: state.galleryItems.length,
+      localPath: videoFile.path,
+      localThumbnailPath: thumbnailFile.path,
+      isUploading: true,
+      uploadProgress: 0.0,
+    );
+
     state = state.copyWith(
+      galleryItems: [...state.galleryItems, placeholder],
       isUploadingMedia: true,
       uploadProgress: 0.0,
       uploadStatus: 'Enviando vídeo...',
+      hasChanges: true,
     );
 
     try {
-      final mediaId = const Uuid().v4();
       final storage = ref.read(storageRepositoryProvider);
 
       // Upload video
@@ -295,7 +348,9 @@ class EditProfileController extends _$EditProfileController {
         mediaId: mediaId,
         isVideo: true,
         onProgress: (progress) {
-          state = state.copyWith(uploadProgress: progress * 0.9);
+          final totalProgress = progress * 0.9;
+          _updateItemProgress(mediaId, totalProgress);
+          state = state.copyWith(uploadProgress: totalProgress);
         },
       );
 
@@ -308,25 +363,36 @@ class EditProfileController extends _$EditProfileController {
         thumbnail: thumbnailFile,
       );
 
-      final newItem = MediaItem(
+      // Replace placeholder with final item
+      final finalItem = MediaItem(
         id: mediaId,
         url: mediaUrls.full ?? '',
         type: MediaType.video,
         thumbnailUrl: thumbUrl,
-        order: state.galleryItems.length,
+        order: placeholder.order,
       );
 
-      final newGallery = [...state.galleryItems, newItem];
+      final newGallery = state.galleryItems
+          .map((item) => item.id == mediaId ? finalItem : item)
+          .toList();
+
       state = state.copyWith(
         galleryItems: newGallery,
         isUploadingMedia: false,
         uploadProgress: 0.0,
-        hasChanges: true,
       );
 
       ref.invalidate(publicProfileControllerProvider(userId));
     } catch (e) {
-      state = state.copyWith(isUploadingMedia: false, uploadProgress: 0.0);
+      // Remove placeholder on failure
+      final newGallery = state.galleryItems
+          .where((item) => item.id != mediaId)
+          .toList();
+      state = state.copyWith(
+        galleryItems: newGallery,
+        isUploadingMedia: false,
+        uploadProgress: 0.0,
+      );
       rethrow;
     }
   }
@@ -384,7 +450,11 @@ class EditProfileController extends _$EditProfileController {
   }
 
   List<Map<String, dynamic>> _galleryToJson() {
-    return state.galleryItems.asMap().entries.map((entry) {
+    final persistedItems = state.galleryItems
+        .where((item) => !item.isUploading && item.url.isNotEmpty)
+        .toList();
+
+    return persistedItems.asMap().entries.map((entry) {
       final item = entry.value;
       return {
         'id': item.id,

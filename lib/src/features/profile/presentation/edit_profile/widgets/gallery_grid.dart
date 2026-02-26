@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
@@ -284,42 +286,77 @@ class _FilledSlot extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ClipRRect(
-          borderRadius: AppRadius.all12,
-          child: CachedNetworkImage(
-            imageUrl: item.url,
-            fit: BoxFit.cover,
-            fadeInDuration: Duration.zero,
-            fadeOutDuration: Duration.zero,
-            memCacheWidth: 300,
-            placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
-            errorWidget: (context, url, error) => Container(
-              color: AppColors.surface,
-              child: const Icon(Icons.error, color: AppColors.error),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: onRemove,
+        ClipRRect(borderRadius: AppRadius.all12, child: _buildImageContent()),
+        // Upload progress overlay
+        if (item.isUploading)
+          ClipRRect(
+            borderRadius: AppRadius.all12,
             child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: AppColors.background.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.close,
-                color: AppColors.textPrimary,
-                size: 16,
+              color: AppColors.background.withValues(alpha: 0.5),
+              child: Center(
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    value: item.uploadProgress > 0 ? item.uploadProgress : null,
+                    strokeWidth: 3,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        // Remove button (hidden during upload)
+        if (!item.isUploading)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.background.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: AppColors.textPrimary,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildImageContent() {
+    // Optimistic: show local file
+    if (item.hasLocalPreview) {
+      return Image.file(
+        File(item.localPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: AppColors.surface,
+          child: const Icon(Icons.error, color: AppColors.error),
+        ),
+      );
+    }
+
+    // Remote URL
+    return CachedNetworkImage(
+      imageUrl: item.url,
+      fit: BoxFit.cover,
+      fadeInDuration: Duration.zero,
+      fadeOutDuration: Duration.zero,
+      memCacheWidth: 300,
+      placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
+      errorWidget: (context, url, error) => Container(
+        color: AppColors.surface,
+        child: const Icon(Icons.error, color: AppColors.error),
+      ),
     );
   }
 }
@@ -337,64 +374,108 @@ class _VideoCard extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: AppRadius.all12,
-          child: item.thumbnailUrl != null
-              ? CachedNetworkImage(
-                  imageUrl: item.thumbnailUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      AppShimmer.box(borderRadius: 12),
-                  errorWidget: (context, url, error) => Container(
-                    color: AppColors.surface,
-                    child: const Icon(
-                      Icons.videocam_off,
-                      color: AppColors.textSecondary,
+          child: _buildThumbnailContent(),
+        ),
+        // Upload progress overlay
+        if (item.isUploading)
+          ClipRRect(
+            borderRadius: AppRadius.all12,
+            child: Container(
+              color: AppColors.background.withValues(alpha: 0.5),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(
+                      value: item.uploadProgress > 0
+                          ? item.uploadProgress
+                          : null,
+                      strokeWidth: 3,
+                      color: AppColors.primary,
                     ),
                   ),
-                )
-              : Container(
-                  color: AppColors.surface,
-                  child: const Center(
-                    child: Icon(Icons.videocam, color: AppColors.textSecondary),
-                  ),
-                ),
-        ),
-        // Play Icon Overlay
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.background.withValues(alpha: 0.6),
-              shape: BoxShape.circle,
+                ],
+              ),
             ),
-            child: const Icon(
-              Icons.play_arrow,
-              color: AppColors.textPrimary,
-              size: 20,
-            ),
-          ),
-        ),
-        // Remove Button
-        Positioned(
-          top: 4,
-          right: 4,
-          child: GestureDetector(
-            onTap: onRemove,
+          )
+        else ...[
+          // Play Icon Overlay (only when not uploading)
+          Center(
             child: Container(
-              width: 24,
-              height: 24,
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.background.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.close,
+                Icons.play_arrow,
                 color: AppColors.textPrimary,
-                size: 16,
+                size: 20,
               ),
             ),
           ),
-        ),
+        ],
+        // Remove Button (hidden during upload)
+        if (!item.isUploading)
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: AppColors.background.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: AppColors.textPrimary,
+                  size: 16,
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildThumbnailContent() {
+    // Optimistic: show local thumbnail file
+    if (item.localThumbnailPath != null &&
+        item.localThumbnailPath!.isNotEmpty) {
+      return Image.file(
+        File(item.localThumbnailPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: AppColors.surface,
+          child: const Icon(Icons.videocam_off, color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    // Remote thumbnail URL
+    if (item.thumbnailUrl != null) {
+      return CachedNetworkImage(
+        imageUrl: item.thumbnailUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
+        errorWidget: (context, url, error) => Container(
+          color: AppColors.surface,
+          child: const Icon(Icons.videocam_off, color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    // Fallback
+    return Container(
+      color: AppColors.surface,
+      child: const Center(
+        child: Icon(Icons.videocam, color: AppColors.textSecondary),
+      ),
     );
   }
 }

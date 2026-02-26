@@ -13,6 +13,7 @@ import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/domain/search_filters.dart';
 import 'package:mube/src/features/search/presentation/search_controller.dart';
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 
 import '../../../../helpers/test_fakes.dart';
 
@@ -86,6 +87,7 @@ void main() {
           currentUserProfileProvider.overrideWithValue(
             AsyncValue.data(testAppUser),
           ),
+          blockedUsersProvider.overrideWith((ref) => throw Exception('mock')),
         ],
       );
     });

@@ -21,13 +21,32 @@ class MediaItem {
   /// Order in the gallery (0 = first/main).
   final int order;
 
+  /// Local file path for optimistic UI preview (before upload completes).
+  final String? localPath;
+
+  /// Local thumbnail path for optimistic video preview.
+  final String? localThumbnailPath;
+
+  /// Whether this item is currently being uploaded.
+  final bool isUploading;
+
+  /// Upload progress (0.0 to 1.0) for this individual item.
+  final double uploadProgress;
+
   const MediaItem({
     required this.id,
     required this.url,
     required this.type,
     this.thumbnailUrl,
     required this.order,
+    this.localPath,
+    this.localThumbnailPath,
+    this.isUploading = false,
+    this.uploadProgress = 0.0,
   });
+
+  /// Whether this item has a local preview available.
+  bool get hasLocalPreview => localPath != null && localPath!.isNotEmpty;
 
   MediaItem copyWith({
     String? id,
@@ -35,6 +54,10 @@ class MediaItem {
     MediaType? type,
     String? thumbnailUrl,
     int? order,
+    String? localPath,
+    String? localThumbnailPath,
+    bool? isUploading,
+    double? uploadProgress,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -42,6 +65,10 @@ class MediaItem {
       type: type ?? this.type,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       order: order ?? this.order,
+      localPath: localPath ?? this.localPath,
+      localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,
+      isUploading: isUploading ?? this.isUploading,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
     );
   }
 

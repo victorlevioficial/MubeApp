@@ -153,9 +153,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   Future<void> _handleSave(AppUser user) async {
+    final editState = ref.read(editProfileControllerProvider(user.uid));
     final controller = ref.read(
       editProfileControllerProvider(user.uid).notifier,
     );
+
+    if (editState.isUploadingMedia) {
+      if (mounted) {
+        AppSnackBar.warning(
+          context,
+          'Aguarde o envio da mídia terminar para salvar o perfil.',
+        );
+      }
+      return;
+    }
 
     if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
       return;
@@ -328,7 +339,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 ),
                 child: AppButton.primary(
                   text: 'Salvar Alterações',
-                  onPressed: editState.hasChanges && !editState.isSaving
+                  onPressed:
+                      editState.hasChanges &&
+                          !editState.isSaving &&
+                          !editState.isUploadingMedia
                       ? () => _handleSave(user)
                       : null,
                   isLoading: editState.isSaving,

@@ -110,9 +110,14 @@ class SearchController extends Notifier<SearchPaginationState> {
   // Local snapshot used when search runs with Home-compatible distance pipeline.
   final List<FeedItem> _homeDistanceSnapshot = [];
   bool _useHomeDistancePagination = false;
+  bool _mounted = true;
 
   @override
   SearchPaginationState build() {
+    ref.onDispose(() {
+      _mounted = false;
+      _debounceTimer?.cancel();
+    });
     final user = ref.read(currentUserProfileProvider).value;
     final lat = (user?.location?['lat'] as num?)?.toDouble();
     final lng = (user?.location?['lng'] as num?)?.toDouble();
@@ -344,6 +349,16 @@ class SearchController extends Notifier<SearchPaginationState> {
     }
   }
 
+  Future<List<String>> _resolveBlockedUsers(AppUser? user) async {
+    final localBlocked = user?.blockedUsers ?? [];
+    try {
+      final remoteBlocked = ref.read(blockedUsersProvider).value ?? <String>[];
+      return {...localBlocked, ...remoteBlocked}.toList();
+    } catch (_) {
+      return localBlocked;
+    }
+  }
+
   void _debouncedSearch() {
     _debounceTimer?.cancel();
     _debounceTimer = Timer(const Duration(milliseconds: 400), _performSearch);
@@ -353,6 +368,9 @@ class SearchController extends Notifier<SearchPaginationState> {
     final requestId = ++_currentRequestId;
     final user = ref.read(currentUserProfileProvider).value;
     final blockedUsers = await _resolveBlockedUsers(user);
+
+    if (!_mounted) return;
+
     final userId = user?.uid ?? 'anonymous';
     final userLat =
         (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
@@ -580,33 +598,6 @@ class SearchController extends Notifier<SearchPaginationState> {
 
   void cancelDebounce() {
     _debounceTimer?.cancel();
-  }
-
-  Future<List<String>> _resolveBlockedUsers(
-    AppUser? user, {
-    Duration timeout = const Duration(seconds: 2),
-  }) async {
-    final blocked = <String>{};
-    if (user != null) {
-      blocked.addAll(user.blockedUsers);
-    }
-
-    final blockedState = ref.read(blockedUsersProvider);
-    final immediate = blockedState.value;
-    if (immediate != null) {
-      blocked.addAll(immediate);
-    } else if (blockedState.isLoading) {
-      try {
-        final streamed = await ref
-            .read(blockedUsersProvider.future)
-            .timeout(timeout);
-        blocked.addAll(streamed);
-      } catch (_) {
-        // fallback com dados já disponíveis
-      }
-    }
-
-    return blocked.toList();
   }
 }
 

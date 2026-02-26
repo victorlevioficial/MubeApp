@@ -23,6 +23,7 @@ import '../../helpers/pump_app.dart';
   MockSpec<AuthRemoteDataSource>(),
   MockSpec<SearchRepository>(),
 ])
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'search_flow_test.mocks.dart';
 
 /// Testes de integração para o fluxo de busca
@@ -91,6 +92,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -134,6 +136,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -184,6 +187,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -240,6 +244,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -296,6 +301,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -354,6 +360,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -413,6 +420,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -471,6 +479,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -529,6 +538,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -586,6 +596,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -645,6 +656,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -703,6 +715,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -759,6 +772,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -807,6 +821,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authStateChangesProvider.overrideWith(
               (ref) => Stream.value(mockAuthDataSource.currentUser),
@@ -849,6 +864,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authStateChangesProvider.overrideWith(
               (ref) => Stream.value(mockAuthDataSource.currentUser),
@@ -887,6 +903,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authStateChangesProvider.overrideWith(
               (ref) => Stream.value(mockAuthDataSource.currentUser),
@@ -933,6 +950,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authStateChangesProvider.overrideWith(
               (ref) => Stream.value(mockAuthDataSource.currentUser),
@@ -999,6 +1017,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
             authStateChangesProvider.overrideWith(
               (ref) => Stream.value(mockAuthDataSource.currentUser),
@@ -1068,6 +1087,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -1126,6 +1146,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );
@@ -1185,6 +1206,7 @@ void main() {
               AuthRepository(mockAuthDataSource),
             ),
             searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
             analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
           ],
         );

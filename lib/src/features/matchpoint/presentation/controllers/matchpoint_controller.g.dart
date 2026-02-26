@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'8d7382af740eb7a58b9d2e3d21ca79c947a34733';
+    r'2d11afda82994222549158c2afb0581675778850';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -114,15 +114,15 @@ abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   }
 }
 
-/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
+/// Provider para lista de candidatos com estado mutável (UI otimista)
 
 @ProviderFor(MatchpointCandidates)
 const matchpointCandidatesProvider = MatchpointCandidatesProvider._();
 
-/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
+/// Provider para lista de candidatos com estado mutável (UI otimista)
 final class MatchpointCandidatesProvider
     extends $AsyncNotifierProvider<MatchpointCandidates, List<AppUser>> {
-  /// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
+  /// Provider para lista de candidatos com estado mutável (UI otimista)
   const MatchpointCandidatesProvider._()
     : super(
         from: null,
@@ -143,9 +143,9 @@ final class MatchpointCandidatesProvider
 }
 
 String _$matchpointCandidatesHash() =>
-    r'01cea1f4b57bfc5cfb01cd14109ac943c929fa19';
+    r'a607a6716a14e439d933f5d217c3dfdef2096a4b';
 
-/// Provider para lista de candidatos com estado mutÃƒÂ¡vel (UI otimista)
+/// Provider para lista de candidatos com estado mutável (UI otimista)
 
 abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   FutureOr<List<AppUser>> build();
@@ -166,12 +166,12 @@ abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   }
 }
 
-/// Provider para lista de matches do usuÃƒÂ¡rio
+/// Provider para lista de matches do usuário
 
 @ProviderFor(matches)
 const matchesProvider = MatchesProvider._();
 
-/// Provider para lista de matches do usuÃƒÂ¡rio
+/// Provider para lista de matches do usuário
 
 final class MatchesProvider
     extends
@@ -181,7 +181,7 @@ final class MatchesProvider
           FutureOr<List<MatchInfo>>
         >
     with $FutureModifier<List<MatchInfo>>, $FutureProvider<List<MatchInfo>> {
-  /// Provider para lista de matches do usuÃƒÂ¡rio
+  /// Provider para lista de matches do usuário
   const MatchesProvider._()
     : super(
         from: null,
@@ -382,15 +382,15 @@ final class HashtagSearchFamily extends $Family
   String toString() => r'hashtagSearchProvider';
 }
 
-/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
+/// Provider para histórico de swipes — persistido em SharedPreferences
 
 @ProviderFor(SwipeHistory)
 const swipeHistoryProvider = SwipeHistoryProvider._();
 
-/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
+/// Provider para histórico de swipes — persistido em SharedPreferences
 final class SwipeHistoryProvider
     extends $NotifierProvider<SwipeHistory, List<SwipeHistoryEntry>> {
-  /// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
+  /// Provider para histórico de swipes — persistido em SharedPreferences
   const SwipeHistoryProvider._()
     : super(
         from: null,
@@ -418,9 +418,9 @@ final class SwipeHistoryProvider
   }
 }
 
-String _$swipeHistoryHash() => r'03dd387a5f91d32b00cdf6a0bdca6badf39da014';
+String _$swipeHistoryHash() => r'84a5646657d3e8d7cb2866b6afe0886c6343d999';
 
-/// Provider para histÃƒÂ³rico de swipes Ã¢â‚¬â€ persistido em SharedPreferences
+/// Provider para histórico de swipes — persistido em SharedPreferences
 
 abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryEntry>> {
   List<SwipeHistoryEntry> build();

@@ -61,6 +61,9 @@ void main() {
 
     group('blockUser', () {
       test('should create blocked document and return Right', () async {
+        // Arrange
+        await fakeFirestore.collection('users').doc(tCurrentUserId).set({});
+
         // Act
         final result = await repository.blockUser(
           currentUserId: tCurrentUserId,
@@ -82,6 +85,7 @@ void main() {
 
       test('should not fail when blocking an already blocked user', () async {
         // Arrange
+        await fakeFirestore.collection('users').doc(tCurrentUserId).set({});
         await repository.blockUser(
           currentUserId: tCurrentUserId,
           blockedUserId: tBlockedUserId,
@@ -101,6 +105,7 @@ void main() {
     group('unblockUser', () {
       test('should delete blocked document and return Right', () async {
         // Arrange
+        await fakeFirestore.collection('users').doc(tCurrentUserId).set({});
         await fakeFirestore
             .collection('users')
             .doc(tCurrentUserId)
@@ -130,6 +135,9 @@ void main() {
       });
 
       test('should return Right even when user was not blocked', () async {
+        // Arrange
+        await fakeFirestore.collection('users').doc(tCurrentUserId).set({});
+
         // Act
         final result = await repository.unblockUser(
           currentUserId: tCurrentUserId,

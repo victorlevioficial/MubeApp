@@ -54,10 +54,10 @@ class AuthGuard {
       'path: $currentPath, auth: ${isLoggedIn ? authState.value?.email : 'null'}',
     );
 
-    // Not logged in - redirect to login
+    // Not logged in - redirect to register (first-time users expect signup)
     if (!isLoggedIn) {
       if (currentPath == RoutePaths.splash) {
-        return RoutePaths.login;
+        return RoutePaths.register;
       }
       return _handleUnauthenticated(currentPath);
     }
@@ -72,8 +72,8 @@ class AuthGuard {
       _log('Unauthenticated on public route - allowing');
       return null;
     }
-    _log('Unauthenticated - redirecting to login');
-    return RoutePaths.login;
+    _log('Unauthenticated - redirecting to register');
+    return RoutePaths.register;
   }
 
   /// Handles redirect logic for authenticated users based on profile status.

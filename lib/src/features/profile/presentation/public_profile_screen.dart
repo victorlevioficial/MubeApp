@@ -424,7 +424,7 @@ class PublicProfileScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header Section
-          _buildHeader(user),
+          _buildHeader(context, user),
 
           const SizedBox(height: AppSpacing.s24),
 
@@ -437,9 +437,11 @@ class PublicProfileScreen extends ConsumerWidget {
           // Type-specific details
           _buildTypeSpecificDetails(user),
 
-          // Gallery Section (always show)
-          const SizedBox(height: AppSpacing.s24),
-          _buildGallerySection(context, galleryItems),
+          // Gallery Section (hide for contractors — they cannot upload media)
+          if (user.tipoPerfil != AppUserType.contractor) ...[
+            const SizedBox(height: AppSpacing.s24),
+            _buildGallerySection(context, galleryItems),
+          ],
 
           // Extra padding at bottom to not overlap with fixed bar
           const SizedBox(height: AppSpacing.s48),
@@ -467,7 +469,7 @@ class PublicProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(user),
+                  _buildHeader(context, user),
                   const SizedBox(height: AppSpacing.s32),
                   if (user.bio != null && user.bio!.isNotEmpty)
                     _buildBioSection(user.bio!),
@@ -481,8 +483,10 @@ class PublicProfileScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTypeSpecificDetails(user),
-                  const SizedBox(height: AppSpacing.s32),
-                  _buildGallerySection(context, galleryItems),
+                  if (user.tipoPerfil != AppUserType.contractor) ...[
+                    const SizedBox(height: AppSpacing.s32),
+                    _buildGallerySection(context, galleryItems),
+                  ],
                   const SizedBox(height: AppSpacing.s48),
                 ],
               ),
@@ -493,20 +497,25 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(AppUser user) {
+  Widget _buildHeader(BuildContext context, AppUser user) {
     final displayName = _getDisplayName(user);
     final location = user.location;
 
     return Center(
       child: Column(
         children: [
-          // Avatar with Hero Transition
-          Hero(
-            tag: 'avatar-${user.uid}',
-            child: UserAvatar(
-              size: 120,
-              photoUrl: user.foto,
-              name: displayName,
+          // Avatar with Hero Transition — tap to enlarge
+          GestureDetector(
+            onTap: user.foto != null && user.foto!.isNotEmpty
+                ? () => _showAvatarViewer(context, user)
+                : null,
+            child: Hero(
+              tag: 'avatar-${user.uid}',
+              child: UserAvatar(
+                size: 120,
+                photoUrl: user.foto,
+                name: displayName,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
@@ -781,6 +790,54 @@ class PublicProfileScreen extends ConsumerWidget {
       barrierColor: AppColors.background.withValues(alpha: 0.87),
       builder: (context) =>
           MediaViewerDialog(items: items, initialIndex: initialIndex),
+    );
+  }
+
+  void _showAvatarViewer(BuildContext context, AppUser user) {
+    showDialog(
+      context: context,
+      barrierColor: AppColors.background.withValues(alpha: 0.92),
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Scaffold(
+          backgroundColor: AppColors.transparent,
+          appBar: AppBar(
+            backgroundColor: AppColors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.close, color: AppColors.textPrimary),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              _getDisplayName(user),
+              style: AppTypography.titleMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          body: Center(
+            child: Hero(
+              tag: 'avatar-${user.uid}',
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: ClipRRect(
+                  borderRadius: AppRadius.all16,
+                  child: Image.network(
+                    user.foto!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.broken_image,
+                      size: 120,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

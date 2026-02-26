@@ -27,6 +27,17 @@ class PushNotificationService {
   }
 
   Future<void> init() async {
+    await _initInternal(requestPermission: true);
+  }
+
+  /// Bootstraps push without triggering the OS permission prompt.
+  ///
+  /// Useful for users who already completed onboarding in older app versions.
+  Future<void> initIfPermissionAlreadyGranted() async {
+    await _initInternal(requestPermission: false);
+  }
+
+  Future<void> _initInternal({required bool requestPermission}) async {
     try {
       // 0. Init Local Notifications
       const androidSettings = AndroidInitializationSettings(
@@ -58,21 +69,20 @@ class PushNotificationService {
           >()
           ?.createNotificationChannel(androidChannel);
 
-      // 1. Request Permission
-      final settings = await _fcm.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
+      // 1. Resolve Permission
+      final authorizationStatus = await _resolveAuthorizationStatus(
+        requestPermission: requestPermission,
       );
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        AppLogger.info('User granted data permission');
-      } else if (settings.authorizationStatus ==
-          AuthorizationStatus.provisional) {
-        AppLogger.info('User granted provisional permission');
-      } else {
-        AppLogger.warning('User declined or has not accepted permission');
+      if (authorizationStatus != AuthorizationStatus.authorized &&
+          authorizationStatus != AuthorizationStatus.provisional) {
+        if (requestPermission) {
+          AppLogger.warning('User declined or has not accepted permission');
+        } else {
+          AppLogger.info(
+            'Push permission not granted yet; silent init skipped.',
+          );
+        }
         return;
       }
 
@@ -106,6 +116,39 @@ class PushNotificationService {
     } catch (e, stack) {
       AppLogger.error('Failed to init PushNotificationService', e, stack);
     }
+  }
+
+  Future<AuthorizationStatus> _resolveAuthorizationStatus({
+    required bool requestPermission,
+  }) async {
+    if (requestPermission) {
+      final settings = await _fcm.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        AppLogger.info('User granted data permission');
+      } else if (settings.authorizationStatus ==
+          AuthorizationStatus.provisional) {
+        AppLogger.info('User granted provisional permission');
+      }
+
+      return settings.authorizationStatus;
+    }
+
+    final settings = await _fcm.getNotificationSettings();
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      AppLogger.info('Push permission already authorized');
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      AppLogger.info('Push permission already provisional');
+    }
+
+    return settings.authorizationStatus;
   }
 
   /// Handles foreground messages with contextual suppression.

@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/chat/data/chat_unread_provider.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_availability.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_effects.dart';
@@ -53,21 +55,49 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final isWide = size.width >= 600;
+    final userType = ref.watch(
+      currentUserProfileProvider.select((value) => value.value?.tipoPerfil),
+    );
+    final canUseMatchpoint = isMatchpointAvailableForType(userType);
+    final visibleBranchIndexes = canUseMatchpoint
+        ? const <int>[0, 1, 2, 3, 4]
+        : const <int>[0, 1, 3, 4];
+    final selectedVisibleIndex = _toVisibleIndex(
+      currentBranchIndex: widget.navigationShell.currentIndex,
+      visibleBranchIndexes: visibleBranchIndexes,
+    );
 
     if (isWide) {
-      return _buildWideLayout(context);
+      return _buildWideLayout(
+        context,
+        selectedVisibleIndex: selectedVisibleIndex,
+        showMatchpointDestination: canUseMatchpoint,
+        visibleBranchIndexes: visibleBranchIndexes,
+      );
     }
 
-    return _buildNarrowLayout(context);
+    return _buildNarrowLayout(
+      context,
+      selectedVisibleIndex: selectedVisibleIndex,
+      showMatchpointDestination: canUseMatchpoint,
+      visibleBranchIndexes: visibleBranchIndexes,
+    );
   }
 
-  Widget _buildWideLayout(BuildContext context) {
+  Widget _buildWideLayout(
+    BuildContext context, {
+    required int selectedVisibleIndex,
+    required bool showMatchpointDestination,
+    required List<int> visibleBranchIndexes,
+  }) {
     return Scaffold(
       body: Row(
         children: [
           _AdaptiveRail(
-            selectedIndex: widget.navigationShell.currentIndex,
-            onDestinationSelected: _onDestinationSelected,
+            selectedIndex: selectedVisibleIndex,
+            showMatchpointDestination: showMatchpointDestination,
+            onDestinationSelected: (index) =>
+                _onDestinationSelected(index, visibleBranchIndexes),
           ),
           const VerticalDivider(
             thickness: 1,
@@ -86,7 +116,12 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     );
   }
 
-  Widget _buildNarrowLayout(BuildContext context) {
+  Widget _buildNarrowLayout(
+    BuildContext context, {
+    required int selectedVisibleIndex,
+    required bool showMatchpointDestination,
+    required List<int> visibleBranchIndexes,
+  }) {
     final unreadCount = _enableUnreadCount
         ? (ref.watch(unreadMessagesCountProvider).value ?? 0)
         : 0;
@@ -98,35 +133,62 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         child: widget.navigationShell,
       ),
       bottomNavigationBar: _ModernNavBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: _onDestinationSelected,
+        selectedIndex: selectedVisibleIndex,
+        showMatchpointDestination: showMatchpointDestination,
+        onDestinationSelected: (index) =>
+            _onDestinationSelected(index, visibleBranchIndexes),
         unreadCount: unreadCount,
       ),
     );
   }
 
-  void _onDestinationSelected(int index) {
+  int _toVisibleIndex({
+    required int currentBranchIndex,
+    required List<int> visibleBranchIndexes,
+  }) {
+    final visibleIndex = visibleBranchIndexes.indexOf(currentBranchIndex);
+    return visibleIndex < 0 ? 0 : visibleIndex;
+  }
+
+  void _onDestinationSelected(
+    int visibleIndex,
+    List<int> visibleBranchIndexes,
+  ) {
+    if (visibleIndex < 0 || visibleIndex >= visibleBranchIndexes.length) {
+      return;
+    }
+
+    final branchIndex = visibleBranchIndexes[visibleIndex];
+
     // Settings should always open at its root screen when switching tabs.
     final shouldResetToRoot =
-        index == widget.navigationShell.currentIndex || index == 4;
-    widget.navigationShell.goBranch(index, initialLocation: shouldResetToRoot);
+        branchIndex == widget.navigationShell.currentIndex || branchIndex == 4;
+    widget.navigationShell.goBranch(
+      branchIndex,
+      initialLocation: shouldResetToRoot,
+    );
   }
 }
 
 /// Modern floating navigation bar with glassmorphic design
 class _ModernNavBar extends StatelessWidget {
   final int selectedIndex;
+  final bool showMatchpointDestination;
   final ValueChanged<int> onDestinationSelected;
   final int unreadCount;
 
   const _ModernNavBar({
     required this.selectedIndex,
+    required this.showMatchpointDestination,
     required this.onDestinationSelected,
     required this.unreadCount,
   });
 
   @override
   Widget build(BuildContext context) {
+    final chatIndex = showMatchpointDestination ? 3 : 2;
+    final settingsIndex = showMatchpointDestination ? 4 : 3;
+
     return SafeArea(
       top: false,
       left: false,
@@ -187,28 +249,29 @@ class _ModernNavBar extends StatelessWidget {
               isSelected: selectedIndex == 1,
               onTap: () => onDestinationSelected(1),
             ),
-            _NavBarItem(
-              icon: Icons.bolt_outlined,
-              selectedIcon: Icons.bolt_rounded,
-              label: 'Match',
-              isSelected: selectedIndex == 2,
-              onTap: () => onDestinationSelected(2),
-              isPrimary: true, // Highlight for main feature
-            ),
+            if (showMatchpointDestination)
+              _NavBarItem(
+                icon: Icons.bolt_outlined,
+                selectedIcon: Icons.bolt_rounded,
+                label: 'Match',
+                isSelected: selectedIndex == 2,
+                onTap: () => onDestinationSelected(2),
+                isPrimary: true, // Highlight for main feature
+              ),
             _NavBarItem(
               icon: Icons.chat_bubble_outline_rounded,
               selectedIcon: Icons.chat_bubble_rounded,
               label: 'Chat',
-              isSelected: selectedIndex == 3,
-              onTap: () => onDestinationSelected(3),
+              isSelected: selectedIndex == chatIndex,
+              onTap: () => onDestinationSelected(chatIndex),
               badgeCount: unreadCount,
             ),
             _NavBarItem(
               icon: Icons.settings_outlined,
               selectedIcon: Icons.settings_rounded,
               label: 'Config',
-              isSelected: selectedIndex == 4,
-              onTap: () => onDestinationSelected(4),
+              isSelected: selectedIndex == settingsIndex,
+              onTap: () => onDestinationSelected(settingsIndex),
             ),
           ],
         ),
@@ -473,10 +536,12 @@ class _UnreadBadgeState extends State<_UnreadBadge>
 /// Adaptive navigation rail for wide screens
 class _AdaptiveRail extends ConsumerWidget {
   final int selectedIndex;
+  final bool showMatchpointDestination;
   final ValueChanged<int> onDestinationSelected;
 
   const _AdaptiveRail({
     required this.selectedIndex,
+    required this.showMatchpointDestination,
     required this.onDestinationSelected,
   });
 
@@ -503,11 +568,12 @@ class _AdaptiveRail extends ConsumerWidget {
           selectedIcon: Icon(Icons.search_rounded, color: AppColors.primary),
           label: Text('Busca'),
         ),
-        const NavigationRailDestination(
-          icon: Icon(Icons.bolt_outlined),
-          selectedIcon: Icon(Icons.bolt_rounded, color: AppColors.primary),
-          label: Text('MatchPoint'),
-        ),
+        if (showMatchpointDestination)
+          const NavigationRailDestination(
+            icon: Icon(Icons.bolt_outlined),
+            selectedIcon: Icon(Icons.bolt_rounded, color: AppColors.primary),
+            label: Text('MatchPoint'),
+          ),
         NavigationRailDestination(
           icon: _ChatRailIcon(count: unreadCount, isSelected: false),
           selectedIcon: _ChatRailIcon(count: unreadCount, isSelected: true),

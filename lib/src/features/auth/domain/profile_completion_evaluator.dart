@@ -34,6 +34,7 @@ class ProfileCompletionEvaluator {
       _CompletionCheck('Nome', _hasText(user.nome)),
       _CompletionCheck('Foto de perfil', _hasText(user.foto)),
       _CompletionCheck('Localizacao', _hasValidLocation(user.location)),
+      _CompletionCheck('Bio', _hasText(user.bio)),
     ];
 
     final type = user.tipoPerfil;

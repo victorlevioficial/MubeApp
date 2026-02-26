@@ -42,25 +42,25 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
     {
       'id': 'singer',
       'label': 'Cantor(a)',
-      'description': 'Vocalista principal, coral, backing vocal',
+      'description': 'Ex: Vocalista principal, coral, backing vocal',
       'icon': FontAwesomeIcons.microphone,
     },
     {
       'id': 'instrumentalist',
       'label': 'Instrumentista',
-      'description': 'Guitarra, bateria, piano, baixo, cordas, sopros',
+      'description': 'Ex: Guitarra, bateria, piano, baixo, cordas, sopros',
       'icon': FontAwesomeIcons.guitar,
     },
     {
       'id': 'crew',
       'label': 'Equipe Técnica',
-      'description': 'Técnico de som, luz, roadie, produtor',
+      'description': 'Ex: Técnico de som, luz, roadie, produtor musical',
       'icon': FontAwesomeIcons.wrench,
     },
     {
       'id': 'dj',
       'label': 'DJ',
-      'description': 'DJ de festa, club, eventos, produtor musical',
+      'description': 'Ex: DJ de festa e eventos',
       'icon': FontAwesomeIcons.compactDisc,
     },
   ];
@@ -106,24 +106,21 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
         const SizedBox(height: AppSpacing.s32),
 
         // Category Cards
-        ...List.generate(
-          _categories.length,
-          (index) {
-            final category = _categories[index];
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index < _categories.length - 1 ? AppSpacing.s16 : 0,
-              ),
-              child: FullWidthSelectionCard(
-                icon: category['icon'],
-                title: category['label'],
-                description: category['description'],
-                isSelected: _selected.contains(category['id']),
-                onTap: () => _toggleCategory(category['id']),
-              ),
-            );
-          },
-        ),
+        ...List.generate(_categories.length, (index) {
+          final category = _categories[index];
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index < _categories.length - 1 ? AppSpacing.s16 : 0,
+            ),
+            child: FullWidthSelectionCard(
+              icon: category['icon'],
+              title: category['label'],
+              description: category['description'],
+              isSelected: _selected.contains(category['id']),
+              onTap: () => _toggleCategory(category['id']),
+            ),
+          );
+        }),
 
         const SizedBox(height: AppSpacing.s48),
 
@@ -141,5 +138,3 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
     );
   }
 }
-
-

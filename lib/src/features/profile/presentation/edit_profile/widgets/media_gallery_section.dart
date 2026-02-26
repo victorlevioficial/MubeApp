@@ -49,6 +49,18 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       return;
     }
 
+    // Show source picker: Camera or Gallery
+    final source = await MediaPickerService.showMediaSourcePicker(
+      context,
+      title: 'Adicionar Foto',
+      cameraIcon: Icons.camera_alt_outlined,
+      cameraLabel: 'Tirar Foto',
+      galleryIcon: Icons.photo_library_outlined,
+      galleryLabel: 'Escolher da Galeria',
+    );
+
+    if (source == null || !mounted) return;
+
     try {
       if (mounted) {
         setState(() {
@@ -59,6 +71,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       final file = await _mediaPickerService.pickAndCropPhoto(
         context,
         lockAspectRatio: false,
+        source: source,
       );
       if (file == null || !mounted) return;
 
@@ -89,6 +102,18 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       return;
     }
 
+    // Show source picker: Camera (record) or Gallery
+    final source = await MediaPickerService.showMediaSourcePicker(
+      context,
+      title: 'Adicionar Vídeo',
+      cameraIcon: Icons.videocam_outlined,
+      cameraLabel: 'Gravar Vídeo (máx 30s)',
+      galleryIcon: Icons.video_library_outlined,
+      galleryLabel: 'Escolher da Galeria',
+    );
+
+    if (source == null || !mounted) return;
+
     try {
       if (mounted) {
         setState(() {
@@ -96,7 +121,10 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         });
       }
 
-      final result = await _mediaPickerService.pickAndProcessVideo(context);
+      final result = await _mediaPickerService.pickAndProcessVideo(
+        context,
+        source: source,
+      );
       if (result == null || !mounted) return;
 
       final (videoFile, thumbnailFile) = result;
@@ -204,7 +232,8 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                                 _isPickingVideo
                             ? null
                             : _handlePhotoUpload,
-                        isLoading: _isPickingPhoto ||
+                        isLoading:
+                            _isPickingPhoto ||
                             (state.isUploadingMedia &&
                                 state.uploadStatus.toLowerCase().contains(
                                   'foto',
@@ -222,7 +251,8 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
                                 _isPickingVideo
                             ? null
                             : _handleVideoUpload,
-                        isLoading: _isPickingVideo ||
+                        isLoading:
+                            _isPickingVideo ||
                             (state.isUploadingMedia &&
                                 (state.uploadStatus.toLowerCase().contains(
                                       'video',

@@ -7,12 +7,14 @@ import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/design_system/components/loading/app_loading_indicator.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_intro_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_tabs_screen.dart';
+import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_unavailable_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 
 import '../features/matchpoint/matchpoint_test_fakes.dart';
@@ -77,6 +79,7 @@ void main() {
     const user = AppUser(
       uid: 'user1',
       email: 'test@example.com',
+      tipoPerfil: AppUserType.professional,
       matchpointProfile: {'is_active': false},
     );
 
@@ -93,6 +96,7 @@ void main() {
     const user = AppUser(
       uid: 'user1',
       email: 'test@example.com',
+      tipoPerfil: AppUserType.professional,
       matchpointProfile: null,
     );
 
@@ -108,6 +112,7 @@ void main() {
     const user = AppUser(
       uid: 'user1',
       email: 'test@example.com',
+      tipoPerfil: AppUserType.professional,
       matchpointProfile: {'is_active': true},
     );
 
@@ -127,5 +132,39 @@ void main() {
     await tester.pump();
 
     expect(find.text('Erro: Failed to load'), findsOneWidget);
+  });
+
+  testWidgets('renders unavailable screen for contractor profile', (
+    tester,
+  ) async {
+    const user = AppUser(
+      uid: 'user1',
+      email: 'test@example.com',
+      tipoPerfil: AppUserType.contractor,
+      matchpointProfile: {'is_active': true},
+    );
+
+    await tester.pumpWidget(createTestWidget(const AsyncData(user)));
+    await tester.pump();
+
+    expect(find.byType(MatchpointUnavailableScreen), findsOneWidget);
+    expect(find.byType(MatchpointTabsScreen), findsNothing);
+    expect(find.byType(MatchpointIntroScreen), findsNothing);
+  });
+
+  testWidgets('renders unavailable screen for studio profile', (tester) async {
+    const user = AppUser(
+      uid: 'user1',
+      email: 'test@example.com',
+      tipoPerfil: AppUserType.studio,
+      matchpointProfile: {'is_active': true},
+    );
+
+    await tester.pumpWidget(createTestWidget(const AsyncData(user)));
+    await tester.pump();
+
+    expect(find.byType(MatchpointUnavailableScreen), findsOneWidget);
+    expect(find.byType(MatchpointTabsScreen), findsNothing);
+    expect(find.byType(MatchpointIntroScreen), findsNothing);
   });
 }

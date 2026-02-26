@@ -287,6 +287,17 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
           as _i4.Future<bool>);
 
   @override
+  _i4.Future<bool> hasVerifiedEmailTokenClaim({bool? forceRefresh = false}) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasVerifiedEmailTokenClaim, [], {
+              #forceRefresh: forceRefresh,
+            }),
+            returnValue: _i4.Future<bool>.value(false),
+            returnValueForMissingStub: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
+
+  @override
   _i4.Future<void> reloadUser() =>
       (super.noSuchMethod(
             Invocation.method(#reloadUser, []),
@@ -294,6 +305,27 @@ class MockAuthRepository extends _i1.Mock implements _i3.AuthRepository {
             returnValueForMissingStub: _i4.Future<void>.value(),
           )
           as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i5.Either<_i6.Failure, _i5.Unit>>
+  ensureCurrentUserProfileExists() =>
+      (super.noSuchMethod(
+            Invocation.method(#ensureCurrentUserProfileExists, []),
+            returnValue: _i4.Future<_i5.Either<_i6.Failure, _i5.Unit>>.value(
+              _i7.dummyValue<_i5.Either<_i6.Failure, _i5.Unit>>(
+                this,
+                Invocation.method(#ensureCurrentUserProfileExists, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i4.Future<_i5.Either<_i6.Failure, _i5.Unit>>.value(
+                  _i7.dummyValue<_i5.Either<_i6.Failure, _i5.Unit>>(
+                    this,
+                    Invocation.method(#ensureCurrentUserProfileExists, []),
+                  ),
+                ),
+          )
+          as _i4.Future<_i5.Either<_i6.Failure, _i5.Unit>>);
 
   @override
   _i4.Future<_i5.Either<_i6.Failure, _i5.Unit>> signInWithGoogle() =>

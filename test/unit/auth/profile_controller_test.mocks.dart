@@ -6,8 +6,8 @@
 import 'dart:async' as _i5;
 import 'dart:io' as _i11;
 
-import 'package:firebase_analytics/firebase_analytics.dart' as _i3;
 import 'package:firebase_auth/firebase_auth.dart' as _i6;
+import 'package:flutter/widgets.dart' as _i3;
 import 'package:fpdart/fpdart.dart' as _i7;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i9;
@@ -46,9 +46,9 @@ class _FakeGalleryMediaUrls_1 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeFirebaseAnalyticsObserver_2 extends _i1.SmartFake
-    implements _i3.FirebaseAnalyticsObserver {
-  _FakeFirebaseAnalyticsObserver_2(Object parent, Invocation parentInvocation)
+class _FakeNavigatorObserver_2 extends _i1.SmartFake
+    implements _i3.NavigatorObserver {
+  _FakeNavigatorObserver_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -281,6 +281,17 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
           as _i5.Future<bool>);
 
   @override
+  _i5.Future<bool> hasVerifiedEmailTokenClaim({bool? forceRefresh = false}) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasVerifiedEmailTokenClaim, [], {
+              #forceRefresh: forceRefresh,
+            }),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
   _i5.Future<void> reloadUser() =>
       (super.noSuchMethod(
             Invocation.method(#reloadUser, []),
@@ -288,6 +299,27 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>
+  ensureCurrentUserProfileExists() =>
+      (super.noSuchMethod(
+            Invocation.method(#ensureCurrentUserProfileExists, []),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                this,
+                Invocation.method(#ensureCurrentUserProfileExists, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                    this,
+                    Invocation.method(#ensureCurrentUserProfileExists, []),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>);
 
   @override
   _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>> signInWithGoogle() =>
@@ -662,19 +694,19 @@ class MockAnalyticsService extends _i1.Mock implements _i13.AnalyticsService {
           as _i5.Future<void>);
 
   @override
-  _i3.FirebaseAnalyticsObserver getObserver() =>
+  _i3.NavigatorObserver getObserver() =>
       (super.noSuchMethod(
             Invocation.method(#getObserver, []),
-            returnValue: _FakeFirebaseAnalyticsObserver_2(
+            returnValue: _FakeNavigatorObserver_2(
               this,
               Invocation.method(#getObserver, []),
             ),
-            returnValueForMissingStub: _FakeFirebaseAnalyticsObserver_2(
+            returnValueForMissingStub: _FakeNavigatorObserver_2(
               this,
               Invocation.method(#getObserver, []),
             ),
           )
-          as _i3.FirebaseAnalyticsObserver);
+          as _i3.NavigatorObserver);
 
   @override
   _i5.Future<void> logAuthSignupComplete({required String? method}) =>

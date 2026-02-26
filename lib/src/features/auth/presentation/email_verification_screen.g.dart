@@ -44,7 +44,7 @@ final class EmailVerificationControllerProvider
 }
 
 String _$emailVerificationControllerHash() =>
-    r'fb6b9162ace39052beaeb0d7d520878a7c1d7699';
+    r'585e35ad71cf93fe25c5ef1f125f95ef2b2c7614';
 
 abstract class _$EmailVerificationController
     extends $Notifier<EmailVerificationState> {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +33,9 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
   final _mediaPickerService = MediaPickerService();
   bool _isUploadingAvatar = false;
 
+  /// Local file for optimistic avatar preview.
+  File? _optimisticAvatarFile;
+
   @override
   void dispose() {
     _mediaPickerService.dispose();
@@ -38,24 +43,52 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
   }
 
   Future<void> _handlePhotoUpdate() async {
+    if (_isUploadingAvatar) return;
+
+    // Show source picker bottom sheet
+    final source = await MediaPickerService.showMediaSourcePicker(
+      context,
+      title: 'Foto de Perfil',
+      cameraIcon: Icons.camera_alt_outlined,
+      cameraLabel: 'Tirar Foto',
+      galleryIcon: Icons.photo_library_outlined,
+      galleryLabel: 'Escolher da Galeria',
+    );
+
+    if (source == null || !mounted) return;
+
     final controller = ref.read(profileControllerProvider.notifier);
 
     try {
       final file = await _mediaPickerService.pickAndCropPhoto(
         context,
         lockAspectRatio: true,
+        source: source,
       );
 
       if (file == null || !mounted) return;
 
-      setState(() => _isUploadingAvatar = true);
+      // Optimistic: show local file immediately
+      setState(() {
+        _isUploadingAvatar = true;
+        _optimisticAvatarFile = file;
+      });
+
       await controller.updateProfileImage(currentUser: widget.user, file: file);
 
       if (mounted) {
+        // Upload succeeded — clear local file, remote URL will be used
+        setState(() {
+          _optimisticAvatarFile = null;
+        });
         AppSnackBar.success(context, 'Foto de perfil atualizada!');
       }
     } catch (e) {
       if (mounted) {
+        // Revert optimistic: remove local preview
+        setState(() {
+          _optimisticAvatarFile = null;
+        });
         AppSnackBar.error(context, 'Erro ao atualizar foto: $e');
       }
     } finally {
@@ -90,37 +123,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
                           width: 1,
                         ),
                       ),
-                      child: ClipOval(
-                        child: widget.user.foto != null
-                            ? CachedNetworkImage(
-                                imageUrl: widget.user.foto!,
-                                fit: BoxFit.cover,
-                                width: 100,
-                                height: 100,
-                                cacheManager:
-                                    ImageCacheConfig.profileCacheManager,
-                                memCacheWidth: 240,
-                                memCacheHeight: 240,
-                                fadeInDuration: Duration.zero,
-                                fadeOutDuration: Duration.zero,
-                                placeholder: (context, _) =>
-                                    Container(color: AppColors.surface),
-                                errorWidget: (context, _, _) => const Center(
-                                  child: Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              )
-                            : const Center(
-                                child: Icon(
-                                  Icons.person,
-                                  size: 50,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                      ),
+                      child: ClipOval(child: _buildAvatarContent()),
                     ),
                     if (_isUploadingAvatar)
                       Container(
@@ -180,6 +183,43 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
           hint: nameHint,
         ),
       ],
+    );
+  }
+
+  /// Build avatar content: optimistic local file > remote URL > fallback icon.
+  Widget _buildAvatarContent() {
+    // Priority 1: optimistic local file preview
+    if (_optimisticAvatarFile != null) {
+      return Image.file(
+        _optimisticAvatarFile!,
+        fit: BoxFit.cover,
+        width: 100,
+        height: 100,
+      );
+    }
+
+    // Priority 2: remote photo URL
+    if (widget.user.foto != null) {
+      return CachedNetworkImage(
+        imageUrl: widget.user.foto!,
+        fit: BoxFit.cover,
+        width: 100,
+        height: 100,
+        cacheManager: ImageCacheConfig.profileCacheManager,
+        memCacheWidth: 240,
+        memCacheHeight: 240,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholder: (context, _) => Container(color: AppColors.surface),
+        errorWidget: (context, _, _) => const Center(
+          child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    // Priority 3: fallback icon
+    return const Center(
+      child: Icon(Icons.person, size: 50, color: AppColors.textSecondary),
     );
   }
 

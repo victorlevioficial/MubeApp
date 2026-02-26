@@ -1,15 +1,20 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
+import 'core/services/push_notification_service.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
+import 'features/auth/data/auth_repository.dart';
 import 'routing/app_router.dart';
+import 'utils/app_logger.dart';
 
 /// Global key for ScaffoldMessenger to show snackbars across navigation.
 /// This allows snackbars to persist even when navigating between screens.
@@ -25,6 +30,7 @@ class MubeApp extends ConsumerStatefulWidget {
 
 class _MubeAppState extends ConsumerState<MubeApp> {
   StreamSubscription? _onMessageOpenedSub;
+  bool _hasBootstrappedPushForSession = false;
 
   @override
   void initState() {
@@ -51,6 +57,36 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     });
   }
 
+  void _handlePushBootstrapForAuthState(User? user) {
+    if (user == null) {
+      _hasBootstrappedPushForSession = false;
+      return;
+    }
+
+    if (_hasBootstrappedPushForSession) return;
+    _hasBootstrappedPushForSession = true;
+    unawaited(_bootstrapPushForLoggedInUser());
+  }
+
+  Future<void> _bootstrapPushForLoggedInUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasShownPermission =
+          prefs.getBool('notification_permission_shown') ?? false;
+
+      if (!hasShownPermission) {
+        AppLogger.info(
+          'Push bootstrap skipped: notification onboarding not shown yet.',
+        );
+        return;
+      }
+
+      await PushNotificationService().initIfPermissionAlreadyGranted();
+    } catch (e, stack) {
+      AppLogger.warning('Failed to bootstrap push for logged user', e, stack);
+    }
+  }
+
   @override
   void dispose() {
     _onMessageOpenedSub?.cancel();
@@ -59,6 +95,10 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
+      next.whenData(_handlePushBootstrapForAuthState);
+    });
+
     final goRouter = ref.watch(goRouterProvider);
 
     return MaterialApp.router(

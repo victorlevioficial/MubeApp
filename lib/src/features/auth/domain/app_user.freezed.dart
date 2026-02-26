@@ -20,7 +20,7 @@ mixin _$AppUser {
  String get email;/// Registration status: 'tipo_pendente', 'perfil_pendente', or 'concluido'.
 @JsonKey(name: 'cadastro_status') String get cadastroStatus;/// Profile type, set after initial type selection.
 @JsonKey(name: 'tipo_perfil') AppUserType? get tipoPerfil;/// Account visibility status: 'ativo', 'inativo', 'suspenso'.
- String get status;/// User's display name.
+ String get status;/// User's registration name (full/legal name for internal records).
  String? get nome;/// Profile photo URL.
  String? get foto;/// Short biography.
  String? get bio;/// Location data: cidade, estado, lat, lng. (Legacy - kept for backward compatibility)
@@ -268,7 +268,7 @@ class _AppUser extends AppUser {
 @override@JsonKey(name: 'tipo_perfil') final  AppUserType? tipoPerfil;
 /// Account visibility status: 'ativo', 'inativo', 'suspenso'.
 @override@JsonKey() final  String status;
-/// User's display name.
+/// User's registration name (full/legal name for internal records).
 @override final  String? nome;
 /// Profile photo URL.
 @override final  String? foto;

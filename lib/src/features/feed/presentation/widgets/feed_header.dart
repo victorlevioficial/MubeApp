@@ -82,7 +82,10 @@ class FeedHeader extends StatelessWidget {
           child: GestureDetector(
             onTap: () {
               HapticFeedback.mediumImpact();
-              context.push('/profile/edit');
+              final uid = currentUser?.uid;
+              if (uid != null) {
+                context.push('/user/$uid');
+              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),

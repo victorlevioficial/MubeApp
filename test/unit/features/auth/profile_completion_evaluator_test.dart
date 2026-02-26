@@ -8,6 +8,7 @@ void main() {
     String cadastroStatus = 'concluido',
     Map<String, dynamic>? profissionalData,
     String? foto = 'https://example.com/profile.jpg',
+    String? bio = 'Musico profissional com 10 anos de experiencia.',
   }) {
     return AppUser(
       uid: 'u1',
@@ -16,6 +17,7 @@ void main() {
       tipoPerfil: AppUserType.professional,
       nome: 'Usuario Teste',
       foto: foto,
+      bio: bio,
       location: const {'lat': -23.5, 'lng': -46.6},
       dadosProfissional:
           profissionalData ??
@@ -109,6 +111,15 @@ void main() {
       expect(result.missingRequirements, contains('Cadastro concluido'));
     });
 
+    test('marks profile incomplete when bio is missing', () {
+      final user = buildProfessional(bio: null);
+
+      final result = ProfileCompletionEvaluator.evaluate(user);
+
+      expect(result.percent, lessThan(100));
+      expect(result.missingRequirements, contains('Bio'));
+    });
+
     test('supports legacy studio data saved in professional map', () {
       const user = AppUser(
         uid: 'studio-1',
@@ -117,6 +128,7 @@ void main() {
         tipoPerfil: AppUserType.studio,
         nome: 'Studio User',
         foto: 'https://example.com/studio.jpg',
+        bio: 'Studio profissional de gravacao.',
         location: {'lat': -23.5, 'lng': -46.6},
         dadosProfissional: {
           'nomeArtistico': 'Studio Legacy',

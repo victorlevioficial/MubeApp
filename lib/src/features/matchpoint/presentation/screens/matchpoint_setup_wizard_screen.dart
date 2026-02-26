@@ -1,3 +1,4 @@
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +14,9 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
+import '../../domain/matchpoint_availability.dart';
 import '../controllers/matchpoint_controller.dart';
+import 'matchpoint_unavailable_screen.dart';
 
 class MatchpointSetupWizardScreen extends ConsumerStatefulWidget {
   const MatchpointSetupWizardScreen({super.key});
@@ -64,7 +67,9 @@ class _MatchpointSetupWizardScreenState
       if (rawHashtags is List) {
         _hashtags
           ..clear()
-          ..addAll(rawHashtags.whereType<String>());
+          ..addAll(
+            _normalizeHashtagList(rawHashtags.whereType<String>()).take(10),
+          );
       }
 
       if (visibleInHome is bool) {
@@ -105,6 +110,13 @@ class _MatchpointSetupWizardScreenState
 
   @override
   Widget build(BuildContext context) {
+    final userType = ref.watch(
+      currentUserProfileProvider.select((value) => value.value?.tipoPerfil),
+    );
+    if (userType != null && !isMatchpointAvailableForType(userType)) {
+      return const MatchpointUnavailableScreen(showBackButton: true);
+    }
+
     if (!_didPrefillFromProfile) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _prefillFromCurrentProfile();
@@ -181,7 +193,9 @@ class _MatchpointSetupWizardScreenState
                 isLoading: ref.watch(
                   matchpointControllerProvider.select((s) => s.isLoading),
                 ),
-                text: _currentStep == (_totalSteps - 1) ? 'Concluir' : 'Próximo',
+                text: _currentStep == (_totalSteps - 1)
+                    ? 'Concluir'
+                    : 'Próximo',
                 size: AppButtonSize.medium,
               ),
             ],
@@ -201,7 +215,7 @@ class _MatchpointSetupWizardScreenState
         return _buildPrivacyStep();
       default:
         return const SizedBox();
-      }
+    }
   }
 
   Widget _buildIntentStep() {
@@ -337,11 +351,20 @@ class _MatchpointSetupWizardScreenState
           hint: 'Digite uma tag e aperte Enter',
           prefixIcon: const Icon(Icons.tag, size: 20),
           textInputAction: TextInputAction.done,
+          onChanged: _onTagInputChanged,
           suffixIcon: IconButton(
             icon: const Icon(Icons.add, color: AppColors.primary),
             onPressed: _addHashtag,
           ),
           onSubmitted: (_) => _addHashtag(),
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          'Sem espacos e sem acentos. Exemplo: rider tecnico -> #ridertecnico.',
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.s16),
 
@@ -381,10 +404,9 @@ class _MatchpointSetupWizardScreenState
       if (_hashtags.length >= 10) return;
 
       setState(() {
-        // Sanitize input: remove all '#' user might have typed, trim, then add one '#'
-        final String rawText = _tagController.text.replaceAll('#', '').trim();
-        if (rawText.isNotEmpty) {
-          final String tag = '#$rawText';
+        final String normalized = _normalizeHashtagToken(_tagController.text);
+        if (normalized.isNotEmpty) {
+          final String tag = '#$normalized';
           if (!_hashtags.contains(tag)) {
             _hashtags.add(tag);
           }
@@ -392,6 +414,41 @@ class _MatchpointSetupWizardScreenState
         _tagController.clear();
       });
     }
+  }
+
+  void _onTagInputChanged(String value) {
+    final normalized = _normalizeHashtagToken(value);
+    if (value == normalized) return;
+
+    _tagController.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+  }
+
+  List<String> _normalizeHashtagList(Iterable<String> source) {
+    final normalizedTags = <String>[];
+    final seen = <String>{};
+
+    for (final raw in source) {
+      final token = _normalizeHashtagToken(raw);
+      if (token.isEmpty) continue;
+
+      final hashtag = '#$token';
+      if (seen.add(hashtag)) {
+        normalizedTags.add(hashtag);
+      }
+    }
+
+    return normalizedTags;
+  }
+
+  String _normalizeHashtagToken(String rawValue) {
+    final withoutHash = rawValue.replaceAll('#', '');
+    final withoutDiacritics = removeDiacritics(withoutHash);
+    final noSpaces = withoutDiacritics.replaceAll(RegExp(r'\s+'), '');
+    final normalized = noSpaces.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+    return normalized.toLowerCase();
   }
 
   Future<void> _onNextPressed() async {

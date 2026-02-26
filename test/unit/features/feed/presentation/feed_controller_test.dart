@@ -10,6 +10,7 @@ import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/feed_section.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../helpers/test_data.dart';
@@ -37,6 +38,7 @@ void main() {
         currentUserProfileProvider.overrideWith(
           (ref) => fakeAuthRepository.watchUser(''),
         ),
+        blockedUsersProvider.overrideWith((ref) => Stream.value([])),
       ],
     );
   });

@@ -51,6 +51,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_PendingMessage> _pendingMessages = [];
+  ProviderSubscription<AsyncValue<List<Message>>>?
+  _messagesReadReceiptSubscription;
   bool _isNavigatingToEmailVerification = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
@@ -135,6 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           _conversationAccessMessage = null;
         });
         unawaited(_markConversationAsRead(repository, user.uid));
+        _startRealtimeReadReceiptListener(user.uid, repository);
         return;
       }
 
@@ -185,6 +188,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             _conversationAccessMessage = null;
           });
           unawaited(_markConversationAsRead(repository, user.uid));
+          _startRealtimeReadReceiptListener(user.uid, repository);
         },
       );
     } catch (e, stack) {
@@ -227,6 +231,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  void _startRealtimeReadReceiptListener(
+    String myUid,
+    ChatRepository repository,
+  ) {
+    _messagesReadReceiptSubscription?.close();
+    _messagesReadReceiptSubscription = ref
+        .listenManual<AsyncValue<List<Message>>>(
+          conversationMessagesProvider(widget.conversationId),
+          (previous, next) {
+            final nextMessages = next.asData?.value;
+            if (nextMessages == null || nextMessages.isEmpty) return;
+            final latestMessage = nextMessages.first;
+            if (latestMessage.senderId == myUid) return;
+
+            final previousMessages = previous?.asData?.value;
+            final previousLatestId =
+                previousMessages == null || previousMessages.isEmpty
+                ? null
+                : previousMessages.first.id;
+            if (previousLatestId == latestMessage.id) return;
+
+            unawaited(_markConversationAsRead(repository, myUid));
+          },
+        );
+  }
+
   String _mapConversationFailureToMessage(String rawMessage) {
     final lower = rawMessage.toLowerCase();
 
@@ -244,6 +274,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     PushNotificationService.setActiveConversation(null);
+    _messagesReadReceiptSubscription?.close();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
