@@ -29,6 +29,11 @@ class FeedHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final greetingSubtitle = _getGreetingSubtitle(DateTime.now().hour);
+    final completionPercent = ProfileCompletionEvaluator.evaluate(
+      currentUser,
+    ).percent;
+
     return SliverToBoxAdapter(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
@@ -59,9 +64,9 @@ class FeedHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWelcomeSection(context),
+                _buildWelcomeSection(context, greetingSubtitle),
                 const SizedBox(height: AppSpacing.s20),
-                _buildProfileCard(context),
+                _buildProfileCard(context, completionPercent),
               ],
             ),
           ),
@@ -70,7 +75,7 @@ class FeedHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context) {
+  Widget _buildWelcomeSection(BuildContext context, String greetingSubtitle) {
     final displayName = _getDisplayName();
     final firstName = displayName.split(' ').first;
 
@@ -139,7 +144,7 @@ class FeedHeader extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.s4),
               Text(
-                _getGreetingSubtitle(),
+                greetingSubtitle,
                 style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -158,10 +163,9 @@ class FeedHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
+  Widget _buildProfileCard(BuildContext context, int completionPercent) {
     final profileType = _getProfileTypeLabel();
     final profileRole = _getProfileRole();
-    final completionPercent = _getProfileCompletionPercent();
 
     return GestureDetector(
       onTap: () {
@@ -293,8 +297,7 @@ class FeedHeader extends StatelessWidget {
     return currentUser!.nome ?? 'Usuario';
   }
 
-  String _getGreetingSubtitle() {
-    final hour = DateTime.now().hour;
+  String _getGreetingSubtitle(int hour) {
     if (hour < 12) return 'Bom dia! Pronto para tocar?';
     if (hour < 18) return 'Boa tarde! Vamos fazer musica?';
     return 'Boa noite! Que tal um som?';
@@ -371,10 +374,6 @@ class FeedHeader extends StatelessWidget {
               word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
         )
         .join(' ');
-  }
-
-  int _getProfileCompletionPercent() {
-    return ProfileCompletionEvaluator.evaluate(currentUser).percent;
   }
 }
 

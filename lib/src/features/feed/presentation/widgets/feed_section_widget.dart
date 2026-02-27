@@ -96,14 +96,15 @@ class FeedSectionWidget extends StatelessWidget {
   }
 
   Widget _buildList() {
-    final displayItems = items.take(10).toList();
+    final itemCount = items.length > 10 ? 10 : items.length;
 
     return ListView.builder(
       scrollDirection: Axis.horizontal,
+      cacheExtent: 500,
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
-      itemCount: displayItems.length,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
-        final item = displayItems[index];
+        final item = items[index];
         return Padding(
           padding: const EdgeInsets.only(right: AppSpacing.s12),
           child: FeedCardCompact(item: item, onTap: () => onItemTap(item)),

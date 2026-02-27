@@ -7,7 +7,6 @@ import '../../../../design_system/components/patterns/fade_in_slide.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../data/feed_items_provider.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
 import 'feed_item_skeleton.dart';
@@ -81,16 +80,6 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       }
       _scrollController.addListener(_onScroll);
     }
-    // Register initial items
-    _registerItems();
-  }
-
-  @override
-  void didUpdateWidget(VerticalFeedList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.items != oldWidget.items) {
-      _registerItems();
-    }
   }
 
   @override
@@ -102,17 +91,6 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       }
     }
     super.dispose();
-  }
-
-  void _registerItems() {
-    if (widget.items.isNotEmpty) {
-      // Defer to next frame to avoid building during build (safety)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ref.read(feedItemsProvider.notifier).loadItems(widget.items);
-        }
-      });
-    }
   }
 
   void _onScroll() {

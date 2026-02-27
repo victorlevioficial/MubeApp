@@ -202,6 +202,36 @@ class _SpotlightCard extends StatelessWidget {
   final FeedItem item;
   final VoidCallback onTap;
 
+  static final BoxDecoration _cardDecoration = BoxDecoration(
+    borderRadius: AppRadius.all20,
+    boxShadow: [
+      BoxShadow(
+        color: AppColors.background.withValues(alpha: 0.5),
+        blurRadius: 16,
+        offset: const Offset(0, 8),
+      ),
+    ],
+  );
+
+  static final BoxDecoration _overlayDecoration = BoxDecoration(
+    gradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Colors.transparent,
+        AppColors.background.withValues(alpha: 0.6),
+        AppColors.background.withValues(alpha: 0.95),
+      ],
+      stops: const [0.3, 0.7, 1.0],
+    ),
+  );
+
+  static final BoxDecoration _ctaDecoration = BoxDecoration(
+    color: AppColors.background.withValues(alpha: 0.85),
+    borderRadius: AppRadius.pill,
+    border: Border.all(color: AppColors.surfaceHighlight, width: 1),
+  );
+
   const _SpotlightCard({required this.item, required this.onTap});
 
   @override
@@ -209,16 +239,7 @@ class _SpotlightCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.all20,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.background.withValues(alpha: 0.5),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
+        decoration: _cardDecoration,
         child: ClipRRect(
           borderRadius: AppRadius.all20,
           child: Stack(
@@ -243,20 +264,7 @@ class _SpotlightCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      AppColors.background.withValues(alpha: 0.6),
-                      AppColors.background.withValues(alpha: 0.95),
-                    ],
-                    stops: const [0.3, 0.7, 1.0],
-                  ),
-                ),
-              ),
+              Container(decoration: _overlayDecoration),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.s20),
                 child: Column(
@@ -320,14 +328,7 @@ class _SpotlightCard extends StatelessWidget {
                     horizontal: AppSpacing.s12,
                     vertical: AppSpacing.s8,
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.background.withValues(alpha: 0.85),
-                    borderRadius: AppRadius.pill,
-                    border: Border.all(
-                      color: AppColors.surfaceHighlight,
-                      width: 1,
-                    ),
-                  ),
+                  decoration: _ctaDecoration,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

@@ -13,7 +13,6 @@ import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../../moderation/data/blocked_users_provider.dart';
 import '../data/featured_profiles_repository.dart';
-import '../data/feed_items_provider.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -340,8 +339,6 @@ class FeedController extends _$FeedController {
       items[FeedSectionType.bands] = results[1];
       items[FeedSectionType.studios] = results[2];
     }
-    final allItems = items.values.expand((list) => list).toList();
-    ref.read(feedItemsProvider.notifier).loadItems(allItems);
     // Precache is handled by FeedImagePrecacheService in the UI layer
 
     return items;
@@ -565,7 +562,6 @@ class FeedController extends _$FeedController {
 
       final newItems = _allSortedUsers.sublist(startIndex, endIndex);
 
-      ref.read(feedItemsProvider.notifier).loadItems(newItems);
       // Precache is handled by FeedImagePrecacheService in the UI layer
 
       final allItems = reset ? newItems : [...currentState.items, ...newItems];

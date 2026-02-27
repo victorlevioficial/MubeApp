@@ -258,14 +258,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                 minHeight: FeedConstants.filterBarHeight,
                 maxHeight: FeedConstants.filterBarHeight,
                 topPadding: MediaQuery.of(context).padding.top,
-                child: Container(
-                  color: AppColors.background,
-                  alignment: Alignment.center,
-                  child: QuickFilterBar(
-                    selectedFilter: state.currentFilter,
-                    onFilterSelected: controller.onFilterChanged,
-                  ),
-                ),
+                selectedFilter: state.currentFilter,
+                onFilterSelected: controller.onFilterChanged,
               ),
             ),
 
@@ -340,14 +334,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final double minHeight;
   final double maxHeight;
-  final Widget child;
   final double topPadding;
+  final String selectedFilter;
+  final Function(String) onFilterSelected;
 
   _SliverAppBarDelegate({
     required this.minHeight,
     required this.maxHeight,
-    required this.child,
     required this.topPadding,
+    required this.selectedFilter,
+    required this.onFilterSelected,
   });
 
   @override
@@ -364,7 +360,16 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     return Container(
       color: AppColors.background, // Ensure background covers the status bar
       padding: EdgeInsets.only(top: topPadding),
-      child: SizedBox.expand(child: child),
+      child: SizedBox.expand(
+        child: Container(
+          color: AppColors.background,
+          alignment: Alignment.center,
+          child: QuickFilterBar(
+            selectedFilter: selectedFilter,
+            onFilterSelected: onFilterSelected,
+          ),
+        ),
+      ),
     );
   }
 
@@ -372,7 +377,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return maxHeight != oldDelegate.maxHeight ||
         minHeight != oldDelegate.minHeight ||
-        child != oldDelegate.child ||
+        selectedFilter != oldDelegate.selectedFilter ||
         topPadding != oldDelegate.topPadding;
   }
 }
