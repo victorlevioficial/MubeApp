@@ -63,6 +63,7 @@ class _FadeInSlideState extends State<FadeInSlide>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
+      child: widget.child,
       builder: (context, child) {
         final value = _translate.value;
         Offset offset;
@@ -78,9 +79,9 @@ class _FadeInSlideState extends State<FadeInSlide>
             offset = Offset(value, 0);
         }
 
-        return Opacity(
-          opacity: _opacity.value,
-          child: Transform.translate(offset: offset, child: widget.child),
+        return FadeTransition(
+          opacity: _opacity,
+          child: Transform.translate(offset: offset, child: child),
         );
       },
     );

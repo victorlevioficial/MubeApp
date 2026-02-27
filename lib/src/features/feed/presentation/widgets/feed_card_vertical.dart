@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart'; // Removed
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 
@@ -13,7 +12,7 @@ import '../../domain/feed_item.dart'; // Restored
 import 'profile_type_badge.dart';
 
 /// A vertical feed card that reactively updates its favorite status.
-class FeedCardVertical extends ConsumerStatefulWidget {
+class FeedCardVertical extends StatefulWidget {
   final FeedItem item;
   final VoidCallback onTap;
   final EdgeInsets? margin;
@@ -26,10 +25,10 @@ class FeedCardVertical extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FeedCardVertical> createState() => _FeedCardVerticalState();
+  State<FeedCardVertical> createState() => _FeedCardVerticalState();
 }
 
-class _FeedCardVerticalState extends ConsumerState<FeedCardVertical> {
+class _FeedCardVerticalState extends State<FeedCardVertical> {
   bool _isPressed = false;
 
   bool get _hasLocationInfo => widget.item.distanceText.isNotEmpty;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -29,13 +30,48 @@ class FeaturedSpotlightCarousel extends StatefulWidget {
 class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
   late final PageController _pageController;
   int _currentPage = 0;
+  int _visibleCount = 0;
+  int _itemsFingerprint = 0;
+  List<FeedItem> _spotlightItems = const <FeedItem>[];
   Timer? _autoScrollTimer;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(viewportFraction: 0.92);
+    _syncVisibleItems();
     _startAutoScroll();
+  }
+
+  @override
+  void didUpdateWidget(covariant FeaturedSpotlightCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final previousCount = _visibleCount;
+    final previousFingerprint = _itemsFingerprint;
+    final didClampPage = _syncVisibleItems();
+
+    if (_visibleCount == 0) {
+      _autoScrollTimer?.cancel();
+      return;
+    }
+
+    if (didClampPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(_currentPage);
+      });
+    }
+
+    if (_visibleCount <= 1) {
+      _autoScrollTimer?.cancel();
+      return;
+    }
+
+    final hasContentChanged = previousFingerprint != _itemsFingerprint;
+    if (previousCount != _visibleCount || hasContentChanged) {
+      _startAutoScroll();
+    }
   }
 
   @override
@@ -47,25 +83,38 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (widget.items.isEmpty) return;
+    if (_visibleCount <= 1) return;
 
-      final nextPage = (_currentPage + 1) % widget.items.length;
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          nextPage,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_visibleCount <= 1 || !_pageController.hasClients) return;
+
+      final nextPage = (_currentPage + 1) % _visibleCount;
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
     });
+  }
+
+  bool _syncVisibleItems() {
+    final previousPage = _currentPage;
+    _visibleCount = math.min(widget.items.length, 5);
+    _spotlightItems = widget.items.take(_visibleCount).toList(growable: false);
+    _itemsFingerprint = Object.hashAll(_spotlightItems.map((item) => item.uid));
+
+    if (_visibleCount == 0) {
+      _currentPage = 0;
+    } else if (_currentPage >= _visibleCount) {
+      _currentPage = _visibleCount - 1;
+    }
+
+    return previousPage != _currentPage;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.items.isEmpty) return const SizedBox.shrink();
-
-    final spotlightItems = widget.items.take(5).toList();
+    if (_visibleCount == 0) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,12 +154,16 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
-              setState(() => _currentPage = index);
-              _startAutoScroll();
+              if (_currentPage != index) {
+                setState(() => _currentPage = index);
+              }
+              if (_visibleCount > 1) {
+                _startAutoScroll();
+              }
             },
-            itemCount: spotlightItems.length,
+            itemCount: _visibleCount,
             itemBuilder: (context, index) {
-              final item = spotlightItems[index];
+              final item = _spotlightItems[index];
               return Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.s12),
                 child: _SpotlightCard(
@@ -126,7 +179,7 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: List.generate(
-              spotlightItems.length,
+              _visibleCount,
               (index) => _PageIndicator(
                 isActive: index == _currentPage,
                 onTap: () {
