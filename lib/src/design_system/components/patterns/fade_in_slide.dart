@@ -61,29 +61,29 @@ class _FadeInSlideState extends State<FadeInSlide>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      child: widget.child,
-      builder: (context, child) {
-        final value = _translate.value;
-        Offset offset;
+    return FadeTransition(
+      opacity: _opacity,
+      child: AnimatedBuilder(
+        animation: _translate,
+        child: widget.child,
+        builder: (context, child) {
+          final value = _translate.value;
+          Offset offset;
 
-        switch (widget.direction) {
-          case FadeInSlideDirection.ttb:
-            offset = Offset(0, -value);
-          case FadeInSlideDirection.btt:
-            offset = Offset(0, value);
-          case FadeInSlideDirection.ltr:
-            offset = Offset(-value, 0);
-          case FadeInSlideDirection.rtl:
-            offset = Offset(value, 0);
-        }
+          switch (widget.direction) {
+            case FadeInSlideDirection.ttb:
+              offset = Offset(0, -value);
+            case FadeInSlideDirection.btt:
+              offset = Offset(0, value);
+            case FadeInSlideDirection.ltr:
+              offset = Offset(-value, 0);
+            case FadeInSlideDirection.rtl:
+              offset = Offset(value, 0);
+          }
 
-        return FadeTransition(
-          opacity: _opacity,
-          child: Transform.translate(offset: offset, child: child),
-        );
-      },
+          return Transform.translate(offset: offset, child: child);
+        },
+      ),
     );
   }
 }
