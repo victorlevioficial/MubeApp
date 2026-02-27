@@ -19,6 +19,8 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const functions = firebase.app().functions("southamerica-east1");
+const functionsUsCentral = firebase.app().functions("us-central1");
+const VIDEO_BACKFILL_CALLABLE_TIMEOUT_MS = 540000;
 
 // ============================================
 // STATE
@@ -26,6 +28,10 @@ const functions = firebase.app().functions("southamerica-east1");
 let currentUser = null;
 let featuredUids = [];
 let featuredProfiles = [];
+let videoBackfillRunning = false;
+let videoBackfillCursorValue = null;
+let videoBackfillHasMoreValue = false;
+let videoBackfillLastMode = null; // "dryRun" | "run" | null
 
 // ============================================
 // DOM REFS
@@ -41,6 +47,13 @@ const loginBtn = $("#login-btn");
 const logoutBtn = $("#logout-btn");
 const pageTitle = $("#page-title");
 const adminEmail = $("#admin-email");
+const videoBackfillLimit = $("#video-backfill-limit");
+const videoBackfillDryRunBtn = $("#video-backfill-dry-run-btn");
+const videoBackfillRunBtn = $("#video-backfill-run-btn");
+const videoBackfillResetBtn = $("#video-backfill-reset-btn");
+const videoBackfillCursor = $("#video-backfill-cursor");
+const videoBackfillHasMore = $("#video-backfill-has-more");
+const videoBackfillReport = $("#video-backfill-report");
 
 // ============================================
 // AUTH
@@ -138,8 +151,202 @@ function loadSectionData(section) {
         $("#user-search-btn").click();
       }
       break;
+    case "videos":
+      refreshVideoBackfillUi();
+      break;
   }
 }
+
+// ============================================
+// VIDEOS BACKFILL
+// ============================================
+function parseBackfillLimit() {
+  const raw = parseInt(videoBackfillLimit?.value || "20", 10);
+  const fallback = Number.isFinite(raw) ? raw : 20;
+  const clamped = Math.max(1, Math.min(100, fallback));
+  if (videoBackfillLimit) videoBackfillLimit.value = String(clamped);
+  return clamped;
+}
+
+function asBackfillInt(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.trunc(value);
+  }
+  const parsed = parseInt(String(value || "0"), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setBackfillReport(text) {
+  if (!videoBackfillReport) return;
+  videoBackfillReport.textContent = text;
+}
+
+function refreshVideoBackfillUi() {
+  const runContinuation =
+    videoBackfillLastMode === "run" && videoBackfillHasMoreValue;
+
+  if (videoBackfillCursor) {
+    videoBackfillCursor.textContent = videoBackfillCursorValue || "-";
+  }
+  if (videoBackfillHasMore) {
+    videoBackfillHasMore.textContent = videoBackfillHasMoreValue ? "sim" : "nao";
+  }
+  if (videoBackfillRunBtn) {
+    videoBackfillRunBtn.innerHTML = runContinuation ?
+      '<span class="material-icons-round">skip_next</span> Proximo Lote' :
+      '<span class="material-icons-round">play_arrow</span> Executar Lote';
+  }
+}
+
+function formatBackfillResult(data) {
+  const lines = [
+    "Backfill de videos - resultado:",
+    `dryRun: ${data.dryRun === true ? "true" : "false"}`,
+    `usersScanned: ${asBackfillInt(data.usersScanned)}`,
+    `usersWithVideos: ${asBackfillInt(data.usersWithVideos)}`,
+    `videosDiscovered: ${asBackfillInt(data.videosDiscovered)}`,
+    `alreadyTranscodedUrl: ${asBackfillInt(data.alreadyTranscodedUrl)}`,
+    `alreadyTranscodedFile: ${asBackfillInt(data.alreadyTranscodedFile)}`,
+    `updatedFromExistingFile: ${asBackfillInt(data.updatedFromExistingFile)}`,
+    `wouldTranscode: ${asBackfillInt(data.wouldTranscode)}`,
+    `transcodeTriggered: ${asBackfillInt(data.transcodeTriggered)}`,
+    `transcodeFailures: ${asBackfillInt(data.transcodeFailures)}`,
+    `missingSource: ${asBackfillInt(data.missingSource)}`,
+    `hasMore: ${data.hasMore === true ? "true" : "false"}`,
+    `nextCursor: ${data.nextCursor || "-"}`,
+  ];
+
+  const failures = Array.isArray(data.failures) ? data.failures : [];
+  if (failures.length > 0) {
+    lines.push("");
+    lines.push("Failures (max 5):");
+    failures.slice(0, 5).forEach((item) => {
+      const failure = item || {};
+      lines.push(
+        `- user=${failure.userId || "-"} media=${failure.mediaId || "-"} error=${failure.error || "-"}`,
+      );
+    });
+  }
+
+  return lines.join("\n");
+}
+
+function setBackfillRunning(running, mode = "") {
+  videoBackfillRunning = running;
+  const disableAll = running;
+  if (videoBackfillLimit) videoBackfillLimit.disabled = disableAll;
+  if (videoBackfillDryRunBtn) videoBackfillDryRunBtn.disabled = disableAll;
+  if (videoBackfillRunBtn) videoBackfillRunBtn.disabled = disableAll;
+  if (videoBackfillResetBtn) videoBackfillResetBtn.disabled = disableAll;
+
+  if (!running) return;
+
+  setBackfillReport(
+    mode === "dryRun" ?
+      "Executando simulacao..." :
+      "Executando lote real...",
+  );
+}
+
+function getVideoBackfillCallable() {
+  return functionsUsCentral.httpsCallable(
+    "backfillGalleryVideoTranscodes",
+    { timeout: VIDEO_BACKFILL_CALLABLE_TIMEOUT_MS },
+  );
+}
+
+async function executeVideoBackfill({ dryRun, resetCursor }) {
+  if (videoBackfillRunning) return;
+  if (!currentUser) {
+    toast("Faca login novamente para executar o backfill.", "error");
+    return;
+  }
+
+  const limit = parseBackfillLimit();
+  const payload = { dryRun, limit };
+
+  if (!resetCursor && videoBackfillCursorValue) {
+    payload.startAfterUserId = videoBackfillCursorValue;
+  }
+
+  if (resetCursor) {
+    videoBackfillCursorValue = null;
+    videoBackfillHasMoreValue = false;
+    refreshVideoBackfillUi();
+  }
+
+  setBackfillRunning(true, dryRun ? "dryRun" : "run");
+
+  try {
+    const result = await getVideoBackfillCallable()(payload);
+    const data = result?.data || {};
+
+    videoBackfillHasMoreValue = data.hasMore === true;
+    videoBackfillCursorValue = typeof data.nextCursor === "string" ?
+      data.nextCursor :
+      null;
+    videoBackfillLastMode = dryRun ? "dryRun" : "run";
+    refreshVideoBackfillUi();
+    setBackfillReport(formatBackfillResult(data));
+    toast("Backfill executado com sucesso.", "success");
+  } catch (err) {
+    console.error("Video backfill error:", err);
+    const code = String(err?.code || "");
+    const message = err?.message || "Erro ao executar backfill.";
+    const isDeadline = code.includes("deadline-exceeded") ||
+      message.toLowerCase().includes("deadline-exceeded");
+
+    if (isDeadline) {
+      setBackfillReport(
+        "A chamada expirou (deadline-exceeded), mas o processamento pode ter continuado no backend.\n" +
+        "Rode Simular (Dry Run) para verificar o estado atual antes de repetir.",
+      );
+    } else {
+      setBackfillReport(`Erro ao executar backfill: ${message}`);
+    }
+    toast("Erro ao executar backfill de videos.", "error");
+  } finally {
+    setBackfillRunning(false);
+  }
+}
+
+if (videoBackfillDryRunBtn) {
+  videoBackfillDryRunBtn.addEventListener("click", () => {
+    executeVideoBackfill({ dryRun: true, resetCursor: true });
+  });
+}
+
+if (videoBackfillRunBtn) {
+  videoBackfillRunBtn.addEventListener("click", () => {
+    const shouldContinueFromCursor =
+      videoBackfillLastMode === "run" &&
+      videoBackfillHasMoreValue === true &&
+      typeof videoBackfillCursorValue === "string" &&
+      videoBackfillCursorValue.trim().length > 0;
+
+    const shouldResetCursor = !shouldContinueFromCursor;
+    executeVideoBackfill({
+      dryRun: false,
+      resetCursor: shouldResetCursor,
+    });
+  });
+}
+
+if (videoBackfillResetBtn) {
+  videoBackfillResetBtn.addEventListener("click", () => {
+    if (videoBackfillRunning) return;
+    videoBackfillCursorValue = null;
+    videoBackfillHasMoreValue = false;
+    videoBackfillLastMode = null;
+    refreshVideoBackfillUi();
+    setBackfillReport(
+      "Cursor reiniciado. O proximo lote vai recomecar do inicio.",
+    );
+    toast("Cursor de backfill reiniciado.", "success");
+  });
+}
+
+refreshVideoBackfillUi();
 
 // ============================================
 // DASHBOARD

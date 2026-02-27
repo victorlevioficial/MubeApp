@@ -84,6 +84,7 @@ export {
 // Export Video transcode functions
 export {
   onGalleryVideoUploaded,
+  backfillGalleryVideoTranscodes,
 } from "./video_transcode";
 
 /**

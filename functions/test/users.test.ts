@@ -1,4 +1,4 @@
-import * as fftest from "firebase-functions-test";
+import firebaseFunctionsTest from "firebase-functions-test";
 
 // 1. Mock firebase-admin first - MUST matched expected structure precisely
 const firestoreMock = {
@@ -27,7 +27,7 @@ jest.mock("firebase-admin", () => ({
 import { deleteAccount } from "../src/users";
 import * as admin from "firebase-admin";
 
-const testEnv = fftest();
+const testEnv = firebaseFunctionsTest();
 
 describe("deleteAccount Cloud Function", () => {
     let mockFirestore: any;
@@ -51,16 +51,16 @@ describe("deleteAccount Cloud Function", () => {
 
     test("should throw unauthenticated error if uid is missing", async () => {
         const wrapped = testEnv.wrap(deleteAccount);
-        await expect(wrapped({ data: {}, auth: null })).rejects.toThrow(
+        await expect(wrapped({ data: {}, auth: null } as any)).rejects.toThrow(
             /must be called while authenticated/
         );
     });
 
     test("should backup and delete data for an existing user", async () => {
         const wrapped = testEnv.wrap(deleteAccount);
-        const auth = { uid: "user123" };
+        const auth = { uid: "user123" } as any;
 
-        const result = await wrapped({ data: {}, auth });
+        const result = await wrapped({ data: {}, auth } as any);
 
         expect(result).toEqual({ success: true });
 
@@ -80,9 +80,9 @@ describe("deleteAccount Cloud Function", () => {
         mockFirestore.get.mockResolvedValue({ exists: false });
 
         const wrapped = testEnv.wrap(deleteAccount);
-        const auth = { uid: "user456" };
+        const auth = { uid: "user456" } as any;
 
-        const result = await wrapped({ data: {}, auth });
+        const result = await wrapped({ data: {}, auth } as any);
 
         expect(result).toEqual({ success: true });
         expect(mockFirestore.delete).not.toHaveBeenCalled();
@@ -93,9 +93,9 @@ describe("deleteAccount Cloud Function", () => {
         mockAuth.deleteUser.mockRejectedValue(new Error("Firebase Auth error"));
 
         const wrapped = testEnv.wrap(deleteAccount);
-        const auth = { uid: "user789" };
+        const auth = { uid: "user789" } as any;
 
-        await expect(wrapped({ data: {}, auth })).rejects.toThrow(
+        await expect(wrapped({ data: {}, auth } as any)).rejects.toThrow(
             /An error occurred while attempting to delete the account/
         );
     });

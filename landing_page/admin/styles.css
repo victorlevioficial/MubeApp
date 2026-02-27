@@ -471,6 +471,62 @@ input:focus, textarea:focus {
   gap: 8px;
 }
 
+.backfill-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+.backfill-help {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.backfill-controls {
+  align-items: flex-end;
+}
+
+.backfill-limit-group {
+  margin-bottom: 0;
+  min-width: 180px;
+}
+
+.backfill-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.backfill-meta code {
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.backfill-report {
+  margin-top: 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 120px;
+  max-height: 420px;
+  overflow: auto;
+}
+
 .featured-item {
   background: var(--bg-card);
   border: 1px solid var(--border);

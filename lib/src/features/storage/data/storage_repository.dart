@@ -502,6 +502,16 @@ class StorageRepository {
         );
         await videoRef.delete();
 
+        // Deletar versão transcodificada (pipeline server-side)
+        try {
+          final transcodedVideoRef = _storage.ref().child(
+            'gallery_videos_transcoded/$userId/$mediaId/master.mp4',
+          );
+          await transcodedVideoRef.delete();
+        } catch (e) {
+          // Ignora se não encontrar a versão transcodificada
+        }
+
         // Deletar thumbnail
         final thumbRef = _storage.ref().child(
           'gallery_thumbnails/$userId/$mediaId.webp',

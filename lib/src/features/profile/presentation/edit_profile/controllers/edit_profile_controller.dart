@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -449,16 +450,61 @@ class EditProfileController extends _$EditProfileController {
     return true;
   }
 
-  List<Map<String, dynamic>> _galleryToJson() {
+  Future<String> _resolveVideoUrlForSave({
+    required String userId,
+    required MediaItem item,
+  }) async {
+    if (item.type != MediaType.video || item.url.isEmpty) {
+      return item.url;
+    }
+
+    try {
+      final docId = '${userId}_${item.id}';
+      final transcodeDoc = await FirebaseFirestore.instance
+          .collection('mediaTranscodeJobs')
+          .doc(docId)
+          .get();
+
+      final data = transcodeDoc.data();
+      if (data == null) {
+        return item.url;
+      }
+
+      final status = (data['status'] as String? ?? '').toLowerCase();
+      final transcodedUrl = data['transcodedUrl'] as String?;
+      final hasTranscodedUrl =
+          transcodedUrl != null && transcodedUrl.isNotEmpty;
+      final isCompleted =
+          status == 'succeeded' || status == 'succeeded_without_gallery_update';
+
+      if (hasTranscodedUrl && isCompleted) {
+        return transcodedUrl;
+      }
+    } catch (_) {
+      // Falha na leitura de status de transcode nao deve bloquear o save.
+    }
+
+    return item.url;
+  }
+
+  Future<List<Map<String, dynamic>>> _galleryToJson({
+    required String userId,
+  }) async {
     final persistedItems = state.galleryItems
         .where((item) => !item.isUploading && item.url.isNotEmpty)
         .toList();
+
+    final resolvedUrls = await Future.wait(
+      persistedItems.map(
+        (item) => _resolveVideoUrlForSave(userId: userId, item: item),
+      ),
+    );
 
     return persistedItems.asMap().entries.map((entry) {
       final item = entry.value;
       return {
         'id': item.id,
-        'url': item.url,
+        'url': resolvedUrls[entry.key],
         'type': item.type == MediaType.video ? 'video' : 'photo',
         'thumbnailUrl': item.thumbnailUrl,
         'order': entry.key,
@@ -486,6 +532,7 @@ class EditProfileController extends _$EditProfileController {
 
     try {
       final Map<String, dynamic> updates = {'nome': nome, 'bio': bio};
+      final gallery = await _galleryToJson(userId: user.uid);
 
       switch (user.tipoPerfil) {
         case AppUserType.professional:
@@ -502,7 +549,7 @@ class EditProfileController extends _$EditProfileController {
             'backingVocalMode': state.backingVocalMode,
             'instrumentalistBackingVocal': state.instrumentalistBackingVocal,
             'fazBackingVocal': state.instrumentalistBackingVocal,
-            'gallery': _galleryToJson(),
+            'gallery': gallery,
           };
           break;
 
@@ -515,7 +562,7 @@ class EditProfileController extends _$EditProfileController {
             'studioType': state.studioType,
             'servicosOferecidos': state.selectedServices,
             'services': state.selectedServices,
-            'gallery': _galleryToJson(),
+            'gallery': gallery,
           };
           break;
 
@@ -526,7 +573,7 @@ class EditProfileController extends _$EditProfileController {
             'nome': nomeArtistico,
             'bio': bio,
             'generosMusicais': state.bandGenres,
-            'gallery': _galleryToJson(),
+            'gallery': gallery,
           };
           break;
 
