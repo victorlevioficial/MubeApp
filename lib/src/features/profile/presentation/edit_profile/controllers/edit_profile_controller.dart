@@ -256,6 +256,19 @@ class EditProfileController extends _$EditProfileController {
     }
   }
 
+  Future<void> _cleanupManagedTemporaryThumbnail(File file) async {
+    final normalizedPath = file.path.replaceAll('\\', '/').toLowerCase();
+    if (!normalizedPath.contains('/video_compress/')) return;
+
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Temp cleanup should never block the media flow.
+    }
+  }
+
   Future<void> addPhoto({required File file, required String userId}) async {
     await _addPhotoInternal(file: file, userId: userId);
   }
@@ -389,6 +402,7 @@ class EditProfileController extends _$EditProfileController {
     }
 
     final mediaId = const Uuid().v4();
+    final storage = ref.read(storageRepositoryProvider);
 
     // Optimistic: add placeholder immediately with local thumbnail preview
     final placeholder = MediaItem(
@@ -411,7 +425,6 @@ class EditProfileController extends _$EditProfileController {
     );
 
     try {
-      final storage = ref.read(storageRepositoryProvider);
       var videoProgress = 0.0;
       var thumbnailProgress = 0.0;
 
@@ -470,6 +483,12 @@ class EditProfileController extends _$EditProfileController {
 
       ref.invalidate(publicProfileControllerProvider(userId));
     } catch (e) {
+      await storage.deleteGalleryItem(
+        userId: userId,
+        mediaId: mediaId,
+        isVideo: true,
+      );
+
       // Remove placeholder on failure
       final newGallery = state.galleryItems
           .where((item) => item.id != mediaId)
@@ -482,6 +501,7 @@ class EditProfileController extends _$EditProfileController {
       rethrow;
     } finally {
       await _cleanupManagedTemporaryVideo(videoFile);
+      await _cleanupManagedTemporaryThumbnail(thumbnailFile);
     }
   }
 
