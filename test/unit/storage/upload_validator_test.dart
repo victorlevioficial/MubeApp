@@ -9,8 +9,8 @@ void main() {
       expect(UploadLimits.maxPhotoSizeBytes, 10 * 1024 * 1024);
     });
 
-    test('maxVideoSizeBytes is 50MB', () {
-      expect(UploadLimits.maxVideoSizeBytes, 50 * 1024 * 1024);
+    test('maxVideoSizeBytes is 100MB', () {
+      expect(UploadLimits.maxVideoSizeBytes, 100 * 1024 * 1024);
     });
 
     test('allowedImageExtensions contains common image formats', () {
@@ -119,6 +119,33 @@ void main() {
 
         // Should not throw
         await UploadValidator.validateVideo(file);
+      });
+
+      test('accepts video exactly at 100MB limit', () async {
+        final file = File('${tempDir.path}/video_100mb.mp4');
+        final raf = await file.open(mode: FileMode.write);
+        await raf.truncate(UploadLimits.maxVideoSizeBytes);
+        await raf.close();
+
+        await UploadValidator.validateVideo(file);
+      });
+
+      test('throws when video exceeds 100MB limit', () async {
+        final file = File('${tempDir.path}/video_over_limit.mp4');
+        final raf = await file.open(mode: FileMode.write);
+        await raf.truncate(UploadLimits.maxVideoSizeBytes + 1);
+        await raf.close();
+
+        expect(
+          () => UploadValidator.validateVideo(file),
+          throwsA(
+            isA<UploadValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('100 MB'),
+            ),
+          ),
+        );
       });
     });
 

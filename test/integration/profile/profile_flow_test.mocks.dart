@@ -385,12 +385,14 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
     required String? userId,
     required String? mediaId,
     required _i7.File? thumbnail,
+    void Function(double)? onProgress,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#uploadVideoThumbnail, [], {
               #userId: userId,
               #mediaId: mediaId,
               #thumbnail: thumbnail,
+              #onProgress: onProgress,
             }),
             returnValue: _i5.Future<String>.value(
               _i8.dummyValue<String>(
@@ -399,6 +401,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
                   #userId: userId,
                   #mediaId: mediaId,
                   #thumbnail: thumbnail,
+                  #onProgress: onProgress,
                 }),
               ),
             ),
@@ -409,6 +412,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
                   #userId: userId,
                   #mediaId: mediaId,
                   #thumbnail: thumbnail,
+                  #onProgress: onProgress,
                 }),
               ),
             ),

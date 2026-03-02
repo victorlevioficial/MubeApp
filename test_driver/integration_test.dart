@@ -1,3 +1,3 @@
-import 'package:patrol/test_driver/integration_test_driver.dart';
+import 'package:integration_test/integration_test_driver.dart';
 
-void main() async => integrationTestDriver();
+Future<void> main() async => integrationDriver();

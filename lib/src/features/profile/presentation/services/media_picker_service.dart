@@ -10,12 +10,17 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
+import '../../../storage/domain/upload_validator.dart';
+import '../widgets/video_trim_screen.dart';
 
 /// Service for picking, cropping and compressing media files.
 class MediaPickerService {
   final ImagePicker _picker = ImagePicker();
 
-  static const int maxVideoDurationSeconds = 30;
+  static const int maxVideoDurationSeconds = 60;
+  static const int _maxVideoDurationMs = maxVideoDurationSeconds * 1000;
+  static const int _processedDurationToleranceMs = 500;
 
   /// Show a bottom sheet letting the user choose between Camera and Gallery.
   /// Returns the chosen [ImageSource] or null if cancelled.
@@ -88,7 +93,6 @@ class MediaPickerService {
 
     if (picked == null) return null;
 
-    // Crop to 1:1 square
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: picked.path,
       aspectRatio: lockAspectRatio
@@ -131,71 +135,130 @@ class MediaPickerService {
     );
 
     if (croppedFile == null) return null;
-
     return File(croppedFile.path);
   }
 
-  /// Pick a video, validate duration <= 30s, compress and generate thumbnail.
-  /// Returns (videoFile, thumbnailFile) or null if cancelled/invalid.
-  Future<(File video, File thumbnail)?> pickAndProcessVideo(
-    BuildContext context, {
+  /// Pick one or more photos without in-app crop.
+  /// Gallery allows multi-select; camera returns a single file.
+  Future<List<File>?> pickPhotos({
     ImageSource source = ImageSource.gallery,
   }) async {
-    final maxDuration = source == ImageSource.camera
-        ? const Duration(seconds: maxVideoDurationSeconds)
-        : null;
+    if (source == ImageSource.gallery) {
+      final pickedFiles = await _picker.pickMultiImage(
+        maxWidth: 2000,
+        maxHeight: 2000,
+        imageQuality: 90,
+      );
 
-    final XFile? picked = await _picker.pickVideo(
+      if (pickedFiles.isEmpty) return null;
+      return pickedFiles.map((file) => File(file.path)).toList();
+    }
+
+    final picked = await _picker.pickImage(
       source: source,
-      maxDuration: maxDuration,
+      maxWidth: 2000,
+      maxHeight: 2000,
+      imageQuality: 90,
     );
 
     if (picked == null) return null;
+    return [File(picked.path)];
+  }
+
+  /// Pick a video from gallery, trim when needed (max 60s),
+  /// then return the processed video + thumbnail.
+  Future<(File video, File thumbnail)?> pickAndProcessVideo(
+    BuildContext context,
+  ) async {
+    final XFile? picked = await _picker.pickVideo(source: ImageSource.gallery);
+    if (picked == null) return null;
 
     try {
-      // Get video info to check duration
-      final mediaInfo = await VideoCompress.getMediaInfo(picked.path);
-      final durationSeconds = (mediaInfo.duration ?? 0) / 1000;
+      File finalVideoFile = File(picked.path);
+      var wasTrimmed = false;
 
-      if (durationSeconds > maxVideoDurationSeconds) {
-        // Duration exceeds limit - show error
+      final mediaInfo = await VideoCompress.getMediaInfo(finalVideoFile.path);
+      final durationMs = (mediaInfo.duration ?? 0).round();
+      if (durationMs > _maxVideoDurationMs) {
+        if (!context.mounted) return null;
+        final trimmedVideo = await _openVideoTrimmer(
+          context,
+          finalVideoFile.path,
+        );
+        if (trimmedVideo == null) return null;
+        finalVideoFile = trimmedVideo;
+        wasTrimmed = true;
+      }
+
+      final shouldCompress = !wasTrimmed;
+      if (shouldCompress) {
+        finalVideoFile = await _compressVideo(finalVideoFile);
+      }
+
+      final finalInfo = await VideoCompress.getMediaInfo(finalVideoFile.path);
+      final finalDurationMs = (finalInfo.duration ?? 0).round();
+      if (finalDurationMs >
+          _maxVideoDurationMs + _processedDurationToleranceMs) {
         if (context.mounted) {
           AppSnackBar.error(
             context,
-            'Vídeo muito longo! Máximo de $maxVideoDurationSeconds segundos.',
+            'Nao foi possivel ajustar o video para 1 minuto. Tente novamente.',
           );
         }
         return null;
       }
 
-      // Compress video to 480p for smaller file size
-      final compressedVideo = await VideoCompress.compressVideo(
-        picked.path,
-        quality: VideoQuality.Res640x480Quality,
-        deleteOrigin: false,
-        includeAudio: true,
-      );
+      try {
+        await UploadValidator.validateVideo(finalVideoFile);
+      } on UploadValidationException catch (e) {
+        if (context.mounted) {
+          AppSnackBar.error(context, e.message);
+        }
+        return null;
+      }
 
-      if (compressedVideo?.file == null) return null;
-
-      // Generate thumbnail
       final thumbnail = await VideoCompress.getFileThumbnail(
-        picked.path,
+        finalVideoFile.path,
         quality: 75,
         position: 0,
       );
-
-      return (compressedVideo!.file!, thumbnail);
-    } catch (e) {
-      // video_compress can crash on low-end devices — show friendly error
+      return (finalVideoFile, thumbnail);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Video processing failed path=${picked.path}',
+        error,
+        stackTrace,
+      );
       if (context.mounted) {
-        AppSnackBar.error(
-          context,
-          'Erro ao processar vídeo. Tente um vídeo menor.',
-        );
+        AppSnackBar.error(context, 'Erro ao processar video. Tente novamente.');
       }
       return null;
     }
+  }
+
+  Future<File?> _openVideoTrimmer(
+    BuildContext context,
+    String videoPath,
+  ) async {
+    return Navigator.of(context).push<File>(
+      MaterialPageRoute(
+        builder: (_) => VideoTrimScreen(
+          videoPath: videoPath,
+          maxDurationSeconds: maxVideoDurationSeconds,
+        ),
+      ),
+    );
+  }
+
+  Future<File> _compressVideo(File sourceFile) async {
+    final compressedVideo = await VideoCompress.compressVideo(
+      sourceFile.path,
+      quality: VideoQuality.Res640x480Quality,
+      deleteOrigin: false,
+      includeAudio: true,
+    );
+
+    return compressedVideo?.file ?? sourceFile;
   }
 
   /// Dispose video compress resources.

@@ -88,6 +88,7 @@ dependencies:
   firebase_crashlytics: ^5.0.7
   firebase_remote_config: ^6.1.4
   connectivity_plus: ^7.0.0
+  flutter_native_video_trimmer: ^1.1.9
 
 dev_dependencies:
   flutter_test:
@@ -120,6 +121,13 @@ dev_dependencies:
   mocktail: ^1.0.4
   firebase_core_platform_interface: any
   cloud_functions_platform_interface: any
+
+dependency_overrides:
+  video_compress:
+    path: third_party/video_compress
+  flutter_native_video_trimmer:
+    path: third_party/flutter_native_video_trimmer
+
 flutter:
   uses-material-design: true
   generate: true  # Enable localization code generation
@@ -143,9 +151,9 @@ flutter_launcher_icons:
 flutter_native_splash:
   # Keep splash values aligned with AppColors.background and AppAssets.
   color: "#0A0A0A"
-  image: "assets/images/logos_png/logo_vertical.png" # AppAssets.logoVerticalPng
+  image: "assets/images/logos_png/logo_vertical_splash_small.png"
   android_12:
-    image: "assets/images/app_icon/playstore.png" # AppAssets.appIconPlaystorePng
+    image: "assets/images/logos_png/logo_vertical_splash_small.png"
     icon_background_color: "#0A0A0A"
   # Adicionado para evitar que a logo fique gigante em telas grandes
   ios_content_mode: scaleAspectFit

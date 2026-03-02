@@ -12,6 +12,7 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/paginated_search_response.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
@@ -23,7 +24,6 @@ import '../../helpers/pump_app.dart';
   MockSpec<AuthRemoteDataSource>(),
   MockSpec<SearchRepository>(),
 ])
-import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'search_flow_test.mocks.dart';
 
 /// Testes de integração para o fluxo de busca

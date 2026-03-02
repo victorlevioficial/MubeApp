@@ -11,11 +11,12 @@ import '../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../domain/media_item.dart';
 
-/// Reorderable gallery grid with separate sections for Photos and Videos.
 class GalleryGrid extends StatefulWidget {
   final List<MediaItem> items;
   final int maxPhotos;
   final int maxVideos;
+  final bool isPickingPhoto;
+  final bool isPickingVideo;
   final VoidCallback onAddPhoto;
   final VoidCallback onAddVideo;
   final ValueChanged<int> onRemove;
@@ -29,6 +30,8 @@ class GalleryGrid extends StatefulWidget {
     required this.items,
     this.maxPhotos = 6,
     this.maxVideos = 3,
+    this.isPickingPhoto = false,
+    this.isPickingVideo = false,
     required this.onAddPhoto,
     required this.onAddVideo,
     required this.onRemove,
@@ -43,38 +46,76 @@ class GalleryGrid extends StatefulWidget {
 }
 
 class _GalleryGridState extends State<GalleryGrid> {
-  // Filters for separate sections
   List<MediaItem> get _photos =>
-      widget.items.where((i) => i.type == MediaType.photo).toList();
+      widget.items.where((item) => item.type == MediaType.photo).toList();
   List<MediaItem> get _videos =>
-      widget.items.where((i) => i.type == MediaType.video).toList();
+      widget.items.where((item) => item.type == MediaType.video).toList();
+  int? _activePhotoSlotIndex;
+  int? _activeVideoSlotIndex;
+
+  @override
+  void didUpdateWidget(covariant GalleryGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!widget.isPickingPhoto) {
+      _activePhotoSlotIndex = null;
+    }
+    if (!widget.isPickingVideo) {
+      _activeVideoSlotIndex = null;
+    }
+  }
+
+  void _handlePhotoSlotTap(int slotIndex) {
+    if (widget.isUploading || widget.isPickingPhoto || widget.isPickingVideo) {
+      return;
+    }
+
+    setState(() {
+      _activePhotoSlotIndex = slotIndex;
+    });
+    widget.onAddPhoto();
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted || widget.isPickingPhoto) return;
+      setState(() {
+        _activePhotoSlotIndex = null;
+      });
+    });
+  }
+
+  void _handleVideoSlotTap(int slotIndex) {
+    if (widget.isUploading || widget.isPickingPhoto || widget.isPickingVideo) {
+      return;
+    }
+
+    setState(() {
+      _activeVideoSlotIndex = slotIndex;
+    });
+    widget.onAddVideo();
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted || widget.isPickingVideo) return;
+      setState(() {
+        _activeVideoSlotIndex = null;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    final photos = _photos;
+    final videos = _videos;
+
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
-          Text('Portfólio de Mídia', style: AppTypography.headlineSmall),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            'Adicione fotos e vídeos do seu trabalho',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
           if (widget.isUploading) ...[
-            const SizedBox(height: AppSpacing.s16),
             _GalleryUploadBanner(
               progress: widget.uploadProgress,
               status: widget.uploadStatus,
             ),
+            const SizedBox(height: AppSpacing.s20),
           ],
-          const SizedBox(height: AppSpacing.s32),
-
-          // --- Photos Section ---
           Text('Galeria de Fotos', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s4),
           Text(
@@ -84,65 +125,53 @@ class _GalleryGridState extends State<GalleryGrid> {
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
-
-          _buildPhotosGrid(),
-
+          _buildPhotosGrid(photos),
           const SizedBox(height: AppSpacing.s32),
-
-          // --- Videos Section ---
-          Text('Vídeos', style: AppTypography.titleMedium),
+          Text('Videos', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s4),
           Text(
-            'Adicione até ${widget.maxVideos} vídeos', // Removed "(YouTube ou upload)"
+            'Adicione até ${widget.maxVideos} videos',
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
-
-          _buildVideosList(),
-
-          const SizedBox(height: AppSpacing.s48),
+          _buildVideosGrid(videos),
+          const SizedBox(height: AppSpacing.s24),
         ],
       ),
     );
   }
 
-  Widget _buildPhotosGrid() {
-    final photos = _photos;
+  Widget _buildPhotosGrid(List<MediaItem> photos) {
     final emptyCount = widget.maxPhotos - photos.length;
 
     return ReorderableBuilder<MediaItem>(
       onReorder: (reorderFunc) {
         if (widget.isUploading) return;
         final reordered = reorderFunc(List<MediaItem>.from(photos));
-        for (int i = 0; i < photos.length; i++) {
+        for (var i = 0; i < photos.length; i++) {
           if (i < reordered.length && photos[i].id != reordered[i].id) {
             final movedItem = reordered[i];
-
             final globalOld = widget.items.indexOf(movedItem);
-            // Logic to find new global index based on local change
-            int globalNew;
-            if (i >= photos.length) {
-              globalNew = widget.items.indexOf(photos.last);
-            } else {
-              globalNew = widget.items.indexOf(photos[i]);
-            }
-
+            final globalNew = i >= photos.length
+                ? widget.items.indexOf(photos.last)
+                : widget.items.indexOf(photos[i]);
             widget.onReorder(globalOld, globalNew);
             break;
           }
         }
       },
       builder: (children) {
-        // Append empty slots to the grid
         final allChildren = [...children];
-        for (int i = 0; i < emptyCount; i++) {
+        for (var i = 0; i < emptyCount; i++) {
           allChildren.add(
             _EmptySlot(
               key: ValueKey('empty_photo_$i'),
               type: MediaType.photo,
-              onTap: widget.isUploading ? () {} : widget.onAddPhoto,
+              isLoading:
+                  widget.isPickingPhoto && _activePhotoSlotIndex == i,
+              onTap: () => _handlePhotoSlotTap(i),
             ),
           );
         }
@@ -157,7 +186,7 @@ class _GalleryGridState extends State<GalleryGrid> {
         );
       },
       children: [
-        for (var item in photos)
+        for (final item in photos)
           _FilledSlot(
             key: ValueKey(item.id),
             item: item,
@@ -169,26 +198,20 @@ class _GalleryGridState extends State<GalleryGrid> {
     );
   }
 
-  Widget _buildVideosList() {
-    final videos = _videos;
+  Widget _buildVideosGrid(List<MediaItem> videos) {
     final emptyCount = widget.maxVideos - videos.length;
 
     return ReorderableBuilder<MediaItem>(
       onReorder: (reorderFunc) {
         if (widget.isUploading) return;
         final reordered = reorderFunc(List<MediaItem>.from(videos));
-        for (int i = 0; i < videos.length; i++) {
+        for (var i = 0; i < videos.length; i++) {
           if (i < reordered.length && videos[i].id != reordered[i].id) {
             final movedItem = reordered[i];
-
             final globalOld = widget.items.indexOf(movedItem);
-            int globalNew;
-            if (i >= videos.length) {
-              globalNew = widget.items.indexOf(videos.last);
-            } else {
-              globalNew = widget.items.indexOf(videos[i]);
-            }
-
+            final globalNew = i >= videos.length
+                ? widget.items.indexOf(videos.last)
+                : widget.items.indexOf(videos[i]);
             widget.onReorder(globalOld, globalNew);
             break;
           }
@@ -196,12 +219,14 @@ class _GalleryGridState extends State<GalleryGrid> {
       },
       builder: (children) {
         final allChildren = [...children];
-        for (int i = 0; i < emptyCount; i++) {
+        for (var i = 0; i < emptyCount; i++) {
           allChildren.add(
             _EmptySlot(
               key: ValueKey('empty_video_$i'),
               type: MediaType.video,
-              onTap: widget.isUploading ? () {} : widget.onAddVideo,
+              isLoading:
+                  widget.isPickingVideo && _activeVideoSlotIndex == i,
+              onTap: () => _handleVideoSlotTap(i),
             ),
           );
         }
@@ -216,7 +241,7 @@ class _GalleryGridState extends State<GalleryGrid> {
         );
       },
       children: [
-        for (var item in videos)
+        for (final item in videos)
           _VideoCard(
             key: ValueKey(item.id),
             item: item,
@@ -225,6 +250,77 @@ class _GalleryGridState extends State<GalleryGrid> {
                 : () => widget.onRemove(widget.items.indexOf(item)),
           ),
       ],
+    );
+  }
+}
+
+class _EmptySlot extends StatelessWidget {
+  final MediaType type;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  const _EmptySlot({
+    super.key,
+    required this.type,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AbsorbPointer(
+      absorbing: isLoading,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all12,
+            border: Border.all(
+              color: isLoading ? AppColors.primary : AppColors.border,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isLoading
+                      ? AppColors.primary.withValues(alpha: 0.12)
+                      : AppColors.surfaceHighlight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Icon(
+                        type == MediaType.video
+                            ? Icons.videocam
+                            : Icons.add_a_photo,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+              ),
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                isLoading ? 'Carregando...' : 'Adicionar',
+                style: AppTypography.labelSmall.copyWith(
+                  color: isLoading
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -240,6 +336,7 @@ class _GalleryUploadBanner extends StatelessWidget {
     final normalized = progress.clamp(0.0, 1.0);
     final showDeterminate = normalized > 0.0 && normalized < 1.0;
     final percent = '${(normalized * 100).round()}%';
+    final isDeleting = status.toLowerCase().contains('removendo');
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s12),
@@ -257,14 +354,14 @@ class _GalleryUploadBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s8),
           LinearProgressIndicator(
-            value: showDeterminate ? normalized : null,
+            value: isDeleting ? null : (showDeterminate ? normalized : null),
             minHeight: 5,
             borderRadius: AppRadius.pill,
             backgroundColor: AppColors.surfaceHighlight.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.s4),
           Text(
-            showDeterminate ? percent : 'Processando...',
+            isDeleting ? 'Processando...' : (showDeterminate ? percent : 'Processando...'),
             style: AppTypography.labelSmall.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -283,12 +380,13 @@ class _FilledSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isProcessing = item.isProcessing;
+
     return Stack(
       fit: StackFit.expand,
       children: [
         ClipRRect(borderRadius: AppRadius.all12, child: _buildImageContent()),
-        // Upload progress overlay
-        if (item.isUploading)
+        if (isProcessing)
           ClipRRect(
             borderRadius: AppRadius.all12,
             child: Container(
@@ -298,7 +396,9 @@ class _FilledSlot extends StatelessWidget {
                   width: 36,
                   height: 36,
                   child: CircularProgressIndicator(
-                    value: item.uploadProgress > 0 ? item.uploadProgress : null,
+                    value: item.isUploading && item.uploadProgress > 0
+                        ? item.uploadProgress
+                        : null,
                     strokeWidth: 3,
                     color: AppColors.primary,
                   ),
@@ -306,8 +406,7 @@ class _FilledSlot extends StatelessWidget {
               ),
             ),
           ),
-        // Remove button (hidden during upload)
-        if (!item.isUploading)
+        if (!isProcessing)
           Positioned(
             top: 4,
             right: 4,
@@ -333,7 +432,6 @@ class _FilledSlot extends StatelessWidget {
   }
 
   Widget _buildImageContent() {
-    // Optimistic: show local file
     if (item.hasLocalPreview) {
       return Image.file(
         File(item.localPath!),
@@ -345,7 +443,6 @@ class _FilledSlot extends StatelessWidget {
       );
     }
 
-    // Remote URL
     return CachedNetworkImage(
       imageUrl: item.url,
       fit: BoxFit.cover,
@@ -369,6 +466,8 @@ class _VideoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isProcessing = item.isProcessing;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -376,8 +475,7 @@ class _VideoCard extends StatelessWidget {
           borderRadius: AppRadius.all12,
           child: _buildThumbnailContent(),
         ),
-        // Upload progress overlay
-        if (item.isUploading)
+        if (isProcessing)
           ClipRRect(
             borderRadius: AppRadius.all12,
             child: Container(
@@ -389,7 +487,7 @@ class _VideoCard extends StatelessWidget {
                     width: 36,
                     height: 36,
                     child: CircularProgressIndicator(
-                      value: item.uploadProgress > 0
+                      value: item.isUploading && item.uploadProgress > 0
                           ? item.uploadProgress
                           : null,
                       strokeWidth: 3,
@@ -400,8 +498,7 @@ class _VideoCard extends StatelessWidget {
               ),
             ),
           )
-        else ...[
-          // Play Icon Overlay (only when not uploading)
+        else
           Center(
             child: Container(
               padding: const EdgeInsets.all(8),
@@ -416,9 +513,7 @@ class _VideoCard extends StatelessWidget {
               ),
             ),
           ),
-        ],
-        // Remove Button (hidden during upload)
-        if (!item.isUploading)
+        if (!isProcessing)
           Positioned(
             top: 4,
             right: 4,
@@ -444,7 +539,6 @@ class _VideoCard extends StatelessWidget {
   }
 
   Widget _buildThumbnailContent() {
-    // Optimistic: show local thumbnail file
     if (item.localThumbnailPath != null &&
         item.localThumbnailPath!.isNotEmpty) {
       return Image.file(
@@ -457,7 +551,6 @@ class _VideoCard extends StatelessWidget {
       );
     }
 
-    // Remote thumbnail URL
     if (item.thumbnailUrl != null) {
       return CachedNetworkImage(
         imageUrl: item.thumbnailUrl!,
@@ -470,56 +563,10 @@ class _VideoCard extends StatelessWidget {
       );
     }
 
-    // Fallback
     return Container(
       color: AppColors.surface,
       child: const Center(
         child: Icon(Icons.videocam, color: AppColors.textSecondary),
-      ),
-    );
-  }
-}
-
-class _EmptySlot extends StatelessWidget {
-  final MediaType type;
-  final VoidCallback onTap;
-
-  const _EmptySlot({super.key, required this.type, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadius.all12,
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHighlight,
-                borderRadius: BorderRadius.circular(8), // Always rounded square
-              ),
-              child: Icon(
-                type == MediaType.video ? Icons.videocam : Icons.add_a_photo,
-                color: AppColors.textSecondary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s8),
-            Text(
-              'Adicionar',
-              style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

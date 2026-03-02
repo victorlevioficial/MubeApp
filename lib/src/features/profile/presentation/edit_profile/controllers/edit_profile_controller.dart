@@ -232,30 +232,76 @@ class EditProfileController extends _$EditProfileController {
     state = state.copyWith(galleryItems: newGallery);
   }
 
+  void _setItemDeleting(String mediaId, bool isDeleting) {
+    final newGallery = state.galleryItems.map((item) {
+      if (item.id == mediaId) {
+        return item.copyWith(isDeleting: isDeleting);
+      }
+      return item;
+    }).toList();
+    state = state.copyWith(galleryItems: newGallery);
+  }
+
   Future<void> addPhoto({required File file, required String userId}) async {
+    await _addPhotoInternal(file: file, userId: userId);
+  }
+
+  Future<void> addPhotosBatch({
+    required List<File> files,
+    required String userId,
+  }) async {
+    if (files.isEmpty) return;
+
+    final totalCount = files.length;
+    for (var i = 0; i < totalCount; i++) {
+      await _addPhotoInternal(
+        file: files[i],
+        userId: userId,
+        batchIndex: i,
+        batchTotal: totalCount,
+      );
+    }
+
+    state = state.copyWith(
+      isUploadingMedia: false,
+      uploadProgress: 0.0,
+      uploadStatus: '',
+    );
+  }
+
+  Future<void> _addPhotoInternal({
+    required File file,
+    required String userId,
+    int batchIndex = 0,
+    int batchTotal = 1,
+  }) async {
     if (state.galleryItems.length >= _maxTotal ||
         state.photoCount >= _maxPhotos) {
       throw 'Limite de fotos atingido';
     }
 
     final mediaId = const Uuid().v4();
+    final isBatch = batchTotal > 1;
+    final uploadStatus = isBatch
+        ? '$batchTotal fotos selecionadas. Enviando ${batchIndex + 1} de $batchTotal...'
+        : 'Enviando foto...';
 
     // Optimistic: add placeholder immediately with local file preview
     final placeholder = MediaItem(
       id: mediaId,
       url: '',
       type: MediaType.photo,
-      order: state.galleryItems.length,
+      order: 0,
       localPath: file.path,
       isUploading: true,
       uploadProgress: 0.0,
     );
 
     state = state.copyWith(
-      galleryItems: [...state.galleryItems, placeholder],
+      galleryItems: [placeholder, ...state.galleryItems],
       isUploadingMedia: true,
-      uploadProgress: 0.0,
-      uploadStatus: 'Enviando foto...',
+      uploadProgress: isBatch ? batchIndex / batchTotal : 0.0,
+      uploadStatus: uploadStatus,
       hasChanges: true,
     );
 
@@ -268,9 +314,14 @@ class EditProfileController extends _$EditProfileController {
         mediaId: mediaId,
         isVideo: false,
         onProgress: (progress) {
-          // Update progress on the specific placeholder item
           _updateItemProgress(mediaId, progress);
-          state = state.copyWith(uploadProgress: progress);
+          final totalProgress = isBatch
+              ? (batchIndex + progress) / batchTotal
+              : progress;
+          state = state.copyWith(
+            uploadProgress: totalProgress,
+            uploadStatus: uploadStatus,
+          );
         },
       );
 
@@ -288,8 +339,13 @@ class EditProfileController extends _$EditProfileController {
 
       state = state.copyWith(
         galleryItems: newGallery,
-        isUploadingMedia: false,
-        uploadProgress: 0.0,
+        isUploadingMedia: isBatch,
+        uploadProgress: isBatch ? (batchIndex + 1) / batchTotal : 0.0,
+        uploadStatus: isBatch
+            ? (batchIndex + 1 == batchTotal
+                  ? '$batchTotal fotos enviadas.'
+                  : '$batchTotal fotos selecionadas. Preparando ${batchIndex + 2} de $batchTotal...')
+            : '',
       );
 
       ref.invalidate(publicProfileControllerProvider(userId));
@@ -302,6 +358,7 @@ class EditProfileController extends _$EditProfileController {
         galleryItems: newGallery,
         isUploadingMedia: false,
         uploadProgress: 0.0,
+        uploadStatus: '',
       );
       rethrow;
     }
@@ -324,7 +381,7 @@ class EditProfileController extends _$EditProfileController {
       id: mediaId,
       url: '',
       type: MediaType.video,
-      order: state.galleryItems.length,
+      order: 0,
       localPath: videoFile.path,
       localThumbnailPath: thumbnailFile.path,
       isUploading: true,
@@ -332,7 +389,7 @@ class EditProfileController extends _$EditProfileController {
     );
 
     state = state.copyWith(
-      galleryItems: [...state.galleryItems, placeholder],
+      galleryItems: [placeholder, ...state.galleryItems],
       isUploadingMedia: true,
       uploadProgress: 0.0,
       uploadStatus: 'Enviando vídeo...',
@@ -341,28 +398,42 @@ class EditProfileController extends _$EditProfileController {
 
     try {
       final storage = ref.read(storageRepositoryProvider);
+      var videoProgress = 0.0;
+      var thumbnailProgress = 0.0;
 
-      // Upload video
-      final mediaUrls = await storage.uploadGalleryMediaWithSizes(
+      void updateCombinedProgress() {
+        final totalProgress = (videoProgress * 0.9) + (thumbnailProgress * 0.1);
+        _updateItemProgress(mediaId, totalProgress);
+        state = state.copyWith(uploadProgress: totalProgress);
+      }
+
+      final videoFuture = storage.uploadGalleryMediaWithSizes(
         userId: userId,
         file: videoFile,
         mediaId: mediaId,
         isVideo: true,
         onProgress: (progress) {
-          final totalProgress = progress * 0.9;
-          _updateItemProgress(mediaId, totalProgress);
-          state = state.copyWith(uploadProgress: totalProgress);
+          videoProgress = progress;
+          updateCombinedProgress();
         },
       );
 
-      state = state.copyWith(uploadStatus: 'Enviando thumbnail...');
-
-      // Upload thumbnail
-      final thumbUrl = await storage.uploadVideoThumbnail(
+      final thumbnailFuture = storage.uploadVideoThumbnail(
         userId: userId,
         mediaId: mediaId,
         thumbnail: thumbnailFile,
+        onProgress: (progress) {
+          thumbnailProgress = progress;
+          if (videoProgress >= 1.0) {
+            state = state.copyWith(uploadStatus: 'Finalizando upload...');
+          }
+          updateCombinedProgress();
+        },
       );
+
+      final results = await Future.wait<Object>([videoFuture, thumbnailFuture]);
+      final mediaUrls = results[0] as GalleryMediaUrls;
+      final thumbUrl = results[1] as String;
 
       // Replace placeholder with final item
       final finalItem = MediaItem(
@@ -400,6 +471,16 @@ class EditProfileController extends _$EditProfileController {
 
   Future<void> removeMedia(int index, String userId) async {
     final item = state.galleryItems[index];
+    if (item.isProcessing) return;
+
+    _setItemDeleting(item.id, true);
+    state = state.copyWith(
+      isUploadingMedia: true,
+      uploadProgress: 0.0,
+      uploadStatus: item.type == MediaType.video
+          ? 'Removendo video...'
+          : 'Removendo foto...',
+    );
 
     try {
       await ref
@@ -409,12 +490,24 @@ class EditProfileController extends _$EditProfileController {
             mediaId: item.id,
             isVideo: item.type == MediaType.video,
           );
-    } catch (_) {
-      // Ignore deletion errors or log them
+    } catch (e) {
+      _setItemDeleting(item.id, false);
+      state = state.copyWith(
+        isUploadingMedia: false,
+        uploadProgress: 0.0,
+        uploadStatus: '',
+      );
+      rethrow;
     }
 
     final newGallery = [...state.galleryItems]..removeAt(index);
-    state = state.copyWith(galleryItems: newGallery, hasChanges: true);
+    state = state.copyWith(
+      galleryItems: newGallery,
+      hasChanges: true,
+      isUploadingMedia: false,
+      uploadProgress: 0.0,
+      uploadStatus: '',
+    );
   }
 
   void reorderMedia(int oldIndex, int newIndex) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -31,6 +33,33 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _precacheAround(_currentIndex);
+    });
+  }
+
+  void _precacheAround(int centerIndex) {
+    for (var offset = -1; offset <= 1; offset++) {
+      final index = centerIndex + offset;
+      if (index < 0 || index >= widget.items.length) continue;
+      _precacheItem(widget.items[index]);
+    }
+  }
+
+  void _precacheItem(MediaItem item) {
+    final url = item.type == MediaType.video ? item.thumbnailUrl : item.url;
+    if (url == null || url.isEmpty || !mounted) return;
+
+    unawaited(
+      precacheImage(
+        CachedNetworkImageProvider(
+          url,
+          cacheManager: ImageCacheConfig.optimizedCacheManager,
+        ),
+        context,
+      ),
+    );
   }
 
   @override
@@ -44,6 +73,7 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
             setState(() {
               _currentIndex = index;
             });
+            _precacheAround(index);
           },
           itemBuilder: (context, index) {
             final item = widget.items[index];
@@ -97,7 +127,10 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
         );
       }
       // Use GalleryVideoPlayer for network videos
-      return GalleryVideoPlayer(videoUrl: item.url);
+      return GalleryVideoPlayer(
+        videoUrl: item.url,
+        thumbnailUrl: item.thumbnailUrl,
+      );
     } else {
       return InteractiveViewer(
         child: Center(

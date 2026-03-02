@@ -12,8 +12,13 @@ import '../../../../utils/app_logger.dart';
 /// Professional video player widget with auto-hide controls
 class GalleryVideoPlayer extends StatefulWidget {
   final String videoUrl;
+  final String? thumbnailUrl;
 
-  const GalleryVideoPlayer({super.key, required this.videoUrl});
+  const GalleryVideoPlayer({
+    super.key,
+    required this.videoUrl,
+    this.thumbnailUrl,
+  });
 
   @override
   State<GalleryVideoPlayer> createState() => _GalleryVideoPlayerState();
@@ -24,17 +29,24 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
   bool _isInitialized = false;
   bool _hasError = false;
   bool _showControls = true;
+  double? _thumbnailAspectRatio;
   Timer? _hideControlsTimer;
 
   @override
   void initState() {
     super.initState();
+    _resolveThumbnailAspectRatio();
     _initializePlayer();
   }
 
   @override
   void didUpdateWidget(covariant GalleryVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.thumbnailUrl != widget.thumbnailUrl) {
+      _thumbnailAspectRatio = null;
+      _resolveThumbnailAspectRatio();
+    }
+
     if (oldWidget.videoUrl != widget.videoUrl) {
       _hideControlsTimer?.cancel();
       _disposeController();
@@ -60,6 +72,78 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     if (!fallbackInitialized && mounted) {
       setState(() => _hasError = true);
     }
+  }
+
+  Future<void> _resolveThumbnailAspectRatio() async {
+    final thumbnailUrl = widget.thumbnailUrl;
+    if (thumbnailUrl == null || thumbnailUrl.isEmpty) return;
+
+    final completer = Completer<Size>();
+    final provider = NetworkImage(thumbnailUrl);
+    final stream = provider.resolve(const ImageConfiguration());
+
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (imageInfo, _) {
+        if (!completer.isCompleted) {
+          completer.complete(
+            Size(
+              imageInfo.image.width.toDouble(),
+              imageInfo.image.height.toDouble(),
+            ),
+          );
+        }
+      },
+      onError: (Object error, StackTrace? stackTrace) {
+        if (!completer.isCompleted) {
+          completer.completeError(error, stackTrace);
+        }
+      },
+    );
+
+    stream.addListener(listener);
+    try {
+      final size = await completer.future.timeout(const Duration(seconds: 3));
+      if (!mounted || size.height <= 0) return;
+
+      final aspectRatio = size.width / size.height;
+      if (!aspectRatio.isFinite || aspectRatio <= 0) return;
+
+      setState(() {
+        _thumbnailAspectRatio = aspectRatio;
+      });
+    } catch (_) {
+      // Best effort only; player fallback usa aspect ratio do video.
+    } finally {
+      stream.removeListener(listener);
+    }
+  }
+
+  double _resolveDisplayAspectRatio(double rawVideoAspectRatio) {
+    final videoAspectRatio =
+        rawVideoAspectRatio.isFinite && rawVideoAspectRatio > 0
+        ? rawVideoAspectRatio
+        : 16 / 9;
+
+    final thumbnailAspectRatio = _thumbnailAspectRatio;
+    if (thumbnailAspectRatio == null ||
+        !thumbnailAspectRatio.isFinite ||
+        thumbnailAspectRatio <= 0) {
+      return videoAspectRatio;
+    }
+
+    final videoLandscape = videoAspectRatio >= 1;
+    final thumbnailLandscape = thumbnailAspectRatio >= 1;
+    final largest = videoAspectRatio > thumbnailAspectRatio
+        ? videoAspectRatio
+        : thumbnailAspectRatio;
+    final delta = (videoAspectRatio - thumbnailAspectRatio).abs() / largest;
+
+    if (videoLandscape != thumbnailLandscape || delta >= 0.55) {
+      return thumbnailAspectRatio;
+    }
+
+    return videoAspectRatio;
   }
 
   Future<bool> _tryInitializeController({VideoFormat? formatHint}) async {
@@ -191,6 +275,9 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
         .toDouble()
         .clamp(0.0, maxSlider)
         .toDouble();
+    final displayAspectRatio = _resolveDisplayAspectRatio(
+      controller.value.aspectRatio,
+    );
 
     return GestureDetector(
       onTap: _showControlsWithTimer,
@@ -198,7 +285,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
         color: AppColors.background,
         child: Center(
           child: AspectRatio(
-            aspectRatio: controller.value.aspectRatio,
+            aspectRatio: displayAspectRatio,
             child: Stack(
               alignment: Alignment.center,
               children: [

@@ -338,11 +338,13 @@ class StorageRepository {
     required File file,
     required String path,
     required String contentType,
+    void Function(double progress)? onProgress,
   }) async {
     return _uploadSingleImageWithProgress(
       file: file,
       path: path,
       contentType: contentType,
+      onProgress: onProgress,
     );
   }
 
@@ -462,6 +464,7 @@ class StorageRepository {
     required String userId,
     required String mediaId,
     required File thumbnail,
+    void Function(double progress)? onProgress,
   }) async {
     // Validar thumbnail antes do upload
     await UploadValidator.validateImage(thumbnail);
@@ -475,6 +478,7 @@ class StorageRepository {
       file: compressedThumbnail,
       path: 'gallery_thumbnails/$userId/$mediaId.webp',
       contentType: 'image/webp',
+      onProgress: onProgress,
     );
   }
 

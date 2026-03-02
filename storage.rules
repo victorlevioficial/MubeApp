@@ -34,7 +34,7 @@ service firebase.storage {
     }
 
     function isValidVideoSize() {
-      return request.resource.size < 50 * 1024 * 1024; // 50MB
+      return request.resource.size <= 100 * 1024 * 1024; // 100MB
     }
 
     // ========================================

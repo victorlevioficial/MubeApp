@@ -30,6 +30,9 @@ class MediaItem {
   /// Whether this item is currently being uploaded.
   final bool isUploading;
 
+  /// Whether this item is currently being deleted.
+  final bool isDeleting;
+
   /// Upload progress (0.0 to 1.0) for this individual item.
   final double uploadProgress;
 
@@ -42,11 +45,13 @@ class MediaItem {
     this.localPath,
     this.localThumbnailPath,
     this.isUploading = false,
+    this.isDeleting = false,
     this.uploadProgress = 0.0,
   });
 
   /// Whether this item has a local preview available.
   bool get hasLocalPreview => localPath != null && localPath!.isNotEmpty;
+  bool get isProcessing => isUploading || isDeleting;
 
   MediaItem copyWith({
     String? id,
@@ -57,6 +62,7 @@ class MediaItem {
     String? localPath,
     String? localThumbnailPath,
     bool? isUploading,
+    bool? isDeleting,
     double? uploadProgress,
   }) {
     return MediaItem(
@@ -68,6 +74,7 @@ class MediaItem {
       localPath: localPath ?? this.localPath,
       localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,
       isUploading: isUploading ?? this.isUploading,
+      isDeleting: isDeleting ?? this.isDeleting,
       uploadProgress: uploadProgress ?? this.uploadProgress,
     );
   }

@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../design_system/components/buttons/app_button.dart';
 import '../../../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../design_system/foundations/tokens/app_spacing.dart';
-import '../../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../auth/domain/app_user.dart';
 import '../../services/media_picker_service.dart';
 import '../controllers/edit_profile_controller.dart';
@@ -39,6 +35,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       editProfileControllerProvider(widget.user.uid).notifier,
     );
     final state = ref.read(editProfileControllerProvider(widget.user.uid));
+    final remainingSlots = 6 - state.photoCount;
 
     if (state.isUploadingMedia || _isPickingPhoto || _isPickingVideo) return;
 
@@ -49,18 +46,6 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       return;
     }
 
-    // Show source picker: Camera or Gallery
-    final source = await MediaPickerService.showMediaSourcePicker(
-      context,
-      title: 'Adicionar Foto',
-      cameraIcon: Icons.camera_alt_outlined,
-      cameraLabel: 'Tirar Foto',
-      galleryIcon: Icons.photo_library_outlined,
-      galleryLabel: 'Escolher da Galeria',
-    );
-
-    if (source == null || !mounted) return;
-
     try {
       if (mounted) {
         setState(() {
@@ -68,14 +53,41 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         });
       }
 
-      final file = await _mediaPickerService.pickAndCropPhoto(
+      final source = await MediaPickerService.showMediaSourcePicker(
         context,
-        lockAspectRatio: false,
+        title: 'Adicionar Foto',
+        cameraIcon: Icons.camera_alt_outlined,
+        cameraLabel: 'Tirar Foto',
+        galleryIcon: Icons.photo_library_outlined,
+        galleryLabel: 'Escolher da Galeria',
+      );
+
+      if (source == null || !mounted) return;
+
+      final selectedFiles = await _mediaPickerService.pickPhotos(
         source: source,
       );
-      if (file == null || !mounted) return;
+      if (selectedFiles == null || selectedFiles.isEmpty || !mounted) return;
 
-      await controller.addPhoto(file: file, userId: widget.user.uid);
+      final filesToUpload = selectedFiles.take(remainingSlots).toList();
+
+      if (selectedFiles.length > remainingSlots && mounted) {
+        AppSnackBar.warning(
+          context,
+          'Voce pode adicionar ate $remainingSlots foto(s) agora. As demais foram ignoradas.',
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _isPickingPhoto = false;
+        });
+      }
+
+      await controller.addPhotosBatch(
+        files: filesToUpload,
+        userId: widget.user.uid,
+      );
     } catch (e) {
       if (mounted) AppSnackBar.error(context, 'Erro ao adicionar foto: $e');
     } finally {
@@ -102,18 +114,6 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       return;
     }
 
-    // Show source picker: Camera (record) or Gallery
-    final source = await MediaPickerService.showMediaSourcePicker(
-      context,
-      title: 'Adicionar Vídeo',
-      cameraIcon: Icons.videocam_outlined,
-      cameraLabel: 'Gravar Vídeo (máx 30s)',
-      galleryIcon: Icons.video_library_outlined,
-      galleryLabel: 'Escolher da Galeria',
-    );
-
-    if (source == null || !mounted) return;
-
     try {
       if (mounted) {
         setState(() {
@@ -121,13 +121,15 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         });
       }
 
-      final result = await _mediaPickerService.pickAndProcessVideo(
-        context,
-        source: source,
-      );
+      final result = await _mediaPickerService.pickAndProcessVideo(context);
       if (result == null || !mounted) return;
 
       final (videoFile, thumbnailFile) = result;
+      if (mounted) {
+        setState(() {
+          _isPickingVideo = false;
+        });
+      }
       await controller.addVideo(
         videoFile: videoFile,
         thumbnailFile: thumbnailFile,
@@ -145,9 +147,15 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
   }
 
   Future<void> _handleMediaRemove(int index) async {
-    await ref
-        .read(editProfileControllerProvider(widget.user.uid).notifier)
-        .removeMedia(index, widget.user.uid);
+    try {
+      await ref
+          .read(editProfileControllerProvider(widget.user.uid).notifier)
+          .removeMedia(index, widget.user.uid);
+    } catch (e) {
+      if (mounted) {
+        AppSnackBar.error(context, 'Erro ao remover midia: $e');
+      }
+    }
   }
 
   void _handleReorder(int oldIndex, int newIndex) {
@@ -161,232 +169,20 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     final state = ref.watch(editProfileControllerProvider(widget.user.uid));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s16,
-        vertical: AppSpacing.s24,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Midia e Portfolio',
-            style: AppTypography.headlineLarge.copyWith(fontSize: 28),
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            'Adicione fotos, videos e trabalhos da sua carreira',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s32),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.s24),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.all16,
-              border: Border.all(color: AppColors.border, width: 1),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.cloud_upload_outlined,
-                      size: 32,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s16),
-                Text(
-                  'Adicionar Midia',
-                  style: AppTypography.titleLarge,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.s8),
-                Text(
-                  'Selecione arquivos para atualizar seu portfolio',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.s24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton.outline(
-                        text: 'Foto',
-                        onPressed:
-                            state.isUploadingMedia ||
-                                _isPickingPhoto ||
-                                _isPickingVideo
-                            ? null
-                            : _handlePhotoUpload,
-                        isLoading:
-                            _isPickingPhoto ||
-                            (state.isUploadingMedia &&
-                                state.uploadStatus.toLowerCase().contains(
-                                  'foto',
-                                )),
-                        icon: const Icon(Icons.photo_outlined, size: 18),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s12),
-                    Expanded(
-                      child: AppButton.outline(
-                        text: 'Video',
-                        onPressed:
-                            state.isUploadingMedia ||
-                                _isPickingPhoto ||
-                                _isPickingVideo
-                            ? null
-                            : _handleVideoUpload,
-                        isLoading:
-                            _isPickingVideo ||
-                            (state.isUploadingMedia &&
-                                (state.uploadStatus.toLowerCase().contains(
-                                      'video',
-                                    ) ||
-                                    state.uploadStatus.toLowerCase().contains(
-                                      'vídeo',
-                                    ) ||
-                                    state.uploadStatus.toLowerCase().contains(
-                                      'thumbnail',
-                                    ))),
-                        icon: const Icon(
-                          Icons.video_library_outlined,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (state.isUploadingMedia) ...[
-            const SizedBox(height: AppSpacing.s16),
-            _UploadProgressCard(
-              progress: state.uploadProgress,
-              status: state.uploadStatus,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.s48),
-          if (state.galleryItems.isNotEmpty) ...[
-            Text('Galeria', style: AppTypography.headlineMedium),
-            const SizedBox(height: AppSpacing.s16),
-            GalleryGrid(
-              items: state.galleryItems,
-              maxPhotos: 6,
-              maxVideos: 3,
-              onRemove: _handleMediaRemove,
-              onAddPhoto: _handlePhotoUpload,
-              onAddVideo: _handleVideoUpload,
-              onReorder: _handleReorder,
-              isUploading: state.isUploadingMedia,
-              uploadProgress: state.uploadProgress,
-              uploadStatus: state.uploadStatus,
-            ),
-            const SizedBox(height: AppSpacing.s48),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s24,
-                vertical: AppSpacing.s48,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: AppRadius.all16,
-                border: Border.all(
-                  color: AppColors.border.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 48,
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: AppSpacing.s16),
-                  Text(
-                    'Nenhuma midia adicionada',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.s8),
-                  Text(
-                    'Comece adicionando suas fotos e videos',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _UploadProgressCard extends StatelessWidget {
-  final double progress;
-  final String status;
-
-  const _UploadProgressCard({required this.progress, required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final normalized = progress.clamp(0.0, 1.0);
-    final showDeterminate = normalized > 0.0 && normalized < 1.0;
-    final progressLabel = '${(normalized * 100).round()}%';
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.35),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            status.isNotEmpty ? status : 'Enviando midia...',
-            style: AppTypography.titleMedium,
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          LinearProgressIndicator(
-            value: showDeterminate ? normalized : null,
-            minHeight: 6,
-            borderRadius: AppRadius.pill,
-            backgroundColor: AppColors.surfaceHighlight.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            showDeterminate ? progressLabel : 'Processando arquivo...',
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s24),
+      child: GalleryGrid(
+        items: state.galleryItems,
+        maxPhotos: 6,
+        maxVideos: 3,
+        isPickingPhoto: _isPickingPhoto,
+        isPickingVideo: _isPickingVideo,
+        onRemove: _handleMediaRemove,
+        onAddPhoto: _handlePhotoUpload,
+        onAddVideo: _handleVideoUpload,
+        onReorder: _handleReorder,
+        isUploading: state.isUploadingMedia,
+        uploadProgress: state.uploadProgress,
+        uploadStatus: state.uploadStatus,
       ),
     );
   }

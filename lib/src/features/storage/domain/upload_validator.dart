@@ -14,8 +14,8 @@ class UploadLimits {
   /// Tamanho máximo para fotos: 10MB
   static const int maxPhotoSizeBytes = 10 * 1024 * 1024;
 
-  /// Tamanho máximo para vídeos: 50MB
-  static const int maxVideoSizeBytes = 50 * 1024 * 1024;
+  /// Tamanho máximo para vídeos: 100MB
+  static const int maxVideoSizeBytes = 100 * 1024 * 1024;
 
   /// Extensões de imagem permitidas
   static const List<String> allowedImageExtensions = [
