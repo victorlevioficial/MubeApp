@@ -34,6 +34,7 @@ class FeedMainController {
     required int batchSize,
   }) async {
     if (reset) {
+      runtime.allSortedUsers = [];
       runtime.remoteHasMore = true;
       runtime.geoFetchCompleted = false;
       runtime.lastMainFeedDocument = null;
@@ -147,7 +148,7 @@ class FeedMainController {
         }
 
         if (shouldFetchCursor) {
-          await _fetchMainFeedPage(
+          final cursorError = await _fetchMainFeedPage(
             userId: user.uid,
             filterType: filterType,
             reset: reset,
@@ -155,6 +156,13 @@ class FeedMainController {
             runtime: runtime,
             limit: batchSize,
           );
+
+          if (cursorError != null) {
+            return currentState.copyWithFeed(
+              status: PaginationStatus.error,
+              errorMessage: cursorError,
+            );
+          }
         }
       } else {
         AppLogger.debug(
@@ -213,7 +221,7 @@ class FeedMainController {
     }
   }
 
-  Future<void> _fetchMainFeedPage({
+  Future<String?> _fetchMainFeedPage({
     required String userId,
     required String? filterType,
     required bool reset,
@@ -230,17 +238,23 @@ class FeedMainController {
       startAfter: runtime.lastMainFeedDocument,
     );
 
-    result.fold(
+    return result.fold(
       (failure) {
         AppLogger.error('Feed: Erro ao buscar página', failure);
-        // Mantém o comportamento anterior: marca fim remoto e deixa paginação
-        // local decidir o estado final.
         runtime.remoteHasMore = false;
+
+        if (reset && runtime.allSortedUsers.isEmpty) {
+          final message = failure.message.trim();
+          return message.isNotEmpty ? message : 'Erro ao buscar usuários';
+        }
+
         if (reset) {
           AppLogger.debug(
             'Feed: falha em cursor durante reset, mantendo fallback local',
           );
         }
+
+        return null;
       },
       (response) {
         runtime.lastMainFeedDocument = response.lastDocument;
@@ -260,6 +274,8 @@ class FeedMainController {
         if (newUsers.isNotEmpty) {
           runtime.allSortedUsers.addAll(newUsers);
         }
+
+        return null;
       },
     );
   }
@@ -277,3 +293,4 @@ class FeedMainController {
     }
   }
 }
+

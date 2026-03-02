@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -242,6 +243,19 @@ class EditProfileController extends _$EditProfileController {
     state = state.copyWith(galleryItems: newGallery);
   }
 
+  Future<void> _cleanupManagedTemporaryVideo(File file) async {
+    final fileName = path.basename(file.path);
+    if (!fileName.startsWith('mube_trimmed_')) return;
+
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Temp cleanup should never block the media flow.
+    }
+  }
+
   Future<void> addPhoto({required File file, required String userId}) async {
     await _addPhotoInternal(file: file, userId: userId);
   }
@@ -466,6 +480,8 @@ class EditProfileController extends _$EditProfileController {
         uploadProgress: 0.0,
       );
       rethrow;
+    } finally {
+      await _cleanupManagedTemporaryVideo(videoFile);
     }
   }
 

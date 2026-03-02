@@ -1,17 +1,21 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/mixins/pagination_mixin.dart';
+import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/feed_section.dart';
+import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -91,6 +95,61 @@ void main() {
       expect(state.sectionItems[FeedSectionType.studios], hasLength(1));
     });
 
+    test('loadAllData does not wait for sections before ending skeleton', () async {
+      final slowFeedRepository = _SlowSectionsFeedRepository();
+      final localContainer = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          feedRepositoryProvider.overrideWithValue(slowFeedRepository),
+          favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepository),
+          feedImagePrecacheServiceProvider.overrideWithValue(fakePrecacheService),
+          currentUserProfileProvider.overrideWith(
+            (ref) => fakeAuthRepository.watchUser(''),
+          ),
+          blockedUsersProvider.overrideWith((ref) => Stream.value([])),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final user = TestData.user(uid: 'user-1');
+      fakeAuthRepository.appUser = user;
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+      await waitForUser(localContainer);
+
+      const feedItem = FeedItem(
+        uid: 'item-1',
+        nome: 'Artist 1',
+        nomeArtistico: 'The Artist',
+        foto: 'http://url.com',
+        tipoPerfil: 'profissional',
+        generosMusicais: ['Rock'],
+        skills: ['Guitar'],
+      );
+
+      slowFeedRepository.nearbyUsers = [feedItem];
+      slowFeedRepository.technicians = [feedItem];
+      slowFeedRepository.bands = [feedItem];
+      slowFeedRepository.studios = [feedItem];
+
+      final controller = localContainer.read(feedControllerProvider.notifier);
+      await controller.loadAllData().timeout(const Duration(milliseconds: 700));
+
+      final stateAfterMain = localContainer.read(feedControllerProvider).value!;
+      expect(stateAfterMain.isInitialLoading, false);
+      expect(stateAfterMain.items, hasLength(1));
+      expect(stateAfterMain.sectionItems, isEmpty);
+
+      slowFeedRepository.sectionsCompleter.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final finalState = localContainer.read(feedControllerProvider).value!;
+      expect(finalState.sectionItems[FeedSectionType.technicians], hasLength(1));
+      expect(finalState.sectionItems[FeedSectionType.bands], hasLength(1));
+      expect(finalState.sectionItems[FeedSectionType.studios], hasLength(1));
+    });
+
     test('onFilterChanged updates filter and reloads feed', () async {
       // Setup
       final user = TestData.user(uid: 'user-1');
@@ -165,7 +224,106 @@ void main() {
       final state = container.read(feedControllerProvider);
       expect(state.value?.status, PaginationStatus.error);
     });
+
+    test('loadAllData surfaces cursor failure on initial reset', () async {
+      final cursorFailureRepository = _CursorFailureFeedRepository();
+      final localContainer = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          feedRepositoryProvider.overrideWithValue(cursorFailureRepository),
+          favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepository),
+          feedImagePrecacheServiceProvider.overrideWithValue(fakePrecacheService),
+          currentUserProfileProvider.overrideWith(
+            (ref) => fakeAuthRepository.watchUser(''),
+          ),
+          blockedUsersProvider.overrideWith((ref) => Stream.value([])),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final user = TestData.user(uid: 'user-1').copyWith(location: null);
+      fakeAuthRepository.appUser = user;
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+      await waitForUser(localContainer);
+
+      final controller = localContainer.read(feedControllerProvider.notifier);
+      await controller.loadAllData();
+
+      final state = localContainer.read(feedControllerProvider).value!;
+      expect(state.status, PaginationStatus.error);
+      expect(state.errorMessage, contains('Cursor failed'));
+    });
   });
+}
+
+class _SlowSectionsFeedRepository extends FakeFeedRepository {
+  final Completer<void> sectionsCompleter = Completer<void>();
+
+  Future<void> _waitForSections() async {
+    await sectionsCompleter.future;
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getTechnicians({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+  }) async {
+    await _waitForSections();
+    return super.getTechnicians(
+      currentUserId: currentUserId,
+      excludedIds: excludedIds,
+      userLat: userLat,
+      userLong: userLong,
+      limit: limit,
+    );
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
+    required String currentUserId,
+    required double userLat,
+    required double userLong,
+    String? filterType,
+    String? category,
+    String? excludeCategory,
+    List<String> excludedIds = const [],
+    int? limit,
+    String? userGeohash,
+    double? radiusKm,
+  }) async {
+    await _waitForSections();
+    return super.getAllUsersSortedByDistance(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      filterType: filterType,
+      category: category,
+      excludeCategory: excludeCategory,
+      excludedIds: excludedIds,
+      limit: limit,
+      userGeohash: userGeohash,
+      radiusKm: radiusKm,
+    );
+  }
+}
+
+class _CursorFailureFeedRepository extends FakeFeedRepository {
+  @override
+  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
+    required String currentUserId,
+    String? filterType,
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+    DocumentSnapshot? startAfter,
+  }) async {
+    return const Left(ServerFailure(message: 'Cursor failed'));
+  }
 }
 
 Future<void> waitForUser(ProviderContainer container) async {

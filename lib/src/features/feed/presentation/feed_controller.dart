@@ -21,7 +21,7 @@ export 'feed_state.dart';
 
 part 'feed_controller.g.dart';
 
-/// Constants for feed data fetching
+/// Constants for feed data fetching.
 abstract final class FeedDataConstants {
   static const int sectionLimit = 10;
   static const int mainFeedBatchSize = 20;
@@ -37,8 +37,7 @@ class FeedController extends _$FeedController {
   FeedMainController? _mainController;
   FeaturedProfilesController? _featuredProfilesController;
 
-  /// Atualiza o state sempre injetando os featured mais recentes
-  /// para evitar race condition entre chamadas concorrentes.
+  /// Always inject the latest featured list to avoid race conditions.
   void _emitState(FeedState Function(FeedState current) updater) {
     final current = state.value ?? const FeedState();
     final updated = updater(current);
@@ -70,16 +69,81 @@ class FeedController extends _$FeedController {
     return const FeedState();
   }
 
-  /// Carrega todos os dados do feed (seções + feed principal).
+  /// Initial full load for feed screen.
   Future<void> loadAllData() async {
+    await _loadData(showFullSkeleton: true);
+  }
+
+  Future<void> _loadData({required bool showFullSkeleton}) async {
     _ensureControllers();
 
     final currentState = state.value ?? const FeedState();
-    state = AsyncValue.data(currentState.copyWithFeed(isInitialLoading: true));
-    // Sync de favoritos com pequeno atraso para evitar competir com first paint.
-    unawaited(_loadFavoritesDeferred());
+    state = AsyncValue.data(
+      currentState.copyWithFeed(
+        isInitialLoading: showFullSkeleton,
+        clearError: true,
+      ),
+    );
 
-    // Busca os perfis em destaque do painel admin concorrentemente.
+    // Keep favorite sync away from first paint.
+    unawaited(_loadFavoritesDeferred());
+    _loadFeaturedProfilesInBackground();
+
+    try {
+      final requestToken = ++_sectionsRequestToken;
+      final user = await _resolveCurrentUserProfile();
+      if (!ref.mounted) return;
+
+      if (user != null) {
+        _mainRuntime.userLat = user.location?['lat'];
+        _mainRuntime.userLong = user.location?['lng'];
+      }
+
+      List<String>? blockedIds;
+      if (user != null) {
+        blockedIds = await _resolveBlockedIds(user: user);
+        if (!ref.mounted) return;
+      }
+
+      await _fetchMainFeed(
+        reset: true,
+        preserveExistingItems: !showFullSkeleton,
+        userOverride: user,
+        blockedIdsOverride: blockedIds,
+      );
+      if (!ref.mounted) return;
+
+      if (showFullSkeleton) {
+        final latestState = state.value ?? currentState;
+        state = AsyncValue.data(
+          latestState.copyWithFeed(isInitialLoading: false),
+        );
+      }
+
+      if (user != null) {
+        unawaited(
+          _loadSections(
+            user: user,
+            requestToken: requestToken,
+            blockedIds: blockedIds,
+          ),
+        );
+      }
+    } catch (error, stack) {
+      AppLogger.error('Feed: erro ao carregar dados iniciais', error, stack);
+      if (!ref.mounted) return;
+      final latestState = state.value ?? currentState;
+      state = AsyncValue.data(
+        latestState.copyWithFeed(
+          isInitialLoading: false,
+          status: PaginationStatus.error,
+          errorMessage: error.toString(),
+        ),
+      );
+    }
+  }
+
+  void _loadFeaturedProfilesInBackground() {
     try {
       unawaited(
         _getFeaturedProfilesController().loadFeaturedProfiles().then((
@@ -100,45 +164,9 @@ class FeedController extends _$FeedController {
       );
     } catch (error, stack) {
       AppLogger.error(
-        'FeedController: featured profiles indisponíveis no ambiente atual',
+        'FeedController: featured profiles indisponiveis no ambiente atual',
         error,
         stack,
-      );
-    }
-
-    try {
-      final requestToken = ++_sectionsRequestToken;
-      final user = await _resolveCurrentUserProfile();
-      if (!ref.mounted) return;
-      if (user != null) {
-        _mainRuntime.userLat = user.location?['lat'];
-        _mainRuntime.userLong = user.location?['lng'];
-      }
-
-      // Prioriza o feed principal e libera a UI.
-      await _fetchMainFeed(reset: true);
-      if (!ref.mounted) return;
-      final afterMainState = state.value ?? const FeedState();
-      if (afterMainState.isInitialLoading) {
-        state = AsyncValue.data(
-          afterMainState.copyWithFeed(isInitialLoading: false),
-        );
-      }
-
-      if (user != null) {
-        // Sem atraso artificial para evitar que "Em Destaque" apareça tarde.
-        _loadSectionsInBackground(user, requestToken);
-      }
-    } catch (e, stack) {
-      AppLogger.error('Feed: erro ao carregar dados iniciais', e, stack);
-      if (!ref.mounted) return;
-      final latest = state.value ?? currentState;
-      state = AsyncValue.data(
-        latest.copyWithFeed(
-          isInitialLoading: false,
-          status: PaginationStatus.error,
-          errorMessage: e.toString(),
-        ),
       );
     }
   }
@@ -148,21 +176,18 @@ class FeedController extends _$FeedController {
       await Future<void>.delayed(const Duration(milliseconds: 900));
       if (!ref.mounted) return;
       await ref.read(favoriteControllerProvider.notifier).loadFavorites();
-    } catch (e, stack) {
-      AppLogger.error('Feed: erro no sync diferido de favoritos', e, stack);
+    } catch (error, stack) {
+      AppLogger.error('Feed: erro no sync diferido de favoritos', error, stack);
     }
-  }
-
-  void _loadSectionsInBackground(AppUser user, int requestToken) {
-    unawaited(_loadSections(user: user, requestToken: requestToken));
   }
 
   Future<void> _loadSections({
     required AppUser user,
     required int requestToken,
+    List<String>? blockedIds,
   }) async {
     try {
-      final sections = await _fetchSections(user: user);
+      final sections = await _fetchSections(user: user, blockedIds: blockedIds);
       if (!ref.mounted) return;
       if (requestToken != _sectionsRequestToken) return;
       _emitState((s) => s.copyWithFeed(sectionItems: sections));
@@ -173,62 +198,70 @@ class FeedController extends _$FeedController {
 
   Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections({
     required AppUser user,
+    List<String>? blockedIds,
   }) async {
     _ensureControllers();
-    final blockedIds = await _resolveBlockedIds(user: user);
+    final effectiveBlockedIds =
+        blockedIds ?? await _resolveBlockedIds(user: user);
     return _sectionsController!.fetchSections(
       user: user,
-      blockedIds: blockedIds,
+      blockedIds: effectiveBlockedIds,
       userLat: _mainRuntime.userLat,
       userLong: _mainRuntime.userLong,
       sectionLimit: FeedDataConstants.sectionLimit,
     );
   }
 
-  /// Busca o feed principal com paginação.
-  Future<void> _fetchMainFeed({bool reset = false}) async {
+  /// Fetches the main feed with pagination support.
+  Future<void> _fetchMainFeed({
+    bool reset = false,
+    bool preserveExistingItems = false,
+    AppUser? userOverride,
+    List<String>? blockedIdsOverride,
+  }) async {
     _ensureControllers();
     final currentState = state.value ?? const FeedState();
 
-    // Verificações de proteção usando o padrão PaginationState.
-    if (currentState.status == PaginationStatus.loading) {
-      AppLogger.debug('Feed: Primeira carga em andamento, ignorando');
+    // Protection checks following PaginationState semantics.
+    if (!reset && currentState.status == PaginationStatus.loading) {
+      AppLogger.debug('Feed: primeira carga em andamento, ignorando');
       return;
     }
-    if (currentState.status == PaginationStatus.loadingMore && !reset) {
-      AppLogger.debug('Feed: Já está carregando mais itens');
+    if (!reset && currentState.status == PaginationStatus.loadingMore) {
+      AppLogger.debug('Feed: ja esta carregando mais itens');
       return;
     }
     if (!reset && !currentState.hasMore) {
-      AppLogger.debug('Feed: Não tem mais dados para carregar');
+      AppLogger.debug('Feed: nao tem mais dados para carregar');
       return;
     }
 
-    // Atualiza estado para loading.
     state = AsyncValue.data(
       currentState.copyWithFeed(
         status: reset ? PaginationStatus.loading : PaginationStatus.loadingMore,
         currentPage: reset ? 0 : currentState.currentPage,
         hasMore: reset ? true : currentState.hasMore,
-        items: reset ? [] : currentState.items,
+        items: reset && !preserveExistingItems ? [] : currentState.items,
         clearError: true,
       ),
     );
 
-    final user = await _resolveCurrentUserProfile();
+    final user = userOverride ?? await _resolveCurrentUserProfile();
     if (!ref.mounted) return;
     if (user == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
           status: PaginationStatus.error,
-          errorMessage: 'Usuário não autenticado',
+          errorMessage: 'Usuario nao autenticado',
         ),
       );
       return;
     }
 
-    final blockedIds = await _resolveBlockedIds(user: user);
+    final blockedIds =
+        blockedIdsOverride ?? await _resolveBlockedIds(user: user);
     if (!ref.mounted) return;
+
     final nextState = await _mainController!.fetchMainFeed(
       currentState: currentState,
       user: user,
@@ -239,15 +272,22 @@ class FeedController extends _$FeedController {
     );
 
     if (!ref.mounted) return;
-    state = AsyncValue.data(nextState);
+    final latestState = state.value;
+    final mergedState = nextState.copyWithFeed(
+      sectionItems: latestState?.sectionItems ?? nextState.sectionItems,
+      featuredItems: latestState?.featuredItems ?? nextState.featuredItems,
+      isInitialLoading:
+          latestState?.isInitialLoading ?? nextState.isInitialLoading,
+    );
+    _emitState((_) => mergedState);
   }
 
-  /// Carrega mais itens no feed principal.
+  /// Loads more items for the main feed.
   Future<void> loadMoreMainFeed() async {
     await _fetchMainFeed(reset: false);
   }
 
-  /// Atualiza o filtro e recarrega o feed.
+  /// Updates filter and reloads main feed.
   Future<void> onFilterChanged(String filter) async {
     final currentState = state.value;
     if (currentState == null || currentState.currentFilter == filter) return;
@@ -256,7 +296,7 @@ class FeedController extends _$FeedController {
     await _fetchMainFeed(reset: true);
   }
 
-  /// Atualiza o contador de likes de um item.
+  /// Updates like count for a specific item.
   void updateLikeCount(String targetId, {required bool isLiked}) {
     final currentState = state.value;
     if (currentState == null) return;
@@ -284,19 +324,19 @@ class FeedController extends _$FeedController {
     );
   }
 
-  /// Recarrega o feed (pull-to-refresh).
+  /// Pull-to-refresh keeps current UI and reloads data.
   Future<void> refresh() async {
-    await loadAllData();
+    await _loadData(showFullSkeleton: false);
   }
 
-  /// Verifica se pode carregar mais itens.
+  /// Whether pagination can request more items.
   bool get canLoadMore {
     final currentState = state.value;
     if (currentState == null) return false;
     return currentState.hasMore && !currentState.isLoading;
   }
 
-  /// Verifica se está carregando mais itens.
+  /// Whether pagination is loading more data now.
   bool get isLoadingMore {
     final currentState = state.value;
     if (currentState == null) return false;
@@ -332,6 +372,7 @@ class FeedController extends _$FeedController {
   }) async {
     final blocked = <String>{...user.blockedUsers};
     if (!ref.mounted) return blocked.toList();
+
     final blockedState = ref.read(blockedUsersProvider);
     final immediate = blockedState.value;
     if (immediate != null) {
@@ -343,9 +384,10 @@ class FeedController extends _$FeedController {
             .timeout(timeout);
         blocked.addAll(streamed);
       } catch (_) {
-        // fallback com dados já disponíveis
+        // Fall back to currently available data.
       }
     }
+
     return blocked.toList();
   }
 }
