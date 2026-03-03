@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,11 +30,15 @@ abstract class AuthRemoteDataSource {
   Future<void> sendEmailVerification();
   Future<bool> isEmailVerified();
   Future<void> reloadUser();
+  Future<void> refreshSecurityContext();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
+  final app_check.FirebaseAppCheck _appCheck;
+  static const String _functionsRegion = 'southamerica-east1';
   static const Set<String> _blockedClientUpdateKeys = {
     'status',
     'report_count',
@@ -53,7 +58,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'plan',
   };
 
-  AuthRemoteDataSourceImpl(this._auth, this._firestore);
+  AuthRemoteDataSourceImpl(
+    this._auth,
+    this._firestore, {
+    FirebaseFunctions? functions,
+    app_check.FirebaseAppCheck? appCheck,
+  }) : _functions =
+           functions ?? FirebaseFunctions.instanceFor(region: _functionsRegion),
+       _appCheck = appCheck ?? app_check.FirebaseAppCheck.instance;
 
   @override
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -205,6 +217,94 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> signOut() => _auth.signOut();
 
+  bool _isRecoverableFunctionsError(FirebaseFunctionsException error) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+
+    if (code == 'unauthenticated') return true;
+
+    final mentionsAppCheck = message.contains('app check');
+    return mentionsAppCheck &&
+        (code == 'failed-precondition' || code == 'permission-denied');
+  }
+
+  Future<void> _refreshFunctionSecurityContext() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      try {
+        await currentUser.getIdToken(true);
+      } catch (error, stack) {
+        AppLogger.warning(
+          'Falha ao atualizar token do FirebaseAuth antes do retry da Cloud Function',
+          error,
+          stack,
+        );
+      }
+    }
+
+    try {
+      await _appCheck.getToken(true);
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao atualizar token do App Check antes do retry da Cloud Function',
+        error,
+        stack,
+      );
+    }
+  }
+
+  Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
+    String functionName, {
+    Object? data,
+  }) async {
+    final callable = _functions.httpsCallable(functionName);
+
+    try {
+      return await callable.call(data);
+    } on FirebaseFunctionsException catch (error) {
+      if (!_isRecoverableFunctionsError(error)) rethrow;
+
+      AppLogger.warning(
+        '$functionName retornou ${error.code}. Atualizando contexto de seguranca e tentando novamente.',
+      );
+      await _refreshFunctionSecurityContext();
+      return await callable.call(data);
+    }
+  }
+
+  Exception _mapDeleteAccountFunctionError(FirebaseFunctionsException error) {
+    switch (error.code.toLowerCase()) {
+      case 'not-found':
+        return Exception(
+          'Servico de exclusao indisponivel. Verifique a Cloud Function deleteAccount em $_functionsRegion.',
+        );
+      case 'unauthenticated':
+        return Exception(
+          'Sua sessao expirou. Entre novamente antes de excluir a conta.',
+        );
+      case 'permission-denied':
+      case 'failed-precondition':
+        if ((error.message ?? '').toLowerCase().contains('app check')) {
+          return Exception(
+            'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+          );
+        }
+        return Exception(
+          'A exclusao da conta foi bloqueada pelo servidor. Tente novamente em instantes.',
+        );
+      case 'internal':
+        return Exception(
+          'O servidor nao conseguiu excluir a conta agora. Tente novamente em instantes.',
+        );
+      default:
+        return Exception(
+          error.message?.trim().isNotEmpty == true
+              ? error.message!.trim()
+              : 'Erro inesperado ao excluir a conta.',
+        );
+    }
+  }
+
   @override
   Future<void> deleteAccount(String uid) async {
     final user = _auth.currentUser;
@@ -213,17 +313,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable(
-        'deleteAccount',
-      );
-      final result = await callable.call();
+      final result = await _callFunctionWithRecovery('deleteAccount');
 
-      if (result.data['success'] != true) {
+      final data = result.data;
+      final success = data is Map<Object?, Object?> && data['success'] == true;
+      if (!success) {
         throw Exception('Failed to delete account from server');
       }
 
       // After successful server-side deletion, sign out the client
       await signOut();
+    } on FirebaseFunctionsException catch (error, stack) {
+      AppLogger.error(
+        'Error calling deleteAccount function in $_functionsRegion:',
+        error,
+        stack,
+      );
+      throw _mapDeleteAccountFunctionError(error);
     } catch (e) {
       AppLogger.error('Error calling deleteAccount function:', e);
       throw Exception('Error deleting account: $e');
@@ -273,11 +379,39 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       await user.reload();
     }
   }
+
+  @override
+  Future<void> refreshSecurityContext() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw FirebaseAuthException(
+        code: 'session-expired',
+        message: 'Nenhum usuario autenticado disponivel para refresh.',
+      );
+    }
+
+    await currentUser.getIdToken(true);
+    await currentUser.reload();
+
+    try {
+      await _appCheck.getToken(true);
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao atualizar token do App Check durante refresh de sessao',
+        error,
+        stack,
+      );
+    }
+  }
 }
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSourceImpl(
     FirebaseAuth.instance,
     FirebaseFirestore.instance,
+    functions: FirebaseFunctions.instanceFor(
+      region: AuthRemoteDataSourceImpl._functionsRegion,
+    ),
+    appCheck: app_check.FirebaseAppCheck.instance,
   );
 });

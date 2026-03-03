@@ -123,6 +123,8 @@ dev_dependencies:
   cloud_functions_platform_interface: any
 
 dependency_overrides:
+  firebase_storage:
+    path: third_party/firebase_storage
   video_compress:
     path: third_party/video_compress
   flutter_native_video_trimmer:

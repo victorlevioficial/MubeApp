@@ -258,10 +258,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
   }
 
   (int, int) _buildTrimRequest() {
-    final totalDurationMs = math.max(
-      1,
-      (_videoDurationSeconds * 1000).round(),
-    );
+    final totalDurationMs = math.max(1, (_videoDurationSeconds * 1000).round());
     // Leave a small safety margin to avoid device-specific metadata drift
     // that can report a 60s clip as slightly above the limit.
     final maxWindowMs = math.max(
@@ -317,11 +314,9 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
 
   Future<File> _persistTrimmedVideo(File trimmedFile) async {
     final tempDir = await getTemporaryDirectory();
-    final extension = path.extension(trimmedFile.path);
-    final safeExtension = extension.isEmpty ? '.mp4' : extension;
     final targetPath = path.join(
       tempDir.path,
-      'mube_trimmed_${DateTime.now().millisecondsSinceEpoch}$safeExtension',
+      'mube_trimmed_${DateTime.now().millisecondsSinceEpoch}.mp4',
     );
 
     return trimmedFile.copy(targetPath);

@@ -11,6 +11,7 @@ import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../splash/providers/app_bootstrap_provider.dart';
 import '../domain/app_user.dart';
 import 'auth_remote_data_source.dart';
 
@@ -165,6 +166,9 @@ class AuthRepository {
       await _analytics?.setUserId(null);
 
       await _dataSource.deleteAccount(uid);
+      if (_dataSource.currentUser != null) {
+        await _dataSource.signOut();
+      }
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
       // Re-auth required usually
@@ -261,6 +265,41 @@ class AuthRepository {
 
   Future<void> reloadUser() async {
     await _dataSource.reloadUser();
+  }
+
+  /// Forces a refresh of the client's auth/app-check context.
+  ///
+  /// This is used by guards and recoverable flows before escalating a transient
+  /// permission failure into a full sign-out.
+  FutureResult<Unit> refreshSecurityContext() async {
+    if (_dataSource.currentUser == null) {
+      return Left(AuthFailure.sessionExpired());
+    }
+
+    try {
+      await _dataSource.refreshSecurityContext();
+      return const Right(unit);
+    } on FirebaseAuthException catch (e) {
+      if (_isTerminalSessionRefreshCode(e.code)) {
+        return Left(
+          AuthFailure(
+            message: 'Sua sessão expirou. Faça login novamente.',
+            debugMessage: e.code,
+            originalError: e,
+          ),
+        );
+      }
+
+      return Left(
+        AuthFailure(
+          message: AuthExceptionHandler.handleException(e),
+          debugMessage: e.code,
+          originalError: e,
+        ),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString(), originalError: e));
+    }
   }
 
   bool get isCurrentUserEmailVerified {
@@ -388,6 +427,18 @@ class AuthRepository {
     await _dataSource.saveUserProfile(appUser);
     return true;
   }
+
+  bool _isTerminalSessionRefreshCode(String code) {
+    switch (code.toLowerCase()) {
+      case 'session-expired':
+      case 'user-token-expired':
+      case 'invalid-user-token':
+      case 'user-disabled':
+        return true;
+      default:
+        return false;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -412,6 +463,11 @@ Stream<User?> authStateChanges(Ref ref) {
 /// Returns `null` if the user is not authenticated or profile doesn't exist.
 @riverpod
 Stream<AppUser?> currentUserProfile(Ref ref) {
+  final bootstrapState = ref.watch(appBootstrapProvider);
+  if (bootstrapState != AppBootstrapState.ready) {
+    return const Stream.empty();
+  }
+
   final authState = ref.watch(authStateChangesProvider);
   return authState.when(
     data: (user) {

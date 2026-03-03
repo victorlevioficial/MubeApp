@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:video_compress/video_compress.dart';
 
+import '../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -32,7 +34,7 @@ class MediaPickerService {
     required IconData galleryIcon,
     required String galleryLabel,
   }) async {
-    return showModalBottomSheet<ImageSource>(
+    return AppOverlay.bottomSheet<ImageSource>(
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
@@ -176,9 +178,11 @@ class MediaPickerService {
     try {
       File finalVideoFile = File(picked.path);
       var wasTrimmed = false;
+      var wasLocallyTranscoded = false;
 
       final mediaInfo = await VideoCompress.getMediaInfo(finalVideoFile.path);
       final durationMs = (mediaInfo.duration ?? 0).round();
+
       if (durationMs > _maxVideoDurationMs) {
         if (!context.mounted) return null;
         final trimmedVideo = await _openVideoTrimmer(
@@ -190,13 +194,36 @@ class MediaPickerService {
         wasTrimmed = true;
       }
 
-      final shouldCompress = !wasTrimmed;
-      if (shouldCompress) {
+      final videoSizeBytes = await finalVideoFile.length();
+      final shouldTranscodeLocally = requiresLocalVideoTranscode(
+        videoPath: finalVideoFile.path,
+        fileSizeBytes: videoSizeBytes,
+      );
+
+      if (shouldTranscodeLocally) {
+        final reason = _describeLocalVideoTranscodeReason(
+          videoPath: finalVideoFile.path,
+          fileSizeBytes: videoSizeBytes,
+        );
+        AppLogger.info(
+          'Local video transcode requested reason=$reason '
+          'sizeBytes=$videoSizeBytes path=${finalVideoFile.path}',
+        );
         finalVideoFile = await _compressVideo(finalVideoFile);
+        wasLocallyTranscoded = true;
+      } else {
+        AppLogger.info(
+          'Skipping local video transcode for upload-ready video '
+          'sizeBytes=$videoSizeBytes path=${finalVideoFile.path}',
+        );
       }
 
-      final finalInfo = await VideoCompress.getMediaInfo(finalVideoFile.path);
-      final finalDurationMs = (finalInfo.duration ?? 0).round();
+      var finalDurationMs = durationMs;
+      if (wasTrimmed || wasLocallyTranscoded) {
+        final finalInfo = await VideoCompress.getMediaInfo(finalVideoFile.path);
+        finalDurationMs = (finalInfo.duration ?? 0).round();
+      }
+
       if (finalDurationMs >
           _maxVideoDurationMs + _processedDurationToleranceMs) {
         if (context.mounted) {
@@ -264,6 +291,37 @@ class MediaPickerService {
   /// Dispose video compress resources.
   void dispose() {
     VideoCompress.dispose();
+  }
+
+  @visibleForTesting
+  static bool requiresLocalVideoTranscode({
+    required String videoPath,
+    required int fileSizeBytes,
+  }) {
+    if (fileSizeBytes > UploadLimits.maxVideoSizeBytes) {
+      return true;
+    }
+
+    return !_isMp4VideoPath(videoPath);
+  }
+
+  static bool _isMp4VideoPath(String videoPath) {
+    return path.extension(videoPath).toLowerCase() == '.mp4';
+  }
+
+  static String _describeLocalVideoTranscodeReason({
+    required String videoPath,
+    required int fileSizeBytes,
+  }) {
+    if (fileSizeBytes > UploadLimits.maxVideoSizeBytes) {
+      return 'file-too-large';
+    }
+
+    if (!_isMp4VideoPath(videoPath)) {
+      return 'normalize-non-mp4';
+    }
+
+    return 'not-required';
   }
 }
 

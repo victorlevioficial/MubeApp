@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui'; // For PlatformDispatcher
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -19,11 +18,6 @@ import 'src/core/services/image_cache_config.dart';
 import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
-
-const String _appCheckDebugToken = String.fromEnvironment(
-  'APP_CHECK_DEBUG_TOKEN',
-  defaultValue: '11111111-2222-4333-8444-555555555555',
-);
 
 void main() {
   runZonedGuarded(
@@ -78,7 +72,7 @@ void main() {
       }
 
       if (firebaseReady) {
-        await _initializeAppCheck();
+        await AppLogger.initialize();
       }
 
       runApp(const ProviderScope(child: MubeApp()));
@@ -99,8 +93,6 @@ void main() {
 
 Future<void> _initializeDeferredServices() async {
   try {
-    await AppLogger.initialize();
-
     // Stage non-critical services to reduce startup contention on Home.
     await Future<void>.delayed(const Duration(milliseconds: 900));
     await AnalyticsService.initialize();
@@ -115,34 +107,6 @@ Future<void> _initializeDeferredServices() async {
     AppLogger.info('Services initialized');
   } catch (e, stack) {
     AppLogger.error('Erro ao inicializar servicos em background', e, stack);
-  }
-}
-
-Future<void> _initializeAppCheck() async {
-  try {
-    if (kReleaseMode) {
-      await app_check.FirebaseAppCheck.instance.activate(
-        // ignore: deprecated_member_use
-        androidProvider: app_check.AndroidProvider.playIntegrity,
-        // ignore: deprecated_member_use
-        appleProvider: app_check.AppleProvider.appAttestWithDeviceCheckFallback,
-      );
-      return;
-    }
-
-    await app_check.FirebaseAppCheck.instance.activate(
-      providerAndroid: const app_check.AndroidDebugProvider(),
-      providerApple: const app_check.AppleDebugProvider(
-        debugToken: _appCheckDebugToken,
-      ),
-    );
-    AppLogger.info(
-      'App Check debug provider ativado em desenvolvimento. '
-      'Token iOS atual: $_appCheckDebugToken. '
-      'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
-    );
-  } catch (e, stack) {
-    AppLogger.warning('Falha ao inicializar App Check', e, stack);
   }
 }
 

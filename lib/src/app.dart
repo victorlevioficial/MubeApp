@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import 'core/providers/connectivity_provider.dart';
@@ -13,7 +12,10 @@ import 'core/services/push_notification_service.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
 import 'features/auth/data/auth_repository.dart';
+import 'features/auth/presentation/account_deletion_provider.dart';
+import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'routing/app_router.dart';
+import 'routing/route_paths.dart';
 import 'utils/app_logger.dart';
 
 /// Global key for ScaffoldMessenger to show snackbars across navigation.
@@ -45,11 +47,21 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     // We only need to handle navigation when user taps a notification.
 
     _onMessageOpenedSub = eventBus.onMessageOpened.listen((message) {
+      if (!mounted) return;
+
+      final router = ref.read(goRouterProvider);
+      final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+      final route = message.data['route'];
+      if (route is String && route.isNotEmpty) {
+        if (currentPath != route) {
+          router.push(route);
+        }
+        return;
+      }
+
       final conversationId = message.data['conversation_id'];
-      if (conversationId != null && mounted) {
-        final router = ref.read(goRouterProvider);
-        final targetPath = '/conversation/$conversationId';
-        final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+      if (conversationId != null) {
+        final targetPath = '${RoutePaths.conversation}/$conversationId';
         if (currentPath != targetPath) {
           router.push(targetPath);
         }
@@ -70,9 +82,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   Future<void> _bootstrapPushForLoggedInUser() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final hasShownPermission =
-          prefs.getBool('notification_permission_shown') ?? false;
+      final hasShownPermission = await ref.read(
+        notificationPermissionPromptProvider.future,
+      );
 
       if (!hasShownPermission) {
         AppLogger.info(
@@ -96,7 +108,12 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
-      next.whenData(_handlePushBootstrapForAuthState);
+      next.whenData((user) {
+        _handlePushBootstrapForAuthState(user);
+        if (user == null && ref.read(accountDeletionInProgressProvider)) {
+          ref.read(accountDeletionInProgressProvider.notifier).clear();
+        }
+      });
     });
 
     final goRouter = ref.watch(goRouterProvider);

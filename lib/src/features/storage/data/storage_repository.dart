@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -316,21 +317,29 @@ class StorageRepository {
     );
 
     final uploadTask = ref.putFile(file, metadata);
+    StreamSubscription<TaskSnapshot>? progressSubscription;
 
     // Listen to progress updates
     if (onProgress != null) {
-      uploadTask.snapshotEvents.listen((snapshot) {
-        final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+      progressSubscription = uploadTask.snapshotEvents.listen((snapshot) {
+        final totalBytes = snapshot.totalBytes;
+        final progress = totalBytes <= 0
+            ? 0.0
+            : snapshot.bytesTransferred / totalBytes;
         onProgress(progress);
       });
     }
 
-    final snapshot = await uploadTask;
-    final downloadUrl = await snapshot.ref.getDownloadURL();
+    try {
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
 
-    AppLogger.info('✅ Upload de vídeo concluído: $downloadUrl');
+      AppLogger.info('✅ Upload de vídeo concluído: $downloadUrl');
 
-    return downloadUrl;
+      return downloadUrl;
+    } finally {
+      await progressSubscription?.cancel();
+    }
   }
 
   /// Faz upload de uma única imagem
@@ -355,14 +364,18 @@ class StorageRepository {
     required String contentType,
     void Function(double progress)? onProgress,
   }) async {
+    StreamSubscription<TaskSnapshot>? progressSubscription;
     try {
       final ref = _storage.ref().child(path);
       final metadata = SettableMetadata(contentType: contentType);
       final uploadTask = ref.putFile(file, metadata);
 
       if (onProgress != null) {
-        uploadTask.snapshotEvents.listen((snapshot) {
-          final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        progressSubscription = uploadTask.snapshotEvents.listen((snapshot) {
+          final totalBytes = snapshot.totalBytes;
+          final progress = totalBytes <= 0
+              ? 0.0
+              : snapshot.bytesTransferred / totalBytes;
           onProgress(progress);
         });
       }
@@ -371,6 +384,8 @@ class StorageRepository {
       return await snapshot.ref.getDownloadURL();
     } on FirebaseException catch (e) {
       throw Exception('Erro ao fazer upload da imagem: ${e.message}');
+    } finally {
+      await progressSubscription?.cancel();
     }
   }
 

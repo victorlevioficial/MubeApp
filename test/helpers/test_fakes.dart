@@ -70,6 +70,15 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   AppUser? _appUser;
   AppUser? lastUpdatedUser;
   bool shouldThrow = false;
+  bool shouldFailDeleteAccount = false;
+  int signOutCalls = 0;
+  int refreshSecurityContextCalls = 0;
+  int ensureCurrentUserProfileExistsCalls = 0;
+  Either<Failure, Unit> refreshSecurityContextResult = const Right(unit);
+  Either<Failure, Unit> ensureCurrentUserProfileExistsResult = const Right(
+    unit,
+  );
+  final List<Either<Failure, Unit>> ensureCurrentUserProfileExistsResults = [];
 
   FakeAuthRepository({firebase_auth.User? initialUser})
     : _currentUser = initialUser;
@@ -120,10 +129,39 @@ class FakeAuthRepository extends Fake implements AuthRepository {
 
   @override
   FutureResult<Unit> signOut() async {
+    signOutCalls++;
     _currentUser = null;
     _appUser = null;
     _authStateController.add(null);
     return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> deleteAccount() async {
+    if (shouldFailDeleteAccount) {
+      return const Left(ServerFailure(message: 'Delete failed'));
+    }
+    _currentUser = null;
+    _appUser = null;
+    _authStateController.add(null);
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> refreshSecurityContext() async {
+    refreshSecurityContextCalls++;
+    return refreshSecurityContextResult;
+  }
+
+  @override
+  FutureResult<Unit> ensureCurrentUserProfileExists() async {
+    ensureCurrentUserProfileExistsCalls++;
+
+    if (ensureCurrentUserProfileExistsResults.isNotEmpty) {
+      return ensureCurrentUserProfileExistsResults.removeAt(0);
+    }
+
+    return ensureCurrentUserProfileExistsResult;
   }
 
   void dispose() {

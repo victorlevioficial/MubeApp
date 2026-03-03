@@ -197,7 +197,8 @@ service cloud.firestore {
       // Leitura: remetente ou destinatário
       allow read: if isAuthenticated() &&
         (resource.data.target_uid == request.auth.uid ||
-         resource.data.sender_uid == request.auth.uid);
+         resource.data.sender_uid == request.auth.uid ||
+         resource.data.band_id == request.auth.uid);
 
       // Escrita: apenas via Cloud Functions
       allow create, update, delete: if false;
@@ -341,6 +342,17 @@ service cloud.firestore {
       
       // User cannot update or delete (only admins via functions/console)
       allow update, delete: if false;
+    }
+
+    // ================================================================
+    // MEDIA TRANSCODE JOBS - Status de transcode de videos da galeria
+    // ================================================================
+    match /mediaTranscodeJobs/{jobId} {
+      allow get: if request.auth != null && (
+        (resource != null && resource.data.userId == request.auth.uid) ||
+        (resource == null && jobId.matches('^' + request.auth.uid + '_.*$'))
+      );
+      allow list, create, update, delete: if false;
     }
 
     // ================================================================

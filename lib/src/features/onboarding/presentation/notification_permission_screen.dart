@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/push_notification_service.dart';
 import '../../../design_system/components/buttons/app_button.dart';
@@ -12,20 +12,19 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../providers/notification_permission_prompt_provider.dart';
 
-class NotificationPermissionScreen extends StatefulWidget {
+class NotificationPermissionScreen extends ConsumerStatefulWidget {
   const NotificationPermissionScreen({super.key});
 
   @override
-  State<NotificationPermissionScreen> createState() =>
+  ConsumerState<NotificationPermissionScreen> createState() =>
       _NotificationPermissionScreenState();
 }
 
 class _NotificationPermissionScreenState
-    extends State<NotificationPermissionScreen>
+    extends ConsumerState<NotificationPermissionScreen>
     with SingleTickerProviderStateMixin {
-  static const String _permissionShownKey = 'notification_permission_shown';
-
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -66,8 +65,9 @@ class _NotificationPermissionScreenState
   }
 
   Future<void> _markPermissionPromptAsShown() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_permissionShownKey, true);
+    await ref
+        .read(notificationPermissionPromptProvider.notifier)
+        .markAsShown();
   }
 
   Future<void> _handleAccept() async {
