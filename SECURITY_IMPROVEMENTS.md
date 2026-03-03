@@ -181,9 +181,9 @@ Text(AppLocalizations.of(context)!.auth_login_title)
    - Adicione `GOOGLE_VISION_API_KEY` e `GOOGLE_MAPS_API_KEY`
 
 2. **Deploy das Rules**
-   ```bash
-   firebase deploy --only storage:rules
-   firebase deploy --only firestore:rules
+   ```powershell
+   .\deploy-firebase.ps1 --only storage
+   .\deploy-firebase.ps1 --only firestore:rules
    ```
 
 3. **Gerar Código de Localização**

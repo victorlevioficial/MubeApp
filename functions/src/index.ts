@@ -10,6 +10,7 @@ export { migrateinteractions } from "./interaction_migration";
 // Export Matchpoint functions
 export {
   submitMatchpointAction,
+  recordMatchpointRankingAudit,
   getRemainingLikes,
   onInteractionCreated,
 } from "./matchpoint";
@@ -49,6 +50,7 @@ export {
 
 // Export Support functions
 export {
+  submitSupportTicket,
   onTicketCreated,
 } from "./support";
 
@@ -66,6 +68,7 @@ export {
   listTickets,
   updateTicket,
   getDashboardStats,
+  getMatchpointRankingAuditDashboard,
   listConversations,
   getConversationMessages,
 } from "./admin";
@@ -163,7 +166,15 @@ export const onMessageCreated = onDocumentCreated(
         .doc(`chat_${conversationId}`);
 
       const existingNotification = await notificationRef.get();
-      const senderName = messageData.sender_name || "Nova mensagem";
+
+      // Busca o nome do remetente diretamente do Firestore
+      // para garantir que a notificação sempre exiba o nome correto.
+      const senderDoc = await db.collection("users").doc(senderId).get();
+      const senderData = senderDoc.data();
+      const senderName =
+        senderData?.nome_artistico ||
+        senderData?.nome ||
+        "Nova mensagem";
 
       if (existingNotification.exists) {
         const existingData = existingNotification.data() || {};

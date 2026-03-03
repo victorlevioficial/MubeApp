@@ -15,8 +15,8 @@ import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../legal/presentation/legal_detail_screen.dart';
 import 'register_controller.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -97,6 +97,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   void _signInWithApple() {
     if (ref.read(registerControllerProvider).isLoading) return;
     unawaited(ref.read(registerControllerProvider.notifier).signInWithApple());
+  }
+
+  Future<void> _showLegalDocument(LegalDocumentType type) {
+    FocusScope.of(context).unfocus();
+    return LegalDocumentDialog.show(context: context, type: type);
   }
 
   @override
@@ -232,8 +237,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     alignment: PlaceholderAlignment.baseline,
                                     baseline: TextBaseline.alphabetic,
                                     child: GestureDetector(
-                                      onTap: () => context.push(
-                                        '${RoutePaths.legal}/termsOfUse',
+                                      key: const Key('register_terms_link'),
+                                      onTap: () => _showLegalDocument(
+                                        LegalDocumentType.termsOfUse,
                                       ),
                                       child: Text(
                                         'Termos de Uso',
@@ -249,8 +255,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     alignment: PlaceholderAlignment.baseline,
                                     baseline: TextBaseline.alphabetic,
                                     child: GestureDetector(
-                                      onTap: () => context.push(
-                                        '${RoutePaths.legal}/privacyPolicy',
+                                      key: const Key('register_privacy_link'),
+                                      onTap: () => _showLegalDocument(
+                                        LegalDocumentType.privacyPolicy,
                                       ),
                                       child: Text(
                                         'Política de Privacidade',

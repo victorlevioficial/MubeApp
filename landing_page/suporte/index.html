@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suporte | MubeApp</title>
+    <meta name="description" content="Abra um ticket de suporte do MubeApp.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: rgba(20, 20, 20, 0.92);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --muted: #b3b3b3;
+            --primary: #e8466c;
+            --primary-dark: #d13f61;
+            --field: rgba(255, 255, 255, 0.04);
+            --field-border: rgba(255, 255, 255, 0.1);
+            --success-bg: rgba(34, 197, 94, 0.14);
+            --success-border: rgba(34, 197, 94, 0.4);
+            --error-bg: rgba(232, 70, 108, 0.14);
+            --error-border: rgba(232, 70, 108, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Inter", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top, rgba(232, 70, 108, 0.14), transparent 28%),
+                linear-gradient(180deg, #111111 0%, var(--bg) 100%);
+        }
+
+        a {
+            color: inherit;
+        }
+
+        main {
+            width: min(100% - 24px, 680px);
+            margin: 0 auto;
+            padding: 32px 0 48px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .brand img {
+            width: 108px;
+            height: auto;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 22px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(16px);
+        }
+
+        .eyebrow {
+            display: inline-block;
+            margin-bottom: 12px;
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            font-family: "Poppins", sans-serif;
+            font-size: clamp(2rem, 5vw, 2.8rem);
+            line-height: 1.05;
+        }
+
+        .intro {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 0.93rem;
+            font-weight: 600;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--field-border);
+            border-radius: 16px;
+            background: var(--field);
+            color: var(--text);
+            font: inherit;
+            padding: 14px 15px;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #8a8a8a;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(232, 70, 108, 0.65);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .status {
+            display: none;
+            border-radius: 16px;
+            padding: 14px 16px;
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        .status.visible {
+            display: block;
+        }
+
+        .status.success {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+        }
+
+        .status.error {
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+        }
+
+        .meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .meta a {
+            color: var(--text);
+        }
+
+        .submit {
+            width: 100%;
+            border: 0;
+            border-radius: 999px;
+            padding: 15px 20px;
+            font: inherit;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .submit:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .submit:disabled {
+            opacity: 0.72;
+            cursor: wait;
+        }
+
+        .hidden {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media (max-width: 640px) {
+            main {
+                width: min(100% - 16px, 680px);
+                padding: 16px 0 28px;
+            }
+
+            .card {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                margin-bottom: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <div class="topbar">
+            <a class="brand" href="/">
+                <img src="/assets/logo.svg" alt="MubeApp">
+            </a>
+        </div>
+
+        <section class="card" aria-labelledby="support-title">
+            <span class="eyebrow">Suporte</span>
+            <h1 id="support-title">Abrir ticket</h1>
+            <p class="intro">Preencha o formulario abaixo. Sem anexos nesta versao.</p>
+
+            <div id="status" class="status" role="status" aria-live="polite"></div>
+
+            <form id="support-form" novalidate>
+                <div class="grid">
+                    <label>
+                        Nome
+                        <input id="name" name="name" type="text" autocomplete="name" maxlength="80" placeholder="Seu nome" required>
+                    </label>
+
+                    <label>
+                        E-mail
+                        <input id="email" name="email" type="email" autocomplete="email" maxlength="160" placeholder="voce@exemplo.com" required>
+                    </label>
+                </div>
+
+                <div class="grid">
+                    <label>
+                        Categoria
+                        <select id="category" name="category" required>
+                            <option value="bug">Problema</option>
+                            <option value="feedback" selected>Feedback</option>
+                            <option value="account">Conta</option>
+                            <option value="other">Outro</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Assunto
+                        <input id="title" name="title" type="text" maxlength="120" placeholder="Resumo" required>
+                    </label>
+                </div>
+
+                <label>
+                    Descricao
+                    <textarea id="description" name="description" maxlength="2000" placeholder="Explique o que aconteceu." required></textarea>
+                </label>
+
+                <label class="hidden" aria-hidden="true">
+                    Website
+                    <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+                </label>
+
+                <button id="submit-button" class="submit" type="submit">Enviar ticket</button>
+            </form>
+
+            <div class="meta">
+                <span>Se preferir, envie para <a href="mailto:suporte@mube.app?subject=Suporte%20MubeApp">suporte@mube.app</a></span>
+                <span>Conta, MatchPoint, bugs e feedback.</span>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.4.0/firebase-functions-compat.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9uPQy-IFGxFjqJ5bAHGS_gxK8S91jwBo",
+            authDomain: "mube-63a93.firebaseapp.com",
+            projectId: "mube-63a93",
+            storageBucket: "mube-63a93.firebasestorage.app",
+            messagingSenderId: "798301748829",
+            appId: "1:798301748829:web:f1b96526dcd3f99b47d7b4",
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const functions = firebase.app().functions("southamerica-east1");
+        const submitSupportTicket = functions.httpsCallable("submitSupportTicket");
+        const form = document.getElementById("support-form");
+        const submitButton = document.getElementById("submit-button");
+        const statusBox = document.getElementById("status");
+
+        function setStatus(type, message) {
+            statusBox.textContent = message;
+            statusBox.className = `status visible ${type}`;
+        }
+
+        function clearStatus() {
+            statusBox.textContent = "";
+            statusBox.className = "status";
+        }
+
+        function setLoading(isLoading) {
+            submitButton.disabled = isLoading;
+            submitButton.textContent = isLoading ? "Enviando..." : "Enviar ticket";
+        }
+
+        function validateForm(data) {
+            if (data.name.trim().length < 2) {
+                return "Informe seu nome.";
+            }
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) {
+                return "Informe um e-mail valido.";
+            }
+
+            if (data.title.trim().length < 4) {
+                return "Informe um assunto com pelo menos 4 caracteres.";
+            }
+
+            if (data.description.trim().length < 10) {
+                return "Descreva com mais detalhes.";
+            }
+
+            return null;
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            clearStatus();
+
+            const formData = new FormData(form);
+            const payload = {
+                name: formData.get("name"),
+                email: formData.get("email"),
+                category: formData.get("category"),
+                title: formData.get("title"),
+                description: formData.get("description"),
+                website: formData.get("website"),
+            };
+
+            const validationError = validateForm(payload);
+            if (validationError) {
+                setStatus("error", validationError);
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const result = await submitSupportTicket(payload);
+                const ticketId = result.data?.ticketId || "gerado";
+
+                form.reset();
+                document.getElementById("category").value = "feedback";
+                setStatus("success", `Ticket enviado com sucesso. ID: ${ticketId}.`);
+            } catch (error) {
+                const message =
+                    error?.message ||
+                    "Nao foi possivel enviar agora. Tente novamente ou use suporte@mube.app.";
+                setStatus("error", message);
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+
+</html>

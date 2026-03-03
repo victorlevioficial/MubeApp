@@ -39,8 +39,9 @@ void main() {
     );
     when(
       mockRepo.fetchCandidates(
-        currentUserId: anyNamed('currentUserId'),
+        currentUser: anyNamed('currentUser'),
         genres: anyNamed('genres'),
+        hashtags: anyNamed('hashtags'),
         blockedUsers: anyNamed('blockedUsers'),
         limit: anyNamed('limit'),
       ),

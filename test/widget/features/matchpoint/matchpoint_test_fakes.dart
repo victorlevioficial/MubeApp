@@ -72,15 +72,17 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
 
   @override
   FutureResult<List<AppUser>> fetchCandidates({
-    String? currentUserId,
+    AppUser? currentUser,
     List<String>? genres,
+    List<String>? hashtags,
     List<String>? blockedUsers,
     int? limit = 20,
   }) {
     return super.noSuchMethod(
           Invocation.method(#fetchCandidates, [], {
-            #currentUserId: currentUserId,
+            #currentUser: currentUser,
             #genres: genres,
+            #hashtags: hashtags,
             #blockedUsers: blockedUsers,
             #limit: limit,
           }),
@@ -116,5 +118,17 @@ class MockMatchpointRepository extends Mock implements MatchpointRepository {
           ),
         )
         as FutureResult<List<HashtagRanking>>;
+  }
+
+  @override
+  FutureResult<AppUser?> fetchUserById(String? userId) {
+    return super.noSuchMethod(
+          Invocation.method(#fetchUserById, [userId]),
+          returnValue: Future.value(const Right<Failure, AppUser?>(null)),
+          returnValueForMissingStub: Future.value(
+            const Right<Failure, AppUser?>(null),
+          ),
+        )
+        as FutureResult<AppUser?>;
   }
 }

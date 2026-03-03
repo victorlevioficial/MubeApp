@@ -8,11 +8,15 @@ import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/components/patterns/full_width_selection_card.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
+import '../../bands/domain/band_activation_rules.dart';
 import 'onboarding_controller.dart';
+import 'widgets/band_profile_tutorial_dialog.dart';
 
 /// Enhanced onboarding type selection screen with full-width cards.
 ///
@@ -40,8 +44,8 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
   final List<Map<String, dynamic>> _types = [
     {
       'value': 'profissional',
-      'label': 'Profissional',
-      'description': 'Músico, cantor, DJ, técnico',
+      'label': 'Perfil Individual',
+      'description': 'Cantor, instrumentista, DJ ou equipe técnica',
       'icon': FontAwesomeIcons.music,
     },
     {
@@ -68,7 +72,6 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
   void initState() {
     super.initState();
 
-    // Setup animations (similar to login screen)
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -111,6 +114,33 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
     }
   }
 
+  Future<void> _handleTypeSelection(Map<String, dynamic> type) async {
+    final selectedValue = type['value'] as String;
+
+    if (selectedValue != 'banda') {
+      setState(() => _selectedType = selectedValue);
+      return;
+    }
+
+    if (_selectedType == selectedValue) {
+      return;
+    }
+
+    final previousSelection = _selectedType;
+    final shouldContinue = await BandProfileTutorialDialog.show(
+      context: context,
+      minimumMembers: minimumBandMembersForActivation,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _selectedType = shouldContinue ? selectedValue : previousSelection;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
@@ -137,72 +167,90 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
             );
           }
 
-          return SafeArea(
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: ResponsiveCenter(
-                maxContentWidth: 600,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s24,
-                  vertical: AppSpacing.s48,
-                ),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Header with logo and welcome message
-                        _buildHeader(),
-
-                        const SizedBox(height: AppSpacing.s48),
-
-                        // Full-width selection cards
-                        ...List.generate(_types.length, (index) {
-                          final type = _types[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index < _types.length - 1
-                                  ? AppSpacing.s16
-                                  : 0,
-                            ),
-                            child: FullWidthSelectionCard(
-                              icon: type['icon'],
-                              title: type['label'],
-                              description: type['description'],
-                              isSelected: _selectedType == type['value'],
-                              onTap: () {
-                                setState(() => _selectedType = type['value']);
-                              },
-                            ),
-                          );
-                        }),
-
-                        const SizedBox(height: AppSpacing.s48),
-
-                        // Continue Button
-                        SizedBox(
-                          height: 56,
-                          child: AppButton.primary(
-                            text: 'Continuar',
-                            size: AppButtonSize.large,
-                            isLoading: state.isLoading,
-                            onPressed: _selectedType != null
-                                ? () => _submit(user)
-                                : null,
-                            isFullWidth: true,
+          return Column(
+            children: [
+              Expanded(
+                child: SafeArea(
+                  bottom: false,
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: ResponsiveCenter(
+                      maxContentWidth: 600,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.s24,
+                        AppSpacing.s32,
+                        AppSpacing.s24,
+                        AppSpacing.s24,
+                      ),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildHeader(),
+                              const SizedBox(height: AppSpacing.s32),
+                              ...List.generate(_types.length, (index) {
+                                final type = _types[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index < _types.length - 1
+                                        ? AppSpacing.s12
+                                        : 0,
+                                  ),
+                                  child: FullWidthSelectionCard(
+                                    icon: type['icon'] as IconData,
+                                    title: type['label'] as String,
+                                    description: type['description'] as String?,
+                                    isSelected: _selectedType == type['value'],
+                                    onTap: () => _handleTypeSelection(type),
+                                    density: SelectionCardDensity.compact,
+                                  ),
+                                );
+                              }),
+                            ],
                           ),
                         ),
-
-                        const SizedBox(height: AppSpacing.s24),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+              SafeArea(
+                top: false,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    border: const Border(
+                      top: BorderSide(color: AppColors.border),
+                    ),
+                    boxShadow: AppEffects.subtleShadow,
+                  ),
+                  child: ResponsiveCenter(
+                    maxContentWidth: 600,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.s24,
+                      AppSpacing.s16,
+                      AppSpacing.s24,
+                      AppSpacing.s24,
+                    ),
+                    child: SizedBox(
+                      height: 56,
+                      child: AppButton.primary(
+                        text: 'Continuar',
+                        size: AppButtonSize.large,
+                        isLoading: state.isLoading,
+                        onPressed: _selectedType != null
+                            ? () => _submit(user)
+                            : null,
+                        isFullWidth: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -212,7 +260,6 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
   Widget _buildHeader() {
     return Column(
       children: [
-        // Welcome title
         Text(
           'Bem-vindo ao Mube!',
           textAlign: TextAlign.center,
@@ -222,16 +269,48 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
             height: 1.2,
           ),
         ),
-
         const SizedBox(height: AppSpacing.s12),
-
-        // Subtitle
         Text(
           'Como você quer usar a plataforma?',
           textAlign: TextAlign.center,
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
             height: 1.5,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s20),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s14,
+            vertical: AppSpacing.s12,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all16,
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.85)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  size: 16,
+                  color: AppColors.info,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: Text(
+                  'Se escolher o tipo errado, você ainda pode voltar e alterar isso antes de concluir o cadastro.',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

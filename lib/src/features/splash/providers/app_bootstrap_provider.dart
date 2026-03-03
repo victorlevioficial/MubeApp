@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +36,7 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
 
     try {
       await ref.read(appCheckBootstrapperProvider)();
-      await ref.read(notificationPermissionPromptProvider.future);
+      unawaited(_warmNotificationPermissionPromptState());
     } catch (error, stack) {
       AppLogger.warning(
         'Falha ao concluir bootstrap inicial do app',
@@ -44,6 +46,18 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     } finally {
       state = AppBootstrapState.ready;
       _isStarting = false;
+    }
+  }
+
+  Future<void> _warmNotificationPermissionPromptState() async {
+    try {
+      await ref.read(notificationPermissionPromptProvider.future);
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao aquecer estado da permissao de notificacoes',
+        error,
+        stack,
+      );
     }
   }
 }

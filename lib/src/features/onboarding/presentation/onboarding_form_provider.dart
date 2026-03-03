@@ -6,6 +6,7 @@ import 'package:mube/src/utils/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common_widgets/location_service.dart';
+import '../../address/domain/resolved_address.dart';
 
 class OnboardingFormState {
   final String? nome;
@@ -36,7 +37,7 @@ class OnboardingFormState {
   final String? estado;
   final double? selectedLat;
   final double? selectedLng;
-  final String? initialLocationLabel; // Cached preview label
+  final String? initialLocationLabel;
 
   const OnboardingFormState({
     this.nome,
@@ -177,11 +178,44 @@ class OnboardingFormState {
 
   factory OnboardingFormState.fromJson(String source) =>
       OnboardingFormState.fromMap(json.decode(source));
+
+  ResolvedAddress? get resolvedAddress {
+    final address = ResolvedAddress(
+      logradouro: logradouro?.trim() ?? '',
+      numero: numero?.trim() ?? '',
+      bairro: bairro?.trim() ?? '',
+      cidade: cidade?.trim() ?? '',
+      estado: estado?.trim() ?? '',
+      cep: cep?.trim() ?? '',
+      lat: selectedLat,
+      lng: selectedLng,
+    );
+
+    if (address.logradouro.isEmpty &&
+        address.cidade.isEmpty &&
+        address.estado.isEmpty &&
+        !address.hasCoordinates) {
+      return null;
+    }
+    return address;
+  }
+
+  Map<String, dynamic> get locationMap => {
+    'cep': cep,
+    'logradouro': logradouro,
+    'numero': numero,
+    'bairro': bairro,
+    'cidade': cidade,
+    'estado': estado,
+    'lat': selectedLat,
+    'lng': selectedLng,
+  };
 }
 
 class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   static const _storageKey = 'onboarding_form_state';
   static const _persistDebounce = Duration(milliseconds: 350);
+
   final _locationService = LocationService();
   SharedPreferences? _prefs;
   Timer? _persistTimer;
@@ -210,8 +244,12 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     if (jsonStr != null) {
       try {
         state = OnboardingFormState.fromJson(jsonStr);
-      } catch (e, st) {
-        AppLogger.warning('Falha ao restaurar estado do onboarding', e, st);
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Falha ao restaurar estado do onboarding',
+          error,
+          stackTrace,
+        );
       }
     }
   }
@@ -236,126 +274,121 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     await prefs.remove(_storageKey);
   }
 
-  // Fetch initial location preview if not already set
   Future<void> fetchInitialLocation() async {
-    // If we already have a full address selected, we don't need a vague preview
     if (state.logradouro != null && state.logradouro!.isNotEmpty) return;
 
-    // If not, try to get current location
     try {
+      if (!LocationService.isConfigured) return;
+
       final position = await _locationService.getCurrentPosition();
-      if (position != null) {
-        final details = await _locationService.getAddressFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-        if (details != null) {
-          final parts = <String>[
-            (details['logradouro'] ?? '').toString(),
-            (details['bairro'] ?? '').toString(),
-            (details['cidade'] ?? '').toString(),
-          ].where((value) => value.trim().isNotEmpty).toList();
-          final label = parts.isEmpty ? 'Localizacao atual' : parts.join(' - ');
-          state = state.copyWith(initialLocationLabel: label);
-          // We don't necessarily save this to disk as it's transient/ephemeral
-        }
-      }
-    } catch (e, st) {
+      final details = await _locationService.getAddressFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (details == null) return;
+
+      final parts = <String>[
+        details.titleLine,
+        details.subtitleLine,
+      ].where((value) => value.trim().isNotEmpty).toList();
+      final label = parts.isEmpty ? 'Localizacao atual' : parts.join(' - ');
+      state = state.copyWith(initialLocationLabel: label);
+    } on LocationServiceException {
+      // Preview is optional; ignore operational location errors here.
+    } catch (error, stackTrace) {
       AppLogger.warning(
-        'Falha ao buscar localização inicial no onboarding',
-        e,
-        st,
+        'Falha ao buscar localizacao inicial no onboarding',
+        error,
+        stackTrace,
       );
     }
   }
 
-  void updateNome(String val) {
-    if (state.nome == val) return;
-    state = state.copyWith(nome: val);
+  void updateNome(String value) {
+    if (state.nome == value) return;
+    state = state.copyWith(nome: value);
     _scheduleSave();
   }
 
-  void updateNomeArtistico(String val) {
-    if (state.nomeArtistico == val) return;
-    state = state.copyWith(nomeArtistico: val);
+  void updateNomeArtistico(String value) {
+    if (state.nomeArtistico == value) return;
+    state = state.copyWith(nomeArtistico: value);
     _scheduleSave();
   }
 
-  void updateCelular(String val) {
-    if (state.celular == val) return;
-    state = state.copyWith(celular: val);
+  void updateCelular(String value) {
+    if (state.celular == value) return;
+    state = state.copyWith(celular: value);
     _scheduleSave();
   }
 
-  void updateDataNascimento(String val) {
-    if (state.dataNascimento == val) return;
-    state = state.copyWith(dataNascimento: val);
+  void updateDataNascimento(String value) {
+    if (state.dataNascimento == value) return;
+    state = state.copyWith(dataNascimento: value);
     _scheduleSave();
   }
 
-  void updateGenero(String val) {
-    if (state.genero == val) return;
-    state = state.copyWith(genero: val);
+  void updateGenero(String value) {
+    if (state.genero == value) return;
+    state = state.copyWith(genero: value);
     _scheduleSave();
   }
 
-  void updateInstagram(String val) {
-    if (state.instagram == val) return;
-    state = state.copyWith(instagram: val);
+  void updateInstagram(String value) {
+    if (state.instagram == value) return;
+    state = state.copyWith(instagram: value);
     _scheduleSave();
   }
 
-  void updateCategories(List<String> val) => updateSelectedCategories(val);
-  void updateGenres(List<String> val) => updateSelectedGenres(val);
-  void updateInstruments(List<String> val) => updateSelectedInstruments(val);
-  void updateRoles(List<String> val) => updateSelectedRoles(val);
-  void updateServices(List<String> val) => updateSelectedServices(val);
+  void updateCategories(List<String> value) => updateSelectedCategories(value);
+  void updateGenres(List<String> value) => updateSelectedGenres(value);
+  void updateInstruments(List<String> value) => updateSelectedInstruments(value);
+  void updateRoles(List<String> value) => updateSelectedRoles(value);
+  void updateServices(List<String> value) => updateSelectedServices(value);
 
-  void updateSelectedCategories(List<String> val) {
-    state = state.copyWith(selectedCategories: val);
+  void updateSelectedCategories(List<String> value) {
+    state = state.copyWith(selectedCategories: value);
     _scheduleSave();
   }
 
-  void updateSelectedGenres(List<String> val) {
-    state = state.copyWith(selectedGenres: val);
+  void updateSelectedGenres(List<String> value) {
+    state = state.copyWith(selectedGenres: value);
     _scheduleSave();
   }
 
-  void updateSelectedInstruments(List<String> val) {
-    state = state.copyWith(selectedInstruments: val);
+  void updateSelectedInstruments(List<String> value) {
+    state = state.copyWith(selectedInstruments: value);
     _scheduleSave();
   }
 
-  void updateSelectedRoles(List<String> val) {
-    state = state.copyWith(selectedRoles: val);
+  void updateSelectedRoles(List<String> value) {
+    state = state.copyWith(selectedRoles: value);
     _scheduleSave();
   }
 
-  void updateBackingVocalMode(String val) {
-    if (state.backingVocalMode == val) return;
-    state = state.copyWith(backingVocalMode: val);
+  void updateBackingVocalMode(String value) {
+    if (state.backingVocalMode == value) return;
+    state = state.copyWith(backingVocalMode: value);
     _scheduleSave();
   }
 
-  void updateInstrumentalistBackingVocal(bool val) {
-    if (state.instrumentalistBackingVocal == val) return;
-    state = state.copyWith(instrumentalistBackingVocal: val);
+  void updateInstrumentalistBackingVocal(bool value) {
+    if (state.instrumentalistBackingVocal == value) return;
+    state = state.copyWith(instrumentalistBackingVocal: value);
     _scheduleSave();
   }
 
-  // Studio
-  void updateStudioType(String val) {
-    if (state.studioType == val) return;
-    state = state.copyWith(studioType: val);
+  void updateStudioType(String value) {
+    if (state.studioType == value) return;
+    state = state.copyWith(studioType: value);
     _scheduleSave();
   }
 
-  void updateSelectedServices(List<String> val) {
-    state = state.copyWith(selectedServices: val);
+  void updateSelectedServices(List<String> value) {
+    state = state.copyWith(selectedServices: value);
     _scheduleSave();
   }
 
-  // Address
   void updateAddress({
     String? cep,
     String? logradouro,
@@ -377,6 +410,19 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
       selectedLng: lng ?? state.selectedLng,
     );
     _scheduleSave();
+  }
+
+  void updateResolvedAddress(ResolvedAddress address) {
+    updateAddress(
+      cep: address.cep,
+      logradouro: address.logradouro,
+      numero: address.numero,
+      bairro: address.bairro,
+      cidade: address.cidade,
+      estado: address.estado,
+      lat: address.lat,
+      lng: address.lng,
+    );
   }
 }
 

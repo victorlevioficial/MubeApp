@@ -93,7 +93,41 @@ class MatchCard extends StatelessWidget {
                 ),
               ),
 
-              // 3. Content Info
+              // 3. "Tap to see more" hint
+              if (onTap != null)
+                Positioned(
+                  top: AppSpacing.s16,
+                  right: AppSpacing.s16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s12,
+                      vertical: AppSpacing.s8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.background.withValues(alpha: 0.7),
+                      borderRadius: AppRadius.pill,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.expand_more,
+                          color: AppColors.textPrimary,
+                          size: 16,
+                        ),
+                        const SizedBox(width: AppSpacing.s4),
+                        Text(
+                          'Ver mais',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // 4. Content Info
               Positioned(
                 bottom: 0,
                 left: 0,

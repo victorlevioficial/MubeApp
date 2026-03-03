@@ -8,6 +8,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../routing/route_paths.dart';
 import '../../../auth/data/auth_repository.dart';
 
 /// Enhanced profile header with modern bento grid layout
@@ -32,7 +33,7 @@ class BentoHeader extends ConsumerWidget {
           name: user?.appDisplayName ?? 'Bem-vindo',
           email: user?.email ?? 'Visitante',
           photoUrl: user?.foto,
-          onEditTap: () => context.push('/profile/edit'),
+          onEditTap: () => context.push(RoutePaths.profileEdit),
         ),
 
         const SizedBox(height: AppSpacing.s16),
@@ -41,6 +42,7 @@ class BentoHeader extends ConsumerWidget {
         _StatsGrid(
           favoritesCount: user?.favoritesCount ?? 0,
           planType: user?.plan ?? 'free',
+          onFavoritesTap: () => context.push(RoutePaths.receivedFavorites),
         ),
       ],
     );
@@ -91,52 +93,35 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Enhanced Avatar with border
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.surface,
-              child: photoUrl == null
-                  ? Icon(
-                      Icons.person_rounded,
-                      color: AppColors.textSecondary.withValues(alpha: 0.5),
-                      size: 32,
-                    )
-                  : ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl: photoUrl!,
-                        fit: BoxFit.cover,
-                        width: 64,
-                        height: 64,
-                        cacheManager: ImageCacheConfig.profileCacheManager,
-                        memCacheWidth: 160,
-                        memCacheHeight: 160,
-                        fadeInDuration: Duration.zero,
-                        fadeOutDuration: Duration.zero,
-                        placeholder: (context, _) =>
-                            Container(color: AppColors.surface),
-                        errorWidget: (context, _, _) => Icon(
-                          Icons.person_rounded,
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                          size: 32,
-                        ),
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: AppColors.surface,
+            child: photoUrl == null
+                ? Icon(
+                    Icons.person_rounded,
+                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                    size: 32,
+                  )
+                : ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: photoUrl!,
+                      fit: BoxFit.cover,
+                      width: 64,
+                      height: 64,
+                      cacheManager: ImageCacheConfig.profileCacheManager,
+                      memCacheWidth: 160,
+                      memCacheHeight: 160,
+                      fadeInDuration: Duration.zero,
+                      fadeOutDuration: Duration.zero,
+                      placeholder: (context, _) =>
+                          Container(color: AppColors.surface),
+                      errorWidget: (context, _, _) => Icon(
+                        Icons.person_rounded,
+                        color: AppColors.textSecondary.withValues(alpha: 0.5),
+                        size: 32,
                       ),
                     ),
-            ),
+                  ),
           ),
 
           const SizedBox(width: AppSpacing.s16),
@@ -219,8 +204,13 @@ class _EditButton extends StatelessWidget {
 class _StatsGrid extends StatelessWidget {
   final int favoritesCount;
   final String planType;
+  final VoidCallback onFavoritesTap;
 
-  const _StatsGrid({required this.favoritesCount, required this.planType});
+  const _StatsGrid({
+    required this.favoritesCount,
+    required this.planType,
+    required this.onFavoritesTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -233,6 +223,7 @@ class _StatsGrid extends StatelessWidget {
             iconColor: AppColors.primary,
             value: favoritesCount.toString(),
             label: 'Favoritos',
+            onTap: onFavoritesTap,
           ),
         ),
 
@@ -262,17 +253,19 @@ class _StatCard extends StatelessWidget {
   final Color iconColor;
   final String value;
   final String label;
+  final VoidCallback? onTap;
 
   const _StatCard({
     required this.icon,
     required this.iconColor,
     required this.value,
     required this.label,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final content = Ink(
       padding: const EdgeInsets.all(AppSpacing.s16),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.6),
@@ -332,6 +325,18 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: AppRadius.all20,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.all20,
+        splashColor: iconColor.withValues(alpha: 0.08),
+        highlightColor: iconColor.withValues(alpha: 0.04),
+        child: content,
       ),
     );
   }

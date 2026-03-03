@@ -161,7 +161,9 @@ class _AppAutocompleteFieldState<T> extends State<AppAutocompleteField<T>> {
                 child: Material(
                   elevation: 8,
                   color: AppColors.surface,
+                  surfaceTintColor: AppColors.transparent,
                   borderRadius: AppRadius.all12,
+                  clipBehavior: Clip.antiAlias,
                   shadowColor: AppColors.background.withValues(alpha: 0.15),
                   child: Container(
                     constraints: const BoxConstraints(maxHeight: 250),

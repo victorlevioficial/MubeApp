@@ -33,6 +33,7 @@ Map<String, dynamic> _$AppNotificationToJson(_AppNotification instance) =>
 const _$NotificationTypeEnumMap = {
   NotificationType.chatMessage: 'chat_message',
   NotificationType.bandInvite: 'band_invite',
+  NotificationType.bandInviteAccepted: 'band_invite_accepted',
   NotificationType.like: 'like',
   NotificationType.system: 'system',
 };

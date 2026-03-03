@@ -46,6 +46,7 @@ class OnboardingProfessionalFlow extends ConsumerStatefulWidget {
 class _OnboardingProfessionalFlowState
     extends ConsumerState<OnboardingProfessionalFlow> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // State
   int _currentStep = 1;
@@ -133,6 +134,7 @@ class _OnboardingProfessionalFlowState
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _nomeController.dispose();
     _nomeArtisticoController.dispose();
     _celularController.dispose();
@@ -146,7 +148,7 @@ class _OnboardingProfessionalFlowState
     if (_currentStep == 1) {
       if (!_formKey.currentState!.validate()) return;
       if (!_validateAge()) return;
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     } else if (_currentStep == 2) {
       if (_selectedCategories.isEmpty) {
         AppSnackBar.show(
@@ -160,7 +162,7 @@ class _OnboardingProfessionalFlowState
       ref
           .read(onboardingFormProvider.notifier)
           .updateCategories(_selectedCategories);
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     } else if (_currentStep == 3) {
       if (!_isStep3Valid) {
         AppSnackBar.show(
@@ -175,18 +177,27 @@ class _OnboardingProfessionalFlowState
         ..updateGenres(_selectedGenres)
         ..updateInstruments(_selectedInstruments)
         ..updateRoles(_selectedRoles);
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     }
   }
 
   void _prevStep() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      _setCurrentStep(_currentStep - 1);
     } else {
       ref
           .read(onboardingControllerProvider.notifier)
           .resetToTypeSelection(currentUser: widget.user);
     }
+  }
+
+  void _setCurrentStep(int nextStep) {
+    setState(() => _currentStep = nextStep);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.jumpTo(0);
+    });
   }
 
   bool _validateAge() {
@@ -239,7 +250,7 @@ class _OnboardingProfessionalFlowState
     return true;
   }
 
-  void _finishOnboarding() {
+  Future<void> _finishOnboarding() async {
     final appConfigAsync = ref.read(appConfigProvider);
     final appConfig = appConfigAsync.value;
 
@@ -304,23 +315,12 @@ class _OnboardingProfessionalFlowState
 
     final formState = ref.read(onboardingFormProvider);
 
-    final location = {
-      'cep': formState.cep,
-      'logradouro': formState.logradouro,
-      'numero': formState.numero,
-      'bairro': formState.bairro,
-      'cidade': formState.cidade,
-      'estado': formState.estado,
-      'lat': formState.selectedLat,
-      'lng': formState.selectedLng,
-    };
-
-    ref
+    await ref
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
           nome: _nomeController.text.trim(),
-          location: location,
+          location: formState.locationMap,
           dadosProfissional: professionalData,
         );
   }
@@ -331,6 +331,7 @@ class _OnboardingProfessionalFlowState
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: _scrollController,
           child: ResponsiveCenter(
             maxContentWidth: 600,
             padding: const EdgeInsets.symmetric(
@@ -354,7 +355,7 @@ class _OnboardingProfessionalFlowState
                   if (_currentStep == 3) _buildStep3UI(),
                   if (_currentStep == 4)
                     OnboardingAddressStep(
-                      onNext: () async => _finishOnboarding(),
+                      onNext: _finishOnboarding,
                       onBack: _prevStep,
                       initialLocationLabel: ref
                           .watch(onboardingFormProvider)

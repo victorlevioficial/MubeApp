@@ -6,6 +6,7 @@ import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../design_system/components/inputs/enhanced_multi_select_modal.dart';
 import '../../../../design_system/components/navigation/responsive_center.dart';
@@ -51,6 +52,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
     filter: {'#': RegExp(r'[0-9]')},
   );
 
+  String? _studioType;
   List<String> _selectedServices = [];
 
   @override
@@ -67,6 +69,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         widget.user.appDisplayName;
     _celularController.text = formState.celular ?? '';
     _instagramController.text = formState.instagram ?? '';
+    _studioType = formState.studioType ?? (studioData['studioType'] as String?);
     _selectedServices = List.from(formState.selectedServices);
 
     _nomeCompletoController.addListener(
@@ -109,6 +112,10 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
       if (!_formKey.currentState!.validate()) return;
       setState(() => _currentStep++);
     } else if (_currentStep == 2) {
+      if ((_studioType ?? '').isEmpty) {
+        AppSnackBar.show(context, 'Selecione o tipo do estudio', isError: true);
+        return;
+      }
       if (_selectedServices.isEmpty) {
         AppSnackBar.show(
           context,
@@ -117,6 +124,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         );
         return;
       }
+      ref.read(onboardingFormProvider.notifier).updateStudioType(_studioType!);
       ref
           .read(onboardingFormProvider.notifier)
           .updateServices(_selectedServices);
@@ -134,8 +142,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
     }
   }
 
-  void _finishOnboarding() {
+  Future<void> _finishOnboarding() async {
     final studioDisplayName = _nomeEstudioController.text.trim();
+    final formState = ref.read(onboardingFormProvider);
 
     final Map<String, dynamic> studioData = {
       'nomeEstudio': studioDisplayName,
@@ -143,30 +152,18 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
       'nome': studioDisplayName,
       'celular': _celularController.text,
       'instagram': _instagramController.text,
+      'studioType': formState.studioType ?? _studioType,
       'servicosOferecidos': _selectedServices,
       'services': _selectedServices,
       'isPublic': true,
     };
 
-    final formState = ref.read(onboardingFormProvider);
-
-    final location = {
-      'cep': formState.cep,
-      'logradouro': formState.logradouro,
-      'numero': formState.numero,
-      'bairro': formState.bairro,
-      'cidade': formState.cidade,
-      'estado': formState.estado,
-      'lat': formState.selectedLat,
-      'lng': formState.selectedLng,
-    };
-
-    ref
+    await ref
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
           nome: _nomeCompletoController.text.trim(),
-          location: location,
+          location: formState.locationMap,
           dadosEstudio: studioData,
         );
   }
@@ -199,7 +196,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                   if (_currentStep == 2) _buildStep2UI(),
                   if (_currentStep == 3)
                     OnboardingAddressStep(
-                      onNext: () async => _finishOnboarding(),
+                      onNext: _finishOnboarding,
                       onBack: _prevStep,
                       initialLocationLabel: ref
                           .watch(onboardingFormProvider)
@@ -291,13 +288,13 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Servicos Oferecidos',
+          'Tipo e Servicos do Estudio',
           style: AppTypography.headlineLarge,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Quais servicos seu estudio oferece?',
+          'Defina se seu estudio e comercial ou home studio e quais servicos ele oferece.',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -305,6 +302,22 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         ),
 
         const SizedBox(height: AppSpacing.s32),
+
+        AppDropdownField<String>(
+          label: 'Tipo de Estudio *',
+          value: _studioType,
+          items: const [
+            DropdownMenuItem(value: 'commercial', child: Text('Comercial')),
+            DropdownMenuItem(value: 'home_studio', child: Text('Home Studio')),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _studioType = value);
+            ref.read(onboardingFormProvider.notifier).updateStudioType(value);
+          },
+        ),
+
+        const SizedBox(height: AppSpacing.s24),
 
         Container(
           padding: const EdgeInsets.all(AppSpacing.s16),
@@ -401,6 +414,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                     );
                     if (result != null) {
                       setState(() => _selectedServices = result);
+                      ref
+                          .read(onboardingFormProvider.notifier)
+                          .updateServices(result);
                     }
                   },
                   icon: Icon(
@@ -420,7 +436,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           child: AppButton.primary(
             text: 'Continuar',
             size: AppButtonSize.large,
-            onPressed: _selectedServices.isNotEmpty ? _nextStep : null,
+            onPressed: _nextStep,
             isFullWidth: true,
           ),
         ),

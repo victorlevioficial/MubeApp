@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:diacritic/diacritic.dart';
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,42 +11,39 @@ import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/utils/app_logger.dart';
+import 'package:mube/src/utils/distance_calculator.dart';
+import 'package:mube/src/utils/geohash_helper.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../core/services/analytics/analytics_service.dart';
 
 abstract class MatchpointRemoteDataSource {
   Future<List<AppUser>> fetchCandidates({
-    required String currentUserId,
+    required AppUser currentUser,
     required List<String> genres,
-    required List<String> excludedUserIds, // Blocked users
+    required List<String> hashtags,
+    required List<String> excludedUserIds,
     int limit = 50,
   });
 
-  /// Submete uma ação (like/dislike) via Cloud Function
   Future<MatchpointActionResult> submitAction({
     required String targetUserId,
-    required String action, // 'like' or 'dislike'
+    required String action,
   });
 
-  /// Busca interações existentes (para filtrar candidatos)
   Future<List<String>> fetchExistingInteractions(String currentUserId);
 
-  /// Obtém informações de quota de likes restantes
   Future<LikesQuotaInfo> getRemainingLikes();
 
-  /// Busca matches do usuário atual
   Future<List<Map<String, dynamic>>> fetchMatches(String currentUserId);
 
-  /// Busca usuário por ID
   Future<AppUser?> fetchUserById(String userId);
 
-  /// Busca ranking de hashtags em alta
   Future<List<HashtagRanking>> fetchHashtagRanking({int limit = 20});
 
-  /// Busca hashtags por termo de pesquisa
   Future<List<HashtagRanking>> searchHashtags(String query, {int limit = 20});
 
-  /// Salva o perfil do matchpoint
   Future<void> saveProfile({
     required String userId,
     required Map<String, dynamic> profileData,
@@ -53,8 +53,13 @@ abstract class MatchpointRemoteDataSource {
 class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
+  final AnalyticsService? _analytics;
 
-  MatchpointRemoteDataSourceImpl(this._firestore, this._functions);
+  MatchpointRemoteDataSourceImpl(
+    this._firestore,
+    this._functions, {
+    AnalyticsService? analytics,
+  }) : _analytics = analytics;
 
   bool _isAuthContextError(FirebaseFunctionsException e) {
     final code = e.code.toLowerCase();
@@ -73,7 +78,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         await currentUser.getIdToken(true);
       } catch (e, stack) {
         AppLogger.warning(
-          'Falha ao forçar refresh do FirebaseAuth token antes do retry',
+          'Failed to refresh FirebaseAuth token before retry.',
           e,
           stack,
         );
@@ -84,7 +89,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       await app_check.FirebaseAppCheck.instance.getToken(true);
     } catch (e, stack) {
       AppLogger.warning(
-        'Falha ao obter token App Check antes do retry',
+        'Failed to refresh App Check token before retry.',
         e,
         stack,
       );
@@ -102,7 +107,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       if (!_isAuthContextError(e)) rethrow;
 
       AppLogger.warning(
-        '$functionName retornou ${e.code}. Fazendo refresh de sessão e retry único.',
+        '$functionName returned ${e.code}. Refreshing auth context and retrying once.',
       );
       await _refreshSecurityTokens();
       return await callable.call(data);
@@ -111,89 +116,210 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   @override
   Future<List<AppUser>> fetchCandidates({
-    required String currentUserId,
+    required AppUser currentUser,
     required List<String> genres,
+    required List<String> hashtags,
     required List<String> excludedUserIds,
     int limit = 20,
   }) async {
-    // 1. Basic filtering in Firestore
-    Query query = _firestore.collection(FirestoreCollections.users);
-
-    // Active users only
-    query = query.where(
-      '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
-      isEqualTo: true,
+    final excludedIds = {...excludedUserIds, currentUser.uid};
+    final currentLocation = _extractUserCoordinates(currentUser);
+    final currentGeohash = _resolveCurrentUserGeohash(
+      currentUser,
+      currentLocation,
     );
-
-    // Filter by Genre (Array Contains Any)
-    if (genres.isNotEmpty) {
-      query = query.where(
-        '${FirestoreFields.matchpointProfile}.${FirestoreFields.musicalGenres}',
-        arrayContainsAny: genres
-            .take(10)
-            .toList(), // Limit 10 for 'in/array-contains-any'
-      );
-    }
-
-    final snapshot = await query.limit(limit).get();
-
-    // 2. Map to AppUser and filter blocked users
-    final primaryCandidates = snapshot.docs
-        .where(
-          (doc) => doc.id != currentUserId && !excludedUserIds.contains(doc.id),
-        )
-        .map((doc) => AppUser.fromJson(doc.data() as Map<String, dynamic>))
-        .toList();
-
-    if (primaryCandidates.isNotEmpty || genres.isEmpty) {
-      return primaryCandidates;
-    }
-
-    // Fallback para dados legados:
-    // alguns perfis antigos salvaram gêneros em chaves diferentes dentro de
-    // matchpoint_profile (musicalGenres/musical_genres) ou só no perfil base.
-    final fallbackSnapshot = await _firestore
-        .collection(FirestoreCollections.users)
-        .where(
-          '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
-          isEqualTo: true,
-        )
-        .limit(limit * 5)
-        .get();
-
+    final searchRadiusKm = _resolveSearchRadius(currentUser.matchpointProfile);
     final targetGenres = genres
-        .map((genre) => _normalizeGenreToken(genre))
+        .map(_normalizeGenreToken)
         .where((genre) => genre.isNotEmpty)
         .toSet();
+    final targetHashtags = hashtags
+        .map(_normalizeHashtagToken)
+        .where((hashtag) => hashtag.isNotEmpty)
+        .toSet();
+    final poolLimit = _resolvePoolLimit(limit);
 
-    final fallbackCandidates = fallbackSnapshot.docs
-        .where((doc) {
-          if (doc.id == currentUserId || excludedUserIds.contains(doc.id)) {
-            return false;
-          }
-          final data = doc.data();
-          return _hasAnyGenreMatch(data, targetGenres);
-        })
-        .map((doc) => AppUser.fromJson(doc.data()))
-        .take(limit);
+    final candidateDocs = await _fetchCandidateDocuments(
+      currentUserGeohash: currentGeohash,
+      poolLimit: poolLimit,
+    );
 
-    final result = fallbackCandidates.toList();
-    if (result.isNotEmpty) {
-      AppLogger.info(
-        'MatchPoint fallback de gêneros acionado. candidatos=${result.length}',
+    final scoredCandidates =
+        candidateDocs
+            .where((doc) => !excludedIds.contains(doc.id))
+            .map(
+              (doc) => _scoreCandidate(
+                docId: doc.id,
+                userData: doc.data(),
+                currentLocation: currentLocation,
+                searchRadiusKm: searchRadiusKm,
+                targetGenres: targetGenres,
+                targetHashtags: targetHashtags,
+              ),
+            )
+            .whereType<_ScoredCandidate>()
+            .toList()
+          ..sort(_compareCandidates);
+
+    if (scoredCandidates.isEmpty) {
+      _logRankingAudit(
+        currentUserGeohash: currentGeohash,
+        queryGenresCount: targetGenres.length,
+        queryHashtagsCount: targetHashtags.length,
+        pool: const [],
+        returned: const [],
       );
+      AppLogger.info('MatchPoint: no eligible candidates found after ranking.');
+      return const [];
     }
-    return result;
+
+    final returnedCandidates = scoredCandidates
+        .take(limit)
+        .toList(growable: false);
+    _logRankingAudit(
+      currentUserGeohash: currentGeohash,
+      queryGenresCount: targetGenres.length,
+      queryHashtagsCount: targetHashtags.length,
+      pool: scoredCandidates,
+      returned: returnedCandidates,
+    );
+
+    return returnedCandidates.map((item) => item.user).toList();
   }
 
-  bool _hasAnyGenreMatch(
-    Map<String, dynamic> userData,
-    Set<String> targetGenres,
-  ) {
-    final genres = _extractCandidateGenres(
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+  _fetchCandidateDocuments({
+    required String? currentUserGeohash,
+    required int poolLimit,
+  }) async {
+    final seenIds = <String>{};
+    final docs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+
+    void appendSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
+      for (final doc in snapshot.docs) {
+        if (seenIds.add(doc.id)) {
+          docs.add(doc);
+        }
+      }
+    }
+
+    if (currentUserGeohash != null && currentUserGeohash.isNotEmpty) {
+      try {
+        final nearbySnapshot = await _firestore
+            .collection(FirestoreCollections.users)
+            .where(
+              '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
+              isEqualTo: true,
+            )
+            .where(
+              FirestoreFields.geohash,
+              whereIn: GeohashHelper.neighbors(currentUserGeohash),
+            )
+            .limit(poolLimit)
+            .get();
+        appendSnapshot(nearbySnapshot);
+      } catch (e, stack) {
+        AppLogger.warning(
+          'MatchPoint: geohash query failed, falling back to global pool.',
+          e,
+          stack,
+        );
+      }
+    }
+
+    if (docs.length < poolLimit) {
+      final fallbackSnapshot = await _firestore
+          .collection(FirestoreCollections.users)
+          .where(
+            '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
+            isEqualTo: true,
+          )
+          .limit(poolLimit)
+          .get();
+      appendSnapshot(fallbackSnapshot);
+    }
+
+    return docs;
+  }
+
+  _ScoredCandidate? _scoreCandidate({
+    required String docId,
+    required Map<String, dynamic> userData,
+    required _Coordinates? currentLocation,
+    required double searchRadiusKm,
+    required Set<String> targetGenres,
+    required Set<String> targetHashtags,
+  }) {
+    if (!_isVisibleCandidate(userData)) return null;
+
+    final candidateLocation = _extractCoordinatesFromMap(userData['location']);
+    final distanceKm = currentLocation == null || candidateLocation == null
+        ? null
+        : DistanceCalculator.haversine(
+            fromLat: currentLocation.lat,
+            fromLng: currentLocation.lng,
+            toLat: candidateLocation.lat,
+            toLng: candidateLocation.lng,
+          );
+
+    final locationBucket = _resolveLocationBucket(
+      distanceKm: distanceKm,
+      searchRadiusKm: searchRadiusKm,
+      hasCurrentLocation: currentLocation != null,
+    );
+    final hashtagMatches = _extractCandidateHashtags(
       userData,
-    ).map(_normalizeGenreToken).where((genre) => genre.isNotEmpty);
-    return genres.any(targetGenres.contains);
+    ).map(_normalizeHashtagToken).where(targetHashtags.contains).length;
+    final genreMatches = _extractCandidateGenres(
+      userData,
+    ).map(_normalizeGenreToken).where(targetGenres.contains).length;
+
+    final user = AppUser.fromJson({
+      ...userData,
+      'uid': userData['uid'] ?? docId,
+    });
+
+    return _ScoredCandidate(
+      user: user,
+      distanceKm: distanceKm,
+      locationBucket: locationBucket,
+      hashtagMatches: hashtagMatches,
+      genreMatches: genreMatches,
+    );
+  }
+
+  int _compareCandidates(_ScoredCandidate a, _ScoredCandidate b) {
+    final locationOrder = a.locationBucket.compareTo(b.locationBucket);
+    if (locationOrder != 0) return locationOrder;
+
+    final hashtagOrder = b.hashtagMatches.compareTo(a.hashtagMatches);
+    if (hashtagOrder != 0) return hashtagOrder;
+
+    final genreOrder = b.genreMatches.compareTo(a.genreMatches);
+    if (genreOrder != 0) return genreOrder;
+
+    final distanceOrder = (a.distanceKm ?? double.infinity).compareTo(
+      b.distanceKm ?? double.infinity,
+    );
+    if (distanceOrder != 0) return distanceOrder;
+
+    return a.user.uid.compareTo(b.user.uid);
+  }
+
+  bool _isVisibleCandidate(Map<String, dynamic> userData) {
+    final cadastroStatus =
+        userData[FirestoreFields.registrationStatus] as String?;
+    final status = userData['status'] as String? ?? 'ativo';
+
+    return cadastroStatus == RegistrationStatus.complete &&
+        status == 'ativo' &&
+        _isEligibleMatchpointType(userData);
+  }
+
+  bool _isEligibleMatchpointType(Map<String, dynamic> userData) {
+    final profileType = userData[FirestoreFields.profileType] as String?;
+    return profileType == ProfileType.professional ||
+        profileType == ProfileType.band;
   }
 
   List<String> _extractCandidateGenres(Map<String, dynamic> userData) {
@@ -226,7 +352,199 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     return genres;
   }
 
-  String _normalizeGenreToken(String token) => token.trim().toLowerCase();
+  List<String> _extractCandidateHashtags(Map<String, dynamic> userData) {
+    final hashtags = <String>[];
+
+    final matchpointProfile =
+        userData[FirestoreFields.matchpointProfile] as Map<String, dynamic>?;
+    final fromMatchpoint = matchpointProfile?[FirestoreFields.hashtags];
+    if (fromMatchpoint is List) {
+      hashtags.addAll(fromMatchpoint.whereType<String>());
+    }
+
+    final fromLegacyRoot = userData[FirestoreFields.hashtags];
+    if (fromLegacyRoot is List) {
+      hashtags.addAll(fromLegacyRoot.whereType<String>());
+    }
+
+    return hashtags;
+  }
+
+  _Coordinates? _extractUserCoordinates(AppUser user) {
+    for (final address in user.addresses) {
+      if (address.isPrimary && address.lat != null && address.lng != null) {
+        return _Coordinates(address.lat!, address.lng!);
+      }
+    }
+
+    for (final address in user.addresses) {
+      if (address.lat != null && address.lng != null) {
+        return _Coordinates(address.lat!, address.lng!);
+      }
+    }
+
+    return _extractCoordinatesFromMap(user.location);
+  }
+
+  _Coordinates? _extractCoordinatesFromMap(dynamic rawLocation) {
+    if (rawLocation is! Map) return null;
+
+    final lat = (rawLocation['lat'] as num?)?.toDouble();
+    final lng = ((rawLocation['lng'] ?? rawLocation['long']) as num?)
+        ?.toDouble();
+    if (lat == null || lng == null) return null;
+
+    return _Coordinates(lat, lng);
+  }
+
+  String? _resolveCurrentUserGeohash(
+    AppUser currentUser,
+    _Coordinates? currentLocation,
+  ) {
+    if (currentUser.geohash != null && currentUser.geohash!.isNotEmpty) {
+      return currentUser.geohash;
+    }
+
+    if (currentLocation == null) return null;
+
+    return GeohashHelper.encode(
+      currentLocation.lat,
+      currentLocation.lng,
+      precision: 5,
+    );
+  }
+
+  int _resolveLocationBucket({
+    required double? distanceKm,
+    required double searchRadiusKm,
+    required bool hasCurrentLocation,
+  }) {
+    if (!hasCurrentLocation) return 0;
+    if (distanceKm == null) return 2;
+    if (distanceKm <= searchRadiusKm) return 0;
+    return 1;
+  }
+
+  int _resolvePoolLimit(int limit) {
+    if (limit <= 0) return 80;
+    final scaled = limit * 5;
+    return scaled < 80 ? 80 : scaled;
+  }
+
+  double _resolveSearchRadius(Map<String, dynamic>? matchpointProfile) {
+    final rawRadius = matchpointProfile?[FirestoreFields.searchRadius];
+    if (rawRadius is num && rawRadius > 0) {
+      return rawRadius.toDouble();
+    }
+    return 50;
+  }
+
+  String _normalizeGenreToken(String token) {
+    return removeDiacritics(
+      token,
+    ).toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  String _normalizeHashtagToken(String token) {
+    final withoutHash = token.replaceAll('#', '');
+    return removeDiacritics(withoutHash)
+        .toLowerCase()
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[^a-z0-9_]'), '');
+  }
+
+  void _logRankingAudit({
+    required String? currentUserGeohash,
+    required int queryGenresCount,
+    required int queryHashtagsCount,
+    required List<_ScoredCandidate> pool,
+    required List<_ScoredCandidate> returned,
+  }) {
+    final poolStats = _RankingAuditStats.fromCandidates(pool);
+    final returnedStats = _RankingAuditStats.fromCandidates(returned);
+
+    AppLogger.info(
+      'MatchPoint ranking audit: '
+      'pool=${pool.length} '
+      'returned=${returned.length} '
+      'pool[p=${poolStats.proximity},h=${poolStats.hashtag},g=${poolStats.genre},f=${poolStats.fallback}] '
+      'returned[p=${returnedStats.proximity},h=${returnedStats.hashtag},g=${returnedStats.genre},f=${returnedStats.fallback}]',
+    );
+
+    final analytics = _analytics;
+    if (analytics != null) {
+      unawaited(
+        analytics.logEvent(
+          name: 'matchpoint_ranking_audit',
+          parameters: {
+            'pool_total': pool.length,
+            'returned_total': returned.length,
+            'pool_proximity': poolStats.proximity,
+            'pool_hashtag': poolStats.hashtag,
+            'pool_genre': poolStats.genre,
+            'pool_fallback': poolStats.fallback,
+            'ret_proximity': returnedStats.proximity,
+            'ret_hashtag': returnedStats.hashtag,
+            'ret_genre': returnedStats.genre,
+            'ret_fallback': returnedStats.fallback,
+            'query_genres': queryGenresCount,
+            'query_tags': queryHashtagsCount,
+            'used_geohash': currentUserGeohash != null,
+          },
+        ),
+      );
+    }
+
+    unawaited(
+      _mirrorRankingAudit(
+        currentUserGeohash: currentUserGeohash,
+        queryGenresCount: queryGenresCount,
+        queryHashtagsCount: queryHashtagsCount,
+        poolStats: poolStats,
+        returnedStats: returnedStats,
+        poolTotal: pool.length,
+        returnedTotal: returned.length,
+      ),
+    );
+  }
+
+  Future<void> _mirrorRankingAudit({
+    required String? currentUserGeohash,
+    required int queryGenresCount,
+    required int queryHashtagsCount,
+    required _RankingAuditStats poolStats,
+    required _RankingAuditStats returnedStats,
+    required int poolTotal,
+    required int returnedTotal,
+  }) async {
+    try {
+      await _callWithRecovery(
+        'recordMatchpointRankingAudit',
+        data: {
+          'poolTotal': poolTotal,
+          'returnedTotal': returnedTotal,
+          'poolProximity': poolStats.proximity,
+          'poolHashtag': poolStats.hashtag,
+          'poolGenre': poolStats.genre,
+          'poolFallback': poolStats.fallback,
+          'returnedProximity': returnedStats.proximity,
+          'returnedHashtag': returnedStats.hashtag,
+          'returnedGenre': returnedStats.genre,
+          'returnedFallback': returnedStats.fallback,
+          'queryGenres': queryGenresCount,
+          'queryHashtags': queryHashtagsCount,
+          'usedGeohash': currentUserGeohash != null,
+        },
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'MatchPoint: failed to mirror ranking audit to backend.',
+        error,
+        stackTrace,
+      );
+    }
+  }
 
   @override
   Future<MatchpointActionResult> submitAction({
@@ -244,7 +562,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
-        'submitMatchpointAction falhou: code=${e.code}, message=${e.message}',
+        'submitMatchpointAction failed: code=${e.code}, message=${e.message}',
       );
       rethrow;
     }
@@ -252,14 +570,25 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   @override
   Future<List<String>> fetchExistingInteractions(String currentUserId) async {
-    // Buscar da coleção global de interactions (não mais subcoleção)
     final snapshot = await _firestore
         .collection(FirestoreCollections.interactions)
         .where('source_user_id', isEqualTo: currentUserId)
         .where('type', whereIn: ['like', 'dislike'])
         .get();
 
+    final now = Timestamp.now();
+
     return snapshot.docs
+        .where((doc) {
+          final data = doc.data();
+          final type = data['type'] as String?;
+          if (type == 'like') return true;
+          if (type != 'dislike') return false;
+
+          final expiresAt = data['expires_at'];
+          if (expiresAt is! Timestamp) return false;
+          return expiresAt.compareTo(now) > 0;
+        })
         .map((doc) => doc.data()['target_user_id'] as String)
         .toList();
   }
@@ -272,7 +601,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       return LikesQuotaInfo.fromJson(result.data as Map<String, dynamic>);
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
-        'getRemainingLikes falhou: code=${e.code}, message=${e.message}',
+        'getRemainingLikes failed: code=${e.code}, message=${e.message}',
       );
       rethrow;
     }
@@ -280,9 +609,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   @override
   Future<List<Map<String, dynamic>>> fetchMatches(String currentUserId) async {
-    // Query única usando campo array user_ids
-    // IMPORTANTE: Adicione o campo 'user_ids' ao documento de match no backend:
-    //   user_ids: [user_id_1, user_id_2]
     final snapshot = await _firestore
         .collection(FirestoreCollections.matches)
         .where('user_ids', arrayContains: currentUserId)
@@ -322,7 +648,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           .toList();
     } catch (e) {
       AppLogger.warning(
-        'Falha ao buscar trending via Function. Fallback Firestore: $e',
+        'Failed to load trending hashtags from Function. Falling back to Firestore: $e',
       );
 
       final snapshot = await _firestore
@@ -355,13 +681,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           .toList();
     } catch (e) {
       AppLogger.warning(
-        'Falha ao buscar hashtag via Function. Fallback Firestore: $e',
+        'Failed to search hashtags via Function. Falling back to Firestore: $e',
       );
 
       final normalized = query.toLowerCase().trim();
       if (normalized.length < 2) return [];
 
-      // Removido orderBy conflitante — sort client-side
       final snapshot = await _firestore
           .collection('hashtagRanking')
           .where('hashtag', isGreaterThanOrEqualTo: normalized)
@@ -371,8 +696,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           .get();
 
       final results = snapshot.docs.map(HashtagRanking.fromFirestore).toList();
-
-      // Sort by use_count client-side
       results.sort((a, b) => b.useCount.compareTo(a.useCount));
 
       return results;
@@ -395,6 +718,80 @@ final matchpointRemoteDataSourceProvider = Provider<MatchpointRemoteDataSource>(
     return MatchpointRemoteDataSourceImpl(
       FirebaseFirestore.instance,
       FirebaseFunctions.instanceFor(region: 'southamerica-east1'),
+      analytics: ref.watch(analyticsServiceProvider),
     );
   },
 );
+
+class _Coordinates {
+  final double lat;
+  final double lng;
+
+  const _Coordinates(this.lat, this.lng);
+}
+
+class _ScoredCandidate {
+  final AppUser user;
+  final double? distanceKm;
+  final int locationBucket;
+  final int hashtagMatches;
+  final int genreMatches;
+
+  const _ScoredCandidate({
+    required this.user,
+    required this.distanceKm,
+    required this.locationBucket,
+    required this.hashtagMatches,
+    required this.genreMatches,
+  });
+
+  _RankingPrimarySource get primarySource {
+    if (locationBucket == 0) return _RankingPrimarySource.proximity;
+    if (hashtagMatches > 0) return _RankingPrimarySource.hashtag;
+    if (genreMatches > 0) return _RankingPrimarySource.genre;
+    return _RankingPrimarySource.fallback;
+  }
+}
+
+class _RankingAuditStats {
+  final int proximity;
+  final int hashtag;
+  final int genre;
+  final int fallback;
+
+  const _RankingAuditStats({
+    required this.proximity,
+    required this.hashtag,
+    required this.genre,
+    required this.fallback,
+  });
+
+  factory _RankingAuditStats.fromCandidates(List<_ScoredCandidate> candidates) {
+    var proximity = 0;
+    var hashtag = 0;
+    var genre = 0;
+    var fallback = 0;
+
+    for (final candidate in candidates) {
+      switch (candidate.primarySource) {
+        case _RankingPrimarySource.proximity:
+          proximity++;
+        case _RankingPrimarySource.hashtag:
+          hashtag++;
+        case _RankingPrimarySource.genre:
+          genre++;
+        case _RankingPrimarySource.fallback:
+          fallback++;
+      }
+    }
+
+    return _RankingAuditStats(
+      proximity: proximity,
+      hashtag: hashtag,
+      genre: genre,
+      fallback: fallback,
+    );
+  }
+}
+
+enum _RankingPrimarySource { proximity, hashtag, genre, fallback }

@@ -1,3 +1,5 @@
+import '../../../firebase_options.dart';
+
 /// Application configuration constants.
 ///
 /// This class centralizes all environment-specific configuration
@@ -9,23 +11,38 @@
 class AppConfig {
   const AppConfig._();
 
+  static const String _googleVisionApiKeyFromEnv = String.fromEnvironment(
+    'GOOGLE_VISION_API_KEY',
+    defaultValue: '',
+  );
+
+  static const String _googleMapsApiKeyFromEnv = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
+
   // ===========================================================================
   // API KEYS (from environment)
   // ===========================================================================
 
   /// Google Vision API Key for content moderation
   /// Set via: --dart-define=GOOGLE_VISION_API_KEY=xxx
-  static const String googleVisionApiKey = String.fromEnvironment(
-    'GOOGLE_VISION_API_KEY',
-    defaultValue: '',
-  );
+  static String get googleVisionApiKey => _googleVisionApiKeyFromEnv;
 
   /// Google Maps API Key for location services
-  /// Set via: --dart-define=GOOGLE_MAPS_API_KEY=xxx
-  static const String googleMapsApiKey = String.fromEnvironment(
-    'GOOGLE_MAPS_API_KEY',
-    defaultValue: '',
-  );
+  /// Prefer `--dart-define=GOOGLE_MAPS_API_KEY=xxx`.
+  /// Falls back to the platform Firebase API key for local/dev builds.
+  static String get googleMapsApiKey {
+    if (_googleMapsApiKeyFromEnv.isNotEmpty) {
+      return _googleMapsApiKeyFromEnv;
+    }
+
+    try {
+      return DefaultFirebaseOptions.currentPlatform.apiKey;
+    } catch (_) {
+      return '';
+    }
+  }
 
   // ===========================================================================
   // API ENDPOINTS
@@ -108,6 +125,26 @@ class AppConfig {
     final uri = Uri.parse(_geocodeUrl).replace(
       queryParameters: {
         'address': address,
+        'language': 'pt-BR',
+        'region': 'BR',
+        'key': googleMapsApiKey,
+      },
+    );
+    return uri.toString();
+  }
+
+  /// Builds the Reverse Geocoding URL from coordinates.
+  static String buildReverseGeocodeUrl(double lat, double lng) {
+    if (googleMapsApiKey.isEmpty) {
+      throw StateError(
+        'GOOGLE_MAPS_API_KEY not set. '
+        'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
+      );
+    }
+
+    final uri = Uri.parse(_geocodeUrl).replace(
+      queryParameters: {
+        'latlng': '$lat,$lng',
         'language': 'pt-BR',
         'region': 'BR',
         'key': googleMapsApiKey,

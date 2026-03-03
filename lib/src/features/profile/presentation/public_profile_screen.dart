@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../constants/app_constants.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -181,7 +182,7 @@ class PublicProfileScreen extends ConsumerWidget {
         }
         break;
       case 'block':
-        final confirmed = await showDialog<bool>(
+        final confirmed = await AppOverlay.dialog<bool>(
           context: context,
           builder: (context) => const AppConfirmationDialog(
             title: 'Bloquear Usuário?',
@@ -206,7 +207,7 @@ class PublicProfileScreen extends ConsumerWidget {
         break;
 
       case 'report':
-        final result = await showDialog<Map<String, dynamic>>(
+        final result = await AppOverlay.dialog<Map<String, dynamic>>(
           context: context,
           builder: (context) => const ReportReasonDialog(),
         );
@@ -413,6 +414,7 @@ class PublicProfileScreen extends ConsumerWidget {
   ) {
     final size = MediaQuery.sizeOf(context);
     final isWide = size.width >= 900;
+    final bio = user.profileBio;
 
     if (isWide) {
       return _buildWideProfileContent(context, user, galleryItems);
@@ -429,8 +431,8 @@ class PublicProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.s24),
 
           // Bio Section
-          if (user.bio != null && user.bio!.isNotEmpty) ...[
-            _buildBioSection(user.bio!),
+          if (bio != null) ...[
+            _buildBioSection(bio),
             const SizedBox(height: AppSpacing.s24),
           ],
 
@@ -455,6 +457,8 @@ class PublicProfileScreen extends ConsumerWidget {
     AppUser user,
     List<MediaItem> galleryItems,
   ) {
+    final bio = user.profileBio;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.s32),
       child: ResponsiveCenter(
@@ -471,8 +475,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 children: [
                   _buildHeader(context, user),
                   const SizedBox(height: AppSpacing.s32),
-                  if (user.bio != null && user.bio!.isNotEmpty)
-                    _buildBioSection(user.bio!),
+                  if (bio != null) _buildBioSection(bio),
                 ],
               ),
             ),
@@ -785,7 +788,7 @@ class PublicProfileScreen extends ConsumerWidget {
     List<MediaItem> items,
     int initialIndex,
   ) {
-    showDialog(
+    AppOverlay.dialog(
       context: context,
       barrierColor: AppColors.background.withValues(alpha: 0.87),
       builder: (context) =>
@@ -794,7 +797,7 @@ class PublicProfileScreen extends ConsumerWidget {
   }
 
   void _showAvatarViewer(BuildContext context, AppUser user) {
-    showDialog(
+    AppOverlay.dialog(
       context: context,
       barrierColor: AppColors.background.withValues(alpha: 0.92),
       builder: (context) => GestureDetector(

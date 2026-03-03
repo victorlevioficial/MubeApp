@@ -11,6 +11,7 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../utils/geohash_helper.dart';
+import '../../bands/domain/band_activation_rules.dart';
 
 class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
@@ -28,6 +29,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   String _videoBackfillReport = '';
   bool _videoBackfillHasMore = false;
   String? _videoBackfillCursor;
+  bool _forceVideoRetranscode = false;
 
   final TextEditingController _backfillLimitController = TextEditingController(
     text: '20',
@@ -63,10 +65,243 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     return <String, dynamic>{};
   }
 
+  String _formatPercent(int value, int total) {
+    if (total <= 0) return '0%';
+    final percent = (value / total) * 100;
+    return '${percent.toStringAsFixed(percent >= 10 ? 0 : 1)}%';
+  }
+
+  String _formatBucketStart(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    return '$day/$month $hour:00';
+  }
+
+  Widget _buildRankingSummaryMetric({
+    required String label,
+    required String value,
+    String? subtitle,
+  }) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: AppRadius.all12,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(value, style: AppTypography.titleLarge),
+          if (subtitle != null && subtitle.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s4),
+            Text(
+              subtitle,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatchpointRankingAuditCard() {
+    final stream = FirebaseFirestore.instance
+        .collection('matchpointStats')
+        .where('type', isEqualTo: 'ranking_audit_hourly')
+        .orderBy('bucket_start', descending: true)
+        .limit(24)
+        .snapshots();
+
+    return Card(
+      color: AppColors.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: stream,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auditoria de Ranking MatchPoint',
+                    style: AppTypography.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    'Erro ao carregar buckets: ${snapshot.error}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            if (!snapshot.hasData) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auditoria de Ranking MatchPoint',
+                    style: AppTypography.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  const Center(child: CircularProgressIndicator()),
+                ],
+              );
+            }
+
+            final buckets = snapshot.data!.docs
+                .map(_MatchpointRankingBucket.fromDoc)
+                .toList();
+
+            if (buckets.isEmpty) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auditoria de Ranking MatchPoint',
+                    style: AppTypography.headlineSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    'Ainda nao existem buckets de auditoria. Eles comecam a aparecer apos buscas reais no MatchPoint.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            final summary = _MatchpointRankingSummary.fromBuckets(buckets);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Auditoria de Ranking MatchPoint',
+                  style: AppTypography.headlineSmall,
+                ),
+                const SizedBox(height: AppSpacing.s8),
+                Text(
+                  'Buckets horarios espelhados do evento matchpoint_ranking_audit para leitura rapida no painel interno.',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s16),
+                Wrap(
+                  spacing: AppSpacing.s12,
+                  runSpacing: AppSpacing.s12,
+                  children: [
+                    _buildRankingSummaryMetric(
+                      label: 'Eventos (24h)',
+                      value: '${summary.totalEvents}',
+                      subtitle:
+                          '${summary.totalReturned} perfis retornados no total',
+                    ),
+                    _buildRankingSummaryMetric(
+                      label: 'Media por busca',
+                      value: summary.averageReturnedPerEvent.toStringAsFixed(1),
+                      subtitle:
+                          '${summary.averagePoolPerEvent.toStringAsFixed(1)} perfis no pool',
+                    ),
+                    _buildRankingSummaryMetric(
+                      label: 'Busca com geohash',
+                      value: _formatPercent(
+                        summary.geohashUsedCount,
+                        summary.totalEvents,
+                      ),
+                      subtitle:
+                          '${summary.geohashUsedCount}/${summary.totalEvents} eventos',
+                    ),
+                    _buildRankingSummaryMetric(
+                      label: 'Mix retornado',
+                      value:
+                          'P ${_formatPercent(summary.returnedProximity, summary.totalReturned)}',
+                      subtitle:
+                          'H ${_formatPercent(summary.returnedHashtag, summary.totalReturned)} | G ${_formatPercent(summary.returnedGenre, summary.totalReturned)} | F ${_formatPercent(summary.returnedFallback, summary.totalReturned)}',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s20),
+                Text('Ultimos buckets', style: AppTypography.titleSmall),
+                const SizedBox(height: AppSpacing.s8),
+                ...buckets
+                    .take(8)
+                    .map(
+                      (bucket) => Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+                        padding: const EdgeInsets.all(AppSpacing.s12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: AppRadius.all12,
+                          border: Border.all(color: AppColors.surfaceHighlight),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _formatBucketStart(bucket.bucketStart),
+                                    style: AppTypography.titleSmall,
+                                  ),
+                                  const SizedBox(height: AppSpacing.s4),
+                                  Text(
+                                    '${bucket.totalEvents} buscas | ${bucket.returnedTotal} perfis retornados | ${bucket.poolTotal} no pool',
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s12),
+                            SizedBox(
+                              width: 180,
+                              child: Text(
+                                'P ${bucket.returnedProximity} | H ${bucket.returnedHashtag} | G ${bucket.returnedGenre} | F ${bucket.returnedFallback}',
+                                textAlign: TextAlign.right,
+                                style: AppTypography.bodySmall.copyWith(
+                                  fontFamily: 'monospace',
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   String _formatBackfillReport(Map<String, dynamic> data) {
     final lines = <String>[
       'Backfill de videos - resultado:',
       'dryRun: ${data['dryRun'] == true ? 'true' : 'false'}',
+      'forceRetranscode: ${data['forceRetranscode'] == true ? 'true' : 'false'}',
       'usersScanned: ${_asInt(data['usersScanned'])}',
       'usersWithVideos: ${_asInt(data['usersWithVideos'])}',
       'videosDiscovered: ${_asInt(data['videosDiscovered'])}',
@@ -109,6 +344,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     final payload = <String, dynamic>{
       'dryRun': dryRun,
       'limit': limit,
+      'forceRetranscode': _forceVideoRetranscode,
       if (!resetCursor && currentCursor != null && currentCursor.isNotEmpty)
         'startAfterUserId': currentCursor,
     };
@@ -310,6 +546,72 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     }
   }
 
+  Future<void> _recalculateBandStatuses() async {
+    setState(() {
+      _isMigrating = true;
+      _report = 'Recalculando status das bandas...';
+    });
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final snapshot = await firestore
+          .collection('users')
+          .where('tipo_perfil', isEqualTo: 'banda')
+          .where('cadastro_status', isEqualTo: 'concluido')
+          .get();
+
+      var updated = 0;
+      var skipped = 0;
+      var pendingWrites = 0;
+      var batch = firestore.batch();
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final rawMembers = data['members'];
+        final acceptedMembers = rawMembers is List
+            ? rawMembers.whereType<String>().toSet().length
+            : 0;
+        final nextStatus = isBandEligibleForActivation(acceptedMembers)
+            ? profileActiveStatus
+            : profileDraftStatus;
+
+        if (data['status'] == nextStatus) {
+          skipped++;
+          continue;
+        }
+
+        batch.update(doc.reference, {'status': nextStatus});
+        updated++;
+        pendingWrites++;
+
+        if (pendingWrites == 400) {
+          await batch.commit();
+          batch = firestore.batch();
+          pendingWrites = 0;
+        }
+      }
+
+      if (pendingWrites > 0) {
+        await batch.commit();
+      }
+
+      setState(() {
+        _report =
+            'Status de bandas recalculado!\n'
+            'Atualizados: $updated\n'
+            'Sem mudanca: $skipped';
+      });
+    } catch (e) {
+      setState(() {
+        _report = 'Erro ao recalcular status das bandas: $e';
+      });
+    } finally {
+      setState(() {
+        _isMigrating = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isBusy = _isMigrating || _isBackfillRunning;
@@ -414,6 +716,19 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.s24),
+            AppButton.outline(
+              onPressed: isBusy ? null : _recalculateBandStatuses,
+              text: 'RECALCULAR STATUS DE BANDAS',
+              isFullWidth: true,
+            ),
+            Text(
+              'Reprocessa bandas concluidas e ajusta status para ativo ou rascunho conforme a quantidade de integrantes aceitos.',
+              textAlign: TextAlign.center,
+              style: AppTypography.chipLabel.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s24),
             Card(
               color: AppColors.surface,
               child: Padding(
@@ -438,6 +753,25 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                       label: 'Tamanho do lote (1-100)',
                       hint: '20',
                       keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: AppSpacing.s8),
+                    SwitchListTile.adaptive(
+                      value: _forceVideoRetranscode,
+                      onChanged: isBusy
+                          ? null
+                          : (value) {
+                              setState(() {
+                                _forceVideoRetranscode = value;
+                              });
+                            },
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Forcar re-transcode'),
+                      subtitle: Text(
+                        'Reprocessa videos ja transcodados para corrigir formato antigo.',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.s12),
                     Row(
@@ -504,9 +838,126 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: AppSpacing.s24),
+            _buildMatchpointRankingAuditCard(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MatchpointRankingBucket {
+  final DateTime bucketStart;
+  final int totalEvents;
+  final int poolTotal;
+  final int returnedTotal;
+  final int returnedProximity;
+  final int returnedHashtag;
+  final int returnedGenre;
+  final int returnedFallback;
+  final int geohashUsedCount;
+
+  const _MatchpointRankingBucket({
+    required this.bucketStart,
+    required this.totalEvents,
+    required this.poolTotal,
+    required this.returnedTotal,
+    required this.returnedProximity,
+    required this.returnedHashtag,
+    required this.returnedGenre,
+    required this.returnedFallback,
+    required this.geohashUsedCount,
+  });
+
+  factory _MatchpointRankingBucket.fromDoc(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final bucketStartRaw = data['bucket_start'];
+    final bucketStart = bucketStartRaw is Timestamp
+        ? bucketStartRaw.toDate()
+        : DateTime.now();
+
+    int readInt(String key) {
+      final value = data[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return 0;
+    }
+
+    return _MatchpointRankingBucket(
+      bucketStart: bucketStart,
+      totalEvents: readInt('total_events'),
+      poolTotal: readInt('pool_total_sum'),
+      returnedTotal: readInt('returned_total_sum'),
+      returnedProximity: readInt('returned_proximity_sum'),
+      returnedHashtag: readInt('returned_hashtag_sum'),
+      returnedGenre: readInt('returned_genre_sum'),
+      returnedFallback: readInt('returned_fallback_sum'),
+      geohashUsedCount: readInt('geohash_used_count'),
+    );
+  }
+}
+
+class _MatchpointRankingSummary {
+  final int totalEvents;
+  final int totalPool;
+  final int totalReturned;
+  final int returnedProximity;
+  final int returnedHashtag;
+  final int returnedGenre;
+  final int returnedFallback;
+  final int geohashUsedCount;
+
+  const _MatchpointRankingSummary({
+    required this.totalEvents,
+    required this.totalPool,
+    required this.totalReturned,
+    required this.returnedProximity,
+    required this.returnedHashtag,
+    required this.returnedGenre,
+    required this.returnedFallback,
+    required this.geohashUsedCount,
+  });
+
+  double get averagePoolPerEvent =>
+      totalEvents == 0 ? 0 : totalPool / totalEvents;
+  double get averageReturnedPerEvent =>
+      totalEvents == 0 ? 0 : totalReturned / totalEvents;
+
+  factory _MatchpointRankingSummary.fromBuckets(
+    List<_MatchpointRankingBucket> buckets,
+  ) {
+    var totalEvents = 0;
+    var totalPool = 0;
+    var totalReturned = 0;
+    var returnedProximity = 0;
+    var returnedHashtag = 0;
+    var returnedGenre = 0;
+    var returnedFallback = 0;
+    var geohashUsedCount = 0;
+
+    for (final bucket in buckets) {
+      totalEvents += bucket.totalEvents;
+      totalPool += bucket.poolTotal;
+      totalReturned += bucket.returnedTotal;
+      returnedProximity += bucket.returnedProximity;
+      returnedHashtag += bucket.returnedHashtag;
+      returnedGenre += bucket.returnedGenre;
+      returnedFallback += bucket.returnedFallback;
+      geohashUsedCount += bucket.geohashUsedCount;
+    }
+
+    return _MatchpointRankingSummary(
+      totalEvents: totalEvents,
+      totalPool: totalPool,
+      totalReturned: totalReturned,
+      returnedProximity: returnedProximity,
+      returnedHashtag: returnedHashtag,
+      returnedGenre: returnedGenre,
+      returnedFallback: returnedFallback,
+      geohashUsedCount: geohashUsedCount,
     );
   }
 }

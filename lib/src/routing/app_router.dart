@@ -16,6 +16,7 @@ import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/conversations_screen.dart';
 import '../features/developer/presentation/developer_tools_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
+import '../features/favorites/presentation/received_favorites_screen.dart';
 import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
@@ -32,10 +33,8 @@ import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
 import '../features/search/presentation/search_screen.dart';
-import '../features/settings/domain/saved_address.dart';
 import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/blocked_users_screen.dart';
-import '../features/settings/presentation/edit_address_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
@@ -45,6 +44,7 @@ import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/support_screen.dart';
 import '../features/support/presentation/ticket_detail_screen.dart';
 import '../features/support/presentation/ticket_list_screen.dart';
+import '../utils/app_logger.dart';
 import 'auth_guard.dart';
 import 'route_paths.dart';
 
@@ -66,7 +66,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: RoutePaths.splash,
-    debugLogDiagnostics: kDebugMode,
+    debugLogDiagnostics: AppLogger.verboseLoggingEnabled,
     refreshListenable: notifier,
     redirect: authGuard.redirect,
     observers: [analyticsObserver],
@@ -244,16 +244,6 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   ),
                 ),
                 GoRoute(
-                  path: 'address',
-                  pageBuilder: (context, state) {
-                    final address = state.extra as SavedAddress?;
-                    return NoTransitionPage(
-                      key: state.pageKey,
-                      child: EditAddressScreen(existingAddress: address),
-                    );
-                  },
-                ),
-                GoRoute(
                   path: 'privacy',
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
@@ -265,6 +255,13 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
                     child: const BlockedUsersScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'received-favorites',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const ReceivedFavoritesScreen(),
                   ),
                 ),
                 GoRoute(

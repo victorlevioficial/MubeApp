@@ -1,4 +1,4 @@
-﻿import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'feed_item.freezed.dart';
 
@@ -23,9 +23,28 @@ sealed class FeedItem with _$FeedItem {
     double? distanceKm,
   }) = _FeedItem;
 
-  /// Display name (artistic name if available, otherwise real name)
-  String get displayName =>
-      nomeArtistico?.isNotEmpty == true ? nomeArtistico! : nome;
+  /// Display name exposed in the app.
+  ///
+  /// Professional, band and studio profiles must never fall back to the
+  /// registration name. Only contractors can expose `nome`.
+  String get displayName {
+    final publicName = nomeArtistico?.trim() ?? '';
+    if (publicName.isNotEmpty) return publicName;
+
+    switch (tipoPerfil) {
+      case 'profissional':
+        return 'Profissional';
+      case 'banda':
+        return 'Banda';
+      case 'estudio':
+        return 'Estudio';
+      case 'contratante':
+        final contractorName = nome.trim();
+        return contractorName.isNotEmpty ? contractorName : 'Contratante';
+      default:
+        return 'Perfil';
+    }
+  }
 
   /// Formatted distance string
   String get distanceText {
@@ -133,7 +152,7 @@ sealed class FeedItem with _$FeedItem {
     return FeedItem(
       uid: docId,
       nome: data['nome'] ?? '',
-      nomeArtistico: artisticName ?? (data['nome'] as String?),
+      nomeArtistico: artisticName,
       foto: data['foto'],
       categoria: category,
       generosMusicais: extractedGenres,

@@ -246,7 +246,11 @@ class _SpotlightCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               if (item.foto != null)
-                OptimizedImage(imageUrl: item.foto!, fit: BoxFit.cover)
+                OptimizedImage(
+                  imageUrl: item.foto!,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0.0, -0.5),
+                )
               else
                 Container(
                   decoration: const BoxDecoration(

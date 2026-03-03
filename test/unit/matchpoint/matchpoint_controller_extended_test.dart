@@ -64,8 +64,9 @@ class FakeMatchpointRepositoryExtended extends Fake
 
   @override
   FutureResult<List<AppUser>> fetchCandidates({
-    required String currentUserId,
+    required AppUser currentUser,
     required List<String> genres,
+    required List<String> hashtags,
     required List<String> blockedUsers,
     int limit = 20,
   }) async {

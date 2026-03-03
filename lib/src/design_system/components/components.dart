@@ -27,6 +27,7 @@ export 'data_display/user_avatar.dart';
 // FEEDBACK
 // =============================================================================
 export 'feedback/app_confirmation_dialog.dart';
+export 'feedback/app_info_dialog.dart';
 export 'feedback/app_refresh_indicator.dart';
 export 'feedback/app_snackbar.dart';
 export 'feedback/empty_state_widget.dart';
@@ -63,6 +64,7 @@ export 'navigation/responsive_center.dart';
 // PATTERNS
 // =============================================================================
 export 'patterns/fade_in_slide.dart';
+export 'patterns/full_width_selection_card.dart';
 export 'patterns/onboarding_header.dart';
 export 'patterns/onboarding_progress_bar.dart';
 export 'patterns/onboarding_section_card.dart';

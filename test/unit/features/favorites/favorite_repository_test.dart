@@ -44,6 +44,28 @@ void main() {
       expect(result.length, 1);
     });
 
+    test(
+      'loadReceivedFavorites returns user ids ordered by latest favorite',
+      () async {
+        await fakeFirestore
+            .collection('users')
+            .doc('fan-older')
+            .collection('favorites')
+            .doc(tUserId)
+            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 1, 1))});
+        await fakeFirestore
+            .collection('users')
+            .doc('fan-newer')
+            .collection('favorites')
+            .doc(tUserId)
+            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 2, 1))});
+
+        final result = await repository.loadReceivedFavorites();
+
+        expect(result, ['fan-newer', 'fan-older']);
+      },
+    );
+
     test('addFavorite writes current user favorites subcollection', () async {
       await repository.addFavorite(tTargetId);
 

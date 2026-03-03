@@ -200,11 +200,49 @@ class _ProfessionalFormFieldsState
           // Categories Section
           Text('Qual é sua área?', style: AppTypography.headlineMedium),
           const SizedBox(height: AppSpacing.s8),
-          Text(
-            'Selecione uma ou mais categorias que descrevem sua atuação profissional',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.5,
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.s16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Você pode marcar mais de uma opção.',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s8),
+                Text(
+                  'Selecione uma ou mais categorias que descrevem sua atuação profissional',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s12,
+                    vertical: AppSpacing.s8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${_selectedCategories.length} de ${_categories.length} selecionadas',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -221,6 +259,7 @@ class _ProfessionalFormFieldsState
                 title: category['label'],
                 description: category['description'],
                 isSelected: _selectedCategories.contains(category['id']),
+                selectionMode: SelectionMode.multi,
                 onTap: () => _toggleCategory(category['id']),
               ),
             );

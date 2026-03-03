@@ -88,7 +88,9 @@ service cloud.firestore {
       // FAVORITES - Subcoleção de favoritos por usuário
       // ================================================================
       match /favorites/{favoriteId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if request.auth != null &&
+          (request.auth.uid == userId || request.auth.uid == favoriteId);
+        allow write: if request.auth != null && request.auth.uid == userId;
       }
 
       // ================================================================

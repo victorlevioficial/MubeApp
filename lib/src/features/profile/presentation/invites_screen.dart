@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -16,6 +17,22 @@ import '../../bands/data/invites_repository.dart';
 
 class InvitesScreen extends ConsumerWidget {
   const InvitesScreen({super.key});
+
+  String _bandDisplayName(Map<String, dynamic> band) {
+    final bandData = band['banda'] as Map<String, dynamic>? ?? const {};
+
+    for (final candidate in [
+      bandData['nomeBanda'],
+      bandData['nomeArtistico'],
+      bandData['nome'],
+    ]) {
+      if (candidate is String && candidate.trim().isNotEmpty) {
+        return candidate.trim();
+      }
+    }
+
+    return 'Banda';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -205,6 +222,8 @@ class InvitesScreen extends ConsumerWidget {
     Map<String, dynamic> band,
     String uid,
   ) {
+    final bandName = _bandDisplayName(band);
+
     return Card(
       color: AppColors.surface,
       margin: const EdgeInsets.only(bottom: AppSpacing.s12),
@@ -235,7 +254,7 @@ class InvitesScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        band['nome'] ?? band['displayName'] ?? 'Banda',
+                        bandName,
                         style: AppTypography.titleMedium.copyWith(
                           fontWeight: AppTypography.buttonPrimary.fontWeight,
                           color: AppColors.textPrimary,
@@ -258,7 +277,7 @@ class InvitesScreen extends ConsumerWidget {
               height: 48,
               child: OutlinedButton(
                 onPressed: () =>
-                    _confirmLeave(context, ref, band['id'], band['nome']),
+                    _confirmLeave(context, ref, band['id'], bandName),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   foregroundColor: AppColors.error,
@@ -296,14 +315,11 @@ class InvitesScreen extends ConsumerWidget {
     bool accept,
   ) async {
     try {
-      await ref
+      final message = await ref
           .read(invitesRepositoryProvider)
           .respondToInvite(inviteId: inviteId, accept: accept);
       if (context.mounted) {
-        AppSnackBar.success(
-          context,
-          accept ? 'Bem-vindo à banda!' : 'Convite recusado.',
-        );
+        AppSnackBar.success(context, message);
       }
     } catch (e) {
       if (context.mounted) {
@@ -318,7 +334,7 @@ class InvitesScreen extends ConsumerWidget {
     String bandId,
     String? bandName,
   ) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (ctx) => AppConfirmationDialog(
         title: 'Sair da Banda?',
@@ -332,11 +348,11 @@ class InvitesScreen extends ConsumerWidget {
     if (confirm == true && context.mounted) {
       try {
         final uid = ref.read(currentUserProfileProvider).value!.uid;
-        await ref
+        final message = await ref
             .read(invitesRepositoryProvider)
             .leaveBand(bandId: bandId, uid: uid);
         if (context.mounted) {
-          AppSnackBar.success(context, 'Você saiu da banda.');
+          AppSnackBar.success(context, message);
         }
       } catch (e) {
         if (context.mounted) {

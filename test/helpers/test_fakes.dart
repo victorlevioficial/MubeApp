@@ -172,6 +172,7 @@ class FakeAuthRepository extends Fake implements AuthRepository {
 /// Fake implementation of FavoriteRepository
 class FakeFavoriteRepository extends Fake implements FavoriteRepository {
   Set<String> favorites = {};
+  List<String> receivedFavorites = [];
   bool throwError = false;
 
   @override
@@ -207,6 +208,12 @@ class FakeFavoriteRepository extends Fake implements FavoriteRepository {
       lastDocument: null,
       hasMore: false,
     );
+  }
+
+  @override
+  Future<List<String>> loadReceivedFavorites() async {
+    if (throwError) return [];
+    return receivedFavorites;
   }
 }
 

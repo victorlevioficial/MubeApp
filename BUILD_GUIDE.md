@@ -55,6 +55,45 @@ O AAB será gerado em: `build/app/outputs/bundle/release/app-release.aab`
 
 ---
 
+## Deploy Firebase
+
+### Wrapper padrao
+
+Para qualquer deploy Firebase a partir da raiz, use:
+
+```powershell
+.\deploy-firebase.ps1 --only firestore:rules
+.\deploy-firebase.ps1 --only firestore:indexes
+.\deploy-firestore.ps1
+.\deploy-firebase.ps1 --only hosting
+```
+
+Esse wrapper usa automaticamente o projeto padrao definido em `.firebaserc` e o arquivo `firebase.deploy.json`, evitando o aviso do campo `flutter` presente no `firebase.json`.
+
+Para o caso mais comum de Firestore, voce tambem pode usar:
+
+```powershell
+.\deploy-firestore.ps1
+```
+
+### Cloud Functions
+
+Da raiz do projeto, use o wrapper:
+
+```powershell
+.\deploy-functions.ps1
+```
+
+Para publicar só uma função:
+
+```powershell
+.\deploy-functions.ps1 --only functions:manageBandInvite
+```
+
+O script usa automaticamente o projeto padrão definido em `.firebaserc` e o arquivo `firebase.deploy.json`.
+
+---
+
 ## Configuração iOS
 
 ### 1. Configurar Signing no Xcode

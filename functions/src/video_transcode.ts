@@ -51,6 +51,7 @@ interface ProcessVideoTranscodeParams {
   sourceObject: string;
   sourceGeneration: string;
   bucketName: string;
+  forceRetranscode?: boolean;
 }
 
 interface BackfillVideoItem {
@@ -122,6 +123,10 @@ function parseStartAfterUserId(raw: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function parseForceRetranscode(raw: unknown): boolean {
+  return raw == true;
+}
+
 function buildSourceObjectPath(userId: string, mediaId: string): string {
   return `gallery_videos/${userId}/${mediaId}.mp4`;
 }
@@ -190,7 +195,8 @@ function buildJobConfig(
       videoStream: {
         h264: {
           profile: "high",
-          widthPixels: 1280,
+          // Keep only target height to preserve source aspect ratio.
+          // Fixed width+height was stretching portrait videos.
           heightPixels: 720,
           bitrateBps: 2_500_000,
           frameRate: 30,
@@ -382,7 +388,14 @@ async function getExistingTranscodedDownloadUrl(
 async function processVideoTranscode(
   params: ProcessVideoTranscodeParams
 ): Promise<{ applied: boolean; transcodedUrl: string }> {
-  const { userId, mediaId, sourceObject, sourceGeneration, bucketName } = params;
+  const {
+    userId,
+    mediaId,
+    sourceObject,
+    sourceGeneration,
+    bucketName,
+    forceRetranscode = false,
+  } = params;
 
   const transcodeRef = db.collection("mediaTranscodeJobs").doc(`${userId}_${mediaId}`);
   await transcodeRef.set(
@@ -407,8 +420,12 @@ async function processVideoTranscode(
 
     let transcoderJobName: string | null = null;
     const [alreadyExists] = await outputFile.exists();
+    if (alreadyExists && forceRetranscode) {
+      await outputFile.delete({ ignoreNotFound: true });
+    }
 
-    if (!alreadyExists) {
+    const [existsBeforeTranscode] = await outputFile.exists();
+    if (!existsBeforeTranscode) {
       const projectId = process.env.GCLOUD_PROJECT;
       if (!projectId) {
         throw new Error("Missing GCLOUD_PROJECT environment variable");
@@ -529,6 +546,7 @@ export const backfillGalleryVideoTranscodes = onCall(
     const data = isRecord(request.data) ? request.data : {};
     const limit = parseBackfillLimit(data.limit);
     const startAfterUserId = parseStartAfterUserId(data.startAfterUserId);
+    const forceRetranscode = parseForceRetranscode(data.forceRetranscode);
     const dryRun = data.dryRun === true;
 
     let userQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = db
@@ -581,33 +599,47 @@ export const backfillGalleryVideoTranscodes = onCall(
         const mediaId = videoItem.mediaId;
 
         if (isTranscodedUrl(videoItem.currentUrl)) {
-          stats.alreadyTranscodedUrl += 1;
-          continue;
+          if (forceRetranscode) {
+            if (dryRun) {
+              stats.wouldTranscode += 1;
+            }
+          } else {
+            stats.alreadyTranscodedUrl += 1;
+            continue;
+          }
         }
 
-        const existingUrl = await getExistingTranscodedDownloadUrl(
-          bucketName,
-          userId,
-          mediaId
-        );
+        if (!forceRetranscode) {
+          const existingUrl = await getExistingTranscodedDownloadUrl(
+            bucketName,
+            userId,
+            mediaId
+          );
 
-        if (existingUrl) {
-          stats.alreadyTranscodedFile += 1;
+          if (existingUrl) {
+            stats.alreadyTranscodedFile += 1;
 
-          if (!dryRun) {
-            const applied = await applyTranscodedUrlToGallery(
-              userId,
-              mediaId,
-              existingUrl
-            );
-            if (applied) {
-              stats.updatedFromExistingFile += 1;
-            } else {
-              stats.galleryNotFoundForExisting += 1;
+            if (!dryRun) {
+              const applied = await applyTranscodedUrlToGallery(
+                userId,
+                mediaId,
+                existingUrl
+              );
+              if (applied) {
+                stats.updatedFromExistingFile += 1;
+              } else {
+                stats.galleryNotFoundForExisting += 1;
+              }
             }
-          }
 
-          continue;
+            continue;
+          }
+        } else {
+          // In force mode we re-run transcode from the original source object.
+          // Existing transcoded files are intentionally ignored.
+          if (!dryRun && isTranscodedUrl(videoItem.currentUrl)) {
+            stats.alreadyTranscodedUrl += 1;
+          }
         }
 
         const sourceObject = buildSourceObjectPath(userId, mediaId);
@@ -620,7 +652,10 @@ export const backfillGalleryVideoTranscodes = onCall(
         }
 
         if (dryRun) {
-          stats.wouldTranscode += 1;
+          // Avoid double counting in forced mode when current url is already transcoded.
+          if (!isTranscodedUrl(videoItem.currentUrl) || !forceRetranscode) {
+            stats.wouldTranscode += 1;
+          }
           continue;
         }
 
@@ -631,6 +666,7 @@ export const backfillGalleryVideoTranscodes = onCall(
             sourceObject,
             sourceGeneration: "backfill",
             bucketName,
+            forceRetranscode,
           });
           stats.transcodeTriggered += 1;
         } catch (error) {
@@ -654,6 +690,7 @@ export const backfillGalleryVideoTranscodes = onCall(
     return {
       ...stats,
       dryRun,
+      forceRetranscode,
       requestedLimit: limit,
       startAfterUserId,
       nextCursor,

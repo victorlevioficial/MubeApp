@@ -84,3 +84,20 @@ ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Runner.xcodeproj/xcuserdata/
 ios/Runner.xcworkspace/xcuserdata/
+
+# Firebase local cache
+.firebase/
+
+# Local debug / test artifacts
+device_screen*.png
+device_view*.xml
+result.json
+test_output.txt
+
+# Vendored dependency local-only extras
+third_party/firebase_storage/.dart_tool/
+third_party/firebase_storage/CHANGELOG.md
+third_party/firebase_storage/README.md
+third_party/firebase_storage/example/
+third_party/firebase_storage/pubspec.lock
+third_party/firebase_storage/test/

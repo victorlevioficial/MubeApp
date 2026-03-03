@@ -10,6 +10,8 @@ enum NotificationType {
   chatMessage,
   @JsonValue('band_invite')
   bandInvite,
+  @JsonValue('band_invite_accepted')
+  bandInviteAccepted,
   @JsonValue('like')
   like,
   @JsonValue('system')
@@ -55,6 +57,8 @@ abstract class AppNotification with _$AppNotification {
         return NotificationType.chatMessage;
       case 'band_invite':
         return NotificationType.bandInvite;
+      case 'band_invite_accepted':
+        return NotificationType.bandInviteAccepted;
       case 'like':
         return NotificationType.like;
       default:
@@ -72,6 +76,8 @@ extension AppNotificationX on AppNotification {
         return 'chat_bubble_outline';
       case NotificationType.bandInvite:
         return 'group_add';
+      case NotificationType.bandInviteAccepted:
+        return 'groups';
       case NotificationType.like:
         return 'favorite_border';
       case NotificationType.system:

@@ -374,7 +374,7 @@ class AuthGuard {
 
   /// Debug-only logging.
   void _log(String message) {
-    if (kDebugMode) {
+    if (AppLogger.verboseLoggingEnabled) {
       debugPrint('[AuthGuard] $message');
     }
   }

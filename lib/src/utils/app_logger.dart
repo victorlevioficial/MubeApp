@@ -13,8 +13,15 @@ class AppLogger {
   const AppLogger._();
 
   static final FirebaseCrashlytics _crashlytics = FirebaseCrashlytics.instance;
+  static const bool _enableVerboseDebugLogs = bool.fromEnvironment(
+    'MUBE_VERBOSE_LOGS',
+    defaultValue: false,
+  );
 
   static bool _isCrashlyticsEnabled = false;
+
+  static bool get verboseLoggingEnabled =>
+      kDebugMode && _enableVerboseDebugLogs;
 
   /// Inicializa o Crashlytics. Deve ser chamado no main() antes de usar o app.
   static Future<void> initialize() async {
@@ -30,7 +37,7 @@ class AppLogger {
   /// Log de debug simples (informativo)
   /// Em produção, não envia ao Crashlytics (apenas logs de erro/warning)
   static void info(String message, [Object? error, StackTrace? stackTrace]) {
-    if (kDebugMode) {
+    if (verboseLoggingEnabled) {
       developer.log(
         message,
         name: 'MubeApp ℹ️',
@@ -87,10 +94,34 @@ class AppLogger {
     }
   }
 
+  /// Log de erro do framework Flutter
+  static void recordFlutterError(
+    FlutterErrorDetails details, {
+    bool fatal = false,
+  }) {
+    if (kDebugMode) {
+      developer.log(
+        'Flutter Framework Error',
+        name: fatal ? 'MubeApp 💥 FATAL' : 'MubeApp 🚨',
+        error: details.exception,
+        stackTrace: details.stack,
+        level: fatal ? 1200 : 1000,
+      );
+    }
+
+    if (_isCrashlyticsEnabled) {
+      if (fatal) {
+        _crashlytics.recordFlutterFatalError(details);
+      } else {
+        _crashlytics.recordFlutterError(details);
+      }
+    }
+  }
+
   /// Log de debug (desenvolvimento)
   /// Apenas em modo debug, não envia ao Crashlytics
   static void debug(String message) {
-    if (kDebugMode) {
+    if (verboseLoggingEnabled) {
       developer.log(
         message,
         name: 'MubeApp 🐛',

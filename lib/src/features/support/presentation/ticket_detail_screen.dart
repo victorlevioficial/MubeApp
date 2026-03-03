@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -199,8 +200,10 @@ class TicketDetailScreen extends ConsumerWidget {
   }
 
   void _showFullScreenImage(BuildContext context, String imageUrl) {
-    showDialog(
+    AppOverlay.dialog(
       context: context,
+      useSafeArea: false,
+      barrierColor: AppColors.background.withValues(alpha: 0.92),
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: EdgeInsets.zero,
@@ -209,11 +212,7 @@ class TicketDetailScreen extends ConsumerWidget {
           children: [
             GestureDetector(
               onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.8),
-                width: double.infinity,
-                height: double.infinity,
-              ),
+              child: const SizedBox.expand(),
             ),
             InteractiveViewer(child: Image.network(imageUrl)),
             Positioned(

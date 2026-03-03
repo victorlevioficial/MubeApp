@@ -93,21 +93,21 @@ const List<FAQItem> kAppFAQs = [
     category: FAQCategories.bands,
     question: 'Por que minha banda aparece como rascunho (draft)?',
     answer:
-        'Bandas novas iniciam como rascunho por regra da plataforma. Nessa fase, a visibilidade e limitada ate que os requisitos de ativacao sejam atendidos.',
+        'Bandas novas iniciam como rascunho por regra da plataforma. Nessa fase, a banda ainda nao aparece no app ate atingir os requisitos minimos de ativacao.',
     tags: ['banda', 'draft', 'rascunho', 'status'],
   ),
   FAQItem(
     category: FAQCategories.bands,
     question: 'Quando a banda se torna ativa e visivel?',
     answer:
-        'A banda e ativada apos convites aceitos por integrantes com perfil profissional, conforme o fluxo de onboarding da banda.',
+        'A banda passa a ficar ativa e visivel quando pelo menos 2 integrantes com perfil individual/profissional aceitam o convite da banda.',
     tags: ['banda', 'ativacao', 'integrantes', 'visibilidade'],
   ),
   FAQItem(
     category: FAQCategories.bands,
     question: 'Quem administra a banda criada no onboarding?',
     answer:
-        'O usuario que cria a banda entra como administrador inicial e primeiro integrante. Depois, ele pode gerenciar convites e composicao da banda.',
+        'O usuario que cria a banda entra como administrador inicial da banda. Depois, ele pode gerenciar convites, acompanhar quem aceitou e montar a composicao ate a banda ser ativada.',
     tags: ['admin', 'banda', 'convites', 'integrantes'],
   ),
   FAQItem(

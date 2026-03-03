@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -188,7 +189,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     SearchFilters filters,
     ctrl.SearchController controller,
   ) {
-    showModalBottomSheet(
+    AppOverlay.bottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.transparent,

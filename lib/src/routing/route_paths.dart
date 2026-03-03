@@ -18,10 +18,10 @@ abstract final class RoutePaths {
   static const String chat = '/chat';
   static const String settings = '/settings';
   static const String addresses = '/settings/addresses';
-  static const String editAddress = '/settings/address';
   static const String maintenance = '/settings/maintenance';
   static const String privacySettings = '/settings/privacy';
   static const String blockedUsers = '/settings/blocked-users';
+  static const String receivedFavorites = '/settings/received-favorites';
   static const String favorites = '/favorites';
   static const String matchpoint = '/matchpoint';
   static const String matchpointWizard = '/matchpoint/wizard';

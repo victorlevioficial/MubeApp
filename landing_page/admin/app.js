@@ -19,8 +19,6 @@ if (!firebase.apps.length) {
 }
 const auth = firebase.auth();
 const functions = firebase.app().functions("southamerica-east1");
-const functionsUsCentral = firebase.app().functions("us-central1");
-const VIDEO_BACKFILL_CALLABLE_TIMEOUT_MS = 540000;
 
 // ============================================
 // STATE
@@ -28,10 +26,7 @@ const VIDEO_BACKFILL_CALLABLE_TIMEOUT_MS = 540000;
 let currentUser = null;
 let featuredUids = [];
 let featuredProfiles = [];
-let videoBackfillRunning = false;
-let videoBackfillCursorValue = null;
-let videoBackfillHasMoreValue = false;
-let videoBackfillLastMode = null; // "dryRun" | "run" | null
+let matchpointAuditState = null;
 
 // ============================================
 // DOM REFS
@@ -47,13 +42,8 @@ const loginBtn = $("#login-btn");
 const logoutBtn = $("#logout-btn");
 const pageTitle = $("#page-title");
 const adminEmail = $("#admin-email");
-const videoBackfillLimit = $("#video-backfill-limit");
-const videoBackfillDryRunBtn = $("#video-backfill-dry-run-btn");
-const videoBackfillRunBtn = $("#video-backfill-run-btn");
-const videoBackfillResetBtn = $("#video-backfill-reset-btn");
-const videoBackfillCursor = $("#video-backfill-cursor");
-const videoBackfillHasMore = $("#video-backfill-has-more");
-const videoBackfillReport = $("#video-backfill-report");
+const matchpointAuditBody = $("#matchpoint-audit-body");
+const matchpointAuditRefreshBtn = $("#matchpoint-audit-refresh-btn");
 
 // ============================================
 // AUTH
@@ -145,208 +135,8 @@ function loadSectionData(section) {
     case "reports": loadReports(); break;
     case "suspensions": loadSuspensions(); break;
     case "tickets": loadTickets(); break;
-    case "chats": loadChats(); break;
-    case "users":
-      if ($("#user-search-results").innerHTML === "") {
-        $("#user-search-btn").click();
-      }
-      break;
-    case "videos":
-      refreshVideoBackfillUi();
-      break;
   }
 }
-
-// ============================================
-// VIDEOS BACKFILL
-// ============================================
-function parseBackfillLimit() {
-  const raw = parseInt(videoBackfillLimit?.value || "20", 10);
-  const fallback = Number.isFinite(raw) ? raw : 20;
-  const clamped = Math.max(1, Math.min(100, fallback));
-  if (videoBackfillLimit) videoBackfillLimit.value = String(clamped);
-  return clamped;
-}
-
-function asBackfillInt(value) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.trunc(value);
-  }
-  const parsed = parseInt(String(value || "0"), 10);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function setBackfillReport(text) {
-  if (!videoBackfillReport) return;
-  videoBackfillReport.textContent = text;
-}
-
-function refreshVideoBackfillUi() {
-  const runContinuation =
-    videoBackfillLastMode === "run" && videoBackfillHasMoreValue;
-
-  if (videoBackfillCursor) {
-    videoBackfillCursor.textContent = videoBackfillCursorValue || "-";
-  }
-  if (videoBackfillHasMore) {
-    videoBackfillHasMore.textContent = videoBackfillHasMoreValue ? "sim" : "nao";
-  }
-  if (videoBackfillRunBtn) {
-    videoBackfillRunBtn.innerHTML = runContinuation ?
-      '<span class="material-icons-round">skip_next</span> Proximo Lote' :
-      '<span class="material-icons-round">play_arrow</span> Executar Lote';
-  }
-}
-
-function formatBackfillResult(data) {
-  const lines = [
-    "Backfill de videos - resultado:",
-    `dryRun: ${data.dryRun === true ? "true" : "false"}`,
-    `usersScanned: ${asBackfillInt(data.usersScanned)}`,
-    `usersWithVideos: ${asBackfillInt(data.usersWithVideos)}`,
-    `videosDiscovered: ${asBackfillInt(data.videosDiscovered)}`,
-    `alreadyTranscodedUrl: ${asBackfillInt(data.alreadyTranscodedUrl)}`,
-    `alreadyTranscodedFile: ${asBackfillInt(data.alreadyTranscodedFile)}`,
-    `updatedFromExistingFile: ${asBackfillInt(data.updatedFromExistingFile)}`,
-    `wouldTranscode: ${asBackfillInt(data.wouldTranscode)}`,
-    `transcodeTriggered: ${asBackfillInt(data.transcodeTriggered)}`,
-    `transcodeFailures: ${asBackfillInt(data.transcodeFailures)}`,
-    `missingSource: ${asBackfillInt(data.missingSource)}`,
-    `hasMore: ${data.hasMore === true ? "true" : "false"}`,
-    `nextCursor: ${data.nextCursor || "-"}`,
-  ];
-
-  const failures = Array.isArray(data.failures) ? data.failures : [];
-  if (failures.length > 0) {
-    lines.push("");
-    lines.push("Failures (max 5):");
-    failures.slice(0, 5).forEach((item) => {
-      const failure = item || {};
-      lines.push(
-        `- user=${failure.userId || "-"} media=${failure.mediaId || "-"} error=${failure.error || "-"}`,
-      );
-    });
-  }
-
-  return lines.join("\n");
-}
-
-function setBackfillRunning(running, mode = "") {
-  videoBackfillRunning = running;
-  const disableAll = running;
-  if (videoBackfillLimit) videoBackfillLimit.disabled = disableAll;
-  if (videoBackfillDryRunBtn) videoBackfillDryRunBtn.disabled = disableAll;
-  if (videoBackfillRunBtn) videoBackfillRunBtn.disabled = disableAll;
-  if (videoBackfillResetBtn) videoBackfillResetBtn.disabled = disableAll;
-
-  if (!running) return;
-
-  setBackfillReport(
-    mode === "dryRun" ?
-      "Executando simulacao..." :
-      "Executando lote real...",
-  );
-}
-
-function getVideoBackfillCallable() {
-  return functionsUsCentral.httpsCallable(
-    "backfillGalleryVideoTranscodes",
-    { timeout: VIDEO_BACKFILL_CALLABLE_TIMEOUT_MS },
-  );
-}
-
-async function executeVideoBackfill({ dryRun, resetCursor }) {
-  if (videoBackfillRunning) return;
-  if (!currentUser) {
-    toast("Faca login novamente para executar o backfill.", "error");
-    return;
-  }
-
-  const limit = parseBackfillLimit();
-  const payload = { dryRun, limit };
-
-  if (!resetCursor && videoBackfillCursorValue) {
-    payload.startAfterUserId = videoBackfillCursorValue;
-  }
-
-  if (resetCursor) {
-    videoBackfillCursorValue = null;
-    videoBackfillHasMoreValue = false;
-    refreshVideoBackfillUi();
-  }
-
-  setBackfillRunning(true, dryRun ? "dryRun" : "run");
-
-  try {
-    const result = await getVideoBackfillCallable()(payload);
-    const data = result?.data || {};
-
-    videoBackfillHasMoreValue = data.hasMore === true;
-    videoBackfillCursorValue = typeof data.nextCursor === "string" ?
-      data.nextCursor :
-      null;
-    videoBackfillLastMode = dryRun ? "dryRun" : "run";
-    refreshVideoBackfillUi();
-    setBackfillReport(formatBackfillResult(data));
-    toast("Backfill executado com sucesso.", "success");
-  } catch (err) {
-    console.error("Video backfill error:", err);
-    const code = String(err?.code || "");
-    const message = err?.message || "Erro ao executar backfill.";
-    const isDeadline = code.includes("deadline-exceeded") ||
-      message.toLowerCase().includes("deadline-exceeded");
-
-    if (isDeadline) {
-      setBackfillReport(
-        "A chamada expirou (deadline-exceeded), mas o processamento pode ter continuado no backend.\n" +
-        "Rode Simular (Dry Run) para verificar o estado atual antes de repetir.",
-      );
-    } else {
-      setBackfillReport(`Erro ao executar backfill: ${message}`);
-    }
-    toast("Erro ao executar backfill de videos.", "error");
-  } finally {
-    setBackfillRunning(false);
-  }
-}
-
-if (videoBackfillDryRunBtn) {
-  videoBackfillDryRunBtn.addEventListener("click", () => {
-    executeVideoBackfill({ dryRun: true, resetCursor: true });
-  });
-}
-
-if (videoBackfillRunBtn) {
-  videoBackfillRunBtn.addEventListener("click", () => {
-    const shouldContinueFromCursor =
-      videoBackfillLastMode === "run" &&
-      videoBackfillHasMoreValue === true &&
-      typeof videoBackfillCursorValue === "string" &&
-      videoBackfillCursorValue.trim().length > 0;
-
-    const shouldResetCursor = !shouldContinueFromCursor;
-    executeVideoBackfill({
-      dryRun: false,
-      resetCursor: shouldResetCursor,
-    });
-  });
-}
-
-if (videoBackfillResetBtn) {
-  videoBackfillResetBtn.addEventListener("click", () => {
-    if (videoBackfillRunning) return;
-    videoBackfillCursorValue = null;
-    videoBackfillHasMoreValue = false;
-    videoBackfillLastMode = null;
-    refreshVideoBackfillUi();
-    setBackfillReport(
-      "Cursor reiniciado. O proximo lote vai recomecar do inicio.",
-    );
-    toast("Cursor de backfill reiniciado.", "success");
-  });
-}
-
-refreshVideoBackfillUi();
 
 // ============================================
 // DASHBOARD
@@ -365,6 +155,100 @@ async function loadDashboard() {
     console.error("Dashboard error:", err);
     toast("Erro ao carregar dashboard", "error");
   }
+
+  try {
+    await loadMatchpointAuditDashboard();
+  } catch (err) {
+    console.error("Dashboard audit error:", err);
+  }
+}
+
+async function loadMatchpointAuditDashboard() {
+  if (matchpointAuditBody) {
+    matchpointAuditBody.innerHTML =
+      '<p class="empty-state">Carregando auditoria do MatchPoint...</p>';
+  }
+
+  try {
+    const result = await functions
+      .httpsCallable("getMatchpointRankingAuditDashboard")({ limit: 24 });
+    matchpointAuditState = result.data || null;
+    renderMatchpointAuditDashboard(matchpointAuditState);
+    return result;
+  } catch (err) {
+    console.error("MatchPoint audit error:", err);
+    if (matchpointAuditBody) {
+      matchpointAuditBody.innerHTML =
+        `<p class="empty-state" style="color:red;font-weight:bold;">` +
+        `Erro ao carregar auditoria do MatchPoint: ${esc(err.message || "desconhecido")}` +
+        `</p>`;
+    }
+    throw err;
+  }
+}
+
+function renderMatchpointAuditDashboard(data) {
+  if (!matchpointAuditBody) return;
+
+  const summary = data?.summary || {};
+  const buckets = Array.isArray(data?.buckets) ? data.buckets : [];
+
+  if (buckets.length === 0) {
+    matchpointAuditBody.innerHTML = `
+      <p class="empty-state">
+        Ainda nao existem buckets de auditoria do MatchPoint para exibir.
+      </p>
+    `;
+    return;
+  }
+
+  const totalEvents = numberOrZero(summary.totalEvents);
+  const totalReturned = numberOrZero(summary.returnedTotal);
+  const geohashUsedCount = numberOrZero(summary.geohashUsedCount);
+  const returnedProximity = numberOrZero(summary.returnedProximity);
+  const returnedHashtag = numberOrZero(summary.returnedHashtag);
+  const returnedGenre = numberOrZero(summary.returnedGenre);
+  const returnedFallback = numberOrZero(summary.returnedFallback);
+
+  matchpointAuditBody.innerHTML = `
+    <div class="audit-summary-grid">
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Eventos (24 buckets)</span>
+        <span class="audit-summary-value">${formatNumber(totalEvents)}</span>
+        <span class="audit-summary-meta">${formatNumber(totalReturned)} perfis retornados</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Media por busca</span>
+        <span class="audit-summary-value">${formatDecimal(summary.averageReturnedPerEvent)}</span>
+        <span class="audit-summary-meta">${formatDecimal(summary.averagePoolPerEvent)} perfis no pool</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Busca com geohash</span>
+        <span class="audit-summary-value">${formatPercent(geohashUsedCount, totalEvents)}</span>
+        <span class="audit-summary-meta">${formatNumber(geohashUsedCount)}/${formatNumber(totalEvents)} eventos</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Mix retornado</span>
+        <span class="audit-summary-value">P ${formatPercent(returnedProximity, totalReturned)}</span>
+        <span class="audit-summary-meta">H ${formatPercent(returnedHashtag, totalReturned)} | G ${formatPercent(returnedGenre, totalReturned)} | F ${formatPercent(returnedFallback, totalReturned)}</span>
+      </div>
+    </div>
+    <div class="audit-buckets">
+      ${buckets.slice(0, 8).map((bucket) => `
+        <div class="audit-bucket">
+          <div>
+            <div class="audit-bucket-title">${formatAuditBucketStart(bucket.bucketStart)}</div>
+            <div class="audit-bucket-meta">
+              ${formatNumber(bucket.totalEvents)} buscas | ${formatNumber(bucket.returnedTotal)} perfis retornados | ${formatNumber(bucket.poolTotal)} no pool
+            </div>
+          </div>
+          <div class="audit-bucket-mix">
+            P ${formatNumber(bucket.returnedProximity)} | H ${formatNumber(bucket.returnedHashtag)} | G ${formatNumber(bucket.returnedGenre)} | F ${formatNumber(bucket.returnedFallback)}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 // ============================================
@@ -388,7 +272,7 @@ function renderFeaturedList() {
 
   if (featuredProfiles.length === 0) {
     list.innerHTML = '<p class="empty-state">Nenhum perfil em destaque. Adicione usando o campo acima.</p>';
-    saveBtn.classList.add("hidden");
+    saveBtn.classList.remove("hidden"); // <-- BOTÃO FICA VISÍVEL MESMO COM LISTA VAZIA
     return;
   }
 
@@ -647,7 +531,7 @@ async function loadReports() {
         <thead>
           <tr>
             <th>Tipo</th>
-            <th>Usuário Reportado</th>
+            <th>ID Reportado</th>
             <th>Motivo</th>
             <th>Status</th>
             <th>Data</th>
@@ -658,18 +542,13 @@ async function loadReports() {
           ${reports.map((r) => `
             <tr>
               <td>${esc(r.reportedItemType)}</td>
-              <td>
-                ${r.reportedItemType === 'user' ? `<div style="font-weight:600">${esc(r.reportedName)}</div>` : ''}
-                <div style="font-family:monospace;font-size:11px;color:var(--text-muted)">${r.reportedItemId}</div>
-              </td>
+              <td style="font-family:monospace;font-size:12px">${r.reportedItemId.substring(0, 16)}...</td>
               <td>${esc(r.reason)}</td>
               <td><span class="badge badge-${r.status}">${r.status}</span></td>
               <td>${formatDate(r.createdAt)}</td>
               <td>
-                ${r.status === 'pending' ? `
-                  <button class="btn btn-sm btn-primary" onclick="updateReport('${r.id}','processed')">Processar</button>
-                  <button class="btn btn-sm btn-secondary" onclick="updateReport('${r.id}','rejected')">Rejeitar</button>
-                ` : '—'}
+                ${r.status !== 'processed' ? `<button class="btn btn-sm btn-primary" onclick="updateReport('${r.id}','processed')">Processar</button>` : ''}
+                ${r.status !== 'rejected' ? `<button class="btn btn-sm btn-secondary" onclick="updateReport('${r.id}','rejected')">Rejeitar</button>` : ''}
               </td>
             </tr>
           `).join("")}
@@ -678,7 +557,7 @@ async function loadReports() {
     `;
   } catch (err) {
     console.error("Reports error:", err);
-    container.innerHTML = '<p class="empty-state">Erro ao carregar.</p>';
+    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar denúncias: ${err.message}</p>`;
   }
 }
 
@@ -725,10 +604,7 @@ async function loadSuspensions() {
         <tbody>
           ${suspensions.map((s) => `
             <tr>
-              <td>
-                <div style="font-weight:600">${esc(s.userName)}</div>
-                <div style="font-family:monospace;font-size:11px;color:var(--text-muted)">${s.userId}</div>
-              </td>
+              <td style="font-family:monospace;font-size:12px">${s.userId.substring(0, 16)}...</td>
               <td>${esc(s.reason)}</td>
               <td><span class="badge badge-${s.status === 'active' ? 'suspended' : 'lifted'}">${s.status}</span></td>
               <td>${formatDate(s.suspendedUntil)}</td>
@@ -742,7 +618,7 @@ async function loadSuspensions() {
     `;
   } catch (err) {
     console.error("Suspensions error:", err);
-    container.innerHTML = '<p class="empty-state">Erro ao carregar.</p>';
+    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar suspensões: ${err.message}</p>`;
   }
 }
 
@@ -822,32 +698,43 @@ async function loadTickets() {
         </thead>
         <tbody>
           ${tickets.map((t) => {
-      // encode for html
-      const encT = encodeURIComponent(JSON.stringify(t));
+      const encodedTicket = encodeURIComponent(JSON.stringify(t));
       return `
             <tr>
-              <td>${esc(t.subject || t.message?.substring(0, 40) || '—')}</td>
+              <td>${esc(t.title || t.subject || t.description?.substring(0, 40) || t.message?.substring(0, 40) || '—')}</td>
               <td>${esc(t.category || '—')}</td>
               <td><span class="badge badge-${t.status}">${t.status}</span></td>
               <td>${formatDate(t.createdAt)}</td>
               <td>
-                <button class="btn btn-sm btn-secondary" onclick="viewTicket('${t.id}', decodeURIComponent('${encT}'))">Ver</button>
+                <button class="btn btn-sm btn-secondary" onclick="viewTicket('${t.id}', decodeURIComponent('${encodedTicket}'))">Ver</button>
               </td>
             </tr>
-          `}).join("")}
+          `;
+    }).join("")}
         </tbody>
       </table>
     `;
   } catch (err) {
     console.error("Tickets error:", err);
-    container.innerHTML = '<p class="empty-state">Erro ao carregar.</p>';
+    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar tickets: ${err.message}</p>`;
   }
 }
 
 $("#tickets-filter").addEventListener("change", loadTickets);
 
-window.viewTicket = function (ticketId, ticketStr) {
-  const ticket = JSON.parse(ticketStr);
+if (matchpointAuditRefreshBtn) {
+  matchpointAuditRefreshBtn.addEventListener("click", async () => {
+    try {
+      await loadMatchpointAuditDashboard();
+      toast("Auditoria MatchPoint atualizada!", "success");
+    } catch (_) {
+      toast("Erro ao atualizar auditoria MatchPoint", "error");
+    }
+  });
+}
+
+window.viewTicket = function (ticketId, ticketPayload) {
+  const ticket = JSON.parse(ticketPayload);
   const modal = $("#user-detail-modal");
   const body = $("#user-detail-body");
 
@@ -856,9 +743,12 @@ window.viewTicket = function (ticketId, ticketStr) {
     <table class="data-table" style="width:100%">
       <tbody>
         <tr><td style="color:var(--text-muted);width:120px">Usuário</td><td style="font-family:monospace">${ticket.userId}</td></tr>
+        <tr><td style="color:var(--text-muted)">Origem</td><td>${esc(ticket.source || 'app')}</td></tr>
+        <tr><td style="color:var(--text-muted)">Contato</td><td>${esc(ticket.contactName || '—')} ${ticket.contactEmail ? `&lt;${esc(ticket.contactEmail)}&gt;` : ''}</td></tr>
         <tr><td style="color:var(--text-muted)">Categoria</td><td>${esc(ticket.category || '—')}</td></tr>
         <tr><td style="color:var(--text-muted)">Status</td><td><span class="badge badge-${ticket.status}">${ticket.status}</span></td></tr>
-        <tr><td style="color:var(--text-muted)">Mensagem</td><td>${esc(ticket.message || '—')}</td></tr>
+        <tr><td style="color:var(--text-muted)">Assunto</td><td>${esc(ticket.title || ticket.subject || '—')}</td></tr>
+        <tr><td style="color:var(--text-muted)">Mensagem</td><td style="white-space:pre-wrap">${esc(ticket.description || ticket.message || '—')}</td></tr>
         <tr><td style="color:var(--text-muted)">Resposta</td><td>${esc(ticket.adminResponse || 'Sem resposta')}</td></tr>
       </tbody>
     </table>
@@ -882,129 +772,6 @@ window.changeTicketStatus = async function (ticketId, status) {
 };
 
 // ============================================
-// CHATS
-// ============================================
-let currentChats = [];
-
-async function loadChats() {
-  const container = $("#chats-list");
-  container.innerHTML = '<p class="empty-state">Carregando...</p>';
-
-  try {
-    const result = await functions.httpsCallable("listConversations")({ limit: 50 });
-    const chats = result.data.conversations || [];
-    currentChats = chats;
-
-    if (chats.length === 0) {
-      container.innerHTML = '<p class="empty-state">Nenhuma conversa encontrada.</p>';
-      return;
-    }
-
-    container.innerHTML = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Participantes</th>
-            <th>Tipo</th>
-            <th>Última Mensagem</th>
-            <th>Atualização</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${chats.map((c) => {
-      const participantsHtml = c.participants.map(p => `
-               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                 ${p.photo ? `<img src="${p.photo}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;">` : `<div style="width:24px;height:24px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center;font-size:10px;color:white;">${p.name.charAt(0)}</div>`}
-                 <div style="display:flex; flex-direction:column; line-height: 1.2;">
-                    <span style="font-weight:600;font-size:13px;">${esc(p.name)}</span>
-                    <span style="font-family:monospace;font-size:11px;color:var(--text-muted)">${p.uid}</span>
-                 </div>
-               </div>
-             `).join('');
-
-      const encC = encodeURIComponent(JSON.stringify(c));
-      return `
-            <tr>
-              <td>${participantsHtml}</td>
-              <td><span class="badge badge-${c.type === 'matchpoint' ? 'processed' : 'pending'}">${c.type}</span></td>
-              <td style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(c.lastMessageText || '')}">
-                ${esc(c.lastMessageText || '—')}
-              </td>
-              <td>${formatDate(c.updatedAt)}</td>
-              <td>
-                <button class="btn btn-sm btn-secondary" onclick="viewConversation('${c.id}', decodeURIComponent('${encC}'))">Ver Chat</button>
-              </td>
-            </tr>
-          `}).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error("Erro ao carregar chats:", err);
-    container.innerHTML = '<p class="error-text">Erro ao carregar conversas.</p>';
-  }
-}
-
-window.viewConversation = async function (conversationId, chatStr) {
-  const chat = JSON.parse(chatStr);
-  const modal = $("#chat-modal");
-  const body = $("#chat-messages-body");
-
-  body.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;padding:20px;">
-      <span class="btn-loader" style="display:block;border-color:var(--primary);border-top-color:transparent;"></span>
-      <span style="margin-top:10px;color:var(--text-muted);">Carregando mensagens...</span>
-    </div>
-  `;
-  modal.classList.remove("hidden");
-
-  try {
-    const result = await functions.httpsCallable("getConversationMessages")({ conversationId, limit: 100 });
-    const messages = result.data.messages || [];
-
-    if (messages.length === 0) {
-      body.innerHTML = '<p class="empty-state" style="margin-top:20px;">Nenhuma mensagem registrada.</p>';
-      return;
-    }
-
-    const participantsMap = {};
-    chat.participants.forEach(p => participantsMap[p.uid] = p);
-
-    body.innerHTML = messages.map(m => {
-      const sender = participantsMap[m.senderId] || { name: 'Desconhecido' };
-      const isSystem = m.senderId === 'system';
-      const isSender1 = Object.keys(participantsMap)[0] === m.senderId;
-      const align = isSystem ? 'center' : (isSender1 ? 'flex-start' : 'flex-end');
-      const bgColor = isSystem ? 'transparent' : (isSender1 ? 'var(--bg-card)' : 'var(--primary)');
-      const color = isSystem ? 'var(--text-muted)' : (isSender1 ? 'var(--text-main)' : 'white');
-      const border = isSystem ? 'none' : '1px solid var(--border-color)';
-
-      return `
-        <div style="display:flex; flex-direction:column; align-items:${align}; margin-bottom:4px;">
-           ${!isSystem ? `<span style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">${esc(sender.name)} • ${formatDate(m.createdAt)}</span>` : ''}
-           <div style="background:${bgColor}; color:${color}; border:${border}; padding:8px 12px; border-radius:12px; max-width:85%; word-break:break-word;">
-              ${isSystem ? `<i style="font-size:11px;">${esc(m.text)}</i>` : esc(m.text)}
-           </div>
-        </div>
-      `;
-    }).join("");
-
-    // Auto scroll bottom
-    setTimeout(() => {
-      body.scrollTop = body.scrollHeight;
-    }, 100);
-  } catch (err) {
-    console.error("Erro ao carregar mensagens:", err);
-    body.innerHTML = '<p class="error-text">Erro ao buscar mensagens.</p>';
-  }
-};
-
-window.closeModal = function (id) {
-  $("#" + id).classList.add("hidden");
-};
-
-// ============================================
 // UTILS
 // ============================================
 function toast(msg, type = "success") {
@@ -1024,6 +791,44 @@ function esc(str) {
 function formatNumber(n) {
   if (n === undefined || n === null) return "—";
   return n.toLocaleString("pt-BR");
+}
+
+function formatDecimal(n) {
+  const value = Number(n);
+  if (!Number.isFinite(value)) return "0,0";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function numberOrZero(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function formatPercent(value, total) {
+  const safeValue = numberOrZero(value);
+  const safeTotal = numberOrZero(total);
+  if (safeTotal <= 0) return "0%";
+  const percent = (safeValue / safeTotal) * 100;
+  return `${percent.toLocaleString("pt-BR", {
+    minimumFractionDigits: percent >= 10 ? 0 : 1,
+    maximumFractionDigits: percent >= 10 ? 0 : 1,
+  })}%`;
+}
+
+function formatAuditBucketStart(bucketStart) {
+  if (!bucketStart) return "Bucket sem horario";
+  const date = new Date(bucketStart);
+  if (Number.isNaN(date.getTime())) return "Bucket sem horario";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).replace(",", "");
 }
 
 function formatDate(ts) {

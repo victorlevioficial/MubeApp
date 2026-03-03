@@ -128,10 +128,10 @@ void main() {
         tipoPerfil: AppUserType.studio,
         nome: 'Studio User',
         foto: 'https://example.com/studio.jpg',
-        bio: 'Studio profissional de gravacao.',
         location: {'lat': -23.5, 'lng': -46.6},
         dadosProfissional: {
           'nomeArtistico': 'Studio Legacy',
+          'bio': 'Studio profissional de gravacao.',
           'celular': '(11) 98888-8888',
           'studioType': 'home_studio',
           'services': ['mixagem'],

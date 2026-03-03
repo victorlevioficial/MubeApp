@@ -131,5 +131,32 @@ void main() {
         expect(updated.cadastroStatus, 'concluido');
       });
     });
+
+    group('profileBio', () {
+      test('uses nested band bio when top-level bio is empty', () {
+        const user = AppUser(
+          uid: 'band-uid',
+          email: 'band@example.com',
+          tipoPerfil: AppUserType.band,
+          dadosBanda: {'nomeBanda': 'Banda Teste', 'bio': 'Bio da banda'},
+        );
+
+        expect(user.profileBio, 'Bio da banda');
+      });
+
+      test('uses legacy studio bio saved in professional data', () {
+        const user = AppUser(
+          uid: 'studio-uid',
+          email: 'studio@example.com',
+          tipoPerfil: AppUserType.studio,
+          dadosProfissional: {
+            'nomeArtistico': 'Studio Legacy',
+            'bio': 'Bio legacy do estudio',
+          },
+        );
+
+        expect(user.profileBio, 'Bio legacy do estudio');
+      });
+    });
   });
 }

@@ -28,6 +28,11 @@ abstract final class FeedConstants {
   static const double filterBarHeight = 52.0;
   static const double paginationThreshold = 200.0;
   static const double bottomPadding = 80.0;
+  static const int initialPrecacheItems = 4;
+  static const int incrementalPrecacheItems = 6;
+  static const int deferredPrecacheItems = 10;
+  static const Duration deferredPrecacheDelay = Duration(milliseconds: 1400);
+  static const double initialCacheExtent = 400.0;
 }
 
 class FeedScreen extends ConsumerStatefulWidget {
@@ -40,13 +45,17 @@ class FeedScreen extends ConsumerStatefulWidget {
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
   Timer? _deferredPrecacheTimer;
+  ProviderSubscription<AsyncValue<FeedState>>? _feedSubscription;
   bool _isScrolled = false;
   int _precacheFingerprint = 0;
+  int _lastKnownMainItemCount = 0;
+  int _lastWarmupAnchor = -1;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _setupPrecacheListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(feedControllerProvider.notifier).loadAllData();
     });
@@ -54,6 +63,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   void dispose() {
+    _feedSubscription?.close();
     _deferredPrecacheTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -77,6 +87,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           controller.loadMoreMainFeed();
         }
       }
+
+      _warmUpcomingMainFeedWindow();
     }
   }
 
@@ -118,49 +130,90 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return sortedItems.take(5).toList();
   }
 
+  void _setupPrecacheListener() {
+    _feedSubscription = ref.listenManual<AsyncValue<FeedState>>(
+      feedControllerProvider,
+      (previous, next) {
+        next.whenData((state) {
+          final allItems = [
+            ...state.items,
+            ...state.sectionItems.values.expand((list) => list),
+          ];
+
+          final fingerprint = Object.hashAll(allItems.map((item) => item.uid));
+          if (fingerprint == _precacheFingerprint) return;
+          _precacheFingerprint = fingerprint;
+
+          if (allItems.isEmpty || !context.mounted) return;
+
+          final precacheService = ref.read(feedImagePrecacheServiceProvider);
+          precacheService.precacheItems(
+            context,
+            allItems,
+            maxItems: FeedConstants.initialPrecacheItems,
+          );
+
+          if (state.items.length > _lastKnownMainItemCount) {
+            final newItems = state.items.skip(_lastKnownMainItemCount).toList();
+            if (newItems.isNotEmpty) {
+              precacheService.precacheItems(
+                context,
+                newItems,
+                maxItems: FeedConstants.incrementalPrecacheItems,
+              );
+            }
+          }
+          _lastKnownMainItemCount = state.items.length;
+
+          _deferredPrecacheTimer?.cancel();
+          if (allItems.length > FeedConstants.initialPrecacheItems) {
+            _deferredPrecacheTimer = Timer(
+              FeedConstants.deferredPrecacheDelay,
+              () {
+                if (!mounted) return;
+                precacheService.precacheItems(
+                  context,
+                  allItems.skip(FeedConstants.initialPrecacheItems).toList(),
+                  maxItems: FeedConstants.deferredPrecacheItems,
+                );
+              },
+            );
+          }
+        });
+      },
+    );
+  }
+
+  void _warmUpcomingMainFeedWindow() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final mainItems = ref.read(feedControllerProvider).value?.items;
+    if (mainItems == null || mainItems.isEmpty) return;
+
+    const estimatedCardExtent = 168.0;
+    final anchor = (_scrollController.position.pixels / estimatedCardExtent)
+        .floor()
+        .clamp(0, mainItems.length - 1);
+
+    if (_lastWarmupAnchor >= 0 && (anchor - _lastWarmupAnchor).abs() < 3) {
+      return;
+    }
+    _lastWarmupAnchor = anchor;
+
+    final start = (anchor + 1).clamp(0, mainItems.length);
+    final end = (start + 14).clamp(start, mainItems.length);
+    if (end <= start) return;
+
+    final upcomingItems = mainItems.sublist(start, end);
+    ref
+        .read(feedImagePrecacheServiceProvider)
+        .precacheItems(context, upcomingItems, maxItems: upcomingItems.length);
+  }
+
   @override
   Widget build(BuildContext context) {
     final stateAsync = ref.watch(feedControllerProvider);
     final state = stateAsync.value ?? const FeedState();
     final controller = ref.read(feedControllerProvider.notifier);
-
-    // Precache logic listener
-    ref.listen(feedControllerProvider, (previous, next) {
-      next.whenData((state) {
-        // Precache in phases to reduce startup contention.
-        final allItems = [
-          ...state.items,
-          ...state.sectionItems.values.expand((list) => list),
-        ];
-
-        final fingerprint = Object.hashAll(allItems.map((item) => item.uid));
-        if (fingerprint == _precacheFingerprint) return;
-        _precacheFingerprint = fingerprint;
-
-        if (allItems.isNotEmpty && context.mounted) {
-          final precacheService = ref.read(feedImagePrecacheServiceProvider);
-
-          // First wave: keep startup light.
-          precacheService.precacheItems(context, allItems, maxItems: 4);
-
-          // Second wave: deferred so first frames stay responsive.
-          _deferredPrecacheTimer?.cancel();
-          if (allItems.length > 4) {
-            _deferredPrecacheTimer = Timer(
-              const Duration(milliseconds: 900),
-              () {
-                if (!mounted) return;
-                precacheService.precacheItems(
-                  context,
-                  allItems.skip(4).toList(),
-                  maxItems: 8,
-                );
-              },
-            );
-          }
-        }
-      });
-    });
 
     if (state.isInitialLoading) {
       return const FeedScreenSkeleton();
@@ -200,10 +253,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         color: AppColors.primary,
         backgroundColor: AppColors.surface,
         onRefresh: () async {
-          await controller.loadAllData();
+          await controller.refresh();
         },
         child: CustomScrollView(
           controller: _scrollController,
+          cacheExtent: FeedConstants.initialCacheExtent,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)

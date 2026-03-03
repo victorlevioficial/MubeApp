@@ -25,32 +25,31 @@ class MatchpointRepository {
     : _analytics = analytics;
 
   FutureResult<List<AppUser>> fetchCandidates({
-    required String currentUserId,
+    required AppUser currentUser,
     required List<String> genres,
+    required List<String> hashtags,
     required List<String> blockedUsers,
     int limit = 20,
   }) async {
     try {
+      final interactedUserIds = await _dataSource.fetchExistingInteractions(
+        currentUser.uid,
+      );
+      final excludedUserIds = {...blockedUsers, ...interactedUserIds}.toList();
+
       final candidates = await _dataSource.fetchCandidates(
-        currentUserId: currentUserId,
+        currentUser: currentUser,
         genres: genres,
-        excludedUserIds: blockedUsers,
+        hashtags: hashtags,
+        excludedUserIds: excludedUserIds,
         limit: limit,
       );
 
-      // Filter out existing interactions (client-side for now)
       if (candidates.isEmpty) return const Right([]);
-
-      final existingIds = await _dataSource.fetchExistingInteractions(
-        currentUserId,
-      );
-      final filtered = candidates
-          .where((u) => !existingIds.contains(u.uid))
-          .toList();
 
       // Garantir unicidade local por UID para evitar cards duplicados.
       final seen = <String>{};
-      final unique = filtered.where((u) => seen.add(u.uid)).toList();
+      final unique = candidates.where((u) => seen.add(u.uid)).toList();
 
       return Right(unique);
     } catch (e) {
@@ -203,6 +202,16 @@ class MatchpointRepository {
     try {
       final hashtags = await _dataSource.fetchHashtagRanking(limit: limit);
       return Right(hashtags);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Busca um usuario pelo ID para abrir o preview detalhado do MatchPoint.
+  FutureResult<AppUser?> fetchUserById(String userId) async {
+    try {
+      final user = await _dataSource.fetchUserById(userId);
+      return Right(user);
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }

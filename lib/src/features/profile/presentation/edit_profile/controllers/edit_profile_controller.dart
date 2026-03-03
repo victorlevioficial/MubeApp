@@ -687,6 +687,7 @@ class EditProfileController extends _$EditProfileController {
             'nomeEstudio': nomeArtistico,
             'nomeArtistico': nomeArtistico,
             'nome': nomeArtistico,
+            'bio': bio,
             'celular': celular,
             'studioType': state.studioType,
             'servicosOferecidos': state.selectedServices,

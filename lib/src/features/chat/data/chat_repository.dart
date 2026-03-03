@@ -18,14 +18,91 @@ class ChatRepository {
   ChatRepository(this._firestore, {AnalyticsService? analytics})
     : _analytics = analytics;
 
-  /// Calcula conversationId determinístico (uidMenor_uidMaior).
+  Map<String, dynamic>? _asMap(Object? data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return null;
+  }
+
+  String? _readNonEmptyString(Object? value) {
+    if (value is! String) return null;
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  String _firstNonEmptyString(
+    List<Object?> values, {
+    required String fallback,
+  }) {
+    for (final value in values) {
+      final normalized = _readNonEmptyString(value);
+      if (normalized != null) return normalized;
+    }
+    return fallback;
+  }
+
+  String _conversationTypeFromData(
+    Map<String, dynamic>? data, {
+    String fallback = 'direct',
+  }) {
+    return _readNonEmptyString(data?['type']) ?? fallback;
+  }
+
+  String _displayNameFromUserData(Map<String, dynamic>? data) {
+    final professionalData = _asMap(data?['profissional']);
+    final bandData = _asMap(data?['banda']);
+    final studioData = _asMap(data?['estudio']);
+    final profileType = _readNonEmptyString(data?['tipo_perfil']);
+
+    switch (profileType) {
+      case 'profissional':
+        return _firstNonEmptyString([
+          professionalData?['nomeArtistico'],
+          data?['nome'],
+        ], fallback: 'Profissional');
+      case 'banda':
+        return _firstNonEmptyString([
+          bandData?['nomeBanda'],
+          bandData?['nomeArtistico'],
+          bandData?['nome'],
+          data?['nome'],
+        ], fallback: 'Banda');
+      case 'estudio':
+        return _firstNonEmptyString([
+          studioData?['nomeEstudio'],
+          studioData?['nomeArtistico'],
+          studioData?['nome'],
+          data?['nome'],
+        ], fallback: 'Estudio');
+      case 'contratante':
+        return _firstNonEmptyString([data?['nome']], fallback: 'Contratante');
+      default:
+        return _firstNonEmptyString([
+          professionalData?['nomeArtistico'],
+          bandData?['nomeBanda'],
+          studioData?['nomeEstudio'],
+          data?['nome'],
+        ], fallback: 'Usuario');
+    }
+  }
+
+  Future<_UserPreviewInfo> _getUserPreviewInfo(String uid) async {
+    final snapshot = await _firestore.collection('users').doc(uid).get();
+    final data = _asMap(snapshot.data());
+    return _UserPreviewInfo(
+      displayName: _displayNameFromUserData(data),
+      photoUrl: _readNonEmptyString(data?['foto']),
+    );
+  }
+
+  /// Calcula conversationId deterministico (uidMenor_uidMaior).
   String getConversationId(String uid1, String uid2) {
     return uid1.compareTo(uid2) < 0 ? '${uid1}_$uid2' : '${uid2}_$uid1';
   }
 
-  /// Cria ou retorna conversa existente entre 2 usuários.
+  /// Cria ou retorna conversa existente entre 2 usuarios.
   ///
-  /// Usa Transaction para idempotência (race condition safe).
+  /// Usa Transaction para idempotencia (race condition safe).
   FutureResult<String> getOrCreateConversation({
     required String myUid,
     required String otherUid,
@@ -44,8 +121,25 @@ class ChatRepository {
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(conversationRef);
 
+        final myPreviewRef = _firestore
+            .collection('users')
+            .doc(myUid)
+            .collection('conversationPreviews')
+            .doc(conversationId);
+
+        final otherPreviewRef = _firestore
+            .collection('users')
+            .doc(otherUid)
+            .collection('conversationPreviews')
+            .doc(conversationId);
+
+        final conversationData = _asMap(snapshot.data());
+        final conversationType = _conversationTypeFromData(
+          conversationData,
+          fallback: type,
+        );
+
         if (!snapshot.exists) {
-          // Criar nova conversa
           transaction.set(conversationRef, {
             'participants': [myUid, otherUid],
             'participantsMap': {myUid: true, otherUid: true},
@@ -57,19 +151,6 @@ class ChatRepository {
             'lastSenderId': null,
             'type': type,
           });
-
-          // Criar previews para ambos os usuários
-          final myPreviewRef = _firestore
-              .collection('users')
-              .doc(myUid)
-              .collection('conversationPreviews')
-              .doc(conversationId);
-
-          final otherPreviewRef = _firestore
-              .collection('users')
-              .doc(otherUid)
-              .collection('conversationPreviews')
-              .doc(conversationId);
 
           transaction.set(myPreviewRef, {
             'otherUserId': otherUid,
@@ -94,10 +175,30 @@ class ChatRepository {
             'updatedAt': FieldValue.serverTimestamp(),
             'type': type,
           });
+        } else {
+          transaction.set(myPreviewRef, {
+            'otherUserId': otherUid,
+            'otherUserName': otherUserName,
+            'otherUserPhoto': otherUserPhoto,
+            'lastMessageText': conversationData?['lastMessageText'],
+            'lastMessageAt': conversationData?['lastMessageAt'],
+            'lastSenderId': conversationData?['lastSenderId'],
+            'updatedAt': FieldValue.serverTimestamp(),
+            'type': conversationType,
+          }, SetOptions(merge: true));
+          transaction.set(otherPreviewRef, {
+            'otherUserId': myUid,
+            'otherUserName': myName,
+            'otherUserPhoto': myPhoto,
+            'lastMessageText': conversationData?['lastMessageText'],
+            'lastMessageAt': conversationData?['lastMessageAt'],
+            'lastSenderId': conversationData?['lastSenderId'],
+            'updatedAt': FieldValue.serverTimestamp(),
+            'type': conversationType,
+          }, SetOptions(merge: true));
         }
       });
 
-      // Log analytics event for new conversation
       final snapshot = await conversationRef.get();
       if (!snapshot.exists) {
         await _analytics?.logEvent(
@@ -126,18 +227,27 @@ class ChatRepository {
     String? clientMessageId,
   }) async {
     try {
+      final normalizedText = text.trim();
       final batch = _firestore.batch();
 
-      // 1. Nova mensagem
-      final messageRef = _firestore
+      final conversationRef = _firestore
           .collection('conversations')
-          .doc(conversationId)
-          .collection('messages')
-          .doc(); // Auto-gera ID
+          .doc(conversationId);
 
+      final conversationFuture = conversationRef.get();
+      final myInfoFuture = _getUserPreviewInfo(myUid);
+      final otherInfoFuture = _getUserPreviewInfo(otherUid);
+
+      final conversationSnapshot = await conversationFuture;
+      final myInfo = await myInfoFuture;
+      final otherInfo = await otherInfoFuture;
+      final conversationData = _asMap(conversationSnapshot.data());
+      final conversationType = _conversationTypeFromData(conversationData);
+
+      final messageRef = conversationRef.collection('messages').doc();
       final messageData = <String, dynamic>{
         'senderId': myUid,
-        'text': text.trim(),
+        'text': normalizedText,
         'createdAt': FieldValue.serverTimestamp(),
         'type': 'text',
       };
@@ -146,19 +256,13 @@ class ChatRepository {
       }
       batch.set(messageRef, messageData);
 
-      // 2. Metadata da conversa
-      final conversationRef = _firestore
-          .collection('conversations')
-          .doc(conversationId);
-
       batch.set(conversationRef, {
-        'lastMessageText': text.trim(),
+        'lastMessageText': normalizedText,
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // 3. Preview do remetente (eu) - zera unread
       final myPreviewRef = _firestore
           .collection('users')
           .doc(myUid)
@@ -166,14 +270,17 @@ class ChatRepository {
           .doc(conversationId);
 
       batch.set(myPreviewRef, {
-        'lastMessageText': text.trim(),
+        'otherUserId': otherUid,
+        'otherUserName': otherInfo.displayName,
+        'otherUserPhoto': otherInfo.photoUrl,
+        'lastMessageText': normalizedText,
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'unreadCount': 0,
         'updatedAt': FieldValue.serverTimestamp(),
+        'type': conversationType,
       }, SetOptions(merge: true));
 
-      // 4. Preview do destinatário (outro) - incrementa unread
       final otherPreviewRef = _firestore
           .collection('users')
           .doc(otherUid)
@@ -181,16 +288,19 @@ class ChatRepository {
           .doc(conversationId);
 
       batch.set(otherPreviewRef, {
-        'lastMessageText': text.trim(),
+        'otherUserId': myUid,
+        'otherUserName': myInfo.displayName,
+        'otherUserPhoto': myInfo.photoUrl,
+        'lastMessageText': normalizedText,
         'lastMessageAt': FieldValue.serverTimestamp(),
         'lastSenderId': myUid,
         'unreadCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
+        'type': conversationType,
       }, SetOptions(merge: true));
 
       await batch.commit();
 
-      // Log analytics event for message sent
       await _analytics?.logEvent(
         name: 'message_sent',
         parameters: {'conversation_id': conversationId, 'has_media': false},
@@ -200,7 +310,6 @@ class ChatRepository {
     } catch (e) {
       debugPrint('[Chat] Error sending message: $e');
 
-      // Log analytics event for message error
       await _analytics?.logEvent(
         name: 'message_sent_error',
         parameters: {
@@ -221,7 +330,6 @@ class ChatRepository {
     try {
       final batch = _firestore.batch();
 
-      // 1. Atualizar readUntil na conversa
       final conversationRef = _firestore
           .collection('conversations')
           .doc(conversationId);
@@ -230,7 +338,6 @@ class ChatRepository {
         'readUntil.$myUid': FieldValue.serverTimestamp(),
       });
 
-      // 2. Zerar unreadCount no preview
       final myPreviewRef = _firestore
           .collection('users')
           .doc(myUid)
@@ -247,7 +354,7 @@ class ChatRepository {
     }
   }
 
-  /// Stream de mensagens de uma conversa (últimas 50).
+  /// Stream de mensagens de uma conversa (ultimas 50).
   Stream<List<Message>> getMessages(String conversationId) {
     return _firestore
         .collection('conversations')
@@ -262,7 +369,7 @@ class ChatRepository {
         );
   }
 
-  /// Stream de previews de conversas do usuário (últimas 100).
+  /// Stream de previews de conversas do usuario (ultimas 100).
   Stream<List<ConversationPreview>> getUserConversations(String userId) {
     return _firestore
         .collection('users')
@@ -278,7 +385,7 @@ class ChatRepository {
         );
   }
 
-  /// Obtém document snapshot da conversa (para acessar readUntil).
+  /// Obtem document snapshot da conversa (para acessar readUntil).
   Future<DocumentSnapshot?> getConversationDoc(String conversationId) async {
     final doc = await _firestore
         .collection('conversations')
@@ -288,7 +395,7 @@ class ChatRepository {
     return doc;
   }
 
-  /// Stream do documento da conversa (para atualizações em tempo real de readUntil).
+  /// Stream do documento da conversa (para atualizacoes em tempo real de readUntil).
   Stream<DocumentSnapshot> getConversationStream(String conversationId) {
     return _firestore
         .collection('conversations')
@@ -296,8 +403,58 @@ class ChatRepository {
         .snapshots();
   }
 
-  /// Oculta a conversa para o usuário atual removendo apenas seu preview.
-  /// Mantém conversa e preview do outro usuário para respeitar as rules.
+  /// Restaura o preview do usuario atual sem apagar o historico da conversa.
+  FutureResult<Unit> restoreConversationPreview({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+    String? fallbackOtherUserName,
+    String? fallbackOtherUserPhoto,
+  }) async {
+    try {
+      final previewRef = _firestore
+          .collection('users')
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+
+      final conversationSnapshot = await conversationRef.get();
+      final conversationData = _asMap(conversationSnapshot.data());
+      final conversationType = _conversationTypeFromData(conversationData);
+
+      var otherUserName = _readNonEmptyString(fallbackOtherUserName);
+      var otherUserPhoto = _readNonEmptyString(fallbackOtherUserPhoto);
+
+      if (otherUserName == null || otherUserPhoto == null) {
+        final otherInfo = await _getUserPreviewInfo(otherUid);
+        otherUserName ??= otherInfo.displayName;
+        otherUserPhoto ??= otherInfo.photoUrl;
+      }
+
+      await previewRef.set({
+        'otherUserId': otherUid,
+        'otherUserName': otherUserName,
+        'otherUserPhoto': otherUserPhoto,
+        'lastMessageText': conversationData?['lastMessageText'],
+        'lastMessageAt': conversationData?['lastMessageAt'],
+        'lastSenderId': conversationData?['lastSenderId'],
+        'unreadCount': 0,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'type': conversationType,
+      }, SetOptions(merge: true));
+
+      return const Right(unit);
+    } catch (e) {
+      debugPrint('[Chat] Error restoring preview: $e');
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  /// Oculta a conversa para o usuario atual removendo apenas seu preview.
+  /// Mantem conversa e preview do outro usuario para respeitar as rules.
   FutureResult<Unit> deleteConversation({
     required String conversationId,
     required String myUid,
@@ -306,7 +463,6 @@ class ChatRepository {
     try {
       final batch = _firestore.batch();
 
-      // 1. Deletar preview do usuário atual
       final myPreviewRef = _firestore
           .collection('users')
           .doc(myUid)
@@ -316,7 +472,6 @@ class ChatRepository {
 
       await batch.commit();
 
-      // Log analytics event for conversation deleted
       await _analytics?.logEvent(
         name: 'conversation_deleted',
         parameters: {
@@ -331,6 +486,13 @@ class ChatRepository {
       return Left(ServerFailure(message: e.toString()));
     }
   }
+}
+
+class _UserPreviewInfo {
+  const _UserPreviewInfo({required this.displayName, required this.photoUrl});
+
+  final String displayName;
+  final String? photoUrl;
 }
 
 /// Provider para ChatRepository.

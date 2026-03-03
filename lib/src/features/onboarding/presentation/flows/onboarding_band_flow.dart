@@ -133,7 +133,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
     }
   }
 
-  void _finishOnboarding() {
+  Future<void> _finishOnboarding() async {
     final appConfigAsync = ref.read(appConfigProvider);
     final appConfig = appConfigAsync.value;
 
@@ -164,23 +164,12 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
 
     final formState = ref.read(onboardingFormProvider);
 
-    final location = {
-      'cep': formState.cep,
-      'logradouro': formState.logradouro,
-      'numero': formState.numero,
-      'bairro': formState.bairro,
-      'cidade': formState.cidade,
-      'estado': formState.estado,
-      'lat': formState.selectedLat,
-      'lng': formState.selectedLng,
-    };
-
-    ref
+    await ref
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
           nome: _nomeCompletoController.text.trim(),
-          location: location,
+          location: formState.locationMap,
           dadosBanda: bandData,
         );
   }
@@ -213,7 +202,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                   if (_currentStep == 2) _buildStep2UI(),
                   if (_currentStep == 3)
                     OnboardingAddressStep(
-                      onNext: () async => _finishOnboarding(),
+                      onNext: _finishOnboarding,
                       onBack: _prevStep,
                       initialLocationLabel: ref
                           .watch(onboardingFormProvider)

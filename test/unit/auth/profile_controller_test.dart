@@ -675,6 +675,23 @@ void main() {
         final state = container.read(profileControllerProvider);
         expect(state.hasError, true);
       });
+
+      test(
+        'should set state to AsyncError when deleteAccount returns Left',
+        () async {
+          when(mockAuthRepository.deleteAccount()).thenAnswer(
+            (_) async => const Left(ServerFailure(message: 'Delete failed')),
+          );
+
+          final controller = container.read(profileControllerProvider.notifier);
+
+          await controller.deleteProfile();
+
+          final state = container.read(profileControllerProvider);
+          expect(state.hasError, true);
+          expect(state.error, 'Delete failed');
+        },
+      );
     });
   });
 }

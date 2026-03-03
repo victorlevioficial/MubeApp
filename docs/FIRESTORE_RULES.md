@@ -167,9 +167,15 @@ firebase emulators:exec --only firestore "npm test"
 
 ## Deploy das Regras
 
-```bash
+```powershell
+# Deploy completo do Firestore (regras + indices)
+.\deploy-firestore.ps1
+
 # Deploy das regras
-firebase deploy --only firestore:rules
+.\deploy-firebase.ps1 --only firestore:rules
+
+# Deploy dos indices
+.\deploy-firebase.ps1 --only firestore:indexes
 
 # Verificar regras
 firebase firestore:rules:get

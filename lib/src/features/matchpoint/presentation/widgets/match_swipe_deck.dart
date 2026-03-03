@@ -11,6 +11,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import 'match_card.dart';
+import 'match_profile_preview_sheet.dart';
 
 class MatchSwipeDeck extends StatefulWidget {
   final List<AppUser> candidates;
@@ -147,6 +148,10 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                       MatchCard(
                         user: widget.candidates[index],
                         currentUserGenres: widget.currentUserGenres,
+                        onTap: () => MatchProfilePreviewSheet.show(
+                          context,
+                          widget.candidates[index],
+                        ),
                       ),
                       // Swipe Overlay
                       if (opacity > 0.05)

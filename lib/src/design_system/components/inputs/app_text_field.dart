@@ -99,6 +99,14 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMultiline = !obscureText && (maxLines ?? 1) > 1;
+    final effectiveKeyboardType =
+        isMultiline && keyboardType == TextInputType.text
+        ? TextInputType.multiline
+        : keyboardType;
+    final effectiveTextInputAction =
+        textInputAction ?? (isMultiline ? TextInputAction.newline : null);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -126,7 +134,7 @@ class AppTextField extends StatelessWidget {
             canRequestFocus: canRequestFocus,
             onTap: onTap,
             obscureText: obscureText,
-            keyboardType: keyboardType,
+            keyboardType: effectiveKeyboardType,
             minLines: minLines,
             maxLines: obscureText ? 1 : maxLines,
             maxLength: maxLength,
@@ -139,7 +147,7 @@ class AppTextField extends StatelessWidget {
                     int? maxLength,
                   }) => null,
             textCapitalization: textCapitalization,
-            textInputAction: textInputAction,
+            textInputAction: effectiveTextInputAction,
             inputFormatters: inputFormatters,
             style: AppTypography.input.copyWith(color: AppColors.textPrimary),
             validator: validator,

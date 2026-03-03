@@ -11,6 +11,7 @@ import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/feed/presentation/feed_screen.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
+import 'package:mube/src/features/notifications/data/notification_repository.dart';
 import 'package:network_image_mock/network_image_mock.dart';
 
 import '../../../helpers/test_fakes.dart';
@@ -21,6 +22,7 @@ void main() {
   late FakeFeedRepository fakeFeedRepository;
   late FakeAuthRepository fakeAuthRepository;
   late FakeFirebaseUser fakeUser;
+  late FakeNotificationRepository fakeNotificationRepository;
 
   setUp(() {
     fakePrecacheService = FakeFeedImagePrecacheService();
@@ -28,6 +30,7 @@ void main() {
     fakeFeedRepository = FakeFeedRepository();
     fakeAuthRepository = FakeAuthRepository();
     fakeUser = FakeFirebaseUser();
+    fakeNotificationRepository = FakeNotificationRepository();
 
     fakeAuthRepository.appUser = const AppUser(
       uid: 'test-user-id',
@@ -60,13 +63,16 @@ void main() {
           (ref) => Stream.value(userState?.value ?? defaultUser),
         ),
         feedImagePrecacheServiceProvider.overrideWithValue(fakePrecacheService),
+        notificationRepositoryProvider.overrideWithValue(
+          fakeNotificationRepository,
+        ),
       ],
       child: const MaterialApp(home: FeedScreen()),
     );
   }
 
   group('FeedScreen', () {
-    testWidgets('shows skeleton when loading', (tester) async {
+    testWidgets('shows full screen skeleton when loading', (tester) async {
       // Setup the completer to hang the repository request
       fakeFeedRepository.requestCompleter = Completer<void>();
 
@@ -107,6 +113,9 @@ void main() {
         // Allow data loading to complete (fake repo returns empty list by default)
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1200));
+      await tester.pumpAndSettle();
 
       expect(find.byType(EmptyStateWidget), findsOneWidget);
     });

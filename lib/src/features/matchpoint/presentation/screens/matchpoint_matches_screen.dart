@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/design_system/components/components.dart';
+import 'package:mube/src/design_system/components/feedback/app_overlay.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_radius.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
@@ -32,11 +33,12 @@ class MatchpointMatchesScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final match = matches[index];
               final otherUser = match.otherUser;
+              final otherUserName = otherUser?.appDisplayName ?? 'Usuario';
 
               return FadeInSlide(
                 duration: const Duration(milliseconds: 400),
                 child: _MatchTile(
-                  userName: otherUser?.nome ?? 'Usuário',
+                  userName: otherUserName,
                   userPhoto: otherUser?.foto,
                   userId: match.otherUserId,
                   conversationId: match.conversationId,
@@ -46,7 +48,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
                         '${RoutePaths.conversation}/${match.conversationId}',
                         extra: {
                           'otherUserId': match.otherUserId,
-                          'otherUserName': otherUser?.nome ?? 'Usuário',
+                          'otherUserName': otherUserName,
                           'otherUserPhoto': otherUser?.foto,
                         },
                       );
@@ -56,7 +58,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
                     context,
                     ref,
                     match.otherUserId,
-                    otherUser?.nome ?? 'Usuário',
+                    otherUserName,
                   ),
                 ),
               );
@@ -84,7 +86,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
     String targetUserId,
     String name,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
         title: 'Desfazer Match com $name?',
@@ -176,7 +178,7 @@ class _MatchTile extends StatelessWidget {
                   color: AppColors.textTertiary,
                 ),
                 onPressed: () {
-                  showModalBottomSheet(
+                  AppOverlay.bottomSheet(
                     context: context,
                     backgroundColor: AppColors.surface,
                     builder: (context) => Column(

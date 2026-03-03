@@ -70,6 +70,52 @@ class FavoriteRepository {
     }
   }
 
+  /// Loads user ids that have favorited the current user.
+  ///
+  /// Returns the parent user ids ordered by most recent favorite first.
+  Future<List<String>> loadReceivedFavorites() async {
+    try {
+      final snapshot = await _firestore
+          .collectionGroup('favorites')
+          .where(FieldPath.documentId, isEqualTo: _uid)
+          .get();
+
+      final docs = snapshot.docs.toList()
+        ..sort((a, b) {
+          final aTimestamp = a.data()['favoritedAt'];
+          final bTimestamp = b.data()['favoritedAt'];
+          final aMillis = aTimestamp is Timestamp
+              ? aTimestamp.millisecondsSinceEpoch
+              : 0;
+          final bMillis = bTimestamp is Timestamp
+              ? bTimestamp.millisecondsSinceEpoch
+              : 0;
+          return bMillis.compareTo(aMillis);
+        });
+
+      final favoriterIds = <String>[];
+      final seenIds = <String>{};
+
+      for (final doc in docs) {
+        final userDoc = doc.reference.parent.parent;
+        final userId = userDoc?.id;
+        if (userId == null || userId.isEmpty || !seenIds.add(userId)) {
+          continue;
+        }
+        favoriterIds.add(userId);
+      }
+
+      return favoriterIds;
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Erro ao carregar quem favoritou o usuario atual',
+        e,
+        stackTrace,
+      );
+      return [];
+    }
+  }
+
   /// Reads global like count for a target user.
   ///
   /// Source of truth is `users/{targetId}`. Legacy fallback to

@@ -132,7 +132,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           return;
         }
 
+        final otherUid = _resolveConversationParticipant(existingDoc, user.uid);
+        if (otherUid.isEmpty) {
+          setState(() {
+            _accessState = _ConversationAccessState.unavailable;
+            _conversationAccessMessage =
+                'Nao foi possivel carregar os participantes da conversa.';
+          });
+          return;
+        }
+
+        final restoreResult = await repository.restoreConversationPreview(
+          conversationId: widget.conversationId,
+          myUid: user.uid,
+          otherUid: otherUid,
+          fallbackOtherUserName: _otherUserName,
+          fallbackOtherUserPhoto: _otherUserPhoto,
+        );
+        if (!mounted) return;
+
+        restoreResult.fold(
+          (failure) => AppLogger.warning(
+            'Falha ao restaurar preview da conversa',
+            failure.message,
+          ),
+          (_) {},
+        );
+
         setState(() {
+          _otherUserId = otherUid;
           _accessState = _ConversationAccessState.ready;
           _conversationAccessMessage = null;
         });
@@ -211,6 +239,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (participantsRaw is! List) return false;
 
     return participantsRaw.any((participant) => participant == uid);
+  }
+
+  String _resolveConversationParticipant(DocumentSnapshot doc, String myUid) {
+    final data = doc.data();
+    if (data is! Map<String, dynamic>) return '';
+
+    final participantsRaw = data['participants'];
+    if (participantsRaw is! List) return '';
+
+    for (final participant in participantsRaw) {
+      if (participant is String && participant != myUid) {
+        return participant;
+      }
+    }
+
+    return '';
   }
 
   Future<void> _markConversationAsRead(
@@ -600,6 +644,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
 
+    // Escuta mudanças no preview do Firestore para atualizar foto/nome
+    // dinamicamente sem precisar fechar e reabrir o chat.
+    ref.listen(userConversationsProvider, (_, next) {
+      final previews = next.asData?.value;
+      if (previews == null) return;
+      final updated = previews
+          .where((p) => p.id == widget.conversationId)
+          .firstOrNull;
+      if (updated == null) return;
+      if (updated.otherUserPhoto != _otherUserPhoto ||
+          updated.otherUserName != _otherUserName) {
+        if (mounted) {
+          setState(() {
+            _otherUserPhoto = updated.otherUserPhoto;
+            _otherUserName = updated.otherUserName;
+            if (_otherUserId.isEmpty) {
+              _otherUserId = updated.otherUserId;
+            }
+          });
+        }
+      }
+    });
+
     final messagesAsync = _canReadConversation
         ? ref.watch(conversationMessagesProvider(widget.conversationId))
         : null;
@@ -773,10 +840,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               controller: _textController,
               readOnly: !canInteract,
               canRequestFocus: _canReadConversation,
+              keyboardType: TextInputType.multiline,
               maxLength: 1000,
               showCounter: false,
               maxLines: 5,
               minLines: 1,
+              textInputAction: TextInputAction.newline,
               textCapitalization: TextCapitalization.sentences,
               hint: _canReadConversation
                   ? 'Mensagem...'

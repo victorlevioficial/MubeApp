@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -10,15 +13,72 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../../auth/data/auth_repository.dart';
 import '../data/chat_providers.dart';
+import '../data/chat_repository.dart';
 import '../domain/conversation_preview.dart';
 
-/// Tela com lista de conversas do usuário.
-class ConversationsScreen extends ConsumerWidget {
+/// Tela com lista de conversas do usuario.
+class ConversationsScreen extends ConsumerStatefulWidget {
   const ConversationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConversationsScreen> createState() =>
+      _ConversationsScreenState();
+}
+
+class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
+  final Set<String> _deletingConversationIds = <String>{};
+
+  Future<void> _confirmDeleteConversation(ConversationPreview preview) async {
+    if (_deletingConversationIds.contains(preview.id)) return;
+
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null) {
+      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      return;
+    }
+
+    final confirmed = await AppOverlay.dialog<bool>(
+      context: context,
+      builder: (dialogContext) => const AppConfirmationDialog(
+        title: 'Ocultar conversa?',
+        message:
+            'Essa conversa sera removida apenas da sua lista. O historico continuara salvo.',
+        confirmText: 'Ocultar',
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _deletingConversationIds.add(preview.id);
+    });
+
+    final repository = ref.read(chatRepositoryProvider);
+    final result = await repository.deleteConversation(
+      conversationId: preview.id,
+      myUid: currentUser.uid,
+      otherUid: preview.otherUserId,
+    );
+
+    if (!mounted) return;
+
+    result.fold(
+      (failure) => AppSnackBar.error(
+        context,
+        'Erro ao ocultar conversa: ${failure.message}',
+      ),
+      (_) => AppSnackBar.success(context, 'Conversa removida da sua lista.'),
+    );
+
+    setState(() {
+      _deletingConversationIds.remove(preview.id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final conversationsAsync = ref.watch(directConversationsProvider);
 
     return Scaffold(
@@ -35,7 +95,9 @@ class ConversationsScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final preview = conversations[index];
               return _ConversationTile(
+                key: ValueKey(preview.id),
                 preview: preview,
+                isDeleting: _deletingConversationIds.contains(preview.id),
                 onTap: () => context.push(
                   '${RoutePaths.conversation}/${preview.id}',
                   extra: {
@@ -44,6 +106,7 @@ class ConversationsScreen extends ConsumerWidget {
                     'otherUserPhoto': preview.otherUserPhoto,
                   },
                 ),
+                onLongPress: () => _confirmDeleteConversation(preview),
               );
             },
           );
@@ -83,7 +146,7 @@ class ConversationsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s48),
             child: Text(
-              'Suas conexões e amigos aparecerão aqui.',
+              'Suas conexoes e amigos aparecerao aqui.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -99,123 +162,133 @@ class ConversationsScreen extends ConsumerWidget {
 class _ConversationTile extends StatelessWidget {
   final ConversationPreview preview;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  final bool isDeleting;
 
-  const _ConversationTile({required this.preview, required this.onTap});
+  const _ConversationTile({
+    super.key,
+    required this.preview,
+    required this.onTap,
+    required this.onLongPress,
+    this.isDeleting = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s16,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface, // Same as FeedCardVertical
-        borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.surfaceHighlight.withValues(
-            alpha: 0.5,
-          ), // Same as FeedCardVertical
-          width: 1,
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: isDeleting ? 0.6 : 1,
+      child: Container(
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s4,
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.all16,
-        child: Padding(
-          padding: AppSpacing.all16,
-          child: Row(
-            children: [
-              // Avatar
-              UserAvatar(
-                size: 56,
-                photoUrl: preview.otherUserPhoto,
-                name: preview.otherUserName,
-              ),
-              const SizedBox(width: AppSpacing.s12),
-
-              // Conteúdo
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Nome
-                        Expanded(
-                          child: Text(
-                            preview.otherUserName,
-                            style: AppTypography.titleMedium.copyWith(
-                              fontWeight: preview.unreadCount > 0
-                                  ? AppTypography.buttonPrimary.fontWeight
-                                  : AppTypography.titleSmall.fontWeight,
-                              color: AppColors.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        // Hora
-                        if (preview.lastMessageAt != null)
-                          Text(
-                            _formatTime(
-                              preview.lastMessageAt!.toDate().toLocal(),
-                            ),
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.s4),
-
-                    // Última mensagem
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            preview.lastMessageText ?? 'Nova conversa',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: preview.unreadCount > 0
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
-                              fontWeight: preview.unreadCount > 0
-                                  ? AppTypography.titleSmall.fontWeight
-                                  : AppTypography.bodyMedium.fontWeight,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-
-                        // Badge de não lidas (Solid Neon Dot)
-                        if (preview.unreadCount > 0) ...[
-                          const SizedBox(width: AppSpacing.s8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.s8,
-                              vertical: AppSpacing.s4,
-                            ),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: AppRadius.all12,
-                            ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.all16,
+          border: Border.all(
+            color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: isDeleting ? null : onTap,
+          onLongPress: isDeleting ? null : onLongPress,
+          borderRadius: AppRadius.all16,
+          child: Padding(
+            padding: AppSpacing.all16,
+            child: Row(
+              children: [
+                UserAvatar(
+                  size: 56,
+                  photoUrl: preview.otherUserPhoto,
+                  name: preview.otherUserName,
+                ),
+                const SizedBox(width: AppSpacing.s12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
                             child: Text(
-                              '${preview.unreadCount}',
-                              style: AppTypography.chipLabel.copyWith(
+                              preview.otherUserName,
+                              style: AppTypography.titleMedium.copyWith(
+                                fontWeight: preview.unreadCount > 0
+                                    ? AppTypography.buttonPrimary.fontWeight
+                                    : AppTypography.titleSmall.fontWeight,
                                 color: AppColors.textPrimary,
-                                fontWeight: AppTypography.buttonPrimary.fontWeight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (preview.lastMessageAt != null)
+                            Text(
+                              _formatTime(
+                                preview.lastMessageAt!.toDate().toLocal(),
+                              ),
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
                               ),
                             ),
-                          ),
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: AppSpacing.s4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              preview.lastMessageText ?? 'Nova conversa',
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: preview.unreadCount > 0
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary,
+                                fontWeight: preview.unreadCount > 0
+                                    ? AppTypography.titleSmall.fontWeight
+                                    : AppTypography.bodyMedium.fontWeight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isDeleting) ...[
+                            const SizedBox(width: AppSpacing.s8),
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ] else if (preview.unreadCount > 0) ...[
+                            const SizedBox(width: AppSpacing.s8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s8,
+                                vertical: AppSpacing.s4,
+                              ),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: AppRadius.all12,
+                              ),
+                              child: Text(
+                                '${preview.unreadCount}',
+                                style: AppTypography.chipLabel.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight:
+                                      AppTypography.buttonPrimary.fontWeight,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

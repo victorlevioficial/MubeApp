@@ -2300,10 +2300,10 @@ export const recalculateHashtagRanking = onSchedule(
 - [ ] Verificar que `cloud_functions` está no `pubspec.yaml`
 
 #### Deploy Backend (PRIMEIRO)
-- [ ] Deploy das Firestore Rules (`firebase deploy --only firestore:rules`)
-- [ ] Deploy dos índices (`firebase deploy --only firestore:indexes`)
+- [ ] Deploy das Firestore Rules (`.\deploy-firebase.ps1 --only firestore:rules`)
+- [ ] Deploy dos índices (`.\deploy-firebase.ps1 --only firestore:indexes`)
 - [ ] Aguardar índices ficarem ativos (pode levar minutos)
-- [ ] Deploy das Cloud Functions (`firebase deploy --only functions`)
+- [ ] Deploy das Cloud Functions (`.\deploy-functions.ps1`)
 - [ ] Verificar logs das functions no Console
 - [ ] Executar migração de interactions em staging
 

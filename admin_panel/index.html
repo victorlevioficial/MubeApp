@@ -138,6 +138,25 @@
             </div>
           </div>
         </div>
+        <div class="dashboard-panels">
+          <section class="dashboard-panel">
+            <div class="dashboard-panel-header">
+              <div>
+                <h3>Auditoria MatchPoint</h3>
+                <p class="dashboard-panel-subtitle">
+                  Ultimos buckets horarios do ranking de candidatos.
+                </p>
+              </div>
+              <button id="matchpoint-audit-refresh-btn" class="btn btn-secondary btn-sm">
+                <span class="material-icons-round">refresh</span>
+                <span>Atualizar</span>
+              </button>
+            </div>
+            <div id="matchpoint-audit-body" class="dashboard-panel-body">
+              <p class="empty-state">Carregando auditoria do MatchPoint...</p>
+            </div>
+          </section>
+        </div>
       </section>
 
       <!-- FEATURED PROFILES -->
@@ -161,7 +180,7 @@
         <div class="featured-list" id="featured-list">
           <p class="empty-state">Carregando...</p>
         </div>
-        <button id="featured-save-btn" class="btn btn-primary hidden">
+        <button id="featured-save-btn" class="btn btn-primary">
           <span class="material-icons-round">save</span> Salvar Alterações
         </button>
       </section>

@@ -8,6 +8,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../core/providers/app_config_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -88,7 +89,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     }
 
     _nomeController = TextEditingController(text: registrationName);
-    _bioController = TextEditingController(text: user.bio ?? '');
+    _bioController = TextEditingController(text: user.profileBio ?? '');
 
     String nomeArt = '';
     String cel = '';
@@ -204,7 +205,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
-    final shouldLeave = await showDialog<bool>(
+    final shouldLeave = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Descartar alterações?',

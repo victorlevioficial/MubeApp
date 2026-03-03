@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -13,23 +14,26 @@ class FeedScreenSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeaderSkeleton(),
-            const SizedBox(height: AppSpacing.s24),
-            _buildSectionSkeleton(),
-            const SizedBox(height: AppSpacing.s24),
-            _buildSectionSkeleton(),
-            const SizedBox(height: AppSpacing.s24),
-            _buildFilterBarSkeleton(),
-            _buildTitleSkeleton(), // Simulates "Destaques" title
-            // No extra gap needed as title has its own padding
-            const FeedItemSkeleton(),
-            const FeedItemSkeleton(),
-          ],
+      child: Shimmer.fromColors(
+        baseColor: AppColors.skeletonBase,
+        highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeaderSkeleton(),
+              const SizedBox(height: AppSpacing.s24),
+              _buildSectionSkeleton(),
+              const SizedBox(height: AppSpacing.s24),
+              _buildSectionSkeleton(),
+              const SizedBox(height: AppSpacing.s24),
+              _buildFilterBarSkeleton(),
+              _buildTitleSkeleton(),
+              const FeedItemSkeleton(),
+              const FeedItemSkeleton(),
+            ],
+          ),
         ),
       ),
     );
@@ -38,47 +42,40 @@ class FeedScreenSkeleton extends StatelessWidget {
   Widget _buildHeaderSkeleton() {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.s16),
-      child: Shimmer.fromColors(
-        baseColor: AppColors.skeletonBase,
-        highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: AppColors
-                    .skeletonBase, // Standardized skeleton element color
-                shape: BoxShape.circle,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: AppColors.skeletonBase,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 120,
+                height: 16,
+                decoration: const BoxDecoration(
+                  color: AppColors.skeletonBase,
+                  borderRadius: AppRadius.all4,
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.s12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 120,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: AppColors
-                        .skeletonBase, // Standardized skeleton element color
-                    borderRadius: AppRadius.all4,
-                  ),
+              const SizedBox(height: AppSpacing.s8),
+              Container(
+                width: 180,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: AppColors.skeletonBase,
+                  borderRadius: AppRadius.all4,
                 ),
-                const SizedBox(height: AppSpacing.s8),
-                Container(
-                  width: 180,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    color: AppColors
-                        .skeletonBase, // Standardized skeleton element color
-                    borderRadius: AppRadius.all4,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -89,17 +86,12 @@ class FeedScreenSkeleton extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-          child: Shimmer.fromColors(
-            baseColor: AppColors.skeletonBase,
-            highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
-            child: Container(
-              width: 150,
-              height: 20,
-              decoration: const BoxDecoration(
-                color: AppColors
-                    .skeletonBase, // Standardized skeleton element color
-                borderRadius: AppRadius.all4,
-              ),
+          child: Container(
+            width: 150,
+            height: 20,
+            decoration: const BoxDecoration(
+              color: AppColors.skeletonBase,
+              borderRadius: AppRadius.all4,
             ),
           ),
         ),
@@ -113,18 +105,11 @@ class FeedScreenSkeleton extends StatelessWidget {
             itemCount: 3,
             separatorBuilder: (context, index) =>
                 const SizedBox(width: AppSpacing.s12),
-            itemBuilder: (context, index) => Shimmer.fromColors(
-              baseColor: AppColors.skeletonBase,
-              highlightColor: AppColors.skeletonHighlight.withValues(
-                alpha: 0.5,
-              ),
-              child: Container(
-                width: 140,
-                decoration: const BoxDecoration(
-                  color: AppColors
-                      .skeletonBase, // Standardized skeleton element color
-                  borderRadius: AppRadius.all16,
-                ),
+            itemBuilder: (context, index) => Container(
+              width: 140,
+              decoration: const BoxDecoration(
+                color: AppColors.skeletonBase,
+                borderRadius: AppRadius.all16,
               ),
             ),
           ),
@@ -144,22 +129,14 @@ class FeedScreenSkeleton extends StatelessWidget {
         separatorBuilder: (context, index) =>
             const SizedBox(width: AppSpacing.s8),
         itemBuilder: (_, index) {
-          // Simulate variable widths like "Todos", "Músicos", "Perto de mim"
           final width = [60.0, 90.0, 70.0, 100.0, 80.0][index % 5];
           return Center(
-            child: Shimmer.fromColors(
-              baseColor: AppColors.skeletonBase,
-              highlightColor: AppColors.skeletonHighlight.withValues(
-                alpha: 0.5,
-              ),
-              child: Container(
-                width: width,
-                height: AppSpacing.s32,
-                decoration: const BoxDecoration(
-                  color: AppColors
-                      .skeletonBase, // Standardized skeleton element color
-                  borderRadius: AppRadius.pill, // Fully rounded
-                ),
+            child: Container(
+              width: width,
+              height: AppSpacing.s32,
+              decoration: const BoxDecoration(
+                color: AppColors.skeletonBase,
+                borderRadius: AppRadius.pill,
               ),
             ),
           );
@@ -176,17 +153,12 @@ class FeedScreenSkeleton extends StatelessWidget {
         AppSpacing.s16,
         AppSpacing.s12,
       ),
-      child: Shimmer.fromColors(
-        baseColor: AppColors.skeletonBase,
-        highlightColor: AppColors.skeletonHighlight.withValues(alpha: 0.5),
-        child: Container(
-          width: 120,
-          height: 20, // Title size
-          decoration: const BoxDecoration(
-            color:
-                AppColors.skeletonBase, // Standardized skeleton element color
-            borderRadius: AppRadius.all4,
-          ),
+      child: Container(
+        width: 120,
+        height: 20,
+        decoration: const BoxDecoration(
+          color: AppColors.skeletonBase,
+          borderRadius: AppRadius.all4,
         ),
       ),
     );

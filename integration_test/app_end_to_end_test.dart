@@ -16,6 +16,6 @@ void main() {
     // expect($(Key('login_button')), findsOneWidget);
 
     // For a real professional smoke test, we'd verify the app logo or main container
-    expect(find.byType(MubeApp), findsOneWidget);
+    expect($(MubeApp), findsOneWidget);
   });
 }

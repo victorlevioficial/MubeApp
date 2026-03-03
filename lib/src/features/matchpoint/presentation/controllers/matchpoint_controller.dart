@@ -10,9 +10,7 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
-import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart'; // ignore: unused_import
-import 'package:mube/src/features/matchpoint/domain/match_info.dart'; // ignore: unused_import
-import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart'; // ignore: unused_import
+import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -23,7 +21,6 @@ part 'matchpoint_controller.g.dart';
 
 final matchpointSelectedTabNotifier = ValueNotifier<int>(0);
 
-/// Estado do controller de quota de likes
 class LikesQuotaState {
   final int remaining;
   final int limit;
@@ -69,9 +66,7 @@ class SwipeActionResult {
 @Riverpod(keepAlive: true)
 class MatchpointController extends _$MatchpointController {
   @override
-  FutureOr<void> build() {
-    // Initial state is void (idle)
-  }
+  FutureOr<void> build() {}
 
   Future<void> saveMatchpointProfile({
     required String intent,
@@ -83,12 +78,12 @@ class MatchpointController extends _$MatchpointController {
     state = await AsyncValue.guard(() async {
       final appUser = ref.read(currentUserProfileProvider).value;
       if (appUser == null) {
-        throw Exception('Perfil não carregado');
+        throw Exception('Perfil nao carregado');
       }
 
       final authRepo = ref.read(authRepositoryProvider);
 
-      final Map<String, dynamic> updatedMatchpointProfile = {
+      final updatedMatchpointProfile = <String, dynamic>{
         ...appUser.matchpointProfile ?? {},
         FirestoreFields.intent: intent,
         FirestoreFields.musicalGenres: genres,
@@ -97,7 +92,7 @@ class MatchpointController extends _$MatchpointController {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      final Map<String, dynamic> updatedPrivacy = {
+      final updatedPrivacy = <String, dynamic>{
         ...appUser.privacySettings,
         'visible_in_home': isVisibleInHome,
       };
@@ -125,7 +120,7 @@ class MatchpointController extends _$MatchpointController {
   }
 
   Future<SwipeActionResult> swipeRight(AppUser targetUser) async {
-    return await _handleSwipe(targetUser, 'like');
+    return _handleSwipe(targetUser, 'like');
   }
 
   Future<bool> swipeLeft(AppUser targetUser) async {
@@ -140,9 +135,9 @@ class MatchpointController extends _$MatchpointController {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
     if (currentUser == null) {
-      AppLogger.error('Swipe bloqueado: usuário sem sessão FirebaseAuth');
+      AppLogger.error('Swipe blocked: missing FirebaseAuth session.');
       state = const AsyncError(
-        'Sessão expirada. Faça login novamente.',
+        'Sessao expirada. Faca login novamente.',
         StackTrace.empty,
       );
       return const SwipeActionResult(success: false);
@@ -151,22 +146,20 @@ class MatchpointController extends _$MatchpointController {
     try {
       final idToken = await currentUser.getIdToken();
       if (idToken == null || idToken.isEmpty) {
-        AppLogger.error('Swipe bloqueado: token FirebaseAuth ausente');
+        AppLogger.error('Swipe blocked: missing FirebaseAuth token.');
         state = const AsyncError(
-          'Sessão inválida. Faça login novamente.',
+          'Sessao invalida. Faca login novamente.',
           StackTrace.empty,
         );
         return const SwipeActionResult(success: false);
       }
     } catch (e) {
-      AppLogger.error('Swipe bloqueado: erro ao obter token FirebaseAuth: $e');
-      state = AsyncError('Erro de autenticação: $e', StackTrace.current);
+      AppLogger.error('Swipe blocked: failed to read FirebaseAuth token: $e');
+      state = AsyncError('Erro de autenticacao: $e', StackTrace.current);
       return const SwipeActionResult(success: false);
     }
 
     final repo = ref.read(matchpointRepositoryProvider);
-
-    // Usar nova função submitAction que chama Cloud Function
     final result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
@@ -174,25 +167,21 @@ class MatchpointController extends _$MatchpointController {
 
     return result.fold(
       (failure) {
-        AppLogger.error('Falha ao processar swipe: ${failure.toString()}');
+        AppLogger.error('Failed to process swipe: $failure');
         state = AsyncError(failure.message, StackTrace.current);
         return const SwipeActionResult(success: false);
       },
       (actionResult) async {
-        // Atualizar quota de likes no provider
         if (actionResult.remainingLikes != null) {
           ref
               .read(likesQuotaProvider.notifier)
               .updateRemaining(actionResult.remainingLikes!);
         }
 
-        // Adicionar ao histórico local
         ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
 
         if (actionResult.isMatch == true) {
           AppLogger.info("IT'S A MATCH!");
-
-          // Invalidar provider de matches para recarregar
           ref.invalidate(matchesProvider);
 
           return SwipeActionResult(
@@ -201,6 +190,7 @@ class MatchpointController extends _$MatchpointController {
             conversationId: actionResult.conversationId,
           );
         }
+
         return const SwipeActionResult(success: true);
       },
     );
@@ -212,8 +202,6 @@ class MatchpointController extends _$MatchpointController {
     if (currentUser == null) return;
 
     final repo = ref.read(matchpointRepositoryProvider);
-
-    // Dar dislike (remove o match, mas preserva a conversa no chat)
     final result = await repo.submitAction(
       targetUserId: targetUserId,
       type: 'dislike',
@@ -221,24 +209,22 @@ class MatchpointController extends _$MatchpointController {
 
     result.fold(
       (failure) {
-        AppLogger.error('Erro ao dar unmatch: ${failure.message}');
+        AppLogger.error('Failed to unmatch user: ${failure.message}');
       },
       (_) {
-        AppLogger.info('MatchpointController: Unmatched $targetUserId');
-        // Invalidar providers para recarregar
+        AppLogger.info('MatchpointController: unmatched $targetUserId');
         ref.invalidate(matchesProvider);
       },
     );
   }
 
-  /// Busca quota de likes restantes
   Future<void> fetchRemainingLikes() async {
     final repo = ref.read(matchpointRepositoryProvider);
     final result = await repo.getRemainingLikes();
 
     result.fold(
       (failure) {
-        AppLogger.error('Erro ao buscar quota: ${failure.message}');
+        AppLogger.error('Failed to fetch likes quota: ${failure.message}');
       },
       (quota) {
         ref
@@ -253,7 +239,6 @@ class MatchpointController extends _$MatchpointController {
   }
 }
 
-/// Provider para quota de likes
 @Riverpod(keepAlive: true)
 class LikesQuota extends _$LikesQuota {
   @override
@@ -278,7 +263,6 @@ class LikesQuota extends _$LikesQuota {
     state = state.copyWith(remaining: remaining);
   }
 
-  /// Decrementa o contador otimisticamente (antes da resposta do backend)
   void decrementOptimistically() {
     if (state.remaining > 0) {
       state = state.copyWith(remaining: state.remaining - 1);
@@ -290,37 +274,34 @@ class LikesQuota extends _$LikesQuota {
   }
 }
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
 @Riverpod(keepAlive: true)
 class MatchpointCandidates extends _$MatchpointCandidates {
   @override
   Future<List<AppUser>> build() async {
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
-
     if (currentUser == null) return [];
 
-    // Reativo ao perfil do usuário para evitar loading infinito
     final profileAsync = ref.watch(currentUserProfileProvider);
     final userProfile = profileAsync.value;
 
     if (profileAsync.isLoading && userProfile == null) {
-      AppLogger.info('MatchPoint: aguardando perfil do usuário...');
+      AppLogger.info('MatchPoint: waiting for current profile...');
       return [];
     }
 
     if (userProfile == null) return [];
 
     final rawGenres = _resolveGenres(userProfile);
-    if (rawGenres.isEmpty) {
-      AppLogger.warning('⚠️ MatchPoint: User has no genres.');
-      return [];
-    }
+    final hashtags = _resolveHashtags(userProfile);
     final appConfig = ref
         .watch(appConfigProvider)
         .maybeWhen(data: (config) => config, orElse: () => null);
     final genres = _buildQueryGenres(rawGenres, appConfig?.genres ?? const []);
-    AppLogger.info('🔍 MatchPoint Filters: raw=$rawGenres query=$genres');
+
+    AppLogger.info(
+      'MatchPoint filters: rawGenres=$rawGenres queryGenres=$genres hashtags=$hashtags',
+    );
 
     final blockedState = ref.watch(blockedUsersProvider);
     final blockedFromCollection = blockedState.when(
@@ -336,21 +317,22 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     final repo = ref.read(matchpointRepositoryProvider);
     final result = await repo.fetchCandidates(
-      currentUserId: currentUser.uid,
+      currentUser: userProfile,
       genres: genres,
+      hashtags: hashtags,
       blockedUsers: blockedUsers,
     );
 
     return result.fold(
-      (l) {
-        AppLogger.error('âŒ MatchPoint Query Error: ${l.message}');
-        throw l.message;
+      (failure) {
+        AppLogger.error('MatchPoint query error: ${failure.message}');
+        throw failure.message;
       },
-      (r) {
+      (candidates) {
         AppLogger.info(
-          '✅ MatchPoint Query Success: Found ${r.length} candidates',
+          'MatchPoint query success: found ${candidates.length} candidates',
         );
-        return r;
+        return candidates;
       },
     );
   }
@@ -378,6 +360,28 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     return const <String>[];
   }
 
+  List<String> _resolveHashtags(AppUser userProfile) {
+    final rawHashtags =
+        userProfile.matchpointProfile?[FirestoreFields.hashtags];
+    if (rawHashtags is! List || rawHashtags.isEmpty) {
+      return const <String>[];
+    }
+
+    final seen = <String>{};
+    final result = <String>[];
+    for (final hashtag in rawHashtags.whereType<String>()) {
+      final normalized = hashtag.trim();
+      if (normalized.isEmpty) continue;
+
+      final dedupeKey = normalized.toLowerCase();
+      if (seen.add(dedupeKey)) {
+        result.add(normalized);
+      }
+    }
+
+    return result;
+  }
+
   List<String> _buildQueryGenres(
     List<String> rawGenres,
     List<ConfigItem> configGenres,
@@ -403,6 +407,7 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     for (final token in [...canonicalIds, ...expanded]) {
       final normalized = token.trim();
       if (normalized.isEmpty) continue;
+
       final dedupeKey = normalized.toLowerCase();
       if (seen.add(dedupeKey)) {
         queryGenres.add(normalized);
@@ -424,48 +429,42 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     return null;
   }
 
-  /// Remove um candidato da lista local (UI otimista)
   void removeCandidate(String uid) {
     state = state.whenData((list) => list.where((u) => u.uid != uid).toList());
   }
 
-  /// Recarrega a lista de candidatos do servidor
   Future<void> refresh() async {
     ref.invalidateSelf();
     await future;
   }
 }
 
-/// Provider para lista de matches do usuário
 @riverpod
 Future<List<MatchInfo>> matches(Ref ref) async {
   final authRepo = ref.read(authRepositoryProvider);
   final currentUser = authRepo.currentUser;
-
   if (currentUser == null) return [];
 
   final repo = ref.read(matchpointRepositoryProvider);
   final result = await repo.fetchMatches(currentUser.uid);
 
   return result.fold((failure) {
-    AppLogger.error('Erro ao buscar matches: ${failure.message}');
+    AppLogger.error('Failed to fetch matches: ${failure.message}');
     throw failure.message;
   }, (matches) => matches);
 }
 
-/// Provider para ranking de hashtags
 @riverpod
 Future<List<HashtagRanking>> hashtagRanking(Ref ref, int limit) async {
   final repo = ref.read(matchpointRepositoryProvider);
   final result = await repo.fetchHashtagRanking(limit: limit);
 
   return result.fold((failure) {
-    AppLogger.error('Erro ao buscar ranking: ${failure.message}');
+    AppLogger.error('Failed to fetch hashtag ranking: ${failure.message}');
     return [];
   }, (rankings) => rankings);
 }
 
-/// Provider para busca de hashtags
 @riverpod
 Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   if (query.length < 2) return [];
@@ -474,12 +473,11 @@ Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
   final result = await repo.searchHashtags(query, limit: 20);
 
   return result.fold((failure) {
-    AppLogger.error('Erro ao buscar hashtags: ${failure.message}');
+    AppLogger.error('Failed to search hashtags: ${failure.message}');
     return [];
   }, (rankings) => rankings);
 }
 
-/// Provider para histórico de swipes — persistido em SharedPreferences
 @Riverpod(keepAlive: true)
 class SwipeHistory extends _$SwipeHistory {
   static const _storageKeyPrefix = 'swipe_history_';
@@ -511,19 +509,17 @@ class SwipeHistory extends _$SwipeHistory {
           .map((e) => SwipeHistoryEntry.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      // Higieniza historico legado com entradas repetidas do mesmo perfil.
       final seenTargets = <String>{};
       final normalized = list
           .where((item) => seenTargets.add(item.targetUserId))
           .toList();
 
       final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
-      // Se houver usuario logado diferente, nao aplica estado.
       if (currentUserId != null && currentUserId != userId) return;
 
       state = normalized;
     } catch (e, st) {
-      AppLogger.warning('Falha ao carregar histórico de swipes', e, st);
+      AppLogger.warning('Failed to load swipe history', e, st);
     }
   }
 
@@ -533,15 +529,13 @@ class SwipeHistory extends _$SwipeHistory {
       final prefs = await SharedPreferences.getInstance();
       final jsonStr = jsonEncode(state.map((e) => e.toJson()).toList());
 
-      // Chave por usuario (preferencial) quando autenticado.
       if (userId != null) {
         await prefs.setString(_storageKeyForUser(userId), jsonStr);
       }
 
-      // Chave legado/fallback para cenarios de restauracao de sessao.
       await prefs.setString(_legacyStorageKey, jsonStr);
     } catch (e, st) {
-      AppLogger.warning('Falha ao salvar histórico de swipes', e, st);
+      AppLogger.warning('Failed to save swipe history', e, st);
     }
   }
 
@@ -556,7 +550,6 @@ class SwipeHistory extends _$SwipeHistory {
       timestamp: DateTime.now(),
     );
 
-    // Mantem apenas a acao mais recente por perfil no historico.
     final withoutSameUser = state
         .where((item) => item.targetUserId != user.uid)
         .toList();
@@ -564,7 +557,6 @@ class SwipeHistory extends _$SwipeHistory {
     _saveToStorage();
   }
 
-  // Futuro: Implementar undo
   void undoLast() {
     if (state.isNotEmpty) {
       state = state.sublist(1);

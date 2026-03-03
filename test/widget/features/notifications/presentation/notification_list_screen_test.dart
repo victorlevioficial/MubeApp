@@ -34,12 +34,19 @@ void main() {
         ),
         GoRoute(
           path: '/conversation/:id',
-          builder: (context, state) =>
-              Scaffold(body: Text('Conversation: ${state.pathParameters['id']}')),
+          builder: (context, state) => Scaffold(
+            body: Text('Conversation: ${state.pathParameters['id']}'),
+          ),
         ),
         GoRoute(
-          path: '/invites',
-          builder: (context, state) => const Scaffold(body: Text('Invites Screen')),
+          path: '/profile/invites',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Invites Screen')),
+        ),
+        GoRoute(
+          path: '/profile/manage-members',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Manage Members Screen')),
         ),
       ],
     );
@@ -67,7 +74,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Nenhuma notificação'), findsOneWidget);
-      expect(find.text('Você será notificado quando houver novidades'), findsOneWidget);
+      expect(
+        find.text('Você será notificado quando houver novidades'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders notification list', (tester) async {
@@ -123,7 +133,9 @@ void main() {
       expect(fakeNotificationRepo.throwError, false);
     });
 
-    testWidgets('navigates to conversation for chat notifications', (tester) async {
+    testWidgets('navigates to conversation for chat notifications', (
+      tester,
+    ) async {
       final notifications = [
         TestData.notification(
           id: 'notif-1',
@@ -142,12 +154,11 @@ void main() {
       expect(find.text('Conversation: conv-123'), findsOneWidget);
     });
 
-    testWidgets('navigates to invites for band invite notifications', (tester) async {
+    testWidgets('navigates to invites for band invite notifications', (
+      tester,
+    ) async {
       final notifications = [
-        TestData.notification(
-          id: 'notif-1',
-          type: NotificationType.bandInvite,
-        ),
+        TestData.notification(id: 'notif-1', type: NotificationType.bandInvite),
       ];
 
       await tester.pumpWidget(createSubject(notifications: notifications));
@@ -160,7 +171,30 @@ void main() {
       expect(find.text('Invites Screen'), findsOneWidget);
     });
 
-    testWidgets('shows delete confirmation dialog when Limpar tapped', (tester) async {
+    testWidgets(
+      'navigates to manage members for accepted band invite notifications',
+      (tester) async {
+        final notifications = [
+          TestData.notification(
+            id: 'notif-1',
+            type: NotificationType.bandInviteAccepted,
+          ),
+        ];
+
+        await tester.pumpWidget(createSubject(notifications: notifications));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(InkWell).first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text('Manage Members Screen'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows delete confirmation dialog when Limpar tapped', (
+      tester,
+    ) async {
       final notifications = [TestData.notification(id: 'notif-1')];
 
       await tester.pumpWidget(createSubject(notifications: notifications));

@@ -43,7 +43,8 @@ abstract class AppUser with _$AppUser {
     /// Profile type, set after initial type selection.
     @JsonKey(name: 'tipo_perfil') AppUserType? tipoPerfil,
 
-    /// Account visibility status: 'ativo', 'inativo', 'suspenso'.
+    /// Account visibility status: 'ativo', 'rascunho', 'inativo', 'suspenso'.
+    /// Band creation flows must override this to 'rascunho' explicitly.
     @Default('ativo') String status,
 
     /// User's registration name (full/legal name for internal records).
@@ -134,37 +135,65 @@ abstract class AppUser with _$AppUser {
       case AppUserType.professional:
         return _firstNonEmptyName([
           dadosProfissional?['nomeArtistico'],
-          dadosProfissional?['nome'],
-          nome,
-        ]);
+        ], 'Profissional');
       case AppUserType.band:
         return _firstNonEmptyName([
           dadosBanda?['nomeBanda'],
           dadosBanda?['nomeArtistico'],
           dadosBanda?['nome'],
-          nome,
-        ]);
+        ], 'Banda');
       case AppUserType.studio:
         return _firstNonEmptyName([
           dadosEstudio?['nomeEstudio'],
           dadosEstudio?['nomeArtistico'],
           dadosEstudio?['nome'],
-          nome,
-        ]);
+        ], 'Estudio');
       case AppUserType.contractor:
-        return _firstNonEmptyName([nome]);
+        return _firstNonEmptyName([nome], 'Contratante');
       default:
-        return _firstNonEmptyName([nome]);
+        return _firstNonEmptyName([], 'Perfil');
     }
   }
 
-  String _firstNonEmptyName(List<dynamic> candidates) {
+  /// Biography shown in profile surfaces.
+  ///
+  /// Uses top-level `bio` first and falls back to legacy nested maps when
+  /// older documents stored the value inside the type-specific payload.
+  String? get profileBio {
+    switch (tipoPerfil) {
+      case AppUserType.professional:
+        return _firstNonEmptyText([bio, dadosProfissional?['bio']]);
+      case AppUserType.band:
+        return _firstNonEmptyText([bio, dadosBanda?['bio']]);
+      case AppUserType.studio:
+        return _firstNonEmptyText([
+          bio,
+          dadosEstudio?['bio'],
+          dadosProfissional?['bio'],
+        ]);
+      case AppUserType.contractor:
+        return _firstNonEmptyText([bio, dadosContratante?['bio']]);
+      default:
+        return _firstNonEmptyText([bio]);
+    }
+  }
+
+  String _firstNonEmptyName(List<dynamic> candidates, [String fallback = '']) {
     for (final value in candidates) {
       if (value is String && value.trim().isNotEmpty) {
         return value.trim();
       }
     }
-    return '';
+    return fallback;
+  }
+
+  String? _firstNonEmptyText(List<dynamic> candidates) {
+    for (final value in candidates) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return null;
   }
 
   /// Converts to Firestore-compatible Map, properly serializing addresses.

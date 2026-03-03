@@ -1,6 +1,6 @@
 class FirestoreCollections {
   static const String users = 'users';
-  static const String deletedUsers = 'deleted_users';
+  static const String deletedUsers = 'deletedUsers';
   static const String matches = 'matches';
   static const String interactions = 'interactions';
   static const String reports = 'reports';
@@ -15,7 +15,7 @@ class FirestoreFields {
   static const String geohash = 'geohash';
   static const String name = 'nome';
   static const String photo = 'foto';
-  static const String deletedAt = 'deletedAt';
+  static const String deletedAt = 'deleted_at';
   static const String createdAt = 'createdAt';
 
   // Profile Fields

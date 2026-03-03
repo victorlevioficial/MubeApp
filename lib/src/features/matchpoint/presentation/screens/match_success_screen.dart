@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -57,6 +57,8 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final matchUserName = widget.matchUser.appDisplayName;
+
     return Scaffold(
       backgroundColor: AppColors.background.withValues(alpha: 0.95),
       body: Stack(
@@ -125,7 +127,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
 
                 const SizedBox(height: AppSpacing.s16),
                 Text(
-                  'Você e ${widget.matchUser.nome} se curtiram!',
+                  'Você e $matchUserName se curtiram!',
                   style: AppTypography.bodyLarge.copyWith(
                     color: AppColors.textPrimary,
                   ),
@@ -151,10 +153,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                       '${RoutePaths.conversation}/$conversationId',
                       extra: {
                         'otherUserId': widget.matchUser.uid,
-                        'otherUserName':
-                            widget.matchUser.appDisplayName.isNotEmpty
-                            ? widget.matchUser.appDisplayName
-                            : (widget.matchUser.nome ?? 'Usuario'),
+                        'otherUserName': matchUserName,
                         'otherUserPhoto': widget.matchUser.foto,
                       },
                     );

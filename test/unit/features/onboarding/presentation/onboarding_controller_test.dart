@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/bands/domain/band_activation_rules.dart';
 import 'package:mube/src/features/onboarding/presentation/onboarding_controller.dart';
 
 import '../../../../helpers/test_data.dart';
@@ -134,11 +135,43 @@ void main() {
           final updatedUser = fakeAuthRepository.lastUpdatedUser;
           expect(updatedUser, isNotNull);
           expect(updatedUser!.cadastroStatus, 'concluido');
-          expect(updatedUser.status, 'ativo');
+          expect(updatedUser.status, profileActiveStatus);
           expect(updatedUser.nome, 'New Name');
           expect(updatedUser.foto, 'http://new.photo');
           expect(updatedUser.location, location);
+          expect(updatedUser.addresses, hasLength(1));
+          expect(updatedUser.addresses.first.isPrimary, isTrue);
+          expect(updatedUser.addresses.first.cidade, 'Rio de Janeiro');
+          expect(updatedUser.addresses.first.estado, 'RJ');
           expect(updatedUser.dadosProfissional, professionalData);
+        },
+      );
+
+      test(
+        'creates band profile as rascunho until enough members accept',
+        () async {
+          final user = TestData.user(
+            uid: 'band-1',
+            tipoPerfil: AppUserType.band,
+            cadastroStatus: 'perfil_pendente',
+          );
+          fakeAuthRepository.appUser = user;
+
+          final controller = container.read(
+            onboardingControllerProvider.notifier,
+          );
+
+          await controller.submitProfileForm(
+            currentUser: user,
+            location: const {'lat': 0.0, 'lng': 0.0},
+            nome: 'Minha Banda',
+            dadosBanda: const {'nomeBanda': 'Minha Banda'},
+          );
+
+          final updatedUser = fakeAuthRepository.lastUpdatedUser;
+          expect(updatedUser, isNotNull);
+          expect(updatedUser!.cadastroStatus, 'concluido');
+          expect(updatedUser.status, profileDraftStatus);
         },
       );
 

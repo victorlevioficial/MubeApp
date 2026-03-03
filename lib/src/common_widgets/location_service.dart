@@ -5,10 +5,46 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
 import '../core/config/app_config.dart';
+import '../features/address/domain/address_search_result.dart';
+import '../features/address/domain/resolved_address.dart';
+
+typedef LocationRequestHandler =
+    Future<http.Response> Function(
+      String url, {
+      Map<String, String>? headers,
+    });
+
+typedef CurrentPositionLoader =
+    Future<Position> Function({required bool forceRefresh});
+
+enum LocationServiceErrorCode {
+  apiKeyMissing,
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever,
+  quotaExceeded,
+  requestFailed,
+}
+
+class LocationServiceException implements Exception {
+  const LocationServiceException(this.code, this.message);
+
+  final LocationServiceErrorCode code;
+  final String message;
+
+  @override
+  String toString() => 'LocationServiceException($code, $message)';
+}
 
 class LocationService {
-  // API key from environment configuration
+  LocationService({
+    LocationRequestHandler? requestHandler,
+    CurrentPositionLoader? positionLoader,
+  }) : _requestHandler = requestHandler,
+       _positionLoader = positionLoader;
+
   static String get googleApiKey => AppConfig.googleMapsApiKey;
+  static bool get isConfigured => googleApiKey.isNotEmpty;
 
   static const Duration _positionCacheTtl = Duration(minutes: 2);
   static const Duration _reverseGeocodeCacheTtl = Duration(minutes: 10);
@@ -17,575 +53,267 @@ class LocationService {
 
   static Position? _cachedPosition;
   static DateTime? _cachedPositionAt;
-  static final Map<String, _TimedCacheEntry<Map<String, dynamic>>>
+  static final Map<String, _TimedCacheEntry<ResolvedAddress>>
   _reverseGeocodeCache = {};
-  static final Map<String, _TimedCacheEntry<List<Map<String, dynamic>>>>
+  static final Map<String, _TimedCacheEntry<List<AddressSearchResult>>>
   _searchCache = {};
-  static final Map<String, _TimedCacheEntry<Map<String, dynamic>>>
+  static final Map<String, _TimedCacheEntry<ResolvedAddress>>
   _googlePlaceDetailsCache = {};
 
-  final Map<String, Map<String, dynamic>> _openStreetMapDetailsCache = {};
+  final LocationRequestHandler? _requestHandler;
+  final CurrentPositionLoader? _positionLoader;
 
-  /// Helper for HTTP requests with optional headers.
   Future<http.Response> _makeRequest(
     String url, {
     Map<String, String>? headers,
   }) async {
-    if (kIsWeb && kDebugMode) {
-      // CORS helper strictly for local web debugging.
-      final proxyUrl = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
-      return await http.get(Uri.parse(proxyUrl), headers: headers);
+    if (_requestHandler != null) {
+      return _requestHandler(url, headers: headers);
     }
-    return await http.get(Uri.parse(url), headers: headers);
+
+    if (kIsWeb && kDebugMode) {
+      final proxyUrl = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
+      return http.get(Uri.parse(proxyUrl), headers: headers);
+    }
+    return http.get(Uri.parse(url), headers: headers);
   }
 
-  /// Address autocomplete. Returns entries with {description, place_id}.
-  Future<List<Map<String, dynamic>>> searchAddress(String query) async {
+  Future<List<AddressSearchResult>> searchAddress(String query) async {
     final normalizedQuery = query.trim();
-    if (normalizedQuery.length < 3) return [];
+    if (normalizedQuery.length < 3) return const [];
+    _ensureConfigured();
 
     final queryKey = normalizedQuery.toLowerCase();
     final cachedSearch = _searchCache[queryKey];
     if (_isCacheFresh(cachedSearch?.cachedAt, _searchCacheTtl)) {
-      return List<Map<String, dynamic>>.from(cachedSearch!.value);
+      return List<AddressSearchResult>.from(cachedSearch!.value);
     }
 
-    if (AppConfig.googleMapsApiKey.isNotEmpty) {
-      final googleResults = await _searchAddressWithGoogle(normalizedQuery);
-      if (googleResults.isNotEmpty) {
-        _searchCache[queryKey] = _TimedCacheEntry(
-          value: List<Map<String, dynamic>>.from(googleResults),
-          cachedAt: DateTime.now(),
+    final response = await _makeRequest(
+      AppConfig.buildPlacesUrl(normalizedQuery, country: 'br'),
+    );
+    if (response.statusCode != 200) {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        'Erro ao buscar enderecos.',
+      );
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    final status = (data['status'] ?? '').toString();
+    if (status == 'ZERO_RESULTS') {
+      return const [];
+    }
+    if (status == 'OVER_QUERY_LIMIT') {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.quotaExceeded,
+        'Limite da API do Google atingido.',
+      );
+    }
+    if (status != 'OK') {
+      throw LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        _googleErrorMessage(
+          fallback: 'Erro ao buscar enderecos.',
+          data: data,
+        ),
+      );
+    }
+
+    final queryNumberHint = extractHouseNumberFromText(normalizedQuery);
+    final predictions = List<Map<String, dynamic>>.from(
+      data['predictions'] as List? ?? const [],
+    );
+    final results = dedupeSearchResults(
+      predictions.map((prediction) {
+        final description = (prediction['description'] ?? '').toString().trim();
+        final placeId = (prediction['place_id'] ?? '').toString().trim();
+        if (description.isEmpty || placeId.isEmpty) return null;
+
+        final structured = Map<String, dynamic>.from(
+          prediction['structured_formatting'] as Map? ?? const {},
         );
-        return googleResults;
-      }
-    } else {
-      debugPrint(
-        'GOOGLE_MAPS_API_KEY not set. Using OpenStreetMap fallback for address search.',
-      );
-    }
+        final mainText = (structured['main_text'] ?? '')
+            .toString()
+            .trim();
+        final secondaryText = (structured['secondary_text'] ?? '')
+            .toString()
+            .trim();
+        final numberHint = extractHouseNumberFromText(mainText).isNotEmpty
+            ? extractHouseNumberFromText(mainText)
+            : queryNumberHint;
 
-    final fallbackResults = await _searchAddressOpenStreetMap(normalizedQuery);
-    if (fallbackResults.isNotEmpty) {
-      _searchCache[queryKey] = _TimedCacheEntry(
-        value: List<Map<String, dynamic>>.from(fallbackResults),
-        cachedAt: DateTime.now(),
-      );
-    }
-    return fallbackResults;
-  }
-
-  Future<List<Map<String, dynamic>>> _searchAddressWithGoogle(
-    String query,
-  ) async {
-    final urlString = AppConfig.buildPlacesUrl(query, country: 'br');
-
-    try {
-      final response = await _makeRequest(urlString);
-      if (response.statusCode != 200) return [];
-
-      final data = json.decode(response.body);
-      if (data['status'] == 'OK') {
-        final predictions = List<Map<String, dynamic>>.from(
-          data['predictions'] as List,
+        return AddressSearchResult(
+          placeId: placeId,
+          description: description,
+          mainText: mainText.isNotEmpty ? mainText : description,
+          secondaryText: secondaryText,
+          numberHint: numberHint,
         );
-        return predictions
-            .map((prediction) {
-              final description = (prediction['description'] ?? '')
-                  .toString()
-                  .trim();
-              final placeId = (prediction['place_id'] ?? '').toString().trim();
-              if (description.isEmpty || placeId.isEmpty) return null;
-
-              return <String, dynamic>{
-                'description': description,
-                'place_id': placeId,
-                'number_hint': _extractHouseNumberFromText(description),
-              };
-            })
-            .whereType<Map<String, dynamic>>()
-            .toList();
-      }
-
-      debugPrint(
-        'Google API Error: ${data['status']} - ${data['error_message']}',
-      );
-      return [];
-    } catch (e) {
-      debugPrint('Erro busca Google: $e');
-      return [];
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> _searchAddressOpenStreetMap(
-    String query,
-  ) async {
-    final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-      'q': query,
-      'format': 'jsonv2',
-      'addressdetails': '1',
-      'countrycodes': 'br',
-      'limit': '10',
-      'accept-language': 'pt-BR',
-    });
-
-    try {
-      final response = await _makeRequest(
-        uri.toString(),
-        headers: const {'User-Agent': 'mube-app/1.0'},
-      );
-      if (response.statusCode != 200) return [];
-
-      final data = json.decode(response.body);
-      if (data is! List) return [];
-
-      final results = <Map<String, dynamic>>[];
-      for (final item in data) {
-        if (item is! Map) continue;
-
-        final mapItem = Map<String, dynamic>.from(item);
-        final lat = double.tryParse('${mapItem['lat'] ?? ''}');
-        final lon = double.tryParse('${mapItem['lon'] ?? ''}');
-        if (lat == null || lon == null) continue;
-
-        final token = 'osm:$lat,$lon';
-        final details = _parseOpenStreetMapDetails(
-          lat: lat,
-          lon: lon,
-          address: Map<String, dynamic>.from(mapItem['address'] ?? const {}),
-          displayName: mapItem['display_name']?.toString(),
-          name: mapItem['name']?.toString(),
-        );
-        _openStreetMapDetailsCache[token] = details;
-
-        final displayName = (mapItem['display_name'] ?? '').toString().trim();
-        results.add({
-          'description': displayName.isNotEmpty
-              ? displayName
-              : _buildOpenStreetMapDescription(details),
-          'place_id': token,
-        });
-      }
-
-      return results;
-    } catch (e) {
-      debugPrint('Erro busca OpenStreetMap: $e');
-      return [];
-    }
-  }
-
-  /// Place details from place id.
-  Future<Map<String, dynamic>?> getPlaceDetails(String placeId) async {
-    if (placeId.startsWith('osm:')) {
-      final cached = _openStreetMapDetailsCache[placeId];
-      if (cached != null) return cached;
-
-      final coords = _parseOsmToken(placeId);
-      if (coords != null) {
-        return _reverseGeocodeOpenStreetMap(coords.$1, coords.$2);
-      }
-      return null;
-    }
-
-    if (AppConfig.googleMapsApiKey.isEmpty) {
-      debugPrint(
-        'GOOGLE_MAPS_API_KEY not set. OpenStreetMap details expect OSM place_id token.',
-      );
-      return null;
-    }
-
-    final cachedGoogleDetails = _googlePlaceDetailsCache[placeId];
-    if (_isCacheFresh(cachedGoogleDetails?.cachedAt, _placeDetailsCacheTtl)) {
-      return Map<String, dynamic>.from(cachedGoogleDetails!.value);
-    }
-
-    final urlString = AppConfig.buildPlaceDetailsUrl(placeId);
-
-    try {
-      final response = await _makeRequest(urlString);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          final result = data['result'];
-          final map = _parseGoogleComponents(
-            List<dynamic>.from(result['address_components'] ?? const []),
-          );
-
-          if (result['geometry'] != null &&
-              result['geometry']['location'] != null) {
-            map['lat'] = result['geometry']['location']['lat'];
-            map['lng'] = result['geometry']['location']['lng'];
-          }
-
-          final formattedAddress = (result['formatted_address'] ?? '')
-              .toString()
-              .trim();
-          if ((map['numero'] ?? '').toString().trim().isEmpty &&
-              formattedAddress.isNotEmpty) {
-            map['numero'] = _extractHouseNumberFromText(formattedAddress);
-          }
-
-          if ((map['logradouro'] ?? '').toString().trim().isEmpty) {
-            map['logradouro'] = (result['name'] ?? '').toString().trim();
-          }
-
-          _googlePlaceDetailsCache[placeId] = _TimedCacheEntry(
-            value: Map<String, dynamic>.from(map),
-            cachedAt: DateTime.now(),
-          );
-          return map;
-        }
-
-        debugPrint(
-          'Google details API Error: ${data['status']} - ${data['error_message']}',
-        );
-      }
-    } catch (e) {
-      debugPrint('Erro details Google: $e');
-    }
-
-    return null;
-  }
-
-  /// Resolve endereço completo a partir de texto livre (incluindo número).
-  Future<Map<String, dynamic>?> resolveAddressFromQuery(String query) async {
-    final normalizedQuery = query.trim();
-    if (normalizedQuery.length < 3) return null;
-
-    if (AppConfig.googleMapsApiKey.isNotEmpty) {
-      try {
-        final response = await _makeRequest(
-          AppConfig.buildGeocodeUrl(normalizedQuery),
-        );
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data['status'] == 'OK' && (data['results'] as List).isNotEmpty) {
-            final result = data['results'][0] as Map<String, dynamic>;
-            final map = _parseGoogleComponents(
-              List<dynamic>.from(result['address_components'] ?? const []),
-            );
-
-            final formattedAddress = (result['formatted_address'] ?? '')
-                .toString()
-                .trim();
-            if ((map['numero'] ?? '').toString().trim().isEmpty &&
-                formattedAddress.isNotEmpty) {
-              map['numero'] = _extractHouseNumberFromText(formattedAddress);
-            }
-
-            if (result['geometry'] != null &&
-                result['geometry']['location'] != null) {
-              map['lat'] = result['geometry']['location']['lat'];
-              map['lng'] = result['geometry']['location']['lng'];
-            }
-            return map;
-          }
-        }
-      } catch (e) {
-        debugPrint('Erro geocode por query (Google): $e');
-      }
-    }
-
-    final fallbackResults = await _searchAddressOpenStreetMap(normalizedQuery);
-    if (fallbackResults.isEmpty) return null;
-    final placeId = fallbackResults.first['place_id']?.toString();
-    if (placeId == null || placeId.isEmpty) return null;
-
-    return getPlaceDetails(placeId);
-  }
-
-  /// Reverse geocoding from coordinates.
-  Future<Map<String, dynamic>?> getAddressFromCoordinates(
-    double lat,
-    double lon,
-  ) async {
-    final coordinateKey = _buildCoordinateKey(lat, lon);
-    final cachedAddress = _reverseGeocodeCache[coordinateKey];
-    if (_isCacheFresh(cachedAddress?.cachedAt, _reverseGeocodeCacheTtl)) {
-      return Map<String, dynamic>.from(cachedAddress!.value);
-    }
-
-    if (AppConfig.googleMapsApiKey.isEmpty) {
-      debugPrint(
-        'GOOGLE_MAPS_API_KEY not set. Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
-      );
-      final fallback = await _reverseGeocodeOpenStreetMap(lat, lon);
-      if (fallback != null) {
-        _reverseGeocodeCache[coordinateKey] = _TimedCacheEntry(
-          value: Map<String, dynamic>.from(fallback),
-          cachedAt: DateTime.now(),
-        );
-      }
-      return fallback;
-    }
-
-    final urlString = AppConfig.buildGeocodeUrl('$lat,$lon');
-
-    try {
-      final response = await _makeRequest(urlString);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK' && (data['results'] as List).isNotEmpty) {
-          final result = data['results'][0];
-          final map = _parseGoogleComponents(result['address_components']);
-
-          if (result['geometry'] != null &&
-              result['geometry']['location'] != null) {
-            map['lat'] = result['geometry']['location']['lat'];
-            map['lng'] = result['geometry']['location']['lng'];
-          } else {
-            map['lat'] = lat;
-            map['lng'] = lon;
-          }
-          _reverseGeocodeCache[coordinateKey] = _TimedCacheEntry(
-            value: Map<String, dynamic>.from(map),
-            cachedAt: DateTime.now(),
-          );
-          return map;
-        }
-
-        debugPrint(
-          'Google geocode API Error: ${data['status']} - ${data['error_message']}',
-        );
-      }
-    } catch (e) {
-      debugPrint('Erro geocode Google: $e');
-    }
-
-    final fallback = await _reverseGeocodeOpenStreetMap(lat, lon);
-    if (fallback != null) {
-      _reverseGeocodeCache[coordinateKey] = _TimedCacheEntry(
-        value: Map<String, dynamic>.from(fallback),
-        cachedAt: DateTime.now(),
-      );
-    }
-    return fallback;
-  }
-
-  Future<Map<String, dynamic>?> _reverseGeocodeOpenStreetMap(
-    double lat,
-    double lon,
-  ) async {
-    final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
-      'format': 'jsonv2',
-      'lat': lat.toString(),
-      'lon': lon.toString(),
-      'addressdetails': '1',
-      'accept-language': 'pt-BR',
-    });
-
-    try {
-      final response = await _makeRequest(
-        uri.toString(),
-        headers: const {'User-Agent': 'mube-app/1.0'},
-      );
-      if (response.statusCode != 200) {
-        return _fallbackAddressFromCoordinates(lat, lon);
-      }
-
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      return _parseOpenStreetMapDetails(
-        lat: lat,
-        lon: lon,
-        address: Map<String, dynamic>.from(data['address'] ?? const {}),
-        displayName: data['display_name']?.toString(),
-        name: data['name']?.toString(),
-      );
-    } catch (e) {
-      debugPrint('Erro geocode OpenStreetMap: $e');
-      return _fallbackAddressFromCoordinates(lat, lon);
-    }
-  }
-
-  Map<String, dynamic> _parseOpenStreetMapDetails({
-    required double lat,
-    required double lon,
-    required Map<String, dynamic> address,
-    String? displayName,
-    String? name,
-  }) {
-    final logradouro =
-        (address['road'] ??
-                address['pedestrian'] ??
-                address['residential'] ??
-                address['highway'] ??
-                '')
-            .toString();
-
-    final bairro =
-        (address['suburb'] ??
-                address['neighbourhood'] ??
-                address['quarter'] ??
-                address['city_district'] ??
-                '')
-            .toString();
-
-    final cidade =
-        (address['city'] ??
-                address['town'] ??
-                address['village'] ??
-                address['municipality'] ??
-                address['county'] ??
-                '')
-            .toString();
-
-    final estado = (address['state'] ?? '').toString();
-    final cep = (address['postcode'] ?? '').toString();
-    final numero = _extractHouseNumber(
-      address: address,
-      displayName: displayName,
-      name: name,
+      }).whereType<AddressSearchResult>(),
     );
 
-    return {
-      'logradouro': logradouro.isNotEmpty ? logradouro : 'Localizacao atual',
-      'numero': numero,
-      'bairro': bairro,
-      'cidade': cidade,
-      'estado': estado,
-      'cep': cep,
-      'lat': lat,
-      'lng': lon,
-    };
+    _searchCache[queryKey] = _TimedCacheEntry(
+      value: List<AddressSearchResult>.from(results),
+      cachedAt: DateTime.now(),
+    );
+    return results;
   }
 
-  String _extractHouseNumber({
-    required Map<String, dynamic> address,
-    String? displayName,
-    String? name,
-  }) {
-    final direct = (address['house_number'] ?? '').toString().trim();
-    if (direct.isNotEmpty) return direct;
+  Future<ResolvedAddress?> getPlaceDetails(
+    String placeId, {
+    String? numberHint,
+  }) async {
+    final normalizedPlaceId = placeId.trim();
+    if (normalizedPlaceId.isEmpty) return null;
+    _ensureConfigured();
 
-    if (displayName != null && displayName.isNotEmpty) {
-      final firstChunks = displayName.split(',').take(2).join(' ');
-      final found = _extractHouseNumberFromText(firstChunks);
-      if (found.isNotEmpty) return found;
+    final cached = _googlePlaceDetailsCache[normalizedPlaceId];
+    if (_isCacheFresh(cached?.cachedAt, _placeDetailsCacheTtl)) {
+      return _applyNumberHint(cached!.value, numberHint);
     }
 
-    if (name != null && name.isNotEmpty) {
-      final found = _extractHouseNumberFromText(name);
-      if (found.isNotEmpty) return found;
+    final response = await _makeRequest(
+      AppConfig.buildPlaceDetailsUrl(normalizedPlaceId),
+    );
+    if (response.statusCode != 200) {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        'Erro ao obter detalhes do endereco.',
+      );
     }
 
-    return '';
-  }
-
-  String _extractHouseNumberFromText(String source) {
-    final normalized = source.trim();
-    if (normalized.isEmpty) return '';
-
-    final match = RegExp(r'\b\d{1,6}[A-Za-z0-9\-\/]*\b').firstMatch(normalized);
-    return match?.group(0) ?? '';
-  }
-
-  String _buildOpenStreetMapDescription(Map<String, dynamic> details) {
-    final parts = <String>[
-      (details['logradouro'] ?? '').toString(),
-      (details['numero'] ?? '').toString(),
-      (details['bairro'] ?? '').toString(),
-      (details['cidade'] ?? '').toString(),
-      (details['estado'] ?? '').toString(),
-    ].where((value) => value.trim().isNotEmpty).toList();
-
-    if (parts.isEmpty) return 'Localizacao atual';
-    return parts.join(', ');
-  }
-
-  (double, double)? _parseOsmToken(String token) {
-    if (!token.startsWith('osm:')) return null;
-
-    final payload = token.substring(4);
-    final parts = payload.split(',');
-    if (parts.length != 2) return null;
-
-    final lat = double.tryParse(parts[0]);
-    final lon = double.tryParse(parts[1]);
-    if (lat == null || lon == null) return null;
-
-    return (lat, lon);
-  }
-
-  Map<String, dynamic> _fallbackAddressFromCoordinates(double lat, double lon) {
-    return {
-      'logradouro': 'Localizacao atual',
-      'numero': '',
-      'bairro': '',
-      'cidade': '',
-      'estado': '',
-      'cep': '',
-      'lat': lat,
-      'lng': lon,
-    };
-  }
-
-  /// Parser auxiliar para transformar o JSON complexo do Google em um map simples.
-  Map<String, dynamic> _parseGoogleComponents(List<dynamic> components) {
-    String logradouro = '';
-    String numero = '';
-    String bairro = '';
-    String cidade = '';
-    String estado = '';
-    String cep = '';
-
-    for (var c in components) {
-      final types = (c['types'] as List).cast<String>();
-      final val = c['long_name'];
-      final shortVal = c['short_name'];
-
-      if (types.contains('route')) logradouro = val;
-      if (types.contains('street_number')) numero = val;
-      if (types.contains('neighborhood') && bairro.isEmpty) bairro = val;
-      if (types.contains('sublocality') ||
-          types.contains('sublocality_level_1')) {
-        bairro = val;
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    final status = (data['status'] ?? '').toString();
+    if (status != 'OK') {
+      if (status == 'OVER_QUERY_LIMIT') {
+        throw const LocationServiceException(
+          LocationServiceErrorCode.quotaExceeded,
+          'Limite da API do Google atingido.',
+        );
       }
-      if (types.contains('locality') && cidade.isEmpty) cidade = val;
-      if (types.contains('administrative_area_level_2') && cidade.isEmpty) {
-        cidade = val;
-      }
-      if (types.contains('administrative_area_level_1')) {
-        estado = shortVal;
-      }
-      if (types.contains('postal_code')) cep = val;
+      return null;
     }
 
-    return {
-      'logradouro': logradouro,
-      'numero': numero,
-      'bairro': bairro,
-      'cidade': cidade,
-      'estado': estado,
-      'cep': cep,
-    };
+    final result = Map<String, dynamic>.from(data['result'] as Map? ?? const {});
+    final resolved = _resolvedAddressFromGoogleResult(result);
+    if (resolved == null) return null;
+
+    final enriched = _applyNumberHint(
+      resolved,
+      numberHint ??
+          extractHouseNumberFromText(
+            (result['formatted_address'] ?? '').toString(),
+          ),
+    );
+
+    _googlePlaceDetailsCache[normalizedPlaceId] = _TimedCacheEntry(
+      value: enriched,
+      cachedAt: DateTime.now(),
+    );
+    return enriched;
   }
 
-  Future<Position?> getCurrentPosition({bool forceRefresh = false}) async {
+  Future<ResolvedAddress?> getAddressFromCoordinates(
+    double lat,
+    double lng,
+  ) async {
+    _ensureConfigured();
+
+    final coordinateKey = _buildCoordinateKey(lat, lng);
+    final cachedAddress = _reverseGeocodeCache[coordinateKey];
+    if (_isCacheFresh(cachedAddress?.cachedAt, _reverseGeocodeCacheTtl)) {
+      return cachedAddress!.value;
+    }
+
+    final response = await _makeRequest(
+      AppConfig.buildReverseGeocodeUrl(lat, lng),
+    );
+    if (response.statusCode != 200) {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        'Erro ao determinar o endereco da localizacao atual.',
+      );
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    final status = (data['status'] ?? '').toString();
+    if (status == 'ZERO_RESULTS') return null;
+    if (status == 'OVER_QUERY_LIMIT') {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.quotaExceeded,
+        'Limite da API do Google atingido.',
+      );
+    }
+    if (status != 'OK') {
+      throw LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        _googleErrorMessage(
+          fallback: 'Erro ao determinar o endereco da localizacao atual.',
+          data: data,
+        ),
+      );
+    }
+
+    final results = List<Map<String, dynamic>>.from(
+      data['results'] as List? ?? const [],
+    );
+    if (results.isEmpty) return null;
+
+    final resolved =
+        _resolvedAddressFromGoogleResult(results.first)?.copyWith(
+          lat: lat,
+          lng: lng,
+        );
+    if (resolved == null) return null;
+
+    _reverseGeocodeCache[coordinateKey] = _TimedCacheEntry(
+      value: resolved,
+      cachedAt: DateTime.now(),
+    );
+    return resolved;
+  }
+
+  Future<Position> getCurrentPosition({bool forceRefresh = false}) async {
     try {
       if (!forceRefresh &&
           _cachedPosition != null &&
           _isCacheFresh(_cachedPositionAt, _positionCacheTtl)) {
-        return _cachedPosition;
+        return _cachedPosition!;
       }
 
-      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (_positionLoader != null) {
+        final current = await _positionLoader(forceRefresh: forceRefresh);
+        _cachedPosition = current;
+        _cachedPositionAt = DateTime.now();
+        return current;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        debugPrint('LocationService: GPS service is disabled');
-        return null;
+        throw const LocationServiceException(
+          LocationServiceErrorCode.serviceDisabled,
+          'GPS desativado. Ative o servico de localizacao.',
+        );
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          debugPrint('LocationService: Permission denied');
-          return null;
-        }
+      }
+
+      if (permission == LocationPermission.denied) {
+        throw const LocationServiceException(
+          LocationServiceErrorCode.permissionDenied,
+          'Permissao de localizacao negada.',
+        );
       }
 
       if (permission == LocationPermission.deniedForever) {
-        debugPrint('LocationService: Permission denied forever');
-        return null;
+        throw const LocationServiceException(
+          LocationServiceErrorCode.permissionDeniedForever,
+          'Permissao de localizacao negada permanentemente.',
+        );
       }
 
       if (!forceRefresh) {
@@ -601,27 +329,164 @@ class LocationService {
       _cachedPosition = current;
       _cachedPositionAt = DateTime.now();
       return current;
-    } catch (e) {
-      debugPrint('LocationService: Error getting location: $e');
-      return null;
+    } on LocationServiceException {
+      rethrow;
+    } catch (error) {
+      throw LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        'Erro ao obter localizacao: $error',
+      );
     }
   }
 
-  bool _isCacheFresh(DateTime? cachedAt, Duration ttl) {
+  void _ensureConfigured() {
+    if (!isConfigured) {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.apiKeyMissing,
+        'Servico de busca indisponivel. Configure a chave da Google API.',
+      );
+    }
+  }
+
+  ResolvedAddress? _resolvedAddressFromGoogleResult(Map<String, dynamic> result) {
+    final components = List<dynamic>.from(
+      result['address_components'] as List? ?? const [],
+    );
+    final parsed = _parseGoogleComponents(components);
+
+    final geometry = Map<String, dynamic>.from(
+      result['geometry'] as Map? ?? const {},
+    );
+    final location = Map<String, dynamic>.from(
+      geometry['location'] as Map? ?? const {},
+    );
+
+    final logradouro = parsed['logradouro']!.trim().isNotEmpty
+        ? parsed['logradouro']!.trim()
+        : (result['name'] ?? '').toString().trim();
+
+    return ResolvedAddress(
+      logradouro: logradouro,
+      numero: parsed['numero']!.trim(),
+      bairro: parsed['bairro']!.trim(),
+      cidade: parsed['cidade']!.trim(),
+      estado: parsed['estado']!.trim(),
+      cep: parsed['cep']!.trim(),
+      lat: (location['lat'] as num?)?.toDouble(),
+      lng: (location['lng'] as num?)?.toDouble(),
+    );
+  }
+
+  ResolvedAddress _applyNumberHint(
+    ResolvedAddress address,
+    String? hintSource,
+  ) {
+    if (address.numero.trim().isNotEmpty) return address;
+
+    final extracted = extractHouseNumberFromText(hintSource ?? '');
+    if (extracted.isEmpty) return address;
+    return address.copyWith(numero: extracted);
+  }
+
+  Map<String, String> _parseGoogleComponents(List<dynamic> components) {
+    var logradouro = '';
+    var numero = '';
+    var bairro = '';
+    var cidade = '';
+    var estado = '';
+    var cep = '';
+
+    for (final component in components) {
+      if (component is! Map) continue;
+      final map = Map<String, dynamic>.from(component);
+      final types = List<String>.from(map['types'] as List? ?? const []);
+      final longName = (map['long_name'] ?? '').toString();
+      final shortName = (map['short_name'] ?? '').toString();
+
+      if (types.contains('route')) logradouro = longName;
+      if (types.contains('street_number')) numero = longName;
+      if (types.contains('neighborhood') && bairro.isEmpty) bairro = longName;
+      if ((types.contains('sublocality') ||
+              types.contains('sublocality_level_1')) &&
+          bairro.isEmpty) {
+        bairro = longName;
+      }
+      if (types.contains('locality') && cidade.isEmpty) cidade = longName;
+      if (types.contains('administrative_area_level_2') && cidade.isEmpty) {
+        cidade = longName;
+      }
+      if (types.contains('administrative_area_level_1')) estado = shortName;
+      if (types.contains('postal_code')) cep = longName;
+    }
+
+    return {
+      'logradouro': logradouro,
+      'numero': numero,
+      'bairro': bairro,
+      'cidade': cidade,
+      'estado': estado,
+      'cep': cep,
+    };
+  }
+
+  @visibleForTesting
+  static List<AddressSearchResult> dedupeSearchResults(
+    Iterable<AddressSearchResult> results,
+  ) {
+    final seenPlaceIds = <String>{};
+    final seenMainTexts = <String>{};
+    final deduped = <AddressSearchResult>[];
+
+    for (final result in results) {
+      final placeId = result.placeId.trim();
+      if (placeId.isEmpty || !seenPlaceIds.add(placeId)) {
+        continue;
+      }
+
+      final normalizedMainText = result.normalizedMainText;
+      if (normalizedMainText.isNotEmpty &&
+          !seenMainTexts.add(normalizedMainText)) {
+        continue;
+      }
+
+      deduped.add(result);
+    }
+
+    return deduped;
+  }
+
+  @visibleForTesting
+  static String extractHouseNumberFromText(String source) {
+    final normalized = source.trim();
+    if (normalized.isEmpty) return '';
+
+    final match = RegExp(r'\b\d{1,6}[A-Za-z0-9\-\/]*\b').firstMatch(normalized);
+    return match?.group(0) ?? '';
+  }
+
+  static bool _isCacheFresh(DateTime? cachedAt, Duration ttl) {
     if (cachedAt == null) return false;
     return DateTime.now().difference(cachedAt) <= ttl;
   }
 
-  String _buildCoordinateKey(double lat, double lon) {
+  static String _buildCoordinateKey(double lat, double lng) {
     final latRounded = lat.toStringAsFixed(4);
-    final lonRounded = lon.toStringAsFixed(4);
-    return '$latRounded,$lonRounded';
+    final lngRounded = lng.toStringAsFixed(4);
+    return '$latRounded,$lngRounded';
+  }
+
+  static String _googleErrorMessage({
+    required String fallback,
+    required Map<String, dynamic> data,
+  }) {
+    final message = (data['error_message'] ?? '').toString().trim();
+    return message.isNotEmpty ? message : fallback;
   }
 }
 
 class _TimedCacheEntry<T> {
-  final T value;
-  final DateTime cachedAt;
-
   const _TimedCacheEntry({required this.value, required this.cachedAt});
+
+  final T value;
+  final DateTime? cachedAt;
 }

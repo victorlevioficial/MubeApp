@@ -44,6 +44,27 @@ interface RemainingLikesResponse {
   resetTime: string;
 }
 
+interface RankingAuditRequest {
+  poolTotal: number;
+  returnedTotal: number;
+  poolProximity: number;
+  poolHashtag: number;
+  poolGenre: number;
+  poolFallback: number;
+  returnedProximity: number;
+  returnedHashtag: number;
+  returnedGenre: number;
+  returnedFallback: number;
+  queryGenres: number;
+  queryHashtags: number;
+  usedGeohash: boolean;
+}
+
+interface RankingAuditResponse {
+  success: boolean;
+  bucketId: string;
+}
+
 /**
  * Cloud Function: submitMatchpointAction.
  *
@@ -519,6 +540,194 @@ export const onInteractionCreated = onDocumentCreated(
     }
   }
 );
+
+/**
+ * Cloud Function: recordMatchpointRankingAudit.
+ *
+ * Persiste um espelho agregado por hora da auditoria de ranking do MatchPoint
+ * para leitura no painel interno/debug do app.
+ */
+export const recordMatchpointRankingAudit = onCall(
+  {
+    region: "southamerica-east1",
+    memory: "256MiB",
+    timeoutSeconds: 10,
+    enforceAppCheck: true,
+    invoker: "public",
+    cors: true,
+  },
+  async (request): Promise<RankingAuditResponse> => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Usuário não autenticado");
+    }
+
+    const payload = sanitizeRankingAuditRequest(
+      request.data as Partial<RankingAuditRequest>
+    );
+    const now = Timestamp.now();
+    const {bucketId, bucketStart} = getRankingAuditBucket(now.toDate());
+    const bucketRef = db.collection("matchpointStats").doc(bucketId);
+
+    try {
+      await db.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(bucketRef);
+
+        if (!snapshot.exists) {
+          transaction.set(bucketRef, {
+            type: "ranking_audit_hourly",
+            bucket_id: bucketId,
+            bucket_start: bucketStart,
+            total_events: 1,
+            pool_total_sum: payload.poolTotal,
+            returned_total_sum: payload.returnedTotal,
+            pool_proximity_sum: payload.poolProximity,
+            pool_hashtag_sum: payload.poolHashtag,
+            pool_genre_sum: payload.poolGenre,
+            pool_fallback_sum: payload.poolFallback,
+            returned_proximity_sum: payload.returnedProximity,
+            returned_hashtag_sum: payload.returnedHashtag,
+            returned_genre_sum: payload.returnedGenre,
+            returned_fallback_sum: payload.returnedFallback,
+            query_genres_sum: payload.queryGenres,
+            query_hashtags_sum: payload.queryHashtags,
+            geohash_used_count: payload.usedGeohash ? 1 : 0,
+            created_at: now,
+            updated_at: now,
+          });
+          return;
+        }
+
+        transaction.update(bucketRef, {
+          total_events: FieldValue.increment(1),
+          pool_total_sum: FieldValue.increment(payload.poolTotal),
+          returned_total_sum: FieldValue.increment(payload.returnedTotal),
+          pool_proximity_sum: FieldValue.increment(payload.poolProximity),
+          pool_hashtag_sum: FieldValue.increment(payload.poolHashtag),
+          pool_genre_sum: FieldValue.increment(payload.poolGenre),
+          pool_fallback_sum: FieldValue.increment(payload.poolFallback),
+          returned_proximity_sum: FieldValue.increment(payload.returnedProximity),
+          returned_hashtag_sum: FieldValue.increment(payload.returnedHashtag),
+          returned_genre_sum: FieldValue.increment(payload.returnedGenre),
+          returned_fallback_sum: FieldValue.increment(payload.returnedFallback),
+          query_genres_sum: FieldValue.increment(payload.queryGenres),
+          query_hashtags_sum: FieldValue.increment(payload.queryHashtags),
+          geohash_used_count: FieldValue.increment(payload.usedGeohash ? 1 : 0),
+          updated_at: now,
+        });
+      });
+
+      return {success: true, bucketId};
+    } catch (error) {
+      console.error("Erro em recordMatchpointRankingAudit:", error);
+      throw new HttpsError("internal", "Erro ao registrar auditoria");
+    }
+  }
+);
+
+function sanitizeRankingAuditRequest(
+  payload: Partial<RankingAuditRequest>
+): RankingAuditRequest {
+  const result: RankingAuditRequest = {
+    poolTotal: readAuditInteger(payload.poolTotal, "poolTotal"),
+    returnedTotal: readAuditInteger(payload.returnedTotal, "returnedTotal"),
+    poolProximity: readAuditInteger(payload.poolProximity, "poolProximity"),
+    poolHashtag: readAuditInteger(payload.poolHashtag, "poolHashtag"),
+    poolGenre: readAuditInteger(payload.poolGenre, "poolGenre"),
+    poolFallback: readAuditInteger(payload.poolFallback, "poolFallback"),
+    returnedProximity: readAuditInteger(
+      payload.returnedProximity,
+      "returnedProximity"
+    ),
+    returnedHashtag: readAuditInteger(
+      payload.returnedHashtag,
+      "returnedHashtag"
+    ),
+    returnedGenre: readAuditInteger(payload.returnedGenre, "returnedGenre"),
+    returnedFallback: readAuditInteger(
+      payload.returnedFallback,
+      "returnedFallback"
+    ),
+    queryGenres: readAuditInteger(payload.queryGenres, "queryGenres", 20),
+    queryHashtags: readAuditInteger(
+      payload.queryHashtags,
+      "queryHashtags",
+      20
+    ),
+    usedGeohash: payload.usedGeohash === true,
+  };
+
+  if (
+    result.poolProximity +
+      result.poolHashtag +
+      result.poolGenre +
+      result.poolFallback >
+    result.poolTotal
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Soma do pool excede poolTotal."
+    );
+  }
+
+  if (
+    result.returnedProximity +
+      result.returnedHashtag +
+      result.returnedGenre +
+      result.returnedFallback >
+    result.returnedTotal
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Soma do retorno excede returnedTotal."
+    );
+  }
+
+  return result;
+}
+
+function readAuditInteger(
+  value: unknown,
+  fieldName: string,
+  max = 1000
+): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new HttpsError("invalid-argument", `${fieldName} inválido.`);
+  }
+
+  const normalized = Math.floor(value);
+  if (normalized < 0 || normalized > max) {
+    throw new HttpsError("invalid-argument", `${fieldName} fora do intervalo.`);
+  }
+
+  return normalized;
+}
+
+function getRankingAuditBucket(now: Date): {
+  bucketId: string;
+  bucketStart: Timestamp;
+} {
+  const bucketDate = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      now.getUTCHours()
+    )
+  );
+
+  const bucketId = [
+    "ranking_audit_hourly",
+    bucketDate.getUTCFullYear(),
+    String(bucketDate.getUTCMonth() + 1).padStart(2, "0"),
+    String(bucketDate.getUTCDate()).padStart(2, "0"),
+    String(bucketDate.getUTCHours()).padStart(2, "0"),
+  ].join("_");
+
+  return {
+    bucketId,
+    bucketStart: Timestamp.fromDate(bucketDate),
+  };
+}
 
 /**
  * Cloud Function: getRemainingLikes.

@@ -134,7 +134,9 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
                 child: Material(
                   elevation: 8,
                   color: AppColors.surface,
+                  surfaceTintColor: AppColors.transparent,
                   borderRadius: AppRadius.all12,
+                  clipBehavior: Clip.antiAlias,
                   shadowColor: AppColors.background.withValues(alpha: 0.5),
                   child: Container(
                     constraints: BoxConstraints(maxHeight: safeMaxHeight),

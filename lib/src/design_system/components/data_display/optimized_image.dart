@@ -47,6 +47,7 @@ class OptimizedImage extends StatelessWidget {
   final Widget? errorWidget;
   final Duration fadeInDuration;
   final Map<String, String>? headers;
+  final Alignment alignment;
 
   /// Resolução máxima para otimização de cache
   final ImageResolution resolution;
@@ -75,6 +76,7 @@ class OptimizedImage extends StatelessWidget {
     this.useSkeletonPlaceholder = true,
     this.placeholderColor,
     this.cacheManager,
+    this.alignment = Alignment.center,
   });
 
   /// Factory para avatar circular pequeno (lista)
@@ -228,6 +230,7 @@ class OptimizedImage extends StatelessWidget {
       width: width,
       height: height,
       fit: fit,
+      alignment: alignment,
       fadeInDuration: fadeInDuration,
       fadeOutDuration: const Duration(milliseconds: 100),
       httpHeaders: headers,

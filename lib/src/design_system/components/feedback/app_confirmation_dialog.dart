@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_typography.dart';
 
 class AppConfirmationDialog extends StatelessWidget {
@@ -22,6 +23,9 @@ class AppConfirmationDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.surface,
+      surfaceTintColor: AppColors.transparent,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.all24),
       title: Text(title, style: AppTypography.titleLarge),
       content: Text(
         message,

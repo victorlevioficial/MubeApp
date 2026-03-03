@@ -227,7 +227,10 @@ void main() {
           (widget) =>
               widget is Positioned &&
               widget.child is Container &&
-              (widget.child as Container).decoration is BoxDecoration,
+              (widget.child as Container).decoration is BoxDecoration &&
+              ((widget.child as Container).decoration as BoxDecoration)
+                      .gradient !=
+                  null,
         ),
       );
 

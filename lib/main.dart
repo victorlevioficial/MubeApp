@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:ui'; // For PlatformDispatcher
+import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,89 +16,132 @@ import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 
+const Color _bootstrapBackgroundColor = Color(0xFF0A0A0A);
+
 void main() {
   runZonedGuarded(
     () async {
-      final WidgetsBinding widgetsBinding =
-          WidgetsFlutterBinding.ensureInitialized();
+      final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       ImageCacheConfig.configureFlutterImageCache();
-      if (!kIsWeb) {
-        await SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
-      }
 
-      // 1. Configure global error handlers.
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
-        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
-        AppLogger.error(
-          'Flutter Framework Error',
-          details.exception,
-          details.stack,
-        );
+        AppLogger.recordFlutterError(details, fatal: true);
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-        AppLogger.error('Platform Dispatcher Error', error, stack);
+        AppLogger.fatal('Platform Dispatcher Error', error, stack);
         return true;
       };
 
-      // 2. Replace the "Red Screen of Death".
       ErrorWidget.builder = (FlutterErrorDetails details) {
         return ErrorBoundary.buildErrorWidget(details);
       };
 
-      var firebaseReady = false;
-      try {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        firebaseReady = true;
-
-        AppLogger.info('Build mode: ${kReleaseMode ? 'release' : 'dev'}');
-
-        FirebaseFirestore.instance.settings = const Settings(
-          persistenceEnabled: true,
-          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-        );
-      } catch (e, stack) {
-        AppLogger.error('Erro ao inicializar Firebase', e, stack);
-      }
-
-      if (firebaseReady) {
-        await AppLogger.initialize();
-      }
-
-      runApp(const ProviderScope(child: MubeApp()));
-      FlutterNativeSplash.remove();
-
-      if (firebaseReady) {
-        widgetsBinding.addPostFrameCallback((_) {
-          unawaited(_initializeDeferredServices());
-        });
-      }
+      runApp(const _BootstrapHost());
     },
     (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       AppLogger.error('Erro nao tratado no Zone Guarded', error, stack);
     },
   );
 }
 
+class _BootstrapHost extends StatefulWidget {
+  const _BootstrapHost();
+
+  @override
+  State<_BootstrapHost> createState() => _BootstrapHostState();
+}
+
+class _BootstrapHostState extends State<_BootstrapHost> {
+  Object? _bootstrapError;
+  bool _firebaseReady = false;
+  bool _nativeSplashRemoved = false;
+  bool _deferredServicesScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_nativeSplashRemoved) return;
+      _nativeSplashRemoved = true;
+      FlutterNativeSplash.remove();
+    });
+    unawaited(_bootstrapFirebase());
+  }
+
+  Future<void> _bootstrapFirebase() async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _firebaseReady = true;
+        _bootstrapError = null;
+      });
+
+      await AppLogger.initialize();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_deferredServicesScheduled) return;
+        _deferredServicesScheduled = true;
+        unawaited(_initializeDeferredServices());
+      });
+    } catch (error, stack) {
+      AppLogger.error('Erro ao inicializar Firebase', error, stack);
+      if (!mounted) return;
+      setState(() {
+        _bootstrapError = error;
+        _firebaseReady = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_firebaseReady) {
+      return const ProviderScope(child: MubeApp());
+    }
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: ColoredBox(
+        color: _bootstrapBackgroundColor,
+        child: SizedBox.expand(
+          child: _bootstrapError == null
+              ? const SizedBox.shrink()
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Erro ao iniciar o app.\n${_bootstrapError.runtimeType}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
 Future<void> _initializeDeferredServices() async {
   try {
-    // Stage non-critical services to reduce startup contention on Home.
     await Future<void>.delayed(const Duration(milliseconds: 900));
     await AnalyticsService.initialize();
 
     await Future<void>.delayed(const Duration(milliseconds: 700));
     await RemoteConfigService.initialize();
 
-    // Push Notification é inicializado ao final do onboarding pela NotificationPermissionScreen
-    // ou no momento de login caso o usuário já tenha passado pela tela.
     await Future<void>.delayed(const Duration(milliseconds: 500));
     await _preloadFonts();
     AppLogger.info('Services initialized');

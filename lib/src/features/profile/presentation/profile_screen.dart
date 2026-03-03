@@ -10,9 +10,11 @@ import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../bands/domain/band_activation_rules.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -107,15 +109,6 @@ class ProfileScreen extends ConsumerWidget {
                     user.tipoPerfil?.label.toUpperCase() ?? '',
                     style: AppTypography.profileTypeLabel,
                   ),
-                  if (_getDisplayName(user) != user.nome) ...[
-                    const SizedBox(height: AppSpacing.s4),
-                    Text(
-                      user.nome ?? '',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
                   if (user.location != null) ...[
                     const SizedBox(height: AppSpacing.s8),
                     Row(
@@ -135,6 +128,10 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  ],
+                  if (_shouldShowBandActivationBanner(user)) ...[
+                    const SizedBox(height: AppSpacing.s20),
+                    _buildBandActivationBanner(context, user),
                   ],
                 ],
               ),
@@ -175,6 +172,90 @@ class ProfileScreen extends ConsumerWidget {
 
   String _getDisplayName(AppUser user) {
     return user.appDisplayName;
+  }
+
+  bool _shouldShowBandActivationBanner(AppUser user) {
+    if (user.tipoPerfil != AppUserType.band) return false;
+    return user.status == profileDraftStatus ||
+        !isBandEligibleForActivation(user.members.length);
+  }
+
+  Widget _buildBandActivationBanner(BuildContext context, AppUser user) {
+    final acceptedMembers = user.members.length;
+    final missingMembers = missingBandMembersForActivation(acceptedMembers);
+    final progressLabel =
+        '$acceptedMembers de $minimumBandMembersForActivation integrantes confirmados';
+
+    final message = missingMembers == 1
+        ? 'Falta 1 integrante aceitar o convite para liberar a visibilidade da banda no app.'
+        : 'Faltam $missingMembers integrantes aceitarem o convite para liberar a visibilidade da banda no app.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all24,
+        border: Border.all(color: AppColors.badgeBand.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: AppColors.badgeBand.withValues(alpha: 0.14),
+                  borderRadius: AppRadius.all16,
+                ),
+                child: const Icon(
+                  Icons.groups_rounded,
+                  color: AppColors.badgeBand,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Sua banda ainda está em rascunho',
+                      style: AppTypography.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      progressLabel,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.badgeBand,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Text(
+            message,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          AppButton.primary(
+            text: 'Adicionar integrantes',
+            size: AppButtonSize.medium,
+            isFullWidth: true,
+            icon: const Icon(Icons.person_add_alt_1, size: 18),
+            onPressed: () => context.push(RoutePaths.manageMembers),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildProfessionalDetails(

@@ -1,7 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../bands/domain/band_activation_rules.dart';
+import '../../settings/domain/saved_address.dart';
 
 part 'onboarding_controller.g.dart';
 
@@ -67,9 +70,11 @@ class OnboardingController extends _$OnboardingController {
         nome: nome,
         foto: foto,
         location: location,
+        addresses: _buildOnboardingAddresses(location),
         cadastroStatus: 'concluido',
-        status:
-            'ativo', // Perfil ativo (exceto banda draft, que tratamos abaixo)
+        status: currentUser.tipoPerfil == AppUserType.band
+            ? profileDraftStatus
+            : profileActiveStatus,
         // Atribui os maps específicos
         dadosProfissional: dadosProfissional,
         dadosBanda: dadosBanda,
@@ -82,5 +87,23 @@ class OnboardingController extends _$OnboardingController {
           .updateUser(updatedUser);
       result.fold((l) => throw l, (r) => null);
     });
+  }
+
+  List<SavedAddress> _buildOnboardingAddresses(Map<String, dynamic> location) {
+    final lat = (location['lat'] as num?)?.toDouble();
+    final lng = (location['lng'] as num?)?.toDouble();
+    final cidade = (location['cidade'] ?? '').toString().trim();
+    final estado = (location['estado'] ?? '').toString().trim();
+
+    if (lat == null || lng == null || cidade.isEmpty || estado.isEmpty) {
+      return const [];
+    }
+
+    return [
+      SavedAddress.fromLocationMap(location).copyWith(
+        isPrimary: true,
+        nome: '',
+      ),
+    ];
   }
 }

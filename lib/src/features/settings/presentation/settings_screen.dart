@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/data/app_seeder.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -14,10 +15,10 @@ import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_type.dart';
+import '../../auth/presentation/account_deletion_provider.dart';
 import 'widgets/bento_header.dart';
 import 'widgets/neon_settings_tile.dart';
 import 'widgets/settings_group.dart';
@@ -49,12 +50,10 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             const SizedBox(height: AppSpacing.s4),
 
-            // 1. ENHANCED PROFILE HEADER
             const BentoHeader(),
 
             const SizedBox(height: AppSpacing.s40),
 
-            // 2. ACCOUNT SETTINGS GROUP
             SettingsGroup(
               title: 'CONTA',
               children: [
@@ -77,7 +76,6 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => context.push('/favorites'),
                   customAccentColor: AppColors.primary,
                 ),
-                // Dynamic Tile: Band Management or My Bands
                 if (ref.watch(
                       currentUserProfileProvider.select(
                         (s) => s.value?.tipoPerfil,
@@ -115,7 +113,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
 
-            // 3. OTHER SETTINGS GROUP
             SettingsGroup(
               title: 'OUTROS',
               children: [
@@ -145,7 +142,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
 
-            // 4. DEV ZONE (Debug Mode Only)
             if (kDebugMode)
               SettingsGroup(
                 title: 'DEV ZONE',
@@ -165,7 +161,6 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push('/developer-tools'),
                     customAccentColor: AppColors.warning,
                   ),
-
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
                     title: 'Popular Banco (MatchPoint)',
@@ -185,7 +180,6 @@ class SettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: AppSpacing.s8),
 
-            // 5. ACTION BUTTONS SECTION
             _LogoutSection(
               onLogout: () => _confirmLogout(context, ref),
               onDelete: () => _confirmDelete(context, ref),
@@ -198,9 +192,8 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  // Action methods
   void _confirmLogout(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Sair da conta?',
@@ -227,7 +220,7 @@ class SettingsScreen extends ConsumerWidget {
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
         title: 'Alterar Senha',
@@ -258,7 +251,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Excluir conta?',
@@ -270,22 +263,44 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
 
-    if (confirm == true) {
-      try {
-        if (context.mounted) {
-          AppSnackBar.info(context, 'Excluindo conta...');
-        }
-        await ref.read(authRepositoryProvider).deleteAccount();
-        if (context.mounted) {
-          context.go('/login');
+    if (confirm != true) return;
+
+    if (!context.mounted) return;
+    ref.read(accountDeletionInProgressProvider.notifier).start();
+    AppSnackBar.info(context, 'Excluindo conta...');
+
+    try {
+      final result = await ref.read(authRepositoryProvider).deleteAccount();
+      if (!context.mounted) return;
+
+      result.fold(
+        (failure) {
+          ref.read(accountDeletionInProgressProvider.notifier).clear();
+          AppSnackBar.error(context, _messageForDeleteFailure(failure.message));
+        },
+        (_) {
+          ref.invalidate(authStateChangesProvider);
+          ref.invalidate(currentUserProfileProvider);
           AppSnackBar.success(context, 'Conta excluída com sucesso.');
-        }
-      } catch (e) {
-        if (context.mounted) {
-          AppSnackBar.error(context, 'Erro: $e');
-        }
-      }
+        },
+      );
+    } catch (error) {
+      ref.read(accountDeletionInProgressProvider.notifier).clear();
+      if (!context.mounted) return;
+      AppSnackBar.error(context, 'Erro: $error');
     }
+  }
+
+  String _messageForDeleteFailure(String message) {
+    if (message == 'requires-recent-login') {
+      return 'Por segurança, faça login novamente antes de excluir sua conta.';
+    }
+    const exceptionPrefix = 'Exception: ';
+    if (message.startsWith(exceptionPrefix)) {
+      return message.substring(exceptionPrefix.length).trim();
+    }
+
+    return message.trim();
   }
 
   void _seedDatabase(BuildContext context, WidgetRef ref) async {
@@ -318,12 +333,8 @@ class SettingsScreen extends ConsumerWidget {
       }
     }
   }
-
-  // REMOVIDO: Método de deletar perfis fake não deve estar em produção
-  // void _deleteSeededUsers(BuildContext context, WidgetRef ref) async { ... }
 }
 
-/// Logout and delete section component
 class _LogoutSection extends StatelessWidget {
   final VoidCallback onLogout;
   final VoidCallback onDelete;
@@ -334,12 +345,8 @@ class _LogoutSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Logout Button with refined styling
         _LogoutButton(onTap: onLogout),
-
         const SizedBox(height: AppSpacing.s16),
-
-        // Delete Account Link
         TextButton(
           onPressed: onDelete,
           style: TextButton.styleFrom(
@@ -351,9 +358,7 @@ class _LogoutSection extends StatelessWidget {
           child: Text(
             'Excluir Conta',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.error.withValues(
-                alpha: 0.9,
-              ), // Changed to explicitly show this is a destructive action
+              color: AppColors.error.withValues(alpha: 0.9),
               decoration: TextDecoration.underline,
               decorationColor: AppColors.error.withValues(alpha: 0.5),
               fontSize: 13,
@@ -365,7 +370,6 @@ class _LogoutSection extends StatelessWidget {
   }
 }
 
-/// Professional logout button
 class _LogoutButton extends StatefulWidget {
   final VoidCallback onTap;
 

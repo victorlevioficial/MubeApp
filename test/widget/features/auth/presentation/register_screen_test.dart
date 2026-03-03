@@ -92,6 +92,60 @@ void main() {
 
       expect(find.textContaining('Termos de Uso'), findsOneWidget);
       expect(find.textContaining('Privacidade'), findsOneWidget);
+      expect(find.byKey(const Key('register_terms_link')), findsOneWidget);
+      expect(find.byKey(const Key('register_privacy_link')), findsOneWidget);
+    });
+
+    testWidgets('opens terms dialog when terms link is tapped', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createSubject());
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('register_terms_link')));
+      await tester.tap(find.byKey(const Key('register_terms_link')));
+      await tester.pumpAndSettle();
+
+      final dialogFinder = find.byKey(
+        const ValueKey('legal_document_dialog_termsOfUse'),
+      );
+      expect(dialogFinder, findsOneWidget);
+      expect(
+        find.descendant(
+          of: dialogFinder,
+          matching: find.byKey(
+            const ValueKey('legal_document_title_termsOfUse'),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('opens privacy dialog when privacy link is tapped', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createSubject());
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const Key('register_privacy_link')),
+      );
+      await tester.tap(find.byKey(const Key('register_privacy_link')));
+      await tester.pumpAndSettle();
+
+      final dialogFinder = find.byKey(
+        const ValueKey('legal_document_dialog_privacyPolicy'),
+      );
+      expect(dialogFinder, findsOneWidget);
+      expect(
+        find.descendant(
+          of: dialogFinder,
+          matching: find.byKey(
+            const ValueKey('legal_document_title_privacyPolicy'),
+          ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('shows validation error for empty email', (tester) async {

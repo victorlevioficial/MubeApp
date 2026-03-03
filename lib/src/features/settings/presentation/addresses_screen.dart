@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
+import '../../../common_widgets/location_service.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
+import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
+import '../../../design_system/components/patterns/fade_in_slide.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_effects.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../address/domain/resolved_address.dart';
+import '../../address/presentation/address_flow.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/app_user.dart';
 import '../domain/saved_address.dart';
+import '../domain/saved_address_book.dart';
 import 'widgets/address_card.dart';
+import 'widgets/settings_group.dart';
 
-/// Screen for managing multiple saved addresses.
 class AddressesScreen extends ConsumerStatefulWidget {
   const AddressesScreen({super.key});
 
@@ -22,94 +32,124 @@ class AddressesScreen extends ConsumerStatefulWidget {
 }
 
 class _AddressesScreenState extends ConsumerState<AddressesScreen> {
-  static const int _maxAddresses = 5;
+  AppUser? _readCurrentUser() => ref.read(currentUserProfileProvider).value;
 
-  List<SavedAddress> get _addresses {
-    final user = ref.watch(currentUserProfileProvider).value;
-    if (user == null) return [];
-
-    List<SavedAddress> addresses;
-
-    // If user has no addresses but has legacy location, migrate it.
-    if (user.addresses.isEmpty && user.location != null) {
-      final legacyAddress = SavedAddress.fromLocationMap(user.location!);
-      addresses = [legacyAddress];
-    } else {
-      addresses = user.addresses.toList();
-    }
-
-    // Keep primary at top.
-    addresses.sort((a, b) {
-      if (a.isPrimary && !b.isPrimary) return -1;
-      if (!a.isPrimary && b.isPrimary) return 1;
-      return 0;
-    });
-
-    return addresses;
+  List<SavedAddress> _resolveAddresses(AppUser? user) {
+    if (user == null) return const [];
+    return SavedAddressBook.effectiveAddresses(user);
   }
 
-  Future<void> _saveAddresses(List<SavedAddress> addresses) async {
-    final user = ref.read(currentUserProfileProvider).value;
+  List<SavedAddress> _readAddresses() => _resolveAddresses(_readCurrentUser());
+
+  Future<void> _saveAddresses(
+    List<SavedAddress> addresses, {
+    required String successMessage,
+  }) async {
+    final user = _readCurrentUser();
     if (user == null) {
-      throw Exception('Sessao expirada. Entre novamente.');
+      throw StateError('Sessao expirada. Entre novamente.');
     }
 
-    final primary = addresses.firstWhere(
-      (a) => a.isPrimary,
-      orElse: () =>
-          addresses.isNotEmpty ? addresses.first : SavedAddress.empty(),
-    );
+    SavedAddressBook.validateLimit(addresses);
+    final normalized = SavedAddressBook.sortAndNormalize(addresses);
 
-    final updatedUser = user.copyWith(
-      addresses: addresses,
-      location: primary.toLocationMap(),
-    );
+    if (normalized.isNotEmpty) {
+      final primary = normalized.first;
+      if (primary.lat == null || primary.lng == null) {
+        throw StateError('Endereco principal sem coordenadas validas.');
+      }
+      if (primary.cidade.trim().isEmpty || primary.estado.trim().isEmpty) {
+        throw StateError('Endereco principal sem cidade e estado validos.');
+      }
+    }
 
+    final updatedUser = SavedAddressBook.syncUser(user, normalized);
     final result = await ref
         .read(authRepositoryProvider)
         .updateUser(updatedUser);
-    result.fold((failure) => throw Exception(failure.message), (_) => null);
+
+    result.fold((failure) => throw StateError(failure.message), (_) => null);
+
+    if (mounted) {
+      AppSnackBar.success(context, successMessage);
+    }
   }
 
-  void _addAddress() {
-    if (_addresses.length >= _maxAddresses) {
+  Future<void> _addAddress() async {
+    final addresses = _readAddresses();
+    if (addresses.length >= SavedAddressBook.maxAddresses) {
       AppSnackBar.warning(
         context,
-        'Limite de $_maxAddresses enderecos atingido',
+        'Limite de ${SavedAddressBook.maxAddresses} enderecos atingido.',
       );
       return;
     }
-    context.push('/settings/address');
+    if (!LocationService.isConfigured) {
+      AppSnackBar.warning(
+        context,
+        'Servico de busca indisponivel. Configure a chave da Google API.',
+      );
+      return;
+    }
+
+    final selectedAddress = await showAddressSearchScreen(context);
+    if (!mounted || selectedAddress == null) return;
+
+    await _persistNewAddress(selectedAddress);
   }
 
-  void _editAddress(SavedAddress address) {
-    context.push('/settings/address', extra: address);
+  Future<void> _persistNewAddress(ResolvedAddress selectedAddress) async {
+    if (!selectedAddress.canConfirm) {
+      AppSnackBar.warning(
+        context,
+        selectedAddress.confirmBlockingReason ??
+            'Escolha um endereco valido para salvar.',
+      );
+      return;
+    }
+
+    final updatedAddresses = SavedAddressBook.addAsPrimary(
+      _readAddresses(),
+      selectedAddress.toSavedAddress(isPrimary: true),
+    );
+
+    try {
+      await _saveAddresses(
+        updatedAddresses,
+        successMessage: 'Endereco adicionado e definido como principal.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Erro ao salvar endereco: $error');
+    }
   }
 
   Future<void> _setAsPrimary(SavedAddress address) async {
-    final updatedList = _addresses.map((a) {
-      return a.copyWith(isPrimary: a.id == address.id);
-    }).toList();
-
     try {
-      await _saveAddresses(updatedList);
-      if (mounted) {
-        AppSnackBar.success(context, 'Endereco principal atualizado');
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.error(context, 'Erro ao atualizar endereco: $e');
-      }
+      await _saveAddresses(
+        SavedAddressBook.setPrimary(_readAddresses(), address),
+        successMessage: 'Endereco principal atualizado.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Erro ao atualizar endereco: $error');
     }
   }
 
   Future<void> _deleteAddress(SavedAddress address) async {
-    final confirmed = await showDialog<bool>(
+    if (_readAddresses().length <= 1) {
+      AppSnackBar.warning(
+        context,
+        'Pelo menos 1 endereco deve permanecer salvo.',
+      );
+      return;
+    }
+
+    final confirmed = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (context) => AppConfirmationDialog(
+      builder: (dialogContext) => const AppConfirmationDialog(
         title: 'Excluir endereco?',
-        message:
-            'Deseja excluir "${address.nome.isNotEmpty ? address.nome : 'este endereco'}"?',
+        message: 'Deseja excluir este endereco salvo?',
         confirmText: 'Excluir',
         isDestructive: true,
       ),
@@ -117,104 +157,534 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     if (confirmed != true) return;
 
-    var updatedList = _addresses.where((a) => a.id != address.id).toList();
-
-    // If deleted was primary, mark first remaining as primary.
-    if (address.isPrimary && updatedList.isNotEmpty) {
-      updatedList = [
-        updatedList.first.copyWith(isPrimary: true),
-        ...updatedList.skip(1),
-      ];
-    }
-
     try {
-      await _saveAddresses(updatedList);
-      if (mounted) {
-        AppSnackBar.success(context, 'Endereco excluido');
-      }
-    } catch (e) {
-      if (mounted) {
-        AppSnackBar.error(context, 'Erro ao excluir endereco: $e');
-      }
+      await _saveAddresses(
+        SavedAddressBook.delete(_readAddresses(), address),
+        successMessage: 'Endereco excluido.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      AppSnackBar.error(context, 'Erro ao excluir endereco: $error');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final addresses = _addresses;
-    final canAddMore = addresses.length < _maxAddresses;
+    final userAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Meus Enderecos'),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSpacing.s16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppButton.primary(
-              text: canAddMore
-                  ? 'Adicionar Endereco'
-                  : 'Limite de $_maxAddresses enderecos',
-              onPressed: canAddMore ? _addAddress : null,
-              icon: const Icon(Icons.add),
+      body: userAsync.when(
+        loading: () => const Center(
+          child: AppLoadingIndicator.withMessage('Carregando enderecos...'),
+        ),
+        error: (_, _) => _buildBodySurface(
+          child: EmptyStateWidget(
+            icon: Icons.cloud_off_rounded,
+            title: 'Nao foi possivel carregar seus enderecos',
+            subtitle: 'Tente novamente para recuperar seus locais salvos.',
+            actionButton: AppButton.secondary(
+              text: 'Tentar novamente',
+              onPressed: () => ref.invalidate(currentUserProfileProvider),
               isFullWidth: true,
             ),
-            const SizedBox(height: AppSpacing.s16),
-            Expanded(
-              child: addresses.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.separated(
-                      itemCount: addresses.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: AppSpacing.s12),
-                      itemBuilder: (context, index) {
-                        final address = addresses[index];
-                        return AddressCard(
-                          address: address,
-                          onTap: () => _editAddress(address),
-                          onSetPrimary: () => _setAsPrimary(address),
-                          onDelete: () => _deleteAddress(address),
-                        );
-                      },
+          ),
+        ),
+        data: (user) {
+          if (user == null) {
+            return _buildBodySurface(
+              child: const EmptyStateWidget(
+                icon: Icons.lock_outline_rounded,
+                title: 'Sessao expirada',
+                subtitle: 'Entre novamente para gerenciar seus enderecos.',
+              ),
+            );
+          }
+
+          final addresses = _resolveAddresses(user);
+          final canAddMore = addresses.length < SavedAddressBook.maxAddresses;
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                AppSpacing.s12,
+                AppSpacing.s16,
+                AppSpacing.s32,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FadeInSlide(
+                    direction: FadeInSlideDirection.btt,
+                    child: _AddressesOverviewCard(
+                      addresses: addresses,
+                      canAddMore: canAddMore,
+                      isSearchAvailable: LocationService.isConfigured,
+                      onAddAddress: _addAddress,
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.s24),
+                  SettingsGroup(
+                    title: 'Enderecos salvos',
+                    children: addresses.isEmpty
+                        ? [_buildEmptyStateCard()]
+                        : _buildAddressCards(addresses),
+                  ),
+                ],
+              ),
             ),
-          ],
+          );
+        },
+      ),
+    );
+  }
+
+  List<Widget> _buildAddressCards(List<SavedAddress> addresses) {
+    return [
+      for (var index = 0; index < addresses.length; index++)
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: index == addresses.length - 1 ? 0 : AppSpacing.s12,
+          ),
+          child: FadeInSlide(
+            key: ValueKey('address-card-${addresses[index].id}'),
+            delay: Duration(milliseconds: 120 + (index * 70)),
+            direction: FadeInSlideDirection.btt,
+            child: AddressCard(
+              address: addresses[index],
+              onSetPrimary: () => _setAsPrimary(addresses[index]),
+              onDelete: () => _deleteAddress(addresses[index]),
+              canDelete: addresses.length > 1,
+            ),
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildEmptyStateCard() {
+    return _StateSurface(
+      child: EmptyStateWidget(
+        icon: Icons.location_off_outlined,
+        title: 'Nenhum endereco salvo',
+        subtitle:
+            'Adicione um endereco para definir sua localizacao principal no app.',
+        actionButton: AppButton.secondary(
+          text: 'Adicionar primeiro endereco',
+          onPressed: _addAddress,
+          icon: const Icon(Icons.add_location_alt_outlined),
+          isFullWidth: true,
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildBodySurface({required Widget child}) {
+    return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.s32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.location_off_outlined,
-              size: 64,
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
-            ),
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        child: _StateSurface(child: child),
+      ),
+    );
+  }
+}
+
+class _AddressesOverviewCard extends StatelessWidget {
+  const _AddressesOverviewCard({
+    required this.addresses,
+    required this.canAddMore,
+    required this.isSearchAvailable,
+    required this.onAddAddress,
+  });
+
+  final List<SavedAddress> addresses;
+  final bool canAddMore;
+  final bool isSearchAvailable;
+  final VoidCallback onAddAddress;
+
+  @override
+  Widget build(BuildContext context) {
+    final savedCount = addresses.length;
+    final remaining = SavedAddressBook.maxAddresses - savedCount;
+    final primaryAddress = addresses.isEmpty ? null : addresses.first;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surfaceHighlight.withValues(alpha: 0.82),
+            AppColors.surface.withValues(alpha: 0.96),
+            AppColors.background,
+          ],
+        ),
+        borderRadius: AppRadius.all24,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.08),
+        ),
+        boxShadow: AppEffects.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: AppRadius.all16,
+                  boxShadow: AppEffects.buttonShadow,
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: AppColors.textPrimary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LIVRO DE ENDERECOS',
+                      style: AppTypography.settingsGroupTitle.copyWith(
+                        color: AppColors.primary.withValues(alpha: 0.85),
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      'Gerencie seus enderecos',
+                      style: AppTypography.headlineMedium.copyWith(
+                        fontSize: 22,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      'Defina um principal e mantenha ate ${SavedAddressBook.maxAddresses} locais prontos para uso.',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s20),
+          _UsageBar(used: savedCount, max: SavedAddressBook.maxAddresses),
+          const SizedBox(height: AppSpacing.s16),
+          Row(
+            children: [
+              Expanded(
+                child: _OverviewMetric(
+                  icon: Icons.bookmark_outline_rounded,
+                  label: 'salvos',
+                  value: '$savedCount',
+                  accentColor: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: _OverviewMetric(
+                  icon: Icons.add_location_alt_outlined,
+                  label: 'restantes',
+                  value: '$remaining',
+                  accentColor: remaining == 0
+                      ? AppColors.warning
+                      : AppColors.info,
+                ),
+              ),
+            ],
+          ),
+          if (primaryAddress != null) ...[
             const SizedBox(height: AppSpacing.s16),
+            _PrimaryAddressPreview(address: primaryAddress),
+          ],
+          if (!isSearchAvailable) ...[
+            const SizedBox(height: AppSpacing.s16),
+            const _InfoBanner(
+              icon: Icons.info_outline_rounded,
+              message: 'Busca automatica indisponivel no momento.',
+              color: AppColors.warning,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.s20),
+          AppButton.primary(
+            text: canAddMore
+                ? 'Adicionar novo endereco'
+                : 'Limite de ${SavedAddressBook.maxAddresses} enderecos',
+            onPressed: canAddMore ? onAddAddress : null,
+            icon: const Icon(Icons.add_location_alt_outlined),
+            size: AppButtonSize.large,
+            isFullWidth: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UsageBar extends StatelessWidget {
+  const _UsageBar({required this.used, required this.max});
+
+  final int used;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = max == 0 ? 0.0 : used / max;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
             Text(
-              'Nenhum endereco salvo',
-              style: AppTypography.titleMedium.copyWith(
-                color: AppColors.textSecondary,
+              'Capacidade',
+              style: AppTypography.labelMedium.copyWith(
+                color: AppColors.textSecondary.withValues(alpha: 0.78),
               ),
             ),
-            const SizedBox(height: AppSpacing.s8),
+            const Spacer(),
             Text(
-              'Adicione um endereco para aparecer\nna secao "Perto de mim"',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+              '$used/$max',
+              style: AppTypography.titleSmall.copyWith(
+                color: AppColors.textPrimary,
               ),
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.s8),
+        ClipRRect(
+          borderRadius: AppRadius.pill,
+          child: Container(
+            height: 8,
+            color: AppColors.textPrimary.withValues(alpha: 0.08),
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: AppRadius.pill,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OverviewMetric extends StatelessWidget {
+  const _OverviewMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accentColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s14),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.18),
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
       ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.14),
+              borderRadius: AppRadius.all12,
+            ),
+            child: Icon(icon, color: accentColor, size: 18),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  label,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryAddressPreview extends StatelessWidget {
+  const _PrimaryAddressPreview({required this.address});
+
+  final SavedAddress address;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = address.secondaryLine.trim().isNotEmpty
+        ? address.secondaryLine.trim()
+        : (address.cep.trim().isNotEmpty
+              ? 'CEP ${address.cep.trim()}'
+              : 'Pronto para uso como local principal.');
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s14),
+      decoration: BoxDecoration(
+        color: AppColors.background.withValues(alpha: 0.22),
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.16),
+              borderRadius: AppRadius.all12,
+            ),
+            child: const Icon(
+              Icons.my_location_rounded,
+              color: AppColors.primary,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Principal ativo',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.primary.withValues(alpha: 0.95),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  address.primaryLine,
+                  style: AppTypography.titleSmall.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  subtitle,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary.withValues(alpha: 0.82),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({
+    required this.icon,
+    required this.message,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String message;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s10,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: AppSpacing.s10),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StateSurface extends StatelessWidget {
+  const _StateSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.9),
+        borderRadius: AppRadius.all24,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.06),
+        ),
+        boxShadow: AppEffects.subtleShadow,
+      ),
+      child: child,
     );
   }
 }

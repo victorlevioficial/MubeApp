@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/notification_providers.dart';
 import '../domain/notification_model.dart';
@@ -64,10 +66,7 @@ class NotificationListScreen extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: AppSpacing.s16),
                   color: AppColors.error,
-                  child: const Icon(
-                    Icons.delete,
-                    color: AppColors.textPrimary,
-                  ),
+                  child: const Icon(Icons.delete, color: AppColors.textPrimary),
                 ),
                 onDismissed: (_) {
                   if (user != null) {
@@ -110,11 +109,16 @@ class NotificationListScreen extends ConsumerWidget {
     switch (notification.type) {
       case NotificationType.chatMessage:
         if (notification.conversationId != null) {
-          context.push('/conversation/${notification.conversationId}');
+          context.push(
+            '${RoutePaths.conversation}/${notification.conversationId}',
+          );
         }
         break;
       case NotificationType.bandInvite:
-        context.push('/invites');
+        context.push(RoutePaths.invites);
+        break;
+      case NotificationType.bandInviteAccepted:
+        context.push(RoutePaths.manageMembers);
         break;
       case NotificationType.like:
       case NotificationType.system:
@@ -130,10 +134,12 @@ class NotificationListScreen extends ConsumerWidget {
   ) {
     if (userId == null) return;
 
-    showDialog(
+    AppOverlay.dialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
+        surfaceTintColor: AppColors.transparent,
+        elevation: 0,
         title: Text(
           'Limpar notificações',
           style: AppTypography.headlineMedium.copyWith(
@@ -315,6 +321,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.chat_bubble_outline;
       case NotificationType.bandInvite:
         return Icons.group_add_outlined;
+      case NotificationType.bandInviteAccepted:
+        return Icons.groups_rounded;
       case NotificationType.like:
         return Icons.favorite_border;
       case NotificationType.system:

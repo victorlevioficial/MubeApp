@@ -11,8 +11,15 @@ class UserAvatar extends StatelessWidget {
   final String? photoUrl;
   final String? name;
   final double size;
+  final bool showBorder;
 
-  const UserAvatar({super.key, this.photoUrl, this.name, this.size = 80});
+  const UserAvatar({
+    super.key,
+    this.photoUrl,
+    this.name,
+    this.size = 80,
+    this.showBorder = true,
+  });
 
   /// List of modern pastel background colors.
   static const List<Color> _avatarColors = AppColors.avatarColors;
@@ -42,10 +49,9 @@ class UserAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.surfaceHighlight,
-          width: borderWidth,
-        ),
+        border: showBorder
+            ? Border.all(color: AppColors.surfaceHighlight, width: borderWidth)
+            : null,
       ),
       child: ClipOval(
         child: Container(

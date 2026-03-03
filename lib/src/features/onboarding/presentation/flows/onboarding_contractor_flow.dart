@@ -93,7 +93,7 @@ class _OnboardingContractorFlowState
     }
   }
 
-  void _finishOnboarding() {
+  Future<void> _finishOnboarding() async {
     final Map<String, dynamic> contractorData = {
       'celular': _celularController.text,
       'isPublic': false, // Contractors are private by default
@@ -101,23 +101,12 @@ class _OnboardingContractorFlowState
 
     final formState = ref.read(onboardingFormProvider);
 
-    final location = {
-      'cep': formState.cep,
-      'logradouro': formState.logradouro,
-      'numero': formState.numero,
-      'bairro': formState.bairro,
-      'cidade': formState.cidade,
-      'estado': formState.estado,
-      'lat': formState.selectedLat,
-      'lng': formState.selectedLng,
-    };
-
-    ref
+    await ref
         .read(onboardingControllerProvider.notifier)
         .submitProfileForm(
           currentUser: widget.user,
           nome: _nomeController.text,
-          location: location,
+          location: formState.locationMap,
           dadosContratante: contractorData,
         );
   }
@@ -149,7 +138,7 @@ class _OnboardingContractorFlowState
                   if (_currentStep == 1) _buildStep1UI(),
                   if (_currentStep == 2)
                     OnboardingAddressStep(
-                      onNext: () async => _finishOnboarding(),
+                      onNext: _finishOnboarding,
                       onBack: _prevStep,
                       initialLocationLabel: ref
                           .watch(onboardingFormProvider)

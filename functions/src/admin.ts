@@ -27,6 +27,18 @@ function assertAdmin(context: { auth?: { token?: Record<string, unknown> } }) {
   }
 }
 
+function readAuditNumber(
+  data: FirebaseFirestore.DocumentData,
+  field: string
+): number {
+  const raw = data[field];
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(raw));
+}
+
 // ================================================================
 // AUTH: Definir custom claim admin
 // ================================================================
@@ -488,10 +500,15 @@ export const listTickets = onCall(
       return {
         id: doc.id,
         userId: data.userId || "",
-        subject: data.subject || "",
-        message: data.message || "",
+        subject: data.subject || data.title || "",
+        title: data.title || data.subject || "",
+        message: data.message || data.description || "",
+        description: data.description || data.message || "",
         status: data.status || "open",
         category: data.category || "",
+        source: data.source || "app",
+        contactName: data.contactName || "",
+        contactEmail: data.contactEmail || "",
         createdAt: data.createdAt || null,
         updatedAt: data.updatedAt || null,
         adminResponse: data.adminResponse || null,
@@ -581,6 +598,79 @@ export const getDashboardStats = onCall(
       pendingReports: pendingReports.data().count || 0,
       activeSuspensions: activeSuspensions.data().count || 0,
       openTickets: openTickets.data().count || 0,
+    };
+  }
+);
+
+export const getMatchpointRankingAuditDashboard = onCall(
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
+  async (request) => {
+    assertAdmin(request);
+
+    const requestedLimit = Number(request.data?.limit ?? 24);
+    const limit = Math.min(
+      Math.max(Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 24, 1),
+      48
+    );
+
+    const snap = await db.collection("matchpointStats")
+      .where("type", "==", "ranking_audit_hourly")
+      .orderBy("bucket_start", "desc")
+      .limit(limit)
+      .get();
+
+    const buckets = snap.docs.map((doc) => {
+      const data = doc.data();
+      const bucketStart = data.bucket_start instanceof Timestamp ?
+        data.bucket_start.toMillis() :
+        null;
+
+      return {
+        id: doc.id,
+        bucketStart,
+        totalEvents: readAuditNumber(data, "total_events"),
+        poolTotal: readAuditNumber(data, "pool_total_sum"),
+        returnedTotal: readAuditNumber(data, "returned_total_sum"),
+        returnedProximity: readAuditNumber(data, "returned_proximity_sum"),
+        returnedHashtag: readAuditNumber(data, "returned_hashtag_sum"),
+        returnedGenre: readAuditNumber(data, "returned_genre_sum"),
+        returnedFallback: readAuditNumber(data, "returned_fallback_sum"),
+        geohashUsedCount: readAuditNumber(data, "geohash_used_count"),
+      };
+    });
+
+    const summary = buckets.reduce((acc, bucket) => {
+      acc.totalEvents += bucket.totalEvents;
+      acc.poolTotal += bucket.poolTotal;
+      acc.returnedTotal += bucket.returnedTotal;
+      acc.returnedProximity += bucket.returnedProximity;
+      acc.returnedHashtag += bucket.returnedHashtag;
+      acc.returnedGenre += bucket.returnedGenre;
+      acc.returnedFallback += bucket.returnedFallback;
+      acc.geohashUsedCount += bucket.geohashUsedCount;
+      return acc;
+    }, {
+      totalEvents: 0,
+      poolTotal: 0,
+      returnedTotal: 0,
+      returnedProximity: 0,
+      returnedHashtag: 0,
+      returnedGenre: 0,
+      returnedFallback: 0,
+      geohashUsedCount: 0,
+    });
+
+    return {
+      buckets,
+      summary: {
+        ...summary,
+        averagePoolPerEvent: summary.totalEvents > 0 ?
+          summary.poolTotal / summary.totalEvents :
+          0,
+        averageReturnedPerEvent: summary.totalEvents > 0 ?
+          summary.returnedTotal / summary.totalEvents :
+          0,
+      },
     };
   }
 );

@@ -41,15 +41,16 @@ class _ReportReasonDialogState extends State<ReportReasonDialog> {
         (!isOther || _descriptionController.text.trim().isNotEmpty);
 
     return Dialog(
-      backgroundColor: AppColors.transparent,
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: AppColors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.all16),
+      clipBehavior: Clip.antiAlias,
       child: Container(
         width: double.maxFinite,
         constraints: const BoxConstraints(maxWidth: 400),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadius.all16,
           border: Border.all(color: AppColors.surfaceHighlight),
         ),
         child: SingleChildScrollView(

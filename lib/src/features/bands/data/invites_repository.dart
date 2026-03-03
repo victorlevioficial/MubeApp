@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import '../../../utils/app_logger.dart';
 
 part 'invites_repository.g.dart';
 
@@ -16,11 +20,95 @@ InvitesRepository invitesRepository(Ref ref) {
 class InvitesRepository {
   final FirebaseFunctions _functions;
   final FirebaseFirestore _firestore;
+  final FirebaseAuth? _auth;
+  final app_check.FirebaseAppCheck? _appCheck;
 
-  InvitesRepository(this._functions, this._firestore);
+  InvitesRepository(
+    this._functions,
+    this._firestore, {
+    FirebaseAuth? auth,
+    app_check.FirebaseAppCheck? appCheck,
+  }) : _auth = auth,
+       _appCheck = appCheck;
+
+  String _readMessage(dynamic data, String fallback) {
+    if (data is Map && data['message'] is String) {
+      return data['message'] as String;
+    }
+    return fallback;
+  }
+
+  bool _isRecoverableFunctionsError(FirebaseFunctionsException error) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+
+    if (code == 'unauthenticated') return true;
+
+    final mentionsAppCheck = message.contains('app check');
+    return mentionsAppCheck &&
+        (code == 'failed-precondition' || code == 'permission-denied');
+  }
+
+  Future<void> _refreshFunctionSecurityContext() async {
+    final currentUser = (_auth ?? FirebaseAuth.instance).currentUser;
+    if (currentUser != null) {
+      try {
+        await currentUser.getIdToken(true);
+      } catch (error, stack) {
+        AppLogger.warning(
+          'Falha ao atualizar token do FirebaseAuth antes do retry de convite',
+          error,
+          stack,
+        );
+      }
+    }
+
+    try {
+      await (_appCheck ?? app_check.FirebaseAppCheck.instance).getToken(true);
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao atualizar token do App Check antes do retry de convite',
+        error,
+        stack,
+      );
+    }
+  }
+
+  Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
+    String functionName, {
+    Map<String, dynamic>? data,
+  }) async {
+    final callable = _functions.httpsCallable(functionName);
+
+    try {
+      return await callable.call(data);
+    } on FirebaseFunctionsException catch (error) {
+      if (!_isRecoverableFunctionsError(error)) rethrow;
+
+      AppLogger.warning(
+        '$functionName retornou ${error.code}. Atualizando contexto de seguranca e tentando novamente.',
+      );
+      await _refreshFunctionSecurityContext();
+      return await callable.call(data);
+    }
+  }
+
+  Exception _mapFunctionsError(
+    Object error, {
+    required String fallbackMessage,
+  }) {
+    if (error is FirebaseFunctionsException) {
+      final serverMessage = error.message?.trim();
+      if (serverMessage != null && serverMessage.isNotEmpty) {
+        return Exception(serverMessage);
+      }
+    }
+
+    return Exception(fallbackMessage);
+  }
 
   /// Sends an invite to a user to join a band.
-  Future<void> sendInvite({
+  Future<String> sendInvite({
     required String bandId,
     required String targetUid,
     required String targetName,
@@ -28,33 +116,65 @@ class InvitesRepository {
     required String targetInstrument,
   }) async {
     try {
-      final callable = _functions.httpsCallable('manageBandInvite');
-      await callable.call({
-        'action': 'send',
-        'bandId': bandId,
-        'targetUid': targetUid,
-        'targetName': targetName,
-        'targetPhoto': targetPhoto,
-        'targetInstrument': targetInstrument,
-      });
-    } catch (e) {
-      throw Exception('Erro ao enviar convite: $e');
+      final result = await _callFunctionWithRecovery(
+        'manageBandInvite',
+        data: {
+          'action': 'send',
+          'bandId': bandId,
+          'targetUid': targetUid,
+          'targetName': targetName,
+          'targetPhoto': targetPhoto,
+          'targetInstrument': targetInstrument,
+        },
+      );
+      return _readMessage(result.data, 'Convite enviado');
+    } on FirebaseFunctionsException catch (error) {
+      AppLogger.warning(
+        'manageBandInvite falhou ao enviar convite: ${error.code}',
+        error,
+        error.stackTrace,
+      );
+      throw _mapFunctionsError(
+        error,
+        fallbackMessage: 'Nao foi possivel enviar o convite agora.',
+      );
+    } catch (e, stack) {
+      AppLogger.error(
+        'Erro inesperado ao enviar convite da banda $bandId para $targetUid',
+        e,
+        stack,
+      );
+      throw Exception('Nao foi possivel enviar o convite agora.');
     }
   }
 
   /// Responds to an invite (accept/decline).
-  Future<void> respondToInvite({
+  Future<String> respondToInvite({
     required String inviteId,
     required bool accept,
   }) async {
     try {
-      final callable = _functions.httpsCallable('manageBandInvite');
-      await callable.call({
-        'action': accept ? 'accept' : 'decline',
-        'inviteId': inviteId,
-      });
+      final result = await _callFunctionWithRecovery(
+        'manageBandInvite',
+        data: {'action': accept ? 'accept' : 'decline', 'inviteId': inviteId},
+      );
+      return _readMessage(
+        result.data,
+        accept ? 'Convite aceito' : 'Convite recusado',
+      );
+    } on FirebaseFunctionsException catch (error) {
+      throw _mapFunctionsError(
+        error,
+        fallbackMessage: accept
+            ? 'Nao foi possivel aceitar o convite agora.'
+            : 'Nao foi possivel recusar o convite agora.',
+      );
     } catch (e) {
-      throw Exception('Erro ao responder convite: $e');
+      throw Exception(
+        accept
+            ? 'Nao foi possivel aceitar o convite agora.'
+            : 'Nao foi possivel recusar o convite agora.',
+      );
     }
   }
 
@@ -108,28 +228,41 @@ class InvitesRepository {
   }
 
   /// Removes the user from a band's member list.
-  Future<void> leaveBand({required String bandId, required String uid}) async {
+  Future<String> leaveBand({
+    required String bandId,
+    required String uid,
+  }) async {
     try {
-      final callable = _functions.httpsCallable('leaveBand');
-      await callable.call({
-        'bandId': bandId,
-        'userId': uid,
-      });
+      final result = await _callFunctionWithRecovery(
+        'leaveBand',
+        data: {'bandId': bandId, 'userId': uid},
+      );
+      return _readMessage(result.data, 'Membro removido da banda');
+    } on FirebaseFunctionsException catch (error) {
+      throw _mapFunctionsError(
+        error,
+        fallbackMessage: 'Nao foi possivel atualizar a banda agora.',
+      );
     } catch (e) {
-      throw Exception('Erro ao sair da banda: $e');
+      throw Exception('Nao foi possivel atualizar a banda agora.');
     }
   }
 
   /// Cancels a sent invite (deletes the document).
-  Future<void> cancelInvite(String inviteId) async {
+  Future<String> cancelInvite(String inviteId) async {
     try {
-      final callable = _functions.httpsCallable('manageBandInvite');
-      await callable.call({
-        'action': 'cancel',
-        'inviteId': inviteId,
-      });
+      final result = await _callFunctionWithRecovery(
+        'manageBandInvite',
+        data: {'action': 'cancel', 'inviteId': inviteId},
+      );
+      return _readMessage(result.data, 'Convite cancelado');
+    } on FirebaseFunctionsException catch (error) {
+      throw _mapFunctionsError(
+        error,
+        fallbackMessage: 'Nao foi possivel cancelar o convite agora.',
+      );
     } catch (e) {
-      throw Exception('Erro ao cancelar convite: $e');
+      throw Exception('Nao foi possivel cancelar o convite agora.');
     }
   }
 }

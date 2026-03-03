@@ -77,11 +77,32 @@ abstract class SavedAddress with _$SavedAddress {
       cidade: map['cidade'] ?? '',
       estado: map['estado'] ?? '',
       cep: map['cep'] ?? '',
-      lat: map['lat'] as double?,
-      lng: (map['lng'] ?? map['long']) as double?,
+      lat: (map['lat'] as num?)?.toDouble(),
+      lng: ((map['lng'] ?? map['long']) as num?)?.toDouble(),
       isPrimary: true,
       createdAt: DateTime.now(),
     );
+  }
+
+  String get primaryLine {
+    if (logradouro.isNotEmpty) {
+      return numero.isNotEmpty ? '$logradouro, $numero' : logradouro;
+    }
+    if (cidade.isNotEmpty && estado.isNotEmpty) {
+      return '$cidade - $estado';
+    }
+    return cidade.isNotEmpty ? cidade : 'Endereco';
+  }
+
+  String get secondaryLine {
+    final cityState = cidade.isNotEmpty
+        ? (estado.isNotEmpty ? '$cidade - $estado' : cidade)
+        : estado;
+    final parts = <String>[
+      bairro,
+      cityState,
+    ].where((value) => value.trim().isNotEmpty).toList();
+    return parts.join(', ');
   }
 
   /// Formatted display string for the address.

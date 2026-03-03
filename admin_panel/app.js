@@ -26,6 +26,7 @@ const functions = firebase.app().functions("southamerica-east1");
 let currentUser = null;
 let featuredUids = [];
 let featuredProfiles = [];
+let matchpointAuditState = null;
 
 // ============================================
 // DOM REFS
@@ -41,6 +42,8 @@ const loginBtn = $("#login-btn");
 const logoutBtn = $("#logout-btn");
 const pageTitle = $("#page-title");
 const adminEmail = $("#admin-email");
+const matchpointAuditBody = $("#matchpoint-audit-body");
+const matchpointAuditRefreshBtn = $("#matchpoint-audit-refresh-btn");
 
 // ============================================
 // AUTH
@@ -152,6 +155,100 @@ async function loadDashboard() {
     console.error("Dashboard error:", err);
     toast("Erro ao carregar dashboard", "error");
   }
+
+  try {
+    await loadMatchpointAuditDashboard();
+  } catch (err) {
+    console.error("Dashboard audit error:", err);
+  }
+}
+
+async function loadMatchpointAuditDashboard() {
+  if (matchpointAuditBody) {
+    matchpointAuditBody.innerHTML =
+      '<p class="empty-state">Carregando auditoria do MatchPoint...</p>';
+  }
+
+  try {
+    const result = await functions
+      .httpsCallable("getMatchpointRankingAuditDashboard")({ limit: 24 });
+    matchpointAuditState = result.data || null;
+    renderMatchpointAuditDashboard(matchpointAuditState);
+    return result;
+  } catch (err) {
+    console.error("MatchPoint audit error:", err);
+    if (matchpointAuditBody) {
+      matchpointAuditBody.innerHTML =
+        `<p class="empty-state" style="color:red;font-weight:bold;">` +
+        `Erro ao carregar auditoria do MatchPoint: ${esc(err.message || "desconhecido")}` +
+        `</p>`;
+    }
+    throw err;
+  }
+}
+
+function renderMatchpointAuditDashboard(data) {
+  if (!matchpointAuditBody) return;
+
+  const summary = data?.summary || {};
+  const buckets = Array.isArray(data?.buckets) ? data.buckets : [];
+
+  if (buckets.length === 0) {
+    matchpointAuditBody.innerHTML = `
+      <p class="empty-state">
+        Ainda nao existem buckets de auditoria do MatchPoint para exibir.
+      </p>
+    `;
+    return;
+  }
+
+  const totalEvents = numberOrZero(summary.totalEvents);
+  const totalReturned = numberOrZero(summary.returnedTotal);
+  const geohashUsedCount = numberOrZero(summary.geohashUsedCount);
+  const returnedProximity = numberOrZero(summary.returnedProximity);
+  const returnedHashtag = numberOrZero(summary.returnedHashtag);
+  const returnedGenre = numberOrZero(summary.returnedGenre);
+  const returnedFallback = numberOrZero(summary.returnedFallback);
+
+  matchpointAuditBody.innerHTML = `
+    <div class="audit-summary-grid">
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Eventos (24 buckets)</span>
+        <span class="audit-summary-value">${formatNumber(totalEvents)}</span>
+        <span class="audit-summary-meta">${formatNumber(totalReturned)} perfis retornados</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Media por busca</span>
+        <span class="audit-summary-value">${formatDecimal(summary.averageReturnedPerEvent)}</span>
+        <span class="audit-summary-meta">${formatDecimal(summary.averagePoolPerEvent)} perfis no pool</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Busca com geohash</span>
+        <span class="audit-summary-value">${formatPercent(geohashUsedCount, totalEvents)}</span>
+        <span class="audit-summary-meta">${formatNumber(geohashUsedCount)}/${formatNumber(totalEvents)} eventos</span>
+      </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Mix retornado</span>
+        <span class="audit-summary-value">P ${formatPercent(returnedProximity, totalReturned)}</span>
+        <span class="audit-summary-meta">H ${formatPercent(returnedHashtag, totalReturned)} | G ${formatPercent(returnedGenre, totalReturned)} | F ${formatPercent(returnedFallback, totalReturned)}</span>
+      </div>
+    </div>
+    <div class="audit-buckets">
+      ${buckets.slice(0, 8).map((bucket) => `
+        <div class="audit-bucket">
+          <div>
+            <div class="audit-bucket-title">${formatAuditBucketStart(bucket.bucketStart)}</div>
+            <div class="audit-bucket-meta">
+              ${formatNumber(bucket.totalEvents)} buscas | ${formatNumber(bucket.returnedTotal)} perfis retornados | ${formatNumber(bucket.poolTotal)} no pool
+            </div>
+          </div>
+          <div class="audit-bucket-mix">
+            P ${formatNumber(bucket.returnedProximity)} | H ${formatNumber(bucket.returnedHashtag)} | G ${formatNumber(bucket.returnedGenre)} | F ${formatNumber(bucket.returnedFallback)}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 // ============================================
@@ -175,7 +272,7 @@ function renderFeaturedList() {
 
   if (featuredProfiles.length === 0) {
     list.innerHTML = '<p class="empty-state">Nenhum perfil em destaque. Adicione usando o campo acima.</p>';
-    saveBtn.classList.add("hidden");
+    saveBtn.classList.remove("hidden"); // <-- BOTÃO FICA VISÍVEL MESMO COM LISTA VAZIA
     return;
   }
 
@@ -622,6 +719,17 @@ async function loadTickets() {
 
 $("#tickets-filter").addEventListener("change", loadTickets);
 
+if (matchpointAuditRefreshBtn) {
+  matchpointAuditRefreshBtn.addEventListener("click", async () => {
+    try {
+      await loadMatchpointAuditDashboard();
+      toast("Auditoria MatchPoint atualizada!", "success");
+    } catch (_) {
+      toast("Erro ao atualizar auditoria MatchPoint", "error");
+    }
+  });
+}
+
 window.viewTicket = function (ticketId, ticket) {
   const modal = $("#user-detail-modal");
   const body = $("#user-detail-body");
@@ -676,6 +784,44 @@ function esc(str) {
 function formatNumber(n) {
   if (n === undefined || n === null) return "—";
   return n.toLocaleString("pt-BR");
+}
+
+function formatDecimal(n) {
+  const value = Number(n);
+  if (!Number.isFinite(value)) return "0,0";
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+}
+
+function numberOrZero(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function formatPercent(value, total) {
+  const safeValue = numberOrZero(value);
+  const safeTotal = numberOrZero(total);
+  if (safeTotal <= 0) return "0%";
+  const percent = (safeValue / safeTotal) * 100;
+  return `${percent.toLocaleString("pt-BR", {
+    minimumFractionDigits: percent >= 10 ? 0 : 1,
+    maximumFractionDigits: percent >= 10 ? 0 : 1,
+  })}%`;
+}
+
+function formatAuditBucketStart(bucketStart) {
+  if (!bucketStart) return "Bucket sem horario";
+  const date = new Date(bucketStart);
+  if (Number.isNaN(date.getTime())) return "Bucket sem horario";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).replace(",", "");
 }
 
 function formatDate(ts) {

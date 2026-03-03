@@ -51,6 +51,11 @@ void main() {
               const Scaffold(body: Text('Privacy Screen')),
         ),
         GoRoute(
+          path: RoutePaths.receivedFavorites,
+          builder: (context, state) =>
+              const Scaffold(body: Text('Received Favorites Screen')),
+        ),
+        GoRoute(
           path: RoutePaths.support,
           builder: (context, state) =>
               const Scaffold(body: Text('Support Screen')),
@@ -120,6 +125,20 @@ void main() {
       expect(find.text('Address Screen'), findsOneWidget);
     });
 
+    testWidgets('navigates to received favorites when stats card is tapped', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.favorite).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Received Favorites Screen'), findsOneWidget);
+    });
+
     testWidgets('logout button shows confirmation dialog', (tester) async {
       await tester.pumpWidget(
         createSubject(userType: AppUserType.professional),
@@ -187,6 +206,55 @@ void main() {
 
       // In FakeAuthRepository, signOut sets currentUser to null.
       expect(fakeAuthRepository.currentUser, null);
+    });
+
+    testWidgets('confirming delete account clears local session', (
+      tester,
+    ) async {
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollable = find.byType(Scrollable);
+      await tester.drag(scrollable, const Offset(0, -2000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Excluir Conta'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(fakeAuthRepository.currentUser, null);
+    });
+
+    testWidgets('delete account failure keeps local session', (tester) async {
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+      fakeAuthRepository.shouldFailDeleteAccount = true;
+
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollable = find.byType(Scrollable);
+      await tester.drag(scrollable, const Offset(0, -2000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Excluir Conta'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Excluir'));
+      await tester.pumpAndSettle();
+
+      expect(fakeAuthRepository.currentUser, isNotNull);
     });
   });
 }

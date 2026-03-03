@@ -29,17 +29,24 @@ class ConversationPreview {
   /// Cria ConversationPreview a partir de DocumentSnapshot
   factory ConversationPreview.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final otherUserId = data['otherUserId'];
+    final otherUserName = data['otherUserName'];
+    final otherUserPhoto = data['otherUserPhoto'];
+    final type = data['type'];
+
     return ConversationPreview(
       id: doc.id,
-      otherUserId: data['otherUserId'] as String,
-      otherUserName: data['otherUserName'] as String,
-      otherUserPhoto: data['otherUserPhoto'] as String?,
+      otherUserId: otherUserId is String ? otherUserId : '',
+      otherUserName: otherUserName is String && otherUserName.trim().isNotEmpty
+          ? otherUserName.trim()
+          : 'Usuario',
+      otherUserPhoto: otherUserPhoto is String ? otherUserPhoto : null,
       lastMessageText: data['lastMessageText'] as String?,
       lastMessageAt: data['lastMessageAt'] as Timestamp?,
       lastSenderId: data['lastSenderId'] as String?,
       unreadCount: data['unreadCount'] as int? ?? 0,
       updatedAt: data['updatedAt'] as Timestamp? ?? Timestamp.now(),
-      type: data['type'] as String? ?? 'direct',
+      type: type is String && type.trim().isNotEmpty ? type.trim() : 'direct',
     );
   }
 }

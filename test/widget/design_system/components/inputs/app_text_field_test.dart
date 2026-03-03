@@ -45,5 +45,21 @@ void main() {
 
       expect(find.text('Invalid input'), findsOneWidget);
     });
+
+    testWidgets(
+      'uses multiline keyboard and newline action when maxLines > 1',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: AppTextField(label: 'Bio', maxLines: 3)),
+          ),
+        );
+
+        final field = tester.widget<EditableText>(find.byType(EditableText));
+
+        expect(field.keyboardType, TextInputType.multiline);
+        expect(field.textInputAction, TextInputAction.newline);
+      },
+    );
   });
 }

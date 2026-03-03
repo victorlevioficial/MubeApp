@@ -15,11 +15,12 @@
 
 ### Passo 1: Deploy das Cloud Functions
 
-```bash
+```powershell
 cd functions
 npm install
 npm run build
-firebase deploy --only functions
+cd ..
+.\deploy-functions.ps1
 ```
 
 ### Passo 2: Migrar usuários existentes

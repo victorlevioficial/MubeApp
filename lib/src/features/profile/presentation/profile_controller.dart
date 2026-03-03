@@ -144,7 +144,8 @@ class ProfileController extends _$ProfileController {
     state = const AsyncValue.loading();
 
     state = await AsyncValue.guard(() async {
-      await authRepo.deleteAccount();
+      final result = await authRepo.deleteAccount();
+      result.fold((failure) => throw failure.message, (_) => null);
     });
   }
 }

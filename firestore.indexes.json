@@ -1,6 +1,42 @@
 {
     "indexes": [
         {
+            "collectionGroup": "invites",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "band_id",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "invites",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "target_uid",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "created_at",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "suspensions",
             "queryScope": "COLLECTION",
             "fields": [
@@ -38,6 +74,34 @@
                 },
                 {
                     "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "matchpoint_profile.is_active",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "geohash",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "matchpointStats",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "type",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "bucket_start",
                     "order": "DESCENDING"
                 }
             ]
