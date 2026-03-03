@@ -74,8 +74,8 @@ class _SwipeHistoryScreenState extends ConsumerState<SwipeHistoryScreen> {
       _loadingUserIds.remove(item.targetUserId);
     });
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
