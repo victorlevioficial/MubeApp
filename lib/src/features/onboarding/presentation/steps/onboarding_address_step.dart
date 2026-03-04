@@ -43,7 +43,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     if (!LocationService.isConfigured) {
       AppSnackBar.warning(
         context,
-        'Servico de busca indisponivel. Configure a chave da Google API.',
+        'Serviço de busca indisponível. Configure a chave da Google API.',
       );
       return;
     }
@@ -74,7 +74,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     if (submitState.hasError) {
       AppSnackBar.error(
         context,
-        'Nao foi possivel concluir o cadastro. Tente novamente.',
+        'Não foi possível concluir o cadastro. Tente novamente.',
       );
       return false;
     }
@@ -87,7 +87,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
     if (!LocationService.isConfigured) {
       AppSnackBar.warning(
         context,
-        'Servico de localizacao indisponivel sem a chave da Google API.',
+        'Serviço de localização indisponível sem a chave da Google API.',
       );
       return;
     }
@@ -103,7 +103,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
       if (resolved == null) {
         AppSnackBar.warning(
           context,
-          'Nao foi possivel determinar o endereco da localizacao atual.',
+          'Não foi possível determinar o endereço da localização atual.',
         );
         return;
       }
@@ -121,7 +121,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
       if (!mounted) return;
       AppSnackBar.error(
         context,
-        'Nao foi possivel obter sua localizacao atual.',
+        'Não foi possível obter sua localização atual.',
       );
     } finally {
       if (mounted) setState(() => _isLoadingLocation = false);
@@ -133,20 +133,20 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
       case LocationServiceErrorCode.permissionDeniedForever:
         AppSnackBar.warning(
           context,
-          'Permissao de localizacao negada permanentemente. Abra as configuracoes do dispositivo.',
+          'Permissão de localização negada permanentemente. Abra as configurações do dispositivo.',
         );
         await Geolocator.openAppSettings();
         return;
       case LocationServiceErrorCode.permissionDenied:
         AppSnackBar.warning(
           context,
-          'Permissao de localizacao negada. Ative nas configuracoes do dispositivo.',
+          'Permissão de localização negada. Ative nas configurações do dispositivo.',
         );
         return;
       case LocationServiceErrorCode.serviceDisabled:
         AppSnackBar.warning(
           context,
-          'GPS desativado. Ative o servico de localizacao.',
+          'GPS desativado. Ative o serviço de localização.',
         );
         return;
       case LocationServiceErrorCode.apiKeyMissing:
@@ -175,7 +175,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Qual seu endereco?',
+          'Qual seu endereço?',
           textAlign: TextAlign.center,
           style: AppTypography.headlineLarge.copyWith(
             fontSize: 32,
@@ -185,7 +185,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
         ),
         const SizedBox(height: AppSpacing.s12),
         Text(
-          'Vamos usar essa localizacao para conectar voce com oportunidades proximas.',
+          'Vamos usar essa localização para conectar você com oportunidades próximas.',
           textAlign: TextAlign.center,
           style: AppTypography.bodyLarge.copyWith(
             color: AppColors.textSecondary,
@@ -216,10 +216,10 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           FullWidthSelectionCard(
             icon: Icons.my_location,
             title: _isLoadingLocation
-                ? 'Obtendo localizacao...'
-                : 'Usar localizacao atual',
+                ? 'Obtendo localização...'
+                : 'Usar localização atual',
             description:
-                currentLocationLabel ?? 'Encontrar meu endereco pelo GPS',
+                currentLocationLabel ?? 'Encontrar meu endereço pelo GPS',
             isSelected: false,
             onTap: _useCurrentLocation,
             isEnabled: actionsEnabled && !_isLoadingLocation,
@@ -232,8 +232,8 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           const SizedBox(height: AppSpacing.s24),
           FullWidthSelectionCard(
             icon: Icons.search,
-            title: 'Buscar endereco',
-            description: 'Toque para abrir a busca e digitar seu endereco',
+            title: 'Buscar endereço',
+            description: 'Toque para abrir a busca e digitar seu endereço',
             isSelected: false,
             onTap: _openSearch,
             isEnabled: actionsEnabled,
@@ -242,7 +242,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           if (!actionsEnabled) ...[
             const SizedBox(height: AppSpacing.s12),
             Text(
-              'Servico indisponivel. Configure a chave da Google API para continuar.',
+              'Serviço indisponível. Configure a chave da Google API para continuar.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.warning),
               textAlign: TextAlign.center,
             ),
@@ -304,7 +304,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           ),
           const SizedBox(height: AppSpacing.s20),
           AppButton.outline(
-            text: 'Alterar endereco',
+            text: 'Alterar endereço',
             size: AppButtonSize.large,
             isFullWidth: true,
             onPressed: _openSearch,

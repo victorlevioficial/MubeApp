@@ -61,7 +61,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     if (initialized || !mounted) return;
 
     AppLogger.warning(
-      'Falha ao iniciar video sem formatHint; tentando fallback com formatHint=other.',
+      'Falha ao iniciar vídeo sem formatHint; tentando fallback com formatHint=other.',
     );
 
     _disposeController();
@@ -175,7 +175,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     } catch (e, s) {
       final controllerError = controller?.value.errorDescription;
       AppLogger.error(
-        'Erro ao inicializar video | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=${widget.videoUrl}',
+        'Erro ao inicializar vídeo | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=${widget.videoUrl}',
         e,
         s,
       );
@@ -251,7 +251,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
             const Icon(Icons.error, color: AppColors.error, size: 64),
             const SizedBox(height: AppSpacing.s16),
             Text(
-              'Erro ao carregar video',
+              'Erro ao carregar vídeo',
               style: AppTypography.bodyLarge.copyWith(
                 color: AppColors.textPrimary,
                 decoration: TextDecoration.none,

@@ -317,7 +317,11 @@ void main() {
               uid: 'proximity',
               email: 'proximity@test.com',
               location: {'lat': 0.01, 'lng': 0.01},
-              matchpointProfile: {'is_active': true},
+              matchpointProfile: {
+                'is_active': true,
+                'hashtags': ['#cover'],
+                'generosMusicais': ['rock'],
+              },
             ),
           );
       await firestore
@@ -377,6 +381,12 @@ void main() {
       expect(params['pool_hashtag'], 1);
       expect(params['pool_genre'], 1);
       expect(params['pool_fallback'], 1);
+      expect(params['pool_local_total'], 1);
+      expect(params['pool_local_hashtag'], 1);
+      expect(params['pool_local_genre'], 1);
+      expect(params['ret_local_total'], 1);
+      expect(params['ret_local_hashtag'], 1);
+      expect(params['ret_local_genre'], 1);
       expect(params['returned_total'], 4);
 
       await Future<void>.delayed(Duration.zero);
@@ -391,6 +401,12 @@ void main() {
       expect(payload['poolHashtag'], 1);
       expect(payload['poolGenre'], 1);
       expect(payload['poolFallback'], 1);
+      expect(payload['poolLocalTotal'], 1);
+      expect(payload['poolLocalHashtag'], 1);
+      expect(payload['poolLocalGenre'], 1);
+      expect(payload['returnedLocalTotal'], 1);
+      expect(payload['returnedLocalHashtag'], 1);
+      expect(payload['returnedLocalGenre'], 1);
     });
   });
 

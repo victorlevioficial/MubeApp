@@ -80,14 +80,14 @@ void main() {
       await tester.tap(find.text('Revisar no mapa e finalizar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Confirmar endereco'), findsOneWidget);
+      expect(find.text('Confirmar endereço'), findsOneWidget);
 
       await tester.tap(find.text('Finalizar'));
       await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('submit-finished'), findsOneWidget);
-      expect(find.text('Confirmar endereco'), findsNothing);
+      expect(find.text('Confirmar endereço'), findsNothing);
     },
   );
 }

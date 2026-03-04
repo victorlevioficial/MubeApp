@@ -19,7 +19,7 @@ import 'address_flow.dart';
 class AddressSearchScreen extends StatefulWidget {
   const AddressSearchScreen({
     super.key,
-    this.confirmButtonText = 'Confirmar endereco',
+    this.confirmButtonText = 'Confirmar endereço',
     this.onConfirmAddress,
   });
 
@@ -99,7 +99,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         setState(() {
           _results = const [];
           _isSearching = false;
-          _errorMessage = 'Erro ao buscar enderecos. Tente novamente.';
+          _errorMessage = 'Erro ao buscar endereços. Tente novamente.';
         });
       }
     });
@@ -118,7 +118,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       if (resolved == null) {
         AppSnackBar.error(
           context,
-          'Nao foi possivel obter detalhes desse endereco.',
+          'Não foi possível obter detalhes desse endereço.',
         );
         return;
       }
@@ -138,7 +138,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       if (!mounted) return;
       AppSnackBar.error(
         context,
-        'Nao foi possivel obter detalhes desse endereco.',
+        'Não foi possível obter detalhes desse endereço.',
       );
     } finally {
       if (mounted) setState(() => _isResolvingSelection = false);
@@ -149,11 +149,11 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Buscar endereco', showBackButton: true),
+      appBar: const AppAppBar(title: 'Buscar endereço', showBackButton: true),
       body: SafeArea(
         child: AppLoadingOverlay(
           isLoading: _isResolvingSelection,
-          message: 'Carregando endereco...',
+          message: 'Carregando endereço...',
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.s16),
             child: Column(
@@ -162,20 +162,20 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                 AppTextField(
                   controller: _searchController,
                   focusNode: _focusNode,
-                  label: 'Digite seu endereco',
-                  hint: 'Ex: Rua Augusta, 1500, Sao Paulo',
+                  label: 'Digite seu endereço',
+                  hint: 'Ex: Rua Augusta, 1500, São Paulo',
                   prefixIcon: const Icon(Icons.search, size: 20),
                   onChanged: _onSearchChanged,
                   readOnly: !LocationService.isConfigured,
                   canRequestFocus: LocationService.isConfigured,
                   textInputAction: TextInputAction.search,
                   errorText: !LocationService.isConfigured
-                      ? 'Configure a chave da Google API para buscar enderecos.'
+                      ? 'Configure a chave da Google API para buscar endereços.'
                       : null,
                 ),
                 const SizedBox(height: AppSpacing.s12),
                 Text(
-                  'Inclua rua, numero e cidade para resultados mais precisos.',
+                  'Inclua rua, número e cidade para resultados mais precisos.',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -194,22 +194,22 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     if (!LocationService.isConfigured) {
       return const EmptyStateWidget(
         icon: Icons.warning_amber_rounded,
-        title: 'Busca indisponivel',
+        title: 'Busca indisponível',
         subtitle:
-            'Configure a chave da Google API para habilitar a busca de enderecos.',
+            'Configure a chave da Google API para habilitar a busca de endereços.',
       );
     }
 
     if (_isSearching) {
       return const Center(
-        child: AppLoadingIndicator.withMessage('Buscando enderecos...'),
+        child: AppLoadingIndicator.withMessage('Buscando endereços...'),
       );
     }
 
     if (_errorMessage != null) {
       return EmptyStateWidget(
         icon: Icons.error_outline,
-        title: 'Nao foi possivel buscar',
+        title: 'Não foi possível buscar',
         subtitle: _errorMessage!,
       );
     }
@@ -217,16 +217,16 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     if (!_hasSearched) {
       return const EmptyStateWidget(
         icon: Icons.location_on_outlined,
-        title: 'Busque seu endereco',
-        subtitle: 'Comece digitando para ver sugestoes precisas da Google.',
+        title: 'Busque seu endereço',
+        subtitle: 'Comece digitando para ver sugestões precisas da Google.',
       );
     }
 
     if (_results.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.search_off_outlined,
-        title: 'Nenhum endereco encontrado',
-        subtitle: 'Tente incluir numero e cidade para melhorar a busca.',
+        title: 'Nenhum endereço encontrado',
+        subtitle: 'Tente incluir número e cidade para melhorar a busca.',
       );
     }
 
@@ -257,7 +257,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       case LocationServiceErrorCode.quotaExceeded:
         return 'Limite da Google API atingido. Tente novamente mais tarde.';
       default:
-        return 'Erro ao buscar enderecos. Tente novamente.';
+        return 'Erro ao buscar endereços. Tente novamente.';
     }
   }
 
@@ -268,7 +268,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       case LocationServiceErrorCode.quotaExceeded:
         return 'Limite da Google API atingido. Tente novamente mais tarde.';
       default:
-        return 'Nao foi possivel obter detalhes desse endereco.';
+        return 'Não foi possível obter detalhes desse endereço.';
     }
   }
 }

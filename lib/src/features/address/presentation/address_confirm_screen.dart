@@ -15,7 +15,7 @@ class AddressConfirmScreen extends StatefulWidget {
   const AddressConfirmScreen({
     super.key,
     required this.initialAddress,
-    this.confirmButtonText = 'Confirmar endereco',
+    this.confirmButtonText = 'Confirmar endereço',
     this.onConfirmed,
   });
 
@@ -34,7 +34,9 @@ class _AddressConfirmScreenState extends State<AddressConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    _numberController = TextEditingController(text: widget.initialAddress.numero);
+    _numberController = TextEditingController(
+      text: widget.initialAddress.numero,
+    );
     _numberController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -84,7 +86,7 @@ class _AddressConfirmScreenState extends State<AddressConfirmScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(
-        title: 'Confirmar endereco',
+        title: 'Confirmar endereço',
         showBackButton: true,
       ),
       body: SafeArea(
@@ -135,7 +137,7 @@ class _AddressConfirmScreenState extends State<AddressConfirmScreen> {
               const SizedBox(height: AppSpacing.s20),
               AppTextField(
                 controller: _numberController,
-                label: 'Numero',
+                label: 'Número',
                 hint: 'Ex: 1500',
                 prefixIcon: const Icon(Icons.pin_outlined, size: 20),
                 keyboardType: TextInputType.streetAddress,
@@ -206,7 +208,7 @@ class _StaticMapPreview extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.s8),
                   Text(
-                    'Mapa indisponivel',
+                    'Mapa indisponível',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),

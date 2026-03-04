@@ -31,7 +31,7 @@ class _SwipeHistoryScreenState extends ConsumerState<SwipeHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(
-        title: 'Historico de Swipes',
+        title: 'Histórico de Swipes',
         showBackButton: true,
       ),
       body: dedupedHistory.isEmpty
@@ -81,7 +81,7 @@ class _SwipeHistoryScreenState extends ConsumerState<SwipeHistoryScreen> {
             content: Text(
               failure.message.isNotEmpty
                   ? failure.message
-                  : 'Nao foi possivel abrir este perfil agora.',
+                  : 'Não foi possível abrir este perfil agora.',
             ),
           ),
         );
@@ -90,7 +90,7 @@ class _SwipeHistoryScreenState extends ConsumerState<SwipeHistoryScreen> {
         if (user == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Este perfil nao esta mais disponivel.'),
+              content: Text('Este perfil não está mais disponível.'),
             ),
           );
           return;
@@ -109,14 +109,14 @@ class _SwipeHistoryScreenState extends ConsumerState<SwipeHistoryScreen> {
           const Icon(Icons.history, size: 64, color: AppColors.textSecondary),
           const SizedBox(height: AppSpacing.s16),
           Text(
-            'Nenhum historico recente',
+            'Nenhum histórico recente',
             style: AppTypography.titleMedium.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Seus swipes aparecerao aqui',
+            'Seus swipes aparecerão aqui',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textTertiary,
             ),

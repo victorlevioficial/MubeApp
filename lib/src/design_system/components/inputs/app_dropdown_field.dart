@@ -123,73 +123,75 @@ class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
       builder: (context) => Stack(
         children: [
           // The Dropdown List
-          Positioned(
-            width: size.width,
+          Positioned.fill(
             child: CompositedTransformFollower(
               link: _layerLink,
               showWhenUnlinked: false,
               offset: Offset(0.0, size.height + 4.0),
-              child: TapRegion(
-                groupId: _tapRegionGroupId,
-                child: Material(
-                  elevation: 8,
-                  color: AppColors.surface,
-                  surfaceTintColor: AppColors.transparent,
-                  borderRadius: AppRadius.all12,
-                  clipBehavior: Clip.antiAlias,
-                  shadowColor: AppColors.background.withValues(alpha: 0.5),
-                  child: Container(
-                    constraints: BoxConstraints(maxHeight: safeMaxHeight),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: AppRadius.all12,
-                      border: Border.all(
-                        color: AppColors.textTertiary.withValues(alpha: 0.2),
-                        width: 1,
+              child: SizedBox(
+                width: size.width,
+                child: TapRegion(
+                  groupId: _tapRegionGroupId,
+                  child: Material(
+                    elevation: 8,
+                    color: AppColors.surface,
+                    surfaceTintColor: AppColors.transparent,
+                    borderRadius: AppRadius.all12,
+                    clipBehavior: Clip.antiAlias,
+                    shadowColor: AppColors.background.withValues(alpha: 0.5),
+                    child: Container(
+                      constraints: BoxConstraints(maxHeight: safeMaxHeight),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: AppRadius.all12,
+                        border: Border.all(
+                          color: AppColors.textTertiary.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
                       ),
-                    ),
-                    child: ListView.separated(
-                      padding: AppSpacing.v8,
-                      shrinkWrap: true,
-                      itemCount: widget.items.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        thickness: 0.5,
-                        color: AppColors.textTertiary.withValues(alpha: 0.2),
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = widget.items[index];
-                        final isSelected = item.value == widget.value;
+                      child: ListView.separated(
+                        padding: AppSpacing.v8,
+                        shrinkWrap: true,
+                        itemCount: widget.items.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          thickness: 0.5,
+                          color: AppColors.textTertiary.withValues(alpha: 0.2),
+                        ),
+                        itemBuilder: (context, index) {
+                          final item = widget.items[index];
+                          final isSelected = item.value == widget.value;
 
-                        return InkWell(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            widget.onChanged(item.value);
-                            _removeOverlay();
-                            _focusNode.unfocus();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.s16,
-                              vertical: AppSpacing.s12,
-                            ),
-                            color: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : null,
-                            child: DefaultTextStyle(
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                                fontWeight: isSelected
-                                    ? AppTypography.titleSmall.fontWeight
-                                    : AppTypography.bodyMedium.fontWeight,
+                          return InkWell(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              widget.onChanged(item.value);
+                              _removeOverlay();
+                              _focusNode.unfocus();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s16,
+                                vertical: AppSpacing.s12,
                               ),
-                              child: item.child,
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.1)
+                                  : null,
+                              child: DefaultTextStyle(
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textPrimary,
+                                  fontWeight: isSelected
+                                      ? AppTypography.titleSmall.fontWeight
+                                      : AppTypography.bodyMedium.fontWeight,
+                                ),
+                                child: item.child,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

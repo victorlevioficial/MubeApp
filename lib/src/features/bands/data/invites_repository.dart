@@ -136,7 +136,7 @@ class InvitesRepository {
       );
       throw _mapFunctionsError(
         error,
-        fallbackMessage: 'Nao foi possivel enviar o convite agora.',
+        fallbackMessage: 'Não foi possível enviar o convite agora.',
       );
     } catch (e, stack) {
       AppLogger.error(
@@ -144,7 +144,7 @@ class InvitesRepository {
         e,
         stack,
       );
-      throw Exception('Nao foi possivel enviar o convite agora.');
+      throw Exception('Não foi possível enviar o convite agora.');
     }
   }
 
@@ -166,14 +166,14 @@ class InvitesRepository {
       throw _mapFunctionsError(
         error,
         fallbackMessage: accept
-            ? 'Nao foi possivel aceitar o convite agora.'
-            : 'Nao foi possivel recusar o convite agora.',
+            ? 'Não foi possível aceitar o convite agora.'
+            : 'Não foi possível recusar o convite agora.',
       );
     } catch (e) {
       throw Exception(
         accept
-            ? 'Nao foi possivel aceitar o convite agora.'
-            : 'Nao foi possivel recusar o convite agora.',
+            ? 'Não foi possível aceitar o convite agora.'
+            : 'Não foi possível recusar o convite agora.',
       );
     }
   }
@@ -241,10 +241,10 @@ class InvitesRepository {
     } on FirebaseFunctionsException catch (error) {
       throw _mapFunctionsError(
         error,
-        fallbackMessage: 'Nao foi possivel atualizar a banda agora.',
+        fallbackMessage: 'Não foi possível atualizar a banda agora.',
       );
     } catch (e) {
-      throw Exception('Nao foi possivel atualizar a banda agora.');
+      throw Exception('Não foi possível atualizar a banda agora.');
     }
   }
 
@@ -259,10 +259,10 @@ class InvitesRepository {
     } on FirebaseFunctionsException catch (error) {
       throw _mapFunctionsError(
         error,
-        fallbackMessage: 'Nao foi possivel cancelar o convite agora.',
+        fallbackMessage: 'Não foi possível cancelar o convite agora.',
       );
     } catch (e) {
-      throw Exception('Nao foi possivel cancelar o convite agora.');
+      throw Exception('Não foi possível cancelar o convite agora.');
     }
   }
 }

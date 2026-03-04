@@ -236,6 +236,13 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                       subtitle:
                           'H ${_formatPercent(summary.returnedHashtag, summary.totalReturned)} | G ${_formatPercent(summary.returnedGenre, summary.totalReturned)} | F ${_formatPercent(summary.returnedFallback, summary.totalReturned)}',
                     ),
+                    _buildRankingSummaryMetric(
+                      label: 'Locais com afinidade',
+                      value:
+                          'H ${summary.returnedLocalHashtag} | G ${summary.returnedLocalGenre}',
+                      subtitle:
+                          '${summary.returnedLocalTotal} perfis dentro do raio',
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s20),
@@ -276,13 +283,26 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
                             const SizedBox(width: AppSpacing.s12),
                             SizedBox(
                               width: 180,
-                              child: Text(
-                                'P ${bucket.returnedProximity} | H ${bucket.returnedHashtag} | G ${bucket.returnedGenre} | F ${bucket.returnedFallback}',
-                                textAlign: TextAlign.right,
-                                style: AppTypography.bodySmall.copyWith(
-                                  fontFamily: 'monospace',
-                                  color: AppColors.textPrimary,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'P ${bucket.returnedProximity} | H ${bucket.returnedHashtag} | G ${bucket.returnedGenre} | F ${bucket.returnedFallback}',
+                                    textAlign: TextAlign.right,
+                                    style: AppTypography.bodySmall.copyWith(
+                                      fontFamily: 'monospace',
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.s4),
+                                  Text(
+                                    'Locais ${bucket.returnedLocalTotal} | H ${bucket.returnedLocalHashtag} | G ${bucket.returnedLocalGenre}',
+                                    textAlign: TextAlign.right,
+                                    style: AppTypography.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -856,6 +876,9 @@ class _MatchpointRankingBucket {
   final int returnedHashtag;
   final int returnedGenre;
   final int returnedFallback;
+  final int returnedLocalTotal;
+  final int returnedLocalHashtag;
+  final int returnedLocalGenre;
   final int geohashUsedCount;
 
   const _MatchpointRankingBucket({
@@ -867,6 +890,9 @@ class _MatchpointRankingBucket {
     required this.returnedHashtag,
     required this.returnedGenre,
     required this.returnedFallback,
+    required this.returnedLocalTotal,
+    required this.returnedLocalHashtag,
+    required this.returnedLocalGenre,
     required this.geohashUsedCount,
   });
 
@@ -895,6 +921,9 @@ class _MatchpointRankingBucket {
       returnedHashtag: readInt('returned_hashtag_sum'),
       returnedGenre: readInt('returned_genre_sum'),
       returnedFallback: readInt('returned_fallback_sum'),
+      returnedLocalTotal: readInt('returned_local_total_sum'),
+      returnedLocalHashtag: readInt('returned_local_hashtag_sum'),
+      returnedLocalGenre: readInt('returned_local_genre_sum'),
       geohashUsedCount: readInt('geohash_used_count'),
     );
   }
@@ -908,6 +937,9 @@ class _MatchpointRankingSummary {
   final int returnedHashtag;
   final int returnedGenre;
   final int returnedFallback;
+  final int returnedLocalTotal;
+  final int returnedLocalHashtag;
+  final int returnedLocalGenre;
   final int geohashUsedCount;
 
   const _MatchpointRankingSummary({
@@ -918,6 +950,9 @@ class _MatchpointRankingSummary {
     required this.returnedHashtag,
     required this.returnedGenre,
     required this.returnedFallback,
+    required this.returnedLocalTotal,
+    required this.returnedLocalHashtag,
+    required this.returnedLocalGenre,
     required this.geohashUsedCount,
   });
 
@@ -936,6 +971,9 @@ class _MatchpointRankingSummary {
     var returnedHashtag = 0;
     var returnedGenre = 0;
     var returnedFallback = 0;
+    var returnedLocalTotal = 0;
+    var returnedLocalHashtag = 0;
+    var returnedLocalGenre = 0;
     var geohashUsedCount = 0;
 
     for (final bucket in buckets) {
@@ -946,6 +984,9 @@ class _MatchpointRankingSummary {
       returnedHashtag += bucket.returnedHashtag;
       returnedGenre += bucket.returnedGenre;
       returnedFallback += bucket.returnedFallback;
+      returnedLocalTotal += bucket.returnedLocalTotal;
+      returnedLocalHashtag += bucket.returnedLocalHashtag;
+      returnedLocalGenre += bucket.returnedLocalGenre;
       geohashUsedCount += bucket.geohashUsedCount;
     }
 
@@ -957,6 +998,9 @@ class _MatchpointRankingSummary {
       returnedHashtag: returnedHashtag,
       returnedGenre: returnedGenre,
       returnedFallback: returnedFallback,
+      returnedLocalTotal: returnedLocalTotal,
+      returnedLocalHashtag: returnedLocalHashtag,
+      returnedLocalGenre: returnedLocalGenre,
       geohashUsedCount: geohashUsedCount,
     );
   }

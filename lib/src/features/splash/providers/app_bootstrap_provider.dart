@@ -54,7 +54,7 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
       await ref.read(notificationPermissionPromptProvider.future);
     } catch (error, stack) {
       AppLogger.warning(
-        'Falha ao aquecer estado da permissao de notificacoes',
+        'Falha ao aquecer estado da permissão de notificações',
         error,
         stack,
       );

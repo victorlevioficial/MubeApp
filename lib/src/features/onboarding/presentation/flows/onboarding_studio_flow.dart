@@ -407,7 +407,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                     final result = await EnhancedMultiSelectModal.show<String>(
                       context: context,
                       title: 'Servicos do Estudio',
-                      subtitle: 'Selecione os servicos que voce oferece',
+                      subtitle: 'Selecione os serviços que você oferece',
                       items: studioServices,
                       selectedItems: _selectedServices,
                       searchHint: 'Buscar servico...',

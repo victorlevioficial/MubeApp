@@ -76,13 +76,13 @@ class StorageRepository {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       throw Exception(
-        'Voce precisa estar logado para atualizar a foto de perfil.',
+        'Você precisa estar logado para atualizar a foto de perfil.',
       );
     }
 
     if (currentUser.uid != userId) {
       throw Exception(
-        'Erro de autenticacao: usuario logado diferente do perfil alvo.',
+        'Erro de autenticação: usuário logado diferente do perfil alvo.',
       );
     }
 
@@ -605,7 +605,7 @@ class StorageRepository {
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
-      throw Exception('Voce precisa estar logado para enviar anexos.');
+      throw Exception('Você precisa estar logado para enviar anexos.');
     }
 
     // Validar arquivo

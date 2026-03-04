@@ -98,7 +98,7 @@ class BandProfileTutorialDialog extends StatelessWidget {
                                         ),
                                         const SizedBox(height: AppSpacing.s4),
                                         Text(
-                                          'Voce cria agora. Convites e visibilidade vem depois.',
+                                          'Você cria agora. Convites e visibilidade vêm depois.',
                                           style: AppTypography.bodySmall
                                               .copyWith(
                                                 color: AppColors.textSecondary,
@@ -138,7 +138,7 @@ class BandProfileTutorialDialog extends StatelessWidget {
                                 icon: Icons.group_add_rounded,
                                 title: 'Convide integrantes',
                                 description:
-                                    'Faca isso depois na area de gerenciamento.',
+                                    'Faça isso depois na área de gerenciamento.',
                               ),
                               const SizedBox(height: AppSpacing.s10),
                               _TutorialItem(
@@ -169,7 +169,7 @@ class BandProfileTutorialDialog extends StatelessWidget {
                                     const SizedBox(width: AppSpacing.s8),
                                     Expanded(
                                       child: Text(
-                                        'Ate la, a banda fica em rascunho e nao aparece para outros usuarios.',
+                                        'Até lá, a banda fica em rascunho e não aparece para outros usuários.',
                                         style: AppTypography.bodySmall.copyWith(
                                           color: AppColors.textSecondary,
                                           height: 1.4,

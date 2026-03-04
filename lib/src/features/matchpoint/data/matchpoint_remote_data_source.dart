@@ -468,8 +468,8 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       'MatchPoint ranking audit: '
       'pool=${pool.length} '
       'returned=${returned.length} '
-      'pool[p=${poolStats.proximity},h=${poolStats.hashtag},g=${poolStats.genre},f=${poolStats.fallback}] '
-      'returned[p=${returnedStats.proximity},h=${returnedStats.hashtag},g=${returnedStats.genre},f=${returnedStats.fallback}]',
+      'pool[p=${poolStats.proximity},h=${poolStats.hashtag},g=${poolStats.genre},f=${poolStats.fallback},local=${poolStats.localTotal},lh=${poolStats.localHashtag},lg=${poolStats.localGenre}] '
+      'returned[p=${returnedStats.proximity},h=${returnedStats.hashtag},g=${returnedStats.genre},f=${returnedStats.fallback},local=${returnedStats.localTotal},lh=${returnedStats.localHashtag},lg=${returnedStats.localGenre}]',
     );
 
     final analytics = _analytics;
@@ -488,6 +488,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
             'ret_hashtag': returnedStats.hashtag,
             'ret_genre': returnedStats.genre,
             'ret_fallback': returnedStats.fallback,
+            'pool_local_total': poolStats.localTotal,
+            'pool_local_hashtag': poolStats.localHashtag,
+            'pool_local_genre': poolStats.localGenre,
+            'ret_local_total': returnedStats.localTotal,
+            'ret_local_hashtag': returnedStats.localHashtag,
+            'ret_local_genre': returnedStats.localGenre,
             'query_genres': queryGenresCount,
             'query_tags': queryHashtagsCount,
             'used_geohash': currentUserGeohash != null,
@@ -528,10 +534,16 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           'poolHashtag': poolStats.hashtag,
           'poolGenre': poolStats.genre,
           'poolFallback': poolStats.fallback,
+          'poolLocalTotal': poolStats.localTotal,
+          'poolLocalHashtag': poolStats.localHashtag,
+          'poolLocalGenre': poolStats.localGenre,
           'returnedProximity': returnedStats.proximity,
           'returnedHashtag': returnedStats.hashtag,
           'returnedGenre': returnedStats.genre,
           'returnedFallback': returnedStats.fallback,
+          'returnedLocalTotal': returnedStats.localTotal,
+          'returnedLocalHashtag': returnedStats.localHashtag,
+          'returnedLocalGenre': returnedStats.localGenre,
           'queryGenres': queryGenresCount,
           'queryHashtags': queryHashtagsCount,
           'usedGeohash': currentUserGeohash != null,
@@ -751,6 +763,8 @@ class _ScoredCandidate {
     if (genreMatches > 0) return _RankingPrimarySource.genre;
     return _RankingPrimarySource.fallback;
   }
+
+  bool get isLocal => distanceKm != null && locationBucket == 0;
 }
 
 class _RankingAuditStats {
@@ -758,12 +772,18 @@ class _RankingAuditStats {
   final int hashtag;
   final int genre;
   final int fallback;
+  final int localTotal;
+  final int localHashtag;
+  final int localGenre;
 
   const _RankingAuditStats({
     required this.proximity,
     required this.hashtag,
     required this.genre,
     required this.fallback,
+    required this.localTotal,
+    required this.localHashtag,
+    required this.localGenre,
   });
 
   factory _RankingAuditStats.fromCandidates(List<_ScoredCandidate> candidates) {
@@ -771,6 +791,9 @@ class _RankingAuditStats {
     var hashtag = 0;
     var genre = 0;
     var fallback = 0;
+    var localTotal = 0;
+    var localHashtag = 0;
+    var localGenre = 0;
 
     for (final candidate in candidates) {
       switch (candidate.primarySource) {
@@ -783,6 +806,16 @@ class _RankingAuditStats {
         case _RankingPrimarySource.fallback:
           fallback++;
       }
+
+      if (candidate.isLocal) {
+        localTotal++;
+        if (candidate.hashtagMatches > 0) {
+          localHashtag++;
+        }
+        if (candidate.genreMatches > 0) {
+          localGenre++;
+        }
+      }
     }
 
     return _RankingAuditStats(
@@ -790,6 +823,9 @@ class _RankingAuditStats {
       hashtag: hashtag,
       genre: genre,
       fallback: fallback,
+      localTotal: localTotal,
+      localHashtag: localHashtag,
+      localGenre: localGenre,
     );
   }
 }

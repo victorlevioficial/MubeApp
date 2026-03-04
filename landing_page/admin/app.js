@@ -209,6 +209,9 @@ function renderMatchpointAuditDashboard(data) {
   const returnedHashtag = numberOrZero(summary.returnedHashtag);
   const returnedGenre = numberOrZero(summary.returnedGenre);
   const returnedFallback = numberOrZero(summary.returnedFallback);
+  const returnedLocalTotal = numberOrZero(summary.returnedLocalTotal);
+  const returnedLocalHashtag = numberOrZero(summary.returnedLocalHashtag);
+  const returnedLocalGenre = numberOrZero(summary.returnedLocalGenre);
 
   matchpointAuditBody.innerHTML = `
     <div class="audit-summary-grid">
@@ -232,6 +235,11 @@ function renderMatchpointAuditDashboard(data) {
         <span class="audit-summary-value">P ${formatPercent(returnedProximity, totalReturned)}</span>
         <span class="audit-summary-meta">H ${formatPercent(returnedHashtag, totalReturned)} | G ${formatPercent(returnedGenre, totalReturned)} | F ${formatPercent(returnedFallback, totalReturned)}</span>
       </div>
+      <div class="audit-summary-card">
+        <span class="audit-summary-label">Locais com afinidade</span>
+        <span class="audit-summary-value">H ${formatNumber(returnedLocalHashtag)} | G ${formatNumber(returnedLocalGenre)}</span>
+        <span class="audit-summary-meta">${formatNumber(returnedLocalTotal)} perfis dentro do raio</span>
+      </div>
     </div>
     <div class="audit-buckets">
       ${buckets.slice(0, 8).map((bucket) => `
@@ -242,8 +250,13 @@ function renderMatchpointAuditDashboard(data) {
               ${formatNumber(bucket.totalEvents)} buscas | ${formatNumber(bucket.returnedTotal)} perfis retornados | ${formatNumber(bucket.poolTotal)} no pool
             </div>
           </div>
-          <div class="audit-bucket-mix">
-            P ${formatNumber(bucket.returnedProximity)} | H ${formatNumber(bucket.returnedHashtag)} | G ${formatNumber(bucket.returnedGenre)} | F ${formatNumber(bucket.returnedFallback)}
+          <div class="audit-bucket-right">
+            <div class="audit-bucket-mix">
+              P ${formatNumber(bucket.returnedProximity)} | H ${formatNumber(bucket.returnedHashtag)} | G ${formatNumber(bucket.returnedGenre)} | F ${formatNumber(bucket.returnedFallback)}
+            </div>
+            <div class="audit-bucket-extra">
+              Locais ${formatNumber(bucket.returnedLocalTotal)} | H ${formatNumber(bucket.returnedLocalHashtag)} | G ${formatNumber(bucket.returnedLocalGenre)}
+            </div>
           </div>
         </div>
       `).join("")}

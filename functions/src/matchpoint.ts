@@ -51,10 +51,16 @@ interface RankingAuditRequest {
   poolHashtag: number;
   poolGenre: number;
   poolFallback: number;
+  poolLocalTotal: number;
+  poolLocalHashtag: number;
+  poolLocalGenre: number;
   returnedProximity: number;
   returnedHashtag: number;
   returnedGenre: number;
   returnedFallback: number;
+  returnedLocalTotal: number;
+  returnedLocalHashtag: number;
+  returnedLocalGenre: number;
   queryGenres: number;
   queryHashtags: number;
   usedGeohash: boolean;
@@ -584,10 +590,16 @@ export const recordMatchpointRankingAudit = onCall(
             pool_hashtag_sum: payload.poolHashtag,
             pool_genre_sum: payload.poolGenre,
             pool_fallback_sum: payload.poolFallback,
+            pool_local_total_sum: payload.poolLocalTotal,
+            pool_local_hashtag_sum: payload.poolLocalHashtag,
+            pool_local_genre_sum: payload.poolLocalGenre,
             returned_proximity_sum: payload.returnedProximity,
             returned_hashtag_sum: payload.returnedHashtag,
             returned_genre_sum: payload.returnedGenre,
             returned_fallback_sum: payload.returnedFallback,
+            returned_local_total_sum: payload.returnedLocalTotal,
+            returned_local_hashtag_sum: payload.returnedLocalHashtag,
+            returned_local_genre_sum: payload.returnedLocalGenre,
             query_genres_sum: payload.queryGenres,
             query_hashtags_sum: payload.queryHashtags,
             geohash_used_count: payload.usedGeohash ? 1 : 0,
@@ -605,10 +617,22 @@ export const recordMatchpointRankingAudit = onCall(
           pool_hashtag_sum: FieldValue.increment(payload.poolHashtag),
           pool_genre_sum: FieldValue.increment(payload.poolGenre),
           pool_fallback_sum: FieldValue.increment(payload.poolFallback),
+          pool_local_total_sum: FieldValue.increment(payload.poolLocalTotal),
+          pool_local_hashtag_sum: FieldValue.increment(payload.poolLocalHashtag),
+          pool_local_genre_sum: FieldValue.increment(payload.poolLocalGenre),
           returned_proximity_sum: FieldValue.increment(payload.returnedProximity),
           returned_hashtag_sum: FieldValue.increment(payload.returnedHashtag),
           returned_genre_sum: FieldValue.increment(payload.returnedGenre),
           returned_fallback_sum: FieldValue.increment(payload.returnedFallback),
+          returned_local_total_sum: FieldValue.increment(
+            payload.returnedLocalTotal
+          ),
+          returned_local_hashtag_sum: FieldValue.increment(
+            payload.returnedLocalHashtag
+          ),
+          returned_local_genre_sum: FieldValue.increment(
+            payload.returnedLocalGenre
+          ),
           query_genres_sum: FieldValue.increment(payload.queryGenres),
           query_hashtags_sum: FieldValue.increment(payload.queryHashtags),
           geohash_used_count: FieldValue.increment(payload.usedGeohash ? 1 : 0),
@@ -634,6 +658,18 @@ function sanitizeRankingAuditRequest(
     poolHashtag: readAuditInteger(payload.poolHashtag, "poolHashtag"),
     poolGenre: readAuditInteger(payload.poolGenre, "poolGenre"),
     poolFallback: readAuditInteger(payload.poolFallback, "poolFallback"),
+    poolLocalTotal: readAuditInteger(
+      payload.poolLocalTotal ?? 0,
+      "poolLocalTotal"
+    ),
+    poolLocalHashtag: readAuditInteger(
+      payload.poolLocalHashtag ?? 0,
+      "poolLocalHashtag"
+    ),
+    poolLocalGenre: readAuditInteger(
+      payload.poolLocalGenre ?? 0,
+      "poolLocalGenre"
+    ),
     returnedProximity: readAuditInteger(
       payload.returnedProximity,
       "returnedProximity"
@@ -646,6 +682,18 @@ function sanitizeRankingAuditRequest(
     returnedFallback: readAuditInteger(
       payload.returnedFallback,
       "returnedFallback"
+    ),
+    returnedLocalTotal: readAuditInteger(
+      payload.returnedLocalTotal ?? 0,
+      "returnedLocalTotal"
+    ),
+    returnedLocalHashtag: readAuditInteger(
+      payload.returnedLocalHashtag ?? 0,
+      "returnedLocalHashtag"
+    ),
+    returnedLocalGenre: readAuditInteger(
+      payload.returnedLocalGenre ?? 0,
+      "returnedLocalGenre"
     ),
     queryGenres: readAuditInteger(payload.queryGenres, "queryGenres", 20),
     queryHashtags: readAuditInteger(
@@ -669,6 +717,23 @@ function sanitizeRankingAuditRequest(
     );
   }
 
+  if (result.poolLocalTotal > result.poolTotal) {
+    throw new HttpsError(
+      "invalid-argument",
+      "poolLocalTotal excede poolTotal."
+    );
+  }
+
+  if (
+    result.poolLocalHashtag > result.poolLocalTotal ||
+    result.poolLocalGenre > result.poolLocalTotal
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Afinidade local do pool excede poolLocalTotal."
+    );
+  }
+
   if (
     result.returnedProximity +
       result.returnedHashtag +
@@ -679,6 +744,23 @@ function sanitizeRankingAuditRequest(
     throw new HttpsError(
       "invalid-argument",
       "Soma do retorno excede returnedTotal."
+    );
+  }
+
+  if (result.returnedLocalTotal > result.returnedTotal) {
+    throw new HttpsError(
+      "invalid-argument",
+      "returnedLocalTotal excede returnedTotal."
+    );
+  }
+
+  if (
+    result.returnedLocalHashtag > result.returnedLocalTotal ||
+    result.returnedLocalGenre > result.returnedLocalTotal
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Afinidade local do retorno excede returnedLocalTotal."
     );
   }
 

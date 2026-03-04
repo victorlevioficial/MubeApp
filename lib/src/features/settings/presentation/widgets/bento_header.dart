@@ -41,7 +41,7 @@ class BentoHeader extends ConsumerWidget {
         // STATS GRID
         _StatsGrid(
           favoritesCount: user?.favoritesCount ?? 0,
-          planType: user?.plan ?? 'free',
+          planType: 'free',
           onFavoritesTap: () => context.push(RoutePaths.receivedFavorites),
         ),
       ],

@@ -80,7 +80,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
       await _loadThumbnails();
     } catch (_) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Nao foi possivel abrir o editor de video.');
+      AppSnackBar.error(context, 'Não foi possível abrir o editor de vídeo.');
       Navigator.of(context).pop();
     }
   }
@@ -231,7 +231,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
           'rangeEnd=${_trimRange.end.toStringAsFixed(3)} '
           'requestStartMs=${request.$1} requestEndMs=${request.$2}',
         );
-        AppSnackBar.error(context, 'Nao foi possivel cortar o video.');
+        AppSnackBar.error(context, 'Não foi possível cortar o vídeo.');
         return;
       }
 
@@ -246,7 +246,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
         AppLogger.error(
           'Video trim export threw exception path=${widget.videoPath}',
         );
-        AppSnackBar.error(context, 'Erro ao cortar o video. Tente novamente.');
+        AppSnackBar.error(context, 'Erro ao cortar o vídeo. Tente novamente.');
       }
     } finally {
       if (mounted) {
@@ -397,7 +397,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppAppBar(
-          title: 'Ajustar Video',
+          title: 'Ajustar Vídeo',
           showBackButton: true,
           onBackPressed: _isExporting
               ? () {}
@@ -426,12 +426,12 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Selecione o trecho do video',
+                              'Selecione o trecho do vídeo',
                               style: AppTypography.titleMedium,
                             ),
                             const SizedBox(height: AppSpacing.s8),
                             Text(
-                              'Escolha o inicio e o fim. O trecho final pode ter no maximo ${widget.maxDurationSeconds} segundos.',
+                              'Escolha o início e o fim. O trecho final pode ter no máximo ${widget.maxDurationSeconds} segundos.',
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -505,14 +505,14 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
                               children: [
                                 Expanded(
                                   child: _TrimInfoTile(
-                                    label: 'Inicio',
+                                    label: 'Início',
                                     value: _formatSeconds(_trimRange.start),
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.s12),
                                 Expanded(
                                   child: _TrimInfoTile(
-                                    label: 'Duracao',
+                                    label: 'Duração',
                                     value: _formatSeconds(selectedDuration),
                                     highlight: true,
                                   ),

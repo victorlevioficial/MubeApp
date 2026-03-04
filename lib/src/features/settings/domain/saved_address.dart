@@ -91,7 +91,7 @@ abstract class SavedAddress with _$SavedAddress {
     if (cidade.isNotEmpty && estado.isNotEmpty) {
       return '$cidade - $estado';
     }
-    return cidade.isNotEmpty ? cidade : 'Endereco';
+    return cidade.isNotEmpty ? cidade : 'Endereço';
   }
 
   String get secondaryLine {

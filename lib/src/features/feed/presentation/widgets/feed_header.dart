@@ -159,7 +159,7 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Endereco atual',
+                      'Endereço atual',
                       style: AppTypography.labelSmall.copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w700,
@@ -242,7 +242,7 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ola, $firstName!',
+                'Olá, $firstName!',
                 style: widget.isScrolled
                     ? AppTypography.headlineSmall
                     : AppTypography.headlineMedium.copyWith(fontSize: 22),
@@ -739,7 +739,7 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
                 ),
                 const SizedBox(height: AppSpacing.s4),
                 Text(
-                  'Use estes atalhos para resolver o que esta pendente no seu perfil.',
+                  'Use estes atalhos para resolver o que está pendente no seu perfil.',
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                     height: 1.4,
@@ -835,7 +835,7 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
               : '$pendingInviteCount convites pendentes para banda',
           message: pendingInviteCount == 1
               ? 'Abra seus convites e responda quando quiser entrar na banda.'
-              : 'Abra seus convites pendentes e responda os que fizerem sentido para voce.',
+              : 'Abra seus convites pendentes e responda os que fizerem sentido para você.',
           actionLabel: 'Ver convites',
           route: RoutePaths.invites,
         ),

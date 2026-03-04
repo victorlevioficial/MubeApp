@@ -127,7 +127,7 @@ class _SupportScreenState extends State<SupportScreen> {
     if (!mounted) return;
     AppSnackBar.info(
       context,
-      'Nao foi possivel abrir o app de e-mail. Endereco copiado.',
+      'Não foi possível abrir o app de e-mail. Endereço copiado.',
     );
   }
 
@@ -221,7 +221,7 @@ class _SupportScreenState extends State<SupportScreen> {
           ),
           const SizedBox(height: AppSpacing.s12),
           Text(
-            'Respostas sobre conta, onboarding, MatchPoint, privacidade e atendimento tecnico.',
+            'Respostas sobre conta, onboarding, MatchPoint, privacidade e atendimento técnico.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -256,7 +256,7 @@ class _SupportScreenState extends State<SupportScreen> {
     final myTicketsCard = _SupportActionCard(
       icon: Icons.history,
       title: 'Meus Tickets',
-      subtitle: 'Acompanhe status e historico',
+      subtitle: 'Acompanhe status e histórico',
       color: AppColors.info,
       onTap: () =>
           context.push('${RoutePaths.support}/${RoutePaths.supportTickets}'),
@@ -289,7 +289,7 @@ class _SupportScreenState extends State<SupportScreen> {
   Widget _buildFaqHeader({required int total, required bool hasActiveFilters}) {
     final subtitle = _searchQuery.isNotEmpty
         ? '$total resultado(s) para "$_searchQuery"'
-        : '$total resposta(s) disponiveis';
+        : '$total resposta(s) disponíveis';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,7 +480,7 @@ class _SupportScreenState extends State<SupportScreen> {
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Se sua duvida nao foi resolvida no FAQ, abra um ticket para acompanhamento dentro do app ou fale com nossa equipe por e-mail.',
+            'Se sua dúvida não foi resolvida no FAQ, abra um ticket para acompanhamento dentro do app ou fale com nossa equipe por e-mail.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),

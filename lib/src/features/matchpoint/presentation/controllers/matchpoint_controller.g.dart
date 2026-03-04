@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'2d11afda82994222549158c2afb0581675778850';
+    r'85359e14c8abe55ef70f51f9a9b43c794d5c0f3a';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -55,15 +55,11 @@ abstract class _$MatchpointController extends $AsyncNotifier<void> {
   }
 }
 
-/// Provider para quota de likes
-
 @ProviderFor(LikesQuota)
 const likesQuotaProvider = LikesQuotaProvider._();
 
-/// Provider para quota de likes
 final class LikesQuotaProvider
     extends $NotifierProvider<LikesQuota, LikesQuotaState> {
-  /// Provider para quota de likes
   const LikesQuotaProvider._()
     : super(
         from: null,
@@ -93,8 +89,6 @@ final class LikesQuotaProvider
 
 String _$likesQuotaHash() => r'b708bea0ad483f5cc79b1b3ba6d8680f6d823eba';
 
-/// Provider para quota de likes
-
 abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   LikesQuotaState build();
   @$mustCallSuper
@@ -114,15 +108,11 @@ abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   }
 }
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
-
 @ProviderFor(MatchpointCandidates)
 const matchpointCandidatesProvider = MatchpointCandidatesProvider._();
 
-/// Provider para lista de candidatos com estado mutável (UI otimista)
 final class MatchpointCandidatesProvider
     extends $AsyncNotifierProvider<MatchpointCandidates, List<AppUser>> {
-  /// Provider para lista de candidatos com estado mutável (UI otimista)
   const MatchpointCandidatesProvider._()
     : super(
         from: null,
@@ -143,9 +133,7 @@ final class MatchpointCandidatesProvider
 }
 
 String _$matchpointCandidatesHash() =>
-    r'a607a6716a14e439d933f5d217c3dfdef2096a4b';
-
-/// Provider para lista de candidatos com estado mutável (UI otimista)
+    r'06d3150b2a9e6397aafc7d8d7dcfe5f925e4390c';
 
 abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   FutureOr<List<AppUser>> build();
@@ -166,12 +154,8 @@ abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   }
 }
 
-/// Provider para lista de matches do usuário
-
 @ProviderFor(matches)
 const matchesProvider = MatchesProvider._();
-
-/// Provider para lista de matches do usuário
 
 final class MatchesProvider
     extends
@@ -181,7 +165,6 @@ final class MatchesProvider
           FutureOr<List<MatchInfo>>
         >
     with $FutureModifier<List<MatchInfo>>, $FutureProvider<List<MatchInfo>> {
-  /// Provider para lista de matches do usuário
   const MatchesProvider._()
     : super(
         from: null,
@@ -208,14 +191,10 @@ final class MatchesProvider
   }
 }
 
-String _$matchesHash() => r'd71f8f40e378e8c2e11aec803262cbeaae8783e3';
-
-/// Provider para ranking de hashtags
+String _$matchesHash() => r'cd253537feb2462e93934711a0e809c1bbbc0859';
 
 @ProviderFor(hashtagRanking)
 const hashtagRankingProvider = HashtagRankingFamily._();
-
-/// Provider para ranking de hashtags
 
 final class HashtagRankingProvider
     extends
@@ -227,7 +206,6 @@ final class HashtagRankingProvider
     with
         $FutureModifier<List<HashtagRanking>>,
         $FutureProvider<List<HashtagRanking>> {
-  /// Provider para ranking de hashtags
   const HashtagRankingProvider._({
     required HashtagRankingFamily super.from,
     required int super.argument,
@@ -272,9 +250,7 @@ final class HashtagRankingProvider
   }
 }
 
-String _$hashtagRankingHash() => r'4021cf2e5872fee7673eadb15616b33c860d5dfb';
-
-/// Provider para ranking de hashtags
+String _$hashtagRankingHash() => r'64c4fe7fe232125271a2f8d1449e327761a6db83';
 
 final class HashtagRankingFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<HashtagRanking>>, int> {
@@ -287,8 +263,6 @@ final class HashtagRankingFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Provider para ranking de hashtags
-
   HashtagRankingProvider call(int limit) =>
       HashtagRankingProvider._(argument: limit, from: this);
 
@@ -296,12 +270,8 @@ final class HashtagRankingFamily extends $Family
   String toString() => r'hashtagRankingProvider';
 }
 
-/// Provider para busca de hashtags
-
 @ProviderFor(hashtagSearch)
 const hashtagSearchProvider = HashtagSearchFamily._();
-
-/// Provider para busca de hashtags
 
 final class HashtagSearchProvider
     extends
@@ -313,7 +283,6 @@ final class HashtagSearchProvider
     with
         $FutureModifier<List<HashtagRanking>>,
         $FutureProvider<List<HashtagRanking>> {
-  /// Provider para busca de hashtags
   const HashtagSearchProvider._({
     required HashtagSearchFamily super.from,
     required String super.argument,
@@ -358,9 +327,7 @@ final class HashtagSearchProvider
   }
 }
 
-String _$hashtagSearchHash() => r'0eab766807c22e23dae2e268c4ae0c514bb0532e';
-
-/// Provider para busca de hashtags
+String _$hashtagSearchHash() => r'b1dc900ef07ecf4df2d0c2de1193ca7b282dfd6e';
 
 final class HashtagSearchFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<HashtagRanking>>, String> {
@@ -373,8 +340,6 @@ final class HashtagSearchFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Provider para busca de hashtags
-
   HashtagSearchProvider call(String query) =>
       HashtagSearchProvider._(argument: query, from: this);
 
@@ -382,15 +347,11 @@ final class HashtagSearchFamily extends $Family
   String toString() => r'hashtagSearchProvider';
 }
 
-/// Provider para histórico de swipes — persistido em SharedPreferences
-
 @ProviderFor(SwipeHistory)
 const swipeHistoryProvider = SwipeHistoryProvider._();
 
-/// Provider para histórico de swipes — persistido em SharedPreferences
 final class SwipeHistoryProvider
     extends $NotifierProvider<SwipeHistory, List<SwipeHistoryEntry>> {
-  /// Provider para histórico de swipes — persistido em SharedPreferences
   const SwipeHistoryProvider._()
     : super(
         from: null,
@@ -418,9 +379,7 @@ final class SwipeHistoryProvider
   }
 }
 
-String _$swipeHistoryHash() => r'84a5646657d3e8d7cb2866b6afe0886c6343d999';
-
-/// Provider para histórico de swipes — persistido em SharedPreferences
+String _$swipeHistoryHash() => r'65dc9de5bcd08014947570a1fe1928b8d2047dad';
 
 abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryEntry>> {
   List<SwipeHistoryEntry> build();

@@ -1003,7 +1003,6 @@ class AppSeeder {
       'cadastro_status': 'concluido',
       'tipo_perfil': AppUserType.professional.id,
       'status': 'ativo',
-      'plan': _random.nextDouble() > 0.8 ? 'premium' : 'free',
       'likeCount': 0,
       'favorites_count': 0,
       'location': {
@@ -1095,7 +1094,6 @@ class AppSeeder {
       'cadastro_status': 'concluido',
       'tipo_perfil': AppUserType.band.id,
       'status': 'ativo',
-      'plan': _random.nextDouble() > 0.7 ? 'premium' : 'free',
       'likeCount': 0,
       'favorites_count': 0,
       'location': {
@@ -1197,7 +1195,6 @@ class AppSeeder {
       'cadastro_status': 'concluido',
       'tipo_perfil': AppUserType.studio.id,
       'status': 'ativo',
-      'plan': _random.nextDouble() > 0.5 ? 'premium' : 'free',
       'likeCount': 0,
       'favorites_count': 0,
       'location': {

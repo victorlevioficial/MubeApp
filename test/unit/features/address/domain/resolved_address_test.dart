@@ -69,7 +69,7 @@ void main() {
 
       final missingNumber = valid.copyWith(numero: '');
       expect(missingNumber.canConfirm, isFalse);
-      expect(missingNumber.confirmBlockingReason, contains('numero'));
+      expect(missingNumber.confirmBlockingReason, contains('número'));
 
       final missingCoords = valid.copyWith(clearLat: true, clearLng: true);
       expect(missingCoords.canConfirm, isFalse);

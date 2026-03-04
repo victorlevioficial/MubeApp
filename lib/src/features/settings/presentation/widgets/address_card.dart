@@ -27,10 +27,10 @@ class AddressCard extends StatelessWidget {
     final accentColor = isPrimary ? AppColors.primary : AppColors.info;
     final title = address.nome.trim().isNotEmpty
         ? address.nome.trim()
-        : (isPrimary ? 'Endereco principal' : 'Endereco salvo');
+        : (isPrimary ? 'Endereço principal' : 'Endereço salvo');
     final summary = isPrimary
-        ? 'Em uso como referencia principal.'
-        : 'Disponivel para virar endereco principal.';
+        ? 'Em uso como referência principal.'
+        : 'Disponível para virar endereço principal.';
     final metadata = <Widget>[
       _MetaPill(
         icon: Icons.location_city_rounded,
@@ -176,8 +176,8 @@ class AddressCard extends StatelessWidget {
                   icon: Icons.delete_outline_rounded,
                   color: AppColors.error,
                   tooltip: canDelete
-                      ? 'Excluir endereco'
-                      : 'Pelo menos 1 endereco deve permanecer salvo',
+                      ? 'Excluir endereço'
+                      : 'Pelo menos 1 endereço deve permanecer salvo',
                   onTap: canDelete ? onDelete : null,
                 ),
               ],
@@ -313,7 +313,7 @@ class _PrimaryStateBanner extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.s8),
           Text(
-            'Endereco ativo',
+            'Endereço ativo',
             style: AppTypography.titleSmall.copyWith(
               color: AppColors.textPrimary,
             ),

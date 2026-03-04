@@ -121,7 +121,7 @@ class _ReceivedFavoritesScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(
-        title: 'Quem favoritou voce',
+        title: 'Quem favoritou você',
         showBackButton: true,
       ),
       body: RefreshIndicator(
@@ -180,7 +180,7 @@ class _ReceivedFavoritesScreenState
             height: MediaQuery.of(context).size.height * 0.6,
             child: const EmptyStateWidget(
               icon: Icons.favorite_border,
-              title: 'Ninguem favoritou voce ainda',
+              title: 'Ninguém favoritou você ainda',
               subtitle:
                   'Quando alguem favoritar seu perfil, a lista aparece aqui.',
             ),

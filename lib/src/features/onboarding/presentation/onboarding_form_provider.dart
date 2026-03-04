@@ -291,13 +291,13 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
         details.titleLine,
         details.subtitleLine,
       ].where((value) => value.trim().isNotEmpty).toList();
-      final label = parts.isEmpty ? 'Localizacao atual' : parts.join(' - ');
+      final label = parts.isEmpty ? 'Localização atual' : parts.join(' - ');
       state = state.copyWith(initialLocationLabel: label);
     } on LocationServiceException {
       // Preview is optional; ignore operational location errors here.
     } catch (error, stackTrace) {
       AppLogger.warning(
-        'Falha ao buscar localizacao inicial no onboarding',
+        'Falha ao buscar localização inicial no onboarding',
         error,
         stackTrace,
       );
@@ -342,7 +342,8 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
 
   void updateCategories(List<String> value) => updateSelectedCategories(value);
   void updateGenres(List<String> value) => updateSelectedGenres(value);
-  void updateInstruments(List<String> value) => updateSelectedInstruments(value);
+  void updateInstruments(List<String> value) =>
+      updateSelectedInstruments(value);
   void updateRoles(List<String> value) => updateSelectedRoles(value);
   void updateServices(List<String> value) => updateSelectedServices(value);
 

@@ -119,8 +119,8 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
             if (user == null) {
               return const EmptyStateWidget(
                 icon: Icons.groups_outlined,
-                title: 'Banda nao encontrada',
-                subtitle: 'Nao foi possivel carregar os dados da banda agora.',
+                title: 'Banda não encontrada',
+                subtitle: 'Não foi possível carregar os dados da banda agora.',
               );
             }
 
@@ -159,7 +159,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
           loading: _buildLoadingState,
           error: (err, _) => EmptyStateWidget(
             icon: Icons.error_outline,
-            title: 'Nao foi possivel carregar a banda',
+            title: 'Não foi possível carregar a banda',
             subtitle: 'Erro: $err',
           ),
         ),
@@ -190,7 +190,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
       return _ManagementSectionCard(
         title: 'Integrantes confirmados',
         subtitle:
-            'Perfis que ja aceitaram o convite e fazem parte da formacao atual.',
+            'Perfis que já aceitaram o convite e fazem parte da formação atual.',
         trailing: const _SectionCountBadge(label: '0'),
         child: _SectionEmptyState(
           icon: Icons.group_add_outlined,
@@ -216,7 +216,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
     return _ManagementSectionCard(
       title: 'Integrantes confirmados',
       subtitle:
-          'Perfis que ja aceitaram o convite e fazem parte da formacao atual.',
+          'Perfis que já aceitaram o convite e fazem parte da formação atual.',
       trailing: _SectionCountBadge(label: '${user.members.length}'),
       child: membersAsync.when(
         data: (members) => ListView.separated(
@@ -237,7 +237,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
         ),
         error: (err, _) => _SectionEmptyState(
           icon: Icons.error_outline,
-          title: 'Nao foi possivel carregar os integrantes',
+          title: 'Não foi possível carregar os integrantes',
           subtitle: '$err',
         ),
       ),
@@ -270,7 +270,7 @@ class _BandManagementIntroCard extends StatelessWidget {
     final missingMembers = missingBandMembersForActivation(acceptedMembers);
     final isBandReady = isBandEligibleForActivation(acceptedMembers);
     final subtitle = isBandReady
-        ? 'A formacao minima ja foi concluida. Acompanhe convites e ajuste integrantes quando precisar.'
+        ? 'A formação mínima já foi concluída. Acompanhe convites e ajuste integrantes quando precisar.'
         : missingMembers == 1
         ? 'Falta 1 integrante confirmado para ativar a banda e liberar sua visibilidade no app.'
         : 'Faltam $missingMembers integrantes confirmados para ativar a banda e liberar sua visibilidade no app.';
@@ -305,7 +305,7 @@ class _BandManagementIntroCard extends StatelessWidget {
               const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: Text(
-                  'Formacao e convites',
+                  'Formação e convites',
                   style: AppTypography.titleLarge,
                 ),
               ),
@@ -408,8 +408,8 @@ class _InviteActionBar extends StatelessWidget {
             const SizedBox(height: AppSpacing.s4),
             Text(
               hasMembers
-                  ? 'Pesquise musicos ativos e envie convites para evoluir a formacao da banda.'
-                  : 'Comece buscando o primeiro integrante para montar a formacao da banda.',
+                  ? 'Pesquise músicos ativos e envie convites para evoluir a formação da banda.'
+                  : 'Comece buscando o primeiro integrante para montar a formação da banda.',
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.35,
@@ -688,7 +688,7 @@ class _SentInvitesList extends ConsumerWidget {
     return _ManagementSectionCard(
       title: 'Convites em andamento',
       subtitle:
-          'Acompanhe quem ainda nao respondeu e cancele convites se precisar ajustar a formacao.',
+          'Acompanhe quem ainda não respondeu e cancele convites se precisar ajustar a formação.',
       trailing: _SectionCountBadge(label: '${invites.length}'),
       child: isLoading
           ? ListView.separated(
@@ -702,7 +702,7 @@ class _SentInvitesList extends ConsumerWidget {
           : hasError
           ? const _SectionEmptyState(
               icon: Icons.error_outline,
-              title: 'Nao foi possivel carregar os convites',
+              title: 'Não foi possível carregar os convites',
               subtitle: 'Tente novamente em instantes.',
             )
           : invites.isEmpty
@@ -710,7 +710,7 @@ class _SentInvitesList extends ConsumerWidget {
               icon: Icons.mark_email_unread_outlined,
               title: 'Nenhum convite pendente',
               subtitle:
-                  'Quando novos convites forem enviados, eles aparecerao aqui para acompanhamento.',
+                  'Quando novos convites forem enviados, eles aparecerão aqui para acompanhamento.',
             )
           : ListView.separated(
               shrinkWrap: true,
@@ -733,8 +733,8 @@ class _InviteCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final targetPhoto = invite['target_photo'] as String? ?? '';
-    final targetName = invite['target_name'] as String? ?? 'Usuario';
-    final targetInstrument = invite['target_instrument'] as String? ?? 'Musico';
+    final targetName = invite['target_name'] as String? ?? 'Usuário';
+    final targetInstrument = invite['target_instrument'] as String? ?? 'Músico';
 
     return Container(
       decoration: BoxDecoration(
@@ -811,7 +811,7 @@ class _InviteCard extends ConsumerWidget {
                     if (context.mounted) {
                       AppSnackBar.show(
                         context,
-                        'Nao foi possivel cancelar o convite agora.',
+                        'Não foi possível cancelar o convite agora.',
                         isError: true,
                       );
                     }
@@ -1022,7 +1022,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
       return message.substring(exceptionPrefix.length).trim();
     }
     return message.isEmpty
-        ? 'Nao foi possivel enviar o convite agora.'
+        ? 'Não foi possível enviar o convite agora.'
         : message;
   }
 
@@ -1061,7 +1061,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
         });
         AppSnackBar.show(
           context,
-          'Nao foi possivel buscar perfis agora.',
+          'Não foi possível buscar perfis agora.',
           isError: true,
         );
       },

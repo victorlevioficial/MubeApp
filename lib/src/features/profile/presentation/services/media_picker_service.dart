@@ -229,7 +229,7 @@ class MediaPickerService {
         if (context.mounted) {
           AppSnackBar.error(
             context,
-            'Nao foi possivel ajustar o video para 1 minuto. Tente novamente.',
+            'Não foi possível ajustar o vídeo para 1 minuto. Tente novamente.',
           );
         }
         return null;
@@ -257,7 +257,7 @@ class MediaPickerService {
         stackTrace,
       );
       if (context.mounted) {
-        AppSnackBar.error(context, 'Erro ao processar video. Tente novamente.');
+        AppSnackBar.error(context, 'Erro ao processar vídeo. Tente novamente.');
       }
       return null;
     }

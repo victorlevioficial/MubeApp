@@ -120,7 +120,7 @@ class _EnhancedMultiSelectModalState<T>
           _selected.length >= widget.maxSelections!) {
         AppSnackBar.warning(
           context,
-          'Maximo de ${widget.maxSelections} selecoes atingido.',
+          'Máximo de ${widget.maxSelections} seleções atingido.',
         );
         return;
       }
@@ -438,7 +438,7 @@ class _EmptySelectionState extends StatelessWidget {
             Text(
               hasQuery
                   ? 'Nenhum resultado encontrado'
-                  : 'Nenhum item disponivel',
+                  : 'Nenhum item disponível',
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textPrimary,
               ),
@@ -447,8 +447,8 @@ class _EmptySelectionState extends StatelessWidget {
             const SizedBox(height: AppSpacing.s4),
             Text(
               hasQuery
-                  ? 'Tente outro termo para encontrar a opcao desejada.'
-                  : 'Nao ha opcoes disponiveis para esta selecao.',
+                  ? 'Tente outro termo para encontrar a opção desejada.'
+                  : 'Não há opções disponíveis para esta seleção.',
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),

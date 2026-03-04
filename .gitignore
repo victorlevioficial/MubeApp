@@ -63,6 +63,7 @@ ios/Runner/GoogleService-Info.plist
 
 # Analysis and temporary files
 analysis*.txt
+analyze*.txt
 analysis*.json
 analysis*.log
 all_issues.txt

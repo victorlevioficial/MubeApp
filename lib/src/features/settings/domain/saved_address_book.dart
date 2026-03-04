@@ -37,7 +37,7 @@ abstract final class SavedAddressBook {
 
   static void validateLimit(List<SavedAddress> addresses) {
     if (addresses.length > maxAddresses) {
-      throw StateError('Limite de $maxAddresses enderecos atingido.');
+      throw StateError('Limite de $maxAddresses endereços atingido.');
     }
   }
 
@@ -68,7 +68,7 @@ abstract final class SavedAddressBook {
     SavedAddress address,
   ) {
     if (addresses.length <= 1) {
-      throw StateError('Pelo menos 1 endereco deve permanecer salvo.');
+      throw StateError('Pelo menos 1 endereço deve permanecer salvo.');
     }
 
     final updated = addresses.where((item) => item.id != address.id).toList();

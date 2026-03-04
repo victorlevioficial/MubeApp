@@ -635,6 +635,12 @@ export const getMatchpointRankingAuditDashboard = onCall(
         returnedHashtag: readAuditNumber(data, "returned_hashtag_sum"),
         returnedGenre: readAuditNumber(data, "returned_genre_sum"),
         returnedFallback: readAuditNumber(data, "returned_fallback_sum"),
+        returnedLocalTotal: readAuditNumber(data, "returned_local_total_sum"),
+        returnedLocalHashtag: readAuditNumber(
+          data,
+          "returned_local_hashtag_sum"
+        ),
+        returnedLocalGenre: readAuditNumber(data, "returned_local_genre_sum"),
         geohashUsedCount: readAuditNumber(data, "geohash_used_count"),
       };
     });
@@ -647,6 +653,9 @@ export const getMatchpointRankingAuditDashboard = onCall(
       acc.returnedHashtag += bucket.returnedHashtag;
       acc.returnedGenre += bucket.returnedGenre;
       acc.returnedFallback += bucket.returnedFallback;
+      acc.returnedLocalTotal += bucket.returnedLocalTotal;
+      acc.returnedLocalHashtag += bucket.returnedLocalHashtag;
+      acc.returnedLocalGenre += bucket.returnedLocalGenre;
       acc.geohashUsedCount += bucket.geohashUsedCount;
       return acc;
     }, {
@@ -657,6 +666,9 @@ export const getMatchpointRankingAuditDashboard = onCall(
       returnedHashtag: 0,
       returnedGenre: 0,
       returnedFallback: 0,
+      returnedLocalTotal: 0,
+      returnedLocalHashtag: 0,
+      returnedLocalGenre: 0,
       geohashUsedCount: 0,
     });
 
@@ -760,4 +772,3 @@ export const getConversationMessages = onCall(
     return { messages };
   }
 );
-

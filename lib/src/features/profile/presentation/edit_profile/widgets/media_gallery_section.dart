@@ -74,7 +74,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       if (selectedFiles.length > remainingSlots && mounted) {
         AppSnackBar.warning(
           context,
-          'Voce pode adicionar ate $remainingSlots foto(s) agora. As demais foram ignoradas.',
+          'Você pode adicionar até $remainingSlots foto(s) agora. As demais foram ignoradas.',
         );
       }
 
@@ -109,7 +109,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
 
     if (state.videoCount >= 3) {
       if (mounted) {
-        AppSnackBar.warning(context, 'Limite de 3 videos atingido.');
+        AppSnackBar.warning(context, 'Limite de 3 vídeos atingido.');
       }
       return;
     }
@@ -136,7 +136,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         userId: widget.user.uid,
       );
     } catch (e) {
-      if (mounted) AppSnackBar.error(context, 'Erro ao adicionar video: $e');
+      if (mounted) AppSnackBar.error(context, 'Erro ao adicionar vídeo: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -153,7 +153,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
           .removeMedia(index, widget.user.uid);
     } catch (e) {
       if (mounted) {
-        AppSnackBar.error(context, 'Erro ao remover midia: $e');
+        AppSnackBar.error(context, 'Erro ao remover mídia: $e');
       }
     }
   }

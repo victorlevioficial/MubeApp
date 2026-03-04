@@ -301,6 +301,26 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>> refreshSecurityContext() =>
+      (super.noSuchMethod(
+            Invocation.method(#refreshSecurityContext, []),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                this,
+                Invocation.method(#refreshSecurityContext, []),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i7.Unit>>(
+                    this,
+                    Invocation.method(#refreshSecurityContext, []),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>);
+
+  @override
   _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>>
   ensureCurrentUserProfileExists() =>
       (super.noSuchMethod(

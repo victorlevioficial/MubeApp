@@ -6,7 +6,7 @@ import 'address_search_screen.dart';
 
 Future<ResolvedAddress?> showAddressSearchScreen(
   BuildContext context, {
-  String confirmButtonText = 'Confirmar endereco',
+  String confirmButtonText = 'Confirmar endereço',
   Future<bool> Function(ResolvedAddress address)? onConfirmAddress,
 }) {
   return Navigator.of(context).push<ResolvedAddress>(
@@ -22,7 +22,7 @@ Future<ResolvedAddress?> showAddressSearchScreen(
 Future<ResolvedAddress?> showAddressConfirmScreen(
   BuildContext context,
   ResolvedAddress address, {
-  String confirmButtonText = 'Confirmar endereco',
+  String confirmButtonText = 'Confirmar endereço',
   Future<bool> Function(ResolvedAddress address)? onConfirmed,
 }) {
   return Navigator.of(context).push<ResolvedAddress>(

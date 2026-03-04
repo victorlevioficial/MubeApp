@@ -65,7 +65,7 @@ void main() {
           isA<StateError>().having(
             (error) => error.message,
             'message',
-            'Pelo menos 1 endereco deve permanecer salvo.',
+            'Pelo menos 1 endereço deve permanecer salvo.',
           ),
         ),
       );

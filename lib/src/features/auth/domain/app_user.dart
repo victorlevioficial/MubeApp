@@ -79,9 +79,6 @@ abstract class AppUser with _$AppUser {
     /// Contractor-specific data (venues, organizers).
     @JsonKey(name: 'contratante') Map<String, dynamic>? dadosContratante,
 
-    /// User's current subscription plan: 'free', 'pro', etc.
-    @Default('free') String plan,
-
     /// Number of times this user has been favorited (Received Favorites).
     @Default(0) @JsonKey(name: 'favorites_count') int favoritesCount,
 

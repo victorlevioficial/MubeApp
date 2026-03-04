@@ -9,10 +9,7 @@ import '../features/address/domain/address_search_result.dart';
 import '../features/address/domain/resolved_address.dart';
 
 typedef LocationRequestHandler =
-    Future<http.Response> Function(
-      String url, {
-      Map<String, String>? headers,
-    });
+    Future<http.Response> Function(String url, {Map<String, String>? headers});
 
 typedef CurrentPositionLoader =
     Future<Position> Function({required bool forceRefresh});
@@ -113,10 +110,7 @@ class LocationService {
     if (status != 'OK') {
       throw LocationServiceException(
         LocationServiceErrorCode.requestFailed,
-        _googleErrorMessage(
-          fallback: 'Erro ao buscar enderecos.',
-          data: data,
-        ),
+        _googleErrorMessage(fallback: 'Erro ao buscar enderecos.', data: data),
       );
     }
 
@@ -133,9 +127,7 @@ class LocationService {
         final structured = Map<String, dynamic>.from(
           prediction['structured_formatting'] as Map? ?? const {},
         );
-        final mainText = (structured['main_text'] ?? '')
-            .toString()
-            .trim();
+        final mainText = (structured['main_text'] ?? '').toString().trim();
         final secondaryText = (structured['secondary_text'] ?? '')
             .toString()
             .trim();
@@ -195,7 +187,9 @@ class LocationService {
       return null;
     }
 
-    final result = Map<String, dynamic>.from(data['result'] as Map? ?? const {});
+    final result = Map<String, dynamic>.from(
+      data['result'] as Map? ?? const {},
+    );
     final resolved = _resolvedAddressFromGoogleResult(result);
     if (resolved == null) return null;
 
@@ -232,7 +226,7 @@ class LocationService {
     if (response.statusCode != 200) {
       throw const LocationServiceException(
         LocationServiceErrorCode.requestFailed,
-        'Erro ao determinar o endereco da localizacao atual.',
+        'Erro ao determinar o endereço da localização atual.',
       );
     }
 
@@ -249,7 +243,7 @@ class LocationService {
       throw LocationServiceException(
         LocationServiceErrorCode.requestFailed,
         _googleErrorMessage(
-          fallback: 'Erro ao determinar o endereco da localizacao atual.',
+          fallback: 'Erro ao determinar o endereço da localização atual.',
           data: data,
         ),
       );
@@ -260,11 +254,9 @@ class LocationService {
     );
     if (results.isEmpty) return null;
 
-    final resolved =
-        _resolvedAddressFromGoogleResult(results.first)?.copyWith(
-          lat: lat,
-          lng: lng,
-        );
+    final resolved = _resolvedAddressFromGoogleResult(
+      results.first,
+    )?.copyWith(lat: lat, lng: lng);
     if (resolved == null) return null;
 
     _reverseGeocodeCache[coordinateKey] = _TimedCacheEntry(
@@ -293,7 +285,7 @@ class LocationService {
       if (!serviceEnabled) {
         throw const LocationServiceException(
           LocationServiceErrorCode.serviceDisabled,
-          'GPS desativado. Ative o servico de localizacao.',
+          'GPS desativado. Ative o serviço de localização.',
         );
       }
 
@@ -305,14 +297,14 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         throw const LocationServiceException(
           LocationServiceErrorCode.permissionDenied,
-          'Permissao de localizacao negada.',
+          'Permissão de localização negada.',
         );
       }
 
       if (permission == LocationPermission.deniedForever) {
         throw const LocationServiceException(
           LocationServiceErrorCode.permissionDeniedForever,
-          'Permissao de localizacao negada permanentemente.',
+          'Permissão de localização negada permanentemente.',
         );
       }
 
@@ -334,7 +326,7 @@ class LocationService {
     } catch (error) {
       throw LocationServiceException(
         LocationServiceErrorCode.requestFailed,
-        'Erro ao obter localizacao: $error',
+        'Erro ao obter localização: $error',
       );
     }
   }
@@ -348,7 +340,9 @@ class LocationService {
     }
   }
 
-  ResolvedAddress? _resolvedAddressFromGoogleResult(Map<String, dynamic> result) {
+  ResolvedAddress? _resolvedAddressFromGoogleResult(
+    Map<String, dynamic> result,
+  ) {
     final components = List<dynamic>.from(
       result['address_components'] as List? ?? const [],
     );

@@ -76,16 +76,16 @@ class ResolvedAddress {
 
   String? get confirmBlockingReason {
     if (!hasCoordinates) {
-      return 'Endereco sem coordenadas validas. Tente outro resultado.';
+      return 'Endereço sem coordenadas válidas. Tente outro resultado.';
     }
     if (logradouro.trim().isEmpty) {
-      return 'Nao foi possivel determinar a rua desse endereco.';
+      return 'Não foi possível determinar a rua desse endereço.';
     }
     if (cidade.trim().isEmpty || estado.trim().isEmpty) {
-      return 'Nao foi possivel determinar cidade e estado desse endereco.';
+      return 'Não foi possível determinar cidade e estado desse endereço.';
     }
     if (numero.trim().isEmpty) {
-      return 'Informe o numero para continuar.';
+      return 'Informe o número para continuar.';
     }
     return null;
   }
@@ -195,14 +195,6 @@ class ResolvedAddress {
   }
 
   @override
-  int get hashCode => Object.hash(
-    logradouro,
-    numero,
-    bairro,
-    cidade,
-    estado,
-    cep,
-    lat,
-    lng,
-  );
+  int get hashCode =>
+      Object.hash(logradouro, numero, bairro, cidade, estado, cep, lat, lng);
 }

@@ -527,6 +527,19 @@ input:focus, textarea:focus {
   white-space: nowrap;
 }
 
+.audit-bucket-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.audit-bucket-extra {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 /* ============================================
    USER PREVIEW / CARDS
    ============================================ */
@@ -752,5 +765,6 @@ input:focus, textarea:focus {
   .content-header { padding: 0 16px; }
   .stats-grid { grid-template-columns: 1fr; }
   .audit-bucket { grid-template-columns: 1fr; }
+  .audit-bucket-right { align-items: flex-start; }
   .dashboard-panel-header { flex-direction: column; }
 }

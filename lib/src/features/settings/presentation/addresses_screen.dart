@@ -47,7 +47,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   }) async {
     final user = _readCurrentUser();
     if (user == null) {
-      throw StateError('Sessao expirada. Entre novamente.');
+      throw StateError('Sessão expirada. Entre novamente.');
     }
 
     SavedAddressBook.validateLimit(addresses);
@@ -56,10 +56,10 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     if (normalized.isNotEmpty) {
       final primary = normalized.first;
       if (primary.lat == null || primary.lng == null) {
-        throw StateError('Endereco principal sem coordenadas validas.');
+        throw StateError('Endereço principal sem coordenadas válidas.');
       }
       if (primary.cidade.trim().isEmpty || primary.estado.trim().isEmpty) {
-        throw StateError('Endereco principal sem cidade e estado validos.');
+        throw StateError('Endereço principal sem cidade e estado válidos.');
       }
     }
 
@@ -80,14 +80,14 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     if (addresses.length >= SavedAddressBook.maxAddresses) {
       AppSnackBar.warning(
         context,
-        'Limite de ${SavedAddressBook.maxAddresses} enderecos atingido.',
+        'Limite de ${SavedAddressBook.maxAddresses} endereços atingido.',
       );
       return;
     }
     if (!LocationService.isConfigured) {
       AppSnackBar.warning(
         context,
-        'Servico de busca indisponivel. Configure a chave da Google API.',
+        'Serviço de busca indisponível. Configure a chave da Google API.',
       );
       return;
     }
@@ -103,7 +103,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       AppSnackBar.warning(
         context,
         selectedAddress.confirmBlockingReason ??
-            'Escolha um endereco valido para salvar.',
+            'Escolha um endereço válido para salvar.',
       );
       return;
     }
@@ -116,11 +116,11 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     try {
       await _saveAddresses(
         updatedAddresses,
-        successMessage: 'Endereco adicionado e definido como principal.',
+        successMessage: 'Endereço adicionado e definido como principal.',
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao salvar endereco: $error');
+      AppSnackBar.error(context, 'Erro ao salvar endereço: $error');
     }
   }
 
@@ -128,11 +128,11 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     try {
       await _saveAddresses(
         SavedAddressBook.setPrimary(_readAddresses(), address),
-        successMessage: 'Endereco principal atualizado.',
+        successMessage: 'Endereço principal atualizado.',
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao atualizar endereco: $error');
+      AppSnackBar.error(context, 'Erro ao atualizar endereço: $error');
     }
   }
 
@@ -140,7 +140,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     if (_readAddresses().length <= 1) {
       AppSnackBar.warning(
         context,
-        'Pelo menos 1 endereco deve permanecer salvo.',
+        'Pelo menos 1 endereço deve permanecer salvo.',
       );
       return;
     }
@@ -148,8 +148,8 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     final confirmed = await AppOverlay.dialog<bool>(
       context: context,
       builder: (dialogContext) => const AppConfirmationDialog(
-        title: 'Excluir endereco?',
-        message: 'Deseja excluir este endereco salvo?',
+        title: 'Excluir endereço?',
+        message: 'Deseja excluir este endereço salvo?',
         confirmText: 'Excluir',
         isDestructive: true,
       ),
@@ -160,11 +160,11 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     try {
       await _saveAddresses(
         SavedAddressBook.delete(_readAddresses(), address),
-        successMessage: 'Endereco excluido.',
+        successMessage: 'Endereço excluído.',
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao excluir endereco: $error');
+      AppSnackBar.error(context, 'Erro ao excluir endereço: $error');
     }
   }
 
@@ -174,15 +174,15 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Meus Enderecos'),
+      appBar: const AppAppBar(title: 'Meus Endereços'),
       body: userAsync.when(
         loading: () => const Center(
-          child: AppLoadingIndicator.withMessage('Carregando enderecos...'),
+          child: AppLoadingIndicator.withMessage('Carregando endereços...'),
         ),
         error: (_, _) => _buildBodySurface(
           child: EmptyStateWidget(
             icon: Icons.cloud_off_rounded,
-            title: 'Nao foi possivel carregar seus enderecos',
+            title: 'Não foi possível carregar seus endereços',
             subtitle: 'Tente novamente para recuperar seus locais salvos.',
             actionButton: AppButton.secondary(
               text: 'Tentar novamente',
@@ -196,8 +196,8 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
             return _buildBodySurface(
               child: const EmptyStateWidget(
                 icon: Icons.lock_outline_rounded,
-                title: 'Sessao expirada',
-                subtitle: 'Entre novamente para gerenciar seus enderecos.',
+                title: 'Sessão expirada',
+                subtitle: 'Entre novamente para gerenciar seus endereços.',
               ),
             );
           }
@@ -230,7 +230,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
                   ),
                   const SizedBox(height: AppSpacing.s24),
                   SettingsGroup(
-                    title: 'Enderecos salvos',
+                    title: 'Endereços salvos',
                     children: addresses.isEmpty
                         ? [_buildEmptyStateCard()]
                         : _buildAddressCards(addresses),
@@ -270,11 +270,11 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     return _StateSurface(
       child: EmptyStateWidget(
         icon: Icons.location_off_outlined,
-        title: 'Nenhum endereco salvo',
+        title: 'Nenhum endereço salvo',
         subtitle:
-            'Adicione um endereco para definir sua localizacao principal no app.',
+            'Adicione um endereço para definir sua localização principal no app.',
         actionButton: AppButton.secondary(
-          text: 'Adicionar primeiro endereco',
+          text: 'Adicionar primeiro endereço',
           onPressed: _addAddress,
           icon: const Icon(Icons.add_location_alt_outlined),
           isFullWidth: true,
@@ -356,7 +356,7 @@ class _AddressesOverviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'LIVRO DE ENDERECOS',
+                      'LIVRO DE ENDEREÇOS',
                       style: AppTypography.settingsGroupTitle.copyWith(
                         color: AppColors.primary.withValues(alpha: 0.85),
                         letterSpacing: 1.6,
@@ -364,7 +364,7 @@ class _AddressesOverviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
-                      'Gerencie seus enderecos',
+                      'Gerencie seus endereços',
                       style: AppTypography.headlineMedium.copyWith(
                         fontSize: 22,
                         letterSpacing: -0.4,
@@ -372,7 +372,7 @@ class _AddressesOverviewCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
-                      'Defina um principal e mantenha ate ${SavedAddressBook.maxAddresses} locais prontos para uso.',
+                      'Defina um principal e mantenha até ${SavedAddressBook.maxAddresses} locais prontos para uso.',
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textSecondary.withValues(alpha: 0.82),
                       ),
@@ -416,15 +416,15 @@ class _AddressesOverviewCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.s16),
             const _InfoBanner(
               icon: Icons.info_outline_rounded,
-              message: 'Busca automatica indisponivel no momento.',
+              message: 'Busca automática indisponível no momento.',
               color: AppColors.warning,
             ),
           ],
           const SizedBox(height: AppSpacing.s20),
           AppButton.primary(
             text: canAddMore
-                ? 'Adicionar novo endereco'
-                : 'Limite de ${SavedAddressBook.maxAddresses} enderecos',
+                ? 'Adicionar novo endereço'
+                : 'Limite de ${SavedAddressBook.maxAddresses} endereços',
             onPressed: canAddMore ? onAddAddress : null,
             icon: const Icon(Icons.add_location_alt_outlined),
             size: AppButtonSize.large,

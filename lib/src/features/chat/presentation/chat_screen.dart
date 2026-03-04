@@ -127,7 +127,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _accessState = _ConversationAccessState.forbidden;
             _conversationAccessMessage =
-                'Voce nao tem permissao para acessar esta conversa.';
+                'Você não tem permissão para acessar esta conversa.';
           });
           return;
         }
@@ -137,7 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           setState(() {
             _accessState = _ConversationAccessState.unavailable;
             _conversationAccessMessage =
-                'Nao foi possivel carregar os participantes da conversa.';
+                'Não foi possível carregar os participantes da conversa.';
           });
           return;
         }
@@ -173,7 +173,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         setState(() {
           _accessState = _ConversationAccessState.unavailable;
           _conversationAccessMessage =
-              'Nao foi possivel carregar os dados desta conversa.';
+              'Não foi possível carregar os dados desta conversa.';
         });
         return;
       }
@@ -206,7 +206,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             setState(() {
               _accessState = _ConversationAccessState.unavailable;
               _conversationAccessMessage =
-                  'Nao foi possivel abrir esta conversa agora.';
+                  'Não foi possível abrir esta conversa agora.';
             });
             return;
           }
@@ -312,7 +312,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return 'Conversa nao encontrada.';
     }
 
-    return 'Nao foi possivel abrir esta conversa agora.';
+    return 'Não foi possível abrir esta conversa agora.';
   }
 
   @override
@@ -354,7 +354,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Nao foi possivel validar seu email agora. Tente novamente.',
+              'Não foi possível validar seu email agora. Tente novamente.',
             ),
             backgroundColor: AppColors.error,
           ),
@@ -903,7 +903,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             const SizedBox(height: AppSpacing.s12),
             Text(
               _conversationAccessMessage ??
-                  'Nao foi possivel acessar esta conversa.',
+                  'Não foi possível acessar esta conversa.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
