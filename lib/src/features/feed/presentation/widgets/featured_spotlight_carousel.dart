@@ -250,6 +250,7 @@ class _SpotlightCard extends StatelessWidget {
                   imageUrl: item.foto!,
                   fit: BoxFit.cover,
                   alignment: const Alignment(0.0, -0.5),
+                  fadeInDuration: Duration.zero,
                 )
               else
                 Container(

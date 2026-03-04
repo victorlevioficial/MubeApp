@@ -8,6 +8,7 @@ import '../../../core/errors/failure_mapper.dart';
 import '../../../core/typedefs.dart';
 
 import '../../../utils/app_logger.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/distance_calculator.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/feed_item.dart';
@@ -601,6 +602,10 @@ class FeedRepository {
     List<String> excludedIds = const [],
     int targetResults = 20,
   }) async {
+    final nearbyUsersStopwatch = AppPerformanceTracker.startSpan(
+      'feed.repo.nearby_users_optimized',
+      data: {'target_results': targetResults, 'filter': filterType ?? 'all'},
+    );
     try {
       final List<FeedItem> results = [];
       final Set<String> seenUids = {};
@@ -609,10 +614,18 @@ class FeedRepository {
       final userGeohash = GeohashHelper.encode(userLat, userLong, precision: 5);
 
       // 1. Primeiro busca no geohash do usuário (mais próximos)
+      final centerQueryStopwatch = AppPerformanceTracker.startSpan(
+        'feed.repo.nearby_users_center_query',
+      );
       final centerSnapshot = await _dataSource.getUsersByGeohash(
         geohash: userGeohash,
         filterType: filterType,
         limit: targetResults,
+      );
+      AppPerformanceTracker.finishSpan(
+        'feed.repo.nearby_users_center_query',
+        centerQueryStopwatch,
+        data: {'docs': centerSnapshot.docs.length},
       );
 
       _processGeohashResults(
@@ -631,25 +644,52 @@ class FeedRepository {
         // Remove o centro que já buscamos
         neighbors.remove(userGeohash);
 
-        // Busca em cada vizinho até ter resultados suficientes
-        for (final neighborHash in neighbors) {
-          if (results.length >= targetResults) break;
+        if (neighbors.isNotEmpty) {
+          final perNeighborLimit = ((targetResults - results.length) /
+                  neighbors.length)
+              .ceil()
+              .clamp(3, targetResults);
 
-          final neighborSnapshot = await _dataSource.getUsersByGeohash(
-            geohash: neighborHash,
-            filterType: filterType,
-            limit: targetResults - results.length,
+          final neighborsQueryStopwatch = AppPerformanceTracker.startSpan(
+            'feed.repo.nearby_users_neighbors_query',
+            data: {
+              'neighbors': neighbors.length,
+              'per_neighbor_limit': perNeighborLimit,
+            },
           );
 
-          _processGeohashResults(
-            neighborSnapshot,
-            results,
-            seenUids,
-            currentUserId,
-            userLat,
-            userLong,
-            excludedIds,
+          final neighborSnapshots = await Future.wait(
+            neighbors.map(
+              (neighborHash) => _dataSource.getUsersByGeohash(
+                geohash: neighborHash,
+                filterType: filterType,
+                limit: perNeighborLimit,
+              ),
+            ),
           );
+
+          final totalNeighborDocs = neighborSnapshots.fold<int>(
+            0,
+            (totalDocs, snapshot) => totalDocs + snapshot.docs.length,
+          );
+          AppPerformanceTracker.finishSpan(
+            'feed.repo.nearby_users_neighbors_query',
+            neighborsQueryStopwatch,
+            data: {'docs': totalNeighborDocs},
+          );
+
+          for (final neighborSnapshot in neighborSnapshots) {
+            if (results.length >= targetResults) break;
+            _processGeohashResults(
+              neighborSnapshot,
+              results,
+              seenUids,
+              currentUserId,
+              userLat,
+              userLong,
+              excludedIds,
+            );
+          }
         }
       }
 
@@ -663,7 +703,7 @@ class FeedRepository {
         AppLogger.info(
           '⚠️ Nenhum usuário com geohash encontrado. Usando fallback...',
         );
-        return _getAllUsersSortedByDistanceClassic(
+        final fallbackResult = await _getAllUsersSortedByDistanceClassic(
           currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
@@ -671,10 +711,26 @@ class FeedRepository {
           excludedIds: excludedIds,
           limit: targetResults,
         );
+        AppPerformanceTracker.finishSpan(
+          'feed.repo.nearby_users_optimized',
+          nearbyUsersStopwatch,
+          data: {'status': 'fallback', 'results': 0},
+        );
+        return fallbackResult;
       }
 
+      AppPerformanceTracker.finishSpan(
+        'feed.repo.nearby_users_optimized',
+        nearbyUsersStopwatch,
+        data: {'status': 'geohash', 'results': results.length},
+      );
       return Right(results);
     } catch (e) {
+      AppPerformanceTracker.finishSpan(
+        'feed.repo.nearby_users_optimized',
+        nearbyUsersStopwatch,
+        data: {'status': 'error', 'error_type': e.runtimeType.toString()},
+      );
       return Left(mapExceptionToFailure(e));
     }
   }

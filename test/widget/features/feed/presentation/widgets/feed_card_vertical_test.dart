@@ -234,7 +234,8 @@ void main() {
       const itemWithLongName = FeedItem(
         uid: 'user-4',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado',
-        tipoPerfil: 'profissional',
+        nomeArtistico: 'Nome Muito Longo Que Deveria Ser Truncado',
+        tipoPerfil: 'contratante',
       );
 
       await tester.pumpWidget(

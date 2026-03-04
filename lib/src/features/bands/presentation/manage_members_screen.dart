@@ -16,6 +16,7 @@ import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
@@ -884,7 +885,7 @@ class _MemberCard extends ConsumerWidget {
         ),
       ),
       child: InkWell(
-        onTap: () => context.push('/user/${member.uid}'),
+        onTap: () => context.push(RoutePaths.publicProfileById(member.uid)),
         borderRadius: AppRadius.all16,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.s16),
@@ -942,7 +943,9 @@ class _MemberCard extends ConsumerWidget {
                 ),
                 onSelected: (value) async {
                   if (value == 'profile') {
-                    unawaited(context.push('/user/${member.uid}'));
+                    unawaited(
+                      context.push(RoutePaths.publicProfileById(member.uid)),
+                    );
                   } else if (value == 'remove') {
                     await _confirmRemoveMember(context, ref, memberName);
                   }

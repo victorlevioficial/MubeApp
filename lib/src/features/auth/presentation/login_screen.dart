@@ -18,6 +18,7 @@ import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
 import '../data/auth_repository.dart';
 
@@ -230,7 +231,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           Align(
                             alignment: Alignment.centerRight,
                             child: GestureDetector(
-                              onTap: () => context.push('/forgot-password'),
+                              onTap: () =>
+                                  context.push(RoutePaths.forgotPassword),
                               child: Text(
                                 'Esqueceu a senha?',
                                 style: AppTypography.bodyMedium.copyWith(
@@ -349,7 +351,7 @@ class _RegisterLink extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => context.go('/register'),
+            onTap: () => context.go(RoutePaths.register),
             child: Text(
               'Crie agora',
               key: const Key('register_link'),

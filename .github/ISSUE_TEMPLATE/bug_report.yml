@@ -1,0 +1,76 @@
+name: Bug report
+description: Reporte um problema reproduzível no app ou na infraestrutura
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha o máximo de contexto possível. Issues com passos claros e ambiente identificado são resolvidas mais rápido.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afetada
+      options:
+        - App Flutter
+        - Firebase / Backend
+        - CI / GitHub Actions
+        - Build / Release
+        - Documentação
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma
+      options:
+        - Android
+        - iOS
+        - Web
+        - Windows
+        - macOS
+        - Linux
+        - Não aplicável
+    validations:
+      required: true
+  - type: input
+    id: app_version
+    attributes:
+      label: Versão do app / build
+      placeholder: "ex: 1.1.3+12"
+  - type: input
+    id: flutter_version
+    attributes:
+      label: Versão do Flutter
+      placeholder: "ex: 3.38.6"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Abrir tela X
+        2. Tocar em Y
+        3. Observar Z
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamento atual
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack trace / screenshots
+      description: Cole logs relevantes e adicione evidências visuais quando necessário.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Contexto adicional

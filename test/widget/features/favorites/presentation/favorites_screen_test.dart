@@ -29,7 +29,11 @@ void main() {
     fakeAuthRepo.appUser = user;
     fakeAuthRepo.emitUser(FakeFirebaseUser(uid: 'user-1'));
 
-    final feedItem = TestData.feedItem(id: 'fav-1', nome: 'Favorite User');
+    final feedItem = TestData.feedItem(
+      id: 'fav-1',
+      nome: 'Favorite User',
+      tipoPerfil: 'contratante',
+    );
     fakeFavoriteRepo.favorites = favorites;
     fakeFeedRepo.nearbyUsers = [feedItem];
 
@@ -41,9 +45,9 @@ void main() {
           builder: (context, state) => const FavoritesScreen(),
         ),
         GoRoute(
-          path: '/user/:id',
+          path: '/user/:uid',
           builder: (context, state) => Scaffold(
-            body: Text('User Profile: ${state.pathParameters['id']}'),
+            body: Text('User Profile: ${state.pathParameters['uid']}'),
           ),
         ),
       ],

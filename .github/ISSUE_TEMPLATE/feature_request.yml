@@ -1,0 +1,36 @@
+name: Feature request
+description: Proponha uma melhoria de produto, UX ou engenharia
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Descreva a necessidade real e o impacto esperado. Foque em problema, contexto e resultado.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema a resolver
+      placeholder: "Hoje acontece X, o que gera Y..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Solução proposta
+      placeholder: "Sugestão de fluxo, comportamento ou implementação..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto esperado
+      placeholder: "Usuários afetados, métricas, redução de retrabalho, etc."
+  - type: textarea
+    id: extra
+    attributes:
+      label: Contexto adicional

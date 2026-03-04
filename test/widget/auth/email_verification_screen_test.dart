@@ -369,16 +369,20 @@ void main() {
         ).thenAnswer((_) => Stream.value(verifiedUser));
 
         final router = GoRouter(
-          initialLocation: '/',
+          initialLocation: '/verify-email',
           routes: [
             GoRoute(
               path: '/',
+              builder: (context, state) =>
+                  const Scaffold(body: Text('Splash Page')),
+            ),
+            GoRoute(
+              path: '/verify-email',
               builder: (context, state) => const EmailVerificationScreen(),
             ),
             GoRoute(
               path: '/onboarding',
-              builder: (context, state) =>
-                  const Scaffold(body: Text('Onboarding Page')),
+              builder: (context, state) => const EmailVerificationScreen(),
             ),
           ],
         );
@@ -411,8 +415,9 @@ void main() {
         await tester.pump(const Duration(seconds: 3));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - should navigate to onboarding
-        expect(find.text('Onboarding Page'), findsOneWidget);
+        // Assert - the screen should return control to splash so the auth guard
+        // can decide the next route based on the refreshed auth/profile state.
+        expect(find.text('Splash Page'), findsOneWidget);
       });
     });
   });

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Pergunta de arquitetura ou desenvolvimento
+    url: https://github.com/victorlevioficial/MubeApp/discussions
+    about: Use Discussions para perguntas abertas, ideias e decisões técnicas.

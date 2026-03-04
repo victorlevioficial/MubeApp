@@ -10,11 +10,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
-import 'src/core/services/analytics_service.dart';
 import 'src/core/services/image_cache_config.dart';
-import 'src/core/services/remote_config_service.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
+import 'src/utils/app_performance_tracker.dart';
 
 const Color _bootstrapBackgroundColor = Color(0xFF0A0A0A);
 
@@ -63,24 +62,37 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_nativeSplashRemoved) return;
-      _nativeSplashRemoved = true;
-      FlutterNativeSplash.remove();
-    });
+    AppPerformanceTracker.mark('bootstrap_host.init_state');
     unawaited(_bootstrapFirebase());
   }
 
+  void _removeNativeSplashIfNeeded() {
+    if (_nativeSplashRemoved) return;
+    _nativeSplashRemoved = true;
+    FlutterNativeSplash.remove();
+  }
+
   Future<void> _bootstrapFirebase() async {
+    final bootstrapStopwatch = AppPerformanceTracker.startSpan(
+      'bootstrap.firebase',
+    );
     try {
+      final firebaseInitStopwatch = AppPerformanceTracker.startSpan(
+        'firebase.initialize_app',
+      );
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
+      );
+      AppPerformanceTracker.finishSpan(
+        'firebase.initialize_app',
+        firebaseInitStopwatch,
       );
 
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: true,
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
+      AppPerformanceTracker.mark('firebase.firestore.settings_applied');
 
       if (!mounted) return;
       setState(() {
@@ -88,19 +100,38 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         _bootstrapError = null;
       });
 
+      final appLoggerInitStopwatch = AppPerformanceTracker.startSpan(
+        'bootstrap.app_logger_initialize',
+      );
       await AppLogger.initialize();
+      AppPerformanceTracker.finishSpan(
+        'bootstrap.app_logger_initialize',
+        appLoggerInitStopwatch,
+      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_deferredServicesScheduled) return;
         _deferredServicesScheduled = true;
         unawaited(_initializeDeferredServices());
       });
+      AppPerformanceTracker.finishSpan(
+        'bootstrap.firebase',
+        bootstrapStopwatch,
+      );
     } catch (error, stack) {
       AppLogger.error('Erro ao inicializar Firebase', error, stack);
+      AppPerformanceTracker.finishSpan(
+        'bootstrap.firebase',
+        bootstrapStopwatch,
+        data: {'status': 'error', 'error_type': error.runtimeType.toString()},
+      );
       if (!mounted) return;
       setState(() {
         _bootstrapError = error;
         _firebaseReady = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _removeNativeSplashIfNeeded();
       });
     }
   }
@@ -108,7 +139,9 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   @override
   Widget build(BuildContext context) {
     if (_firebaseReady) {
-      return const ProviderScope(child: MubeApp());
+      return ProviderScope(
+        child: MubeApp(onInitialRouteReady: _removeNativeSplashIfNeeded),
+      );
     }
 
     return Directionality(
@@ -117,7 +150,7 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         color: _bootstrapBackgroundColor,
         child: SizedBox.expand(
           child: _bootstrapError == null
-              ? const SizedBox.shrink()
+              ? const _BootstrapLaunchView()
               : Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -134,19 +167,41 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   }
 }
 
+class _BootstrapLaunchView extends StatelessWidget {
+  const _BootstrapLaunchView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.expand();
+  }
+}
+
 Future<void> _initializeDeferredServices() async {
+  final deferredServicesStopwatch = AppPerformanceTracker.startSpan(
+    'bootstrap.deferred_services',
+  );
   try {
-    await Future<void>.delayed(const Duration(milliseconds: 900));
-    await AnalyticsService.initialize();
-
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    await RemoteConfigService.initialize();
-
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await Future<void>.delayed(const Duration(milliseconds: 2100));
+    final fontWarmupStopwatch = AppPerformanceTracker.startSpan(
+      'bootstrap.font_preload',
+    );
     await _preloadFonts();
+    AppPerformanceTracker.finishSpan(
+      'bootstrap.font_preload',
+      fontWarmupStopwatch,
+    );
     AppLogger.info('Services initialized');
+    AppPerformanceTracker.finishSpan(
+      'bootstrap.deferred_services',
+      deferredServicesStopwatch,
+    );
   } catch (e, stack) {
     AppLogger.error('Erro ao inicializar servicos em background', e, stack);
+    AppPerformanceTracker.finishSpan(
+      'bootstrap.deferred_services',
+      deferredServicesStopwatch,
+      data: {'status': 'error', 'error_type': e.runtimeType.toString()},
+    );
   }
 }
 

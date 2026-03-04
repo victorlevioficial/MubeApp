@@ -10,8 +10,8 @@ import '../../../core/errors/failures.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/auth_exception_handler.dart';
-import '../../splash/providers/app_bootstrap_provider.dart';
 import '../domain/app_user.dart';
 import 'auth_remote_data_source.dart';
 
@@ -51,7 +51,9 @@ class AuthRepository {
           'error_message': e.message ?? 'Unknown error',
         },
       );
-      return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
+      return Left(
+        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+      );
     } catch (e) {
       _logAnalyticsEvent(
         name: 'login_error',
@@ -455,7 +457,25 @@ AuthRepository authRepository(Ref ref) {
 /// Stream provider for Firebase Auth state changes.
 @Riverpod(keepAlive: true)
 Stream<User?> authStateChanges(Ref ref) {
-  return ref.watch(authRepositoryProvider).authStateChanges();
+  final stopwatch = AppPerformanceTracker.startSpan('auth.state_stream');
+  var firstEvent = true;
+
+  return ref.watch(authRepositoryProvider).authStateChanges().map((user) {
+    if (firstEvent) {
+      firstEvent = false;
+      AppPerformanceTracker.finishSpan(
+        'auth.state_stream',
+        stopwatch,
+        data: {'authenticated': user != null},
+      );
+    } else {
+      AppPerformanceTracker.mark(
+        'auth.state_stream.event',
+        data: {'authenticated': user != null},
+      );
+    }
+    return user;
+  });
 }
 
 /// Stream provider for the current user's profile data from Firestore.
@@ -463,16 +483,40 @@ Stream<User?> authStateChanges(Ref ref) {
 /// Returns `null` if the user is not authenticated or profile doesn't exist.
 @riverpod
 Stream<AppUser?> currentUserProfile(Ref ref) {
-  final bootstrapState = ref.watch(appBootstrapProvider);
-  if (bootstrapState != AppBootstrapState.ready) {
-    return const Stream.empty();
-  }
-
   final authState = ref.watch(authStateChangesProvider);
   return authState.when(
     data: (user) {
-      if (user == null) return Stream.value(null);
-      return ref.watch(authRepositoryProvider).watchUser(user.uid);
+      if (user == null) {
+        AppPerformanceTracker.mark(
+          'auth.profile_stream.skipped',
+          data: {'reason': 'unauthenticated'},
+        );
+        return Stream.value(null);
+      }
+
+      final stopwatch = AppPerformanceTracker.startSpan(
+        'auth.profile_stream',
+        data: {'uid': user.uid},
+      );
+      var firstEvent = true;
+
+      return ref.watch(authRepositoryProvider).watchUser(user.uid).map((
+        profile,
+      ) {
+        if (firstEvent) {
+          firstEvent = false;
+          AppPerformanceTracker.finishSpan(
+            'auth.profile_stream',
+            stopwatch,
+            data: {
+              'uid': user.uid,
+              'has_profile': profile != null,
+              'cadastro_status': profile?.cadastroStatus,
+            },
+          );
+        }
+        return profile;
+      });
     },
     loading: () => const Stream.empty(),
     error: (_, _) => const Stream.empty(),

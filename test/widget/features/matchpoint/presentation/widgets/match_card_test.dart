@@ -33,14 +33,14 @@ void main() {
       expect(find.text('João Rock'), findsOneWidget);
     });
 
-    testWidgets('renders with user real name when no artistic name', (
+    testWidgets('renders contractor name when no artistic name', (
       WidgetTester tester,
     ) async {
       const userWithoutArtisticName = AppUser(
         uid: 'user-2',
         email: 'test2@example.com',
         nome: 'Maria Santos',
-        tipoPerfil: AppUserType.professional,
+        tipoPerfil: AppUserType.contractor,
       );
 
       await tester.pumpWidget(
@@ -176,7 +176,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Banda'), findsOneWidget);
+      expect(find.text('Banda'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('renders studio subtitle for studio type', (

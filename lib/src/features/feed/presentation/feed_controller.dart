@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
@@ -32,6 +33,11 @@ class FeedController extends _$FeedController {
   final FeedMainRuntime _mainRuntime = FeedMainRuntime();
   List<FeedItem> _featuredItems = [];
   int _sectionsRequestToken = 0;
+  bool _blockedUsersListenerRegistered = false;
+  Timer? _favoritesSyncTimer;
+  Future<void>? _featuredProfilesLoad;
+  Future<void>? _activeLoadAllData;
+  Future<void>? _activeRefresh;
 
   FeedSectionsController? _sectionsController;
   FeedMainController? _mainController;
@@ -62,19 +68,59 @@ class FeedController extends _$FeedController {
     );
   }
 
+  void _registerBlockedUsersListener() {
+    if (_blockedUsersListenerRegistered) return;
+    _blockedUsersListenerRegistered = true;
+    ref.listen<AsyncValue<List<String>>>(blockedUsersProvider, (
+      previous,
+      next,
+    ) {
+      if (previous == null) return;
+      if (previous.asData?.value == next.asData?.value) return;
+      if (!next.hasValue) return;
+      unawaited(loadAllData());
+    });
+  }
+
   @override
   FutureOr<FeedState> build() {
     _ensureControllers();
+    _registerBlockedUsersListener();
+    ref.onDispose(() {
+      _favoritesSyncTimer?.cancel();
+    });
     // Data is loaded manually via loadAllData().
     return const FeedState();
   }
 
   /// Initial full load for feed screen.
   Future<void> loadAllData() async {
-    await _loadData(showFullSkeleton: true);
+    final existingLoad = _activeLoadAllData;
+    if (existingLoad != null) {
+      AppPerformanceTracker.mark(
+        'feed.load_all_data.reused',
+        data: {'reason': 'already_in_progress'},
+      );
+      await existingLoad;
+      return;
+    }
+
+    final loadFuture = _loadData(showFullSkeleton: true);
+    _activeLoadAllData = loadFuture;
+    try {
+      await loadFuture;
+    } finally {
+      if (identical(_activeLoadAllData, loadFuture)) {
+        _activeLoadAllData = null;
+      }
+    }
   }
 
   Future<void> _loadData({required bool showFullSkeleton}) async {
+    final loadStopwatch = AppPerformanceTracker.startSpan(
+      'feed.load_all_data',
+      data: {'full_skeleton': showFullSkeleton},
+    );
     _ensureControllers();
 
     final currentState = state.value ?? const FeedState();
@@ -86,11 +132,15 @@ class FeedController extends _$FeedController {
     );
 
     // Keep favorite sync away from first paint.
-    unawaited(_loadFavoritesDeferred());
+    _scheduleFavoritesSync();
     _loadFeaturedProfilesInBackground();
 
     try {
       final requestToken = ++_sectionsRequestToken;
+      AppPerformanceTracker.mark(
+        'feed.load_all_data.request_token',
+        data: {'request_token': requestToken},
+      );
       final user = await _resolveCurrentUserProfile();
       if (!ref.mounted) return;
 
@@ -129,8 +179,23 @@ class FeedController extends _$FeedController {
           ),
         );
       }
+      final latestState = state.value ?? const FeedState();
+      AppPerformanceTracker.finishSpan(
+        'feed.load_all_data',
+        loadStopwatch,
+        data: {
+          'items': latestState.items.length,
+          'sections': latestState.sectionItems.length,
+          'status': latestState.status.name,
+        },
+      );
     } catch (error, stack) {
       AppLogger.error('Feed: erro ao carregar dados iniciais', error, stack);
+      AppPerformanceTracker.finishSpan(
+        'feed.load_all_data',
+        loadStopwatch,
+        data: {'status': 'error', 'error_type': error.runtimeType.toString()},
+      );
       if (!ref.mounted) return;
       final latestState = state.value ?? currentState;
       state = AsyncValue.data(
@@ -144,41 +209,59 @@ class FeedController extends _$FeedController {
   }
 
   void _loadFeaturedProfilesInBackground() {
+    _featuredProfilesLoad ??= _loadFeaturedProfiles();
+  }
+
+  Future<void> _loadFeaturedProfiles() async {
+    final featuredStopwatch = AppPerformanceTracker.startSpan(
+      'feed.featured_profiles',
+    );
+    var featuredStatus = 'done';
     try {
-      unawaited(
-        _getFeaturedProfilesController().loadFeaturedProfiles().then((
-          featured,
-        ) {
-          if (!ref.mounted) return;
-          AppLogger.debug(
-            'FeedController: featured profiles carregados: ${featured.length}',
-          );
-          if (featured.isNotEmpty) {
-            _featuredItems = featured;
-            _emitState((s) => s.copyWithFeed(featuredItems: featured));
-            AppLogger.debug(
-              'FeedController: state atualizado com ${featured.length} destaques',
-            );
-          }
-        }),
+      final featured = await _getFeaturedProfilesController()
+          .loadFeaturedProfiles();
+      if (!ref.mounted) return;
+      AppLogger.debug(
+        'FeedController: featured profiles carregados: ${featured.length}',
       );
+      if (featured.isNotEmpty) {
+        _featuredItems = featured;
+        _emitState((s) => s.copyWithFeed(featuredItems: featured));
+        AppLogger.debug(
+          'FeedController: state atualizado com ${featured.length} destaques',
+        );
+      }
     } catch (error, stack) {
+      featuredStatus = 'error';
       AppLogger.error(
         'FeedController: featured profiles indisponiveis no ambiente atual',
         error,
         stack,
       );
+    } finally {
+      AppPerformanceTracker.finishSpan(
+        'feed.featured_profiles',
+        featuredStopwatch,
+        data: {'status': featuredStatus, 'items': _featuredItems.length},
+      );
+      _featuredProfilesLoad = null;
     }
   }
 
-  Future<void> _loadFavoritesDeferred() async {
-    try {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
-      if (!ref.mounted) return;
-      await ref.read(favoriteControllerProvider.notifier).loadFavorites();
-    } catch (error, stack) {
-      AppLogger.error('Feed: erro no sync diferido de favoritos', error, stack);
-    }
+  void _scheduleFavoritesSync() {
+    _favoritesSyncTimer?.cancel();
+    _favoritesSyncTimer = Timer(const Duration(milliseconds: 900), () async {
+      try {
+        if (!ref.mounted) return;
+        await ref.read(favoriteControllerProvider.notifier).loadFavorites();
+      } catch (error, stack) {
+        AppLogger.error(
+          'Feed: erro no sync diferido de favoritos',
+          error,
+          stack,
+        );
+      }
+    });
   }
 
   Future<void> _loadSections({
@@ -326,7 +409,25 @@ class FeedController extends _$FeedController {
 
   /// Pull-to-refresh keeps current UI and reloads data.
   Future<void> refresh() async {
-    await _loadData(showFullSkeleton: false);
+    final existingRefresh = _activeRefresh;
+    if (existingRefresh != null) {
+      AppPerformanceTracker.mark(
+        'feed.refresh.reused',
+        data: {'reason': 'already_in_progress'},
+      );
+      await existingRefresh;
+      return;
+    }
+
+    final refreshFuture = _loadData(showFullSkeleton: false);
+    _activeRefresh = refreshFuture;
+    try {
+      await refreshFuture;
+    } finally {
+      if (identical(_activeRefresh, refreshFuture)) {
+        _activeRefresh = null;
+      }
+    }
   }
 
   /// Whether pagination can request more items.
@@ -346,23 +447,52 @@ class FeedController extends _$FeedController {
   Future<AppUser?> _resolveCurrentUserProfile({
     Duration timeout = const Duration(seconds: 3),
   }) async {
+    final profileResolveStopwatch = AppPerformanceTracker.startSpan(
+      'feed.resolve_current_user_profile',
+    );
     if (!ref.mounted) return null;
     final immediate = ref.read(currentUserProfileProvider).value;
-    if (immediate != null) return immediate;
+    if (immediate != null) {
+      AppPerformanceTracker.finishSpan(
+        'feed.resolve_current_user_profile',
+        profileResolveStopwatch,
+        data: {'source': 'cached', 'has_profile': true},
+      );
+      return immediate;
+    }
 
     final uid = ref.read(authRepositoryProvider).currentUser?.uid;
-    if (uid == null) return null;
+    if (uid == null) {
+      AppPerformanceTracker.finishSpan(
+        'feed.resolve_current_user_profile',
+        profileResolveStopwatch,
+        data: {'source': 'missing_auth', 'has_profile': false},
+      );
+      return null;
+    }
 
     try {
-      return await ref
+      final profile = await ref
           .read(authRepositoryProvider)
           .watchUser(uid)
           .where((user) => user != null)
           .cast<AppUser>()
           .first
           .timeout(timeout);
+      AppPerformanceTracker.finishSpan(
+        'feed.resolve_current_user_profile',
+        profileResolveStopwatch,
+        data: {'source': 'stream', 'has_profile': true},
+      );
+      return profile;
     } catch (_) {
-      return ref.read(currentUserProfileProvider).value;
+      final fallback = ref.read(currentUserProfileProvider).value;
+      AppPerformanceTracker.finishSpan(
+        'feed.resolve_current_user_profile',
+        profileResolveStopwatch,
+        data: {'source': 'fallback', 'has_profile': fallback != null},
+      );
+      return fallback;
     }
   }
 

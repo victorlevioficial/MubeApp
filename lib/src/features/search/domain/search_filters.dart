@@ -55,6 +55,64 @@ abstract class SearchFilters with _$SearchFilters {
 
   const SearchFilters._();
 
+  /// Whether the current filters require professional profiles.
+  bool get hasProfessionalOnlyFilters =>
+      professionalSubcategory != null ||
+      instruments.isNotEmpty ||
+      roles.isNotEmpty ||
+      canDoBackingVocal != null;
+
+  /// Whether the current filters require studio profiles.
+  bool get hasStudioOnlyFilters => services.isNotEmpty || studioType != null;
+
+  /// Whether the current filter combination cannot match any profile type.
+  bool get hasConflictingTypeFilters {
+    switch (category) {
+      case SearchCategory.all:
+        return hasProfessionalOnlyFilters && hasStudioOnlyFilters;
+      case SearchCategory.professionals:
+        return hasStudioOnlyFilters;
+      case SearchCategory.studios:
+        return hasProfessionalOnlyFilters;
+      case SearchCategory.bands:
+        return hasProfessionalOnlyFilters || hasStudioOnlyFilters;
+    }
+  }
+
+  /// Removes filters that do not make sense for the selected category.
+  SearchFilters sanitizeForCategory(SearchCategory nextCategory) {
+    var next = copyWith(category: nextCategory);
+
+    if (nextCategory == SearchCategory.professionals ||
+        nextCategory == SearchCategory.bands) {
+      next = next.copyWith(services: const [], studioType: null);
+    }
+
+    if (nextCategory == SearchCategory.studios ||
+        nextCategory == SearchCategory.bands) {
+      next = next.copyWith(
+        professionalSubcategory: null,
+        instruments: const [],
+        roles: const [],
+        canDoBackingVocal: null,
+      );
+    }
+
+    return next;
+  }
+
+  /// Sanitizes filters before executing a search.
+  SearchFilters sanitizedForSearch() {
+    switch (category) {
+      case SearchCategory.all:
+        return this;
+      case SearchCategory.professionals:
+      case SearchCategory.studios:
+      case SearchCategory.bands:
+        return sanitizeForCategory(category);
+    }
+  }
+
   /// Whether any filter is active (besides category)
   bool get hasActiveFilters =>
       term.isNotEmpty ||

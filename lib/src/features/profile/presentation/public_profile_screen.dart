@@ -322,7 +322,7 @@ class PublicProfileScreen extends ConsumerWidget {
                   child: SizedBox(
                     height: 56, // Same height as PrimaryButton
                     child: ElevatedButton.icon(
-                      onPressed: () => context.push('/profile/edit'),
+                      onPressed: () => context.push(RoutePaths.profileEdit),
                       icon: const Icon(Icons.edit, size: 20),
                       label: const Text('Editar'),
                       style: ElevatedButton.styleFrom(

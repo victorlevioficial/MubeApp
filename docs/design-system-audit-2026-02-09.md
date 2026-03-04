@@ -153,7 +153,7 @@ Impact:
 ### P3 - Showcase and docs alignment (0.5 day)
 
 1. Update showcase sections to use canonical APIs only.
-2. Keep this audit and `design-system.md` in sync with code after each migration step.
+2. Keep this audit and `docs/reference/design-system-current.md` in sync with code after each migration step.
 
 ## 6. Validation Checklist
 

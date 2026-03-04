@@ -8,18 +8,26 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "08:00"
     open-pull-requests-limit: 5
+    target-branch: "develop"
     labels:
       - "dependencies"
       - "dart"
     commit-message:
       prefix: "deps(dart):"
+    groups:
+      flutter-and-dart-deps:
+        patterns:
+          - "*"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
+      time: "08:00"
+    target-branch: "develop"
     labels:
       - "dependencies"
       - "ci"

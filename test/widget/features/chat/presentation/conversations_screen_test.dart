@@ -63,7 +63,7 @@ void main() {
 
       expect(find.text('Nenhuma conversa ainda'), findsOneWidget);
       expect(
-        find.text('Suas conexões e amigos aparecerão aqui.'),
+        find.text('Suas conexoes e amigos aparecerao aqui.'),
         findsOneWidget,
       );
     });

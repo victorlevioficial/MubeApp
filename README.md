@@ -1,157 +1,197 @@
-# Mube - Conectando Músicos
+# Mube
 
-Aplicativo mobile para conectar músicos, bandas, estúdios e contratantes no Brasil.
+Aplicativo Flutter para conectar musicos, bandas, estudios e contratantes no Brasil.
 
-## 📱 Sobre o Projeto
+## Visao Geral
 
-O Mube é uma plataforma que facilita a conexão entre profissionais da música. Nossa missão é criar oportunidades para músicos encontrarem bandas, estúdios disponibilizarem seus serviços e contratantes descobrirem talentos.
+Principais areas do app:
 
-### Funcionalidades Principais
+- Autenticacao
+- Perfis
+- Feed
+- Busca
+- MatchPoint
+- Chat
+- Favoritos
+- Notificacoes
+- Suporte
 
-- 🔐 **Autenticação**: Login e cadastro com email/senha
-- 👤 **Perfis**: Criação de perfis para músicos, bandas, estúdios e contratantes
-- 🔍 **Busca**: Encontre profissionais por localização, gênero musical, instrumentos e mais
-- 💖 **MatchPoint**: Sistema de match para conectar músicos compatíveis
-- 💬 **Chat**: Conversas em tempo real entre usuários
-- ⭐ **Favoritos**: Salve perfis favoritos para acesso rápido
-- 🔔 **Notificações**: Push notifications para matches e mensagens
-- 🎨 **Design System**: Interface consistente e moderna com tema dark
+Stack principal:
 
-## 🚀 Tecnologias
+- Flutter 3.8+
+- Dart 3.8+
+- Firebase
+- Riverpod 3
+- GoRouter
 
-- **Framework**: Flutter 3.8+
-- **Linguagem**: Dart
-- **Backend**: Firebase (Firestore, Auth, Storage, Messaging)
-- **State Management**: Riverpod
-- **Navegação**: GoRouter
-- **Arquitetura**: Clean Architecture
+Contratos tecnicos atuais importantes:
 
-## 📁 Estrutura do Projeto
+- `RoutePaths` e `GoRouter` sao a fonte da verdade de navegacao
+- rotas publicas incluem caminhos dinamicos como `/legal/:type`
+- perfis `professional`, `band` e `studio` nao expõem nome de registro em superficies publicas quando faltam nomes publicos
+- listeners de efeito colateral em telas sensiveis devem ser registrados fora de `build`, via lifecycle + `ref.listenManual(...)`
+- o bootstrap inicial remove o splash nativo somente depois de o app ter estado visual valido
 
-```
+## Estrutura do Projeto
+
+```text
 lib/
-├── src/
-│   ├── core/           # Configurações, erros, providers globais
-│   ├── design_system/  # Componentes UI, tokens, tema
-│   ├── features/       # Funcionalidades do app (por feature)
-│   │   ├── auth/       # Autenticação
-│   │   ├── feed/       # Feed principal
-│   │   ├── search/     # Busca
-│   │   ├── matchpoint/ # Sistema de match
-│   │   ├── chat/       # Mensagens
-│   │   ├── profile/    # Perfil do usuário
-│   │   └── ...
-│   ├── routing/        # Configuração de rotas
-│   └── utils/          # Utilitários
-├── l10n/               # Internacionalização (PT/EN)
-└── main.dart           # Entry point
+  main.dart
+  l10n/
+  src/
+    app.dart
+    constants/
+    core/
+    design_system/
+    features/
+    routing/
+    shared/
+    utils/
+
+test/
+  helpers/
+  integration/
+  routing/
+  src/
+  unit/
+  widget/
 ```
 
-## 🛠️ Configuração do Ambiente
+Observacoes:
 
-### Pré-requisitos
+- O projeto e feature-based
+- Nem toda feature segue exatamente `data/domain/presentation`
+- Algumas features usam `providers/`, `controllers/`, `screens/` e `widgets/`
 
-- Flutter SDK >= 3.8.0
-- Dart SDK >= 3.8.0
-- Android Studio / Xcode (para emuladores)
-- Conta Firebase configurada
+## Pontos de Entrada Importantes
 
-### Instalação
+- App bootstrap: `lib/main.dart`
+- App widget: `lib/src/app.dart`
+- Router: `lib/src/routing/app_router.dart`
+- Route paths: `lib/src/routing/route_paths.dart`
+- Design system: `lib/src/design_system/`
+- Firestore constants: `lib/src/constants/firestore_constants.dart`
 
-1. Clone o repositório:
-```bash
-git clone https://github.com/seu-usuario/mube.git
-cd mube
-```
+Ordem recomendada de leitura para entender o projeto:
 
-2. Instale as dependências:
+1. `lib/main.dart`
+2. `lib/src/app.dart`
+3. `lib/src/routing/app_router.dart`
+4. `lib/src/routing/route_paths.dart`
+5. a feature alvo em `lib/src/features/`
+
+## Setup
+
+Pre-requisitos:
+
+- Flutter SDK `>=3.8.0`
+- Dart SDK `>=3.8.0`
+- Android Studio e/ou Xcode
+- Projeto Firebase configurado
+
+Instalacao:
+
 ```bash
 flutter pub get
-```
-
-3. Configure o Firebase:
-   - Adicione o `google-services.json` em `android/app/`
-   - Adicione o `GoogleService-Info.plist` em `ios/Runner/`
-
-4. Configure as API Keys (opcional para desenvolvimento):
-```bash
-# Crie o arquivo .vscode/launch.json com as chaves:
-# GOOGLE_VISION_API_KEY
-# GOOGLE_MAPS_API_KEY
-```
-
-5. Execute o app:
-```bash
 flutter run
 ```
 
-## 📦 Build de Release
+Configuracao:
 
-### Android
+- chaves e flags de ambiente devem vir de `--dart-define` quando aplicavel
+- nao confie em fallback implicito de chaves de terceiros a partir de config do Firebase
+
+Firebase:
+
+- Android: `android/app/google-services.json`
+- iOS: `ios/Runner/GoogleService-Info.plist`
+
+## Build
+
+Android:
 
 ```bash
-# APK
 flutter build apk --release
-
-# App Bundle (para Play Store)
 flutter build appbundle --release
 ```
 
-### iOS
+Deploy Play Store com Fastlane:
+
+```bash
+bundle install
+export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.json"
+bundle exec fastlane android closed
+```
+
+iOS:
 
 ```bash
 flutter build ios --release
 ```
 
-Veja o [BUILD_GUIDE.md](BUILD_GUIDE.md) para instruções detalhadas.
+Guias relacionados:
 
-## 🧪 Testes
+- `docs/operations/build-guide.md`
+- `docs/windows-mac-ios-workflow.md`
+
+## Testes
+
+Comandos uteis:
 
 ```bash
-# Rodar todos os testes
+flutter analyze
 flutter test
-
-# Rodar testes específicos
 flutter test test/unit/
 flutter test test/widget/
 flutter test test/integration/
+flutter test --coverage
 ```
 
-## 📝 Convenções de Código
+Referencia:
 
-- **Lint**: `flutter_lints` configurado
-- **Formatação**: `dart format`
-- **Const constructors**: Sempre que possível para melhor performance
-- **Imports**: Organizados em ordem alfabética
+- `test/README.md`
 
-## 🌐 Internacionalização
+Status esperado do workspace:
 
-O app suporta:
-- 🇧🇷 Português (Brasil) - Padrão
-- 🇺🇸 Inglês
+- `flutter analyze` limpo
+- `flutter test` verde
 
-## 📄 Licença
+## Convenções
 
-Este projeto é privado e de propriedade da Mube.
+- Codigo em ingles
+- Strings de UI preferencialmente em portugues
+- Arquivos em `snake_case`
+- Nao use `print`; use `AppLogger`
+- Reuse tokens e componentes do design system antes de criar novos
+- Use `RoutePaths` em vez de rotas hardcoded
+- Antes de criar provider novo, verifique o padrao local da feature
+- Nao registre listeners de side effect dentro de `build` quando eles precisarem sobreviver a rebuilds
 
-## 🤝 Contribuição
+## Documentacao de Referencia
 
-Para contribuir com o projeto:
+Fonte de verdade atual:
 
-1. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-2. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-3. Push para a branch (`git push origin feature/nova-feature`)
-4. Abra um Pull Request
+- Arquitetura: `ARCHITECTURE.md`
+- Indice tecnico: `CODE_INDEX.md`
+- Spec complementar: `docs/architecture-spec.md`
+- Design system atual: `docs/reference/design-system-current.md`
+- Code style: `docs/reference/code-style.md`
+- Firestore schema: `docs/FIRESTORE_SCHEMA.md`
+- Regras de negocio: `docs/business-rules-catalog.md`
+- Estado geral do projeto: `docs/project/status.md`
+- Build e operacao: `docs/operations/build-guide.md`
 
-## 📞 Suporte
+## Internacionalizacao
 
-Para suporte ou dúvidas, entre em contato através do app ou pelo email: suporte@mube.app
+Idiomas suportados:
 
----
+- `pt` (padrao)
+- `en`
 
-**Versão**: 1.0.0+1  
-**Última atualização**: Fevereiro 2026
+## Projeto
 
-## Fluxo Windows + MacBook
+- Pacote: `mube`
+- Versao atual: `1.1.3+12`
+- Repositorio privado
 
-Guia operacional: `docs/windows-mac-ios-workflow.md`
+Ultima revisao: 2026-03-04

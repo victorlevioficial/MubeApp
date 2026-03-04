@@ -1,0 +1,18 @@
+# Default ownership
+* @victorlevioficial
+
+# App core
+/lib/ @victorlevioficial
+/test/ @victorlevioficial
+/integration_test/ @victorlevioficial
+
+# Backend and infra
+/functions/ @victorlevioficial
+/firebase.json @victorlevioficial
+/firestore.rules @victorlevioficial
+/firestore.indexes.json @victorlevioficial
+/storage.rules @victorlevioficial
+
+# CI / repo governance
+/.github/ @victorlevioficial
+/docs/ @victorlevioficial

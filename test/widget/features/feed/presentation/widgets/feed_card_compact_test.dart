@@ -29,13 +29,13 @@ void main() {
       expect(find.text('João Rock'), findsOneWidget);
     });
 
-    testWidgets('renders with real name when artistic name is null', (
+    testWidgets('renders contractor name when artistic name is null', (
       WidgetTester tester,
     ) async {
       const itemWithoutArtisticName = FeedItem(
         uid: 'user-2',
         nome: 'Maria Santos',
-        tipoPerfil: 'profissional',
+        tipoPerfil: 'contratante',
       );
 
       await tester.pumpWidget(
@@ -183,7 +183,8 @@ void main() {
       const itemWithLongName = FeedItem(
         uid: 'user-3',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado',
-        tipoPerfil: 'profissional',
+        nomeArtistico: 'Nome Muito Longo Que Deveria Ser Truncado',
+        tipoPerfil: 'contratante',
       );
 
       await tester.pumpWidget(

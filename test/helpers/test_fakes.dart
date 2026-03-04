@@ -726,6 +726,9 @@ class FakeSearchController extends SearchController {
   void setBackingVocalFilter(bool? canDoBacking) {}
 
   @override
+  void applyFilters(SearchFilters filters) {}
+
+  @override
   void clearFilters() {}
 
   @override

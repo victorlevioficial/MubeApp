@@ -68,7 +68,7 @@ void main() {
 
       expect(find.text('Nenhum resultado encontrado'), findsOneWidget);
       expect(
-        find.text('Tente outro termo para encontrar a opcao desejada.'),
+        find.text('Tente outro termo para encontrar a opção desejada.'),
         findsOneWidget,
       );
     });

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
@@ -830,7 +831,10 @@ void main() {
         );
 
         // Act
-        await tester.pump(); // Pump once to show loading
+        await tester.pump();
+        await tester.enterText(find.byType(EditableText), 'rock');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 450));
 
         // Assert - Deve mostrar indicador de loading
         expect(find.byType(FeedItemSkeleton), findsWidgets);

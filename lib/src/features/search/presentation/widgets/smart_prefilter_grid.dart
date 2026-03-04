@@ -1,0 +1,497 @@
+import 'package:flutter/material.dart';
+
+import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../domain/search_filters.dart';
+
+/// Represents a smart pre-filter shortcut for discovery.
+class SmartPrefilter {
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final Color accentColor;
+
+  /// The filters to apply when this pre-filter is tapped.
+  final SearchFilters filters;
+
+  const SmartPrefilter({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.accentColor,
+    required this.filters,
+  });
+}
+
+/// A group of prefilters under a section header.
+class _PrefilterSection {
+  final String title;
+  final String? subtitle;
+  final List<SmartPrefilter> items;
+
+  const _PrefilterSection({
+    required this.title,
+    this.subtitle,
+    required this.items,
+  });
+}
+
+// ─── Pre-filter Definitions ──────────────────────────────────────────────────
+
+const _kMusiciansSection = _PrefilterSection(
+  title: 'Músicos',
+  subtitle: 'Encontre instrumentistas e cantores',
+  items: [
+    SmartPrefilter(
+      label: 'Cantores',
+      subtitle: 'Vocais & Backing',
+      icon: Icons.mic_rounded,
+      accentColor: Color(0xFFA78BFA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.singer,
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Guitarristas',
+      subtitle: 'Violão & Guitarra',
+      icon: Icons.music_note_rounded,
+      accentColor: Color(0xFFE8466C),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.instrumentalist,
+        instruments: ['Guitarra', 'Violão'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Bateristas',
+      subtitle: 'Percussão & Bateria',
+      icon: Icons.surround_sound_rounded,
+      accentColor: Color(0xFF60A5FA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.instrumentalist,
+        instruments: ['Bateria'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Baixistas',
+      subtitle: 'Contrabaixo & Baixo',
+      icon: Icons.graphic_eq_rounded,
+      accentColor: Color(0xFF34D399),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.instrumentalist,
+        instruments: ['Baixo', 'Contrabaixo'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Tecladistas',
+      subtitle: 'Piano & Teclado',
+      icon: Icons.piano_rounded,
+      accentColor: Color(0xFFFBBF24),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.instrumentalist,
+        instruments: ['Teclado', 'Piano'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'DJs',
+      subtitle: 'Eletrônica & Mix',
+      icon: Icons.album_rounded,
+      accentColor: Color(0xFFF472B6),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.dj,
+      ),
+    ),
+  ],
+);
+
+const _kCrewSection = _PrefilterSection(
+  title: 'Equipe Técnica',
+  subtitle: 'Profissionais de palco e estúdio',
+  items: [
+    SmartPrefilter(
+      label: 'Técnicos de Som',
+      subtitle: 'PA, Monitor & RF',
+      icon: Icons.speaker_rounded,
+      accentColor: Color(0xFF60A5FA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: ['Técnico de PA', 'Técnico de Monitor', 'Técnico de RF'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Técnicos de Luz',
+      subtitle: 'Iluminação & LED',
+      icon: Icons.lightbulb_rounded,
+      accentColor: Color(0xFFFBBF24),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: ['Técnico de Luz', 'VJ (Telão)', 'Técnico de LED (Painel)'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Produtores',
+      subtitle: 'Produção & Direção',
+      icon: Icons.equalizer_rounded,
+      accentColor: Color(0xFFC026D3),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: ['Produtor', 'Produtor Musical', 'Diretor Musical'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Roadies',
+      subtitle: 'Techs & Backline',
+      icon: Icons.build_rounded,
+      accentColor: Color(0xFFF87171),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: [
+          'Roadie',
+          'Backline Tech',
+          'Guitar Tech',
+          'Drum Tech',
+          'Bass Tech',
+        ],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Stage Managers',
+      subtitle: 'Gestão de Palco',
+      icon: Icons.event_note_rounded,
+      accentColor: Color(0xFF34D399),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: ['Stage Manager'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Mixagem & Master',
+      subtitle: 'Gravação & Edição',
+      icon: Icons.tune_rounded,
+      accentColor: Color(0xFFE8466C),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.crew,
+        roles: [
+          'Mixagem',
+          'Masterização',
+          'Técnico de Gravação',
+          'Edição de Áudio',
+        ],
+      ),
+    ),
+  ],
+);
+
+const _kBandsStudiosSection = _PrefilterSection(
+  title: 'Bandas & Estúdios',
+  subtitle: 'Grupos e espaços musicais',
+  items: [
+    SmartPrefilter(
+      label: 'Bandas',
+      subtitle: 'Grupos musicais',
+      icon: Icons.groups_rounded,
+      accentColor: Color(0xFFC026D3),
+      filters: SearchFilters(category: SearchCategory.bands),
+    ),
+    SmartPrefilter(
+      label: 'Estúdios',
+      subtitle: 'Gravação & Ensaio',
+      icon: Icons.headset_rounded,
+      accentColor: Color(0xFFDC2626),
+      filters: SearchFilters(category: SearchCategory.studios),
+    ),
+  ],
+);
+
+const _kGenresSection = _PrefilterSection(
+  title: 'Por Gênero',
+  subtitle: 'Filtre por estilo musical',
+  items: [
+    SmartPrefilter(
+      label: 'Sertanejo',
+      subtitle: 'Universitário & Raiz',
+      icon: Icons.nightlife_rounded,
+      accentColor: Color(0xFFFBBF24),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Sertanejo', 'Sertanejo Universitário'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Rock',
+      subtitle: 'Clássico, Indie & Alt',
+      icon: Icons.electric_bolt_rounded,
+      accentColor: Color(0xFFF87171),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Rock', 'Pop Rock', 'Rock Clássico', 'Indie Rock'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Gospel',
+      subtitle: 'Worship & Louvor',
+      icon: Icons.church_rounded,
+      accentColor: Color(0xFF60A5FA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Gospel', 'Worship'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Funk & Eletrônica',
+      subtitle: 'EDM, House & Funk',
+      icon: Icons.flash_on_rounded,
+      accentColor: Color(0xFFA78BFA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Funk', 'Eletrônica', 'EDM', 'House'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Pagode & Samba',
+      subtitle: 'Samba-enredo & Pagode',
+      icon: Icons.celebration_rounded,
+      accentColor: Color(0xFF34D399),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Pagode', 'Samba', 'Samba-enredo'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Forró & Nordeste',
+      subtitle: 'Forró, Piseiro & Xote',
+      icon: Icons.music_note_rounded,
+      accentColor: Color(0xFFE8466C),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        genres: ['Forró', 'Piseiro', 'Xote', 'Baião'],
+      ),
+    ),
+  ],
+);
+
+final List<_PrefilterSection> _kAllSections = [
+  _kMusiciansSection,
+  _kCrewSection,
+  _kBandsStudiosSection,
+  _kGenresSection,
+];
+
+// Flat list for backward compatibility
+final List<SmartPrefilter> kSmartPrefilters = _kAllSections
+    .expand((section) => section.items)
+    .toList();
+
+/// A grid of smart pre-filter cards organized in sections for quick discovery.
+class SmartPrefilterGrid extends StatelessWidget {
+  final ValueChanged<SmartPrefilter> onPrefilterTap;
+
+  const SmartPrefilterGrid({super.key, required this.onPrefilterTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          child: Text('Descobrir', style: AppTypography.headlineMedium),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          child: Text(
+            'Encontre o profissional ideal',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s24),
+        ..._kAllSections.map((section) => _buildSection(section)),
+      ],
+    );
+  }
+
+  Widget _buildSection(_PrefilterSection section) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 16,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: AppRadius.pill,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        section.title,
+                        style: AppTypography.titleSmall.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (section.subtitle != null)
+                        Text(
+                          section.subtitle!,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textTertiary,
+                            fontSize: 11,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = AppSpacing.s10;
+              final availableWidth =
+                  constraints.maxWidth - (AppSpacing.s16 * 2);
+              final columnCount = availableWidth >= 960
+                  ? 4
+                  : availableWidth >= 640
+                  ? 3
+                  : 2;
+              final itemWidth =
+                  (availableWidth - ((columnCount - 1) * spacing)) /
+                  columnCount;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+                child: Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (final item in section.items)
+                      SizedBox(
+                        width: itemWidth,
+                        child: _PrefilterCard(
+                          item: item,
+                          onTap: onPrefilterTap,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrefilterCard extends StatefulWidget {
+  final SmartPrefilter item;
+  final ValueChanged<SmartPrefilter> onTap;
+
+  const _PrefilterCard({required this.item, required this.onTap});
+
+  @override
+  State<_PrefilterCard> createState() => _PrefilterCardState();
+}
+
+class _PrefilterCardState extends State<_PrefilterCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = widget.item.accentColor;
+
+    return GestureDetector(
+      onTap: () => widget.onTap(widget.item),
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeInOut,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 124),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.s12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.all16,
+              border: Border.all(
+                color: _isPressed
+                    ? accent.withValues(alpha: 0.5)
+                    : AppColors.surfaceHighlight.withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.15),
+                    borderRadius: AppRadius.all8,
+                  ),
+                  child: Icon(widget.item.icon, color: accent, size: 18),
+                ),
+                const SizedBox(height: AppSpacing.s12),
+                Text(
+                  widget.item.label,
+                  style: AppTypography.titleSmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    height: 1.15,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  widget.item.subtitle,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textTertiary,
+                    fontSize: 10,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

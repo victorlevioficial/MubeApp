@@ -48,7 +48,7 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Ninguem favoritou voce ainda'), findsOneWidget);
+      expect(find.text('Ninguém favoritou você ainda'), findsOneWidget);
     });
 
     testWidgets('renders users who favorited the current user', (tester) async {

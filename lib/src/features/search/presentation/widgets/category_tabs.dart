@@ -19,17 +19,18 @@ class CategoryTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Row(
         children: [
           _buildTab(
             label: 'Todos',
-            icon: Icons.people_outline,
+            icon: Icons.people_alt_outlined,
             category: SearchCategory.all,
           ),
           const SizedBox(width: AppSpacing.s8),
           _buildTab(
             label: 'Profissionais',
-            icon: Icons.person_outline,
+            icon: Icons.person_outline_rounded,
             category: SearchCategory.professionals,
           ),
           const SizedBox(width: AppSpacing.s8),
@@ -41,7 +42,7 @@ class CategoryTabs extends StatelessWidget {
           const SizedBox(width: AppSpacing.s8),
           _buildTab(
             label: 'Estúdios',
-            icon: Icons.mic_none,
+            icon: Icons.headset_outlined,
             category: SearchCategory.studios,
           ),
         ],

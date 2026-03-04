@@ -1,0 +1,64 @@
+default_platform(:android)
+
+require "shellwords"
+
+platform :android do
+  desc "Build and upload the Android App Bundle to the internal track"
+  lane :internal do |options|
+    deploy_play_store(
+      track: "internal",
+      release_status: options[:release_status] || "draft",
+      validate_only: options[:validate_only] || false
+    )
+  end
+
+  desc "Build and upload the Android App Bundle to the closed beta track"
+  lane :beta do |options|
+    deploy_play_store(
+      track: options[:track] || ENV["PLAY_STORE_BETA_TRACK"] || "beta",
+      release_status: options[:release_status] || "draft",
+      validate_only: options[:validate_only] || false
+    )
+  end
+
+  desc "Build and upload the Android App Bundle to the closed testing track"
+  lane :closed do |options|
+    deploy_play_store(
+      track: options[:track] || ENV["PLAY_STORE_CLOSED_TRACK"] || "alpha",
+      release_status: options[:release_status] || "draft",
+      validate_only: options[:validate_only] || false
+    )
+  end
+
+  desc "Build and upload the Android App Bundle to production"
+  lane :production do |options|
+    deploy_play_store(
+      track: "production",
+      release_status: options[:release_status] || "completed",
+      validate_only: options[:validate_only] || false
+    )
+  end
+
+  private_lane :deploy_play_store do |options|
+    json_key_path = ENV["PLAY_STORE_JSON_KEY"] || ENV["SUPPLY_JSON_KEY"]
+    UI.user_error!("Set PLAY_STORE_JSON_KEY or SUPPLY_JSON_KEY with the Google Play service account JSON path.") if json_key_path.to_s.empty?
+
+    repo_root = File.expand_path("../..", __dir__)
+    aab_path = File.join(repo_root, "build", "app", "outputs", "bundle", "release", "app-release.aab")
+
+    sh("cd #{repo_root.shellescape} && flutter build appbundle --release")
+
+    upload_to_play_store(
+      track: options[:track],
+      aab: aab_path,
+      json_key: json_key_path,
+      package_name: CredentialsManager::AppfileConfig.try_fetch_value(:package_name),
+      release_status: options[:release_status],
+      validate_only: options[:validate_only],
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

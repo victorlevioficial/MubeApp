@@ -75,7 +75,7 @@ class AppChip extends StatelessWidget {
       case AppChipVariant.genre:
         return _buildGenreChip();
       case AppChipVariant.filter:
-        return _buildFilterChip();
+        return _buildFilterChip(context);
     }
   }
 
@@ -113,59 +113,68 @@ class AppChip extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip() {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s16,
-          vertical: AppSpacing.s8,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryMuted
-              : AppColors.surfaceHighlight,
-          borderRadius: AppRadius.pill,
-          border: isSelected
-              ? Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.5),
-                  width: 1,
-                )
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-              const SizedBox(width: AppSpacing.s8),
-            ],
-            Text(
-              label,
-              style: AppTypography.labelMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: isSelected
-                    ? AppTypography.buttonPrimary.fontWeight
-                    : AppTypography.labelMedium.fontWeight,
-              ),
-            ),
-            if (onDeleted != null) ...[
-              const SizedBox(width: AppSpacing.s8),
-              GestureDetector(
-                onTap: onDeleted,
-                child: const Icon(
-                  Icons.close,
-                  size: 16,
-                  color: AppColors.textPrimary,
+  Widget _buildFilterChip(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * 0.72,
+      ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s8,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryMuted
+                : AppColors.surfaceHighlight,
+            borderRadius: AppRadius.pill,
+            border: isSelected
+                ? Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                    width: 1,
+                  )
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 18,
+                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                ),
+                const SizedBox(width: AppSpacing.s8),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: isSelected
+                        ? AppTypography.buttonPrimary.fontWeight
+                        : AppTypography.labelMedium.fontWeight,
+                  ),
                 ),
               ),
+              if (onDeleted != null) ...[
+                const SizedBox(width: AppSpacing.s8),
+                GestureDetector(
+                  onTap: onDeleted,
+                  child: const Icon(
+                    Icons.close,
+                    size: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

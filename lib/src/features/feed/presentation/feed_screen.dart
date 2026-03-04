@@ -6,11 +6,14 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
 import '../../../core/mixins/pagination_mixin.dart';
+import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../auth/data/auth_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -28,9 +31,11 @@ abstract final class FeedConstants {
   static const double filterBarHeight = 52.0;
   static const double paginationThreshold = 200.0;
   static const double bottomPadding = 80.0;
+  static const int criticalPrecacheItems = 6;
   static const int initialPrecacheItems = 4;
   static const int incrementalPrecacheItems = 6;
   static const int deferredPrecacheItems = 10;
+  static const Duration criticalPrecacheTimeout = Duration(milliseconds: 1200);
   static const Duration deferredPrecacheDelay = Duration(milliseconds: 1400);
   static const double initialCacheExtent = 400.0;
 }
@@ -50,6 +55,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   int _precacheFingerprint = 0;
   int _lastKnownMainItemCount = 0;
   int _lastWarmupAnchor = -1;
+  int _criticalWarmupFingerprint = 0;
+  int _criticalWarmupGeneration = 0;
+  bool _criticalImagesReady = false;
+  bool _hasRenderedFeedContent = false;
 
   @override
   void initState() {
@@ -102,11 +111,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   void _navigateToUser(FeedItem item) {
-    context.push('/user/${item.uid}', extra: item);
+    context.push(RoutePaths.publicProfileById(item.uid), extra: item);
   }
 
   void _navigateToSectionList(FeedSectionType type) {
-    context.push('/feed/list', extra: {'type': type});
+    context.push(RoutePaths.feedList, extra: {'type': type});
   }
 
   List<FeedItem> _getSpotlightItems(FeedState state) {
@@ -147,6 +156,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           if (allItems.isEmpty || !context.mounted) return;
 
           final precacheService = ref.read(feedImagePrecacheServiceProvider);
+          _scheduleCriticalImageWarmup(state);
           precacheService.precacheItems(
             context,
             allItems,
@@ -184,6 +194,94 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
+  void _scheduleCriticalImageWarmup(FeedState state) {
+    if (!mounted) return;
+
+    final urls = _buildCriticalImageUrls(state);
+    if (urls.isEmpty) {
+      if (_criticalImagesReady && _hasRenderedFeedContent) return;
+      setState(() {
+        _criticalImagesReady = true;
+        _hasRenderedFeedContent = true;
+      });
+      return;
+    }
+
+    final fingerprint = Object.hashAll(urls);
+    if (fingerprint == _criticalWarmupFingerprint && _criticalImagesReady) {
+      return;
+    }
+
+    _criticalWarmupFingerprint = fingerprint;
+    final generation = ++_criticalWarmupGeneration;
+    final criticalWarmupStopwatch = AppPerformanceTracker.startSpan(
+      'feed.critical_image_warmup',
+      data: {'urls': urls.length},
+    );
+
+    if (_hasRenderedFeedContent) {
+      _criticalImagesReady = true;
+    } else {
+      setState(() {
+        _criticalImagesReady = false;
+      });
+    }
+
+    final precacheService = ref.read(feedImagePrecacheServiceProvider);
+    unawaited(
+      precacheService
+          .precacheCriticalUrls(
+            context,
+            urls,
+            cacheManager: ImageCacheConfig.profileCacheManager,
+            maxWidth: ImageCacheConfig.feedPrecacheMaxDimension,
+            maxHeight: ImageCacheConfig.feedPrecacheMaxDimension,
+            timeout: FeedConstants.criticalPrecacheTimeout,
+          )
+          .whenComplete(() {
+            if (!mounted || generation != _criticalWarmupGeneration) return;
+            AppPerformanceTracker.finishSpan(
+              'feed.critical_image_warmup',
+              criticalWarmupStopwatch,
+              data: {'urls': urls.length},
+            );
+            setState(() {
+              _criticalImagesReady = true;
+              _hasRenderedFeedContent = true;
+            });
+          }),
+    );
+  }
+
+  List<String> _buildCriticalImageUrls(FeedState state) {
+    final urls = <String>[];
+    final seenUrls = <String>{};
+
+    void addUrl(String? url) {
+      if (url == null || url.isEmpty || !seenUrls.add(url)) return;
+      urls.add(url);
+    }
+
+    addUrl(ref.read(currentUserProfileProvider).asData?.value?.foto);
+
+    for (final item in _getSpotlightItems(state).take(2)) {
+      addUrl(item.foto);
+    }
+
+    final visibleSectionEntries = state.sectionItems.entries.take(2);
+    for (final entry in visibleSectionEntries) {
+      for (final item in entry.value.take(2)) {
+        addUrl(item.foto);
+      }
+    }
+
+    for (final item in state.items.take(FeedConstants.criticalPrecacheItems)) {
+      addUrl(item.foto);
+    }
+
+    return urls;
+  }
+
   void _warmUpcomingMainFeedWindow() {
     if (!mounted || !_scrollController.hasClients) return;
     final mainItems = ref.read(feedControllerProvider).value?.items;
@@ -214,8 +312,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final stateAsync = ref.watch(feedControllerProvider);
     final state = stateAsync.value ?? const FeedState();
     final controller = ref.read(feedControllerProvider.notifier);
+    final shouldHoldForCriticalImages =
+        !_hasRenderedFeedContent &&
+        state.items.isNotEmpty &&
+        !_criticalImagesReady;
 
-    if (state.isInitialLoading) {
+    if (state.isInitialLoading || shouldHoldForCriticalImages) {
       return const FeedScreenSkeleton();
     }
 
@@ -244,7 +346,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       );
     }
 
-    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final currentUser = ref.watch(currentUserProfileProvider).asData?.value;
     final spotlightItems = _getSpotlightItems(state);
 
     return Scaffold(
@@ -265,7 +367,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               currentUser: currentUser,
               isScrolled: _isScrolled,
               onNotificationTap: () {
-                context.push('/notifications');
+                context.push(RoutePaths.notifications);
               },
             ),
 

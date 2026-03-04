@@ -9,11 +9,8 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
-import '../../feed/presentation/feed_controller.dart';
-import '../../matchpoint/presentation/controllers/matchpoint_controller.dart';
 import '../../moderation/data/blocked_users_provider.dart';
 import '../../moderation/data/moderation_repository.dart';
-import '../../search/presentation/search_controller.dart' as search_ctrl;
 
 final blockedUsersDetailsByKeyProvider = FutureProvider.autoDispose
     .family<List<AppUser>, String>((ref, String idsKey) async {
@@ -190,11 +187,6 @@ class BlockedUsersScreen extends ConsumerWidget {
         }
       },
       (_) {
-        // Recarrega listas afetadas por bloqueio/desbloqueio.
-        unawaited(ref.read(feedControllerProvider.notifier).loadAllData());
-        ref.invalidate(search_ctrl.searchControllerProvider);
-        ref.invalidate(matchpointCandidatesProvider);
-
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,

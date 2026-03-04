@@ -7,6 +7,7 @@ import '../../../../design_system/components/patterns/fade_in_slide.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../routing/route_paths.dart';
 import '../../domain/feed_item.dart';
 import 'feed_card_vertical.dart';
 import 'feed_item_skeleton.dart';
@@ -106,7 +107,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
       widget.onItemTap!(item);
     } else {
       // Default: navigate to user profile
-      context.push('/user/${item.uid}');
+      context.push(RoutePaths.publicProfileById(item.uid));
     }
   }
 

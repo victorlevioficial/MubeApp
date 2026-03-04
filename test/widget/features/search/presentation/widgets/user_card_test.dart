@@ -29,14 +29,14 @@ void main() {
       expect(find.text('João Rock'), findsOneWidget);
     });
 
-    testWidgets('renders with user real name when no artistic name', (
+    testWidgets('renders contractor name when no artistic name', (
       WidgetTester tester,
     ) async {
       const userWithoutArtisticName = AppUser(
         uid: 'user-2',
         email: 'test2@example.com',
         nome: 'Maria Santos',
-        tipoPerfil: AppUserType.professional,
+        tipoPerfil: AppUserType.contractor,
       );
 
       await tester.pumpWidget(
@@ -203,7 +203,7 @@ void main() {
         uid: 'user-4',
         email: 'test4@example.com',
         nome: 'Nome Muito Longo Que Deveria Ser Truncado Para Caber No Card',
-        tipoPerfil: AppUserType.professional,
+        tipoPerfil: AppUserType.contractor,
       );
 
       await tester.pumpWidget(
@@ -244,18 +244,40 @@ void main() {
       ];
 
       for (final (type, label) in types) {
+        final user = switch (type) {
+          AppUserType.professional => const AppUser(
+            uid: 'user-professional',
+            email: 'test@example.com',
+            nome: 'Test User',
+            tipoPerfil: AppUserType.professional,
+            dadosProfissional: {'nomeArtistico': 'Artist Name'},
+          ),
+          AppUserType.band => const AppUser(
+            uid: 'user-band',
+            email: 'test@example.com',
+            nome: 'Test User',
+            tipoPerfil: AppUserType.band,
+            dadosBanda: {'nomeBanda': 'Band Name'},
+          ),
+          AppUserType.studio => const AppUser(
+            uid: 'user-studio',
+            email: 'test@example.com',
+            nome: 'Test User',
+            tipoPerfil: AppUserType.studio,
+            dadosEstudio: {'nomeEstudio': 'Studio Name'},
+          ),
+          AppUserType.contractor => const AppUser(
+            uid: 'user-contractor',
+            email: 'test@example.com',
+            nome: 'Contractor Name',
+            tipoPerfil: AppUserType.contractor,
+          ),
+        };
+
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: UserCard(
-                user: AppUser(
-                  uid: 'user-$type',
-                  email: 'test@example.com',
-                  nome: 'Test User',
-                  tipoPerfil: type,
-                ),
-                onTap: () {},
-              ),
+              body: UserCard(user: user, onTap: () {}),
             ),
           ),
         );

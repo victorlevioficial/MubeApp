@@ -874,6 +874,7 @@ void main() {
           nome: 'John Doe',
           tipoPerfil: AppUserType.professional,
           cadastroStatus: 'concluido',
+          dadosProfissional: {'nomeArtistico': 'John Doe'},
           location: {
             'cidade': 'São Paulo',
             'estado': 'SP',
@@ -921,6 +922,7 @@ void main() {
           nome: 'John Doe',
           tipoPerfil: AppUserType.professional,
           cadastroStatus: 'concluido',
+          dadosProfissional: {'nomeArtistico': 'John Doe'},
           location: null,
         );
 

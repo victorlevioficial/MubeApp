@@ -15,6 +15,7 @@ import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
 import '../data/auth_repository.dart';
 
@@ -222,7 +223,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     child: AppButton.secondary(
                       key: const Key('back_to_login_button'),
                       text: 'Voltar para o login',
-                      onPressed: () => context.go('/login'),
+                      onPressed: () => context.go(RoutePaths.login),
                     ),
                   ),
                 ],

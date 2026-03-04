@@ -15,6 +15,7 @@ import 'package:mube/src/features/feed/presentation/feed_image_precache_service.
 import 'package:mube/src/features/feed/presentation/widgets/feed_card_vertical.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_loading_more.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
+import 'package:mube/src/routing/route_paths.dart';
 
 
 import 'widgets/favorites_filter_bar.dart';
@@ -304,7 +305,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         final item = _filteredItems[index];
                         return FeedCardVertical(
                           item: item,
-                          onTap: () => context.push('/user/${item.uid}'),
+                          onTap: () =>
+                              context.push(RoutePaths.publicProfileById(item.uid)),
                         );
                       },
                     ),

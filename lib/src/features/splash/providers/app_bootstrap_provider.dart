@@ -21,10 +21,18 @@ final appCheckBootstrapperProvider = Provider<AppCheckBootstrapper>((ref) {
 });
 
 class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
+  static const Duration _appCheckStartupDelay = Duration(seconds: 3);
   bool _isStarting = false;
+  Future<void>? _appCheckActivation;
+  Timer? _appCheckTimer;
 
   @override
-  AppBootstrapState build() => AppBootstrapState.idle;
+  AppBootstrapState build() {
+    ref.onDispose(() {
+      _appCheckTimer?.cancel();
+    });
+    return AppBootstrapState.idle;
+  }
 
   Future<void> start() async {
     if (_isStarting || state == AppBootstrapState.ready) {
@@ -35,7 +43,7 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     state = AppBootstrapState.running;
 
     try {
-      await ref.read(appCheckBootstrapperProvider)();
+      _ensureAppCheckActivation();
       unawaited(_warmNotificationPermissionPromptState());
     } catch (error, stack) {
       AppLogger.warning(
@@ -47,6 +55,22 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
       state = AppBootstrapState.ready;
       _isStarting = false;
     }
+  }
+
+  void _ensureAppCheckActivation() {
+    if (_appCheckActivation != null || _appCheckTimer != null) return;
+
+    _appCheckTimer = Timer(_appCheckStartupDelay, () {
+      _appCheckTimer = null;
+      _appCheckActivation = ref
+          .read(appCheckBootstrapperProvider)()
+          .catchError((Object error, StackTrace stack) {
+            AppLogger.warning('Falha ao inicializar App Check', error, stack);
+          })
+          .whenComplete(() {
+            _appCheckActivation = null;
+          });
+    });
   }
 
   Future<void> _warmNotificationPermissionPromptState() async {
@@ -91,6 +115,6 @@ Future<void> initializeAppCheck() async {
       'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
     );
   } catch (error, stack) {
-    AppLogger.warning('Falha ao inicializar App Check', error, stack);
+    AppLogger.warning('Falha ao ativar provider do App Check', error, stack);
   }
 }

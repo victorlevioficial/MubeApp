@@ -1,5 +1,3 @@
-import '../../../firebase_options.dart';
-
 /// Application configuration constants.
 ///
 /// This class centralizes all environment-specific configuration
@@ -30,19 +28,8 @@ class AppConfig {
   static String get googleVisionApiKey => _googleVisionApiKeyFromEnv;
 
   /// Google Maps API Key for location services
-  /// Prefer `--dart-define=GOOGLE_MAPS_API_KEY=xxx`.
-  /// Falls back to the platform Firebase API key for local/dev builds.
-  static String get googleMapsApiKey {
-    if (_googleMapsApiKeyFromEnv.isNotEmpty) {
-      return _googleMapsApiKeyFromEnv;
-    }
-
-    try {
-      return DefaultFirebaseOptions.currentPlatform.apiKey;
-    } catch (_) {
-      return '';
-    }
-  }
+  /// Set via: --dart-define=GOOGLE_MAPS_API_KEY=xxx
+  static String get googleMapsApiKey => _googleMapsApiKeyFromEnv;
 
   // ===========================================================================
   // API ENDPOINTS

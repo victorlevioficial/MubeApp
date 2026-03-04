@@ -15,6 +15,7 @@ import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
 import '../../legal/presentation/legal_detail_screen.dart';
 import 'register_controller.dart';
@@ -366,7 +367,7 @@ class _LoginLink extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => context.go('/login'),
+            onTap: () => context.go(RoutePaths.login),
             child: Text(
               'Entrar',
               key: const Key('login_link'),

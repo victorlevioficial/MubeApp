@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../constants/firestore_constants.dart';
 import '../../../../core/mixins/pagination_mixin.dart';
 import '../../../../utils/app_logger.dart';
+import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/feed_repository.dart';
 import '../../domain/feed_item.dart';
@@ -33,6 +34,10 @@ class FeedMainController {
     required bool reset,
     required int batchSize,
   }) async {
+    final mainFeedStopwatch = AppPerformanceTracker.startSpan(
+      'feed.main_fetch',
+      data: {'reset': reset, 'filter': currentState.currentFilter},
+    );
     if (reset) {
       runtime.allSortedUsers = [];
       runtime.remoteHasMore = true;
@@ -127,6 +132,11 @@ class FeedMainController {
             );
 
             if (shouldReturnError) {
+              AppPerformanceTracker.finishSpan(
+                'feed.main_fetch',
+                mainFeedStopwatch,
+                data: {'status': 'error', 'source': 'nearby_users'},
+              );
               return currentState.copyWithFeed(
                 status: PaginationStatus.error,
                 errorMessage: errorMessage ?? 'Erro ao buscar usuários',
@@ -158,6 +168,11 @@ class FeedMainController {
           );
 
           if (cursorError != null) {
+            AppPerformanceTracker.finishSpan(
+              'feed.main_fetch',
+              mainFeedStopwatch,
+              data: {'status': 'error', 'source': 'cursor_page'},
+            );
             return currentState.copyWithFeed(
               status: PaginationStatus.error,
               errorMessage: cursorError,
@@ -184,6 +199,15 @@ class FeedMainController {
             ? currentState.copyWithFeed(items: [], currentPage: 0)
             : currentState;
 
+        AppPerformanceTracker.finishSpan(
+          'feed.main_fetch',
+          mainFeedStopwatch,
+          data: {
+            'status': hasMore ? 'loaded' : 'no_more_data',
+            'items': baseState.items.length,
+            'remote_has_more': runtime.remoteHasMore,
+          },
+        );
         return baseState.copyWithFeed(
           status: hasMore
               ? PaginationStatus.loaded
@@ -207,6 +231,16 @@ class FeedMainController {
         'Feed: endIndex=$endIndex, total=${runtime.allSortedUsers.length}, hasMore=$hasMore',
       );
 
+      AppPerformanceTracker.finishSpan(
+        'feed.main_fetch',
+        mainFeedStopwatch,
+        data: {
+          'status': hasMore ? 'loaded' : 'no_more_data',
+          'items': allItems.length,
+          'batch_items': newItems.length,
+          'remote_has_more': runtime.remoteHasMore,
+        },
+      );
       return currentState.copyWithFeed(
         items: allItems,
         status: hasMore ? PaginationStatus.loaded : PaginationStatus.noMoreData,
@@ -214,6 +248,11 @@ class FeedMainController {
         hasMore: hasMore,
       );
     } catch (error) {
+      AppPerformanceTracker.finishSpan(
+        'feed.main_fetch',
+        mainFeedStopwatch,
+        data: {'status': 'error', 'error_type': error.runtimeType.toString()},
+      );
       return currentState.copyWithFeed(
         status: PaginationStatus.error,
         errorMessage: error.toString(),
@@ -293,4 +332,3 @@ class FeedMainController {
     }
   }
 }
-

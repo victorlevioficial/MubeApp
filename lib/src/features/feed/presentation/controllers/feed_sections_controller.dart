@@ -1,5 +1,6 @@
 import '../../../../constants/firestore_constants.dart';
 import '../../../../core/typedefs.dart';
+import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/feed_repository.dart';
 import '../../domain/feed_item.dart';
@@ -19,6 +20,9 @@ class FeedSectionsController {
     required double? userLong,
     required int sectionLimit,
   }) async {
+    final sectionsStopwatch = AppPerformanceTracker.startSpan(
+      'feed.sections_fetch',
+    );
     final items = <FeedSectionType, List<FeedItem>>{};
 
     Future<List<FeedItem>> fetchOrEmpty(
@@ -102,6 +106,15 @@ class FeedSectionsController {
       items[FeedSectionType.studios] = results[2];
     }
 
+    AppPerformanceTracker.finishSpan(
+      'feed.sections_fetch',
+      sectionsStopwatch,
+      data: {
+        'technicians': items[FeedSectionType.technicians]?.length ?? 0,
+        'bands': items[FeedSectionType.bands]?.length ?? 0,
+        'studios': items[FeedSectionType.studios]?.length ?? 0,
+      },
+    );
     return items;
   }
 }

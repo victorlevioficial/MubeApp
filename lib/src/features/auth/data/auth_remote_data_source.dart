@@ -202,16 +202,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Stream<AppUser?> watchUserProfile(String uid) {
-    return _firestore
-        .collection(FirestoreCollections.users)
-        .doc(uid)
-        .snapshots()
-        .map((doc) {
-          if (doc.exists && doc.data() != null) {
-            return AppUser.fromJson(doc.data()!);
-          }
-          return null;
-        });
+    final docRef = _firestore.collection(FirestoreCollections.users).doc(uid);
+
+    return (() async* {
+      try {
+        final cachedDoc = await docRef.get(const GetOptions(source: Source.cache));
+        if (cachedDoc.exists && cachedDoc.data() != null) {
+          yield AppUser.fromJson(cachedDoc.data()!);
+        }
+      } on FirebaseException catch (error, stack) {
+        AppLogger.debug(
+          'Perfil em cache indisponivel para $uid: ${error.code}',
+        );
+        AppLogger.debug(stack.toString());
+      }
+
+      yield* docRef.snapshots(includeMetadataChanges: true).map((doc) {
+        if (doc.exists && doc.data() != null) {
+          return AppUser.fromJson(doc.data()!);
+        }
+        return null;
+      });
+    })();
   }
 
   @override

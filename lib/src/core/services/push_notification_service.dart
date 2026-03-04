@@ -14,6 +14,8 @@ class PushNotificationService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  static Future<void>? _activeInitialization;
+  static bool _isInitialized = false;
 
   /// The conversation currently being viewed by the user.
   /// When set, push notifications for this conversation are suppressed
@@ -38,6 +40,32 @@ class PushNotificationService {
   }
 
   Future<void> _initInternal({required bool requestPermission}) async {
+    if (_isInitialized) {
+      AppLogger.info('PushNotificationService already initialized');
+      return;
+    }
+
+    final existingInitialization = _activeInitialization;
+    if (existingInitialization != null) {
+      await existingInitialization;
+      return;
+    }
+
+    final initialization = _performInitialization(
+      requestPermission: requestPermission,
+    );
+    _activeInitialization = initialization;
+
+    try {
+      await initialization;
+    } finally {
+      if (identical(_activeInitialization, initialization)) {
+        _activeInitialization = null;
+      }
+    }
+  }
+
+  Future<void> _performInitialization({required bool requestPermission}) async {
     try {
       // 0. Init Local Notifications
       const androidSettings = AndroidInitializationSettings(
@@ -113,6 +141,7 @@ class PushNotificationService {
         // Emit to global event bus for navigation handling
         PushNotificationEventBus.instance.emitMessageOpened(message);
       });
+      _isInitialized = true;
     } catch (e, stack) {
       AppLogger.error('Failed to init PushNotificationService', e, stack);
     }

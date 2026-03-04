@@ -53,6 +53,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final List<_PendingMessage> _pendingMessages = [];
   ProviderSubscription<AsyncValue<List<Message>>>?
   _messagesReadReceiptSubscription;
+  ProviderSubscription<AsyncValue<List<ConversationPreview>>>?
+  _conversationPreviewSubscription;
   bool _isNavigatingToEmailVerification = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
@@ -76,7 +78,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     PushNotificationService.setActiveConversation(widget.conversationId);
 
     _initializeData();
+    _setupConversationPreviewListener();
     unawaited(_prepareConversation());
+  }
+
+  void _setupConversationPreviewListener() {
+    _conversationPreviewSubscription =
+        ref.listenManual<AsyncValue<List<ConversationPreview>>>(
+          userConversationsProvider,
+          (_, next) {
+            final previews = next.asData?.value;
+            if (previews == null) return;
+            final updated = previews
+                .where((p) => p.id == widget.conversationId)
+                .firstOrNull;
+            if (updated == null) return;
+            if (updated.otherUserPhoto != _otherUserPhoto ||
+                updated.otherUserName != _otherUserName) {
+              if (mounted) {
+                setState(() {
+                  _otherUserPhoto = updated.otherUserPhoto;
+                  _otherUserName = updated.otherUserName;
+                  if (_otherUserId.isEmpty) {
+                    _otherUserId = updated.otherUserId;
+                  }
+                });
+              }
+            }
+          },
+        );
   }
 
   void _initializeData() {
@@ -318,6 +348,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     PushNotificationService.setActiveConversation(null);
+    _conversationPreviewSubscription?.close();
     _messagesReadReceiptSubscription?.close();
     _textController.dispose();
     _scrollController.dispose();
@@ -644,29 +675,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
 
-    // Escuta mudanças no preview do Firestore para atualizar foto/nome
-    // dinamicamente sem precisar fechar e reabrir o chat.
-    ref.listen(userConversationsProvider, (_, next) {
-      final previews = next.asData?.value;
-      if (previews == null) return;
-      final updated = previews
-          .where((p) => p.id == widget.conversationId)
-          .firstOrNull;
-      if (updated == null) return;
-      if (updated.otherUserPhoto != _otherUserPhoto ||
-          updated.otherUserName != _otherUserName) {
-        if (mounted) {
-          setState(() {
-            _otherUserPhoto = updated.otherUserPhoto;
-            _otherUserName = updated.otherUserName;
-            if (_otherUserId.isEmpty) {
-              _otherUserId = updated.otherUserId;
-            }
-          });
-        }
-      }
-    });
-
     final messagesAsync = _canReadConversation
         ? ref.watch(conversationMessagesProvider(widget.conversationId))
         : null;
@@ -794,7 +802,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return GestureDetector(
       onTap: () {
         if (_otherUserId.isNotEmpty) {
-          context.push('/user/$_otherUserId');
+          context.push(RoutePaths.publicProfileById(_otherUserId));
         }
       },
       child: Row(

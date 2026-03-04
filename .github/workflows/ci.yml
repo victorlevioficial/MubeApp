@@ -3,8 +3,17 @@ name: Flutter CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,6 +26,7 @@ jobs:
   analyze:
     name: Static Analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +38,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
@@ -40,6 +50,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: analyze
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -51,7 +62,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Verify text encoding (mojibake guard)
         run: flutter test test/unit/quality/mojibake_guard_test.dart
@@ -73,11 +84,20 @@ jobs:
         with:
           files: coverage/lcov.info
           fail_ci_if_error: false
+      
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 7
 
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
     needs: [analyze, test]
+    if: github.event_name == 'push'
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -95,7 +115,7 @@ jobs:
           distribution: temurin
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Build APK
         run: flutter build apk --release
@@ -108,11 +128,14 @@ jobs:
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
 
   build-ios:
     name: Build iOS (No Codesign)
     runs-on: macos-latest
     needs: [analyze, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -124,7 +147,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Build iOS without code signing
         run: flutter build ios --release --no-codesign
@@ -133,6 +156,7 @@ jobs:
     name: Security Audit
     runs-on: ubuntu-latest
     needs: analyze
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -144,7 +168,7 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Check for outdated dependencies
         run: flutter pub outdated

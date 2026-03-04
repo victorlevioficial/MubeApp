@@ -94,6 +94,15 @@ device_screen*.png
 device_view*.xml
 result.json
 test_output.txt
+logs/
+tmp/
+output/
+*.jsonl
+*_log*.txt
+*_out*.txt
+*error*.txt
+*debug*.txt
+final*.txt
 
 # Vendored dependency local-only extras
 third_party/firebase_storage/.dart_tool/

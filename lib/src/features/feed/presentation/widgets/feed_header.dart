@@ -210,7 +210,9 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
             onTap: () {
               HapticFeedback.mediumImpact();
               final uid = widget.currentUser?.uid;
-              if (uid != null) context.push('/user/$uid');
+              if (uid != null) {
+                context.push(RoutePaths.publicProfileById(uid));
+              }
             },
             child: AnimatedContainer(
               key: const Key('feed_header_avatar'),

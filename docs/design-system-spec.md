@@ -1,7 +1,7 @@
 # Design System Spec (Current)
 
 Updated from code on 2026-02-09.
-Primary reference remains `design-system.md`.
+Primary reference remains `docs/reference/design-system-current.md`.
 
 ## 1. Architecture
 

@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../core/services/image_cache_config.dart';
 import '../../foundations/tokens/app_colors.dart';
@@ -68,27 +69,27 @@ class UserAvatar extends StatelessWidget {
 
     // If photo URL exists and is not empty, show image
     if (photoUrl != null && photoUrl!.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: photoUrl!,
-        fit: BoxFit.cover,
-        fadeInDuration: Duration.zero,
-        fadeOutDuration: Duration.zero,
-        useOldImageOnUrlChange: true,
+      final imageProvider = CachedNetworkImageProvider(
+        photoUrl!,
         cacheManager: ImageCacheConfig.profileCacheManager,
-        memCacheWidth: cacheSize,
-        memCacheHeight: cacheSize,
-        maxWidthDiskCache: cacheSize,
-        maxHeightDiskCache: cacheSize,
-        placeholder: (context, url) => _buildLoadingPlaceholder(),
-        errorWidget: (context, url, error) => _buildInitialsAvatar(),
-        // Use imageBuilder to ensure smooth rendering
-        imageBuilder: (context, imageProvider) {
-          return Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
-            ),
-          );
+        maxWidth: cacheSize,
+        maxHeight: cacheSize,
+      );
+
+      return Image(
+        image: imageProvider,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          return _buildLoadingPlaceholder();
         },
+        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(),
       );
     }
 
