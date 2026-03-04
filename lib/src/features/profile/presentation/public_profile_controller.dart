@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -21,12 +22,14 @@ part 'public_profile_controller.g.dart';
 class PublicProfileState {
   final AppUser? user;
   final List<MediaItem> galleryItems;
+  final List<AppUser> bandMembers;
   final bool isLoading;
   final String? error;
 
   const PublicProfileState({
     this.user,
     this.galleryItems = const [],
+    this.bandMembers = const [],
     this.isLoading = true,
     this.error,
   });
@@ -34,12 +37,14 @@ class PublicProfileState {
   PublicProfileState copyWith({
     AppUser? user,
     List<MediaItem>? galleryItems,
+    List<AppUser>? bandMembers,
     bool? isLoading,
     String? error,
   }) {
     return PublicProfileState(
       user: user ?? this.user,
       galleryItems: galleryItems ?? this.galleryItems,
+      bandMembers: bandMembers ?? this.bandMembers,
       isLoading: isLoading ?? this.isLoading,
       error: error, // Nullable override
     );
@@ -62,64 +67,125 @@ class PublicProfileController extends _$PublicProfileController {
         uid,
       ]);
 
-      return result.fold(
-        (failure) => PublicProfileState(
-          isLoading: false,
-          error: 'Erro ao carregar perfil: ${failure.message}',
-        ),
-        (users) {
-          if (users.isEmpty) {
-            return const PublicProfileState(
-              isLoading: false,
-              error: 'Perfil n\u00E3o encontrado',
-            );
-          }
+      // Unpack Either without nesting async inside fold
+      String? failureMessage;
+      List<AppUser> fetchedUsers = [];
 
-          final user = users.first;
-
-          // Load gallery items based on user type
-          List<dynamic> galleryData = [];
-          switch (user.tipoPerfil) {
-            case AppUserType.professional:
-              galleryData =
-                  user.dadosProfissional?['gallery'] as List<dynamic>? ?? [];
-              break;
-            case AppUserType.band:
-              galleryData = user.dadosBanda?['gallery'] as List<dynamic>? ?? [];
-              break;
-            case AppUserType.studio:
-              galleryData =
-                  user.dadosEstudio?['gallery'] as List<dynamic>? ?? [];
-              break;
-            case AppUserType.contractor:
-              galleryData =
-                  user.dadosContratante?['gallery'] as List<dynamic>? ?? [];
-              break;
-            default:
-              galleryData = [];
-          }
-
-          final gallery =
-              galleryData
-                  .map(
-                    (item) => MediaItem.fromJson(item as Map<String, dynamic>),
-                  )
-                  .toList()
-                ..sort((a, b) => a.order.compareTo(b.order));
-
-          return PublicProfileState(
-            user: user,
-            galleryItems: gallery,
-            isLoading: false,
-          );
-        },
+      result.fold(
+        (failure) =>
+            failureMessage = 'Erro ao carregar perfil: ${failure.message}',
+        (users) => fetchedUsers = users,
       );
-    } catch (e) {
+
+      if (failureMessage != null) {
+        return PublicProfileState(isLoading: false, error: failureMessage);
+      }
+
+      if (fetchedUsers.isEmpty) {
+        return const PublicProfileState(
+          isLoading: false,
+          error: 'Perfil n\u00E3o encontrado',
+        );
+      }
+
+      final user = fetchedUsers.first;
+
+      // Load gallery items based on user type
+      List<dynamic> galleryData = [];
+      switch (user.tipoPerfil) {
+        case AppUserType.professional:
+          galleryData =
+              user.dadosProfissional?['gallery'] as List<dynamic>? ?? [];
+          break;
+        case AppUserType.band:
+          galleryData = user.dadosBanda?['gallery'] as List<dynamic>? ?? [];
+          break;
+        case AppUserType.studio:
+          galleryData = user.dadosEstudio?['gallery'] as List<dynamic>? ?? [];
+          break;
+        case AppUserType.contractor:
+          galleryData =
+              user.dadosContratante?['gallery'] as List<dynamic>? ?? [];
+          break;
+        default:
+          galleryData = [];
+      }
+
+      final gallery = _parseGalleryItems(galleryData);
+
+      // Load band members if applicable (async, outside fold)
+      List<AppUser> bandMembers = [];
+      final memberIds = user.members
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+
+      if (user.tipoPerfil == AppUserType.band && memberIds.isNotEmpty) {
+        final membersResult = await ref
+            .read(authRepositoryProvider)
+            .getUsersByIds(memberIds);
+
+        membersResult.fold(
+          (failure) {
+            AppLogger.warning(
+              'Falha ao carregar integrantes da banda: ${failure.message}',
+            );
+          },
+          (members) {
+            final memberOrder = {
+              for (int i = 0; i < memberIds.length; i++) memberIds[i]: i,
+            };
+            members.sort(
+              (a, b) => (memberOrder[a.uid] ?? memberIds.length).compareTo(
+                memberOrder[b.uid] ?? memberIds.length,
+              ),
+            );
+            bandMembers = members;
+          },
+        );
+      }
+
+      return PublicProfileState(
+        user: user,
+        galleryItems: gallery,
+        bandMembers: bandMembers,
+        isLoading: false,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error('Erro ao carregar perfil publico ($uid)', e, stackTrace);
       return PublicProfileState(
         isLoading: false,
         error: 'Erro ao carregar perfil: $e',
       );
     }
+  }
+
+  List<MediaItem> _parseGalleryItems(List<dynamic> galleryData) {
+    final parsed = <MediaItem>[];
+
+    for (final rawItem in galleryData) {
+      if (rawItem is! Map) {
+        AppLogger.warning(
+          'Item de galeria invalido ignorado: ${rawItem.runtimeType}',
+        );
+        continue;
+      }
+
+      try {
+        final json = Map<String, dynamic>.from(rawItem);
+        parsed.add(MediaItem.fromJson(json));
+      } catch (e, stackTrace) {
+        AppLogger.warning(
+          'Erro ao converter item da galeria para MediaItem',
+          e,
+          stackTrace,
+        );
+      }
+    }
+
+    parsed.sort((a, b) => a.order.compareTo(b.order));
+    return parsed;
   }
 
   Future<void> refresh() async {

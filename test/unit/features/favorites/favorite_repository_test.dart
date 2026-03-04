@@ -52,17 +52,128 @@ void main() {
             .doc('fan-older')
             .collection('favorites')
             .doc(tUserId)
-            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 1, 1))});
+            .set({
+              'favoritedAt': Timestamp.fromDate(DateTime(2026, 1, 1)),
+              'target_user_id': tUserId,
+            });
         await fakeFirestore
             .collection('users')
             .doc('fan-newer')
             .collection('favorites')
             .doc(tUserId)
-            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 2, 1))});
+            .set({
+              'favoritedAt': Timestamp.fromDate(DateTime(2026, 2, 1)),
+              'target_user_id': tUserId,
+            });
 
         final result = await repository.loadReceivedFavorites();
 
         expect(result, ['fan-newer', 'fan-older']);
+      },
+    );
+
+    test(
+      'loadReceivedFavorites includes likes from interactions when favorites docs are absent',
+      () async {
+        await fakeFirestore.collection('interactions').doc('i1').set({
+          'source_user_id': 'fan-older',
+          'target_user_id': tUserId,
+          'type': 'like',
+          'created_at': Timestamp.fromDate(DateTime(2026, 1, 1)),
+        });
+        await fakeFirestore.collection('interactions').doc('i2').set({
+          'source_user_id': 'fan-newer',
+          'target_user_id': tUserId,
+          'type': 'like',
+          'created_at': Timestamp.fromDate(DateTime(2026, 2, 1)),
+        });
+        await fakeFirestore.collection('interactions').doc('i3').set({
+          'source_user_id': 'fan-dislike',
+          'target_user_id': tUserId,
+          'type': 'dislike',
+          'created_at': Timestamp.fromDate(DateTime(2026, 3, 1)),
+        });
+
+        final result = await repository.loadReceivedFavorites();
+
+        expect(result, ['fan-newer', 'fan-older']);
+      },
+    );
+
+    test(
+      'loadReceivedFavorites merges favorites and interactions without duplicates',
+      () async {
+        await fakeFirestore
+            .collection('users')
+            .doc('fan-1')
+            .collection('favorites')
+            .doc(tUserId)
+            .set({
+              'favoritedAt': Timestamp.fromDate(DateTime(2026, 1, 1)),
+              'target_user_id': tUserId,
+            });
+        await fakeFirestore.collection('interactions').doc('i1').set({
+          'source_user_id': 'fan-1',
+          'target_user_id': tUserId,
+          'type': 'like',
+          'created_at': Timestamp.fromDate(DateTime(2026, 3, 1)),
+        });
+        await fakeFirestore.collection('interactions').doc('i2').set({
+          'source_user_id': 'fan-2',
+          'target_user_id': tUserId,
+          'type': 'like',
+          'created_at': Timestamp.fromDate(DateTime(2026, 2, 1)),
+        });
+
+        final result = await repository.loadReceivedFavorites();
+
+        expect(result, ['fan-1', 'fan-2']);
+      },
+    );
+
+    test(
+      'loadReceivedFavorites recovers legacy favorites without target_user_id when expectedCount is provided',
+      () async {
+        await fakeFirestore.collection('users').doc('fan-legacy-1').set({
+          'nome': 'Fan Legacy 1',
+        });
+        await fakeFirestore.collection('users').doc('fan-legacy-2').set({
+          'nome': 'Fan Legacy 2',
+        });
+        await fakeFirestore.collection('users').doc('fan-interaction').set({
+          'nome': 'Fan Interaction',
+        });
+
+        await fakeFirestore
+            .collection('users')
+            .doc('fan-legacy-1')
+            .collection('favorites')
+            .doc(tUserId)
+            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 1, 1))});
+        await fakeFirestore
+            .collection('users')
+            .doc('fan-legacy-2')
+            .collection('favorites')
+            .doc(tUserId)
+            .set({'favoritedAt': Timestamp.fromDate(DateTime(2026, 3, 1))});
+        await fakeFirestore.collection('interactions').doc('i1').set({
+          'source_user_id': 'fan-interaction',
+          'target_user_id': tUserId,
+          'type': 'like',
+          'created_at': Timestamp.fromDate(DateTime(2026, 2, 1)),
+        });
+
+        final result = await repository.loadReceivedFavorites(expectedCount: 3);
+
+        expect(
+          result,
+          containsAll(<String>[
+            'fan-legacy-1',
+            'fan-legacy-2',
+            'fan-interaction',
+          ]),
+        );
+        expect(result.length, 3);
       },
     );
 
@@ -78,6 +189,8 @@ void main() {
 
       expect(favoriteDoc.exists, isTrue);
       expect(favoriteDoc.data(), contains('favoritedAt'));
+      expect(favoriteDoc.data(), containsPair('target_user_id', tTargetId));
+      expect(favoriteDoc.data(), containsPair('source_user_id', tUserId));
     });
 
     test('removeFavorite deletes favorite doc', () async {

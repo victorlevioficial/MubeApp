@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -72,48 +74,95 @@ class FavoriteRepository {
 
   /// Loads user ids that have favorited the current user.
   ///
-  /// Returns the parent user ids ordered by most recent favorite first.
-  Future<List<String>> loadReceivedFavorites() async {
+  /// Returns merged user ids ordered by most recent interaction first.
+  ///
+  /// Data may come from:
+  /// - `users/{source}/favorites/{target}` (legacy/current favorites flow)
+  /// - `interactions` with `{type: like, target_user_id: currentUser}` (MatchPoint)
+  ///
+  /// When `expectedCount` is provided and there is a mismatch, a legacy
+  /// backfill read scans users and checks `users/{source}/favorites/{me}` docs.
+  Future<List<String>> loadReceivedFavorites({int? expectedCount}) async {
+    final byUser = <String, int>{};
+
     try {
       final snapshot = await _firestore
           .collectionGroup('favorites')
-          .where(FieldPath.documentId, isEqualTo: _uid)
+          .where('target_user_id', isEqualTo: _uid)
           .get();
 
-      final docs = snapshot.docs.toList()
-        ..sort((a, b) {
-          final aTimestamp = a.data()['favoritedAt'];
-          final bTimestamp = b.data()['favoritedAt'];
-          final aMillis = aTimestamp is Timestamp
-              ? aTimestamp.millisecondsSinceEpoch
-              : 0;
-          final bMillis = bTimestamp is Timestamp
-              ? bTimestamp.millisecondsSinceEpoch
-              : 0;
-          return bMillis.compareTo(aMillis);
-        });
-
-      final favoriterIds = <String>[];
-      final seenIds = <String>{};
-
-      for (final doc in docs) {
-        final userDoc = doc.reference.parent.parent;
-        final userId = userDoc?.id;
-        if (userId == null || userId.isEmpty || !seenIds.add(userId)) {
+      for (final doc in snapshot.docs) {
+        final sourceUserId = doc.reference.parent.parent?.id;
+        if (sourceUserId == null ||
+            sourceUserId.isEmpty ||
+            sourceUserId == _uid) {
           continue;
         }
-        favoriterIds.add(userId);
-      }
 
-      return favoriterIds;
+        final favoritedAt = _readMillis(doc.data()['favoritedAt']);
+        final previous = byUser[sourceUserId];
+        if (previous == null || favoritedAt > previous) {
+          byUser[sourceUserId] = favoritedAt;
+        }
+      }
     } catch (e, stackTrace) {
       AppLogger.warning(
-        'Erro ao carregar quem favoritou o usuario atual',
+        'Erro ao carregar favoritos recebidos via subcolecao favorites',
         e,
         stackTrace,
       );
-      return [];
     }
+
+    try {
+      final snapshot = await _firestore
+          .collection('interactions')
+          .where('target_user_id', isEqualTo: _uid)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['type'] != 'like') continue;
+
+        final sourceUserId = data['source_user_id'];
+        if (sourceUserId is! String ||
+            sourceUserId.isEmpty ||
+            sourceUserId == _uid) {
+          continue;
+        }
+
+        final createdAt = _readMillis(data['created_at']);
+        final previous = byUser[sourceUserId];
+        if (previous == null || createdAt > previous) {
+          byUser[sourceUserId] = createdAt;
+        }
+      }
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Erro ao carregar favoritos recebidos via interactions',
+        e,
+        stackTrace,
+      );
+    }
+
+    final desiredCount = expectedCount?.clamp(0, 1000).toInt();
+    if (desiredCount != null && byUser.length < desiredCount) {
+      try {
+        await _loadLegacyReceivedFavoritesViaUserScan(
+          byUser: byUser,
+          desiredCount: desiredCount,
+        );
+      } catch (e, stackTrace) {
+        AppLogger.warning(
+          'Erro ao carregar favoritos recebidos via fallback legado',
+          e,
+          stackTrace,
+        );
+      }
+    }
+
+    final entries = byUser.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.map((entry) => entry.key).toList();
   }
 
   /// Reads global like count for a target user.
@@ -154,6 +203,8 @@ class FavoriteRepository {
 
     await userRef.set({
       'favoritedAt': FieldValue.serverTimestamp(),
+      'source_user_id': _uid,
+      'target_user_id': targetId,
     }, SetOptions(merge: true));
   }
 
@@ -183,6 +234,76 @@ class FavoriteRepository {
     }
 
     return 0;
+  }
+
+  int _readMillis(dynamic raw) {
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is DateTime) return raw.millisecondsSinceEpoch;
+    return 0;
+  }
+
+  Future<void> _loadLegacyReceivedFavoritesViaUserScan({
+    required Map<String, int> byUser,
+    required int desiredCount,
+  }) async {
+    const usersPageSize = 200;
+    const checkBatchSize = 20;
+    DocumentSnapshot<Map<String, dynamic>>? cursor;
+
+    while (byUser.length < desiredCount) {
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('users')
+          .orderBy(FieldPath.documentId)
+          .limit(usersPageSize);
+
+      if (cursor != null) {
+        query = query.startAfterDocument(cursor);
+      }
+
+      final usersPage = await query.get();
+      if (usersPage.docs.isEmpty) break;
+
+      cursor = usersPage.docs.last;
+
+      final candidates = usersPage.docs
+          .map((doc) => doc.id)
+          .where((userId) => userId != _uid && !byUser.containsKey(userId))
+          .toList();
+
+      for (
+        var i = 0;
+        i < candidates.length && byUser.length < desiredCount;
+        i += checkBatchSize
+      ) {
+        final end = math.min(i + checkBatchSize, candidates.length);
+        final batch = candidates.sublist(i, end);
+
+        final checks = await Future.wait(
+          batch.map((sourceUserId) async {
+            final favoriteDoc = await _firestore
+                .collection('users')
+                .doc(sourceUserId)
+                .collection('favorites')
+                .doc(_uid)
+                .get();
+
+            if (!favoriteDoc.exists) return null;
+            final favoritedAt = _readMillis(favoriteDoc.data()?['favoritedAt']);
+            return MapEntry(sourceUserId, favoritedAt);
+          }),
+        );
+
+        for (final entry in checks.whereType<MapEntry<String, int>>()) {
+          final previous = byUser[entry.key];
+          if (previous == null || entry.value > previous) {
+            byUser[entry.key] = entry.value;
+          }
+          if (byUser.length >= desiredCount) break;
+        }
+      }
+
+      if (usersPage.docs.length < usersPageSize) break;
+    }
   }
 }
 

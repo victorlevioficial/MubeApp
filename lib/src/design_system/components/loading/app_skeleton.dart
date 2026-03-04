@@ -275,23 +275,27 @@ class ProfileSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SkeletonShimmer(
-      child: Padding(
-        padding: AppSpacing.all16,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: SkeletonCircle(size: 120)),
-            SizedBox(height: AppSpacing.s24),
-            Center(child: SkeletonText(width: 180, height: 24)),
-            SizedBox(height: AppSpacing.s8),
-            Center(child: SkeletonText(width: 120, height: 14)),
-            SizedBox(height: AppSpacing.s32),
-            SkeletonBox(width: double.infinity, height: 48),
-            SizedBox(height: AppSpacing.s12),
-            SkeletonBox(width: double.infinity, height: 48),
-            SizedBox(height: AppSpacing.s12),
-            SkeletonBox(width: 200, height: 48),
-          ],
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        child: Padding(
+          padding: AppSpacing.all16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(child: SkeletonCircle(size: 120)),
+              SizedBox(height: AppSpacing.s24),
+              Center(child: SkeletonText(width: 180, height: 24)),
+              SizedBox(height: AppSpacing.s8),
+              Center(child: SkeletonText(width: 120, height: 14)),
+              SizedBox(height: AppSpacing.s32),
+              SkeletonBox(width: double.infinity, height: 48),
+              SizedBox(height: AppSpacing.s12),
+              SkeletonBox(width: double.infinity, height: 48),
+              SizedBox(height: AppSpacing.s12),
+              SkeletonBox(width: 200, height: 48),
+            ],
+          ),
         ),
       ),
     );

@@ -63,7 +63,7 @@ class _ReceivedFavoritesScreenState
 
       final favoriterIds = await ref
           .read(favoriteRepositoryProvider)
-          .loadReceivedFavorites();
+          .loadReceivedFavorites(expectedCount: currentUser?.favoritesCount);
 
       if (favoriterIds.isEmpty) {
         if (!mounted) return;

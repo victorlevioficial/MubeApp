@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../constants/app_constants.dart';
-import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -13,6 +11,7 @@ import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_icons.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
@@ -22,15 +21,30 @@ import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../domain/media_item.dart';
 import 'public_profile_controller.dart';
+import 'widgets/band_members_section.dart';
 import 'widgets/media_viewer_dialog.dart';
-import 'widgets/public_gallery_grid.dart';
+import 'widgets/profile_gallery_tabs.dart';
+import 'widgets/profile_hero_header.dart';
 import 'widgets/report_reason_dialog.dart';
 
-/// Screen to view another user's public profile.
+/// Public profile screen Ã¢â‚¬â€ the digital business card of a Mube user.
+///
+/// Differentiates visually between:
+/// - [AppUserType.professional] Ã¢â‚¬â€ pink/red accent
+/// - [AppUserType.band]         Ã¢â‚¬â€ fuchsia accent + members section
+/// - [AppUserType.studio]       Ã¢â‚¬â€ red accent
+/// - [AppUserType.contractor]   Ã¢â‚¬â€ amber accent
 class PublicProfileScreen extends ConsumerWidget {
   final String uid;
+  static const double _topActionSize = AppSpacing.s48;
 
   const PublicProfileScreen({super.key, required this.uid});
+
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  String _displayName(AppUser user) => user.appDisplayName;
+
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Build Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,98 +53,157 @@ class PublicProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppAppBar(
-        title: user != null ? _buildAppBarTitle(user) : 'Perfil',
-        onBackPressed: () => context.pop(),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
-            color: AppColors.surface,
-            surfaceTintColor: AppColors.transparent,
-            shape: const RoundedRectangleBorder(borderRadius: AppRadius.all12),
-            onSelected: (value) => _handleMenuAction(context, ref, value, user),
-            itemBuilder: (context) => [
-              _buildMenuItem(
-                icon: Icons.share,
-                label: 'Compartilhar Perfil',
-                value: 'share',
-              ),
-              _buildMenuItem(
-                icon: Icons.link,
-                label: 'Copiar Link',
-                value: 'copy',
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuDivider(),
-              _buildMenuItem(
-                icon: Icons.block,
-                label: 'Bloquear',
-                value: 'block',
-                isDestructive: true,
-              ),
-              _buildMenuItem(
-                icon: Icons.flag_outlined,
-                label: 'Denunciar',
-                value: 'report',
-                isDestructive: true,
-              ),
-            ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: stateAsync.when(
+              data: (state) {
+                if (state.isLoading) return _buildLoadingState(context);
+                if (state.error != null) {
+                  return _ErrorBody(message: state.error!);
+                }
+                if (state.user == null) {
+                  return const _ErrorBody(
+                    message: 'Usu\u00E1rio n\u00E3o encontrado.',
+                  );
+                }
+                return _ProfileBody(
+                  user: state.user!,
+                  galleryItems: state.galleryItems,
+                  bandMembers: state.bandMembers,
+                  uid: uid,
+                  onAvatarTap: () => _showAvatarViewer(context, state.user!),
+                  onMediaTap: (index, items) =>
+                      _showMediaViewer(context, items, index),
+                );
+              },
+              loading: () => _buildLoadingState(context),
+              error: (err, _) => _ErrorBody(message: 'Erro: $err'),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _buildTopActions(context, ref, user),
           ),
         ],
       ),
-      body: stateAsync.when(
-        data: (state) {
-          if (state.isLoading) return const ProfileSkeleton();
-
-          if (state.error != null) {
-            return Center(
-              child: Text(
-                state.error!,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary.withValues(alpha: 0.8),
-                ),
-              ),
-            );
-          }
-
-          if (state.user == null) {
-            return const Center(child: Text('Usuário não encontrado'));
-          }
-
-          return _buildProfileContent(context, state.user!, state.galleryItems);
-        },
-        loading: () => const ProfileSkeleton(),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
-      ),
       bottomNavigationBar: stateAsync.value?.user != null
-          ? _buildBottomActionBar(context, ref, stateAsync.value!.user!)
+          ? _buildBottomBar(context, ref, stateAsync.value!.user!)
           : null,
     );
   }
 
-  /// Builds the AppBar title with colored icon and profile type
-  Widget _buildAppBarTitle(AppUser user) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          _getProfileIcon(user.tipoPerfil),
-          color: _getProfileColor(user.tipoPerfil),
-          size: 20,
+  // Ã¢â€â‚¬Ã¢â€â‚¬ AppBar title Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Menu items Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  Widget _buildTopActions(BuildContext context, WidgetRef ref, AppUser? user) {
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s12,
+          AppSpacing.s8,
+          AppSpacing.s12,
+          0,
         ),
-        const SizedBox(width: AppSpacing.s8),
-        Text(
-          _getProfileLabel(user.tipoPerfil),
-          style: AppTypography.titleMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
+        child: Row(
+          children: [
+            _topActionShell(
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                alignment: Alignment.center,
+                constraints: const BoxConstraints.tightFor(
+                  width: _topActionSize,
+                  height: _topActionSize,
+                ),
+                icon: const Icon(
+                  AppIcons.arrowBackCompact,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
+                onPressed: () => context.pop(),
+                tooltip: 'Voltar',
+              ),
+            ),
+            const Spacer(),
+            _topActionShell(
+              child: PopupMenuButton<String>(
+                enabled: user != null,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: _topActionSize,
+                  height: _topActionSize,
+                ),
+                iconSize: 20,
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  color: user != null
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
+                ),
+                color: AppColors.surface,
+                surfaceTintColor: AppColors.transparent,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.all12,
+                ),
+                onSelected: user == null
+                    ? null
+                    : (value) => _handleMenuAction(context, ref, value, user),
+                itemBuilder: (context) => [
+                  _menuItem(
+                    icon: Icons.share_outlined,
+                    label: 'Compartilhar Perfil',
+                    value: 'share',
+                  ),
+                  _menuItem(
+                    icon: Icons.link_rounded,
+                    label: 'Copiar Link',
+                    value: 'copy',
+                  ),
+                  const PopupMenuDivider(),
+                  _menuItem(
+                    icon: Icons.block_rounded,
+                    label: 'Bloquear',
+                    value: 'block',
+                    isDestructive: true,
+                  ),
+                  _menuItem(
+                    icon: Icons.flag_outlined,
+                    label: 'Denunciar',
+                    value: 'report',
+                    isDestructive: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  /// Builds a popup menu item
-  PopupMenuEntry<String> _buildMenuItem({
+  Widget _topActionShell({required Widget child}) {
+    return Container(
+      width: _topActionSize,
+      height: _topActionSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.92),
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildLoadingState(BuildContext context) {
+    return const _PublicProfileSkeleton();
+  }
+
+  PopupMenuEntry<String> _menuItem({
     required IconData icon,
     required String label,
     required String value,
@@ -141,7 +214,7 @@ class PublicProfileScreen extends ConsumerWidget {
       value: value,
       child: Row(
         children: [
-          Icon(icon, size: 20, color: color),
+          Icon(icon, size: 18, color: color),
           const SizedBox(width: AppSpacing.s12),
           Text(label, style: AppTypography.bodyMedium.copyWith(color: color)),
         ],
@@ -149,9 +222,9 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  /// Handles menu item selection
-  /// Handles menu item selection
-  void _handleMenuAction(
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Menu actions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  Future<void> _handleMenuAction(
     BuildContext context,
     WidgetRef ref,
     String action,
@@ -162,14 +235,14 @@ class PublicProfileScreen extends ConsumerWidget {
 
     switch (action) {
       case 'share':
-        final displayName = _getDisplayName(user);
         await SharePlus.instance.share(
           ShareParams(
             text: 'Confira meu perfil no Mube: https://mube.app/profile/$uid',
-            subject: 'Perfil de $displayName no Mube',
+            subject: 'Perfil de ${_displayName(user)} no Mube',
           ),
         );
         break;
+
       case 'copy':
         await Clipboard.setData(
           ClipboardData(text: 'https://mube.app/profile/$uid'),
@@ -177,30 +250,31 @@ class PublicProfileScreen extends ConsumerWidget {
         if (context.mounted) {
           AppSnackBar.success(
             context,
-            'Link copiado para a área de transferência!',
+            'Link copiado para a \u00E1rea de transfer\u00EAncia!',
           );
         }
         break;
+
       case 'block':
         final confirmed = await AppOverlay.dialog<bool>(
           context: context,
           builder: (context) => const AppConfirmationDialog(
-            title: 'Bloquear Usuário?',
+            title: 'Bloquear Usu\u00E1rio?',
             message:
-                'Você não verá mais conteúdo deste usuário. Esta ação pode ser desfeita nas configurações.',
+                'Voc\u00EA n\u00E3o ver\u00E1 mais conte\u00FAdo deste usu\u00E1rio. '
+                'Esta a\u00E7\u00E3o pode ser desfeita nas configura\u00E7\u00F5es.',
             confirmText: 'Bloquear',
             isDestructive: true,
           ),
         );
-
         if (confirmed == true && context.mounted) {
           final success = await controller.blockUser();
           if (context.mounted) {
             if (success) {
-              AppSnackBar.success(context, 'Usuário bloqueado');
-              context.pop(); // Exit profile
+              AppSnackBar.success(context, 'Usu\u00E1rio bloqueado.');
+              context.pop();
             } else {
-              AppSnackBar.error(context, 'Erro ao bloquear usuário');
+              AppSnackBar.error(context, 'Erro ao bloquear usu\u00E1rio.');
             }
           }
         }
@@ -211,17 +285,18 @@ class PublicProfileScreen extends ConsumerWidget {
           context: context,
           builder: (context) => const ReportReasonDialog(),
         );
-
         if (result != null && context.mounted) {
           final reason = result['reason'] as String;
           final description = result['description'] as String?;
-
           final success = await controller.reportUser(reason, description);
           if (context.mounted) {
             if (success) {
-              AppSnackBar.success(context, 'Denúncia enviada para análise');
+              AppSnackBar.success(
+                context,
+                'Den\u00FAncia enviada para an\u00E1lise.',
+              );
             } else {
-              AppSnackBar.error(context, 'Erro ao enviar denúncia');
+              AppSnackBar.error(context, 'Erro ao enviar den\u00FAncia.');
             }
           }
         }
@@ -229,559 +304,7 @@ class PublicProfileScreen extends ConsumerWidget {
     }
   }
 
-  /// Gets the icon for a profile type
-  IconData _getProfileIcon(AppUserType? type) {
-    switch (type) {
-      case AppUserType.professional:
-        return Icons.music_note;
-      case AppUserType.band:
-        return Icons.groups;
-      case AppUserType.studio:
-        return Icons.headphones;
-      default:
-        return Icons.person;
-    }
-  }
-
-  /// Gets the color for a profile type
-  Color _getProfileColor(AppUserType? type) {
-    switch (type) {
-      case AppUserType.professional:
-        return AppColors.badgeMusician;
-      case AppUserType.band:
-        return AppColors.badgeBand;
-      case AppUserType.studio:
-        return AppColors.badgeStudio;
-      default:
-        return AppColors.badgeMusician;
-    }
-  }
-
-  /// Gets the label for a profile type
-  String _getProfileLabel(AppUserType? type) {
-    switch (type) {
-      case AppUserType.professional:
-        return 'Músico';
-      case AppUserType.band:
-        return 'Banda';
-      case AppUserType.studio:
-        return 'Estúdio';
-      default:
-        return 'Perfil';
-    }
-  }
-
-  /// Fixed bottom bar with Chat and Like buttons
-  Widget _buildBottomActionBar(
-    BuildContext context,
-    WidgetRef ref,
-    AppUser user,
-  ) {
-    final currentUser = ref.watch(currentUserProfileProvider).value;
-    final isMe = currentUser?.uid == uid;
-
-    if (isMe) {
-      return Container(
-        padding: EdgeInsets.only(
-          left: AppSpacing.s16,
-          right: AppSpacing.s16,
-          top: AppSpacing.s12,
-          bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.background.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (user.tipoPerfil == AppUserType.band) ...[
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push(RoutePaths.manageMembers),
-                  icon: const Icon(Icons.groups, size: 20),
-                  label: const Text('Gerenciar Integrantes'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s12),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 56, // Same height as PrimaryButton
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.push(RoutePaths.profileEdit),
-                      icon: const Icon(Icons.edit, size: 20),
-                      label: const Text('Editar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.textPrimary,
-                        elevation: 0,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadius.all16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.s16),
-                Expanded(
-                  child: SizedBox(
-                    height: 56, // Same height
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          ref.read(authRepositoryProvider).signOut(),
-                      icon: const Icon(Icons.logout, size: 20),
-                      label: const Text('Sair'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(
-                          color: AppColors.error,
-                          width: 1.5,
-                        ),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadius.all16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: AppSpacing.s16,
-        right: AppSpacing.s16,
-        top: AppSpacing.s12,
-        bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.background.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Chat Button (Primary action - Full Width)
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => ref
-                  .read(publicProfileControllerProvider(uid).notifier)
-                  .openChat(context),
-              icon: const Icon(Icons.chat_bubble_outline, size: 20),
-              label: const Text('Iniciar Conversa'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
-                padding: AppSpacing.v12,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.all12,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileContent(
-    BuildContext context,
-    AppUser user,
-    List<MediaItem> galleryItems,
-  ) {
-    final size = MediaQuery.sizeOf(context);
-    final isWide = size.width >= 900;
-    final bio = user.profileBio;
-
-    if (isWide) {
-      return _buildWideProfileContent(context, user, galleryItems);
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header Section
-          _buildHeader(context, user),
-
-          const SizedBox(height: AppSpacing.s24),
-
-          // Bio Section
-          if (bio != null) ...[
-            _buildBioSection(bio),
-            const SizedBox(height: AppSpacing.s24),
-          ],
-
-          // Type-specific details
-          _buildTypeSpecificDetails(user),
-
-          // Gallery Section (hide for contractors — they cannot upload media)
-          if (user.tipoPerfil != AppUserType.contractor) ...[
-            const SizedBox(height: AppSpacing.s24),
-            _buildGallerySection(context, galleryItems),
-          ],
-
-          // Extra padding at bottom to not overlap with fixed bar
-          const SizedBox(height: AppSpacing.s48),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWideProfileContent(
-    BuildContext context,
-    AppUser user,
-    List<MediaItem> galleryItems,
-  ) {
-    final bio = user.profileBio;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.s32),
-      child: ResponsiveCenter(
-        padding: EdgeInsets.zero,
-        maxContentWidth: 1200,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Coluna Esquerda: Header & Bio
-            SizedBox(
-              width: 320,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context, user),
-                  const SizedBox(height: AppSpacing.s32),
-                  if (bio != null) _buildBioSection(bio),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s48),
-            // Coluna Direita: Detalhes & Galeria
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTypeSpecificDetails(user),
-                  if (user.tipoPerfil != AppUserType.contractor) ...[
-                    const SizedBox(height: AppSpacing.s32),
-                    _buildGallerySection(context, galleryItems),
-                  ],
-                  const SizedBox(height: AppSpacing.s48),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, AppUser user) {
-    final displayName = _getDisplayName(user);
-    final location = user.location;
-
-    return Center(
-      child: Column(
-        children: [
-          // Avatar with Hero Transition — tap to enlarge
-          GestureDetector(
-            onTap: user.foto != null && user.foto!.isNotEmpty
-                ? () => _showAvatarViewer(context, user)
-                : null,
-            child: Hero(
-              tag: 'avatar-${user.uid}',
-              child: UserAvatar(
-                size: 120,
-                photoUrl: user.foto,
-                name: displayName,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s16),
-
-          // Display Name (artistic name / band name / studio name)
-          Text(
-            displayName,
-            style: AppTypography.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-
-          // Subcategories with Icons (for professionals)
-          if (user.tipoPerfil == AppUserType.professional) ...[
-            const SizedBox(height: AppSpacing.s8),
-            _buildSubCategoriesRow(user),
-          ],
-
-          // Location
-          if (location != null) ...[
-            const SizedBox(height: AppSpacing.s12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: AppColors.primary,
-                ),
-                const SizedBox(width: AppSpacing.s4),
-                Text(
-                  '${location['cidade'] ?? '-'}, ${location['estado'] ?? '-'}',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBioSection(String bio) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Sobre', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.s8),
-        Text(
-          bio,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-            height: 1.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTypeSpecificDetails(AppUser user) {
-    switch (user.tipoPerfil) {
-      case AppUserType.professional:
-        return _buildProfessionalDetails(user);
-      case AppUserType.band:
-        return _buildBandDetails(user);
-      case AppUserType.studio:
-        return _buildStudioDetails(user);
-      case AppUserType.contractor:
-        return _buildContractorDetails(user);
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildProfessionalDetails(AppUser user) {
-    final prof = user.dadosProfissional;
-    if (prof == null) return const SizedBox.shrink();
-
-    final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
-    final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
-    final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (instrumentos.isNotEmpty)
-          _buildChipsSection('Instrumentos', instrumentos, isSkill: true),
-        if (funcoes.isNotEmpty)
-          _buildChipsSection('Funções Técnicas', funcoes, isSkill: true),
-        if (generos.isNotEmpty)
-          _buildChipsSection('Gêneros Musicais', generos, isSkill: false),
-      ],
-    );
-  }
-
-  Widget _buildBandDetails(AppUser user) {
-    final banda = user.dadosBanda;
-    if (banda == null) return const SizedBox.shrink();
-
-    final generos = (banda['generosMusicais'] as List?)?.cast<String>() ?? [];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (generos.isNotEmpty)
-          _buildChipsSection('Gêneros Musicais', generos, isSkill: false),
-      ],
-    );
-  }
-
-  Widget _buildStudioDetails(AppUser user) {
-    final estudio = user.dadosEstudio;
-    if (estudio == null) return const SizedBox.shrink();
-
-    final services =
-        (estudio['services'] as List?)?.cast<String>() ??
-        (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
-        [];
-    final studioType = estudio['studioType'] as String?;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (studioType != null)
-          _buildChipsSection('Tipo', [
-            studioType == 'commercial' ? 'Comercial' : 'Home Studio',
-          ], isSkill: true),
-        if (services.isNotEmpty)
-          _buildChipsSection('Serviços', services, isSkill: true),
-      ],
-    );
-  }
-
-  Widget _buildContractorDetails(AppUser user) {
-    final contratante = user.dadosContratante;
-    if (contratante == null) return const SizedBox.shrink();
-
-    final genero = contratante['genero'] as String?;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (genero != null && genero.isNotEmpty)
-          _buildChipsSection('Gênero', [genero], isSkill: true),
-      ],
-    );
-  }
-
-  Widget _buildChipsSection(
-    String title,
-    List<String> items, {
-    required bool isSkill,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: AppTypography.titleMedium),
-          const SizedBox(height: AppSpacing.s8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: items.map((item) {
-              if (isSkill) {
-                return _buildSkillChip(item);
-              } else {
-                return _buildGenreChip(item);
-              }
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSkillChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s12,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceHighlight,
-        borderRadius: AppRadius.pill,
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
-      ),
-    );
-  }
-
-  Widget _buildGenreChip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s12,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceHighlight, // Matches skill chip
-        borderRadius: AppRadius.pill,
-      ),
-      child: Text(
-        label,
-        style: AppTypography.chipLabel.copyWith(color: AppColors.textPrimary),
-      ),
-    );
-  }
-
-  Widget _buildGallerySection(
-    BuildContext context,
-    List<MediaItem> galleryItems,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Galeria', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.s12),
-        if (galleryItems.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: AppSpacing.v32,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.all12,
-              border: Border.all(color: AppColors.surfaceHighlight),
-            ),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.photo_library_outlined,
-                  size: 48,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(height: AppSpacing.s8),
-                Text(
-                  'Galeria Vazia',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  'Este usuário ainda não adicionou fotos ou vídeos.',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          PublicGalleryGrid(
-            items: galleryItems,
-            onItemTap: (index) {
-              _showMediaViewer(context, galleryItems, index);
-            },
-          ),
-      ],
-    );
-  }
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Media viewers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   void _showMediaViewer(
     BuildContext context,
@@ -805,11 +328,14 @@ class PublicProfileScreen extends ConsumerWidget {
         child: Scaffold(
           backgroundColor: AppColors.transparent,
           appBar: AppAppBar(
-            title: _getDisplayName(user),
+            title: _displayName(user),
             backgroundColor: AppColors.transparent,
             showBackButton: false,
             leading: IconButton(
-              icon: const Icon(Icons.close, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.close_rounded,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),
@@ -824,8 +350,8 @@ class PublicProfileScreen extends ConsumerWidget {
                   child: Image.network(
                     user.foto!,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.broken_image,
+                    errorBuilder: (context, _, _) => const Icon(
+                      Icons.broken_image_rounded,
                       size: 120,
                       color: AppColors.textSecondary,
                     ),
@@ -839,48 +365,733 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  String _getDisplayName(AppUser user) {
-    return user.appDisplayName;
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Bottom action bar Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+  Widget _buildBottomBar(BuildContext context, WidgetRef ref, AppUser user) {
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isMe = currentUser?.uid == uid;
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: AppSpacing.s16,
+        right: AppSpacing.s16,
+        top: AppSpacing.s12,
+        bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.surfaceHighlight)),
+      ),
+      child: isMe
+          ? _MeBottomBar(user: user)
+          : _OtherBottomBar(
+              onChat: () => ref
+                  .read(publicProfileControllerProvider(uid).notifier)
+                  .openChat(context),
+            ),
+    );
+  }
+}
+
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Profile body Ã¢â‚¬â€ layout with responsive wide/narrow support
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+
+class _ProfileBody extends StatelessWidget {
+  final AppUser user;
+  final List<MediaItem> galleryItems;
+  final List<AppUser> bandMembers;
+  final String uid;
+  final VoidCallback onAvatarTap;
+  final void Function(int index, List<MediaItem> items) onMediaTap;
+
+  const _ProfileBody({
+    required this.user,
+    required this.galleryItems,
+    required this.bandMembers,
+    required this.uid,
+    required this.onAvatarTap,
+    required this.onMediaTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.sizeOf(context).width >= 900;
+    return isWide ? _wideLayout(context) : _narrowLayout(context);
   }
 
-  Widget _buildSubCategoriesRow(AppUser user) {
-    final ids = user.dadosProfissional?['categorias'] as List? ?? [];
-    if (ids.isEmpty) return const SizedBox.shrink();
+  Widget _narrowLayout(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ProfileHeroHeader(user: user, onAvatarTap: onAvatarTap),
+          _buildBody(context, padding: AppSpacing.s20),
+          const SizedBox(height: AppSpacing.s48),
+        ],
+      ),
+    );
+  }
 
-    final widgets = <Widget>[];
-    for (final id in ids) {
-      final config = professionalCategories.firstWhere(
-        (c) => c['id'] == id,
-        orElse: () => <String, dynamic>{},
-      );
-      if (config.isEmpty) continue;
+  Widget _wideLayout(BuildContext context) {
+    final bio = user.profileBio;
 
-      widgets.add(
-        Row(
-          mainAxisSize: MainAxisSize.min,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.s32),
+      child: ResponsiveCenter(
+        padding: EdgeInsets.zero,
+        maxContentWidth: 1200,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              config['icon'] as IconData,
-              size: 14,
-              color: AppColors.primary,
+            // Left column: header + bio
+            SizedBox(
+              width: 340,
+              child: Column(
+                children: [
+                  ProfileHeroHeader(user: user, onAvatarTap: onAvatarTap),
+                  if (bio != null) ...[
+                    const SizedBox(height: AppSpacing.s16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s20,
+                      ),
+                      child: _BioCard(bio: bio),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            const SizedBox(width: AppSpacing.s4),
-            Text(
-              config['label'] as String,
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+            const SizedBox(width: AppSpacing.s32),
+            // Right column: details + gallery
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.s24),
+                  _buildDetails(),
+                  if (user.tipoPerfil != AppUserType.contractor) ...[
+                    const SizedBox(height: AppSpacing.s20),
+                    _buildGallery(),
+                  ],
+                  const SizedBox(height: AppSpacing.s48),
+                ],
               ),
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, {required double padding}) {
+    final bio = user.profileBio;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: padding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (bio != null) ...[
+            _BioCard(bio: bio),
+            const SizedBox(height: AppSpacing.s16),
+          ],
+          _buildDetails(),
+          if (user.tipoPerfil != AppUserType.contractor) ...[
+            const SizedBox(height: AppSpacing.s20),
+            _buildGallery(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetails() {
+    return _TypeDetails(user: user, bandMembers: bandMembers);
+  }
+
+  Widget _buildGallery() {
+    return ProfileGalleryTabs(
+      items: galleryItems,
+      accentColor: ProfileHeroHeader.profileTypeColor(user.tipoPerfil),
+      onItemTap: onMediaTap,
+    );
+  }
+}
+
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Type-specific detail sections
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+
+class _TypeDetails extends StatelessWidget {
+  final AppUser user;
+  final List<AppUser> bandMembers;
+
+  const _TypeDetails({required this.user, required this.bandMembers});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return _ProfessionalDetails(user: user);
+      case AppUserType.band:
+        return _BandDetails(user: user, members: bandMembers);
+      case AppUserType.studio:
+        return _StudioDetails(user: user);
+      case AppUserType.contractor:
+        return _ContractorDetails(user: user);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+}
+
+// Ã¢â€â‚¬Ã¢â€â‚¬ Professional Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+class _ProfessionalDetails extends StatelessWidget {
+  final AppUser user;
+
+  const _ProfessionalDetails({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final prof = user.dadosProfissional;
+    if (prof == null) return const SizedBox.shrink();
+
+    final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
+    final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
+    final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (instrumentos.isNotEmpty) ...[
+          _InfoCard(
+            icon: Icons.piano_rounded,
+            title: 'Instrumentos',
+            accentColor: color,
+            child: _ChipWrap(
+              items: instrumentos,
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+        ],
+        if (funcoes.isNotEmpty) ...[
+          _InfoCard(
+            icon: Icons.engineering_rounded,
+            title: 'Fun\u00E7\u00F5es T\u00E9cnicas',
+            accentColor: color,
+            child: _ChipWrap(items: funcoes, accentColor: color, isSkill: true),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+        ],
+        if (generos.isNotEmpty)
+          _InfoCard(
+            icon: Icons.queue_music_rounded,
+            title: 'G\u00EAneros Musicais',
+            accentColor: color,
+            child: _ChipWrap(items: generos, accentColor: color),
+          ),
+      ],
+    );
+  }
+}
+
+// Ã¢â€â‚¬Ã¢â€â‚¬ Band Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+class _BandDetails extends StatelessWidget {
+  final AppUser user;
+  final List<AppUser> members;
+
+  const _BandDetails({required this.user, required this.members});
+
+  @override
+  Widget build(BuildContext context) {
+    final banda = user.dadosBanda;
+    final generos = (banda?['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Members Ã¢â‚¬â€ the highlight of a band profile
+        _InfoCard(
+          icon: Icons.people_rounded,
+          title: 'Integrantes',
+          accentColor: color,
+          count: members.isNotEmpty ? members.length : null,
+          child: BandMembersSection(members: members, accentColor: color),
+        ),
+        if (generos.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s12),
+          _InfoCard(
+            icon: Icons.queue_music_rounded,
+            title: 'G\u00EAneros Musicais',
+            accentColor: color,
+            child: _ChipWrap(items: generos, accentColor: color),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// Ã¢â€â‚¬Ã¢â€â‚¬ Studio Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+class _StudioDetails extends StatelessWidget {
+  final AppUser user;
+
+  const _StudioDetails({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final estudio = user.dadosEstudio;
+    if (estudio == null) return const SizedBox.shrink();
+
+    final studioType = estudio['studioType'] as String?;
+    final services =
+        (estudio['services'] as List?)?.cast<String>() ??
+        (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
+        [];
+    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    String? studioTypeLabel;
+    if (studioType != null) {
+      studioTypeLabel = studioType == 'commercial'
+          ? 'Comercial'
+          : 'Home Studio';
     }
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (studioTypeLabel != null) ...[
+          _InfoCard(
+            icon: Icons.home_work_rounded,
+            title: 'Tipo de Est\u00FAdio',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [studioTypeLabel],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+        ],
+        if (services.isNotEmpty)
+          _InfoCard(
+            icon: Icons.graphic_eq_rounded,
+            title: 'Servi\u00E7os Oferecidos',
+            accentColor: color,
+            child: _ChipWrap(
+              items: services,
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// Ã¢â€â‚¬Ã¢â€â‚¬ Contractor Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+class _ContractorDetails extends StatelessWidget {
+  final AppUser user;
+
+  const _ContractorDetails({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final contratante = user.dadosContratante;
+    if (contratante == null) return const SizedBox.shrink();
+
+    final genero = contratante['genero'] as String?;
+    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    if (genero == null || genero.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _InfoCard(
+      icon: Icons.music_note_rounded,
+      title: 'Estilo Musical Preferido',
+      accentColor: color,
+      child: _ChipWrap(items: [genero], accentColor: color, isSkill: true),
+    );
+  }
+}
+
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Shared UI components
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+
+/// Card container for a profile information section.
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color accentColor;
+  final Widget child;
+  final int? count;
+
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.accentColor,
+    required this.child,
+    this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.s8),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 15, color: accentColor),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(child: Text(title, style: AppTypography.titleSmall)),
+              if (count != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s8,
+                    vertical: AppSpacing.s2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.12),
+                    borderRadius: AppRadius.pill,
+                  ),
+                  child: Text(
+                    '$count',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: accentColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// Bio card with "Sobre" section styling.
+class _BioCard extends StatelessWidget {
+  final String bio;
+
+  const _BioCard({required this.bio});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.s8),
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceHighlight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notes_rounded,
+                  size: 15,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Text('Sobre', style: AppTypography.titleSmall),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Text(
+            bio,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Wrap of chip widgets.
+class _ChipWrap extends StatelessWidget {
+  final List<String> items;
+  final Color accentColor;
+  final bool isSkill;
+
+  const _ChipWrap({
+    required this.items,
+    required this.accentColor,
+    this.isSkill = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Wrap(
-      spacing: 12,
-      runSpacing: 4,
-      alignment: WrapAlignment.center,
-      children: widgets,
+      spacing: AppSpacing.s8,
+      runSpacing: AppSpacing.s8,
+      children: items.map((item) {
+        if (isSkill) {
+          return _SkillChip(label: item, accentColor: accentColor);
+        }
+        return _GenreChip(label: item);
+      }).toList(),
+    );
+  }
+}
+
+/// Skill chip Ã¢â‚¬â€ subtle accent background and border.
+class _SkillChip extends StatelessWidget {
+  final String label;
+  final Color accentColor;
+
+  const _SkillChip({required this.label, required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s4,
+      ),
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.08),
+        borderRadius: AppRadius.pill,
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
+      ),
+    );
+  }
+}
+
+/// Genre chip Ã¢â‚¬â€ neutral surface style.
+class _GenreChip extends StatelessWidget {
+  final String label;
+
+  const _GenreChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s4,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceHighlight,
+        borderRadius: AppRadius.pill,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+      ),
+    );
+  }
+}
+
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Bottom bars
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+
+class _OtherBottomBar extends StatelessWidget {
+  final VoidCallback onChat;
+
+  const _OtherBottomBar({required this.onChat});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: onChat,
+        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+        label: const Text('Iniciar Conversa'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.all16),
+          textStyle: AppTypography.buttonPrimary,
+        ),
+      ),
+    );
+  }
+}
+
+class _MeBottomBar extends StatelessWidget {
+  final AppUser user;
+
+  const _MeBottomBar({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (user.tipoPerfil == AppUserType.band) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push(RoutePaths.manageMembers),
+              icon: const Icon(Icons.people_rounded, size: 18),
+              label: const Text('Gerenciar Integrantes'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.all16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push(RoutePaths.profileEdit),
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  label: const Text('Editar Perfil'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                    elevation: 0,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.all16,
+                    ),
+                    textStyle: AppTypography.buttonPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// Error / loading states
+// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+
+class _PublicProfileSkeleton extends StatelessWidget {
+  static const double _topSpacing =
+      AppSpacing.s48 + AppSpacing.s24 + AppSpacing.s20;
+
+  const _PublicProfileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonShimmer(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(height: _topSpacing),
+            Center(child: SkeletonCircle(size: 124)),
+            SizedBox(height: AppSpacing.s20),
+            Center(child: SkeletonText(width: 180, height: 24)),
+            SizedBox(height: AppSpacing.s8),
+            Center(child: SkeletonText(width: 120, height: 14)),
+            SizedBox(height: AppSpacing.s24),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.s20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 112,
+                    borderRadius: 16,
+                  ),
+                  SizedBox(height: AppSpacing.s12),
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 132,
+                    borderRadius: 16,
+                  ),
+                  SizedBox(height: AppSpacing.s20),
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 180,
+                    borderRadius: 16,
+                  ),
+                  SizedBox(height: AppSpacing.s48),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBody extends StatelessWidget {
+  final String message;
+
+  const _ErrorBody({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: AppSpacing.all24,
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 }

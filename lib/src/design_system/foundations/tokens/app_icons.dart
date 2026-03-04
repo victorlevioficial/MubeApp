@@ -20,6 +20,9 @@ class AppIcons {
   /// Seta para voltar (iOS style)
   static const IconData arrowBack = Icons.arrow_back_ios;
 
+  /// Seta para voltar (iOS style compacto, melhor para botões circulares)
+  static const IconData arrowBackCompact = Icons.arrow_back_ios_new_rounded;
+
   /// Seta para avançar
   static const IconData arrowForward = Icons.arrow_forward_ios;
 

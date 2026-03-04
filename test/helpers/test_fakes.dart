@@ -211,7 +211,7 @@ class FakeFavoriteRepository extends Fake implements FavoriteRepository {
   }
 
   @override
-  Future<List<String>> loadReceivedFavorites() async {
+  Future<List<String>> loadReceivedFavorites({int? expectedCount}) async {
     if (throwError) return [];
     return receivedFavorites;
   }
