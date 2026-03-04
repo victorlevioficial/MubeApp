@@ -8,10 +8,7 @@ void main() {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => const SupportScreen(),
-        ),
+        GoRoute(path: '/', builder: (context, state) => const SupportScreen()),
         GoRoute(
           path: '/settings/support/create-ticket',
           builder: (context, state) =>

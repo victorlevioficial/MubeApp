@@ -60,13 +60,18 @@ void main() {
         await tempFile.delete();
       });
 
-      test('deve retornar mensagem de erro quando arquivo não existe', () async {
-        final nonExistentFile = File('/caminho/inexistente/test.jpg');
+      test(
+        'deve retornar mensagem de erro quando arquivo não existe',
+        () async {
+          final nonExistentFile = File('/caminho/inexistente/test.jpg');
 
-        final result = await ImageCompressor.getEstimatedSize(nonExistentFile);
+          final result = await ImageCompressor.getEstimatedSize(
+            nonExistentFile,
+          );
 
-        expect(result, 'Não foi possível estimar');
-      });
+          expect(result, 'Não foi possível estimar');
+        },
+      );
     });
   });
 }

@@ -33,7 +33,7 @@ void main() async {
         return pw.Container(
           color: bgDeep,
           alignment: pw.Alignment.center,
-            padding: const pw.EdgeInsets.all(40),
+          padding: const pw.EdgeInsets.all(40),
           child: pw.Column(
             mainAxisAlignment: pw.MainAxisAlignment.center,
             crossAxisAlignment: pw.CrossAxisAlignment.center,

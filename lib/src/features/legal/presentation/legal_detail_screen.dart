@@ -69,7 +69,10 @@ class LegalDetailScreen extends StatelessWidget {
               borderRadius: AppRadius.all16,
               border: Border.all(color: AppColors.surfaceHighlight),
             ),
-            child: _LegalDocumentMarkdown(type: type, padding: AppSpacing.all16),
+            child: _LegalDocumentMarkdown(
+              type: type,
+              padding: AppSpacing.all16,
+            ),
           ),
         ),
       ),
@@ -176,10 +179,7 @@ class _LegalDocumentMarkdown extends StatelessWidget {
   final LegalDocumentType type;
   final EdgeInsets padding;
 
-  const _LegalDocumentMarkdown({
-    required this.type,
-    required this.padding,
-  });
+  const _LegalDocumentMarkdown({required this.type, required this.padding});
 
   @override
   Widget build(BuildContext context) {

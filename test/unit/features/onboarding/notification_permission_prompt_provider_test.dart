@@ -29,7 +29,10 @@ void main() {
           .read(notificationPermissionPromptProvider.notifier)
           .markAsShown();
 
-      expect(container.read(notificationPermissionPromptProvider).value, isTrue);
+      expect(
+        container.read(notificationPermissionPromptProvider).value,
+        isTrue,
+      );
 
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool(notificationPermissionPromptKey), isTrue);

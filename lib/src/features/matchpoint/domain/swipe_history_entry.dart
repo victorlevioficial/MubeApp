@@ -16,12 +16,12 @@ class SwipeHistoryEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'targetUserId': targetUserId,
-        'targetUserName': targetUserName,
-        'targetUserPhoto': targetUserPhoto,
-        'action': action,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'targetUserId': targetUserId,
+    'targetUserName': targetUserName,
+    'targetUserPhoto': targetUserPhoto,
+    'action': action,
+    'timestamp': timestamp.toIso8601String(),
+  };
 
   factory SwipeHistoryEntry.fromJson(Map<String, dynamic> json) {
     return SwipeHistoryEntry(

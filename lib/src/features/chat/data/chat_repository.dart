@@ -349,7 +349,11 @@ class ChatRepository {
       await batch.commit();
       return const Right(unit);
     } catch (e, stackTrace) {
-      AppLogger.error('Chat: failed to mark conversation as read', e, stackTrace);
+      AppLogger.error(
+        'Chat: failed to mark conversation as read',
+        e,
+        stackTrace,
+      );
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -448,7 +452,11 @@ class ChatRepository {
 
       return const Right(unit);
     } catch (e, stackTrace) {
-      AppLogger.error('Chat: failed to restore conversation preview', e, stackTrace);
+      AppLogger.error(
+        'Chat: failed to restore conversation preview',
+        e,
+        stackTrace,
+      );
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -482,7 +490,11 @@ class ChatRepository {
 
       return const Right(unit);
     } catch (e, stackTrace) {
-      AppLogger.error('Chat: failed to delete conversation preview', e, stackTrace);
+      AppLogger.error(
+        'Chat: failed to delete conversation preview',
+        e,
+        stackTrace,
+      );
       return Left(ServerFailure(message: e.toString()));
     }
   }

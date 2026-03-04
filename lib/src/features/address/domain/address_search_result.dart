@@ -54,11 +54,6 @@ class AddressSearchResult {
   }
 
   @override
-  int get hashCode => Object.hash(
-    placeId,
-    description,
-    mainText,
-    secondaryText,
-    numberHint,
-  );
+  int get hashCode =>
+      Object.hash(placeId, description, mainText, secondaryText, numberHint);
 }

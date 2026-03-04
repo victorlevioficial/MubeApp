@@ -46,9 +46,7 @@ abstract final class RoutePaths {
     legal,
   };
 
-  static const List<String> _publicRoutePrefixes = <String>[
-    '$legal/',
-  ];
+  static const List<String> _publicRoutePrefixes = <String>['$legal/'];
 
   /// Check if a path is a public route.
   // Profile routes

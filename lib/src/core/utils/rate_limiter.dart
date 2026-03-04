@@ -23,10 +23,7 @@ class RateLimiter {
   final Duration windowDuration;
   final Map<String, Queue<DateTime>> _requests = {};
 
-  RateLimiter({
-    required this.maxRequests,
-    required this.windowDuration,
-  });
+  RateLimiter({required this.maxRequests, required this.windowDuration});
 
   /// Checks if a request is allowed for the given key.
   /// Returns true if the request is within the rate limit.
@@ -104,38 +101,26 @@ class RateLimitConfigs {
   const RateLimitConfigs._();
 
   /// For search operations: 30 requests per minute
-  static RateLimiter get search => RateLimiter(
-        maxRequests: 30,
-        windowDuration: const Duration(minutes: 1),
-      );
+  static RateLimiter get search =>
+      RateLimiter(maxRequests: 30, windowDuration: const Duration(minutes: 1));
 
   /// For API calls: 100 requests per minute
-  static RateLimiter get apiCalls => RateLimiter(
-        maxRequests: 100,
-        windowDuration: const Duration(minutes: 1),
-      );
+  static RateLimiter get apiCalls =>
+      RateLimiter(maxRequests: 100, windowDuration: const Duration(minutes: 1));
 
   /// For uploads: 10 uploads per minute
-  static RateLimiter get uploads => RateLimiter(
-        maxRequests: 10,
-        windowDuration: const Duration(minutes: 1),
-      );
+  static RateLimiter get uploads =>
+      RateLimiter(maxRequests: 10, windowDuration: const Duration(minutes: 1));
 
   /// For chat messages: 60 messages per minute
-  static RateLimiter get chatMessages => RateLimiter(
-        maxRequests: 60,
-        windowDuration: const Duration(minutes: 1),
-      );
+  static RateLimiter get chatMessages =>
+      RateLimiter(maxRequests: 60, windowDuration: const Duration(minutes: 1));
 
   /// For matchpoint swipes: 50 swipes per minute
-  static RateLimiter get matchpointSwipes => RateLimiter(
-        maxRequests: 50,
-        windowDuration: const Duration(minutes: 1),
-      );
+  static RateLimiter get matchpointSwipes =>
+      RateLimiter(maxRequests: 50, windowDuration: const Duration(minutes: 1));
 
   /// For login attempts: 5 attempts per 5 minutes
-  static RateLimiter get loginAttempts => RateLimiter(
-        maxRequests: 5,
-        windowDuration: const Duration(minutes: 5),
-      );
+  static RateLimiter get loginAttempts =>
+      RateLimiter(maxRequests: 5, windowDuration: const Duration(minutes: 5));
 }

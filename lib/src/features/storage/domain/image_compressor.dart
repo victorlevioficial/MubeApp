@@ -8,11 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../utils/app_logger.dart';
 
 /// Enum para definir o formato de compressão da imagem
-enum ImageFormat {
-  jpeg,
-  webp,
-  png,
-}
+enum ImageFormat { jpeg, webp, png }
 
 /// Enum para definir o tamanho/resolução da imagem
 enum ImageSize {
@@ -261,7 +257,9 @@ class ImageCompressor {
   }
 
   /// Gera múltiplas versões de uma foto de perfil.
-  static Future<Map<ImageSize, File>> generateProfilePhotoSizes(File file) async {
+  static Future<Map<ImageSize, File>> generateProfilePhotoSizes(
+    File file,
+  ) async {
     return generateMultipleSizes(
       file,
       sizes: [ImageSize.thumbnail, ImageSize.large],
@@ -283,7 +281,9 @@ class ImageCompressor {
   }
 
   /// Gera múltiplas versões de uma foto de galeria.
-  static Future<Map<ImageSize, File>> generateGalleryPhotoSizes(File file) async {
+  static Future<Map<ImageSize, File>> generateGalleryPhotoSizes(
+    File file,
+  ) async {
     return generateMultipleSizes(
       file,
       sizes: ImageSize.values,

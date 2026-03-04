@@ -206,7 +206,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     return (() async* {
       try {
-        final cachedDoc = await docRef.get(const GetOptions(source: Source.cache));
+        final cachedDoc = await docRef.get(
+          const GetOptions(source: Source.cache),
+        );
         if (cachedDoc.exists && cachedDoc.data() != null) {
           yield AppUser.fromJson(cachedDoc.data()!);
         }

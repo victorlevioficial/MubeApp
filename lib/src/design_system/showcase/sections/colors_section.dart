@@ -20,7 +20,9 @@ class ColorsSection extends StatelessWidget {
             _ColorItem('Primary Muted', AppColors.primaryMuted),
             _ColorItem('Primary Disabled', AppColors.primaryDisabled),
           ],
-          gradients: [_GradientItem('Primary Gradient', AppColors.primaryGradient)],
+          gradients: [
+            _GradientItem('Primary Gradient', AppColors.primaryGradient),
+          ],
         ),
         const SizedBox(height: AppSpacing.s24),
 

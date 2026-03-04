@@ -162,7 +162,9 @@ void main() {
           ],
         );
         addTearDown(() {
-          scopedContainer.read(searchControllerProvider.notifier).cancelDebounce();
+          scopedContainer
+              .read(searchControllerProvider.notifier)
+              .cancelDebounce();
           scopedContainer.dispose();
         });
 

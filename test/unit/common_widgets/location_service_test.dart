@@ -4,52 +4,58 @@ import 'package:mube/src/features/address/domain/address_search_result.dart';
 
 void main() {
   group('LocationService helpers', () {
-    test('dedupeSearchResults removes duplicates by place id and main text', () {
-      final results = [
-        const AddressSearchResult(
-          placeId: '1',
-          description: 'Rua Augusta, 1500, Sao Paulo',
-          mainText: 'Rua Augusta, 1500',
-          secondaryText: 'Sao Paulo - SP',
-        ),
-        const AddressSearchResult(
-          placeId: '1',
-          description: 'Rua Augusta, 1500, Sao Paulo',
-          mainText: 'Rua Augusta, 1500',
-          secondaryText: 'Sao Paulo - SP',
-        ),
-        const AddressSearchResult(
-          placeId: '2',
-          description: 'Rua Augústa, 1500, Sao Paulo',
-          mainText: 'Rua Augústa, 1500',
-          secondaryText: 'Sao Paulo - SP',
-        ),
-        const AddressSearchResult(
-          placeId: '3',
-          description: 'Av Paulista, 1000, Sao Paulo',
-          mainText: 'Av Paulista, 1000',
-          secondaryText: 'Sao Paulo - SP',
-        ),
-      ];
+    test(
+      'dedupeSearchResults removes duplicates by place id and main text',
+      () {
+        final results = [
+          const AddressSearchResult(
+            placeId: '1',
+            description: 'Rua Augusta, 1500, Sao Paulo',
+            mainText: 'Rua Augusta, 1500',
+            secondaryText: 'Sao Paulo - SP',
+          ),
+          const AddressSearchResult(
+            placeId: '1',
+            description: 'Rua Augusta, 1500, Sao Paulo',
+            mainText: 'Rua Augusta, 1500',
+            secondaryText: 'Sao Paulo - SP',
+          ),
+          const AddressSearchResult(
+            placeId: '2',
+            description: 'Rua Augústa, 1500, Sao Paulo',
+            mainText: 'Rua Augústa, 1500',
+            secondaryText: 'Sao Paulo - SP',
+          ),
+          const AddressSearchResult(
+            placeId: '3',
+            description: 'Av Paulista, 1000, Sao Paulo',
+            mainText: 'Av Paulista, 1000',
+            secondaryText: 'Sao Paulo - SP',
+          ),
+        ];
 
-      final deduped = LocationService.dedupeSearchResults(results);
+        final deduped = LocationService.dedupeSearchResults(results);
 
-      expect(deduped, hasLength(2));
-      expect(deduped.first.placeId, '1');
-      expect(deduped.last.placeId, '3');
-    });
+        expect(deduped, hasLength(2));
+        expect(deduped.first.placeId, '1');
+        expect(deduped.last.placeId, '3');
+      },
+    );
 
-    test('extractHouseNumberFromText returns the first house number-like token', () {
-      expect(
-        LocationService.extractHouseNumberFromText(
-          'Rua Augusta, 1500, Sao Paulo',
-        ),
-        '1500',
-      );
-      expect(
-        LocationService.extractHouseNumberFromText('Av Paulista, s/n'),
-        isEmpty,
-      );
-    });
+    test(
+      'extractHouseNumberFromText returns the first house number-like token',
+      () {
+        expect(
+          LocationService.extractHouseNumberFromText(
+            'Rua Augusta, 1500, Sao Paulo',
+          ),
+          '1500',
+        );
+        expect(
+          LocationService.extractHouseNumberFromText('Av Paulista, s/n'),
+          isEmpty,
+        );
+      },
+    );
   });
 }

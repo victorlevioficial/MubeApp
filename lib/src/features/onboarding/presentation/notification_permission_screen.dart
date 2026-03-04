@@ -66,9 +66,7 @@ class _NotificationPermissionScreenState
   }
 
   Future<void> _markPermissionPromptAsShown() async {
-    await ref
-        .read(notificationPermissionPromptProvider.notifier)
-        .markAsShown();
+    await ref.read(notificationPermissionPromptProvider.notifier).markAsShown();
   }
 
   Future<void> _handleAccept() async {

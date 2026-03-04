@@ -100,10 +100,9 @@ class OnboardingController extends _$OnboardingController {
     }
 
     return [
-      SavedAddress.fromLocationMap(location).copyWith(
-        isPrimary: true,
-        nome: '',
-      ),
+      SavedAddress.fromLocationMap(
+        location,
+      ).copyWith(isPrimary: true, nome: ''),
     ];
   }
 }

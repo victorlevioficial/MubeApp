@@ -83,8 +83,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _setupConversationPreviewListener() {
-    _conversationPreviewSubscription =
-        ref.listenManual<AsyncValue<List<ConversationPreview>>>(
+    _conversationPreviewSubscription = ref
+        .listenManual<AsyncValue<List<ConversationPreview>>>(
           userConversationsProvider,
           (_, next) {
             final previews = next.asData?.value;

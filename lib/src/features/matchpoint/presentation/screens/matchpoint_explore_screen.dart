@@ -155,7 +155,8 @@ class _MatchpointExploreScreenState
 
         if (!swipeResult.success) {
           AppLogger.warning('Swipe blocked: backend returned failure.');
-          final message = ref
+          final message =
+              ref
                   .read(matchpointControllerProvider)
                   .whenOrNull(error: (err, _) => err.toString()) ??
               'Não foi possível registrar seu like agora. Tente novamente.';
@@ -210,7 +211,8 @@ class _MatchpointExploreScreenState
         if (success) {
           AppLogger.debug('Disliked ${user.nome}');
         } else {
-          final message = ref
+          final message =
+              ref
                   .read(matchpointControllerProvider)
                   .whenOrNull(error: (err, _) => err.toString()) ??
               'Não foi possível registrar seu dislike agora. Tente novamente.';

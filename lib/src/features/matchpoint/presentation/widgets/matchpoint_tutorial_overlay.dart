@@ -14,9 +14,7 @@ class MatchpointTutorialOverlay extends StatelessWidget {
       children: [
         // Dark Dimension Background
         Positioned.fill(
-          child: Container(
-            color: AppColors.background.withValues(alpha: 0.85),
-          ),
+          child: Container(color: AppColors.background.withValues(alpha: 0.85)),
         ),
 
         // Content

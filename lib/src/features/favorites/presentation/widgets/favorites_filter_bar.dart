@@ -30,7 +30,8 @@ class FavoritesFilterBar extends StatelessWidget {
         padding: AppSpacing.h16,
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
-        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.s8),
+        separatorBuilder: (context, index) =>
+            const SizedBox(width: AppSpacing.s8),
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = selectedFilter == filter;

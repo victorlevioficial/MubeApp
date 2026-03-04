@@ -645,10 +645,10 @@ class FeedRepository {
         neighbors.remove(userGeohash);
 
         if (neighbors.isNotEmpty) {
-          final perNeighborLimit = ((targetResults - results.length) /
-                  neighbors.length)
-              .ceil()
-              .clamp(3, targetResults);
+          final perNeighborLimit =
+              ((targetResults - results.length) / neighbors.length)
+                  .ceil()
+                  .clamp(3, targetResults);
 
           final neighborsQueryStopwatch = AppPerformanceTracker.startSpan(
             'feed.repo.nearby_users_neighbors_query',

@@ -233,10 +233,7 @@ class EmailVerificationController extends _$EmailVerificationController {
         },
         (success) {
           // Start 60 second cooldown
-          state = state.copyWith(
-            isResending: false,
-            resendCooldownSeconds: 60,
-          );
+          state = state.copyWith(isResending: false, resendCooldownSeconds: 60);
 
           // Reset polling to be more aggressive after resend
           _currentIntervalIndex = 0;

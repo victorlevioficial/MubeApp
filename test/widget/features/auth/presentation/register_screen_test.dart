@@ -96,9 +96,7 @@ void main() {
       expect(find.byKey(const Key('register_privacy_link')), findsOneWidget);
     });
 
-    testWidgets('opens terms dialog when terms link is tapped', (
-      tester,
-    ) async {
+    testWidgets('opens terms dialog when terms link is tapped', (tester) async {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 

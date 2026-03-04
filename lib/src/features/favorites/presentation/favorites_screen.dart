@@ -17,7 +17,6 @@ import 'package:mube/src/features/feed/presentation/widgets/feed_loading_more.da
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
 import 'package:mube/src/routing/route_paths.dart';
 
-
 import 'widgets/favorites_filter_bar.dart';
 
 abstract final class FavoritesConstants {
@@ -64,8 +63,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       final currentScroll = _scrollController.position.pixels;
       final maxScroll = _scrollController.position.maxScrollExtent;
 
-      if (currentScroll >=
-          maxScroll - FavoritesConstants.paginationThreshold) {
+      if (currentScroll >= maxScroll - FavoritesConstants.paginationThreshold) {
         _loadMoreFavorites();
       }
     }
@@ -135,7 +133,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       return;
     }
 
-    final result = await ref.read(feedRepositoryProvider).getUsersByIds(
+    final result = await ref
+        .read(feedRepositoryProvider)
+        .getUsersByIds(
           ids: favoritesPage.favoriteIds,
           currentUserId: userId ?? '',
           userLat: userLat,
@@ -305,8 +305,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         final item = _filteredItems[index];
                         return FeedCardVertical(
                           item: item,
-                          onTap: () =>
-                              context.push(RoutePaths.publicProfileById(item.uid)),
+                          onTap: () => context.push(
+                            RoutePaths.publicProfileById(item.uid),
+                          ),
                         );
                       },
                     ),

@@ -169,8 +169,7 @@ class _GalleryGridState extends State<GalleryGrid> {
             _EmptySlot(
               key: ValueKey('empty_photo_$i'),
               type: MediaType.photo,
-              isLoading:
-                  widget.isPickingPhoto && _activePhotoSlotIndex == i,
+              isLoading: widget.isPickingPhoto && _activePhotoSlotIndex == i,
               onTap: () => _handlePhotoSlotTap(i),
             ),
           );
@@ -224,8 +223,7 @@ class _GalleryGridState extends State<GalleryGrid> {
             _EmptySlot(
               key: ValueKey('empty_video_$i'),
               type: MediaType.video,
-              isLoading:
-                  widget.isPickingVideo && _activeVideoSlotIndex == i,
+              isLoading: widget.isPickingVideo && _activeVideoSlotIndex == i,
               onTap: () => _handleVideoSlotTap(i),
             ),
           );
@@ -361,7 +359,9 @@ class _GalleryUploadBanner extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s4),
           Text(
-            isDeleting ? 'Processando...' : (showDeterminate ? percent : 'Processando...'),
+            isDeleting
+                ? 'Processando...'
+                : (showDeterminate ? percent : 'Processando...'),
             style: AppTypography.labelSmall.copyWith(
               color: AppColors.textSecondary,
             ),

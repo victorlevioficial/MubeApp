@@ -124,16 +124,15 @@ class PaginationState<T> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(
-        items,
-        status,
-        errorMessage,
-        lastDocument,
-        hasMore,
-        currentPage,
-        pageSize,
-      );
+  int get hashCode => Object.hash(
+    items,
+    status,
+    errorMessage,
+    lastDocument,
+    hasMore,
+    currentPage,
+    pageSize,
+  );
 
   @override
   String toString() {
@@ -164,7 +163,11 @@ abstract class PaginatedRepository<T> {
   /// [lastDocument] - Último documento recebido.
   /// [itemsCount] - Quantidade de itens na última página.
   /// [pageSize] - Tamanho esperado da página.
-  bool hasMoreData(DocumentSnapshot? lastDocument, int itemsCount, int pageSize);
+  bool hasMoreData(
+    DocumentSnapshot? lastDocument,
+    int itemsCount,
+    int pageSize,
+  );
 }
 
 /// Helper class para gerenciar paginação sem usar mixin.
@@ -193,7 +196,8 @@ class PaginationHelper<T> {
     required int pageSize,
     DocumentSnapshot? lastDocument,
     Map<String, dynamic>? filters,
-  }) fetchPageCallback;
+  })
+  fetchPageCallback;
 
   PaginationHelper({
     required this.onStateChanged,
@@ -230,19 +234,20 @@ class PaginationHelper<T> {
     final requestId = ++_currentRequestId;
 
     if (clearExisting) {
-      _updateState(_state.copyWith(
-        items: [],
-        status: PaginationStatus.loading,
-        currentPage: 0,
-        hasMore: true,
-        clearError: true,
-        clearLastDocument: true,
-      ));
+      _updateState(
+        _state.copyWith(
+          items: [],
+          status: PaginationStatus.loading,
+          currentPage: 0,
+          hasMore: true,
+          clearError: true,
+          clearLastDocument: true,
+        ),
+      );
     } else {
-      _updateState(_state.copyWith(
-        status: PaginationStatus.loading,
-        clearError: true,
-      ));
+      _updateState(
+        _state.copyWith(status: PaginationStatus.loading, clearError: true),
+      );
     }
 
     try {
@@ -261,10 +266,9 @@ class PaginationHelper<T> {
       );
     } catch (e, stackTrace) {
       if (_currentRequestId != requestId) return;
-      _handleError(UnexpectedFailure(
-        message: e.toString(),
-        stackTrace: stackTrace,
-      ));
+      _handleError(
+        UnexpectedFailure(message: e.toString(), stackTrace: stackTrace),
+      );
     }
   }
 
@@ -276,10 +280,9 @@ class PaginationHelper<T> {
 
     final requestId = ++_currentRequestId;
 
-    _updateState(_state.copyWith(
-      status: PaginationStatus.loadingMore,
-      clearError: true,
-    ));
+    _updateState(
+      _state.copyWith(status: PaginationStatus.loadingMore, clearError: true),
+    );
 
     try {
       final result = await fetchPageCallback(
@@ -298,10 +301,9 @@ class PaginationHelper<T> {
       );
     } catch (e, stackTrace) {
       if (_currentRequestId != requestId) return;
-      _handleError(UnexpectedFailure(
-        message: e.toString(),
-        stackTrace: stackTrace,
-      ));
+      _handleError(
+        UnexpectedFailure(message: e.toString(), stackTrace: stackTrace),
+      );
     }
   }
 
@@ -333,10 +335,9 @@ class PaginationHelper<T> {
       );
     } catch (e, stackTrace) {
       if (_currentRequestId != requestId) return;
-      _handleError(UnexpectedFailure(
-        message: e.toString(),
-        stackTrace: stackTrace,
-      ));
+      _handleError(
+        UnexpectedFailure(message: e.toString(), stackTrace: stackTrace),
+      );
     }
   }
 
@@ -364,21 +365,25 @@ class PaginationHelper<T> {
     final allItems = isFirstPage ? newItems : [..._state.items, ...newItems];
     final hasMore = newItems.length >= _state.pageSize;
 
-    _updateState(_state.copyWith(
-      items: allItems,
-      status: hasMore ? PaginationStatus.loaded : PaginationStatus.noMoreData,
-      currentPage: isFirstPage ? 1 : _state.currentPage + 1,
-      hasMore: hasMore,
-      clearError: true,
-    ));
+    _updateState(
+      _state.copyWith(
+        items: allItems,
+        status: hasMore ? PaginationStatus.loaded : PaginationStatus.noMoreData,
+        currentPage: isFirstPage ? 1 : _state.currentPage + 1,
+        hasMore: hasMore,
+        clearError: true,
+      ),
+    );
   }
 
   /// Manipula erro na busca.
   void _handleError(Failure failure) {
-    _updateState(_state.copyWith(
-      status: PaginationStatus.error,
-      errorMessage: failure.message,
-    ));
+    _updateState(
+      _state.copyWith(
+        status: PaginationStatus.error,
+        errorMessage: failure.message,
+      ),
+    );
   }
 
   /// Limpa o estado da paginação.
@@ -395,21 +400,25 @@ class PaginationHelper<T> {
 
   /// Remove um item do estado atual.
   void removeItem(bool Function(T item) predicate) {
-    _updateState(_state.copyWith(
-      items: _state.items.where((item) => !predicate(item)).toList(),
-    ));
+    _updateState(
+      _state.copyWith(
+        items: _state.items.where((item) => !predicate(item)).toList(),
+      ),
+    );
   }
 
   /// Atualiza um item no estado atual.
   void updateItem(bool Function(T item) predicate, T Function(T item) update) {
-    _updateState(_state.copyWith(
-      items: _state.items.map((item) {
-        if (predicate(item)) {
-          return update(item);
-        }
-        return item;
-      }).toList(),
-    ));
+    _updateState(
+      _state.copyWith(
+        items: _state.items.map((item) {
+          if (predicate(item)) {
+            return update(item);
+          }
+          return item;
+        }).toList(),
+      ),
+    );
   }
 
   /// Libera recursos.
