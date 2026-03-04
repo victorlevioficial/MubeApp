@@ -1,171 +1,382 @@
 # Mube Design System
 
-> Version: 2.1.0
-> Last Updated: 2026-02-09
-> Status: current implementation snapshot from codebase
+> Version: 3.0.0
+> Last Updated: 2026-03-04
+> Status: canonical source of truth
 
-This document reflects the real pattern currently implemented in code.
-Primary sources analyzed:
+Este e o unico documento canônico do design system do Mube.
+Ele deve refletir o codigo real em:
+
 - `lib/src/design_system/**`
 - `lib/src/app.dart`
 - `lib/src/routing/app_router.dart`
-- `lib/src/features/**` (usage and exceptions)
 
-## 1. Foundations
+Documentos paralelos, espelhos tecnicos e auditorias antigas nao sao mais a fonte de verdade.
 
-### 1.1 Colors (`AppColors`)
-Path: `lib/src/design_system/foundations/tokens/app_colors.dart`
+## 1. Escopo
 
-| Token | Hex | Notes |
+O design system do app cobre:
+
+- foundations: tokens, motion, effects e theme
+- componentes compartilhados
+- contrato visual para novas telas
+- APIs canônicas e APIs legadas/deprecadas
+
+Regras gerais:
+
+1. Novas telas devem usar componentes e tokens do design system antes de recorrer a widgets Material puros.
+2. Nao hardcode cor, tipografia, spacing, radius ou motion se houver token existente.
+3. Se um componente novo for realmente necessario, ele deve ser reutilizavel e entrar no design system, nao ficar isolado na feature.
+
+## 2. Foundations
+
+### 2.1 Colors
+
+Arquivo: `lib/src/design_system/foundations/tokens/app_colors.dart`
+
+Tokens principais:
+
+| Token | Hex | Uso |
 | --- | --- | --- |
-| `primary` | `#E8466C` | Main brand/action color |
-| `primaryPressed` | `#D13F61` | Pressed state |
-| `background` | `#0A0A0A` | Global dark background |
-| `surface` | `#141414` | Card/container base |
-| `surface2` | `#1F1F1F` | Elevated surface |
-| `surfaceHighlight` | `#292929` | Borders/dividers/highlight |
-| `border` | `#383838` | Default border token |
-| `textPrimary` | `#FFFFFF` | Main text |
-| `textSecondary` | `#B3B3B3` | Secondary text |
-| `textTertiary` | `#8A8A8A` | Tertiary/placeholder |
-| `error` | `#EF4444` | Error |
-| `success` | `#22C55E` | Success |
-| `info` | `#3B82F6` | Informational |
-| `warning` | `#F59E0B` | Warning |
+| `primary` | `#E8466C` | acao primaria e brand |
+| `primaryPressed` | `#D13F61` | estado pressionado |
+| `background` | `#0A0A0A` | fundo global |
+| `surface` | `#141414` | cards e containers base |
+| `surface2` | `#1F1F1F` | superficie elevada |
+| `surfaceHighlight` | `#292929` | divisores, destaque e hover sutil |
+| `border` | `#383838` | borda padrao |
+| `textPrimary` | `#FFFFFF` | texto principal |
+| `textSecondary` | `#B3B3B3` | texto secundario |
+| `textTertiary` | `#8A8A8A` | texto terciario e placeholder |
+| `error` | `#EF4444` | erro |
+| `success` | `#22C55E` | sucesso |
+| `info` | `#3B82F6` | informacao |
+| `warning` | `#F59E0B` | alerta |
 
-Extra semantic groups:
+Outros grupos semanticos disponiveis:
+
 - `primaryGradient`
-- `avatarColors` palette
-- `badgeMusician`, `badgeBand`, `badgeStudio`
-- `skeletonBase`, `skeletonHighlight`
+- `primaryMuted`
+- `primaryDisabled`
+- `textPlaceholder`
+- `textDisabled`
+- `badgeMusician`
+- `badgeBand`
+- `badgeStudio`
+- `skeletonBase`
+- `skeletonHighlight`
+- `avatarColors`
+- `avatarBorder`
+- `medalGold`
+- `medalSilver`
+- `medalBronze`
+- `celebrationPink`
 
-### 1.2 Typography (`AppTypography`)
-Path: `lib/src/design_system/foundations/tokens/app_typography.dart`
+### 2.2 Typography
 
-Font families:
+Arquivo: `lib/src/design_system/foundations/tokens/app_typography.dart`
+
+Familias:
+
 - Display: `Poppins`
 - Body: `Inter`
 
-Core scales:
-- Headlines: `headlineLarge` (28), `headlineCompact` (24), `headlineMedium` (20), `headlineSmall` (18)
-- Titles: `titleLarge` (18), `titleMedium` (16), `titleSmall` (14)
-- Body: `bodyLarge` (16), `bodyMedium` (14), `bodySmall` (12)
-- Labels: `labelLarge` (14), `labelMedium` (13), `labelSmall` (11)
+Escalas base:
 
-Semantic text styles in use:
-- `buttonPrimary`, `buttonSecondary`
-- `chipLabel`, `cardTitle`, `settingsGroupTitle`, `profileTypeLabel`
-- MatchPoint specific: `matchSuccessTitle`, `matchSuccessKicker`
+- Headlines: `headlineLarge` 28, `headlineCompact` 24, `headlineMedium` 20, `headlineSmall` 18
+- Titles: `titleLarge` 18, `titleMedium` 16, `titleSmall` 14
+- Body: `bodyLarge` 16, `bodyMedium` 14, `bodySmall` 12
+- Labels: `labelLarge` 14, `labelMedium` 13, `labelSmall` 11
 
-### 1.3 Spacing (`AppSpacing`)
-Path: `lib/src/design_system/foundations/tokens/app_spacing.dart`
+Estilos semanticos disponiveis:
 
-Scale: `2, 4, 8, 12, 16, 24, 32, 40, 48`
+- `cardTitle`
+- `chipLabel`
+- `settingsGroupTitle`
+- `profileTypeLabel`
+- `matchSuccessTitle`
+- `matchSuccessKicker`
+- `buttonPrimary`
+- `buttonSecondary`
+- `input`
+- `inputHint`
+- `error`
+- `link`
 
-Common presets:
-- `all*`, `h*`, `v*`
+### 2.3 Spacing
+
+Arquivo: `lib/src/design_system/foundations/tokens/app_spacing.dart`
+
+Scale tokens:
+
+- `s2`
+- `s4`
+- `s8`
+- `s10`
+- `s12`
+- `s14`
+- `s16`
+- `s20`
+- `s24`
+- `s32`
+- `s40`
+- `s48`
+
+Presets mais usados:
+
+- `all4`, `all8`, `all12`, `all16`, `all24`
+- `h8`, `h12`, `h16`, `h24`, `h32`
+- `v8`, `v12`, `v16`, `v24`, `v32`
 - `h16v12`, `h16v8`, `h24v16`
 - `screenPadding`, `screenHorizontal`
 
-### 1.4 Radius (`AppRadius`)
-Path: `lib/src/design_system/foundations/tokens/app_radius.dart`
+### 2.4 Radius
 
-Scale: `r4, r8, r12, r16, r24, rPill`
+Arquivo: `lib/src/design_system/foundations/tokens/app_radius.dart`
 
-Semantic radius:
-- `card`, `input`, `button`, `chip`, `bottomSheet`, `modal`, `chatBubble`
+Scale tokens:
 
-### 1.5 Motion and Effects
-Paths:
-- `lib/src/design_system/foundations/tokens/app_motion.dart`
-- `lib/src/design_system/foundations/tokens/app_effects.dart`
+- `r4`
+- `r8`
+- `r12`
+- `r16`
+- `r20`
+- `r24`
+- `rPill`
 
-Motion:
-- Durations: `short`, `medium`, `standard`, `long`
-- Curves: `standardCurve`, `emphasizedCurve`, `leavingCurve`, `bounceCurve`
+Radius semanticos:
 
-Effects:
-- Shadows: `cardShadow`, `floatingShadow`, `subtleShadow`, `buttonShadow`
-- Glass tokens: `glassDecoration`, `glassCardDecoration`
-- Opacity and animation duration helpers
+- `chatBubble`
+- `card`
+- `bottomSheet`
+- `modal`
+- `input`
+- `button`
+- `chip`
+- `avatar`
 
-## 2. Theme Contract
+Helpers disponiveis:
 
-Path: `lib/src/design_system/foundations/theme/app_theme.dart`
+- `all4`, `all8`, `all12`, `all16`, `all20`, `all24`, `pill`
+- `top24`, `top16`
+- `circular()`, `horizontal()`, `vertical()`
 
-Current contract:
+### 2.5 Motion
+
+Arquivo: `lib/src/design_system/foundations/tokens/app_motion.dart`
+
+Durations:
+
+- `short`
+- `medium`
+- `standard`
+- `long`
+
+Curves:
+
+- `standardCurve`
+- `emphasizedCurve`
+- `leavingCurve`
+- `bounceCurve`
+
+### 2.6 Effects
+
+Arquivo: `lib/src/design_system/foundations/tokens/app_effects.dart`
+
+Shadows:
+
+- `cardShadow`
+- `floatingShadow`
+- `subtleShadow`
+- `buttonShadow`
+- `none`
+
+Blur:
+
+- `glassBlur`
+- `lightBlur`
+- `heavyBlur`
+- `blurFilter`
+- `lightBlurFilter`
+
+Glass:
+
+- `glassColor`
+- `glassDecoration`
+- `glassCardDecoration`
+
+Opacity and durations:
+
+- `disabledOpacity`
+- `secondaryOpacity`
+- `tertiaryOpacity`
+- `hoverOpacity`
+- `pressOpacity`
+- `fast`
+- `normal`
+- `slow`
+- `entrance`
+
+## 3. Theme Contract
+
+Arquivo: `lib/src/design_system/foundations/theme/app_theme.dart`
+
+Contrato atual:
+
 - `ThemeData(useMaterial3: true, brightness: Brightness.dark)`
-- Dark `ColorScheme` wired to `AppColors`
-- Themed controls: `AppBar`, `InputDecoration`, `ElevatedButton`, `OutlinedButton`, `TextButton`, `Checkbox`, date/time pickers, snackbar, bottom sheet
-- App root uses this theme at `lib/src/app.dart`
+- app dark-only
+- `ColorScheme.dark` alinhado a `AppColors`
+- theming centralizado para:
+  - `AppBar`
+  - `Dialog`
+  - `Card`
+  - `PopupMenu`
+  - `TextButton`
+  - `ElevatedButton`
+  - `OutlinedButton`
+  - `InputDecoration`
+  - `Checkbox`
+  - `BottomSheet`
+  - `SnackBar`
+  - `DatePicker`
+  - `TimePicker`
 
-## 3. Component System
+Integracoes globais:
+
+- tema aplicado em `lib/src/app.dart`
+- scroll behavior em `lib/src/design_system/foundations/theme/app_scroll_behavior.dart`
+
+## 4. Component Inventory
 
 Base path: `lib/src/design_system/components/`
 
-Categories:
-- `badges`, `buttons`, `chips`, `data_display`, `feedback`, `inputs`, `interactions`, `loading`, `navigation`, `patterns`
+Categorias atuais:
 
-Most used components in app code (outside design_system):
-- `AppSnackBar` (82 refs)
-- `AppButton` (55 refs)
-- `AppTextField` (46 refs)
-- `AppAppBar` (25 refs)
-- `AppFilterChip` (14 refs)
-- `UserAvatar` (10 refs)
+| Categoria | Quantidade atual |
+| --- | --- |
+| `badges` | 1 |
+| `buttons` | 3 |
+| `chips` | 2 |
+| `data_display` | 2 |
+| `feedback` | 7 |
+| `inputs` | 8 |
+| `interactions` | 1 |
+| `loading` | 4 |
+| `navigation` | 5 |
+| `patterns` | 6 |
 
-### 3.1 Canonical components for new code
+## 5. Canonical APIs
 
-- Navigation: `AppAppBar`, `MainScaffold`
-- Buttons: `AppButton` (+ `SocialLoginButton` where needed)
-- Inputs/forms: `AppTextField`, `AppDropdownField`, `AppDatePickerField`, `AppSelectionModal`, `AppAutocompleteField`, `AppCheckbox`
-- Feedback: `AppSnackBar`, `AppConfirmationDialog`, `EmptyStateWidget`
-- Loading: `AppLoadingIndicator`, `AppShimmer`, skeletons from `app_skeleton.dart`
-- Data display: `UserAvatar`
+Estas sao as APIs preferenciais para novas features.
 
-### 3.2 Legacy or transitional APIs
+### 5.1 Navigation
 
-- `MubeAppBar` alias: deprecated (`typedef` to `AppAppBar`)
-- `AppLoading`: older loader API (still present; prefer `AppLoadingIndicator`)
-- `AppScaffold`: duplicate scaffold not used by router (`MainScaffold` is active)
+- `AppAppBar`
+- `MainScaffold`
+- `ResponsiveCenter`
+- `AppBackButton`
 
-## 4. Real Adoption Snapshot (2026-02-09)
+### 5.2 Buttons
 
-Codebase metrics (outside `lib/src/design_system/**`):
-- Files importing design system: `83`
-- Token references:
-  - `AppColors`: `800`
-  - `AppSpacing`: `858`
-  - `AppTypography`: `388`
-  - `AppRadius`: `159`
+- `AppButton`
+- `SocialLoginButton`
+- `AppLikeButton`
 
-Exception metrics (native widgets or hardcoded colors still present):
-- Files with at least one native UI exception: `15`
-- Native `AppBar`: `0` occurrences outside `AppAppBar`
-- Native `TextField`: `0` occurrences
-- Native `ElevatedButton`: `3` occurrences
-- Native `OutlinedButton`: `2` occurrences
-- Native `TextButton`: `11` occurrences (mostly low emphasis actions)
-- Direct `Colors.*`: `6` occurrences
-- Direct `Color(0x...)`: `5` occurrences (mostly medal/confetti colors)
+### 5.3 Inputs and Selection
 
-## 5. Rules for New Work
+- `AppTextField`
+- `AppDropdownField`
+- `AppDatePickerField`
+- `AppAutocompleteField`
+- `AppSelectionModal`
+- `EnhancedMultiSelectModal`
+- `AppCheckbox`
 
-1. Prefer design-system components over raw Material widgets.
-2. Use tokens (`AppColors`, `AppSpacing`, `AppTypography`, `AppRadius`) instead of hardcoded style values.
-3. Use `AppAppBar` for screen app bars.
-4. Use `AppTextField` for forms and standard text input.
-5. Use `AppButton` for primary/secondary actions.
-6. Use `AppSnackBar` for transient feedback.
-7. If a screen needs a raw widget for a valid UX reason, document the reason in the PR.
+### 5.4 Chips
 
-## 6. Known Exceptions (remaining)
+- `AppFilterChip`
+- `AppChip`
 
-- Historical migration note:
-  - native app bars and native text fields were removed in favor of `AppAppBar` and `AppTextField`.
-  - legacy `MubeFilterChip` was removed; filters now use `AppFilterChip` only.
+### 5.5 Feedback and States
 
-## 7. Related Documents
+- `AppSnackBar`
+- `AppConfirmationDialog`
+- `AppInfoDialog`
+- `AppOverlay`
+- `AppRefreshIndicator`
+- `EmptyStateWidget`
+- `ErrorBoundary`
 
-- Technical mirror spec: `docs/design-system-spec.md`
-- Audit and migration backlog: `docs/design-system-audit-2026-02-09.md`
+### 5.6 Loading
+
+- `AppLoadingIndicator`
+- `AppLoadingOverlay`
+- `AppShimmer`
+- `AppSkeleton`
+
+### 5.7 Data Display
+
+- `UserAvatar`
+- `OptimizedImage`
+
+### 5.8 Patterns
+
+- `FadeInSlide`
+- `FullWidthSelectionCard`
+- `OnboardingHeader`
+- `OnboardingProgressBar`
+- `OnboardingSectionCard`
+- `OrDivider`
+
+## 6. Legacy and Deprecated APIs
+
+Estas APIs ainda existem para compatibilidade, mas nao devem ser usadas em codigo novo:
+
+- `MubeAppBar`
+  - alias deprecado para `AppAppBar`
+- `AppLoading`
+  - loader legado; preferir `AppLoadingIndicator`
+- `AppScaffold`
+  - shell legado; o router usa `MainScaffold`
+
+## 7. Mandatory Rules for New Work
+
+1. Use `AppAppBar` para app bars de telas padrao.
+2. Use `AppButton` para acoes principais e secundarias.
+3. Use `AppTextField` para inputs de texto padrao.
+4. Use `AppSnackBar` para feedback transiente.
+5. Use `AppLoadingIndicator` para loading e `AppLoadingOverlay` para bloqueio de tela.
+6. Use `AppFilterChip` para filtros quando o padrao visual existente atender.
+7. Use tokens de `AppColors`, `AppTypography`, `AppSpacing`, `AppRadius`, `AppMotion` e `AppEffects` antes de criar estilos customizados.
+8. Se um widget Material puro for necessario por uma razao de UX real, isso deve ser uma excecao consciente e documentada no contexto da mudanca.
+
+## 8. Known Exceptions
+
+Excecoes ainda toleradas no app:
+
+- alguns `TextButton` nativos de baixa enfase quando o tema global ja garante consistencia
+- alguns usos residuais de cores especiais em fluxos comemorativos ou overlays, quando ainda nao foram encapsulados melhor
+
+Essas excecoes nao autorizam expandir uso de widgets nativos ou estilos hardcoded em novas features.
+
+## 9. Checklist para Novas Features
+
+Antes de implementar UI nova:
+
+1. verificar se a tela pode usar `AppAppBar`
+2. verificar se botoes podem usar `AppButton`
+3. verificar se formularios podem usar `AppTextField`, `AppDropdownField`, `AppDatePickerField` e modais de selecao existentes
+4. verificar se estados vazios, loading e feedback podem usar componentes compartilhados
+5. aplicar apenas tokens do design system para cor, spacing, radius, typography e motion
+6. se faltar um componente, promover um componente reutilizavel para o design system em vez de criar uma versao isolada na feature
+
+## 10. Maintenance Policy
+
+Este documento deve ser atualizado quando houver:
+
+- adicao ou remocao de tokens
+- adicao, remocao ou deprecacao de componentes
+- mudanca de API canonica
+- mudanca estrutural relevante no `MainScaffold` ou no contrato global de tema
+
+Nao manter espelhos ou documentos paralelos de especificacao e auditoria para o design system.

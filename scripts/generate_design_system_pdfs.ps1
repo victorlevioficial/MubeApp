@@ -367,17 +367,10 @@ $browser = Resolve-BrowserExe
 $docs = @(
   @{
     Title = 'Mube Design System'
-    Subtitle = 'Current Specification'
+    Subtitle = 'Canonical Source of Truth'
     Source = Join-Path $root 'docs/reference/design-system-current.md'
     Html = Join-Path $tmpDir 'mube-design-system-source-of-truth.html'
     Pdf = Join-Path $outDir 'mube-design-system-source-of-truth.pdf'
-  },
-  @{
-    Title = 'Mube Design System'
-    Subtitle = 'Audit and Migration Plan'
-    Source = Join-Path $root 'docs\design-system-audit-2026-02-09.md'
-    Html = Join-Path $tmpDir 'mube-design-system-audit-2026-02-09.html'
-    Pdf = Join-Path $outDir 'mube-design-system-audit-2026-02-09.pdf'
   }
 )
 

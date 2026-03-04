@@ -6,7 +6,7 @@ import '../../foundations/tokens/app_typography.dart';
 
 /// Indicador de loading do Design System Mube.
 ///
-/// Componente consolidado que substitui AppLoading e AppLoadingIndicator.
+/// Componente consolidado que substitui o loader legado AppLoading.
 ///
 /// Uso:
 /// ```dart

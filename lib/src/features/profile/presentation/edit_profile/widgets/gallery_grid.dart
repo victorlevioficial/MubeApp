@@ -24,6 +24,7 @@ class GalleryGrid extends StatefulWidget {
   final bool isUploading;
   final double uploadProgress;
   final String uploadStatus;
+  final ValueChanged<int>? onItemTap;
 
   const GalleryGrid({
     super.key,
@@ -39,6 +40,7 @@ class GalleryGrid extends StatefulWidget {
     this.isUploading = false,
     this.uploadProgress = 0.0,
     this.uploadStatus = '',
+    this.onItemTap,
   });
 
   @override
@@ -189,6 +191,9 @@ class _GalleryGridState extends State<GalleryGrid> {
           _FilledSlot(
             key: ValueKey(item.id),
             item: item,
+            onTap: item.isProcessing
+                ? null
+                : () => widget.onItemTap?.call(widget.items.indexOf(item)),
             onRemove: widget.isUploading
                 ? () {}
                 : () => widget.onRemove(widget.items.indexOf(item)),
@@ -243,6 +248,9 @@ class _GalleryGridState extends State<GalleryGrid> {
           _VideoCard(
             key: ValueKey(item.id),
             item: item,
+            onTap: item.isProcessing
+                ? null
+                : () => widget.onItemTap?.call(widget.items.indexOf(item)),
             onRemove: widget.isUploading
                 ? () {}
                 : () => widget.onRemove(widget.items.indexOf(item)),
@@ -374,60 +382,69 @@ class _GalleryUploadBanner extends StatelessWidget {
 
 class _FilledSlot extends StatelessWidget {
   final MediaItem item;
+  final VoidCallback? onTap;
   final VoidCallback onRemove;
 
-  const _FilledSlot({super.key, required this.item, required this.onRemove});
+  const _FilledSlot({
+    super.key,
+    required this.item,
+    required this.onRemove,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isProcessing = item.isProcessing;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        ClipRRect(borderRadius: AppRadius.all12, child: _buildImageContent()),
-        if (isProcessing)
-          ClipRRect(
-            borderRadius: AppRadius.all12,
-            child: Container(
-              color: AppColors.background.withValues(alpha: 0.5),
-              child: Center(
-                child: SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(
-                    value: item.isUploading && item.uploadProgress > 0
-                        ? item.uploadProgress
-                        : null,
-                    strokeWidth: 3,
-                    color: AppColors.primary,
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(borderRadius: AppRadius.all12, child: _buildImageContent()),
+          if (isProcessing)
+            ClipRRect(
+              borderRadius: AppRadius.all12,
+              child: Container(
+                color: AppColors.background.withValues(alpha: 0.5),
+                child: Center(
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(
+                      value: item.isUploading && item.uploadProgress > 0
+                          ? item.uploadProgress
+                          : null,
+                      strokeWidth: 3,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.background.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: AppColors.textPrimary,
+                    size: 16,
                   ),
                 ),
               ),
             ),
-          ),
-        if (!isProcessing)
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: onRemove,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: AppColors.background.withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.close,
-                  color: AppColors.textPrimary,
-                  size: 16,
-                ),
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -460,81 +477,90 @@ class _FilledSlot extends StatelessWidget {
 
 class _VideoCard extends StatelessWidget {
   final MediaItem item;
+  final VoidCallback? onTap;
   final VoidCallback onRemove;
 
-  const _VideoCard({super.key, required this.item, required this.onRemove});
+  const _VideoCard({
+    super.key,
+    required this.item,
+    required this.onRemove,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isProcessing = item.isProcessing;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        ClipRRect(
-          borderRadius: AppRadius.all12,
-          child: _buildThumbnailContent(),
-        ),
-        if (isProcessing)
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
           ClipRRect(
             borderRadius: AppRadius.all12,
-            child: Container(
-              color: AppColors.background.withValues(alpha: 0.5),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: CircularProgressIndicator(
-                      value: item.isUploading && item.uploadProgress > 0
-                          ? item.uploadProgress
-                          : null,
-                      strokeWidth: 3,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.background.withValues(alpha: 0.6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.play_arrow,
-                color: AppColors.textPrimary,
-                size: 20,
-              ),
-            ),
+            child: _buildThumbnailContent(),
           ),
-        if (!isProcessing)
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: onRemove,
+          if (isProcessing)
+            ClipRRect(
+              borderRadius: AppRadius.all12,
               child: Container(
-                width: 24,
-                height: 24,
+                color: AppColors.background.withValues(alpha: 0.5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(
+                        value: item.isUploading && item.uploadProgress > 0
+                            ? item.uploadProgress
+                            : null,
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: AppColors.background.withValues(alpha: 0.6),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.close,
+                  Icons.play_arrow,
                   color: AppColors.textPrimary,
-                  size: 16,
+                  size: 20,
                 ),
               ),
             ),
-          ),
-      ],
+          if (!isProcessing)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.background.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    color: AppColors.textPrimary,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

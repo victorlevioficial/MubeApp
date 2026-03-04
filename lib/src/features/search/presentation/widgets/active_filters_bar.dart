@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/search_filters.dart';
@@ -80,7 +81,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           _studioTypeLabel(filters.studioType!),
-          const Color(0xFFDC2626),
+          AppColors.badgeStudio,
           maxWidth: maxChipWidth,
           icon: filters.studioType == 'home_studio'
               ? Icons.home_rounded
@@ -94,7 +95,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           genre,
-          const Color(0xFFA78BFA),
+          AppColors.badgeBand,
           maxWidth: maxChipWidth,
           icon: Icons.library_music_rounded,
           onRemove: onRemoveGenre != null ? () => onRemoveGenre!(genre) : null,
@@ -106,7 +107,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           instrument,
-          const Color(0xFF60A5FA),
+          AppColors.info,
           maxWidth: maxChipWidth,
           icon: Icons.music_note_rounded,
           onRemove: onRemoveInstrument != null
@@ -120,7 +121,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           role,
-          const Color(0xFFF87171),
+          AppColors.error,
           maxWidth: maxChipWidth,
           icon: Icons.build_rounded,
           onRemove: onRemoveRole != null ? () => onRemoveRole!(role) : null,
@@ -132,7 +133,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           service,
-          const Color(0xFF34D399),
+          AppColors.success,
           maxWidth: maxChipWidth,
           icon: Icons.headset_mic_rounded,
           onRemove: onRemoveService != null
@@ -146,7 +147,7 @@ class ActiveFiltersBar extends StatelessWidget {
       chips.add(
         _buildChip(
           filters.canDoBackingVocal == true ? 'Faz backing vocal' : 'Só solo',
-          const Color(0xFFFBBF24),
+          AppColors.warning,
           maxWidth: maxChipWidth,
           icon: Icons.record_voice_over_rounded,
           onRemove: onClearBackingVocal,
@@ -215,7 +216,7 @@ class ActiveFiltersBar extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: AppRadius.pill,
           border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
         ),
         child: Row(

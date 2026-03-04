@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../core/providers/app_config_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
@@ -36,6 +37,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     with SingleTickerProviderStateMixin {
+  final _bioFormatter = SentenceStartUppercaseTextInputFormatter();
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
 
@@ -59,12 +61,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabChange);
     // Preload app config to avoid empty option lists on first modal open.
     unawaited(ref.read(appConfigProvider.future));
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     if (_isControllersInitialized) {
       _nomeController.dispose();
@@ -76,6 +80,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       _bioController.dispose();
     }
     super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (_tabController.index == _tabController.previousIndex) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  String _normalizeBio(String value) {
+    final formatted = _bioFormatter.formatEditUpdate(
+      const TextEditingValue(),
+      TextEditingValue(text: value),
+    );
+    return formatted.text;
   }
 
   void _initializeControllers(AppUser user) {
@@ -178,7 +195,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       await controller.saveProfile(
         user: user,
         nome: _nomeController.text.trim(),
-        bio: _bioController.text.trim(),
+        bio: _normalizeBio(_bioController.text.trim()),
         nomeArtistico: _nomeArtisticoController.text.trim(),
         celular: _celularController.text.trim(),
         dataNascimento: _dataNascimentoController.text.trim(),
@@ -275,6 +292,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      onTap: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
                       labelColor: AppColors.textPrimary,
                       unselectedLabelColor: AppColors.textSecondary,
                       indicator: BoxDecoration(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../../../constants/app_constants.dart';
 import '../../../../../../design_system/components/buttons/app_button.dart';
@@ -54,6 +55,8 @@ class BandFormFields extends ConsumerWidget {
             label: 'Bio',
             maxLines: 3,
             hint: 'Conte um pouco sobre a banda...',
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: [SentenceStartUppercaseTextInputFormatter()],
             onChanged: (_) => onChanged(),
           ),
 

@@ -804,18 +804,13 @@ class PublicProfileScreen extends ConsumerWidget {
         onTap: () => Navigator.of(context).pop(),
         child: Scaffold(
           backgroundColor: AppColors.transparent,
-          appBar: AppBar(
+          appBar: AppAppBar(
+            title: _getDisplayName(user),
             backgroundColor: AppColors.transparent,
-            elevation: 0,
+            showBackButton: false,
             leading: IconButton(
               icon: const Icon(Icons.close, color: AppColors.textPrimary),
               onPressed: () => Navigator.of(context).pop(),
-            ),
-            title: Text(
-              _getDisplayName(user),
-              style: AppTypography.titleMedium.copyWith(
-                color: AppColors.textPrimary,
-              ),
             ),
           ),
           body: Center(

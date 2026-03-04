@@ -72,6 +72,7 @@ Observacoes importantes:
 - Codigo: ingles
 - Comentarios tecnicos: ingles
 - Strings de UI: preferencialmente portugues
+- Respostas do agente ao usuario: sempre em portugues do Brasil, salvo pedido explicito em outro idioma
 - Arquivos: `snake_case`
 
 ### State Management
@@ -183,6 +184,19 @@ Regras:
 
 - Ao alterar comportamento, procure testes da feature antes de escrever do zero
 - Reuse helpers de `test/helpers/`
+
+## Ambiente Hibrido Windows/Linux
+
+Observacao importante:
+
+- Este projeto pode ser aberto tanto no Windows quanto no Linux/WSL
+- O diretorio `.dart_tool/` e gerado com caminhos absolutos do ambiente atual
+- Ao alternar entre Windows e Linux, o analyzer, `dart` ou `flutter` podem falhar porque o `package_config.json` anterior fica invalido no outro sistema
+
+Regra operacional:
+
+- Se houver erro de resolucao de pacotes apos trocar de ambiente, rode `flutter pub get` no ambiente atual antes de continuar
+- Nao trate `.dart_tool/package_config.json` como fonte de verdade portavel entre sistemas
 
 ## Fluxo Recomendado para Qualquer Tarefa
 

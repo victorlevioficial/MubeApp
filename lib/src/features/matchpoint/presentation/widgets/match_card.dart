@@ -158,14 +158,14 @@ class MatchCard extends StatelessWidget {
                               children: [
                                 const Icon(
                                   Icons.music_note,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                   size: 16,
                                 ),
                                 const SizedBox(width: AppSpacing.s4),
                                 Text(
                                   '${_getGenreCompatibility()} gênero${_getGenreCompatibility() > 1 ? "s" : ""} em comum',
                                   style: AppTypography.labelSmall.copyWith(
-                                    color: Colors.white,
+                                    color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -121,42 +124,25 @@ class BlockedUsersScreen extends ConsumerWidget {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          trailing: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.textSecondary,
-                              side: const BorderSide(
-                                color: AppColors.surfaceHighlight,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.s16,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                            ),
+                          trailing: AppButton.outline(
+                            text: 'Desbloquear',
+                            size: AppButtonSize.small,
                             onPressed: () => _unblockUser(
                               context,
                               ref,
                               authUser.uid,
                               user.uid,
                             ),
-                            child: Text(
-                              'Desbloquear',
-                              style: AppTypography.labelSmall.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                           ),
                         );
                       },
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(child: AppLoadingIndicator()),
                   error: (err, stack) => Center(child: Text('Erro: $err')),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: AppLoadingIndicator()),
               error: (err, stack) => Center(child: Text('Erro: $err')),
             ),
     );
@@ -178,19 +164,12 @@ class BlockedUsersScreen extends ConsumerWidget {
     result.fold(
       (failure) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(failure.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppSnackBar.error(context, failure.message);
         }
       },
       (_) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Usuário desbloqueado')));
+          AppSnackBar.success(context, 'Usuário desbloqueado');
         }
       },
     );

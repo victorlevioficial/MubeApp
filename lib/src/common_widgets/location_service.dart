@@ -40,7 +40,7 @@ class LocationService {
   }) : _requestHandler = requestHandler,
        _positionLoader = positionLoader;
 
-  static String get googleApiKey => AppConfig.googleMapsApiKey;
+  static String get googleApiKey => AppConfig.effectiveGoogleMapsApiKey;
   static bool get isConfigured => googleApiKey.isNotEmpty;
 
   static const Duration _positionCacheTtl = Duration(minutes: 2);

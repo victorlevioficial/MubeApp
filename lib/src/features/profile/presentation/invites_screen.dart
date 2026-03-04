@@ -177,23 +177,10 @@ class InvitesScreen extends ConsumerWidget {
                 Expanded(
                   child: SizedBox(
                     height: 48,
-                    child: OutlinedButton(
+                    child: AppButton.outline(
+                      text: 'Recusar',
                       onPressed: () =>
                           _respond(context, ref, invite['id'], false),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.textPrimary),
-                        foregroundColor: AppColors.textPrimary,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: AppRadius.pill,
-                        ),
-                      ),
-                      child: Text(
-                        'Recusar',
-                        style: AppTypography.buttonSecondary.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: AppTypography.buttonPrimary.fontWeight,
-                        ),
-                      ),
                     ),
                   ),
                 ),

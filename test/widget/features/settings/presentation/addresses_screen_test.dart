@@ -57,17 +57,18 @@ void main() {
         createSubject(
           addresses: [
             address(id: 'addr-1', nome: 'Casa', isPrimary: true),
-            address(id: 'addr-2', nome: 'Estúdio', isPrimary: false),
+            address(id: 'addr-2', nome: 'Estudio', isPrimary: false),
           ],
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Gerencie seus endereços'), findsOneWidget);
-      expect(find.text('2/5'), findsOneWidget);
+      expect(find.text('Gerenciar enderecos'), findsOneWidget);
+      expect(find.text('2 de 5 enderecos salvos'), findsOneWidget);
       expect(find.text('Casa'), findsOneWidget);
-      expect(find.text('Estúdio'), findsOneWidget);
-      expect(find.text('Principal ativo'), findsOneWidget);
+      expect(find.text('Estudio'), findsOneWidget);
+      expect(find.text('Endereco principal'), findsOneWidget);
+      expect(find.text('Usar minha localizacao atual'), findsOneWidget);
     });
 
     testWidgets('renders empty state when user has no saved addresses', (
@@ -76,8 +77,8 @@ void main() {
       await tester.pumpWidget(createSubject(addresses: const []));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nenhum endereço salvo'), findsOneWidget);
-      expect(find.text('Adicionar primeiro endereço'), findsOneWidget);
+      expect(find.text('Nenhum endereco salvo'), findsOneWidget);
+      expect(find.text('Adicionar primeiro endereco'), findsOneWidget);
     });
 
     testWidgets('disables add button when max number of addresses is reached', (
@@ -87,7 +88,7 @@ void main() {
         SavedAddressBook.maxAddresses,
         (index) => address(
           id: 'addr-$index',
-          nome: 'Endereço $index',
+          nome: 'Endereco $index',
           isPrimary: index == 0,
         ),
       );
@@ -95,7 +96,7 @@ void main() {
       await tester.pumpWidget(createSubject(addresses: addresses));
       await tester.pumpAndSettle();
 
-      const label = 'Limite de ${SavedAddressBook.maxAddresses} endereços';
+      const label = 'Limite de ${SavedAddressBook.maxAddresses} enderecos';
       expect(find.text(label), findsOneWidget);
 
       final button = tester.widget<ElevatedButton>(
@@ -118,7 +119,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.delete_outline_rounded));
       await tester.pumpAndSettle();
 
-      expect(find.text('Excluir endereço?'), findsNothing);
+      expect(find.text('Excluir endereco?'), findsNothing);
     });
   });
 }

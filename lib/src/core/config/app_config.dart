@@ -1,3 +1,5 @@
+import '../../../firebase_options.dart';
+
 /// Application configuration constants.
 ///
 /// This class centralizes all environment-specific configuration
@@ -25,11 +27,24 @@ class AppConfig {
 
   /// Google Vision API Key for content moderation
   /// Set via: --dart-define=GOOGLE_VISION_API_KEY=xxx
-  static String get googleVisionApiKey => _googleVisionApiKeyFromEnv;
+  static String get googleVisionApiKey =>
+      _normalizeApiKey(_googleVisionApiKeyFromEnv);
 
   /// Google Maps API Key for location services
   /// Set via: --dart-define=GOOGLE_MAPS_API_KEY=xxx
-  static String get googleMapsApiKey => _googleMapsApiKeyFromEnv;
+  static String get googleMapsApiKey =>
+      _normalizeApiKey(_googleMapsApiKeyFromEnv);
+
+  /// Effective Google Maps key used by location flows.
+  ///
+  /// Priority:
+  /// 1. `GOOGLE_MAPS_API_KEY` provided via `--dart-define`
+  /// 2. Firebase API key from `firebase_options.dart` as a runtime fallback
+  static String get effectiveGoogleMapsApiKey {
+    final fromEnv = googleMapsApiKey;
+    if (fromEnv.isNotEmpty) return fromEnv;
+    return _firebaseApiKeyFallback;
+  }
 
   // ===========================================================================
   // API ENDPOINTS
@@ -61,7 +76,8 @@ class AppConfig {
 
   /// Builds the Places Autocomplete URL
   static String buildPlacesUrl(String query, {String country = 'br'}) {
-    if (googleMapsApiKey.isEmpty) {
+    final mapsApiKey = effectiveGoogleMapsApiKey;
+    if (mapsApiKey.isEmpty) {
       throw StateError(
         'GOOGLE_MAPS_API_KEY not set. '
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
@@ -74,7 +90,7 @@ class AppConfig {
         'components': 'country:$country',
         'language': 'pt-BR',
         'types': 'address',
-        'key': googleMapsApiKey,
+        'key': mapsApiKey,
       },
     );
     return uri.toString();
@@ -82,7 +98,8 @@ class AppConfig {
 
   /// Builds the Place Details URL
   static String buildPlaceDetailsUrl(String placeId) {
-    if (googleMapsApiKey.isEmpty) {
+    final mapsApiKey = effectiveGoogleMapsApiKey;
+    if (mapsApiKey.isEmpty) {
       throw StateError(
         'GOOGLE_MAPS_API_KEY not set. '
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
@@ -94,7 +111,7 @@ class AppConfig {
         'place_id': placeId,
         'fields': 'address_component,formatted_address,geometry,name',
         'language': 'pt-BR',
-        'key': googleMapsApiKey,
+        'key': mapsApiKey,
       },
     );
     return uri.toString();
@@ -102,7 +119,8 @@ class AppConfig {
 
   /// Builds the Geocoding URL
   static String buildGeocodeUrl(String address) {
-    if (googleMapsApiKey.isEmpty) {
+    final mapsApiKey = effectiveGoogleMapsApiKey;
+    if (mapsApiKey.isEmpty) {
       throw StateError(
         'GOOGLE_MAPS_API_KEY not set. '
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
@@ -114,7 +132,7 @@ class AppConfig {
         'address': address,
         'language': 'pt-BR',
         'region': 'BR',
-        'key': googleMapsApiKey,
+        'key': mapsApiKey,
       },
     );
     return uri.toString();
@@ -122,7 +140,8 @@ class AppConfig {
 
   /// Builds the Reverse Geocoding URL from coordinates.
   static String buildReverseGeocodeUrl(double lat, double lng) {
-    if (googleMapsApiKey.isEmpty) {
+    final mapsApiKey = effectiveGoogleMapsApiKey;
+    if (mapsApiKey.isEmpty) {
       throw StateError(
         'GOOGLE_MAPS_API_KEY not set. '
         'Run with: --dart-define=GOOGLE_MAPS_API_KEY=your_key',
@@ -134,7 +153,7 @@ class AppConfig {
         'latlng': '$lat,$lng',
         'language': 'pt-BR',
         'region': 'BR',
-        'key': googleMapsApiKey,
+        'key': mapsApiKey,
       },
     );
     return uri.toString();
@@ -146,7 +165,8 @@ class AppConfig {
 
   /// Checks if all required API keys are configured
   static bool get hasRequiredKeys {
-    return googleVisionApiKey.isNotEmpty && googleMapsApiKey.isNotEmpty;
+    return googleVisionApiKey.isNotEmpty &&
+        effectiveGoogleMapsApiKey.isNotEmpty;
   }
 
   /// Validates configuration and throws if invalid
@@ -157,11 +177,31 @@ class AppConfig {
         'Please configure environment variables.',
       );
     }
-    if (googleMapsApiKey.isEmpty) {
+    if (effectiveGoogleMapsApiKey.isEmpty) {
       throw StateError(
         'Missing GOOGLE_MAPS_API_KEY. '
         'Please configure environment variables.',
       );
     }
+  }
+
+  static String get _firebaseApiKeyFallback {
+    try {
+      return _normalizeApiKey(DefaultFirebaseOptions.currentPlatform.apiKey);
+    } on UnsupportedError {
+      return _normalizeApiKey(DefaultFirebaseOptions.web.apiKey);
+    }
+  }
+
+  static String _normalizeApiKey(String rawKey) {
+    final normalized = rawKey.trim();
+    if (normalized.length < 2) return normalized;
+
+    final startsWithQuote =
+        normalized.startsWith('"') || normalized.startsWith("'");
+    final endsWithQuote = normalized.endsWith('"') || normalized.endsWith("'");
+    if (!startsWithQuote || !endsWithQuote) return normalized;
+
+    return normalized.substring(1, normalized.length - 1).trim();
   }
 }

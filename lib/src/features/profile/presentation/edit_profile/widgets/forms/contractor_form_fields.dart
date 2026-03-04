@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../../../../design_system/components/inputs/app_date_picker_field.dart';
 import '../../../../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../../../../design_system/components/inputs/app_text_field.dart';
@@ -88,6 +89,8 @@ class ContractorFormFields extends StatelessWidget {
             label: 'Bio',
             maxLines: 3,
             hint: 'Conte um pouco sobre você...',
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: [SentenceStartUppercaseTextInputFormatter()],
             onChanged: (_) => onChanged(),
           ),
 

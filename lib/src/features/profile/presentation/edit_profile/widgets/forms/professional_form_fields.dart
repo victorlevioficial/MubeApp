@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../../../core/providers/app_config_provider.dart';
 import '../../../../../../design_system/components/buttons/app_button.dart';
@@ -192,6 +193,8 @@ class _ProfessionalFormFieldsState
             label: 'Bio',
             maxLines: 3,
             hint: 'Conte um pouco sobre você...',
+            textCapitalization: TextCapitalization.sentences,
+            inputFormatters: [SentenceStartUppercaseTextInputFormatter()],
             onChanged: (_) => widget.onStateChanged(),
           ),
 

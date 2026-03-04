@@ -205,7 +205,7 @@ class TicketDetailScreen extends ConsumerWidget {
       useSafeArea: false,
       barrierColor: AppColors.background.withValues(alpha: 0.92),
       builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         insetPadding: EdgeInsets.zero,
         child: Stack(
           alignment: Alignment.center,
@@ -219,7 +219,11 @@ class TicketDetailScreen extends ConsumerWidget {
               top: 40,
               right: 20,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                icon: const Icon(
+                  Icons.close,
+                  color: AppColors.textPrimary,
+                  size: 30,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

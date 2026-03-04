@@ -143,8 +143,9 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
               fadeOutDuration: Duration.zero,
               useOldImageOnUrlChange: true,
               cacheManager: ImageCacheConfig.optimizedCacheManager,
-              placeholder: (context, url) =>
-                  const Center(child: CircularProgressIndicator()),
+              placeholder: (context, url) => const Center(
+                child: CircularProgressIndicator(color: AppColors.textPrimary),
+              ),
               errorWidget: (context, url, error) =>
                   const Icon(Icons.error, color: AppColors.error),
             ),

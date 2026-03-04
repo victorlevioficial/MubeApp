@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../auth/domain/app_user.dart';
+import '../../../domain/media_item.dart';
 import '../../services/media_picker_service.dart';
+import '../../widgets/media_viewer_dialog.dart';
 import '../controllers/edit_profile_controller.dart';
 import '../controllers/edit_profile_state.dart';
 import 'gallery_grid.dart';
@@ -164,6 +168,20 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         .reorderMedia(oldIndex, newIndex);
   }
 
+  void _handleItemTap(List<MediaItem> items, int index) {
+    final mediaItems = List<MediaItem>.of(items);
+    if (index < 0 || index >= mediaItems.length) return;
+    final selected = mediaItems[index];
+    if (selected.isProcessing) return;
+
+    AppOverlay.dialog(
+      context: context,
+      barrierColor: AppColors.background.withValues(alpha: 0.87),
+      builder: (context) =>
+          MediaViewerDialog(items: mediaItems, initialIndex: index),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editProfileControllerProvider(widget.user.uid));
@@ -180,6 +198,7 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
         onAddPhoto: _handlePhotoUpload,
         onAddVideo: _handleVideoUpload,
         onReorder: _handleReorder,
+        onItemTap: (index) => _handleItemTap(state.galleryItems, index),
         isUploading: state.isUploadingMedia,
         uploadProgress: state.uploadProgress,
         uploadStatus: state.uploadStatus,
