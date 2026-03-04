@@ -6,8 +6,10 @@ import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
+import 'package:mube/src/features/search/domain/search_filters.dart';
 import 'package:mube/src/features/search/presentation/search_controller.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
+import 'package:mube/src/features/search/presentation/widgets/smart_prefilter_grid.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -63,43 +65,65 @@ void main() {
       await tester.pump();
 
       expect(find.text('Busca'), findsOneWidget);
-      expect(find.text('Buscar por nome...'), findsOneWidget);
+      expect(find.text('Buscar musicos, bandas, estudios...'), findsOneWidget);
     });
 
-    testWidgets('renders category tabs', (tester) async {
+    testWidgets('renders discovery state by default', (tester) async {
       await tester.pumpWidget(createSubject());
       await tester.pump();
 
-      // Verifica se o CustomScrollView foi renderizado (contém as tabs)
       expect(find.byType(CustomScrollView), findsOneWidget);
-      // Verifica título da busca
       expect(find.text('Busca'), findsOneWidget);
+      expect(find.byType(SmartPrefilterGrid), findsOneWidget);
     });
 
     testWidgets('renders empty state when no results', (tester) async {
-      await tester.pumpWidget(createSubject());
+      await tester.pumpWidget(
+        createSubject(
+          searchState: const SearchPaginationState(
+            filters: SearchFilters(term: 'rock'),
+            status: PaginationStatus.loaded,
+            hasMore: false,
+          ),
+          asyncValue: const AsyncValue.data([]),
+        ),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Nenhum resultado encontrado'), findsOneWidget);
-      expect(find.text('Tente ajustar os filtros'), findsOneWidget);
-      expect(find.byIcon(Icons.search_off), findsOneWidget);
+      expect(
+        find.text('Tente ajustar os filtros ou buscar por outros termos'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
     });
 
     testWidgets('renders results list with FeedCardVertical', (tester) async {
-      final feedItems = [
-        TestData.feedItem(id: 'user-1', nome: 'Musician 1'),
-        TestData.feedItem(id: 'user-2', nome: 'Band 1'),
+      const feedItems = [
+        FeedItem(
+          uid: 'user-1',
+          nome: 'Musician 1',
+          nomeArtistico: 'Musician 1',
+          tipoPerfil: 'profissional',
+        ),
+        FeedItem(
+          uid: 'user-2',
+          nome: 'Band 1',
+          nomeArtistico: 'Band 1',
+          tipoPerfil: 'banda',
+        ),
       ];
 
       await tester.pumpWidget(
         createSubject(
-          searchState: SearchPaginationState(
+          searchState: const SearchPaginationState(
+            filters: SearchFilters(term: 'rock'),
             items: feedItems,
             status: PaginationStatus.loaded,
             hasMore: false,
           ),
-          asyncValue: AsyncValue.data(feedItems),
+          asyncValue: const AsyncValue.data(feedItems),
         ),
       );
       await tester.pump();
@@ -113,6 +137,7 @@ void main() {
       await tester.pumpWidget(
         createSubject(
           searchState: const SearchPaginationState(
+            filters: SearchFilters(term: 'rock'),
             status: PaginationStatus.loading,
             hasMore: true,
           ),
@@ -121,7 +146,6 @@ void main() {
       );
       await tester.pump();
 
-      // Deve mostrar o CustomScrollView durante loading
       expect(find.byType(CustomScrollView), findsOneWidget);
     });
 
@@ -129,6 +153,7 @@ void main() {
       await tester.pumpWidget(
         createSubject(
           searchState: const SearchPaginationState(
+            filters: SearchFilters(term: 'rock'),
             status: PaginationStatus.error,
             errorMessage: 'Erro ao buscar',
             hasMore: false,
@@ -139,8 +164,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Verifica se o ícone de erro está presente (o texto pode aparecer em mais de um lugar)
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
       expect(find.textContaining('Erro ao buscar'), findsWidgets);
     });
 
@@ -148,20 +172,28 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pump();
 
-      expect(find.byIcon(Icons.tune), findsOneWidget);
+      expect(find.byIcon(Icons.tune_rounded), findsWidgets);
     });
 
     testWidgets('navigates to profile when result tapped', (tester) async {
-      final feedItems = [TestData.feedItem(id: 'user-123', nome: 'Test User')];
+      const feedItems = [
+        FeedItem(
+          uid: 'user-123',
+          nome: 'Test User',
+          nomeArtistico: 'Test User',
+          tipoPerfil: 'profissional',
+        ),
+      ];
 
       await tester.pumpWidget(
         createSubject(
-          searchState: SearchPaginationState(
+          searchState: const SearchPaginationState(
+            filters: SearchFilters(term: 'rock'),
             items: feedItems,
             status: PaginationStatus.loaded,
             hasMore: false,
           ),
-          asyncValue: AsyncValue.data(feedItems),
+          asyncValue: const AsyncValue.data(feedItems),
         ),
       );
       await tester.pump();

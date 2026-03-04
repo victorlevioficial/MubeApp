@@ -19,6 +19,7 @@ void main() {
       expect(RoutePaths.isPublic('/login'), true);
       expect(RoutePaths.isPublic('/register'), true);
       expect(RoutePaths.isPublic('/gallery'), true);
+      expect(RoutePaths.isPublic('/legal/termsOfUse'), true);
     });
 
     test('isPublic returns false for protected routes', () {

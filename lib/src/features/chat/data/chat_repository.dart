@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
+import 'package:mube/src/utils/app_logger.dart';
 
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
@@ -212,8 +212,8 @@ class ChatRepository {
       }
 
       return Right(conversationId);
-    } catch (e) {
-      debugPrint('[Chat] Error creating conversation: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Chat: failed to create conversation', e, stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -307,8 +307,8 @@ class ChatRepository {
       );
 
       return const Right(unit);
-    } catch (e) {
-      debugPrint('[Chat] Error sending message: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Chat: failed to send message', e, stackTrace);
 
       await _analytics?.logEvent(
         name: 'message_sent_error',
@@ -348,8 +348,8 @@ class ChatRepository {
 
       await batch.commit();
       return const Right(unit);
-    } catch (e) {
-      debugPrint('[Chat] Error marking as read: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Chat: failed to mark conversation as read', e, stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -447,8 +447,8 @@ class ChatRepository {
       }, SetOptions(merge: true));
 
       return const Right(unit);
-    } catch (e) {
-      debugPrint('[Chat] Error restoring preview: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Chat: failed to restore conversation preview', e, stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }
@@ -481,8 +481,8 @@ class ChatRepository {
       );
 
       return const Right(unit);
-    } catch (e) {
-      debugPrint('[Chat] Error deleting conversation: $e');
+    } catch (e, stackTrace) {
+      AppLogger.error('Chat: failed to delete conversation preview', e, stackTrace);
       return Left(ServerFailure(message: e.toString()));
     }
   }

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../constants/firestore_constants.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/utils/rate_limiter.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../feed/data/feed_repository.dart';
@@ -15,11 +16,16 @@ import '../../moderation/data/blocked_users_provider.dart';
 import '../data/search_repository.dart';
 import '../domain/search_filters.dart';
 
+const Object _unsetSearchLocation = Object();
+
 /// Search pagination state.
 @immutable
 class SearchPaginationState extends PaginationState<FeedItem> {
   /// Current search filters.
   final SearchFilters filters;
+
+  /// Filters effectively used by the current result set.
+  final SearchFilters effectiveFilters;
 
   /// User latitude used for proximity sorting.
   final double? userLat;
@@ -29,6 +35,7 @@ class SearchPaginationState extends PaginationState<FeedItem> {
 
   const SearchPaginationState({
     this.filters = const SearchFilters(),
+    this.effectiveFilters = const SearchFilters(),
     this.userLat,
     this.userLng,
     super.items = const [],
@@ -42,8 +49,9 @@ class SearchPaginationState extends PaginationState<FeedItem> {
 
   SearchPaginationState copyWithSearch({
     SearchFilters? filters,
-    double? userLat,
-    double? userLng,
+    SearchFilters? effectiveFilters,
+    Object? userLat = _unsetSearchLocation,
+    Object? userLng = _unsetSearchLocation,
     List<FeedItem>? items,
     PaginationStatus? status,
     String? errorMessage,
@@ -56,8 +64,13 @@ class SearchPaginationState extends PaginationState<FeedItem> {
   }) {
     return SearchPaginationState(
       filters: filters ?? this.filters,
-      userLat: userLat ?? this.userLat,
-      userLng: userLng ?? this.userLng,
+      effectiveFilters: effectiveFilters ?? this.effectiveFilters,
+      userLat: identical(userLat, _unsetSearchLocation)
+          ? this.userLat
+          : userLat as double?,
+      userLng: identical(userLng, _unsetSearchLocation)
+          ? this.userLng
+          : userLng as double?,
       items: items ?? this.items,
       status: status ?? this.status,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -70,11 +83,14 @@ class SearchPaginationState extends PaginationState<FeedItem> {
     );
   }
 
+  bool get isShowingRelaxedResults => effectiveFilters != filters;
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is SearchPaginationState &&
         other.filters == filters &&
+        other.effectiveFilters == effectiveFilters &&
         other.userLat == userLat &&
         other.userLng == userLng &&
         listEquals(other.items, items) &&
@@ -89,6 +105,7 @@ class SearchPaginationState extends PaginationState<FeedItem> {
   @override
   int get hashCode => Object.hash(
     filters,
+    effectiveFilters,
     userLat,
     userLng,
     items,
@@ -116,27 +133,18 @@ class SearchController extends Notifier<SearchPaginationState> {
   SearchPaginationState build() {
     ref.onDispose(() {
       _mounted = false;
+      _currentRequestId++;
       _debounceTimer?.cancel();
     });
     final user = ref.read(currentUserProfileProvider).value;
     final lat = (user?.location?['lat'] as num?)?.toDouble();
     final lng = (user?.location?['lng'] as num?)?.toDouble();
 
-    // Keep location in sync and refresh results if profile changed.
+    // Refresh search only when the search context itself changes.
     ref.listen(currentUserProfileProvider, (prev, next) {
-      if (!next.hasValue) return;
-
+      final previousUser = prev?.value;
       final nextUser = next.value;
-      final nextLat = (nextUser?.location?['lat'] as num?)?.toDouble();
-      final nextLng = (nextUser?.location?['lng'] as num?)?.toDouble();
-
-      if (nextLat != null &&
-          nextLng != null &&
-          (nextLat != state.userLat || nextLng != state.userLng)) {
-        _updateState(state.copyWithSearch(userLat: nextLat, userLng: nextLng));
-      }
-
-      if (next.value != prev?.value) {
+      if (_didSearchContextChange(previousUser, nextUser)) {
         _performSearch();
       }
     });
@@ -147,7 +155,10 @@ class SearchController extends Notifier<SearchPaginationState> {
       }
     });
 
-    Future.microtask(_performSearch);
+    Future.microtask(() {
+      if (!_mounted) return;
+      _performSearch();
+    });
 
     return SearchPaginationState(userLat: lat, userLng: lng);
   }
@@ -156,94 +167,121 @@ class SearchController extends Notifier<SearchPaginationState> {
     state = newState;
   }
 
-  void setTerm(String term) {
+  double? _userLat(AppUser? user) =>
+      (user?.location?['lat'] as num?)?.toDouble();
+
+  double? _userLng(AppUser? user) =>
+      (user?.location?['lng'] as num?)?.toDouble();
+
+  bool _didSearchContextChange(AppUser? previousUser, AppUser? nextUser) {
+    if (previousUser?.uid != nextUser?.uid) return true;
+    if (_userLat(previousUser) != _userLat(nextUser)) return true;
+    if (_userLng(previousUser) != _userLng(nextUser)) return true;
+
+    final previousBlocked = (previousUser?.blockedUsers ?? const <String>[])
+        .toSet();
+    final nextBlocked = (nextUser?.blockedUsers ?? const <String>[]).toSet();
+    return !setEquals(previousBlocked, nextBlocked);
+  }
+
+  void _setFilters(SearchFilters filters, {bool debounced = false}) {
+    final nextFilters = filters.sanitizedForSearch();
     _updateState(
-      state.copyWithSearch(filters: state.filters.copyWith(term: term)),
+      state.copyWithSearch(
+        filters: nextFilters,
+        effectiveFilters: nextFilters,
+        clearError: true,
+      ),
     );
-    _debouncedSearch();
+
+    if (debounced) {
+      _debouncedSearch();
+      return;
+    }
+
+    _performSearch();
+  }
+
+  SearchFilters _ensureProfessionalCompatibleFilters(SearchFilters filters) {
+    if (filters.category == SearchCategory.bands ||
+        filters.category == SearchCategory.studios) {
+      return filters.sanitizeForCategory(SearchCategory.professionals);
+    }
+    return filters;
+  }
+
+  SearchFilters _ensureStudioCompatibleFilters(SearchFilters filters) {
+    if (filters.category == SearchCategory.bands ||
+        filters.category == SearchCategory.professionals) {
+      return filters.sanitizeForCategory(SearchCategory.studios);
+    }
+    return filters;
+  }
+
+  void setTerm(String term) {
+    _setFilters(state.filters.copyWith(term: term), debounced: true);
   }
 
   void setCategory(SearchCategory category) {
-    _updateState(
-      state.copyWithSearch(
-        filters: state.filters.copyWith(
-          category: category,
-          professionalSubcategory: null,
-        ),
-      ),
-    );
-    _performSearch();
+    _setFilters(state.filters.sanitizeForCategory(category));
   }
 
   void setProfessionalSubcategory(ProfessionalSubcategory? subcategory) {
-    _updateState(
-      state.copyWithSearch(
-        filters: state.filters.copyWith(professionalSubcategory: subcategory),
-      ),
-    );
-    _performSearch();
+    final baseFilters = subcategory == null
+        ? state.filters
+        : _ensureProfessionalCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(professionalSubcategory: subcategory));
   }
 
   void setGenres(List<String> genres) {
-    _updateState(
-      state.copyWithSearch(filters: state.filters.copyWith(genres: genres)),
-    );
-    _performSearch();
+    _setFilters(state.filters.copyWith(genres: genres));
   }
 
   void setInstruments(List<String> instruments) {
-    _updateState(
-      state.copyWithSearch(
-        filters: state.filters.copyWith(instruments: instruments),
-      ),
-    );
-    _performSearch();
+    final baseFilters = instruments.isEmpty
+        ? state.filters
+        : _ensureProfessionalCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(instruments: instruments));
   }
 
   void setRoles(List<String> roles) {
-    _updateState(
-      state.copyWithSearch(filters: state.filters.copyWith(roles: roles)),
-    );
-    _performSearch();
+    final baseFilters = roles.isEmpty
+        ? state.filters
+        : _ensureProfessionalCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(roles: roles));
   }
 
   void setServices(List<String> services) {
-    _updateState(
-      state.copyWithSearch(filters: state.filters.copyWith(services: services)),
-    );
-    _performSearch();
+    final baseFilters = services.isEmpty
+        ? state.filters
+        : _ensureStudioCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(services: services));
   }
 
   void setStudioType(String? type) {
-    _updateState(
-      state.copyWithSearch(filters: state.filters.copyWith(studioType: type)),
-    );
-    _performSearch();
+    final baseFilters = type == null
+        ? state.filters
+        : _ensureStudioCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(studioType: type));
   }
 
   void setBackingVocalFilter(bool? canDoBacking) {
-    _updateState(
-      state.copyWithSearch(
-        filters: state.filters.copyWith(canDoBackingVocal: canDoBacking),
-      ),
-    );
-    _performSearch();
+    final baseFilters = canDoBacking == null
+        ? state.filters
+        : _ensureProfessionalCompatibleFilters(state.filters);
+    _setFilters(baseFilters.copyWith(canDoBackingVocal: canDoBacking));
+  }
+
+  void applyFilters(SearchFilters filters) {
+    _setFilters(filters);
   }
 
   void clearFilters() {
-    _updateState(state.copyWithSearch(filters: state.filters.clearFilters()));
-    _performSearch();
+    _setFilters(state.filters.clearFilters());
   }
 
   void reset() {
-    _updateState(
-      state.copyWithSearch(
-        filters: const SearchFilters(),
-        clearError: true,
-        clearLastDocument: true,
-      ),
-    );
-    _performSearch();
+    _setFilters(const SearchFilters());
   }
 
   Future<void> refresh() async {
@@ -283,7 +321,7 @@ class SearchController extends Notifier<SearchPaginationState> {
 
       final repository = ref.read(searchRepositoryProvider);
       final result = await repository.searchUsers(
-        filters: state.filters,
+        filters: state.effectiveFilters,
         startAfter: state.lastDocument,
         requestId: requestId,
         getCurrentRequestId: () => _currentRequestId,
@@ -338,8 +376,9 @@ class SearchController extends Notifier<SearchPaginationState> {
           );
         },
       );
-    } catch (e) {
+    } catch (e, stack) {
       if (_currentRequestId != requestId) return;
+      AppLogger.error('Unexpected search pagination error', e, stack);
       _updateState(
         state.copyWithSearch(
           status: PaginationStatus.error,
@@ -366,26 +405,41 @@ class SearchController extends Notifier<SearchPaginationState> {
 
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
+    final requestedFilters = state.filters.sanitizedForSearch();
     final user = ref.read(currentUserProfileProvider).value;
     final blockedUsers = await _resolveBlockedUsers(user);
 
     if (!_mounted) return;
 
     final userId = user?.uid ?? 'anonymous';
-    final userLat =
-        (user?.location?['lat'] as num?)?.toDouble() ?? state.userLat;
-    final userLng =
-        (user?.location?['lng'] as num?)?.toDouble() ?? state.userLng;
+    final userLat = _userLat(user);
+    final userLng = _userLng(user);
 
-    if (userLat != null &&
-        userLng != null &&
-        (userLat != state.userLat || userLng != state.userLng)) {
+    if (userLat != state.userLat || userLng != state.userLng) {
       _updateState(state.copyWithSearch(userLat: userLat, userLng: userLng));
+    }
+
+    if (requestedFilters.hasConflictingTypeFilters) {
+      _updateState(
+        state.copyWithSearch(
+          filters: requestedFilters,
+          effectiveFilters: requestedFilters,
+          items: const [],
+          status: PaginationStatus.noMoreData,
+          hasMore: false,
+          currentPage: 0,
+          clearError: true,
+          clearLastDocument: true,
+        ),
+      );
+      return;
     }
 
     if (!_rateLimiter.allowRequest(userId)) {
       final timeUntil = _rateLimiter.timeUntilNextRequest(userId);
-      debugPrint('[Search] Rate limit exceeded. Try again in $timeUntil');
+      AppLogger.warning(
+        'Search rate limit exceeded for $userId. Retry in $timeUntil.',
+      );
       _updateState(
         state.copyWithSearch(
           status: PaginationStatus.error,
@@ -397,6 +451,8 @@ class SearchController extends Notifier<SearchPaginationState> {
 
     _updateState(
       state.copyWithSearch(
+        filters: requestedFilters,
+        effectiveFilters: requestedFilters,
         status: PaginationStatus.loading,
         hasMore: true,
         clearError: true,
@@ -409,7 +465,7 @@ class SearchController extends Notifier<SearchPaginationState> {
       _useHomeDistancePagination = false;
 
       if (_canUseHomeDistancePipeline(
-        filters: state.filters,
+        filters: requestedFilters,
         userLat: userLat,
         userLng: userLng,
       )) {
@@ -419,7 +475,7 @@ class SearchController extends Notifier<SearchPaginationState> {
               currentUserId: user!.uid,
               userLat: userLat!,
               userLong: userLng!,
-              filterType: _mapCategoryToProfileType(state.filters.category),
+              filterType: _mapCategoryToProfileType(requestedFilters.category),
               excludedIds: blockedUsers,
               targetResults: SearchConfig.batchSize,
             );
@@ -447,6 +503,7 @@ class SearchController extends Notifier<SearchPaginationState> {
 
             _updateState(
               state.copyWithSearch(
+                effectiveFilters: requestedFilters,
                 items: firstPage,
                 status: hasMore
                     ? PaginationStatus.loaded
@@ -463,7 +520,7 @@ class SearchController extends Notifier<SearchPaginationState> {
 
       final repository = ref.read(searchRepositoryProvider);
       final result = await repository.searchUsers(
-        filters: state.filters,
+        filters: requestedFilters,
         startAfter: null,
         requestId: requestId,
         getCurrentRequestId: () => _currentRequestId,
@@ -472,44 +529,76 @@ class SearchController extends Notifier<SearchPaginationState> {
 
       if (_currentRequestId != requestId) return;
 
-      result.fold(
-        (failure) {
-          if (_currentRequestId != requestId) return;
-          debugPrint('[Search] Error: $failure');
-          _updateState(
-            state.copyWithSearch(
-              status: PaginationStatus.error,
-              errorMessage: failure.message,
-            ),
-          );
-        },
-        (response) {
-          if (_currentRequestId != requestId) return;
+      if (result.isLeft()) {
+        if (_currentRequestId != requestId) return;
+        final failure = result.getLeft().toNullable()!;
+        AppLogger.warning('Search request failed', failure);
+        _updateState(
+          state.copyWithSearch(
+            status: PaginationStatus.error,
+            errorMessage: failure.message,
+          ),
+        );
+        return;
+      }
 
-          final sortedResults = SearchRepository.sortByProximity(
-            response.items,
-            userLat,
-            userLng,
-          );
-
-          final hasMore = response.hasMore;
-
-          _updateState(
-            state.copyWithSearch(
-              items: sortedResults,
-              status: hasMore
-                  ? PaginationStatus.loaded
-                  : PaginationStatus.noMoreData,
-              hasMore: hasMore,
-              currentPage: 1,
-              lastDocument: response.lastDocument,
-            ),
-          );
-        },
-      );
-    } catch (e) {
       if (_currentRequestId != requestId) return;
-      debugPrint('[Search] Error: $e');
+
+      final response = result.getRight().toNullable()!;
+      var items = response.items;
+      var lastDoc = response.lastDocument;
+      var hasMore = response.hasMore;
+      var effectiveFilters = requestedFilters;
+
+      // ── Soft-filter fallback ──
+      // If we got zero results and have specific filters,
+      // retry with relaxed filters to show approximate matches.
+      if (items.isEmpty && SearchRepository.canRelaxFilters(requestedFilters)) {
+        final relaxed = SearchRepository.relaxFilters(requestedFilters);
+        final fallback = await repository.searchUsers(
+          filters: relaxed,
+          startAfter: null,
+          requestId: requestId,
+          getCurrentRequestId: () => _currentRequestId,
+          blockedUsers: blockedUsers,
+        );
+
+        if (_currentRequestId != requestId) return;
+
+        fallback.fold(
+          (_) {}, // ignore fallback errors
+          (fallbackResp) {
+            if (fallbackResp.items.isNotEmpty) {
+              items = fallbackResp.items;
+              lastDoc = fallbackResp.lastDocument;
+              hasMore = fallbackResp.hasMore;
+              effectiveFilters = relaxed;
+            }
+          },
+        );
+      }
+
+      final sortedResults = SearchRepository.sortByProximity(
+        items,
+        userLat,
+        userLng,
+      );
+
+      _updateState(
+        state.copyWithSearch(
+          effectiveFilters: effectiveFilters,
+          items: sortedResults,
+          status: hasMore
+              ? PaginationStatus.loaded
+              : PaginationStatus.noMoreData,
+          hasMore: hasMore,
+          currentPage: 1,
+          lastDocument: lastDoc,
+        ),
+      );
+    } catch (e, stack) {
+      if (_currentRequestId != requestId) return;
+      AppLogger.error('Unexpected search controller error', e, stack);
       _updateState(
         state.copyWithSearch(
           status: PaginationStatus.error,

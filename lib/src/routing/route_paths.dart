@@ -18,7 +18,6 @@ abstract final class RoutePaths {
   static const String chat = '/chat';
   static const String settings = '/settings';
   static const String addresses = '/settings/addresses';
-  static const String maintenance = '/settings/maintenance';
   static const String privacySettings = '/settings/privacy';
   static const String blockedUsers = '/settings/blocked-users';
   static const String receivedFavorites = '/settings/received-favorites';
@@ -33,8 +32,8 @@ abstract final class RoutePaths {
   static const String supportTicketDetail =
       'ticket/:ticketId'; // relative to supportTickets
 
-  // Dev routes
   static const String gallery = '/gallery';
+  static const String feedList = '/feed/list';
 
   /// Routes that don't require authentication.
   static const Set<String> publicRoutes = {
@@ -47,6 +46,10 @@ abstract final class RoutePaths {
     legal,
   };
 
+  static const List<String> _publicRoutePrefixes = <String>[
+    '$legal/',
+  ];
+
   /// Check if a path is a public route.
   // Profile routes
   static const String profile = '/profile';
@@ -57,5 +60,14 @@ abstract final class RoutePaths {
   static const String conversation = '/conversation';
   static const String notifications = '/notifications';
 
-  static bool isPublic(String path) => publicRoutes.contains(path);
+  static String publicProfileById(String uid) => '$publicProfile/$uid';
+
+  static String conversationById(String conversationId) =>
+      '$conversation/$conversationId';
+
+  static String legalDetail(String type) => '$legal/$type';
+
+  static bool isPublic(String path) =>
+      publicRoutes.contains(path) ||
+      _publicRoutePrefixes.any((prefix) => path.startsWith(prefix));
 }

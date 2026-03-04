@@ -37,6 +37,32 @@ void main() {
           'nomeArtistico': 'João Rockstar',
           'categorias': ['singer'],
           'generosMusicais': ['rock', 'pop'],
+          'instrumentos': ['guitar'],
+        },
+        'created_at': Timestamp.now(),
+      });
+
+      await fakeFirestore.collection('users').doc('band-1').set({
+        'nome': 'Banda Rock',
+        'tipo_perfil': 'banda',
+        'cadastro_status': 'concluido',
+        'status': 'ativo',
+        'banda': {
+          'nomeBanda': 'Banda Rock',
+          'generosMusicais': ['rock'],
+        },
+        'created_at': Timestamp.now(),
+      });
+
+      await fakeFirestore.collection('users').doc('studio-1').set({
+        'nome': 'Studio Mix',
+        'tipo_perfil': 'estudio',
+        'cadastro_status': 'concluido',
+        'status': 'ativo',
+        'estudio': {
+          'nomeEstudio': 'Studio Mix',
+          'services': ['recording', 'mixing'],
+          'studioType': 'commercial',
         },
         'created_at': Timestamp.now(),
       });
@@ -78,6 +104,58 @@ void main() {
       result.fold((l) => fail('Should not fail'), (r) {
         expect(r.items.any((u) => u.uid == 'hidden-user'), false);
         expect(r.items.any((u) => u.uid == userUid), true);
+      });
+    });
+
+    test(
+      'professional-only filters under all should return only professionals',
+      () async {
+        const filters = SearchFilters(instruments: ['guitar']);
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 3,
+          getCurrentRequestId: () => 3,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), [userUid]);
+        });
+      },
+    );
+
+    test('studio-only filters under all should return only studios', () async {
+      const filters = SearchFilters(
+        services: ['recording'],
+        studioType: 'commercial',
+      );
+
+      final result = await repository.searchUsers(
+        filters: filters,
+        requestId: 4,
+        getCurrentRequestId: () => 4,
+      );
+
+      result.fold((l) => fail('Should not fail'), (r) {
+        expect(r.items.map((item) => item.uid), ['studio-1']);
+      });
+    });
+
+    test('conflicting type filters under all should return empty', () async {
+      const filters = SearchFilters(
+        instruments: ['guitar'],
+        services: ['recording'],
+      );
+
+      final result = await repository.searchUsers(
+        filters: filters,
+        requestId: 5,
+        getCurrentRequestId: () => 5,
+      );
+
+      result.fold((l) => fail('Should not fail'), (r) {
+        expect(r.items, isEmpty);
+        expect(r.hasMore, false);
       });
     });
   });

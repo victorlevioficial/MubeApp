@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,13 +23,25 @@ import '../../../../helpers/test_fakes.dart';
 /// Fake SearchRepository for testing
 class FakeSearchRepository extends Fake implements SearchRepository {
   List<FeedItem> _searchResults = [];
+  final List<PaginatedSearchResponse> _queuedResponses = [];
   bool throwError = false;
   bool rateLimitExceeded = false;
   int searchCallCount = 0;
   SearchFilters? lastSearchFilters;
+  final List<SearchFilters> searchCallHistory = [];
+  final List<DocumentSnapshot?> startAfterHistory = [];
+  FutureResult<PaginatedSearchResponse> Function(
+    SearchFilters filters,
+    DocumentSnapshot? startAfter,
+  )?
+  searchHandler;
 
   void setSearchResults(List<FeedItem> results) {
     _searchResults = results;
+  }
+
+  void enqueueResponse(PaginatedSearchResponse response) {
+    _queuedResponses.add(response);
   }
 
   @override
@@ -39,6 +54,8 @@ class FakeSearchRepository extends Fake implements SearchRepository {
   }) async {
     searchCallCount++;
     lastSearchFilters = filters;
+    searchCallHistory.add(filters);
+    startAfterHistory.add(startAfter);
 
     if (throwError) {
       return const Left(ServerFailure(message: 'Search failed'));
@@ -46,6 +63,14 @@ class FakeSearchRepository extends Fake implements SearchRepository {
 
     if (rateLimitExceeded) {
       return const Left(ServerFailure(message: 'Rate limit exceeded'));
+    }
+
+    if (searchHandler != null) {
+      return searchHandler!(filters, startAfter);
+    }
+
+    if (_queuedResponses.isNotEmpty) {
+      return Right(_queuedResponses.removeAt(0));
     }
 
     return Right(
@@ -117,6 +142,56 @@ void main() {
         expect(fakeSearchRepository.searchCallCount, greaterThan(0));
       },
     );
+
+    test(
+      'profile changes unrelated to search context do not trigger a new search',
+      () async {
+        final profileController = StreamController<AppUser?>.broadcast(
+          sync: true,
+        );
+        addTearDown(profileController.close);
+
+        final scopedContainer = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            searchRepositoryProvider.overrideWithValue(fakeSearchRepository),
+            currentUserProfileProvider.overrideWith((ref) {
+              return profileController.stream;
+            }),
+            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
+          ],
+        );
+        addTearDown(() {
+          scopedContainer.read(searchControllerProvider.notifier).cancelDebounce();
+          scopedContainer.dispose();
+        });
+
+        scopedContainer.read(searchControllerProvider.notifier);
+        profileController.add(testAppUser);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        fakeSearchRepository.searchCallCount = 0;
+
+        profileController.add(testAppUser.copyWith(nome: 'Updated Name'));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(fakeSearchRepository.searchCallCount, 0);
+      },
+    );
+
+    test('copyWithSearch can clear cached user location', () {
+      const stateWithLocation = SearchPaginationState(
+        userLat: -23.5,
+        userLng: -46.6,
+      );
+
+      final clearedState = stateWithLocation.copyWithSearch(
+        userLat: null,
+        userLng: null,
+      );
+
+      expect(clearedState.userLat, isNull);
+      expect(clearedState.userLng, isNull);
+    });
 
     test('setCategory should update category filter and search', () async {
       // Arrange
@@ -345,6 +420,126 @@ void main() {
       expect(state.filters.instruments, ['guitar', 'bass']);
       expect(state.filters.hasActiveFilters, true);
     });
+
+    test('applyFilters should trigger a single search request', () async {
+      final controller = container.read(searchControllerProvider.notifier);
+      await Future.delayed(Duration.zero);
+      fakeSearchRepository.searchCallCount = 0;
+      fakeSearchRepository.setSearchResults(const [
+        FeedItem(
+          uid: 'pro-1',
+          nome: 'Pro 1',
+          nomeArtistico: 'Pro 1',
+          tipoPerfil: 'profissional',
+        ),
+      ]);
+
+      const filters = SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.instrumentalist,
+        genres: ['rock', 'blues'],
+        instruments: ['guitar', 'bass'],
+      );
+
+      controller.applyFilters(filters);
+      await Future.delayed(Duration.zero);
+
+      expect(fakeSearchRepository.searchCallCount, 1);
+      expect(fakeSearchRepository.lastSearchFilters, filters);
+    });
+
+    test('studio filters should scope the search to studios', () async {
+      final controller = container.read(searchControllerProvider.notifier);
+
+      controller.setCategory(SearchCategory.professionals);
+      await Future.delayed(Duration.zero);
+
+      controller.setServices(const ['recording']);
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(searchControllerProvider);
+      expect(state.filters.category, SearchCategory.studios);
+      expect(state.filters.services, ['recording']);
+    });
+
+    test(
+      'soft fallback should keep user filters and paginate with effective filters',
+      () async {
+        final controller = container.read(searchControllerProvider.notifier);
+        final fakeFirestore = FakeFirebaseFirestore();
+        final usersRef = fakeFirestore.collection('users');
+
+        await usersRef.doc('cursor-1').set({'created_at': Timestamp.now()});
+        await usersRef.doc('cursor-2').set({'created_at': Timestamp.now()});
+
+        final doc1 = await usersRef.doc('cursor-1').get();
+        final doc2 = await usersRef.doc('cursor-2').get();
+
+        const strictFilters = SearchFilters(
+          category: SearchCategory.professionals,
+          genres: ['rock'],
+          instruments: ['guitar'],
+        );
+        final relaxedFilters = SearchRepository.relaxFilters(strictFilters);
+        const firstItem = FeedItem(
+          uid: 'pro-1',
+          nome: 'Pro 1',
+          nomeArtistico: 'Pro 1',
+          tipoPerfil: 'profissional',
+        );
+        const secondItem = FeedItem(
+          uid: 'pro-2',
+          nome: 'Pro 2',
+          nomeArtistico: 'Pro 2',
+          tipoPerfil: 'profissional',
+        );
+
+        fakeSearchRepository.searchHandler = (filters, startAfter) async {
+          if (filters == strictFilters) {
+            return const Right(PaginatedSearchResponse.empty());
+          }
+
+          if (filters == relaxedFilters && startAfter == null) {
+            return Right(
+              PaginatedSearchResponse(
+                items: const [firstItem],
+                lastDocument: doc1,
+                hasMore: true,
+              ),
+            );
+          }
+
+          if (filters == relaxedFilters && startAfter?.id == doc1.id) {
+            return Right(
+              PaginatedSearchResponse(
+                items: const [secondItem],
+                lastDocument: doc2,
+                hasMore: false,
+              ),
+            );
+          }
+
+          return const Right(PaginatedSearchResponse.empty());
+        };
+
+        controller.applyFilters(strictFilters);
+        await Future.delayed(const Duration(milliseconds: 20));
+
+        final firstState = container.read(searchControllerProvider);
+        expect(firstState.filters, strictFilters);
+        expect(firstState.effectiveFilters, relaxedFilters);
+        expect(firstState.isShowingRelaxedResults, true);
+        expect(firstState.items.map((item) => item.uid), ['pro-1']);
+
+        await controller.loadMore();
+
+        final finalState = container.read(searchControllerProvider);
+        expect(fakeSearchRepository.searchCallHistory.last, relaxedFilters);
+        expect(fakeSearchRepository.startAfterHistory.last?.id, doc1.id);
+        expect(finalState.items.map((item) => item.uid), ['pro-1', 'pro-2']);
+        expect(finalState.isShowingRelaxedResults, true);
+      },
+    );
 
     test('refresh should reload search results', () async {
       // Arrange

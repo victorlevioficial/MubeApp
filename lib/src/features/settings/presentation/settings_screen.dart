@@ -1,11 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/data/app_seeder.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -61,19 +59,19 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.location_on_outlined,
                   title: 'Meus Endereços',
                   subtitle: 'Gerenciar entregas',
-                  onTap: () => context.push('/settings/addresses'),
+                  onTap: () => context.push(RoutePaths.addresses),
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.person_outline,
                   title: 'Editar Perfil',
-                  onTap: () => context.push('/profile/edit'),
+                  onTap: () => context.push(RoutePaths.profileEdit),
                   customAccentColor: AppColors.primary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.favorite_outline,
                   title: 'Meus Favoritos',
-                  onTap: () => context.push('/favorites'),
+                  onTap: () => context.push(RoutePaths.favorites),
                   customAccentColor: AppColors.primary,
                 ),
                 if (ref.watch(
@@ -125,7 +123,8 @@ class SettingsScreen extends ConsumerWidget {
                 NeonSettingsTile(
                   icon: Icons.description_outlined,
                   title: 'Termos de Uso',
-                  onTap: () => context.push('${RoutePaths.legal}/termsOfUse'),
+                  onTap: () =>
+                      context.push(RoutePaths.legalDetail('termsOfUse')),
                   customAccentColor: AppColors.textSecondary.withValues(
                     alpha: 0.6,
                   ),
@@ -134,49 +133,13 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.privacy_tip_outlined,
                   title: 'Política de Privacidade',
                   onTap: () =>
-                      context.push('${RoutePaths.legal}/privacyPolicy'),
+                      context.push(RoutePaths.legalDetail('privacyPolicy')),
                   customAccentColor: AppColors.textSecondary.withValues(
                     alpha: 0.6,
                   ),
                 ),
               ],
             ),
-
-            if (kDebugMode)
-              SettingsGroup(
-                title: 'DEV ZONE',
-                children: [
-                  NeonSettingsTile(
-                    icon: Icons.build_circle_outlined,
-                    title: 'Manutenção (Dev)',
-                    onTap: () => context.push(RoutePaths.maintenance),
-                    customAccentColor: AppColors.textPrimary.withValues(
-                      alpha: 0.7,
-                    ),
-                  ),
-                  NeonSettingsTile(
-                    icon: Icons.developer_mode_rounded,
-                    title: 'Developer Tools 🛠️',
-                    subtitle: 'Push Notifications, Logs, etc.',
-                    onTap: () => context.push('/developer-tools'),
-                    customAccentColor: AppColors.warning,
-                  ),
-                  NeonSettingsTile(
-                    icon: Icons.groups_outlined,
-                    title: 'Popular Banco (MatchPoint)',
-                    subtitle: 'Gerar 150 perfis diversos (likes iniciam em 0)',
-                    onTap: () => _seedDatabase(context, ref),
-                    customAccentColor: AppColors.success,
-                  ),
-                  NeonSettingsTile(
-                    icon: Icons.settings_input_component_rounded,
-                    title: 'Seed App Config',
-                    subtitle: 'Resetar listas (Gêneros/Inst.)',
-                    onTap: () => _seedAppConfig(context, ref),
-                    customAccentColor: AppColors.info,
-                  ),
-                ],
-              ),
 
             const SizedBox(height: AppSpacing.s8),
 
@@ -206,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
     if (confirm == true) {
       unawaited(ref.read(authRepositoryProvider).signOut());
       if (context.mounted) {
-        context.go('/login');
+        context.go(RoutePaths.login);
       }
     }
   }
@@ -301,37 +264,6 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     return message.trim();
-  }
-
-  void _seedDatabase(BuildContext context, WidgetRef ref) async {
-    AppSnackBar.info(context, 'Iniciando população do banco...');
-
-    try {
-      final seeder = ref.read(appSeederProvider);
-      final count = await seeder.seedUsers(count: 150);
-      if (context.mounted) {
-        AppSnackBar.success(context, '$count usuários criados!');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        AppSnackBar.error(context, 'Erro ao popular: $e');
-      }
-    }
-  }
-
-  void _seedAppConfig(BuildContext context, WidgetRef ref) async {
-    AppSnackBar.info(context, 'Gravando configurações...');
-
-    try {
-      await ref.read(appSeederProvider).seedAppConfig();
-      if (context.mounted) {
-        AppSnackBar.success(context, 'Configuração salva no Firestore!');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        AppSnackBar.error(context, 'Erro: $e');
-      }
-    }
   }
 }
 

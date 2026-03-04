@@ -5,6 +5,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../utils/app_logger.dart';
+
 /// Enum para definir o formato de compressão da imagem
 enum ImageFormat {
   jpeg,
@@ -137,7 +139,7 @@ class ImageCompressor {
 
       await compressedFile.writeAsBytes(compressed);
 
-      debugPrint(
+      AppLogger.debug(
         'ImageCompressor: Compressed ${(originalSize / 1024).toStringAsFixed(1)}KB → '
         '${(compressedSize / 1024).toStringAsFixed(1)}KB '
         '(${((1 - compressedSize / originalSize) * 100).toStringAsFixed(0)}% reduction) '
@@ -145,8 +147,12 @@ class ImageCompressor {
       );
 
       return compressedFile;
-    } catch (e) {
-      debugPrint('ImageCompressor: Error compressing image: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'ImageCompressor: Error compressing image',
+        e,
+        stackTrace,
+      );
       return file; // Return original on any error
     }
   }
@@ -187,9 +193,11 @@ class ImageCompressor {
         );
 
         results[size] = compressedFile;
-      } catch (e) {
-        debugPrint(
-          'ImageCompressor: Error generating ${size.name} version: $e',
+      } catch (e, stackTrace) {
+        AppLogger.warning(
+          'ImageCompressor: Error generating ${size.name} version',
+          e,
+          stackTrace,
         );
       }
     }
@@ -229,8 +237,12 @@ class ImageCompressor {
         quality: quality,
         format: _getCompressFormat(format),
       );
-    } catch (e) {
-      debugPrint('ImageCompressor: Error compressing to bytes: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'ImageCompressor: Error compressing to bytes',
+        e,
+        stackTrace,
+      );
       return null;
     }
   }

@@ -8,6 +8,7 @@ import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
+import 'package:mube/src/utils/app_logger.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/paginated_search_response.dart';
@@ -19,6 +20,8 @@ class SearchConfig {
   static const int maxDocsRead = 300;
   static const int targetResults = 20;
 }
+
+enum _SearchProfileScope { any, professional, band, studio, impossible }
 
 /// Repository for searching users with smart pagination and filtering.
 class SearchRepository {
@@ -41,6 +44,13 @@ class SearchRepository {
     List<String> blockedUsers = const [],
   }) async {
     try {
+      final effectiveFilters = filters.sanitizedForSearch();
+      final scope = _resolveSearchProfileScope(effectiveFilters);
+
+      if (scope == _SearchProfileScope.impossible) {
+        return const Right(PaginatedSearchResponse.empty());
+      }
+
       final List<FeedItem> results = [];
       final Set<String> seenUids = {};
       DocumentSnapshot? lastDoc = startAfter;
@@ -51,12 +61,12 @@ class SearchRepository {
           totalDocsRead < SearchConfig.maxDocsRead) {
         // Check if request is still valid (not cancelled by newer request)
         if (getCurrentRequestId() != requestId) {
-          debugPrint('[Search] Request $requestId cancelled');
+          AppLogger.debug('Search request $requestId cancelled');
           return const Right(PaginatedSearchResponse.empty());
         }
 
         // Build and execute query
-        final query = _buildBaseQuery(filters, lastDoc);
+        final query = _buildBaseQuery(startAfter: lastDoc, scope: scope);
         final snapshot = await query.get();
 
         if (snapshot.docs.isEmpty) {
@@ -95,7 +105,7 @@ class SearchRepository {
 
           // Apply filters
           final item = FeedItem.fromFirestore(data, doc.id);
-          if (!_matchesFilters(item, data, filters)) continue;
+          if (!_matchesFilters(item, data, effectiveFilters)) continue;
 
           seenUids.add(doc.id);
           results.add(item);
@@ -104,8 +114,8 @@ class SearchRepository {
         }
       }
 
-      debugPrint(
-        '[Search] Request $requestId: ${results.length} results from $totalDocsRead docs',
+      AppLogger.debug(
+        'Search request $requestId returned ${results.length} results after reading $totalDocsRead docs',
       );
 
       // Log analytics event for search performed
@@ -114,8 +124,8 @@ class SearchRepository {
         parameters: {
           'query': filters.term,
           'results_count': results.length,
-          'has_filters': filters.hasActiveFilters,
-          'category': filters.category.name,
+          'has_filters': effectiveFilters.hasActiveFilters,
+          'category': effectiveFilters.category.name,
         },
       );
 
@@ -128,8 +138,8 @@ class SearchRepository {
           hasMore: hasMore,
         ),
       );
-    } catch (e) {
-      debugPrint('[Search] Error: $e');
+    } catch (e, stack) {
+      AppLogger.error('Search repository failed', e, stack);
 
       // Log analytics event for search error
       await _analytics?.logEvent(
@@ -142,16 +152,15 @@ class SearchRepository {
   }
 
   /// Builds the base Firestore query.
-  Query<Map<String, dynamic>> _buildBaseQuery(
-    SearchFilters filters,
-    DocumentSnapshot? startAfter,
-  ) {
+  Query<Map<String, dynamic>> _buildBaseQuery({
+    required DocumentSnapshot? startAfter,
+    required _SearchProfileScope scope,
+  }) {
     Query<Map<String, dynamic>> query = _firestore.collection('users');
 
-    // Category filter (contractors are filtered in memory, not here)
-    // We only add tipo_perfil filter when a SPECIFIC category is selected
-    if (filters.category != SearchCategory.all) {
-      final tipoPerfil = _categoryToTipoPerfil(filters.category);
+    // Scope filter inferred from explicit category and type-specific filters.
+    if (scope != _SearchProfileScope.any) {
+      final tipoPerfil = _scopeToTipoPerfil(scope);
       if (tipoPerfil != null) {
         query = query.where('tipo_perfil', isEqualTo: tipoPerfil);
       }
@@ -168,18 +177,64 @@ class SearchRepository {
     return query.limit(SearchConfig.batchSize);
   }
 
-  /// Converts SearchCategory to Firestore tipo_perfil value.
-  String? _categoryToTipoPerfil(SearchCategory category) {
-    switch (category) {
-      case SearchCategory.professionals:
+  String? _scopeToTipoPerfil(_SearchProfileScope scope) {
+    switch (scope) {
+      case _SearchProfileScope.professional:
         return 'profissional';
-      case SearchCategory.bands:
+      case _SearchProfileScope.band:
         return 'banda';
-      case SearchCategory.studios:
+      case _SearchProfileScope.studio:
         return 'estudio';
-      case SearchCategory.all:
+      case _SearchProfileScope.any:
+      case _SearchProfileScope.impossible:
         return null;
     }
+  }
+
+  _SearchProfileScope _resolveSearchProfileScope(SearchFilters filters) {
+    if (filters.hasConflictingTypeFilters) {
+      return _SearchProfileScope.impossible;
+    }
+
+    switch (filters.category) {
+      case SearchCategory.professionals:
+        return _SearchProfileScope.professional;
+      case SearchCategory.bands:
+        return _SearchProfileScope.band;
+      case SearchCategory.studios:
+        return _SearchProfileScope.studio;
+      case SearchCategory.all:
+        if (filters.hasProfessionalOnlyFilters) {
+          return _SearchProfileScope.professional;
+        }
+        if (filters.hasStudioOnlyFilters) {
+          return _SearchProfileScope.studio;
+        }
+        return _SearchProfileScope.any;
+    }
+  }
+
+  /// Returns a relaxed copy of [filters] for soft-matching.
+  ///
+  /// Relaxation strategy:
+  /// 1. Keep category and text term (core intent).
+  /// 2. Remove instruments / roles / services constraints.
+  /// 3. Keep subcategory so we stay in the same "type" of professional.
+  /// 4. Remove genres (least important for basic discovery).
+  static SearchFilters relaxFilters(SearchFilters filters) {
+    return filters.copyWith(
+      instruments: const [],
+      roles: const [],
+      services: const [],
+      genres: const [],
+      studioType: null,
+      canDoBackingVocal: null,
+    );
+  }
+
+  /// Whether relaxing filters would actually broaden the search.
+  static bool canRelaxFilters(SearchFilters filters) {
+    return relaxFilters(filters) != filters;
   }
 
   /// Checks if an item matches all active filters.
@@ -188,6 +243,10 @@ class SearchRepository {
     Map<String, dynamic> rawData,
     SearchFilters filters,
   ) {
+    if (filters.hasConflictingTypeFilters) {
+      return false;
+    }
+
     // Text search (name/artistic name)
     if (filters.term.isNotEmpty) {
       final normalizedTerm = normalizeText(filters.term);
@@ -197,14 +256,37 @@ class SearchRepository {
       }
     }
 
+    if (filters.category == SearchCategory.professionals &&
+        item.tipoPerfil != 'profissional') {
+      return false;
+    }
+
+    if (filters.category == SearchCategory.bands &&
+        item.tipoPerfil != 'banda') {
+      return false;
+    }
+
+    if (filters.category == SearchCategory.studios &&
+        item.tipoPerfil != 'estudio') {
+      return false;
+    }
+
+    if (filters.hasProfessionalOnlyFilters &&
+        item.tipoPerfil != 'profissional') {
+      return false;
+    }
+
+    if (filters.hasStudioOnlyFilters && item.tipoPerfil != 'estudio') {
+      return false;
+    }
+
     // Get nested data for detailed filters
     final profData = rawData['profissional'] as Map<String, dynamic>? ?? {};
     final bandData = rawData['banda'] as Map<String, dynamic>? ?? {};
     final studioData = rawData['estudio'] as Map<String, dynamic>? ?? {};
 
     // Professional subcategory filter
-    if (filters.professionalSubcategory != null &&
-        item.tipoPerfil == 'profissional') {
+    if (filters.professionalSubcategory != null) {
       final categories = List<String>.from(profData['categorias'] ?? []);
       final subcatValue = filters.professionalSubcategory!.name;
       if (!categories.contains(subcatValue)) {
@@ -226,7 +308,7 @@ class SearchRepository {
     }
 
     // Instruments filter (professionals only)
-    if (filters.instruments.isNotEmpty && item.tipoPerfil == 'profissional') {
+    if (filters.instruments.isNotEmpty) {
       final itemInstruments = List<String>.from(profData['instrumentos'] ?? []);
       if (!listContainsAny(itemInstruments, filters.instruments)) {
         return false;
@@ -234,7 +316,7 @@ class SearchRepository {
     }
 
     // Roles filter (crew only)
-    if (filters.roles.isNotEmpty && item.tipoPerfil == 'profissional') {
+    if (filters.roles.isNotEmpty) {
       final itemRoles = List<String>.from(profData['funcoes'] ?? []);
       if (!listContainsAny(itemRoles, filters.roles)) {
         return false;
@@ -242,7 +324,7 @@ class SearchRepository {
     }
 
     // Services filter (studios only)
-    if (filters.services.isNotEmpty && item.tipoPerfil == 'estudio') {
+    if (filters.services.isNotEmpty) {
       final itemServices = List<String>.from(
         studioData['services'] ?? studioData['servicosOferecidos'] ?? [],
       );
@@ -252,7 +334,7 @@ class SearchRepository {
     }
 
     // Studio type filter
-    if (filters.studioType != null && item.tipoPerfil == 'estudio') {
+    if (filters.studioType != null) {
       final studioType = studioData['studioType'] as String?;
       if (studioType != filters.studioType) {
         return false;
@@ -260,8 +342,7 @@ class SearchRepository {
     }
 
     // Backing vocal filter
-    if (filters.canDoBackingVocal != null &&
-        item.tipoPerfil == 'profissional') {
+    if (filters.canDoBackingVocal != null) {
       final categories = List<String>.from(profData['categorias'] ?? []);
 
       bool canDoBacking = false;

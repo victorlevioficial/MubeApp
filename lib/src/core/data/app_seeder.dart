@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'dart:convert';
 import 'dart:math';
 
@@ -10,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../../constants/app_constants.dart' as app_constants;
 import '../../constants/firestore_constants.dart';
 import '../../features/auth/domain/user_type.dart';
+import '../../utils/app_logger.dart';
 import '../domain/app_config.dart';
 import 'app_config_repository.dart';
 
@@ -777,7 +777,7 @@ class AppSeeder {
   /// Public method to seed users (called from Settings)
   Future<int> seedUsers({int count = 150}) async {
     final appConfig = await _configRepo.fetchConfig();
-    await seedDatabase(appConfig, (msg) => print(msg));
+    await seedDatabase(appConfig, AppLogger.debug);
     return count + 20; // 150 dynamic + 20 basic
   }
 
@@ -808,7 +808,7 @@ class AppSeeder {
     final bandCount = (count * 0.25).round(); // 25% bands
     final studioCount = count - professionalCount - bandCount; // 15% studios
 
-    print(
+    AppLogger.debug(
       '[AppSeeder] Distribution: $professionalCount pros, $bandCount bands, $studioCount studios',
     );
 
@@ -834,7 +834,7 @@ class AppSeeder {
       batchCount++;
       totalCreated++;
       if (batchCount >= 450) {
-        print('[AppSeeder] Committing batch of $batchCount...');
+        AppLogger.debug('[AppSeeder] Committing batch of $batchCount...');
         await batch.commit();
         batchCount = 0;
       }
@@ -856,7 +856,7 @@ class AppSeeder {
       batchCount++;
       totalCreated++;
       if (batchCount >= 450) {
-        print('[AppSeeder] Committing batch of $batchCount...');
+        AppLogger.debug('[AppSeeder] Committing batch of $batchCount...');
         await batch.commit();
         batchCount = 0;
       }
@@ -878,7 +878,7 @@ class AppSeeder {
       batchCount++;
       totalCreated++;
       if (batchCount >= 450) {
-        print('[AppSeeder] Committing batch of $batchCount...');
+        AppLogger.debug('[AppSeeder] Committing batch of $batchCount...');
         await batch.commit();
         batchCount = 0;
       }
@@ -886,11 +886,11 @@ class AppSeeder {
 
     // Commit remaining
     if (batchCount > 0) {
-      print('[AppSeeder] Committing final batch of $batchCount...');
+      AppLogger.debug('[AppSeeder] Committing final batch of $batchCount...');
       await batch.commit();
     }
 
-    print('[AppSeeder] ✅ Seeded $totalCreated users successfully!');
+    AppLogger.debug('[AppSeeder] Seeded $totalCreated users successfully!');
     return totalCreated;
   }
 
@@ -1270,10 +1270,12 @@ class AppSeeder {
   // ============================================================================
   Future<void> seedAppConfig() async {
     if (!kDebugMode) {
-      print('[AppSeeder] Cannot seed app config: only allowed in debug mode.');
+      AppLogger.warning(
+        '[AppSeeder] Cannot seed app config: only allowed in debug mode.',
+      );
       return;
     }
-    print('[AppSeeder] Seeding App Config...');
+    AppLogger.debug('[AppSeeder] Seeding App Config...');
     final configCollection = _firestore.collection('config');
 
     final config = AppConfig(
@@ -1324,7 +1326,7 @@ class AppSeeder {
 
     final jsonMap = jsonDecode(jsonEncode(config.toJson()));
     await configCollection.doc('app_data').set(jsonMap);
-    print('[AppSeeder] ✅ App Config seeded to config/app_data');
+    AppLogger.debug('[AppSeeder] App Config seeded to config/app_data');
   }
 }
 

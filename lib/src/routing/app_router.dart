@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../core/services/analytics/analytics_provider.dart';
 import '../design_system/components/navigation/main_scaffold.dart';
-import '../features/admin/presentation/maintenance_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/domain/user_type.dart';
 import '../features/auth/presentation/email_verification_screen.dart';
@@ -14,7 +13,6 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/bands/presentation/manage_members_screen.dart';
 import '../features/chat/presentation/chat_screen.dart';
 import '../features/chat/presentation/conversations_screen.dart';
-import '../features/developer/presentation/developer_tools_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/favorites/presentation/received_favorites_screen.dart';
 import '../features/feed/domain/feed_section.dart';
@@ -29,6 +27,7 @@ import '../features/notifications/presentation/notification_list_screen.dart';
 import '../features/onboarding/presentation/notification_permission_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
+import '../features/onboarding/providers/notification_permission_prompt_provider.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
@@ -63,6 +62,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.listen(authStateChangesProvider, (_, _) => notifier.notify());
   ref.listen(currentUserProfileProvider, (_, _) => notifier.notify());
   ref.listen(splashFinishedProvider, (_, _) => notifier.notify());
+  ref.listen(notificationPermissionPromptProvider, (_, _) => notifier.notify());
 
   return GoRouter(
     initialLocation: RoutePaths.splash,
@@ -77,11 +77,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 /// Builds the route tree. Separated for readability.
 List<RouteBase> _buildRoutes(Ref ref) {
   return [
-    GoRoute(
-      path: '/developer-tools',
-      builder: (context, state) => const DeveloperToolsScreen(),
-    ),
-
     // Root alias route indicating the initial app loading.
     GoRoute(
       path: RoutePaths.splash,
@@ -235,15 +230,6 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   ),
                 ),
                 GoRoute(
-                  path: 'maintenance',
-                  redirect: (context, state) =>
-                      kDebugMode ? null : RoutePaths.settings,
-                  pageBuilder: (context, state) => NoTransitionPage(
-                    key: state.pageKey,
-                    child: const MaintenanceScreen(),
-                  ),
-                ),
-                GoRoute(
                   path: 'privacy',
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
@@ -309,16 +295,6 @@ List<RouteBase> _buildRoutes(Ref ref) {
         ),
       ],
     ),
-
-    // Search screen - Temporarily disabled
-    // GoRoute(
-    //   path: '/search',
-    //   pageBuilder: (context, state) =>
-    //       NoTransitionPage(key: state.pageKey, child: const SearchScreen()),
-    // ),
-
-    // Favorites screen removed
-
     // Dev gallery (design system showcase)
     GoRoute(
       path: RoutePaths.gallery,
@@ -330,7 +306,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
 
     // Public profile view
     GoRoute(
-      path: '/user/:uid',
+      path: '${RoutePaths.publicProfile}/:uid',
       pageBuilder: (context, state) {
         final uid = state.pathParameters['uid']!;
         return NoTransitionPage(
@@ -359,7 +335,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
 
     // Edit Profile Route
     GoRoute(
-      path: '/profile/edit',
+      path: RoutePaths.profileEdit,
       pageBuilder: (context, state) => NoTransitionPage(
         key: state.pageKey,
         child: const EditProfileScreen(),

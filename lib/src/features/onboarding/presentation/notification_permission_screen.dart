@@ -12,6 +12,7 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/app_logger.dart';
 import '../providers/notification_permission_prompt_provider.dart';
 
 class NotificationPermissionScreen extends ConsumerStatefulWidget {
@@ -78,8 +79,12 @@ class _NotificationPermissionScreenState
     try {
       await _markPermissionPromptAsShown();
       await PushNotificationService().init();
-    } catch (error) {
-      debugPrint('Error handling notification permission: $error');
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to handle notification permission accept flow',
+        error,
+        stackTrace,
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -96,8 +101,12 @@ class _NotificationPermissionScreenState
 
     try {
       await _markPermissionPromptAsShown();
-    } catch (error) {
-      debugPrint('Error skipping notification permission: $error');
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to skip notification permission prompt',
+        error,
+        stackTrace,
+      );
     } finally {
       if (mounted) {
         context.go(RoutePaths.feed);

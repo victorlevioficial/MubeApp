@@ -14,6 +14,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/app_logger.dart';
 import '../../presentation/controllers/matchpoint_controller.dart';
 import '../widgets/match_swipe_deck.dart';
 import '../widgets/matchpoint_tutorial_overlay.dart';
@@ -153,7 +154,7 @@ class _MatchpointExploreScreenState
             .swipeRight(user);
 
         if (!swipeResult.success) {
-          debugPrint('Swipe blocked: backend returned failure.');
+          AppLogger.warning('Swipe blocked: backend returned failure.');
           final message = ref
                   .read(matchpointControllerProvider)
                   .whenOrNull(error: (err, _) => err.toString()) ??
@@ -163,7 +164,7 @@ class _MatchpointExploreScreenState
           return false;
         }
 
-        debugPrint('Liked ${user.nome}');
+        AppLogger.debug('Liked ${user.nome}');
         final match = swipeResult.matchedUser;
 
         if (match != null && context.mounted) {
@@ -207,7 +208,7 @@ class _MatchpointExploreScreenState
             .swipeLeft(user);
 
         if (success) {
-          debugPrint('Disliked ${user.nome}');
+          AppLogger.debug('Disliked ${user.nome}');
         } else {
           final message = ref
                   .read(matchpointControllerProvider)

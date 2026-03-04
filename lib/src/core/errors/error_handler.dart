@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 
+import '../../utils/app_logger.dart';
 import 'failures.dart';
 
 /// Centralized error handler that converts exceptions to user-friendly Failures.
@@ -129,11 +129,6 @@ class ErrorHandler {
 
   /// Logs error for debugging (only in debug mode).
   static void _logError(Object error, StackTrace? stackTrace) {
-    if (kDebugMode) {
-      debugPrint('ErrorHandler: $error');
-      if (stackTrace != null) {
-        debugPrint('StackTrace: $stackTrace');
-      }
-    }
+    AppLogger.error('ErrorHandler captured an exception', error, stackTrace);
   }
 }

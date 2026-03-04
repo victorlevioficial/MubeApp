@@ -11,6 +11,7 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -26,7 +27,7 @@ class ProfileScreen extends ConsumerWidget {
     // Prioritize error state
     if (userAsync.hasError) {
       final err = userAsync.error;
-      debugPrint('[ProfileScreen] Error state: $err');
+      AppLogger.warning('[ProfileScreen] Error state', err);
       return Scaffold(
         backgroundColor: AppColors.background,
         body: Center(
@@ -154,7 +155,7 @@ class ProfileScreen extends ConsumerWidget {
             // Actions
             AppButton.primary(
               text: 'Editar Perfil',
-              onPressed: () => context.go('/profile/edit'),
+              onPressed: () => context.go(RoutePaths.profileEdit),
             ),
             const SizedBox(height: AppSpacing.s48),
             const SizedBox(height: AppSpacing.s40),

@@ -17,6 +17,7 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/app_logger.dart';
 import '../data/auth_repository.dart';
 
 part 'email_verification_screen.g.dart';
@@ -135,7 +136,7 @@ class EmailVerificationController extends _$EmailVerificationController {
             .hasVerifiedEmailTokenClaim(forceRefresh: true)
             .catchError((_) => false);
         if (!isTokenSynced) {
-          debugPrint(
+          AppLogger.debug(
             'Email verificado no Auth; claim ainda sincronizando. Continuando fluxo.',
           );
         }
@@ -151,8 +152,12 @@ class EmailVerificationController extends _$EmailVerificationController {
           verificationTimeSeconds: _verificationStopwatch.elapsed.inSeconds,
         );
       }
-    } catch (e) {
-      debugPrint('Silent email verification check failed: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Silent email verification check failed',
+        e,
+        stackTrace,
+      );
     }
   }
 
@@ -169,7 +174,7 @@ class EmailVerificationController extends _$EmailVerificationController {
             .hasVerifiedEmailTokenClaim(forceRefresh: true)
             .catchError((_) => false);
         if (!isTokenSynced) {
-          debugPrint(
+          AppLogger.debug(
             'Claim email_verified ainda não sincronizou, mas o e-mail já está verificado.',
           );
         }
@@ -555,7 +560,7 @@ class _EmailVerificationScreenState
                     onPressed: () async {
                       await ref.read(authRepositoryProvider).signOut();
                       if (context.mounted) {
-                        context.go('/login');
+                        context.go(RoutePaths.login);
                       }
                     },
                     child: Text(

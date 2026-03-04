@@ -2,6 +2,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../../utils/app_logger.dart';
+
 /// Interface for Analytics Service to allow mocking
 abstract class AnalyticsService {
   Future<void> logEvent({
@@ -45,9 +47,9 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       final normalized = _normalizeParameters(parameters);
       await _analytics.logEvent(name: name, parameters: normalized);
-      debugPrint('📊 Analytics Event: $name, params: $normalized');
-    } catch (e) {
-      debugPrint('❌ Analytics Error: $e');
+      AppLogger.debug('Analytics event: $name params=$normalized');
+    } catch (e, stackTrace) {
+      AppLogger.warning('Analytics event failed: $name', e, stackTrace);
     }
   }
 

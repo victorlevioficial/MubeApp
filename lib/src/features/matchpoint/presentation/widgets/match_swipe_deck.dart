@@ -10,6 +10,7 @@ import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 import 'match_card.dart';
 import 'match_profile_preview_sheet.dart';
 
@@ -59,7 +60,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
       if (_pendingServerActions == 1) {
         widget.controller.undo();
       } else {
-        debugPrint(
+        AppLogger.warning(
           'Swipe failed with multiple pending actions; skip automatic undo.',
         );
       }
@@ -211,7 +212,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                   );
                 }
               } else {
-                debugPrint(
+                AppLogger.debug(
                   '⚠️ Interação já processada: $interactionKey (ignorando duplicata)',
                 );
               }
@@ -228,11 +229,11 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               final interactionKey = '${user.uid}_${direction.name}';
               _processedInteractions.remove(interactionKey);
               widget.onUndoSwipe?.call();
-              debugPrint('🔄 Undo: removido $interactionKey do histórico');
+              AppLogger.debug('Undo: removido $interactionKey do histórico');
               return true;
             },
             onEnd: () {
-              debugPrint('ðŸŽ¯ MatchPoint: Todos os candidatos foram vistos');
+              AppLogger.debug('MatchPoint: todos os candidatos foram vistos');
               widget.onEnd?.call();
             },
             allowedSwipeDirection: const AllowedSwipeDirection.only(

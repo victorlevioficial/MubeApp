@@ -7,6 +7,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/image_cache_config.dart';
+import '../../../utils/app_logger.dart';
 import '../domain/feed_item.dart';
 
 /// Provider for the Feed Image Precache Service.
@@ -174,7 +175,7 @@ class FeedImagePrecacheService {
     if (!kDebugMode) return;
     if (_failureLogCount >= _maxFailureLogs) return;
     _failureLogCount++;
-    debugPrint(
+    AppLogger.debug(
       'FeedImagePrecacheService: failed to precache $url | error: $error',
     );
   }

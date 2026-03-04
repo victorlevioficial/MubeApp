@@ -344,10 +344,23 @@ class AuthGuard {
 
   /// User completed registration - redirect away from auth/onboarding screens.
   Future<String?> _guardCompletedUser(String currentPath) async {
-    // Check if we need to show the notification permission screen
-    final hasShownPermission = await _ref.read(
-      notificationPermissionPromptProvider.future,
+    final permissionPromptState = _ref.read(
+      notificationPermissionPromptProvider,
     );
+
+    if (permissionPromptState.isLoading) {
+      _log('Notification permission state loading - waiting on current route');
+      return null;
+    }
+
+    if (permissionPromptState.hasError) {
+      _signalWarning(
+        'Notification permission state unavailable. '
+        'path=$currentPath error=${permissionPromptState.error}',
+      );
+    }
+
+    final hasShownPermission = permissionPromptState.asData?.value ?? false;
 
     if (!hasShownPermission) {
       if (currentPath == RoutePaths.notificationPermission) return null;
@@ -374,9 +387,7 @@ class AuthGuard {
 
   /// Debug-only logging.
   void _log(String message) {
-    if (AppLogger.verboseLoggingEnabled) {
-      debugPrint('[AuthGuard] $message');
-    }
+    AppLogger.debug('[AuthGuard] $message');
   }
 
   void _signalWarning(String message) {
