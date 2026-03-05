@@ -120,7 +120,16 @@ Deploy Play Store com Fastlane:
 ```bash
 bundle install
 export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.json"
+cd android
 bundle exec fastlane android closed
+```
+
+Se estiver no WSL com repo em `/mnt/c` e o Bundler reclamar de permissao "world-writable":
+
+```bash
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle install
+cd android
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle exec fastlane android closed
 ```
 
 iOS:

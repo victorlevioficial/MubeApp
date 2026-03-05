@@ -17,7 +17,7 @@ Automacao de deploy para Google Play usando App Bundle (`.aab`) gerado pelo Flut
 bundle install
 ```
 
-2. Salve o JSON da conta de servico em um caminho local, por exemplo:
+2. Salve o JSON da conta de servico, por exemplo:
 
 ```text
 android/fastlane/play-store-service-account.json
@@ -29,9 +29,18 @@ android/fastlane/play-store-service-account.json
 export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.json"
 ```
 
-Se preferir, use `SUPPLY_JSON_KEY`, que tambem e aceita.
+Tambem e aceito `SUPPLY_JSON_KEY`.
+
+4. Rode o Fastlane dentro de `android/`:
+
+```bash
+cd android
+bundle exec fastlane android closed
+```
 
 ## Lanes
+
+Comandos abaixo executados a partir de `android/`:
 
 Deploy para teste interno:
 
@@ -53,10 +62,11 @@ bundle exec fastlane android closed
 
 Por padrao, essa lane envia para a track `alpha`.
 
-Se sua track fechada tiver outro nome no Google Play Console, exporte:
+Se sua track fechada tiver outro nome no Google Play Console:
 
 ```bash
 export PLAY_STORE_CLOSED_TRACK="nome-da-sua-track"
+bundle exec fastlane android closed
 ```
 
 Deploy para producao:
@@ -65,28 +75,24 @@ Deploy para producao:
 bundle exec fastlane android production
 ```
 
-Opcionalmente, envie apenas para validacao no Google Play:
+Somente validacao no Google Play:
 
 ```bash
 bundle exec fastlane android production validate_only:true
 ```
 
-## Wrapper recomendado (raiz do repo)
+## WSL em `/mnt/c` (opcional)
 
-Para reduzir erros de ambiente, rode pela raiz:
+Se o Bundler falhar por permissao de `vendor/bundle` (`world-writable`), rode:
 
 ```bash
-scripts/release_android.sh closed
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle install
+cd android
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle exec fastlane android closed
 ```
-
-Esse wrapper:
-- valida `PLAY_STORE_JSON_KEY`/`SUPPLY_JSON_KEY`;
-- valida se o arquivo JSON existe;
-- valida keystore do `android/key.properties` e aplica fallback automatico quando o arquivo estiver em `android/app/`.
 
 ## Observacoes
 
 - O bundle e gerado com `flutter build appbundle --release`
 - A lane nao envia metadata, screenshots nem imagens da Play Store
 - `versionName` e `versionCode` continuam vindo do `pubspec.yaml`
-- Versao atual configurada no projeto: `1.1.4+13`

@@ -61,7 +61,6 @@ Arquivos adicionados:
 - `android/fastlane/Appfile`
 - `android/fastlane/Fastfile`
 - `android/fastlane/README.md`
-- `scripts/release_android.sh`
 
 #### Conta de servico do Google Play
 
@@ -81,23 +80,32 @@ Tambem e aceito `SUPPLY_JSON_KEY`.
 bundle install
 ```
 
+Se estiver no WSL com o repo em `/mnt/c`, use path seguro do Bundler:
+
+```bash
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle install
+```
+
 #### Lanes disponiveis
 
 Teste interno:
 
 ```bash
+cd android
 bundle exec fastlane android internal
 ```
 
 Closed testing / beta:
 
 ```bash
+cd android
 bundle exec fastlane android beta
 ```
 
 Teste fechado:
 
 ```bash
+cd android
 bundle exec fastlane android closed
 ```
 
@@ -105,22 +113,15 @@ Se a track fechada no Google Play Console tiver nome customizado:
 
 ```bash
 export PLAY_STORE_CLOSED_TRACK="nome-da-sua-track"
+cd android
 bundle exec fastlane android closed
 ```
 
 Producao:
 
 ```bash
+cd android
 bundle exec fastlane android production
-```
-
-Wrapper opcional:
-
-```bash
-scripts/release_android.sh internal
-scripts/release_android.sh beta
-scripts/release_android.sh closed
-scripts/release_android.sh production
 ```
 
 ### 4. Fluxo recomendado para teste fechado (Play Store)
@@ -134,6 +135,13 @@ flutter pub get
 bundle install
 ```
 
+No WSL com repo em `/mnt/c`:
+
+```bash
+flutter pub get
+BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle install
+```
+
 2. Exportar a conta de servico:
 
 ```bash
@@ -143,24 +151,27 @@ export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.jso
 3. Enviar para teste fechado (track padrao `alpha`):
 
 ```bash
-scripts/release_android.sh closed
+cd android
+bundle exec fastlane android closed
 ```
 
 Se a track fechada tiver outro nome no Play Console:
 
 ```bash
 export PLAY_STORE_CLOSED_TRACK="nome-da-track-fechada"
-scripts/release_android.sh closed
+cd android
+bundle exec fastlane android closed
 ```
 
 Notas importantes:
-- O script agora valida `PLAY_STORE_JSON_KEY`/`SUPPLY_JSON_KEY` antes de subir.
-- Se o `storeFile` do `android/key.properties` nao existir no caminho esperado, o script tenta fallback automatico usando o keystore em `android/app/`.
 - A lane `closed` publica no closed testing e usa o App Bundle gerado em release.
+- Execute a lane a partir de `android/` para o Fastlane encontrar `android/fastlane/Fastfile`.
+- No WSL, se o Bundler falhar por permissao em `vendor/bundle`, rode com `BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube"`.
 
 Validacao sem publicar:
 
 ```bash
+cd android
 bundle exec fastlane android production validate_only:true
 ```
 
