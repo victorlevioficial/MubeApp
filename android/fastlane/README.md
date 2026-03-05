@@ -71,6 +71,19 @@ Opcionalmente, envie apenas para validacao no Google Play:
 bundle exec fastlane android production validate_only:true
 ```
 
+## Wrapper recomendado (raiz do repo)
+
+Para reduzir erros de ambiente, rode pela raiz:
+
+```bash
+scripts/release_android.sh closed
+```
+
+Esse wrapper:
+- valida `PLAY_STORE_JSON_KEY`/`SUPPLY_JSON_KEY`;
+- valida se o arquivo JSON existe;
+- valida keystore do `android/key.properties` e aplica fallback automatico quando o arquivo estiver em `android/app/`.
+
 ## Observacoes
 
 - O bundle e gerado com `flutter build appbundle --release`

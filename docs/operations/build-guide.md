@@ -123,6 +123,41 @@ scripts/release_android.sh closed
 scripts/release_android.sh production
 ```
 
+### 4. Fluxo recomendado para teste fechado (Play Store)
+
+Use este caminho para evitar erros de configuracao:
+
+1. Garantir dependencias do ambiente atual:
+
+```bash
+flutter pub get
+bundle install
+```
+
+2. Exportar a conta de servico:
+
+```bash
+export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.json"
+```
+
+3. Enviar para teste fechado (track padrao `alpha`):
+
+```bash
+scripts/release_android.sh closed
+```
+
+Se a track fechada tiver outro nome no Play Console:
+
+```bash
+export PLAY_STORE_CLOSED_TRACK="nome-da-track-fechada"
+scripts/release_android.sh closed
+```
+
+Notas importantes:
+- O script agora valida `PLAY_STORE_JSON_KEY`/`SUPPLY_JSON_KEY` antes de subir.
+- Se o `storeFile` do `android/key.properties` nao existir no caminho esperado, o script tenta fallback automatico usando o keystore em `android/app/`.
+- A lane `closed` publica no closed testing e usa o App Bundle gerado em release.
+
 Validacao sem publicar:
 
 ```bash
