@@ -303,10 +303,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         }
 
                         final item = _filteredItems[index];
+                        final avatarHeroTag =
+                            'favorites-avatar-${item.uid}-$index';
                         return FeedCardVertical(
                           item: item,
+                          avatarHeroTag: avatarHeroTag,
                           onTap: () => context.push(
                             RoutePaths.publicProfileById(item.uid),
+                            extra: {
+                              RoutePaths.avatarHeroTagExtraKey: avatarHeroTag,
+                            },
                           ),
                         );
                       },

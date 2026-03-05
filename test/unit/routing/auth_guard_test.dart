@@ -5,10 +5,13 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'package:mube/src/features/splash/providers/splash_provider.dart';
 import 'package:mube/src/routing/auth_guard.dart';
 import 'package:mube/src/routing/route_paths.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../helpers/test_data.dart';
 import '../../helpers/test_fakes.dart';
 
 final _authGuardProvider = Provider<AuthGuard>((ref) => AuthGuard(ref));
@@ -184,5 +187,49 @@ void main() {
         expect(fakeAuthRepository.signOutCalls, 0);
       },
     );
+
+    test('allows completed users to access legal routes', () async {
+      SharedPreferences.setMockInitialValues({
+        notificationPermissionPromptKey: true,
+      });
+
+      final fakeUser = FakeFirebaseUser(uid: 'user-1', email: 'test@mube.app');
+      final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+        ..emitUser(fakeUser);
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          authStateChangesProvider.overrideWithValue(AsyncValue.data(fakeUser)),
+          currentUserProfileProvider.overrideWithValue(
+            AsyncValue.data(
+              TestData.user(uid: 'user-1', email: 'test@mube.app'),
+            ),
+          ),
+        ],
+      );
+
+      addTearDown(() {
+        fakeAuthRepository.dispose();
+        container.dispose();
+      });
+
+      container.read(splashFinishedProvider.notifier).finish();
+      await container.read(notificationPermissionPromptProvider.future);
+
+      final guard = container.read(_authGuardProvider);
+      final context = _FakeBuildContext();
+
+      final termsRedirect = await guard.redirect(
+        context,
+        _stateForPath(RoutePaths.legalDetail('termsOfUse')),
+      );
+      final privacyRedirect = await guard.redirect(
+        context,
+        _stateForPath(RoutePaths.legalDetail('privacyPolicy')),
+      );
+
+      expect(termsRedirect, isNull);
+      expect(privacyRedirect, isNull);
+    });
   });
 }

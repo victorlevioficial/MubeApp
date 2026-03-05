@@ -66,6 +66,11 @@ void main() {
           builder: (context, state) =>
               const Scaffold(body: Text('Terms Screen')),
         ),
+        GoRoute(
+          path: '${RoutePaths.legal}/privacyPolicy',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Privacy Policy Screen')),
+        ),
         // Add more routes if needed, GoRouter handles unmapped routes with error page usually,
         // but for test we want specifically matched routes.
         // RoutePaths.legal likely '/legal'. So '/legal/termsOfUse'
@@ -123,6 +128,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Address Screen'), findsOneWidget);
+    });
+
+    testWidgets('navigates to Terms of Use when tapped', (tester) async {
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Termos de Uso'));
+      await tester.tap(find.text('Termos de Uso'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Terms Screen'), findsOneWidget);
+    });
+
+    testWidgets('navigates to Privacy Policy when tapped', (tester) async {
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Política de Privacidade'));
+      await tester.tap(find.text('Política de Privacidade'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Privacy Policy Screen'), findsOneWidget);
     });
 
     testWidgets('navigates to received favorites when stats card is tapped', (

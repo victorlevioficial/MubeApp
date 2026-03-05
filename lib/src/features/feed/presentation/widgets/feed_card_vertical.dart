@@ -16,12 +16,14 @@ class FeedCardVertical extends StatefulWidget {
   final FeedItem item;
   final VoidCallback onTap;
   final EdgeInsets? margin;
+  final String? avatarHeroTag;
 
   const FeedCardVertical({
     super.key,
     required this.item,
     required this.onTap,
     this.margin,
+    this.avatarHeroTag,
   });
 
   @override
@@ -48,6 +50,14 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
+    final avatar = UserAvatar(
+      photoUrl: item.foto,
+      name: item.displayName,
+      size: 80,
+    );
+    final avatarWidget = widget.avatarHeroTag != null
+        ? Hero(tag: widget.avatarHeroTag!, child: avatar)
+        : avatar;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isPressed = true),
@@ -91,15 +101,8 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Esquerda: Avatar com transição Hero
-                Hero(
-                  tag: 'avatar-${item.uid}',
-                  child: UserAvatar(
-                    photoUrl: item.foto,
-                    name: item.displayName,
-                    size: 80,
-                  ),
-                ),
+                // Esquerda: Avatar com Hero opcional
+                avatarWidget,
                 const SizedBox(width: AppSpacing.s12),
 
                 // Meio: Coluna de Informações

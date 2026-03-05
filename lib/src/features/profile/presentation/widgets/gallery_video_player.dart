@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
@@ -79,7 +81,12 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     if (thumbnailUrl == null || thumbnailUrl.isEmpty) return;
 
     final completer = Completer<Size>();
-    final provider = NetworkImage(thumbnailUrl);
+    final provider = CachedNetworkImageProvider(
+      thumbnailUrl,
+      cacheManager: ImageCacheConfig.thumbnailCacheManager,
+      maxWidth: 640,
+      maxHeight: 640,
+    );
     final stream = provider.resolve(const ImageConfiguration());
 
     late final ImageStreamListener listener;

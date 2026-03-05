@@ -152,12 +152,34 @@ void main() {
       expect(find.byType(AppLikeButton), findsOneWidget);
     });
 
-    testWidgets('has Hero widget for avatar', (WidgetTester tester) async {
+    testWidgets('does not render Hero when avatarHeroTag is not provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: FeedCardVertical(item: testItem, onTap: () {}),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Hero), findsNothing);
+    });
+
+    testWidgets('renders Hero when avatarHeroTag is provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: FeedCardVertical(
+                item: testItem,
+                onTap: () {},
+                avatarHeroTag: 'avatar-test-tag',
+              ),
             ),
           ),
         ),

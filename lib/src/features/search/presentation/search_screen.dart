@@ -332,7 +332,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             }
 
             final item = items[index];
-            return FeedCardVertical(item: item, onTap: () => _onItemTap(item));
+            final avatarHeroTag = 'search-avatar-${item.uid}-$index';
+            return FeedCardVertical(
+              item: item,
+              avatarHeroTag: avatarHeroTag,
+              onTap: () => _onItemTap(item, avatarHeroTag: avatarHeroTag),
+            );
           }, childCount: items.length + (state.hasMore ? 1 : 0)),
         );
       },
@@ -494,8 +499,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return labels;
   }
 
-  void _onItemTap(FeedItem item) {
-    context.push(RoutePaths.publicProfileById(item.uid));
+  void _onItemTap(FeedItem item, {String? avatarHeroTag}) {
+    context.push(
+      RoutePaths.publicProfileById(item.uid),
+      extra: avatarHeroTag == null
+          ? null
+          : {RoutePaths.avatarHeroTagExtraKey: avatarHeroTag},
+    );
   }
 }
 

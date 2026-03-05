@@ -16,9 +16,15 @@ import '../../../auth/domain/user_type.dart';
 /// location and a favorites stat.
 class ProfileHeroHeader extends StatelessWidget {
   final AppUser user;
+  final String avatarHeroTag;
   final VoidCallback? onAvatarTap;
 
-  const ProfileHeroHeader({super.key, required this.user, this.onAvatarTap});
+  const ProfileHeroHeader({
+    super.key,
+    required this.user,
+    required this.avatarHeroTag,
+    this.onAvatarTap,
+  });
 
   // â”€â”€ Colors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -95,6 +101,7 @@ class ProfileHeroHeader extends StatelessWidget {
                   displayName: displayName,
                   typeColor: typeColor,
                   hasAvatar: hasAvatar,
+                  avatarHeroTag: avatarHeroTag,
                   onTap: onAvatarTap,
                 ),
               ),
@@ -200,6 +207,7 @@ class _AvatarBubble extends StatelessWidget {
   final String displayName;
   final Color typeColor;
   final bool hasAvatar;
+  final String avatarHeroTag;
   final VoidCallback? onTap;
 
   const _AvatarBubble({
@@ -207,6 +215,7 @@ class _AvatarBubble extends StatelessWidget {
     required this.displayName,
     required this.typeColor,
     required this.hasAvatar,
+    required this.avatarHeroTag,
     this.onTap,
   });
 
@@ -229,7 +238,7 @@ class _AvatarBubble extends StatelessWidget {
         ),
         child: ClipOval(
           child: Hero(
-            tag: 'avatar-${user.uid}',
+            tag: avatarHeroTag,
             child: UserAvatar(
               size: 124,
               photoUrl: user.foto,

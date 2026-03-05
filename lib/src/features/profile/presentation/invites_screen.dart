@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -210,6 +211,8 @@ class InvitesScreen extends ConsumerWidget {
     String uid,
   ) {
     final bandName = _bandDisplayName(band);
+    final photoUrl = band['foto'] as String?;
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
 
     return Card(
       color: AppColors.surface,
@@ -222,18 +225,19 @@ class InvitesScreen extends ConsumerWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundImage:
-                      band['foto'] != null && band['foto'].isNotEmpty
-                      ? NetworkImage(band['foto'])
-                      : null,
                   backgroundColor: AppColors.surfaceHighlight,
-                  child: band['foto'] == null || band['foto'].isEmpty
-                      ? const Icon(
+                  child: hasPhoto
+                      ? UserAvatar(
+                          size: 40,
+                          photoUrl: photoUrl,
+                          name: bandName,
+                          showBorder: false,
+                        )
+                      : const Icon(
                           Icons.groups,
                           size: 20,
                           color: AppColors.primary,
-                        )
-                      : null,
+                        ),
                 ),
                 const SizedBox(width: AppSpacing.s12),
                 Expanded(

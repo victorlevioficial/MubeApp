@@ -211,7 +211,10 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
               HapticFeedback.mediumImpact();
               final uid = widget.currentUser?.uid;
               if (uid != null) {
-                context.push(RoutePaths.publicProfileById(uid));
+                context.push(
+                  RoutePaths.publicProfileById(uid),
+                  extra: {RoutePaths.avatarHeroTagExtraKey: 'profile-avatar'},
+                );
               }
             },
             child: AnimatedContainer(

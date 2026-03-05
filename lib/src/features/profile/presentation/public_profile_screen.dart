@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -36,9 +38,10 @@ import 'widgets/report_reason_dialog.dart';
 /// - [AppUserType.contractor]   Ã¢â‚¬â€ amber accent
 class PublicProfileScreen extends ConsumerWidget {
   final String uid;
+  final String? avatarHeroTag;
   static const double _topActionSize = AppSpacing.s48;
 
-  const PublicProfileScreen({super.key, required this.uid});
+  const PublicProfileScreen({super.key, required this.uid, this.avatarHeroTag});
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Helpers Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
@@ -50,6 +53,7 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stateAsync = ref.watch(publicProfileControllerProvider(uid));
     final user = stateAsync.value?.user;
+    final resolvedAvatarHeroTag = avatarHeroTag ?? 'avatar-$uid';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -72,7 +76,12 @@ class PublicProfileScreen extends ConsumerWidget {
                   galleryItems: state.galleryItems,
                   bandMembers: state.bandMembers,
                   uid: uid,
-                  onAvatarTap: () => _showAvatarViewer(context, state.user!),
+                  avatarHeroTag: resolvedAvatarHeroTag,
+                  onAvatarTap: () => _showAvatarViewer(
+                    context,
+                    state.user!,
+                    resolvedAvatarHeroTag,
+                  ),
                   onMediaTap: (index, items) =>
                       _showMediaViewer(context, items, index),
                 );
@@ -319,7 +328,11 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showAvatarViewer(BuildContext context, AppUser user) {
+  void _showAvatarViewer(
+    BuildContext context,
+    AppUser user,
+    String avatarHeroTag,
+  ) {
     AppOverlay.dialog(
       context: context,
       barrierColor: AppColors.background.withValues(alpha: 0.92),
@@ -341,16 +354,22 @@ class PublicProfileScreen extends ConsumerWidget {
           ),
           body: Center(
             child: Hero(
-              tag: 'avatar-${user.uid}',
+              tag: avatarHeroTag,
               child: InteractiveViewer(
                 minScale: 0.5,
                 maxScale: 4.0,
                 child: ClipRRect(
                   borderRadius: AppRadius.all16,
-                  child: Image.network(
-                    user.foto!,
+                  child: CachedNetworkImage(
+                    imageUrl: user.foto!,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, _, _) => const Icon(
+                    cacheManager: ImageCacheConfig.optimizedCacheManager,
+                    placeholder: (context, url) => AppShimmer.box(
+                      width: 220,
+                      height: 220,
+                      borderRadius: AppRadius.r16,
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
                       Icons.broken_image_rounded,
                       size: 120,
                       color: AppColors.textSecondary,
@@ -402,6 +421,7 @@ class _ProfileBody extends StatelessWidget {
   final List<MediaItem> galleryItems;
   final List<AppUser> bandMembers;
   final String uid;
+  final String avatarHeroTag;
   final VoidCallback onAvatarTap;
   final void Function(int index, List<MediaItem> items) onMediaTap;
 
@@ -410,6 +430,7 @@ class _ProfileBody extends StatelessWidget {
     required this.galleryItems,
     required this.bandMembers,
     required this.uid,
+    required this.avatarHeroTag,
     required this.onAvatarTap,
     required this.onMediaTap,
   });
@@ -425,7 +446,11 @@ class _ProfileBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ProfileHeroHeader(user: user, onAvatarTap: onAvatarTap),
+          ProfileHeroHeader(
+            user: user,
+            avatarHeroTag: avatarHeroTag,
+            onAvatarTap: onAvatarTap,
+          ),
           _buildBody(context, padding: AppSpacing.s20),
           const SizedBox(height: AppSpacing.s48),
         ],
@@ -449,7 +474,11 @@ class _ProfileBody extends StatelessWidget {
               width: 340,
               child: Column(
                 children: [
-                  ProfileHeroHeader(user: user, onAvatarTap: onAvatarTap),
+                  ProfileHeroHeader(
+                    user: user,
+                    avatarHeroTag: avatarHeroTag,
+                    onAvatarTap: onAvatarTap,
+                  ),
                   if (bio != null) ...[
                     const SizedBox(height: AppSpacing.s16),
                     Padding(

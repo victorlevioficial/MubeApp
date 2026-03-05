@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -103,19 +104,11 @@ class BlockedUsersScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final user = users[index];
                         return ListTile(
-                          leading: CircleAvatar(
-                            radius: 20,
-                            backgroundImage:
-                                user.foto != null && user.foto!.isNotEmpty
-                                ? NetworkImage(user.foto!)
-                                : null,
-                            child: user.foto == null || user.foto!.isEmpty
-                                ? Text(
-                                    user.appDisplayName.isNotEmpty
-                                        ? user.appDisplayName[0].toUpperCase()
-                                        : '?',
-                                  )
-                                : null,
+                          leading: UserAvatar(
+                            size: 40,
+                            photoUrl: user.foto,
+                            name: user.appDisplayName,
+                            showBorder: false,
                           ),
                           title: Text(
                             user.appDisplayName,

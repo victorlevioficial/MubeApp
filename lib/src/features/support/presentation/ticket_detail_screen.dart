@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -82,7 +84,13 @@ class TicketDetailScreen extends ConsumerWidget {
                           borderRadius: AppRadius.all12,
                           border: Border.all(color: AppColors.surfaceHighlight),
                           image: DecorationImage(
-                            image: NetworkImage(ticket!.imageUrls[index]),
+                            image: CachedNetworkImageProvider(
+                              ticket!.imageUrls[index],
+                              cacheManager:
+                                  ImageCacheConfig.optimizedCacheManager,
+                              maxWidth: 640,
+                              maxHeight: 640,
+                            ),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -214,7 +222,19 @@ class TicketDetailScreen extends ConsumerWidget {
               onTap: () => Navigator.of(context).pop(),
               child: const SizedBox.expand(),
             ),
-            InteractiveViewer(child: Image.network(imageUrl)),
+            InteractiveViewer(
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                cacheManager: ImageCacheConfig.optimizedCacheManager,
+                placeholder: (context, url) =>
+                    const Center(child: AppLoadingIndicator()),
+                errorWidget: (context, url, error) => const Icon(
+                  Icons.broken_image_rounded,
+                  color: AppColors.textSecondary,
+                  size: 48,
+                ),
+              ),
+            ),
             Positioned(
               top: 40,
               right: 20,

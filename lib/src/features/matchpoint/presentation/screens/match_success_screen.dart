@@ -1,8 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
+import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_effects.dart';
@@ -177,6 +179,17 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
   }
 
   Widget _buildAvatar(String? url, double angle) {
+    final avatarImage = url != null
+        ? DecorationImage(
+            image: CachedNetworkImageProvider(
+              url,
+              cacheManager: ImageCacheConfig.profileCacheManager,
+              maxWidth: 512,
+              maxHeight: 512,
+            ),
+            fit: BoxFit.cover,
+          )
+        : null;
     return Transform.rotate(
       angle: angle * 3.14159 / 180,
       child: Container(
@@ -186,9 +199,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.textPrimary, width: 4),
           boxShadow: AppEffects.subtleShadow,
-          image: url != null
-              ? DecorationImage(image: NetworkImage(url), fit: BoxFit.cover)
-              : null,
+          image: avatarImage,
           color: AppColors.surfaceHighlight,
         ),
         child: url == null

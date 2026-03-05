@@ -309,9 +309,17 @@ List<RouteBase> _buildRoutes(Ref ref) {
       path: '${RoutePaths.publicProfile}/:uid',
       pageBuilder: (context, state) {
         final uid = state.pathParameters['uid']!;
+        String? avatarHeroTag;
+        final extra = state.extra;
+        if (extra is Map<Object?, Object?>) {
+          final rawTag = extra[RoutePaths.avatarHeroTagExtraKey];
+          if (rawTag is String && rawTag.isNotEmpty) {
+            avatarHeroTag = rawTag;
+          }
+        }
         return NoTransitionPage(
           key: state.pageKey,
-          child: PublicProfileScreen(uid: uid),
+          child: PublicProfileScreen(uid: uid, avatarHeroTag: avatarHeroTag),
         );
       },
     ),

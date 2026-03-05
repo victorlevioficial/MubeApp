@@ -68,10 +68,12 @@ class VerticalFeedList extends ConsumerStatefulWidget {
 class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   late ScrollController _scrollController;
   bool _ownsScrollController = false;
+  late final String _heroScope;
 
   @override
   void initState() {
     super.initState();
+    _heroScope = 'vertical-feed-${identityHashCode(this)}';
     if (!widget.useSliverMode) {
       if (widget.scrollController != null) {
         _scrollController = widget.scrollController!;
@@ -101,13 +103,20 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
     }
   }
 
-  void _onItemTap(FeedItem item) {
+  String _buildAvatarHeroTag(FeedItem item, int index) {
+    return 'avatar-${item.uid}-$_heroScope-$index';
+  }
+
+  void _onItemTap(FeedItem item, {required String avatarHeroTag}) {
     ref.read(analyticsServiceProvider).logFeedPostView(postId: item.uid);
     if (widget.onItemTap != null) {
       widget.onItemTap!(item);
     } else {
       // Default: navigate to user profile
-      context.push(RoutePaths.publicProfileById(item.uid));
+      context.push(
+        RoutePaths.publicProfileById(item.uid),
+        extra: {RoutePaths.avatarHeroTagExtraKey: avatarHeroTag},
+      );
     }
   }
 
@@ -257,11 +266,13 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   }
 
   Widget _buildItemCard(FeedItem item, {int index = 0, bool isGrid = false}) {
+    final avatarHeroTag = _buildAvatarHeroTag(item, index);
     // In grid mode, we remove the horizontal margin of the card
     // since the grid handles spacing.
     final card = FeedCardVertical(
       item: item,
-      onTap: () => _onItemTap(item),
+      onTap: () => _onItemTap(item, avatarHeroTag: avatarHeroTag),
+      avatarHeroTag: avatarHeroTag,
       margin: isGrid
           ? const EdgeInsets.symmetric(vertical: AppSpacing.s4)
           : null,

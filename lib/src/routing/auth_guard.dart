@@ -372,13 +372,16 @@ class AuthGuard {
     // but typically they will navigate away by clicking a button.
     if (currentPath == RoutePaths.notificationPermission) return null;
 
+    final isLegalRoute =
+        currentPath == RoutePaths.legal ||
+        currentPath.startsWith('${RoutePaths.legal}/');
+
     final shouldRedirectToFeed =
         currentPath.startsWith(RoutePaths.onboarding) ||
-        (RoutePaths.isPublic(currentPath) &&
-            currentPath != RoutePaths.gallery) ||
+        _isAuthFlowRoute(currentPath) ||
         currentPath == RoutePaths.splash;
 
-    if (shouldRedirectToFeed) {
+    if (shouldRedirectToFeed && !isLegalRoute) {
       _log('Completed user on restricted route - redirecting to feed');
       return RoutePaths.feed;
     }

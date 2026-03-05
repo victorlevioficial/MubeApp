@@ -65,6 +65,9 @@ abstract final class RoutePaths {
 
   static String legalDetail(String type) => '$legal/$type';
 
+  /// Extra key used to pass avatar Hero tags across profile navigations.
+  static const String avatarHeroTagExtraKey = 'avatarHeroTag';
+
   static bool isPublic(String path) =>
       publicRoutes.contains(path) ||
       _publicRoutePrefixes.any((prefix) => path.startsWith(prefix));
