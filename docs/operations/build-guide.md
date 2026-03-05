@@ -217,7 +217,7 @@ open ios/Runner.xcworkspace
 2. Selecione o projeto "Runner" no navegador
 3. Vá para a aba "Signing & Capabilities"
 4. Selecione sua equipe de desenvolvedor
-5. Verifique se o Bundle Identifier está correto: `com.mube.app`
+5. Verifique se o Bundle Identifier está correto: `com.mube.mubeoficial`
 
 ### 2. Gerar Build de Release
 
@@ -228,8 +228,60 @@ open ios/Runner.xcworkspace
 
 #### Via linha de comando:
 ```bash
-flutter build ios --release
+flutter build ipa --release --export-method app-store
 ```
+
+### 3. Deploy automatizado com Fastlane (TestFlight)
+
+Arquivos adicionados:
+
+- `ios/fastlane/Appfile`
+- `ios/fastlane/Fastfile`
+- `ios/fastlane/README.md`
+- `scripts/release_ios.sh`
+
+#### Variaveis de ambiente
+
+Exporte antes de rodar upload:
+
+```bash
+export ASC_KEY_ID="SEU_KEY_ID"
+export ASC_ISSUER_ID="SEU_ISSUER_ID"
+export ASC_KEY_FILEPATH="$HOME/.appstoreconnect/private_keys/AuthKey_XXXXXX.p8"
+```
+
+#### Lanes disponiveis
+
+Gerar IPA:
+
+```bash
+bundle exec fastlane ios build_ipa
+```
+
+Upload de IPA existente:
+
+```bash
+bundle exec fastlane ios upload_testflight
+```
+
+Build + upload:
+
+```bash
+bundle exec fastlane ios beta
+```
+
+#### Wrapper recomendado (raiz do repo)
+
+```bash
+scripts/release_ios.sh build_ipa
+scripts/release_ios.sh upload_testflight
+scripts/release_ios.sh beta
+```
+
+Notas importantes:
+- O upload usa App Store Connect API key (sem login interativo Apple ID no terminal).
+- O wrapper valida `ASC_KEY_ID`, `ASC_ISSUER_ID` e `ASC_KEY_FILEPATH` antes de subir.
+- O arquivo `.p8` nao deve ficar no repositorio (use caminho seguro local).
 
 ---
 
