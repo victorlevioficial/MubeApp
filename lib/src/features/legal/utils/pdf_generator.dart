@@ -11,9 +11,8 @@ class PdfGenerator {
   }) async {
     final doc = pw.Document();
 
-    // Simple font for text
-    final font = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
 
     doc.addPage(
       pw.MultiPage(
