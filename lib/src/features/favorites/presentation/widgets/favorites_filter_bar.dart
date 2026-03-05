@@ -19,7 +19,6 @@ class FavoritesFilterBar extends StatelessWidget {
     'Músicos',
     'Bandas',
     'Estúdios',
-    'Perto de mim',
   ];
 
   @override

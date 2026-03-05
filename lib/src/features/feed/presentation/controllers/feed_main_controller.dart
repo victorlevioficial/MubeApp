@@ -95,7 +95,11 @@ class FeedMainController {
                 );
                 if (reset) {
                   runtime.allSortedUsers = success;
-                  fallbackToCursor = success.isEmpty;
+                  // Non-nearby filters should backfill from cursor when geohash
+                  // returns only a partial batch (common for users without geohash).
+                  final needsCursorBackfill =
+                      !isNearbyFilter && success.length < batchSize;
+                  fallbackToCursor = success.isEmpty || needsCursorBackfill;
                 } else {
                   final existingIds = runtime.allSortedUsers
                       .map((u) => u.uid)
@@ -311,6 +315,13 @@ class FeedMainController {
             .toList();
 
         if (newUsers.isNotEmpty) {
+          // Keep cursor batches consistent with proximity ordering.
+          newUsers.sort(
+            (a, b) =>
+                (a.distanceKm ?? double.infinity).compareTo(
+                  b.distanceKm ?? double.infinity,
+                ),
+          );
           runtime.allSortedUsers.addAll(newUsers);
         }
 

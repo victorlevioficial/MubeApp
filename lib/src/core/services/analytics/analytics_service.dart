@@ -34,8 +34,13 @@ abstract class AnalyticsService {
 class FirebaseAnalyticsService implements AnalyticsService {
   final FirebaseAnalytics _analytics;
   final bool _isEnabled;
+  static const bool _enableInDebug = bool.fromEnvironment(
+    'MUBE_ENABLE_ANALYTICS_IN_DEBUG',
+    defaultValue: true,
+  );
 
-  FirebaseAnalyticsService(this._analytics) : _isEnabled = kReleaseMode;
+  FirebaseAnalyticsService(this._analytics)
+    : _isEnabled = kReleaseMode || _enableInDebug;
 
   @override
   Future<void> logEvent({
@@ -76,10 +81,18 @@ class FirebaseAnalyticsService implements AnalyticsService {
   }) async {
     if (!_isEnabled) return;
 
-    await _analytics.logScreenView(
-      screenName: screenName,
-      screenClass: screenClass,
-    );
+    try {
+      await _analytics.logScreenView(
+        screenName: screenName,
+        screenClass: screenClass,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Analytics screen view failed: $screenName',
+        e,
+        stackTrace,
+      );
+    }
   }
 
   @override
@@ -89,14 +102,26 @@ class FirebaseAnalyticsService implements AnalyticsService {
   }) async {
     if (!_isEnabled) return;
 
-    await _analytics.setUserProperty(name: name, value: value);
+    try {
+      await _analytics.setUserProperty(name: name, value: value);
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Analytics setUserProperty failed: $name',
+        e,
+        stackTrace,
+      );
+    }
   }
 
   @override
   Future<void> setUserId(String? id) async {
     if (!_isEnabled) return;
 
-    await _analytics.setUserId(id: id);
+    try {
+      await _analytics.setUserId(id: id);
+    } catch (e, stackTrace) {
+      AppLogger.warning('Analytics setUserId failed', e, stackTrace);
+    }
   }
 
   @override

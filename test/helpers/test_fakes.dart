@@ -32,6 +32,8 @@ import 'package:mube/src/features/storage/data/storage_repository.dart';
 import 'package:mube/src/features/support/data/support_repository.dart';
 import 'package:mube/src/features/support/domain/ticket_model.dart';
 
+import 'firebase_mocks.dart';
+
 /// Fake implementation of Firebase User
 class FakeFirebaseUser extends Fake implements firebase_auth.User {
   @override
@@ -590,6 +592,27 @@ class FakeChatRepository extends Fake implements ChatRepository {
   @override
   Stream<List<Message>> getMessages(String conversationId) {
     return Stream.value([]);
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = 50,
+  }) {
+    return Stream.value(MockQuerySnapshot<Map<String, dynamic>>(data: null));
+  }
+
+  @override
+  Future<MessagesPage> getMessagesPage({
+    required String conversationId,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDoc,
+    int limit = 50,
+  }) async {
+    return const MessagesPage(
+      messages: [],
+      lastVisibleDoc: null,
+      hasMore: false,
+    );
   }
 
   @override

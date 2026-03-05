@@ -18,6 +18,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/instagram_utils.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -82,9 +83,9 @@ class _OnboardingProfessionalFlowState
     _nomeController.text = formState.nome ?? widget.user.nome ?? '';
     _nomeArtisticoController.text = formState.nomeArtistico ?? '';
     _dataNascimentoController.text = formState.dataNascimento ?? '';
-    _generoController.text = formState.genero ?? '';
+    _generoController.text = normalizeGenderValue(formState.genero);
     _celularController.text = formState.celular ?? '';
-    _instagramController.text = formState.instagram ?? '';
+    _instagramController.text = normalizeInstagramHandle(formState.instagram);
 
     // Setup Listeners
     _nomeController.addListener(
@@ -292,7 +293,7 @@ class _OnboardingProfessionalFlowState
       'celular': _celularController.text.trim(),
       'dataNascimento': _dataNascimentoController.text.trim(),
       'genero': _generoController.text.trim(),
-      'instagram': _instagramController.text.trim(),
+      'instagram': normalizeInstagramHandle(_instagramController.text),
       'categorias': _selectedCategories,
       'generosMusicais': genreIds,
       'isPublic': true,
@@ -427,26 +428,25 @@ class _OnboardingProfessionalFlowState
         const SizedBox(height: AppSpacing.s16),
         AppDropdownField<String>(
           label: 'Gênero',
-          value: _generoController.text.isEmpty ? null : _generoController.text,
-          items: const [
-            DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-            DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-            DropdownMenuItem(value: 'Outro', child: Text('Outro')),
-            DropdownMenuItem(
-              value: 'Prefiro não informar',
-              child: Text('Prefiro não informar'),
-            ),
-          ],
+          value: normalizeGenderValue(_generoController.text).isEmpty
+              ? null
+              : normalizeGenderValue(_generoController.text),
+          items: genderOptions
+              .map(
+                (gender) =>
+                    DropdownMenuItem(value: gender, child: Text(gender)),
+              )
+              .toList(),
           onChanged: (v) {
-            setState(() => _generoController.text = v ?? '');
+            setState(() => _generoController.text = normalizeGenderValue(v));
           },
           validator: (v) => v == null ? 'Selecione uma opção' : null,
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
           controller: _instagramController,
-          label: 'Instagram (opcional)',
-          hint: '@seu_usuario',
+          label: instagramLabelOptional,
+          hint: instagramHint,
           prefixIcon: const Icon(Icons.alternate_email, size: 20),
         ),
 

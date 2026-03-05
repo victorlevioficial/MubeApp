@@ -9,6 +9,7 @@ import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/interactions/app_popup_menu_button.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
@@ -18,6 +19,7 @@ import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
+import '../../../utils/instagram_utils.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -139,13 +141,9 @@ class PublicProfileScreen extends ConsumerWidget {
             ),
             const Spacer(),
             _topActionShell(
-              child: PopupMenuButton<String>(
+              child: AppPopupMenuButton<String>(
                 enabled: user != null,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: _topActionSize,
-                  height: _topActionSize,
-                ),
                 iconSize: 20,
                 icon: Icon(
                   Icons.more_vert_rounded,
@@ -153,36 +151,31 @@ class PublicProfileScreen extends ConsumerWidget {
                       ? AppColors.textPrimary
                       : AppColors.textSecondary,
                 ),
-                color: AppColors.surface,
-                surfaceTintColor: AppColors.transparent,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.all12,
-                ),
                 onSelected: user == null
                     ? null
                     : (value) => _handleMenuAction(context, ref, value, user),
-                itemBuilder: (context) => [
-                  _menuItem(
-                    icon: Icons.share_outlined,
-                    label: 'Compartilhar Perfil',
+                items: const [
+                  AppPopupMenuAction<String>(
                     value: 'share',
+                    label: 'Compartilhar Perfil',
+                    icon: Icons.share_outlined,
                   ),
-                  _menuItem(
-                    icon: Icons.link_rounded,
-                    label: 'Copiar Link',
+                  AppPopupMenuAction<String>(
                     value: 'copy',
+                    label: 'Copiar Link',
+                    icon: Icons.link_rounded,
                   ),
-                  const PopupMenuDivider(),
-                  _menuItem(
-                    icon: Icons.block_rounded,
-                    label: 'Bloquear',
+                  AppPopupMenuAction<String>(
                     value: 'block',
+                    label: 'Bloquear',
+                    icon: Icons.block_rounded,
                     isDestructive: true,
+                    showDividerBefore: true,
                   ),
-                  _menuItem(
-                    icon: Icons.flag_outlined,
-                    label: 'Denunciar',
+                  AppPopupMenuAction<String>(
                     value: 'report',
+                    label: 'Denunciar',
+                    icon: Icons.flag_outlined,
                     isDestructive: true,
                   ),
                 ],
@@ -210,25 +203,6 @@ class PublicProfileScreen extends ConsumerWidget {
 
   Widget _buildLoadingState(BuildContext context) {
     return const _PublicProfileSkeleton();
-  }
-
-  PopupMenuEntry<String> _menuItem({
-    required IconData icon,
-    required String label,
-    required String value,
-    bool isDestructive = false,
-  }) {
-    final color = isDestructive ? AppColors.error : AppColors.textPrimary;
-    return PopupMenuItem<String>(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: AppSpacing.s12),
-          Text(label, style: AppTypography.bodyMedium.copyWith(color: color)),
-        ],
-      ),
-    );
   }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Menu actions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -590,6 +564,7 @@ class _ProfessionalDetails extends StatelessWidget {
     final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
     final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
     final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final instagram = normalizeInstagramHandle(prof['instagram'] as String?);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     return Column(
@@ -624,6 +599,19 @@ class _ProfessionalDetails extends StatelessWidget {
             accentColor: color,
             child: _ChipWrap(items: generos, accentColor: color),
           ),
+        if (instagram.isNotEmpty) ...[
+          if (generos.isNotEmpty) const SizedBox(height: AppSpacing.s12),
+          _InfoCard(
+            icon: Icons.alternate_email_rounded,
+            title: 'Instagram',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [instagram],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -641,6 +629,7 @@ class _BandDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final banda = user.dadosBanda;
     final generos = (banda?['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final instagram = normalizeInstagramHandle(banda?['instagram'] as String?);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     return Column(
@@ -661,6 +650,19 @@ class _BandDetails extends StatelessWidget {
             title: 'G\u00EAneros Musicais',
             accentColor: color,
             child: _ChipWrap(items: generos, accentColor: color),
+          ),
+        ],
+        if (instagram.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s12),
+          _InfoCard(
+            icon: Icons.alternate_email_rounded,
+            title: 'Instagram',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [instagram],
+              accentColor: color,
+              isSkill: true,
+            ),
           ),
         ],
       ],
@@ -685,6 +687,7 @@ class _StudioDetails extends StatelessWidget {
         (estudio['services'] as List?)?.cast<String>() ??
         (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
         [];
+    final instagram = normalizeInstagramHandle(estudio['instagram'] as String?);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     String? studioTypeLabel;
@@ -721,6 +724,20 @@ class _StudioDetails extends StatelessWidget {
               isSkill: true,
             ),
           ),
+        if (instagram.isNotEmpty) ...[
+          if (services.isNotEmpty || studioTypeLabel != null)
+            const SizedBox(height: AppSpacing.s12),
+          _InfoCard(
+            icon: Icons.alternate_email_rounded,
+            title: 'Instagram',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [instagram],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -739,17 +756,42 @@ class _ContractorDetails extends StatelessWidget {
     if (contratante == null) return const SizedBox.shrink();
 
     final genero = contratante['genero'] as String?;
+    final instagram = normalizeInstagramHandle(
+      contratante['instagram'] as String?,
+    );
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
-    if (genero == null || genero.isEmpty) {
+    final hasGenero = genero != null && genero.isNotEmpty;
+    final hasInstagram = instagram.isNotEmpty;
+
+    if (!hasGenero && !hasInstagram) {
       return const SizedBox.shrink();
     }
 
-    return _InfoCard(
-      icon: Icons.music_note_rounded,
-      title: 'Estilo Musical Preferido',
-      accentColor: color,
-      child: _ChipWrap(items: [genero], accentColor: color, isSkill: true),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (hasGenero)
+          _InfoCard(
+            icon: Icons.person_outline_rounded,
+            title: 'Gênero',
+            accentColor: color,
+            child: _ChipWrap(items: [genero], accentColor: color),
+          ),
+        if (hasInstagram) ...[
+          if (hasGenero) const SizedBox(height: AppSpacing.s12),
+          _InfoCard(
+            icon: Icons.alternate_email_rounded,
+            title: 'Instagram',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [instagram],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

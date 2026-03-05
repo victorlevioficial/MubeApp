@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/services/push_notification_service.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
@@ -51,15 +52,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_PendingMessage> _pendingMessages = [];
-  ProviderSubscription<AsyncValue<List<Message>>>?
+  final List<Message> _olderServerMessages = <Message>[];
+  ProviderSubscription<AsyncValue<QuerySnapshot<Map<String, dynamic>>>>?
   _messagesReadReceiptSubscription;
   ProviderSubscription<AsyncValue<List<ConversationPreview>>>?
   _conversationPreviewSubscription;
   bool _isNavigatingToEmailVerification = false;
+  bool _isPreparingConversation = false;
+  bool _isLoadingOlderMessages = false;
+  bool _hasMoreOlderMessages = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
   bool? _cachedEmailSendAllowed;
   DateTime? _cachedEmailCheckAt;
+  DocumentSnapshot<Map<String, dynamic>>? _oldestServerMessageDoc;
 
   // Dados do outro usuario (pode vir via extra ou cache local)
   late String _otherUserName;
@@ -71,11 +77,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   static const Duration _verifiedEmailCacheTtl = Duration(minutes: 5);
   static const Duration _unverifiedEmailCacheTtl = Duration(seconds: 8);
+  static const int _messagesPageSize = 50;
+  static const double _paginationTriggerDistance = 240;
 
   @override
   void initState() {
     super.initState();
     PushNotificationService.setActiveConversation(widget.conversationId);
+    _scrollController.addListener(_handleMessagesScroll);
 
     _initializeData();
     _setupConversationPreviewListener();
@@ -133,14 +142,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _prepareConversation() async {
+    if (_isPreparingConversation) return;
+    _isPreparingConversation = true;
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) {
-      if (mounted) {
-        setState(() {
-          _accessState = _ConversationAccessState.unavailable;
-          _conversationAccessMessage = 'Usuario nao autenticado.';
-        });
-      }
+      _isPreparingConversation = false;
       return;
     }
 
@@ -258,6 +264,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               'Erro ao abrir conversa. Tente novamente.';
         });
       }
+    } finally {
+      _isPreparingConversation = false;
     }
   }
 
@@ -311,15 +319,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   ) {
     _messagesReadReceiptSubscription?.close();
     _messagesReadReceiptSubscription = ref
-        .listenManual<AsyncValue<List<Message>>>(
-          conversationMessagesProvider(widget.conversationId),
+        .listenManual<AsyncValue<QuerySnapshot<Map<String, dynamic>>>>(
+          conversationMessagesSnapshotProvider(widget.conversationId),
           (previous, next) {
-            final nextMessages = next.asData?.value;
-            if (nextMessages == null || nextMessages.isEmpty) return;
+            final nextSnapshot = next.asData?.value;
+            if (nextSnapshot == null) return;
+
+            _syncPaginationStateFromLatestSnapshot(nextSnapshot);
+
+            final nextMessages = _messagesFromSnapshot(nextSnapshot);
+            if (nextMessages.isEmpty) return;
             final latestMessage = nextMessages.first;
             if (latestMessage.senderId == myUid) return;
 
-            final previousMessages = previous?.asData?.value;
+            final previousSnapshot = previous?.asData?.value;
+            final previousMessages = previousSnapshot == null
+                ? null
+                : _messagesFromSnapshot(previousSnapshot);
             final previousLatestId =
                 previousMessages == null || previousMessages.isEmpty
                 ? null
@@ -329,6 +345,150 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             unawaited(_markConversationAsRead(repository, myUid));
           },
         );
+  }
+
+  List<Message> _messagesFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    return snapshot.docs
+        .map((doc) => Message.fromFirestore(doc))
+        .toList(growable: false);
+  }
+
+  void _syncPaginationStateFromLatestSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    if (!mounted) return;
+    if (_olderServerMessages.isNotEmpty) return;
+
+    if (snapshot.docs.isEmpty) {
+      if (_oldestServerMessageDoc != null || _hasMoreOlderMessages) {
+        setState(() {
+          _oldestServerMessageDoc = null;
+          _hasMoreOlderMessages = false;
+        });
+      }
+      return;
+    }
+
+    final newOldestDoc = snapshot.docs.last;
+    final hasMore = snapshot.docs.length >= _messagesPageSize;
+    final hasCursorChanged = _oldestServerMessageDoc?.id != newOldestDoc.id;
+
+    if (!hasCursorChanged && _hasMoreOlderMessages == hasMore) return;
+
+    setState(() {
+      _oldestServerMessageDoc = newOldestDoc;
+      _hasMoreOlderMessages = hasMore;
+    });
+  }
+
+  void _handleMessagesScroll() {
+    if (!_canReadConversation) return;
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final distanceToOldest = position.maxScrollExtent - position.pixels;
+    if (distanceToOldest > _paginationTriggerDistance) return;
+
+    unawaited(_loadOlderMessages());
+  }
+
+  Future<void> _loadOlderMessages() async {
+    if (!_canReadConversation) return;
+    if (_isLoadingOlderMessages || !_hasMoreOlderMessages) return;
+
+    final cursor = _oldestServerMessageDoc;
+    if (cursor == null) return;
+
+    setState(() {
+      _isLoadingOlderMessages = true;
+    });
+
+    final repository = ref.read(chatRepositoryProvider);
+
+    try {
+      final page = await repository.getMessagesPage(
+        conversationId: widget.conversationId,
+        startAfterDoc: cursor,
+      );
+
+      if (!mounted) return;
+
+      final existingIds = _olderServerMessages
+          .map((message) => message.id)
+          .toSet();
+      final freshMessages = page.messages
+          .where((message) => !existingIds.contains(message.id))
+          .toList(growable: false);
+
+      setState(() {
+        _olderServerMessages.addAll(freshMessages);
+        if (page.lastVisibleDoc != null) {
+          _oldestServerMessageDoc = page.lastVisibleDoc;
+        }
+        _hasMoreOlderMessages = page.hasMore;
+        _isLoadingOlderMessages = false;
+      });
+    } catch (e, stack) {
+      AppLogger.error('Erro ao carregar mensagens antigas', e, stack);
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingOlderMessages = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao carregar mensagens antigas.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  List<Message> _mergeServerMessages(List<Message> latestMessages) {
+    final merged = <Message>[];
+    final seenIds = <String>{};
+
+    for (final message in latestMessages) {
+      if (seenIds.add(message.id)) {
+        merged.add(message);
+      }
+    }
+
+    for (final message in _olderServerMessages) {
+      if (seenIds.add(message.id)) {
+        merged.add(message);
+      }
+    }
+
+    return merged;
+  }
+
+  bool _shouldShowDateSeparator(List<Message> messages, int index) {
+    if (index >= messages.length) return false;
+    if (index == messages.length - 1) return true;
+
+    final currentDate = messages[index].createdAt.toDate().toLocal();
+    final olderDate = messages[index + 1].createdAt.toDate().toLocal();
+    return !_isSameDay(currentDate, olderDate);
+  }
+
+  String _formatDateSeparatorLabel(DateTime dateTime) {
+    final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dayDiff = today.difference(target).inDays;
+
+    if (dayDiff == 0) return 'Hoje';
+    if (dayDiff == 1) return 'Ontem';
+
+    return DateFormat('dd/MM/yyyy').format(target);
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   String _mapConversationFailureToMessage(String rawMessage) {
@@ -350,6 +510,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     PushNotificationService.setActiveConversation(null);
     _conversationPreviewSubscription?.close();
     _messagesReadReceiptSubscription?.close();
+    _scrollController.removeListener(_handleMessagesScroll);
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -667,7 +828,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProfileProvider).value;
+    final userAsync = ref.watch(currentUserProfileProvider);
+    final user = userAsync.value;
+
+    if (userAsync.isLoading && user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     if (user == null) {
       return const Scaffold(
@@ -675,8 +841,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
     }
 
-    final messagesAsync = _canReadConversation
-        ? ref.watch(conversationMessagesProvider(widget.conversationId))
+    if (_accessState == _ConversationAccessState.checking &&
+        !_isPreparingConversation) {
+      unawaited(_prepareConversation());
+    }
+
+    final messagesSnapshotAsync = _canReadConversation
+        ? ref.watch(conversationMessagesSnapshotProvider(widget.conversationId))
         : null;
 
     final conversationAsync = _canReadConversation
@@ -712,9 +883,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ? _buildLoadingShimmer()
                 : _accessState != _ConversationAccessState.ready
                 ? _buildConversationUnavailableState()
-                : messagesAsync!.when(
-                    data: (messages) {
-                      final serverClientMessageIds = messages
+                : messagesSnapshotAsync!.when(
+                    data: (messagesSnapshot) {
+                      final latestMessages = _messagesFromSnapshot(
+                        messagesSnapshot,
+                      );
+                      final serverMessages = _mergeServerMessages(
+                        latestMessages,
+                      );
+                      final serverClientMessageIds = serverMessages
                           .map((message) => message.clientMessageId)
                           .whereType<String>()
                           .toSet();
@@ -737,8 +914,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           .toList(growable: false);
                       final mergedMessages = <Message>[
                         ...pendingMessages,
-                        ...messages,
+                        ...serverMessages,
                       ];
+                      final showPaginationLoader =
+                          _isLoadingOlderMessages || _hasMoreOlderMessages;
 
                       if (mergedMessages.isEmpty) {
                         return Center(
@@ -756,11 +935,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         controller: _scrollController,
                         reverse: true,
                         padding: AppSpacing.all16,
-                        itemCount: mergedMessages.length,
+                        itemCount:
+                            mergedMessages.length +
+                            (showPaginationLoader ? 1 : 0),
                         itemBuilder: (context, index) {
+                          if (showPaginationLoader &&
+                              index == mergedMessages.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.s8,
+                                bottom: AppSpacing.s4,
+                              ),
+                              child: Center(
+                                child: _isLoadingOlderMessages
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Suba para carregar mais',
+                                        style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                              ),
+                            );
+                          }
+
                           final message = mergedMessages[index];
                           final isMe = message.senderId == user.uid;
                           final isPending = message.id.startsWith('local_');
+                          final showDateSeparator = _shouldShowDateSeparator(
+                            mergedMessages,
+                            index,
+                          );
+                          final dateLabel = showDateSeparator
+                              ? _formatDateSeparatorLabel(
+                                  message.createdAt.toDate().toLocal(),
+                                )
+                              : null;
 
                           bool isRead = false;
                           if (isMe && otherUid.isNotEmpty) {
@@ -771,11 +987,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             }
                           }
 
-                          return _MessageBubble(
-                            message: message,
-                            isMe: isMe,
-                            isPending: isPending,
-                            isRead: isRead,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (dateLabel != null)
+                                _DaySeparator(label: dateLabel),
+                              _MessageBubble(
+                                message: message,
+                                isMe: isMe,
+                                isPending: isPending,
+                                isRead: isRead,
+                              ),
+                            ],
                           );
                         },
                       );
@@ -1022,6 +1245,41 @@ class _MessageBubble extends StatelessWidget {
 
   String _formatTime(DateTime time) {
     return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _DaySeparator extends StatelessWidget {
+  final String label;
+
+  const _DaySeparator({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s8, top: AppSpacing.s8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s12,
+            vertical: AppSpacing.s4,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: AppRadius.all12,
+            border: Border.all(
+              color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: AppTypography.titleSmall.fontWeight,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

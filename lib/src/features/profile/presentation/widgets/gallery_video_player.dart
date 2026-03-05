@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -15,28 +17,41 @@ import '../../../../utils/app_logger.dart';
 class GalleryVideoPlayer extends StatefulWidget {
   final String videoUrl;
   final String? thumbnailUrl;
+  final bool isActive;
 
   const GalleryVideoPlayer({
     super.key,
     required this.videoUrl,
     this.thumbnailUrl,
+    this.isActive = true,
   });
 
   @override
   State<GalleryVideoPlayer> createState() => _GalleryVideoPlayerState();
 }
 
-class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
+class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
+    with WidgetsBindingObserver {
+  static const Set<String> _successfulTranscodeStatuses = {
+    'succeeded',
+    'succeeded_without_gallery_update',
+  };
+
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
   bool _showControls = true;
   double? _thumbnailAspectRatio;
   Timer? _hideControlsTimer;
+  int _initializationToken = 0;
+  bool _resumeAfterInterruption = true;
+  bool _isAppInForeground = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _resumeAfterInterruption = widget.isActive;
     _resolveThumbnailAspectRatio();
     _initializePlayer();
   }
@@ -54,12 +69,58 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
       _disposeController();
       _isInitialized = false;
       _hasError = false;
+      _resumeAfterInterruption = widget.isActive;
       _initializePlayer();
+    }
+
+    if (oldWidget.isActive != widget.isActive) {
+      _handleActiveStateChange();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isForeground = switch (state) {
+      AppLifecycleState.resumed => true,
+      AppLifecycleState.inactive ||
+      AppLifecycleState.hidden ||
+      AppLifecycleState.paused ||
+      AppLifecycleState.detached => false,
+    };
+
+    if (_isAppInForeground == isForeground) return;
+    _isAppInForeground = isForeground;
+
+    final controller = _controller;
+    if (controller == null || !_isInitialized) return;
+
+    if (!isForeground) {
+      _resumeAfterInterruption = controller.value.isPlaying;
+      controller.pause();
+      _hideControlsTimer?.cancel();
+      if (mounted && !_showControls) {
+        setState(() => _showControls = true);
+      }
+      return;
+    }
+
+    if (widget.isActive &&
+        _resumeAfterInterruption &&
+        !controller.value.isPlaying) {
+      controller.play();
+      _showControlsWithTimer();
     }
   }
 
   Future<void> _initializePlayer() async {
-    final initialized = await _tryInitializeController();
+    final initializationToken = ++_initializationToken;
+    final sourceUrl = widget.videoUrl;
+
+    final initialized = await _tryInitializeController(
+      videoUrl: sourceUrl,
+      initializationToken: initializationToken,
+    );
+    if (!_isInitializationValid(initializationToken)) return;
     if (initialized || !mounted) return;
 
     AppLogger.warning(
@@ -68,11 +129,71 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
 
     _disposeController();
     final fallbackInitialized = await _tryInitializeController(
+      videoUrl: sourceUrl,
       formatHint: VideoFormat.other,
+      initializationToken: initializationToken,
     );
+    if (!_isInitializationValid(initializationToken)) return;
+    if (fallbackInitialized || !mounted) return;
+
+    final transcodedUrl = await _resolveTranscodedVideoUrl(sourceUrl);
+    if (!_isInitializationValid(initializationToken)) return;
+
+    if (transcodedUrl != null && transcodedUrl != sourceUrl) {
+      AppLogger.warning(
+        'Fallback para URL transcodificada após falha no player original. '
+        'source=$sourceUrl transcoded=$transcodedUrl',
+      );
+
+      _disposeController();
+      final transcodedInitialized = await _tryInitializeController(
+        videoUrl: transcodedUrl,
+        initializationToken: initializationToken,
+      );
+      if (!_isInitializationValid(initializationToken)) return;
+      if (transcodedInitialized || !mounted) return;
+
+      _disposeController();
+      final transcodedFallbackInitialized = await _tryInitializeController(
+        videoUrl: transcodedUrl,
+        formatHint: VideoFormat.other,
+        initializationToken: initializationToken,
+      );
+      if (!_isInitializationValid(initializationToken)) return;
+      if (transcodedFallbackInitialized || !mounted) return;
+    }
 
     if (!fallbackInitialized && mounted) {
+      AppLogger.error(
+        'GalleryVideoPlaybackFailed | os=${Platform.operatingSystem} '
+        '${Platform.operatingSystemVersion} | source=$sourceUrl '
+        '| transcodedFallback=${transcodedUrl ?? "unavailable"}',
+        StateError('gallery_video_playback_failed'),
+        StackTrace.current,
+      );
       setState(() => _hasError = true);
+    }
+  }
+
+  void _handleActiveStateChange() {
+    final controller = _controller;
+    if (controller == null || !_isInitialized) return;
+
+    if (!widget.isActive) {
+      _resumeAfterInterruption = controller.value.isPlaying;
+      controller.pause();
+      _hideControlsTimer?.cancel();
+      if (mounted && !_showControls) {
+        setState(() => _showControls = true);
+      }
+      return;
+    }
+
+    if (_isAppInForeground &&
+        _resumeAfterInterruption &&
+        !controller.value.isPlaying) {
+      controller.play();
+      _showControlsWithTimer();
     }
   }
 
@@ -153,19 +274,22 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     return videoAspectRatio;
   }
 
-  Future<bool> _tryInitializeController({VideoFormat? formatHint}) async {
+  Future<bool> _tryInitializeController({
+    required String videoUrl,
+    required int initializationToken,
+    VideoFormat? formatHint,
+  }) async {
     VideoPlayerController? controller;
     try {
       controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.videoUrl),
+        Uri.parse(videoUrl),
         formatHint: formatHint,
       );
 
       await controller.initialize();
       await controller.setLooping(true);
-      controller.addListener(_onControllerChanged);
 
-      if (!mounted) {
+      if (!_isInitializationValid(initializationToken)) {
         await controller.dispose();
         return false;
       }
@@ -176,13 +300,17 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
         _hasError = false;
       });
 
-      await controller.play();
-      _showControlsWithTimer();
+      if (widget.isActive && _isAppInForeground && _resumeAfterInterruption) {
+        await controller.play();
+        _showControlsWithTimer();
+      } else if (mounted && !_showControls) {
+        setState(() => _showControls = true);
+      }
       return true;
     } catch (e, s) {
       final controllerError = controller?.value.errorDescription;
       AppLogger.error(
-        'Erro ao inicializar vídeo | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=${widget.videoUrl}',
+        'Erro ao inicializar vídeo | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=$videoUrl',
         e,
         s,
       );
@@ -191,23 +319,120 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
     }
   }
 
-  void _onControllerChanged() {
-    if (mounted) {
-      setState(() {});
+  bool _isInitializationValid(int token) {
+    return mounted && token == _initializationToken;
+  }
+
+  Future<String?> _resolveTranscodedVideoUrl(String originalUrl) async {
+    if (_isTranscodedStorageUrl(originalUrl)) return null;
+
+    final sourceIds = _extractSourceIdsFromStorageUrl(originalUrl);
+    if (sourceIds == null) return null;
+
+    final fromTranscodeJob = await _loadTranscodedUrlFromJob(sourceIds);
+    if (fromTranscodeJob != null && fromTranscodeJob.isNotEmpty) {
+      return fromTranscodeJob;
     }
+
+    return _loadTranscodedUrlFromStorage(sourceIds);
+  }
+
+  Future<String?> _loadTranscodedUrlFromJob(_StorageVideoSourceIds ids) async {
+    try {
+      final jobDoc = await FirebaseFirestore.instance
+          .collection('mediaTranscodeJobs')
+          .doc('${ids.userId}_${ids.mediaId}')
+          .get();
+      final data = jobDoc.data();
+      if (data == null) return null;
+
+      final status = (data['status'] as String? ?? '').toLowerCase();
+      final transcodedUrl = data['transcodedUrl'] as String?;
+      final hasTranscodedUrl =
+          transcodedUrl != null && transcodedUrl.isNotEmpty;
+      if (!hasTranscodedUrl) return null;
+
+      if (status.isEmpty || _successfulTranscodeStatuses.contains(status)) {
+        return transcodedUrl;
+      }
+
+      AppLogger.info(
+        'Transcode job retornou URL com status não final, mantendo fallback disponível. '
+        'status=$status user=${ids.userId} media=${ids.mediaId}',
+      );
+      return transcodedUrl;
+    } catch (e, s) {
+      AppLogger.warning(
+        'Falha ao buscar URL transcodificada em mediaTranscodeJobs '
+        'user=${ids.userId} media=${ids.mediaId}',
+        e,
+        s,
+      );
+      return null;
+    }
+  }
+
+  Future<String?> _loadTranscodedUrlFromStorage(
+    _StorageVideoSourceIds ids,
+  ) async {
+    final path =
+        'gallery_videos_transcoded/${ids.userId}/${ids.mediaId}/master.mp4';
+    try {
+      return await FirebaseStorage.instance.ref().child(path).getDownloadURL();
+    } on FirebaseException catch (e, s) {
+      if (e.code != 'object-not-found') {
+        AppLogger.warning(
+          'Falha ao buscar fallback transcodificado no Storage '
+          'path=$path code=${e.code}',
+          e,
+          s,
+        );
+      }
+      return null;
+    } catch (e, s) {
+      AppLogger.warning(
+        'Falha inesperada ao buscar fallback transcodificado no Storage '
+        'path=$path',
+        e,
+        s,
+      );
+      return null;
+    }
+  }
+
+  bool _isTranscodedStorageUrl(String url) {
+    final normalized = url.toLowerCase();
+    return normalized.contains('/gallery_videos_transcoded/') ||
+        normalized.contains('%2fgallery_videos_transcoded%2f') ||
+        normalized.contains('gallery_videos_transcoded%2f');
+  }
+
+  _StorageVideoSourceIds? _extractSourceIdsFromStorageUrl(String url) {
+    final match = RegExp(
+      r'gallery_videos(?!_transcoded)(?:%2f|/)([^/%?]+)(?:%2f|/)([^/%?]+)\.mp4',
+      caseSensitive: false,
+    ).firstMatch(url);
+    if (match == null) return null;
+
+    final userId = Uri.decodeComponent(match.group(1) ?? '').trim();
+    final mediaId = Uri.decodeComponent(match.group(2) ?? '').trim();
+    if (userId.isEmpty || mediaId.isEmpty) return null;
+
+    return _StorageVideoSourceIds(userId: userId, mediaId: mediaId);
   }
 
   void _disposeController() {
     final controller = _controller;
     _controller = null;
     if (controller != null) {
-      controller.removeListener(_onControllerChanged);
       controller.dispose();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _initializationToken++;
     _hideControlsTimer?.cancel();
     _disposeController();
     super.dispose();
@@ -233,12 +458,26 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
 
     setState(() {
       if (controller.value.isPlaying) {
+        _resumeAfterInterruption = false;
         controller.pause();
       } else {
+        _resumeAfterInterruption = true;
         controller.play();
       }
     });
     _showControlsWithTimer();
+  }
+
+  void _retryInitialization() {
+    _hideControlsTimer?.cancel();
+    _disposeController();
+    setState(() {
+      _isInitialized = false;
+      _hasError = false;
+      _showControls = true;
+      _resumeAfterInterruption = widget.isActive;
+    });
+    _initializePlayer();
   }
 
   String _formatDuration(Duration duration) {
@@ -264,6 +503,11 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
                 decoration: TextDecoration.none,
               ),
             ),
+            const SizedBox(height: AppSpacing.s12),
+            TextButton(
+              onPressed: _retryInitialization,
+              child: const Text('Tentar novamente'),
+            ),
           ],
         ),
       );
@@ -276,181 +520,197 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer> {
       );
     }
 
-    final durationMs = controller.value.duration.inMilliseconds.toDouble();
-    final maxSlider = durationMs > 0 ? durationMs : 1.0;
-    final sliderValue = controller.value.position.inMilliseconds
-        .toDouble()
-        .clamp(0.0, maxSlider)
-        .toDouble();
-    final displayAspectRatio = _resolveDisplayAspectRatio(
-      controller.value.aspectRatio,
-    );
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      child: VideoPlayer(controller),
+      builder: (context, value, videoChild) {
+        final durationMs = value.duration.inMilliseconds.toDouble();
+        final maxSlider = durationMs > 0 ? durationMs : 1.0;
+        final sliderValue = value.position.inMilliseconds
+            .toDouble()
+            .clamp(0.0, maxSlider)
+            .toDouble();
+        final displayAspectRatio = _resolveDisplayAspectRatio(
+          value.aspectRatio,
+        );
 
-    return GestureDetector(
-      onTap: _showControlsWithTimer,
-      child: Container(
-        color: AppColors.background,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: displayAspectRatio,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                VideoPlayer(controller),
-                AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.background.withValues(alpha: 0.7),
-                          AppColors.transparent,
-                          AppColors.transparent,
-                          AppColors.background.withValues(alpha: 0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                AnimatedOpacity(
-                  opacity: _showControls ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: IgnorePointer(
-                    ignoring: !_showControls,
-                    child: GestureDetector(
-                      onTap: _togglePlayPause,
+        return GestureDetector(
+          onTap: _showControlsWithTimer,
+          child: Container(
+            color: AppColors.background,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: displayAspectRatio,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ?videoChild,
+                    AnimatedOpacity(
+                      opacity: _showControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.background.withValues(alpha: 0.6),
-                          shape: BoxShape.circle,
-                        ),
-                        padding: AppSpacing.all16,
-                        child: Icon(
-                          controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          color: AppColors.textPrimary,
-                          size: 56,
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              AppColors.background.withValues(alpha: 0.7),
+                              AppColors.transparent,
+                              AppColors.transparent,
+                              AppColors.background.withValues(alpha: 0.7),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  bottom: _showControls ? 0 : -100,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    ignoring: !_showControls,
-                    child: Container(
-                      padding: AppSpacing.h16v12,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.transparent,
-                            AppColors.background.withValues(alpha: 0.8),
-                          ],
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            height: 32,
-                            child: Material(
-                              color: AppColors.transparent,
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 6,
-                                  ),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                    overlayRadius: 14,
-                                  ),
-                                  activeTrackColor: AppColors.primary,
-                                  inactiveTrackColor: AppColors.textPrimary
-                                      .withValues(alpha: 0.24),
-                                  thumbColor: AppColors.primary,
-                                  overlayColor: AppColors.primary.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                                child: Slider(
-                                  value: sliderValue,
-                                  min: 0,
-                                  max: maxSlider,
-                                  onChanged: durationMs <= 0
-                                      ? null
-                                      : (value) {
-                                          controller.seekTo(
-                                            Duration(
-                                              milliseconds: value.toInt(),
-                                            ),
-                                          );
-                                        },
-                                  onChangeStart: (value) {
-                                    _hideControlsTimer?.cancel();
-                                  },
-                                  onChangeEnd: (value) {
-                                    _showControlsWithTimer();
-                                  },
-                                ),
+                    AnimatedOpacity(
+                      opacity: _showControls ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: IgnorePointer(
+                        ignoring: !_showControls,
+                        child: GestureDetector(
+                          onTap: _togglePlayPause,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.background.withValues(
+                                alpha: 0.6,
                               ),
+                              shape: BoxShape.circle,
+                            ),
+                            padding: AppSpacing.all16,
+                            child: Icon(
+                              value.isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: AppColors.textPrimary,
+                              size: 56,
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.s4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _formatDuration(controller.value.position),
-                                  style: AppTypography.labelMedium.copyWith(
-                                    color: AppColors.textPrimary,
-                                    decoration: TextDecoration.none,
-                                    shadows: const [
-                                      Shadow(
-                                        color: AppColors.background,
-                                        offset: Offset(1, 1),
-                                        blurRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  _formatDuration(controller.value.duration),
-                                  style: AppTypography.labelMedium.copyWith(
-                                    color: AppColors.textPrimary,
-                                    decoration: TextDecoration.none,
-                                    shadows: const [
-                                      Shadow(
-                                        color: AppColors.background,
-                                        offset: Offset(1, 1),
-                                        blurRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                        ),
+                      ),
+                    ),
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 300),
+                      bottom: _showControls ? 0 : -100,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        ignoring: !_showControls,
+                        child: Container(
+                          padding: AppSpacing.h16v12,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.transparent,
+                                AppColors.background.withValues(alpha: 0.8),
                               ],
                             ),
                           ),
-                        ],
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                height: 32,
+                                child: Material(
+                                  color: AppColors.transparent,
+                                  child: SliderTheme(
+                                    data: SliderThemeData(
+                                      trackHeight: 3,
+                                      thumbShape: const RoundSliderThumbShape(
+                                        enabledThumbRadius: 6,
+                                      ),
+                                      overlayShape:
+                                          const RoundSliderOverlayShape(
+                                            overlayRadius: 14,
+                                          ),
+                                      activeTrackColor: AppColors.primary,
+                                      inactiveTrackColor: AppColors.textPrimary
+                                          .withValues(alpha: 0.24),
+                                      thumbColor: AppColors.primary,
+                                      overlayColor: AppColors.primary
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                    child: Slider(
+                                      value: sliderValue,
+                                      min: 0,
+                                      max: maxSlider,
+                                      onChanged: durationMs <= 0
+                                          ? null
+                                          : (value) {
+                                              controller.seekTo(
+                                                Duration(
+                                                  milliseconds: value.toInt(),
+                                                ),
+                                              );
+                                            },
+                                      onChangeStart: (value) {
+                                        _hideControlsTimer?.cancel();
+                                      },
+                                      onChangeEnd: (value) {
+                                        _showControlsWithTimer();
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.s4,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatDuration(value.position),
+                                      style: AppTypography.labelMedium.copyWith(
+                                        color: AppColors.textPrimary,
+                                        decoration: TextDecoration.none,
+                                        shadows: const [
+                                          Shadow(
+                                            color: AppColors.background,
+                                            offset: Offset(1, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatDuration(value.duration),
+                                      style: AppTypography.labelMedium.copyWith(
+                                        color: AppColors.textPrimary,
+                                        decoration: TextDecoration.none,
+                                        shadows: const [
+                                          Shadow(
+                                            color: AppColors.background,
+                                            offset: Offset(1, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+}
+
+class _StorageVideoSourceIds {
+  final String userId;
+  final String mediaId;
+
+  const _StorageVideoSourceIds({required this.userId, required this.mediaId});
 }

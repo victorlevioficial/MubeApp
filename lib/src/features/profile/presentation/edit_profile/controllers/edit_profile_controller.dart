@@ -689,6 +689,7 @@ class EditProfileController extends _$EditProfileController {
             'nome': nomeArtistico,
             'bio': bio,
             'celular': celular,
+            'instagram': instagram,
             'studioType': state.studioType,
             'servicosOferecidos': state.selectedServices,
             'services': state.selectedServices,
@@ -702,6 +703,7 @@ class EditProfileController extends _$EditProfileController {
             'nomeArtistico': nomeArtistico,
             'nome': nomeArtistico,
             'bio': bio,
+            'instagram': instagram,
             'generosMusicais': state.bandGenres,
             'gallery': gallery,
           };

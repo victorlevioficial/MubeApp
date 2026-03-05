@@ -126,7 +126,7 @@ abstract class AppUser with _$AppUser {
   /// - Professional: `profissional.nomeArtistico`
   /// - Band: `banda.nomeBanda` (fallbacks for legacy keys)
   /// - Studio: `estudio.nomeEstudio` (fallbacks for legacy keys)
-  /// - Contractor: registration name
+  /// - Contractor: `contratante.nomeExibicao` (fallback to short name from `nome`)
   String get appDisplayName {
     switch (tipoPerfil) {
       case AppUserType.professional:
@@ -146,7 +146,11 @@ abstract class AppUser with _$AppUser {
           dadosEstudio?['nome'],
         ], 'Estudio');
       case AppUserType.contractor:
-        return _firstNonEmptyName([nome], 'Contratante');
+        return _firstNonEmptyName([
+          dadosContratante?['nomeExibicao'],
+          _buildShortPersonName(nome),
+          nome,
+        ], 'Contratante');
       default:
         return _firstNonEmptyName([], 'Perfil');
     }
@@ -182,6 +186,18 @@ abstract class AppUser with _$AppUser {
       }
     }
     return fallback;
+  }
+
+  String _buildShortPersonName(String? rawName) {
+    final normalized = (rawName ?? '').trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (normalized.isEmpty) return '';
+
+    final parts = normalized.split(' ');
+    if (parts.length <= 2) return normalized;
+
+    const connectors = {'de', 'da', 'do', 'dos', 'das', 'e'};
+    final takeCount = connectors.contains(parts[1].toLowerCase()) ? 3 : 2;
+    return parts.take(takeCount).join(' ');
   }
 
   String? _firstNonEmptyText(List<dynamic> candidates) {

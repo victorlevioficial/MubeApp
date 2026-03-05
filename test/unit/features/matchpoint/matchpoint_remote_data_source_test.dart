@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
@@ -14,6 +16,9 @@ class _CallableInvocation {
 
   const _CallableInvocation({required this.name, required this.parameters});
 }
+
+typedef _CallableHandler =
+    Future<HttpsCallableResult<dynamic>> Function(Object? parameters);
 
 class _FakeHttpsCallableResult<T> extends Fake
     implements HttpsCallableResult<T> {
@@ -28,12 +33,16 @@ class _FakeHttpsCallableResult<T> extends Fake
 class _FakeHttpsCallable extends Fake implements HttpsCallable {
   final String name;
   final List<_CallableInvocation> invocations;
+  final _CallableHandler? handler;
 
-  _FakeHttpsCallable(this.name, this.invocations);
+  _FakeHttpsCallable(this.name, this.invocations, {this.handler});
 
   @override
   Future<HttpsCallableResult<T>> call<T>([dynamic parameters]) async {
     invocations.add(_CallableInvocation(name: name, parameters: parameters));
+    if (handler != null) {
+      return (await handler!(parameters)) as HttpsCallableResult<T>;
+    }
     return _FakeHttpsCallableResult<T>(
       (<String, dynamic>{'success': true}) as T,
     );
@@ -41,11 +50,58 @@ class _FakeHttpsCallable extends Fake implements HttpsCallable {
 }
 
 class _FakeFunctions extends Fake implements FirebaseFunctions {
+  final Map<String, _CallableHandler> handlers;
   final List<_CallableInvocation> invocations = [];
+
+  _FakeFunctions({this.handlers = const {}});
 
   @override
   HttpsCallable httpsCallable(String name, {HttpsCallableOptions? options}) {
-    return _FakeHttpsCallable(name, invocations);
+    return _FakeHttpsCallable(name, invocations, handler: handlers[name]);
+  }
+}
+
+class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  final User? _currentUser;
+
+  _FakeFirebaseAuth({User? currentUser}) : _currentUser = currentUser;
+
+  @override
+  User? get currentUser => _currentUser;
+}
+
+class _FakeAppCheck extends Fake implements app_check.FirebaseAppCheck {
+  int cachedTokenCalls = 0;
+  int forcedTokenCalls = 0;
+  String? cachedToken;
+  String? forcedToken;
+  Object? cachedError;
+  Object? forcedError;
+  Duration cachedTokenDelay;
+
+  _FakeAppCheck({
+    this.cachedToken,
+    this.forcedToken,
+    this.cachedError,
+    this.forcedError,
+    this.cachedTokenDelay = Duration.zero,
+  });
+
+  @override
+  Future<String?> getToken([bool? forceRefresh]) async {
+    final isForced = forceRefresh ?? false;
+    if (isForced) {
+      forcedTokenCalls += 1;
+      if (forcedError != null) throw forcedError!;
+      return forcedToken;
+    }
+
+    cachedTokenCalls += 1;
+    if (cachedTokenDelay > Duration.zero) {
+      await Future<void>.delayed(cachedTokenDelay);
+    }
+    if (cachedError != null) throw cachedError!;
+    return cachedToken;
   }
 }
 
@@ -448,5 +504,96 @@ void main() {
         expect(result, isNot(contains('expired_dislike')));
       },
     );
+  });
+
+  group('MatchpointRemoteDataSource App Check recovery', () {
+    FirebaseFunctionsException recoverableAppCheckError() {
+      return FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'App Check token is required.',
+      );
+    }
+
+    test('skips forced refresh when App Check reports throttling', () async {
+      final firestore = FakeFirebaseFirestore();
+      final functions = _FakeFunctions(
+        handlers: {
+          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+        },
+      );
+      final appCheck = _FakeAppCheck(
+        cachedError: Exception('Too many attempts.'),
+      );
+      final dataSource = MatchpointRemoteDataSourceImpl(
+        firestore,
+        functions,
+        auth: _FakeFirebaseAuth(),
+        appCheck: appCheck,
+      );
+
+      await expectLater(
+        dataSource.getRemainingLikes(),
+        throwsA(isA<FirebaseFunctionsException>()),
+      );
+
+      expect(appCheck.cachedTokenCalls, 1);
+      expect(appCheck.forcedTokenCalls, 0);
+    });
+
+    test('uses cooldown to avoid repeated forced App Check refresh', () async {
+      final firestore = FakeFirebaseFirestore();
+      final functions = _FakeFunctions(
+        handlers: {
+          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+        },
+      );
+      final appCheck = _FakeAppCheck(cachedToken: null, forcedToken: 'fresh');
+      final dataSource = MatchpointRemoteDataSourceImpl(
+        firestore,
+        functions,
+        auth: _FakeFirebaseAuth(),
+        appCheck: appCheck,
+      );
+
+      await expectLater(
+        dataSource.getRemainingLikes(),
+        throwsA(isA<FirebaseFunctionsException>()),
+      );
+      await expectLater(
+        dataSource.getRemainingLikes(),
+        throwsA(isA<FirebaseFunctionsException>()),
+      );
+
+      expect(appCheck.cachedTokenCalls, 2);
+      expect(appCheck.forcedTokenCalls, 1);
+    });
+
+    test('deduplicates concurrent security refresh attempts', () async {
+      final firestore = FakeFirebaseFirestore();
+      final functions = _FakeFunctions(
+        handlers: {
+          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+        },
+      );
+      final appCheck = _FakeAppCheck(
+        cachedToken: null,
+        forcedToken: 'fresh',
+        cachedTokenDelay: const Duration(milliseconds: 60),
+      );
+      final dataSource = MatchpointRemoteDataSourceImpl(
+        firestore,
+        functions,
+        auth: _FakeFirebaseAuth(),
+        appCheck: appCheck,
+      );
+
+      await Future.wait<void>([
+        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, __) {}),
+        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, __) {}),
+      ]);
+
+      expect(appCheck.cachedTokenCalls, 1);
+      expect(appCheck.forcedTokenCalls, 1);
+    });
   });
 }

@@ -11,6 +11,7 @@ import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/interactions/app_popup_menu_button.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
@@ -932,15 +933,12 @@ class _MemberCard extends ConsumerWidget {
                 color: AppColors.success,
                 icon: Icons.check_circle_outline_rounded,
               ),
-              PopupMenuButton<String>(
+              AppPopupMenuButton<String>(
                 icon: const Icon(
                   Icons.more_horiz_rounded,
                   color: AppColors.textSecondary,
                 ),
-                color: AppColors.surfaceHighlight,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.all12,
-                ),
+                menuColor: AppColors.surfaceHighlight,
                 onSelected: (value) async {
                   if (value == 'profile') {
                     unawaited(
@@ -950,39 +948,17 @@ class _MemberCard extends ConsumerWidget {
                     await _confirmRemoveMember(context, ref, memberName);
                   }
                 },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
+                items: const [
+                  AppPopupMenuAction<String>(
                     value: 'profile',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.person_outline,
-                          size: 20,
-                          color: AppColors.textPrimary,
-                        ),
-                        const SizedBox(width: AppSpacing.s8),
-                        Text('Ver Perfil', style: AppTypography.bodyMedium),
-                      ],
-                    ),
+                    label: 'Ver Perfil',
+                    icon: Icons.person_outline,
                   ),
-                  PopupMenuItem(
+                  AppPopupMenuAction<String>(
                     value: 'remove',
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.logout,
-                          size: 20,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(width: AppSpacing.s8),
-                        Text(
-                          'Remover da Banda',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ],
-                    ),
+                    label: 'Remover da Banda',
+                    icon: Icons.logout,
+                    isDestructive: true,
                   ),
                 ],
               ),

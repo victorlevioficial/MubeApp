@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -98,7 +100,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _PrivacySettingsSkeleton(),
         error: (err, stack) => Center(child: Text('Erro: $err')),
       ),
     );
@@ -137,6 +139,102 @@ class PrivacySettingsScreen extends ConsumerWidget {
       activeThumbColor: AppColors.primary,
       trackColor: WidgetStateProperty.resolveWith(
         (states) => AppColors.surfaceHighlight,
+      ),
+    );
+  }
+}
+
+class _PrivacySettingsSkeleton extends StatelessWidget {
+  const _PrivacySettingsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonShimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        children: const [
+          SkeletonText(width: 110, height: 12),
+          SizedBox(height: AppSpacing.s12),
+          _PrivacyTileSkeleton(),
+          SizedBox(height: AppSpacing.s12),
+          _PrivacyTileSkeleton(),
+          SizedBox(height: AppSpacing.s16),
+          Divider(color: AppColors.surfaceHighlight, height: 32),
+          SkeletonText(width: 92, height: 12),
+          SizedBox(height: AppSpacing.s12),
+          _SecurityTileSkeleton(),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrivacyTileSkeleton extends StatelessWidget {
+  const _PrivacyTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s10,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all12,
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(width: 170, height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(width: double.infinity, height: 11),
+                SizedBox(height: AppSpacing.s4),
+                SkeletonText(width: 210, height: 11),
+              ],
+            ),
+          ),
+          SizedBox(width: AppSpacing.s12),
+          SkeletonBox(width: 48, height: 28, borderRadius: AppRadius.rPill),
+        ],
+      ),
+    );
+  }
+}
+
+class _SecurityTileSkeleton extends StatelessWidget {
+  const _SecurityTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s14,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all12,
+      ),
+      child: const Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(width: 150, height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(width: 92, height: 12),
+              ],
+            ),
+          ),
+          SizedBox(width: AppSpacing.s8),
+          SkeletonBox(width: 20, height: 20, borderRadius: AppRadius.r8),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../../../../common_widgets/formatters/title_case_formatter.dart';
+import '../../../../../../constants/app_constants.dart';
 import '../../../../../../core/providers/app_config_provider.dart';
 import '../../../../../../design_system/components/buttons/app_button.dart';
 import '../../../../../../design_system/components/feedback/app_snackbar.dart';
@@ -17,6 +18,7 @@ import '../../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../../utils/instagram_utils.dart';
 
 /// Enhanced Professional Form Fields with modern card-based design.
 /// Matches the onboarding flow UI.
@@ -160,20 +162,17 @@ class _ProfessionalFormFieldsState
 
           AppDropdownField<String>(
             label: 'Gênero',
-            value: widget.generoController.text.isEmpty
+            value: normalizeGenderValue(widget.generoController.text).isEmpty
                 ? null
-                : widget.generoController.text,
-            items: const [
-              DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-              DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-              DropdownMenuItem(value: 'Outro', child: Text('Outro')),
-              DropdownMenuItem(
-                value: 'Prefiro não dizer',
-                child: Text('Prefiro não dizer'),
-              ),
-            ],
+                : normalizeGenderValue(widget.generoController.text),
+            items: genderOptions
+                .map(
+                  (gender) =>
+                      DropdownMenuItem(value: gender, child: Text(gender)),
+                )
+                .toList(),
             onChanged: (v) {
-              widget.generoController.text = v!;
+              widget.generoController.text = normalizeGenderValue(v);
               widget.onStateChanged();
             },
           ),
@@ -181,8 +180,8 @@ class _ProfessionalFormFieldsState
 
           AppTextField(
             controller: widget.instagramController,
-            label: 'Instagram (opcional)',
-            hint: '@nome_artístico',
+            label: instagramLabelOptional,
+            hint: instagramHint,
             prefixIcon: const Icon(Icons.alternate_email, size: 20),
             onChanged: (_) => widget.onStateChanged(),
           ),

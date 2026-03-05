@@ -14,6 +14,7 @@ import '../domain/message.dart';
 class ChatRepository {
   final FirebaseFirestore _firestore;
   final AnalyticsService? _analytics;
+  static const int _defaultMessagesPageSize = 50;
 
   ChatRepository(this._firestore, {AnalyticsService? analytics})
     : _analytics = analytics;
@@ -48,10 +49,23 @@ class ChatRepository {
     return _readNonEmptyString(data?['type']) ?? fallback;
   }
 
+  String? _buildShortPersonName(Object? rawName) {
+    final normalized = _readNonEmptyString(rawName);
+    if (normalized == null) return null;
+
+    final parts = normalized.split(RegExp(r'\s+'));
+    if (parts.length <= 2) return normalized;
+
+    const connectors = {'de', 'da', 'do', 'dos', 'das', 'e'};
+    final takeCount = connectors.contains(parts[1].toLowerCase()) ? 3 : 2;
+    return parts.take(takeCount).join(' ');
+  }
+
   String _displayNameFromUserData(Map<String, dynamic>? data) {
     final professionalData = _asMap(data?['profissional']);
     final bandData = _asMap(data?['banda']);
     final studioData = _asMap(data?['estudio']);
+    final contractorData = _asMap(data?['contratante']);
     final profileType = _readNonEmptyString(data?['tipo_perfil']);
 
     switch (profileType) {
@@ -75,7 +89,11 @@ class ChatRepository {
           data?['nome'],
         ], fallback: 'Estudio');
       case 'contratante':
-        return _firstNonEmptyString([data?['nome']], fallback: 'Contratante');
+        return _firstNonEmptyString([
+          contractorData?['nomeExibicao'],
+          _buildShortPersonName(data?['nome']),
+          data?['nome'],
+        ], fallback: 'Contratante');
       default:
         return _firstNonEmptyString([
           professionalData?['nomeArtistico'],
@@ -93,6 +111,19 @@ class ChatRepository {
       displayName: _displayNameFromUserData(data),
       photoUrl: _readNonEmptyString(data?['foto']),
     );
+  }
+
+  Future<_UserPreviewInfo> _getUserPreviewInfoSafe(String uid) async {
+    try {
+      return await _getUserPreviewInfo(uid);
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Chat: failed to fetch user preview info for $uid',
+        e,
+        stackTrace,
+      );
+      return const _UserPreviewInfo(displayName: 'Usuario', photoUrl: null);
+    }
   }
 
   /// Calcula conversationId deterministico (uidMenor_uidMaior).
@@ -117,6 +148,7 @@ class ChatRepository {
       final conversationRef = _firestore
           .collection('conversations')
           .doc(conversationId);
+      var hasCreatedConversation = false;
 
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(conversationRef);
@@ -138,6 +170,7 @@ class ChatRepository {
           conversationData,
           fallback: type,
         );
+        hasCreatedConversation = !snapshot.exists;
 
         if (!snapshot.exists) {
           transaction.set(conversationRef, {
@@ -199,8 +232,7 @@ class ChatRepository {
         }
       });
 
-      final snapshot = await conversationRef.get();
-      if (!snapshot.exists) {
+      if (hasCreatedConversation) {
         await _analytics?.logEvent(
           name: 'chat_initiated',
           parameters: {
@@ -235,8 +267,8 @@ class ChatRepository {
           .doc(conversationId);
 
       final conversationFuture = conversationRef.get();
-      final myInfoFuture = _getUserPreviewInfo(myUid);
-      final otherInfoFuture = _getUserPreviewInfo(otherUid);
+      final myInfoFuture = _getUserPreviewInfoSafe(myUid);
+      final otherInfoFuture = _getUserPreviewInfoSafe(otherUid);
 
       final conversationSnapshot = await conversationFuture;
       final myInfo = await myInfoFuture;
@@ -344,7 +376,7 @@ class ChatRepository {
           .collection('conversationPreviews')
           .doc(conversationId);
 
-      batch.update(myPreviewRef, {'unreadCount': 0});
+      batch.set(myPreviewRef, {'unreadCount': 0}, SetOptions(merge: true));
 
       await batch.commit();
       return const Right(unit);
@@ -358,19 +390,51 @@ class ChatRepository {
     }
   }
 
-  /// Stream de mensagens de uma conversa (ultimas 50).
-  Stream<List<Message>> getMessages(String conversationId) {
+  Query<Map<String, dynamic>> _messagesQuery(String conversationId) {
     return _firestore
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList(),
-        );
+        .orderBy('createdAt', descending: true);
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = _defaultMessagesPageSize,
+  }) {
+    return _messagesQuery(conversationId).limit(limit).snapshots();
+  }
+
+  /// Stream de mensagens de uma conversa (ultimas 50).
+  Stream<List<Message>> getMessages(String conversationId) {
+    return getMessagesSnapshot(conversationId).map(
+      (snapshot) =>
+          snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList(),
+    );
+  }
+
+  Future<MessagesPage> getMessagesPage({
+    required String conversationId,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDoc,
+    int limit = _defaultMessagesPageSize,
+  }) async {
+    var query = _messagesQuery(conversationId).limit(limit);
+    if (startAfterDoc != null) {
+      query = query.startAfterDocument(startAfterDoc);
+    }
+
+    final snapshot = await query.get();
+    final messages = snapshot.docs
+        .map((doc) => Message.fromFirestore(doc))
+        .toList(growable: false);
+    final lastVisibleDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
+    final hasMore = snapshot.docs.length >= limit;
+
+    return MessagesPage(
+      messages: messages,
+      lastVisibleDoc: lastVisibleDoc,
+      hasMore: hasMore,
+    );
   }
 
   /// Stream de previews de conversas do usuario (ultimas 100).
@@ -505,6 +569,18 @@ class _UserPreviewInfo {
 
   final String displayName;
   final String? photoUrl;
+}
+
+class MessagesPage {
+  const MessagesPage({
+    required this.messages,
+    required this.lastVisibleDoc,
+    required this.hasMore,
+  });
+
+  final List<Message> messages;
+  final DocumentSnapshot<Map<String, dynamic>>? lastVisibleDoc;
+  final bool hasMore;
 }
 
 /// Provider para ChatRepository.

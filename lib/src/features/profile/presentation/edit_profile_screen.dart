@@ -6,17 +6,20 @@ import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
+import '../../../constants/app_constants.dart';
 import '../../../core/providers/app_config_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../utils/instagram_utils.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -127,12 +130,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         final data = user.dadosBanda ?? {};
         nomeArt =
             data['nomeBanda'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
+        insta = data['instagram'] ?? '';
         break;
       case AppUserType.studio:
         final data = user.dadosEstudio ?? {};
         nomeArt =
             data['nomeEstudio'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
         cel = data['celular'] ?? '';
+        insta = data['instagram'] ?? '';
         break;
       case AppUserType.contractor:
         final data = user.dadosContratante ?? {};
@@ -152,8 +157,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _nomeArtisticoController = TextEditingController(text: nomeArt);
     _celularController = TextEditingController(text: cel);
     _dataNascimentoController = TextEditingController(text: dataNasc);
-    _generoController = TextEditingController(text: gen);
-    _instagramController = TextEditingController(text: insta);
+    _generoController = TextEditingController(text: normalizeGenderValue(gen));
+    _instagramController = TextEditingController(
+      text: normalizeInstagramHandle(insta),
+    );
 
     // Listen for changes to mark state as dirty
     void markChanged() {
@@ -199,8 +206,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         nomeArtistico: _nomeArtisticoController.text.trim(),
         celular: _celularController.text.trim(),
         dataNascimento: _dataNascimentoController.text.trim(),
-        genero: _generoController.text.trim(),
-        instagram: _instagramController.text.trim(),
+        genero: normalizeGenderValue(_generoController.text),
+        instagram: normalizeInstagramHandle(_instagramController.text),
       );
 
       if (mounted) {
@@ -245,8 +252,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return userAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const _EditProfileScreenSkeleton(),
       error: (err, _) => Scaffold(body: Center(child: Text('Erro: $err'))),
       data: (user) {
         if (user == null) {
@@ -434,6 +440,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         return StudioFormFields(
           nomeEstudioController: _nomeArtisticoController,
           celularController: _celularController,
+          instagramController: _instagramController,
           celularMask: _celularMask,
           studioType: editState.studioType,
           onStudioTypeChanged: notifier.setStudioType,
@@ -445,6 +452,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       case AppUserType.band:
         return BandFormFields(
           nomeBandaController: _nomeArtisticoController,
+          instagramController: _instagramController,
           selectedGenres: editState.bandGenres,
           onGenresChanged: notifier.updateBandGenres,
           bioController: _bioController,
@@ -463,5 +471,73 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       default:
         return const SizedBox();
     }
+  }
+}
+
+class _EditProfileScreenSkeleton extends StatelessWidget {
+  const _EditProfileScreenSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppAppBar(title: 'Editar Perfil', showBackButton: true),
+      body: SafeArea(
+        child: SkeletonShimmer(
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(AppSpacing.s16),
+                child: SkeletonBox(
+                  width: double.infinity,
+                  height: AppSpacing.s48,
+                  borderRadius: AppRadius.rPill,
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: AppSpacing.s8),
+                      Center(child: SkeletonCircle(size: 104)),
+                      SizedBox(height: AppSpacing.s20),
+                      SkeletonBox(height: 52, borderRadius: AppRadius.r12),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonBox(height: 52, borderRadius: AppRadius.r12),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonBox(height: 52, borderRadius: AppRadius.r12),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonBox(height: 52, borderRadius: AppRadius.r12),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonBox(height: 124, borderRadius: AppRadius.r12),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            0,
+            AppSpacing.s16,
+            AppSpacing.s16,
+          ),
+          child: SkeletonShimmer(
+            child: SkeletonBox(
+              width: double.infinity,
+              height: 56,
+              borderRadius: AppRadius.r24,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

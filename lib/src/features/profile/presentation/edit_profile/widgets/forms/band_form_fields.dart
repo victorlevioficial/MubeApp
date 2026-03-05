@@ -11,10 +11,12 @@ import '../../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../../utils/instagram_utils.dart';
 
 /// Enhanced Band Form Fields with modern design matching onboarding.
 class BandFormFields extends ConsumerWidget {
   final TextEditingController nomeBandaController;
+  final TextEditingController instagramController;
   final List<String> selectedGenres;
   final ValueChanged<List<String>> onGenresChanged;
   final TextEditingController bioController;
@@ -23,6 +25,7 @@ class BandFormFields extends ConsumerWidget {
   const BandFormFields({
     super.key,
     required this.nomeBandaController,
+    required this.instagramController,
     required this.selectedGenres,
     required this.onGenresChanged,
     required this.bioController,
@@ -46,6 +49,15 @@ class BandFormFields extends ConsumerWidget {
             inputFormatters: [TitleCaseTextInputFormatter()],
             validator: (v) => v!.trim().isEmpty ? 'Obrigatorio' : null,
             prefixIcon: const Icon(Icons.groups_outlined, size: 20),
+            onChanged: (_) => onChanged(),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+
+          AppTextField(
+            controller: instagramController,
+            label: instagramLabelOptional,
+            hint: instagramHint,
+            prefixIcon: const Icon(Icons.alternate_email, size: 20),
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.s16),

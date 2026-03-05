@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
-import 'app_text_field.dart';
 
-class AppDropdownField<T> extends StatefulWidget {
+class AppDropdownField<T> extends StatelessWidget {
   final String label;
   final T? value;
   final List<DropdownMenuItem<T>> items;
@@ -25,235 +23,108 @@ class AppDropdownField<T> extends StatefulWidget {
     this.hint = 'Selecione',
   });
 
-  @override
-  State<AppDropdownField<T>> createState() => _AppDropdownFieldState<T>();
-}
-
-class _AppDropdownFieldState<T> extends State<AppDropdownField<T>> {
-  final TextEditingController _controller = TextEditingController();
-  final LayerLink _layerLink = LayerLink();
-  final FocusNode _focusNode = FocusNode();
-  final Object _tapRegionGroupId = Object();
-
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateControllerText();
-    _focusNode.addListener(_handleFocusChange);
+  T? _safeValue(List<DropdownMenuEntry<T>> entries) {
+    if (value == null) return null;
+    final hasValue = entries.any((entry) => entry.value == value);
+    return hasValue ? value : null;
   }
 
-  @override
-  void didUpdateWidget(AppDropdownField<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _updateControllerText();
-    }
-  }
-
-  @override
-  void dispose() {
-    _removeOverlay(notify: false);
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _handleFocusChange() {
-    if (_focusNode.hasFocus && !_isOpen) {
-      _toggleDropdown();
-    } else if (!_focusNode.hasFocus && _isOpen) {
-      // Small delay to allow tap on item to register
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (mounted && !_focusNode.hasFocus) {
-          _removeOverlay();
-        }
-      });
-    }
-  }
-
-  void _updateControllerText() {
-    String newText = '';
-    if (widget.value != null) {
-      final selectedItem = widget.items.firstWhere(
-        (item) => item.value == widget.value,
-        orElse: () => widget.items.first,
+  List<DropdownMenuEntry<T>> _buildEntries() {
+    return items.where((item) => item.value != null).map((item) {
+      final itemValue = item.value as T;
+      final label = _extractLabel(item, itemValue);
+      return DropdownMenuEntry<T>(
+        value: itemValue,
+        label: label,
+        labelWidget: item.child,
+        enabled: item.enabled,
       );
-      if (selectedItem.child is Text) {
-        newText = (selectedItem.child as Text).data ?? '';
-      } else {
-        newText = widget.value.toString();
-      }
-    }
-
-    if (_controller.text != newText) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _controller.text = newText;
-        }
-      });
-    }
+    }).toList();
   }
 
-  void _toggleDropdown() {
-    if (_isOpen) {
-      _removeOverlay();
-    } else {
-      _showOverlay();
+  String _extractLabel(DropdownMenuItem<T> item, T fallbackValue) {
+    final child = item.child;
+    if (child is Text) {
+      return child.data ?? fallbackValue.toString();
     }
-  }
-
-  void _showOverlay() {
-    final RenderBox renderBox = context.findRenderObject() as RenderBox;
-    final size = renderBox.size;
-
-    // Calcula espaço vertical seguro prevenindo sobreposição com teclado
-    final viewInsets = MediaQuery.of(context).viewInsets;
-    final dy = renderBox.localToGlobal(Offset.zero).dy;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeMaxHeight =
-        (screenHeight - dy - size.height - viewInsets.bottom - 20).clamp(
-          120.0,
-          300.0,
-        );
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          // The Dropdown List
-          Positioned.fill(
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0.0, size.height + 4.0),
-              child: SizedBox(
-                width: size.width,
-                child: TapRegion(
-                  groupId: _tapRegionGroupId,
-                  child: Material(
-                    elevation: 8,
-                    color: AppColors.surface,
-                    surfaceTintColor: AppColors.transparent,
-                    borderRadius: AppRadius.all12,
-                    clipBehavior: Clip.antiAlias,
-                    shadowColor: AppColors.background.withValues(alpha: 0.5),
-                    child: Container(
-                      constraints: BoxConstraints(maxHeight: safeMaxHeight),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: AppRadius.all12,
-                        border: Border.all(
-                          color: AppColors.textTertiary.withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
-                      child: ListView.separated(
-                        padding: AppSpacing.v8,
-                        shrinkWrap: true,
-                        itemCount: widget.items.length,
-                        separatorBuilder: (context, index) => Divider(
-                          height: 1,
-                          thickness: 0.5,
-                          color: AppColors.textTertiary.withValues(alpha: 0.2),
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = widget.items[index];
-                          final isSelected = item.value == widget.value;
-
-                          return InkWell(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              widget.onChanged(item.value);
-                              _removeOverlay();
-                              _focusNode.unfocus();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.s16,
-                                vertical: AppSpacing.s12,
-                              ),
-                              color: isSelected
-                                  ? AppColors.primary.withValues(alpha: 0.1)
-                                  : null,
-                              child: DefaultTextStyle(
-                                style: AppTypography.bodyMedium.copyWith(
-                                  color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.textPrimary,
-                                  fontWeight: isSelected
-                                      ? AppTypography.titleSmall.fontWeight
-                                      : AppTypography.bodyMedium.fontWeight,
-                                ),
-                                child: item.child,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
-  }
-
-  void _removeOverlay({bool notify = true}) {
-    final hadOverlay = _overlayEntry != null;
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    if (notify && mounted && (_isOpen || hadOverlay)) {
-      setState(() => _isOpen = false);
-    } else {
-      _isOpen = false;
-    }
+    return fallbackValue.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    return TapRegion(
-      groupId: _tapRegionGroupId,
-      onTapOutside: (_) {
-        if (_isOpen) {
-          _removeOverlay();
-          _focusNode.unfocus();
-        }
-      },
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: GestureDetector(
-          onTap: _toggleDropdown,
-          child: AbsorbPointer(
-            // Allow focus but block typing
-            absorbing: true,
-            child: AppTextField(
-              focusNode: _focusNode,
-              controller: _controller,
-              label: widget.label,
-              hint: widget.hint,
-              readOnly: true,
-              validator: (val) => widget.validator?.call(widget.value),
-              suffixIcon: AnimatedRotation(
-                turns: _isOpen ? 0.5 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  Icons.keyboard_arrow_down,
-                  color: _isOpen ? AppColors.primary : AppColors.textSecondary,
-                  size: 24,
-                ),
-              ),
-            ),
+    final entries = _buildEntries();
+    final effectiveValue = _safeValue(entries);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelLarge.copyWith(
+            color: AppColors.textPrimary,
           ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.s8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final fieldWidth = constraints.maxWidth.isFinite
+                ? constraints.maxWidth
+                : null;
+
+            return DropdownMenuFormField<T>(
+              initialSelection: effectiveValue,
+              width: fieldWidth,
+              menuHeight: 300,
+              requestFocusOnTap: false,
+              enableSearch: false,
+              closeBehavior: DropdownMenuCloseBehavior.all,
+              dropdownMenuEntries: entries,
+              onSelected: onChanged,
+              validator: validator,
+              textStyle: AppTypography.input.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              hintText: hint,
+              trailingIcon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: AppColors.textSecondary,
+                size: 24,
+              ),
+              selectedTrailingIcon: const Icon(
+                Icons.keyboard_arrow_up,
+                color: AppColors.textSecondary,
+                size: 24,
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                hintStyle: AppTypography.inputHint,
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s16,
+                  vertical: 14,
+                ),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.all12,
+                  borderSide: BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.all12,
+                  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+                errorBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.all12,
+                  borderSide: BorderSide(color: AppColors.error),
+                ),
+                focusedErrorBorder: const OutlineInputBorder(
+                  borderRadius: AppRadius.all12,
+                  borderSide: BorderSide(color: AppColors.error, width: 1.5),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

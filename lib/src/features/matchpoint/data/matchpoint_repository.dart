@@ -99,29 +99,41 @@ class MatchpointRepository {
       return Right(result);
     } on FirebaseFunctionsException catch (e) {
       // Tratar erros específicos do Firebase Functions
-      if (e.code == 'resource-exhausted') {
+      final code = e.code.toLowerCase();
+      final message = (e.message ?? '').toLowerCase();
+      final mentionsAppCheck = message.contains('app check');
+
+      if (code == 'resource-exhausted') {
         return Left(QuotaExceededFailure.dailyLikes());
       }
-      if (e.code == 'unauthenticated') {
-        return Left(AuthFailure.sessionExpired());
-      }
-      if (e.code == 'failed-precondition' &&
-          (e.message?.toLowerCase().contains('app check') ?? false)) {
+      if (mentionsAppCheck &&
+          (code == 'unauthenticated' ||
+              code == 'failed-precondition' ||
+              code == 'permission-denied')) {
         return const Left(
           ServerFailure(
             message:
                 'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
-            debugMessage: 'app-check-failed-precondition',
+            debugMessage: 'app-check-auth-context-failure',
           ),
         );
       }
-      if (e.code == 'permission-denied') {
+      if (code == 'unauthenticated') {
+        return Left(
+          AuthFailure(
+            message: 'Sua sessão expirou. Faça login novamente.',
+            debugMessage: 'functions-unauthenticated',
+            originalError: e,
+          ),
+        );
+      }
+      if (code == 'permission-denied') {
         return Left(PermissionFailure.firestore());
       }
       return Left(
         ServerFailure(
           message: e.message ?? 'Erro no servidor',
-          debugMessage: e.code,
+          debugMessage: code,
         ),
       );
     } catch (e) {

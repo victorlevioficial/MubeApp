@@ -40,6 +40,7 @@ import '../features/splash/presentation/splash_screen.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../features/support/domain/ticket_model.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
+import '../features/support/presentation/dropdown_stability_comparison_screen.dart';
 import '../features/support/presentation/support_screen.dart';
 import '../features/support/presentation/ticket_detail_screen.dart';
 import '../features/support/presentation/ticket_list_screen.dart';
@@ -257,6 +258,13 @@ List<RouteBase> _buildRoutes(Ref ref) {
                     child: const SupportScreen(),
                   ),
                   routes: [
+                    GoRoute(
+                      path: RoutePaths.supportDropdownCompare,
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: const DropdownStabilityComparisonScreen(),
+                      ),
+                    ),
                     GoRoute(
                       path: RoutePaths.supportCreate,
                       pageBuilder: (context, state) => NoTransitionPage(

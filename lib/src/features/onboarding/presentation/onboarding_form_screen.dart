@@ -6,6 +6,7 @@ import '../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -224,8 +225,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
 
     return userAsync.when(
       skipLoadingOnReload: true,
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const _OnboardingFormSkeleton(),
       error: (err, stack) => Scaffold(body: Center(child: Text('Erro: $err'))),
       data: (user) {
         if (user == null) return const SizedBox();
@@ -458,6 +458,58 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           validator: (v) => v!.isEmpty ? 'Obrigatório' : null,
         ),
       ],
+    );
+  }
+}
+
+class _OnboardingFormSkeleton extends StatelessWidget {
+  const _OnboardingFormSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: SkeletonShimmer(
+          child: SingleChildScrollView(
+            physics: NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.all(AppSpacing.s24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SkeletonText(width: 190, height: 24),
+                SizedBox(height: AppSpacing.s24),
+                SkeletonBox(height: 56, borderRadius: AppRadius.r12),
+                SizedBox(height: AppSpacing.s16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SkeletonBox(
+                        height: 56,
+                        borderRadius: AppRadius.r12,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.s16),
+                    Expanded(
+                      child: SkeletonBox(
+                        height: 56,
+                        borderRadius: AppRadius.r12,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSpacing.s16),
+                SkeletonBox(height: 56, borderRadius: AppRadius.r12),
+                SizedBox(height: AppSpacing.s16),
+                SkeletonBox(height: 56, borderRadius: AppRadius.r12),
+                SizedBox(height: AppSpacing.s24),
+                Center(child: SkeletonCircle(size: 100)),
+                SizedBox(height: AppSpacing.s48),
+                SkeletonBox(height: 52, borderRadius: AppRadius.rPill),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

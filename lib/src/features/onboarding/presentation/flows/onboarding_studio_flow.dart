@@ -15,6 +15,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/instagram_utils.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -68,7 +69,9 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         (studioData['nomeArtistico'] as String?) ??
         widget.user.appDisplayName;
     _celularController.text = formState.celular ?? '';
-    _instagramController.text = formState.instagram ?? '';
+    _instagramController.text = normalizeInstagramHandle(
+      formState.instagram ?? (studioData['instagram'] as String?),
+    );
     _studioType = formState.studioType ?? (studioData['studioType'] as String?);
     _selectedServices = List.from(formState.selectedServices);
 
@@ -150,8 +153,8 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
       'nomeEstudio': studioDisplayName,
       'nomeArtistico': studioDisplayName,
       'nome': studioDisplayName,
-      'celular': _celularController.text,
-      'instagram': _instagramController.text,
+      'celular': _celularController.text.trim(),
+      'instagram': normalizeInstagramHandle(_instagramController.text),
       'studioType': formState.studioType ?? _studioType,
       'servicosOferecidos': _selectedServices,
       'services': _selectedServices,
@@ -263,8 +266,8 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
           controller: _instagramController,
-          label: 'Instagram (opcional)',
-          hint: '@nome_do_estudio',
+          label: instagramLabelOptional,
+          hint: instagramHint,
           prefixIcon: const Icon(Icons.alternate_email, size: 20),
         ),
 

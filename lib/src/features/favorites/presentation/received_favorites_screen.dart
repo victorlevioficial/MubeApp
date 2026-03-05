@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../design_system/components/feedback/empty_state_widget.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
@@ -139,16 +140,14 @@ class _ReceivedFavoritesScreenState
     );
 
     if (_isLoading) {
-      return ListView(
-        physics: physics,
-        children: [
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          ),
-        ],
+      return SkeletonShimmer(
+        child: ListView.separated(
+          physics: physics,
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          itemCount: 6,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+          itemBuilder: (_, _) => const _ReceivedFavoriteTileSkeleton(),
+        ),
       );
     }
 
@@ -198,6 +197,45 @@ class _ReceivedFavoritesScreenState
         final item = _items[index];
         return _ReceivedFavoriteTile(item: item);
       },
+    );
+  }
+}
+
+class _ReceivedFavoriteTileSkeleton extends StatelessWidget {
+  const _ReceivedFavoriteTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s10,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.7),
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.05),
+        ),
+      ),
+      child: const Row(
+        children: [
+          SkeletonCircle(size: 46),
+          SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(width: 170, height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(width: 120, height: 12),
+              ],
+            ),
+          ),
+          SizedBox(width: AppSpacing.s8),
+          SkeletonBox(width: 20, height: 20, borderRadius: AppRadius.r8),
+        ],
+      ),
     );
   }
 }

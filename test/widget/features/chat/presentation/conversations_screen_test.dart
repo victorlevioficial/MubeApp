@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/chat/data/chat_providers.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/chat/domain/conversation_preview.dart';
 import 'package:mube/src/features/chat/presentation/conversations_screen.dart';
@@ -19,7 +21,10 @@ void main() {
     fakeChatRepo = FakeChatRepository();
   });
 
-  Widget createSubject({List<ConversationPreview> conversations = const []}) {
+  Widget createSubject({
+    List<ConversationPreview> conversations = const [],
+    AsyncValue<List<ConversationPreview>>? directConversationsAsync,
+  }) {
     final user = TestData.user(uid: 'user-1');
     fakeAuthRepo.appUser = user;
     fakeChatRepo.setConversations(conversations);
@@ -44,6 +49,10 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
         chatRepositoryProvider.overrideWithValue(fakeChatRepo),
+        if (directConversationsAsync != null)
+          directConversationsProvider.overrideWithValue(
+            directConversationsAsync,
+          ),
       ],
       child: MaterialApp.router(routerConfig: router),
     );
@@ -93,6 +102,27 @@ void main() {
       expect(find.text('How are you?'), findsOneWidget);
     });
 
+    testWidgets('prefixes last message with Voce when I sent it', (
+      tester,
+    ) async {
+      final conversations = [
+        ConversationPreview(
+          id: 'conv-1',
+          otherUserId: 'user-2',
+          otherUserName: 'John Doe',
+          lastMessageText: 'Tudo certo',
+          lastSenderId: 'user-1',
+          unreadCount: 0,
+          updatedAt: Timestamp.fromDate(DateTime(2025, 1, 1)),
+        ),
+      ];
+
+      await tester.pumpWidget(createSubject(conversations: conversations));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Voce: Tudo certo'), findsOneWidget);
+    });
+
     testWidgets('shows unread badge for unread messages', (tester) async {
       final conversations = [
         TestData.conversationPreview(
@@ -130,6 +160,21 @@ void main() {
 
       // Should show loading indicator initially
       expect(find.byType(ConversationsScreen), findsOneWidget);
+    });
+
+    testWidgets('shows retry action when loading fails', (tester) async {
+      await tester.pumpWidget(
+        createSubject(
+          directConversationsAsync: AsyncValue.error(
+            Exception('failed'),
+            StackTrace.current,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Erro ao carregar conversas'), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
     });
   });
 }

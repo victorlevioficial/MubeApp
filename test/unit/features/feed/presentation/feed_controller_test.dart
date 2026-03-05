@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/core/typedefs.dart';
@@ -182,6 +183,53 @@ void main() {
       final state = container.read(feedControllerProvider).value!;
       expect(state.currentFilter, 'Bandas');
     });
+
+    test(
+      'onFilterChanged backfills bandas with cursor when geohash returns partial batch',
+      () async {
+        final user = TestData.user(uid: 'user-1');
+        fakeAuthRepository.appUser = user;
+        fakeAuthRepository.emitUser(
+          FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        );
+        await waitForUser(container);
+
+        const nearbyBand = FeedItem(
+          uid: 'band-nearby',
+          nome: 'Nearby Band',
+          tipoPerfil: ProfileType.band,
+        );
+        const cursorBand1 = FeedItem(
+          uid: 'band-cursor-1',
+          nome: 'Cursor Band 1',
+          tipoPerfil: ProfileType.band,
+        );
+        const cursorBand2 = FeedItem(
+          uid: 'band-cursor-2',
+          nome: 'Cursor Band 2',
+          tipoPerfil: ProfileType.band,
+        );
+
+        fakeFeedRepository.nearbyUsers = [nearbyBand];
+        fakeFeedRepository.mainFeedResponse = const PaginatedFeedResponse(
+          items: [cursorBand1, cursorBand2],
+          hasMore: false,
+          lastDocument: null,
+        );
+
+        final controller = container.read(feedControllerProvider.notifier);
+        await controller.loadAllData();
+        await controller.onFilterChanged('Bandas');
+
+        final state = container.read(feedControllerProvider).value!;
+        expect(state.currentFilter, 'Bandas');
+        expect(state.items.map((item) => item.uid), {
+          'band-nearby',
+          'band-cursor-1',
+          'band-cursor-2',
+        });
+      },
+    );
 
     test('updateLikeCount updates state locally', () async {
       // Setup

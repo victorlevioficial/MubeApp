@@ -248,7 +248,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
       // Wrap all screens with offline indicator banner
       builder: (context, child) {
-        return OfflineIndicator(child: child ?? const SizedBox.shrink());
+        return _DismissKeyboardOnTap(
+          child: OfflineIndicator(child: child ?? const SizedBox.shrink()),
+        );
       },
 
       // Localization configuration
@@ -264,5 +266,42 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       ],
       locale: const Locale('pt'), // Default to Portuguese for MVP
     );
+  }
+}
+
+/// Dismisses the active keyboard focus when tapping outside the focused field.
+class _DismissKeyboardOnTap extends StatelessWidget {
+  final Widget child;
+
+  const _DismissKeyboardOnTap({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _handlePointerDown,
+      child: child,
+    );
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    final focusedNode = FocusManager.instance.primaryFocus;
+    if (focusedNode == null) return;
+
+    final focusedContext = focusedNode.context;
+    final focusedRenderObject = focusedContext?.findRenderObject();
+    if (focusedRenderObject is! RenderBox || !focusedRenderObject.hasSize) {
+      focusedNode.unfocus();
+      return;
+    }
+
+    final localTapPosition = focusedRenderObject.globalToLocal(event.position);
+    final tapInsideFocusedField = focusedRenderObject.paintBounds.contains(
+      localTapPosition,
+    );
+
+    if (!tapInsideFocusedField) {
+      focusedNode.unfocus();
+    }
   }
 }

@@ -31,10 +31,19 @@ class EditProfileHeader extends ConsumerStatefulWidget {
 
 class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
   final _mediaPickerService = MediaPickerService();
+  bool _isProcessingAvatar = false;
   bool _isUploadingAvatar = false;
 
   /// Local file for optimistic avatar preview.
   File? _optimisticAvatarFile;
+
+  bool get _isAvatarBusy => _isProcessingAvatar || _isUploadingAvatar;
+
+  String get _avatarActionLabel {
+    if (_isUploadingAvatar) return 'Enviando foto...';
+    if (_isProcessingAvatar) return 'Preparando foto...';
+    return 'Alterar foto';
+  }
 
   @override
   void dispose() {
@@ -43,23 +52,27 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
   }
 
   Future<void> _handlePhotoUpdate() async {
-    if (_isUploadingAvatar) return;
-
-    // Show source picker bottom sheet
-    final source = await MediaPickerService.showMediaSourcePicker(
-      context,
-      title: 'Foto de Perfil',
-      cameraIcon: Icons.camera_alt_outlined,
-      cameraLabel: 'Tirar Foto',
-      galleryIcon: Icons.photo_library_outlined,
-      galleryLabel: 'Escolher da Galeria',
-    );
-
-    if (source == null || !mounted) return;
+    if (_isAvatarBusy) return;
 
     final controller = ref.read(profileControllerProvider.notifier);
 
     try {
+      setState(() {
+        _isProcessingAvatar = true;
+      });
+
+      // Show source picker bottom sheet
+      final source = await MediaPickerService.showMediaSourcePicker(
+        context,
+        title: 'Foto de Perfil',
+        cameraIcon: Icons.camera_alt_outlined,
+        cameraLabel: 'Tirar Foto',
+        galleryIcon: Icons.photo_library_outlined,
+        galleryLabel: 'Escolher da Galeria',
+      );
+
+      if (source == null || !mounted) return;
+
       final file = await _mediaPickerService.pickAndCropPhoto(
         context,
         lockAspectRatio: true,
@@ -70,6 +83,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
 
       // Optimistic: show local file immediately
       setState(() {
+        _isProcessingAvatar = false;
         _isUploadingAvatar = true;
         _optimisticAvatarFile = file;
       });
@@ -77,10 +91,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
       await controller.updateProfileImage(currentUser: widget.user, file: file);
 
       if (mounted) {
-        // Upload succeeded — clear local file, remote URL will be used
-        setState(() {
-          _optimisticAvatarFile = null;
-        });
+        // Keep local preview until parent rebuilds with updated remote URL.
         AppSnackBar.success(context, 'Foto de perfil atualizada!');
       }
     } catch (e) {
@@ -93,8 +104,22 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isUploadingAvatar = false);
+        setState(() {
+          _isProcessingAvatar = false;
+          _isUploadingAvatar = false;
+        });
       }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant EditProfileHeader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Once profile URL changes, remote image is up to date and local preview
+    // can be discarded safely.
+    if (_optimisticAvatarFile != null &&
+        oldWidget.user.foto != widget.user.foto) {
+      _optimisticAvatarFile = null;
     }
   }
 
@@ -107,7 +132,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
       children: [
         Center(
           child: GestureDetector(
-            onTap: _isUploadingAvatar ? null : _handlePhotoUpdate,
+            onTap: _isAvatarBusy ? null : _handlePhotoUpdate,
             child: Column(
               children: [
                 Stack(
@@ -125,7 +150,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
                       ),
                       child: ClipOval(child: _buildAvatarContent()),
                     ),
-                    if (_isUploadingAvatar)
+                    if (_isAvatarBusy)
                       Container(
                         width: 100,
                         height: 100,
@@ -166,7 +191,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
                 ),
                 const SizedBox(height: AppSpacing.s8),
                 Text(
-                  _isUploadingAvatar ? 'Enviando foto...' : 'Alterar foto',
+                  _avatarActionLabel,
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w500,

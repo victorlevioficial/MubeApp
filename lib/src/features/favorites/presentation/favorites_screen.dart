@@ -195,9 +195,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         return item.tipoPerfil == 'banda';
       } else if (_selectedFilter == 'Estúdios') {
         return item.tipoPerfil == 'estudio';
-      } else if (_selectedFilter == 'Perto de mim') {
-        // Distance check (e.g. within 50km)
-        return (item.distanceKm ?? 999) < 50;
       }
       return true;
     }).toList();

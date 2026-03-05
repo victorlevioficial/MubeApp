@@ -16,6 +16,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/instagram_utils.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -67,7 +68,9 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         (bandData['nomeArtistico'] as String?) ??
         widget.user.appDisplayName;
     _celularController.text = formState.celular ?? '';
-    _instagramController.text = formState.instagram ?? '';
+    _instagramController.text = normalizeInstagramHandle(
+      formState.instagram ?? (bandData['instagram'] as String?),
+    );
     _selectedGenres = List.from(formState.selectedGenres);
 
     _nomeCompletoController.addListener(
@@ -156,8 +159,8 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
       'nomeBanda': bandDisplayName,
       'nomeArtistico': bandDisplayName,
       'nome': bandDisplayName,
-      'celular': _celularController.text,
-      'instagram': _instagramController.text,
+      'celular': _celularController.text.trim(),
+      'instagram': normalizeInstagramHandle(_instagramController.text),
       'generosMusicais': genreIds,
       'isPublic': true,
     };
@@ -269,8 +272,8 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
           controller: _instagramController,
-          label: 'Instagram (opcional)',
-          hint: '@nome_da_banda',
+          label: instagramLabelOptional,
+          hint: instagramHint,
           prefixIcon: const Icon(Icons.alternate_email, size: 20),
         ),
 

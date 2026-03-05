@@ -13,11 +13,13 @@ import '../../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../../utils/instagram_utils.dart';
 
 /// Enhanced Studio Form Fields with modern design matching onboarding.
 class StudioFormFields extends ConsumerWidget {
   final TextEditingController nomeEstudioController;
   final TextEditingController celularController;
+  final TextEditingController instagramController;
   final MaskTextInputFormatter celularMask;
   final String? studioType;
   final ValueChanged<String> onStudioTypeChanged;
@@ -30,6 +32,7 @@ class StudioFormFields extends ConsumerWidget {
     super.key,
     required this.nomeEstudioController,
     required this.celularController,
+    required this.instagramController,
     required this.celularMask,
     required this.studioType,
     required this.onStudioTypeChanged,
@@ -68,6 +71,15 @@ class StudioFormFields extends ConsumerWidget {
             inputFormatters: [celularMask],
             validator: (v) => v!.length < 14 ? 'Celular invalido' : null,
             prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+            onChanged: (_) => onChanged(),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+
+          AppTextField(
+            controller: instagramController,
+            label: instagramLabelOptional,
+            hint: instagramHint,
+            prefixIcon: const Icon(Icons.alternate_email, size: 20),
             onChanged: (_) => onChanged(),
           ),
           const SizedBox(height: AppSpacing.s16),

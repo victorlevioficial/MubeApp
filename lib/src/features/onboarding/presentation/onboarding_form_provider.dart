@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/utils/app_logger.dart';
+import 'package:mube/src/utils/instagram_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common_widgets/location_service.dart';
@@ -335,8 +336,9 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   }
 
   void updateInstagram(String value) {
-    if (state.instagram == value) return;
-    state = state.copyWith(instagram: value);
+    final normalized = normalizeInstagramHandle(value);
+    if (state.instagram == normalized) return;
+    state = state.copyWith(instagram: normalized);
     _scheduleSave();
   }
 

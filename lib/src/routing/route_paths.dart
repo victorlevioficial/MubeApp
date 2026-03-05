@@ -29,6 +29,8 @@ abstract final class RoutePaths {
   static const String support = '/settings/support';
   static const String supportCreate = 'create-ticket'; // relative to support
   static const String supportTickets = 'my-tickets'; // relative to support
+  static const String supportDropdownCompare =
+      'dropdown-compare'; // relative to support
   static const String supportTicketDetail =
       'ticket/:ticketId'; // relative to supportTickets
 

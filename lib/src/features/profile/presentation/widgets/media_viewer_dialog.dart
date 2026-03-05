@@ -31,12 +31,24 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    if (widget.items.isEmpty) {
+      _currentIndex = 0;
+    } else {
+      _currentIndex = widget.initialIndex
+          .clamp(0, widget.items.length - 1)
+          .toInt();
+    }
     _pageController = PageController(initialPage: _currentIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _precacheAround(_currentIndex);
     });
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _precacheAround(int centerIndex) {
@@ -66,20 +78,31 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        PageView.builder(
-          controller: _pageController,
-          itemCount: widget.items.length,
-          onPageChanged: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-            _precacheAround(index);
-          },
-          itemBuilder: (context, index) {
-            final item = widget.items[index];
-            return _buildMediaItem(item);
-          },
-        ),
+        if (widget.items.isEmpty)
+          Center(
+            child: Text(
+              'Nenhuma mídia disponível.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          )
+        else
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.items.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+              _precacheAround(index);
+            },
+            itemBuilder: (context, index) {
+              final item = widget.items[index];
+              return _buildMediaItem(item, index);
+            },
+          ),
         // Close button
         Positioned(
           top: 40,
@@ -94,25 +117,26 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           ),
         ),
         // Indicator
-        Positioned(
-          bottom: 40,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Text(
-              '${_currentIndex + 1} / ${widget.items.length}',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppColors.textPrimary,
-                decoration: TextDecoration.none,
+        if (widget.items.isNotEmpty)
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                '${_currentIndex + 1} / ${widget.items.length}',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.textPrimary,
+                  decoration: TextDecoration.none,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildMediaItem(MediaItem item) {
+  Widget _buildMediaItem(MediaItem item, int index) {
     if (item.type == MediaType.video) {
       if (item.url.contains('youtu')) {
         // Placeholder for Youtube video
@@ -128,8 +152,10 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
       }
       // Use GalleryVideoPlayer for network videos
       return GalleryVideoPlayer(
+        key: ValueKey('gallery_video_${item.id}_${item.url}'),
         videoUrl: item.url,
         thumbnailUrl: item.thumbnailUrl,
+        isActive: _currentIndex == index,
       );
     } else {
       return InteractiveViewer(

@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 
@@ -59,6 +61,28 @@ void main() {
         expect(myPreview.exists, true);
         expect(myPreview.data()?['otherUserId'], otherUid);
       });
+
+      test('should log chat_initiated only on first creation', () async {
+        await repository.getOrCreateConversation(
+          myUid: myUid,
+          otherUid: otherUid,
+          otherUserName: otherUserName,
+          myName: myName,
+        );
+        await repository.getOrCreateConversation(
+          myUid: myUid,
+          otherUid: otherUid,
+          otherUserName: otherUserName,
+          myName: myName,
+        );
+
+        verify(
+          mockAnalytics.logEvent(
+            name: 'chat_initiated',
+            parameters: anyNamed('parameters'),
+          ),
+        ).called(1);
+      });
     });
 
     group('sendMessage', () {
@@ -86,6 +110,73 @@ void main() {
             .get();
         expect(messages.docs.length, 1);
         expect(messages.docs.first.data()['text'], 'Hello!');
+      });
+    });
+
+    group('getMessagesPage', () {
+      test(
+        'should return first page with hasMore when total > limit',
+        () async {
+          await fakeFirestore
+              .collection('conversations')
+              .doc(conversationId)
+              .set({
+                'participants': [myUid, otherUid],
+              });
+
+          for (var i = 0; i < 55; i++) {
+            await fakeFirestore
+                .collection('conversations')
+                .doc(conversationId)
+                .collection('messages')
+                .doc('m_$i')
+                .set({
+                  'senderId': myUid,
+                  'text': 'msg-$i',
+                  'type': 'text',
+                  'createdAt': Timestamp.fromMillisecondsSinceEpoch(i),
+                });
+          }
+
+          final firstPage = await repository.getMessagesPage(
+            conversationId: conversationId,
+            limit: 50,
+          );
+          expect(firstPage.messages.length, 50);
+          expect(firstPage.hasMore, true);
+          expect(firstPage.lastVisibleDoc, isNotNull);
+          expect(firstPage.messages.first.text, 'msg-54');
+        },
+      );
+
+      test('should return hasMore false when total <= limit', () async {
+        await fakeFirestore.collection('conversations').doc(conversationId).set(
+          {
+            'participants': [myUid, otherUid],
+          },
+        );
+
+        for (var i = 0; i < 20; i++) {
+          await fakeFirestore
+              .collection('conversations')
+              .doc(conversationId)
+              .collection('messages')
+              .doc('m_$i')
+              .set({
+                'senderId': myUid,
+                'text': 'msg-$i',
+                'type': 'text',
+                'createdAt': Timestamp.fromMillisecondsSinceEpoch(i),
+              });
+        }
+
+        final page = await repository.getMessagesPage(
+          conversationId: conversationId,
+          limit: 50,
+        );
+        expect(page.messages.length, 20);
+        expect(page.hasMore, false);
+        expect(page.lastVisibleDoc, isNotNull);
       });
     });
 

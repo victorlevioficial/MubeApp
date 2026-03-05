@@ -42,6 +42,12 @@ final conversationMessagesProvider = StreamProvider.autoDispose
       return repository.getMessages(id);
     });
 
+final conversationMessagesSnapshotProvider = StreamProvider.autoDispose
+    .family<QuerySnapshot<Map<String, dynamic>>, String>((ref, id) {
+      final repository = ref.watch(chatRepositoryProvider);
+      return repository.getMessagesSnapshot(id);
+    });
+
 final conversationStreamProvider = StreamProvider.autoDispose
     .family<DocumentSnapshot, String>((ref, id) {
       final repository = ref.watch(chatRepositoryProvider);

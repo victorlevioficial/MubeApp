@@ -205,3 +205,26 @@ const List<String> studioServices = [
   'Dublagem (gravação)',
   'Ensaios pré-produção (com gravação guia)',
 ];
+
+// Gênero (perfil profissional/contratante)
+const String genderMale = 'Masculino';
+const String genderFemale = 'Feminino';
+const String genderOther = 'Outro';
+const String genderPreferNotToInform = 'Prefiro não informar';
+const String _legacyGenderPreferNotToSay = 'Prefiro não dizer';
+
+const List<String> genderOptions = [
+  genderMale,
+  genderFemale,
+  genderOther,
+  genderPreferNotToInform,
+];
+
+String normalizeGenderValue(String? value) {
+  final normalized = value?.trim() ?? '';
+  if (normalized.isEmpty) return '';
+  if (normalized == _legacyGenderPreferNotToSay) {
+    return genderPreferNotToInform;
+  }
+  return normalized;
+}

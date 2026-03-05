@@ -18,7 +18,6 @@ class QuickFilterBar extends StatelessWidget {
     'Profissionais',
     'Bandas',
     'Estúdios',
-    'Perto de mim',
   ];
 
   @override
@@ -58,8 +57,6 @@ class QuickFilterBar extends StatelessWidget {
         return Icons.groups_outlined;
       case 'Estúdios':
         return Icons.mic_none_outlined;
-      case 'Perto de mim':
-        return Icons.location_on_outlined;
       default:
         return Icons.circle_outlined;
     }

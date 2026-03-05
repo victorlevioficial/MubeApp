@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../design_system/components/feedback/app_overlay.dart';
+import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
@@ -40,7 +41,7 @@ class NotificationListScreen extends ConsumerWidget {
         ],
       ),
       body: notificationsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _NotificationListSkeleton(),
         error: (err, _) => Center(
           child: Text(
             'Erro ao carregar notificações',
@@ -203,6 +204,65 @@ class NotificationListScreen extends ConsumerWidget {
               color: AppColors.textTertiary,
             ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationListSkeleton extends StatelessWidget {
+  const _NotificationListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonShimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s8,
+        ),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s8),
+        itemBuilder: (_, _) => const _NotificationTileSkeleton(),
+      ),
+    );
+  }
+}
+
+class _NotificationTileSkeleton extends StatelessWidget {
+  const _NotificationTileSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all12,
+      ),
+      child: const Row(
+        children: [
+          SkeletonBox(width: 44, height: 44, borderRadius: AppRadius.r12),
+          SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(width: 180, height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(width: 220, height: 12),
+              ],
+            ),
+          ),
+          SizedBox(width: AppSpacing.s8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              SkeletonText(width: 34, height: 10),
+              SizedBox(height: AppSpacing.s8),
+              SkeletonCircle(size: 8),
+            ],
           ),
         ],
       ),

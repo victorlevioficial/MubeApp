@@ -82,6 +82,8 @@ export {
 // Export Users functions
 export {
   deleteAccount,
+  syncContractorDisplayName,
+  backfillContractorDisplayNames,
 } from "./users";
 
 // Export Video transcode functions
@@ -96,6 +98,110 @@ export {
  * a new push notification — following WhatsApp/Telegram market pattern.
  */
 const PUSH_COOLDOWN_MS = 30_000; // 30 seconds
+const NAME_CONNECTORS = new Set(["de", "da", "do", "dos", "das", "e"]);
+
+/**
+ * Returns the first non-empty string from the provided values.
+ *
+ * @param {unknown[]} values Candidate values.
+ * @param {string=} fallback Fallback when no value is valid.
+ * @return {string} First valid trimmed string.
+ */
+function firstNonEmptyString(values: unknown[], fallback = ""): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return fallback;
+}
+
+/**
+ * Builds a short display name from a full personal name.
+ *
+ * @param {string} fullName Full name.
+ * @return {string} Short display name.
+ */
+function shortenPersonName(fullName: string): string {
+  const normalized = fullName.trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+
+  const parts = normalized.split(" ");
+  if (parts.length <= 2) return normalized;
+
+  const secondWord = parts[1].toLowerCase();
+  const takeCount = NAME_CONNECTORS.has(secondWord) ? 3 : 2;
+  return parts.slice(0, takeCount).join(" ");
+}
+
+/**
+ * Casts unknown values to safe object maps.
+ *
+ * @param {unknown} value Raw unknown value.
+ * @return {Record<string, unknown>} Safe object map.
+ */
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+/**
+ * Resolves sender display name for chat notifications.
+ *
+ * Rule:
+ * - Professional: nome artistico
+ * - Band: nome da banda
+ * - Studio: nome do estudio
+ * - Contractor: nome de exibicao curto
+ *
+ * @param {Record<string, unknown>} userData Sender user document.
+ * @return {string} Name used in notification title.
+ */
+function resolveSenderDisplayName(userData: Record<string, unknown>): string {
+  const tipoPerfil = firstNonEmptyString(
+    [userData.tipo_perfil, userData.tipoPerfil]
+  );
+  const profissional = asRecord(userData.profissional);
+  const banda = asRecord(userData.banda);
+  const estudio = asRecord(userData.estudio);
+  const contratante = asRecord(userData.contratante);
+
+  switch (tipoPerfil) {
+  case "profissional":
+    return firstNonEmptyString([
+      profissional.nomeArtistico,
+      userData.nome_artistico,
+    ], "Nova mensagem");
+  case "banda":
+    return firstNonEmptyString([
+      banda.nomeBanda,
+      banda.nomeArtistico,
+      banda.nome,
+    ], "Banda");
+  case "estudio":
+    return firstNonEmptyString([
+      estudio.nomeEstudio,
+      estudio.nomeArtistico,
+      estudio.nome,
+    ], "Estudio");
+  case "contratante":
+    return firstNonEmptyString([
+      contratante.nomeExibicao,
+      shortenPersonName(firstNonEmptyString([userData.nome])),
+      userData.nome,
+    ], "Contratante");
+  default:
+    return firstNonEmptyString([
+      profissional.nomeArtistico,
+      banda.nomeBanda,
+      banda.nomeArtistico,
+      estudio.nomeEstudio,
+      estudio.nomeArtistico,
+      userData.nome_artistico,
+    ], "Nova mensagem");
+  }
+}
 
 /**
  * Trigger: When a new message is created in a conversation.
@@ -170,11 +276,8 @@ export const onMessageCreated = onDocumentCreated(
       // Busca o nome do remetente diretamente do Firestore
       // para garantir que a notificação sempre exiba o nome correto.
       const senderDoc = await db.collection("users").doc(senderId).get();
-      const senderData = senderDoc.data();
-      const senderName =
-        senderData?.nome_artistico ||
-        senderData?.nome ||
-        "Nova mensagem";
+      const senderData = senderDoc.data() || {};
+      const senderName = resolveSenderDisplayName(senderData);
 
       if (existingNotification.exists) {
         const existingData = existingNotification.data() || {};

@@ -40,8 +40,13 @@ void main() {
     testWidgets('shows default category as feedback', (tester) async {
       await pumpScreen(tester);
 
-      // Default category should be 'feedback'
-      expect(find.text('Sugestão ou Feedback'), findsOneWidget);
+      final dropdown = find.byType(DropdownMenuFormField<String>);
+      final editableFinder = find.descendant(
+        of: dropdown,
+        matching: find.byType(EditableText),
+      );
+      final editable = tester.widget<EditableText>(editableFinder);
+      expect(editable.controller.text, 'Sugestão ou Feedback');
     });
 
     testWidgets('can change category', (tester) async {
@@ -56,7 +61,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify selection
-      expect(find.text('Reportar um Problema'), findsOneWidget);
+      final dropdown = find.byType(DropdownMenuFormField<String>);
+      final editableFinder = find.descendant(
+        of: dropdown,
+        matching: find.byType(EditableText),
+      );
+      final editable = tester.widget<EditableText>(editableFinder);
+      expect(editable.controller.text, 'Reportar um Problema');
     });
 
     testWidgets('validates empty title', (tester) async {

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/domain/app_config.dart';
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/providers/app_config_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -11,6 +12,7 @@ import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -133,67 +135,248 @@ class MatchpointController extends _$MatchpointController {
     String type,
   ) async {
     final authRepo = ref.read(authRepositoryProvider);
-    final currentUser = authRepo.currentUser;
-    if (currentUser == null) {
-      AppLogger.error('Swipe blocked: missing FirebaseAuth session.');
-      state = const AsyncError(
-        'Sessao expirada. Faca login novamente.',
-        StackTrace.empty,
-      );
-      return const SwipeActionResult(success: false);
-    }
-
-    try {
-      final idToken = await currentUser.getIdToken();
-      if (idToken == null || idToken.isEmpty) {
-        AppLogger.error('Swipe blocked: missing FirebaseAuth token.');
-        state = const AsyncError(
-          'Sessao invalida. Faca login novamente.',
-          StackTrace.empty,
-        );
-        return const SwipeActionResult(success: false);
-      }
-    } catch (e) {
-      AppLogger.error('Swipe blocked: failed to read FirebaseAuth token: $e');
-      state = AsyncError('Erro de autenticacao: $e', StackTrace.current);
+    final hasValidSecurityContext = await _ensureSwipeSecurityContext(authRepo);
+    if (!hasValidSecurityContext) {
       return const SwipeActionResult(success: false);
     }
 
     final repo = ref.read(matchpointRepositoryProvider);
-    final result = await repo.submitAction(
+    var result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
     );
 
-    return result.fold(
-      (failure) {
-        AppLogger.error('Failed to process swipe: $failure');
-        state = AsyncError(failure.message, StackTrace.current);
-        return const SwipeActionResult(success: false);
-      },
-      (actionResult) async {
-        if (actionResult.remainingLikes != null) {
-          ref
-              .read(likesQuotaProvider.notifier)
-              .updateRemaining(actionResult.remainingLikes!);
+    if (result.isLeft()) {
+      var failure = result.fold(
+        (failure) => failure,
+        (_) => throw StateError('Expected swipe failure'),
+      );
+
+      if (_isSessionFailure(failure)) {
+        AppLogger.warning(
+          'Swipe failed with session/auth error. '
+          'Refreshing context and retrying once.',
+        );
+
+        final refreshed = await _refreshSwipeSecurityContext(
+          authRepo,
+          reason: 'submit_action',
+        );
+        if (!refreshed) {
+          return const SwipeActionResult(success: false);
         }
 
-        ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
-
-        if (actionResult.isMatch == true) {
-          AppLogger.info("IT'S A MATCH!");
-          ref.invalidate(matchesProvider);
-
-          return SwipeActionResult(
-            success: true,
-            matchedUser: targetUser,
-            conversationId: actionResult.conversationId,
+        result = await repo.submitAction(
+          targetUserId: targetUser.uid,
+          type: type,
+        );
+        if (result.isRight()) {
+          final actionResult = result.fold(
+            (_) => throw StateError('Expected swipe retry success'),
+            (success) => success,
+          );
+          _trackSwipeSessionRecovery(
+            stage: 'submit_action',
+            outcome: 'retry_succeeded',
+          );
+          return _buildSwipeSuccessResult(
+            targetUser: targetUser,
+            type: type,
+            actionResult: actionResult,
           );
         }
+        failure = result.fold(
+          (failure) => failure,
+          (_) => throw StateError('Expected swipe retry failure'),
+        );
+        _trackSwipeSessionRecovery(
+          stage: 'submit_action',
+          outcome: 'retry_failed',
+          failure: failure,
+        );
+      }
 
-        return const SwipeActionResult(success: true);
+      AppLogger.error('Failed to process swipe: $failure');
+      state = AsyncError(failure.message, StackTrace.current);
+      return const SwipeActionResult(success: false);
+    }
+
+    final actionResult = result.fold(
+      (_) => throw StateError('Expected swipe success'),
+      (success) => success,
+    );
+    return _buildSwipeSuccessResult(
+      targetUser: targetUser,
+      type: type,
+      actionResult: actionResult,
+    );
+  }
+
+  Future<bool> _ensureSwipeSecurityContext(AuthRepository authRepo) async {
+    final currentUser = authRepo.currentUser;
+    if (currentUser == null) {
+      AppLogger.warning(
+        'Swipe precheck: no FirebaseAuth user. Attempting security refresh.',
+      );
+      final refreshed = await _refreshSwipeSecurityContext(
+        authRepo,
+        reason: 'missing_user',
+      );
+      if (!refreshed) return false;
+      return _validateCurrentUserToken(authRepo);
+    }
+
+    try {
+      final idToken = await currentUser.getIdToken();
+      if (idToken != null && idToken.isNotEmpty) {
+        return true;
+      }
+
+      AppLogger.warning(
+        'Swipe precheck: empty FirebaseAuth token. Attempting security refresh.',
+      );
+      final refreshed = await _refreshSwipeSecurityContext(
+        authRepo,
+        reason: 'empty_token',
+      );
+      if (!refreshed) return false;
+      return _validateCurrentUserToken(authRepo);
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Swipe precheck: failed to read FirebaseAuth token. '
+        'Attempting security refresh.',
+        error,
+        stack,
+      );
+      final refreshed = await _refreshSwipeSecurityContext(
+        authRepo,
+        reason: 'token_read_failure',
+      );
+      if (!refreshed) return false;
+      return _validateCurrentUserToken(authRepo);
+    }
+  }
+
+  Future<bool> _validateCurrentUserToken(AuthRepository authRepo) async {
+    final refreshedUser = authRepo.currentUser;
+    if (refreshedUser == null) {
+      state = const AsyncError(
+        'Sua sessão expirou. Faça login novamente.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+
+    try {
+      final refreshedToken = await refreshedUser.getIdToken();
+      if (refreshedToken != null && refreshedToken.isNotEmpty) {
+        return true;
+      }
+      state = const AsyncError(
+        'Não foi possível validar sua sessão. Faça login novamente.',
+        StackTrace.empty,
+      );
+      return false;
+    } catch (error, stack) {
+      AppLogger.warning('Swipe validation failed after refresh.', error, stack);
+      state = const AsyncError(
+        'Não foi possível validar sua sessão. Faça login novamente.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> _refreshSwipeSecurityContext(
+    AuthRepository authRepo, {
+    required String reason,
+  }) async {
+    _trackSwipeSessionRecovery(stage: reason, outcome: 'attempt');
+    final refreshResult = await authRepo.refreshSecurityContext();
+    return refreshResult.fold(
+      (failure) {
+        _trackSwipeSessionRecovery(
+          stage: reason,
+          outcome: 'failed',
+          failure: failure,
+        );
+        AppLogger.warning(
+          'Swipe security refresh failed ($reason): '
+          '${failure.message} ${failure.debugMessage ?? ''}',
+        );
+        state = AsyncError(failure.message, StackTrace.current);
+        return false;
+      },
+      (_) {
+        _trackSwipeSessionRecovery(stage: reason, outcome: 'succeeded');
+        AppLogger.info('Swipe security refresh succeeded ($reason).');
+        return true;
       },
     );
+  }
+
+  void _trackSwipeSessionRecovery({
+    required String stage,
+    required String outcome,
+    Failure? failure,
+  }) {
+    final params = <String, Object>{'stage': stage, 'outcome': outcome};
+    final failureCode = failure?.debugMessage?.trim();
+    if (failureCode != null && failureCode.isNotEmpty) {
+      params['failure_code'] = failureCode;
+    }
+
+    final analytics = ref.read(analyticsServiceProvider);
+    unawaited(
+      analytics
+          .logEvent(
+            name: 'matchpoint_swipe_session_recovery',
+            parameters: params,
+          )
+          .catchError((_) {}),
+    );
+  }
+
+  bool _isSessionFailure(Failure failure) {
+    final normalized = [
+      failure.message,
+      failure.debugMessage ?? '',
+    ].join(' ').toLowerCase();
+
+    return normalized.contains('session-expired') ||
+        normalized.contains('sessão expirou') ||
+        normalized.contains('sessao expirou') ||
+        normalized.contains('user-token-expired') ||
+        normalized.contains('invalid-user-token') ||
+        normalized.contains('user-disabled') ||
+        normalized.contains('unauthenticated');
+  }
+
+  SwipeActionResult _buildSwipeSuccessResult({
+    required AppUser targetUser,
+    required String type,
+    required MatchpointActionResult actionResult,
+  }) {
+    if (actionResult.remainingLikes != null) {
+      ref
+          .read(likesQuotaProvider.notifier)
+          .updateRemaining(actionResult.remainingLikes!);
+    }
+
+    ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
+
+    if (actionResult.isMatch == true) {
+      AppLogger.info("IT'S A MATCH!");
+      ref.invalidate(matchesProvider);
+
+      return SwipeActionResult(
+        success: true,
+        matchedUser: targetUser,
+        conversationId: actionResult.conversationId,
+      );
+    }
+
+    return const SwipeActionResult(success: true);
   }
 
   Future<void> unmatchUser(String targetUserId) async {

@@ -51,15 +51,30 @@ abstract class MatchpointRemoteDataSource {
 }
 
 class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
+  static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
+  static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
+
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
   final AnalyticsService? _analytics;
+  final FirebaseAuth? _auth;
+  final app_check.FirebaseAppCheck? _appCheck;
+  Future<void>? _securityRefreshInFlight;
+  DateTime? _nextForcedAppCheckRefreshAt;
 
   MatchpointRemoteDataSourceImpl(
     this._firestore,
     this._functions, {
     AnalyticsService? analytics,
-  }) : _analytics = analytics;
+    FirebaseAuth? auth,
+    app_check.FirebaseAppCheck? appCheck,
+  }) : _analytics = analytics,
+       _auth = auth,
+       _appCheck = appCheck;
+
+  FirebaseAuth get _firebaseAuth => _auth ?? FirebaseAuth.instance;
+  app_check.FirebaseAppCheck get _firebaseAppCheck =>
+      _appCheck ?? app_check.FirebaseAppCheck.instance;
 
   bool _isAuthContextError(FirebaseFunctionsException e) {
     final code = e.code.toLowerCase();
@@ -71,8 +86,19 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         (code == 'failed-precondition' || code == 'permission-denied');
   }
 
-  Future<void> _refreshSecurityTokens() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+  Future<void> _refreshSecurityTokens() {
+    final inFlight = _securityRefreshInFlight;
+    if (inFlight != null) return inFlight;
+
+    final refreshFuture = _refreshSecurityTokensInternal();
+    _securityRefreshInFlight = refreshFuture.whenComplete(() {
+      _securityRefreshInFlight = null;
+    });
+    return _securityRefreshInFlight!;
+  }
+
+  Future<void> _refreshSecurityTokensInternal() async {
+    final currentUser = _firebaseAuth.currentUser;
     if (currentUser != null) {
       try {
         await currentUser.getIdToken(true);
@@ -86,14 +112,75 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     }
 
     try {
-      await app_check.FirebaseAppCheck.instance.getToken(true);
+      final cachedToken = await _firebaseAppCheck.getToken();
+      if (_isValidAppCheckToken(cachedToken)) return;
     } catch (e, stack) {
+      if (_isAppCheckThrottled(e)) {
+        _scheduleForcedAppCheckRefreshAfter(_throttledAppCheckBackoff);
+        AppLogger.warning(
+          'App Check token refresh throttled. Backing off forced refresh attempts.',
+        );
+        return;
+      }
+      AppLogger.warning(
+        'Failed to read cached App Check token before retry.',
+        e,
+        stack,
+      );
+    }
+
+    if (!_canAttemptForcedAppCheckRefresh()) {
+      AppLogger.info(
+        'Skipping forced App Check token refresh due to cooldown window.',
+      );
+      return;
+    }
+
+    try {
+      final refreshedToken = await _firebaseAppCheck.getToken(true);
+      if (_isValidAppCheckToken(refreshedToken)) {
+        _scheduleForcedAppCheckRefreshAfter(_forcedAppCheckRefreshCooldown);
+        return;
+      }
+      _scheduleForcedAppCheckRefreshAfter(const Duration(seconds: 30));
+      AppLogger.warning(
+        'Forced App Check token refresh returned an empty token.',
+      );
+    } catch (e, stack) {
+      if (_isAppCheckThrottled(e)) {
+        _scheduleForcedAppCheckRefreshAfter(_throttledAppCheckBackoff);
+        AppLogger.warning(
+          'App Check token refresh throttled. Backing off forced refresh attempts.',
+        );
+        return;
+      }
+      _scheduleForcedAppCheckRefreshAfter(_forcedAppCheckRefreshCooldown);
       AppLogger.warning(
         'Failed to refresh App Check token before retry.',
         e,
         stack,
       );
     }
+  }
+
+  bool _isValidAppCheckToken(String? token) {
+    return token != null && token.trim().isNotEmpty;
+  }
+
+  bool _isAppCheckThrottled(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('too many attempts') ||
+        message.contains('too-many-requests');
+  }
+
+  bool _canAttemptForcedAppCheckRefresh() {
+    final nextAttemptAt = _nextForcedAppCheckRefreshAt;
+    if (nextAttemptAt == null) return true;
+    return !DateTime.now().isBefore(nextAttemptAt);
+  }
+
+  void _scheduleForcedAppCheckRefreshAfter(Duration delay) {
+    _nextForcedAppCheckRefreshAt = DateTime.now().add(delay);
   }
 
   Future<HttpsCallableResult<dynamic>> _callWithRecovery(

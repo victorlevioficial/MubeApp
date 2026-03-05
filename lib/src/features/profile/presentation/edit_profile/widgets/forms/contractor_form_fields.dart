@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
+import '../../../../../../constants/app_constants.dart';
 import '../../../../../../design_system/components/inputs/app_date_picker_field.dart';
 import '../../../../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../../../../design_system/components/inputs/app_text_field.dart';
 import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../../utils/instagram_utils.dart';
 
 /// Enhanced Contractor Form Fields with modern design matching onboarding.
 class ContractorFormFields extends StatelessWidget {
@@ -58,18 +60,17 @@ class ContractorFormFields extends StatelessWidget {
 
           AppDropdownField<String>(
             label: 'Gênero',
-            value: generoController.text.isEmpty ? null : generoController.text,
-            items: const [
-              DropdownMenuItem(value: 'Masculino', child: Text('Masculino')),
-              DropdownMenuItem(value: 'Feminino', child: Text('Feminino')),
-              DropdownMenuItem(value: 'Outro', child: Text('Outro')),
-              DropdownMenuItem(
-                value: 'Prefiro não dizer',
-                child: Text('Prefiro não dizer'),
-              ),
-            ],
+            value: normalizeGenderValue(generoController.text).isEmpty
+                ? null
+                : normalizeGenderValue(generoController.text),
+            items: genderOptions
+                .map(
+                  (gender) =>
+                      DropdownMenuItem(value: gender, child: Text(gender)),
+                )
+                .toList(),
             onChanged: (v) {
-              generoController.text = v!;
+              generoController.text = normalizeGenderValue(v);
               onChanged();
             },
           ),
@@ -77,8 +78,8 @@ class ContractorFormFields extends StatelessWidget {
 
           AppTextField(
             controller: instagramController,
-            label: 'Instagram (opcional)',
-            hint: '@nome',
+            label: instagramLabelOptional,
+            hint: instagramHint,
             prefixIcon: const Icon(Icons.alternate_email, size: 20),
             onChanged: (_) => onChanged(),
           ),
