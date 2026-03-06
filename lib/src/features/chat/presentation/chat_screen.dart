@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/services/push_notification_service.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
+import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -20,8 +21,12 @@ import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/chat_providers.dart';
 import '../data/chat_repository.dart';
+import '../data/chat_safety_repository.dart';
+import '../domain/chat_content_analyzer.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
+
+part 'chat_screen_widgets.dart';
 
 /// Tela de chat 1:1.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -505,17 +510,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return 'Não foi possível abrir esta conversa agora.';
   }
 
-  @override
-  void dispose() {
-    PushNotificationService.setActiveConversation(null);
-    _conversationPreviewSubscription?.close();
-    _messagesReadReceiptSubscription?.close();
-    _scrollController.removeListener(_handleMessagesScroll);
-    _textController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   Future<bool> _canSendMessageWithVerifiedEmail() async {
     final now = DateTime.now();
     if (_cachedEmailSendAllowed != null && _cachedEmailCheckAt != null) {
@@ -736,6 +730,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty || text.length > 1000) return;
 
+    final contentAnalysis = ChatContentAnalyzer.analyze(text);
+    if (contentAnalysis.isSuspicious) {
+      unawaited(
+        ref
+            .read(chatSafetyRepositoryProvider)
+            .logPreSendWarning(
+              conversationId: widget.conversationId,
+              text: text,
+              clientPatterns: contentAnalysis.patterns,
+              clientChannels: contentAnalysis.channels,
+              severity: contentAnalysis.severityName,
+            ),
+      );
+      await _showChatSafetyWarning(
+        contentAnalysis.warningMessage ??
+            'O chat do Mube não permite compartilhar contato por aqui.',
+      );
+      return;
+    }
+
     final user = ref.read(currentUserProfileProvider).value;
     if (user == null) return;
 
@@ -826,6 +840,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  Future<void> _showChatSafetyWarning(String message) async {
+    if (!mounted) return;
+
+    FocusScope.of(context).unfocus();
+
+    await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AppConfirmationDialog(
+        title: 'Contato não permitido',
+        message: message,
+        confirmText: 'Entendi',
+        cancelText: 'Editar mensagem',
+        isDestructive: false,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    PushNotificationService.setActiveConversation(null);
+    _conversationPreviewSubscription?.close();
+    _messagesReadReceiptSubscription?.close();
+    _scrollController.removeListener(_handleMessagesScroll);
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final userAsync = ref.watch(currentUserProfileProvider);
@@ -876,449 +918,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppAppBar(title: _buildAppBarTitle(), showBackButton: true),
-      body: Column(
-        children: [
-          Expanded(
-            child: _accessState == _ConversationAccessState.checking
-                ? _buildLoadingShimmer()
-                : _accessState != _ConversationAccessState.ready
-                ? _buildConversationUnavailableState()
-                : messagesSnapshotAsync!.when(
-                    data: (messagesSnapshot) {
-                      final latestMessages = _messagesFromSnapshot(
-                        messagesSnapshot,
-                      );
-                      final serverMessages = _mergeServerMessages(
-                        latestMessages,
-                      );
-                      final serverClientMessageIds = serverMessages
-                          .map((message) => message.clientMessageId)
-                          .whereType<String>()
-                          .toSet();
-
-                      final pendingMessages = _pendingMessages
-                          .where(
-                            (pending) => !serverClientMessageIds.contains(
-                              pending.localId,
-                            ),
-                          )
-                          .map(
-                            (pending) => Message(
-                              id: pending.localId,
-                              senderId: user.uid,
-                              text: pending.text,
-                              createdAt: Timestamp.fromDate(pending.createdAt),
-                              clientMessageId: pending.localId,
-                            ),
-                          )
-                          .toList(growable: false);
-                      final mergedMessages = <Message>[
-                        ...pendingMessages,
-                        ...serverMessages,
-                      ];
-                      final showPaginationLoader =
-                          _isLoadingOlderMessages || _hasMoreOlderMessages;
-
-                      if (mergedMessages.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'Nenhuma mensagem ainda\nEnvie a primeira!',
-                            textAlign: TextAlign.center,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        controller: _scrollController,
-                        reverse: true,
-                        padding: AppSpacing.all16,
-                        itemCount:
-                            mergedMessages.length +
-                            (showPaginationLoader ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (showPaginationLoader &&
-                              index == mergedMessages.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(
-                                top: AppSpacing.s8,
-                                bottom: AppSpacing.s4,
-                              ),
-                              child: Center(
-                                child: _isLoadingOlderMessages
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Text(
-                                        'Suba para carregar mais',
-                                        style: AppTypography.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                              ),
-                            );
-                          }
-
-                          final message = mergedMessages[index];
-                          final isMe = message.senderId == user.uid;
-                          final isPending = message.id.startsWith('local_');
-                          final showDateSeparator = _shouldShowDateSeparator(
-                            mergedMessages,
-                            index,
-                          );
-                          final dateLabel = showDateSeparator
-                              ? _formatDateSeparatorLabel(
-                                  message.createdAt.toDate().toLocal(),
-                                )
-                              : null;
-
-                          bool isRead = false;
-                          if (isMe && otherUid.isNotEmpty) {
-                            final readUntil = readUntilMap[otherUid];
-                            if (readUntil is Timestamp) {
-                              isRead =
-                                  readUntil.compareTo(message.createdAt) >= 0;
-                            }
-                          }
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (dateLabel != null)
-                                _DaySeparator(label: dateLabel),
-                              _MessageBubble(
-                                message: message,
-                                isMe: isMe,
-                                isPending: isPending,
-                                isRead: isRead,
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                    loading: () => const _ChatShimmer(),
-                    error: (error, stack) {
-                      AppLogger.error(
-                        'Error loading messages for conversation ${widget.conversationId}',
-                        error,
-                      );
-                      return const Center(
-                        child: Text('Erro ao carregar mensagens'),
-                      );
-                    },
-                  ),
-          ),
-          _buildInputField(),
-        ],
+      body: _buildChatBody(
+        messagesSnapshotAsync: messagesSnapshotAsync,
+        currentUserId: user.uid,
+        otherUid: otherUid,
+        readUntilMap: readUntilMap,
       ),
-    );
-  }
-
-  Widget _buildAppBarTitle() {
-    return GestureDetector(
-      onTap: () {
-        if (_otherUserId.isNotEmpty) {
-          context.push(RoutePaths.publicProfileById(_otherUserId));
-        }
-      },
-      child: Row(
-        children: [
-          UserAvatar(size: 36, photoUrl: _otherUserPhoto, name: _otherUserName),
-          const SizedBox(width: AppSpacing.s8),
-          Expanded(
-            child: Text(
-              _otherUserName,
-              style: AppTypography.titleMedium,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputField() {
-    final canInteract = _canReadConversation;
-
-    return Container(
-      padding: EdgeInsets.only(
-        left: AppSpacing.s12,
-        right: AppSpacing.s12,
-        top: AppSpacing.s8,
-        bottom: MediaQuery.of(context).padding.bottom + AppSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: AppTextField(
-              controller: _textController,
-              readOnly: !canInteract,
-              canRequestFocus: _canReadConversation,
-              keyboardType: TextInputType.multiline,
-              maxLength: 1000,
-              showCounter: false,
-              maxLines: 5,
-              minLines: 1,
-              textInputAction: TextInputAction.newline,
-              textCapitalization: TextCapitalization.sentences,
-              hint: _canReadConversation
-                  ? 'Mensagem...'
-                  : 'Conversa indisponivel',
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s8),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _textController,
-            builder: (context, value, _) {
-              final hasText = value.text.trim().isNotEmpty;
-
-              return GestureDetector(
-                onTap: canInteract && hasText ? _sendMessage : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  height: 44,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: hasText && _canReadConversation
-                        ? AppColors.primary
-                        : AppColors.surfaceHighlight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.send_rounded,
-                      color: hasText && _canReadConversation
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoadingShimmer() {
-    return const _ChatShimmer();
-  }
-
-  Widget _buildConversationUnavailableState() {
-    return Center(
-      child: Padding(
-        padding: AppSpacing.h24,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock_outline, color: AppColors.error, size: 40),
-            const SizedBox(height: AppSpacing.s12),
-            Text(
-              _conversationAccessMessage ??
-                  'Não foi possível acessar esta conversa.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MessageBubble extends StatelessWidget {
-  final Message message;
-  final bool isMe;
-  final bool isPending;
-  final bool isRead;
-
-  const _MessageBubble({
-    required this.message,
-    required this.isMe,
-    this.isPending = false,
-    required this.isRead,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-      child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        children: [
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s12,
-              vertical: AppSpacing.s8,
-            ),
-            decoration: BoxDecoration(
-              color: isMe ? AppColors.primary : AppColors.surface,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(AppRadius.r24),
-                topRight: const Radius.circular(AppRadius.r24),
-                bottomLeft: isMe
-                    ? const Radius.circular(AppRadius.r24)
-                    : const Radius.circular(AppRadius.r4),
-                bottomRight: isMe
-                    ? const Radius.circular(AppRadius.r4)
-                    : const Radius.circular(AppRadius.r24),
-              ),
-              border: !isMe
-                  ? Border.all(
-                      color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
-                    )
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  message.text,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s2),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _formatTime(message.createdAt.toDate().toLocal()),
-                      style: AppTypography.chipLabel.copyWith(
-                        color: isMe
-                            ? AppColors.textPrimary.withValues(alpha: 0.7)
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    if (isMe) ...[
-                      const SizedBox(width: AppSpacing.s4),
-                      if (isPending)
-                        Icon(
-                          Icons.schedule,
-                          size: 14,
-                          color: AppColors.textPrimary.withValues(alpha: 0.7),
-                        )
-                      else
-                        Icon(
-                          isRead ? Icons.done_all : Icons.done,
-                          size: 14,
-                          color: isRead
-                              ? AppColors.textPrimary
-                              : AppColors.textPrimary.withValues(alpha: 0.7),
-                        ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-}
-
-class _DaySeparator extends StatelessWidget {
-  final String label;
-
-  const _DaySeparator({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s8, top: AppSpacing.s8),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s12,
-            vertical: AppSpacing.s4,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: AppRadius.all12,
-            border: Border.all(
-              color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
-            ),
-          ),
-          child: Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: AppTypography.titleSmall.fontWeight,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChatShimmer extends StatelessWidget {
-  const _ChatShimmer();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: AppSpacing.all16,
-      itemCount: 8,
-      reverse: true,
-      itemBuilder: (context, index) {
-        final isMe = index % 2 == 0;
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-          child: Row(
-            mainAxisAlignment: isMe
-                ? MainAxisAlignment.end
-                : MainAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: isMe
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  AppShimmer.box(
-                    width: index % 3 == 0 ? 150 : 200,
-                    height: 48,
-                    borderRadius: 16,
-                  ),
-                  const SizedBox(height: AppSpacing.s4),
-                  AppShimmer.text(width: 40, height: 10),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

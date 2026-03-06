@@ -64,6 +64,8 @@ class AppTextField extends StatelessWidget {
   final EdgeInsets scrollPadding;
   final FocusNode? focusNode;
   final TextInputAction? textInputAction;
+  final bool enableSuggestions;
+  final bool autocorrect;
 
   /// Texto de erro forçado. Se não null, o campo fica em estado de erro.
   final String? errorText;
@@ -94,6 +96,8 @@ class AppTextField extends StatelessWidget {
     this.scrollPadding = AppSpacing.all16,
     this.focusNode,
     this.textInputAction,
+    this.enableSuggestions = true,
+    this.autocorrect = true,
     this.errorText,
   });
 
@@ -149,6 +153,8 @@ class AppTextField extends StatelessWidget {
             textCapitalization: textCapitalization,
             textInputAction: effectiveTextInputAction,
             inputFormatters: inputFormatters,
+            enableSuggestions: enableSuggestions,
+            autocorrect: autocorrect,
             style: AppTypography.input.copyWith(color: AppColors.textPrimary),
             validator: validator,
             scrollPadding: scrollPadding,

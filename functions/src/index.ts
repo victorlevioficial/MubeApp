@@ -1,11 +1,13 @@
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
+
+import {logChatSafetyEvent} from "./chat_safety";
 
 admin.initializeApp();
 
 // Export geohash and interactions migration functions
-export { migrategeohashes, updateusergeohash } from "./geohash_migration";
-export { migrateinteractions } from "./interaction_migration";
+export {migrategeohashes, updateusergeohash} from "./geohash_migration";
+export {migrateinteractions} from "./interaction_migration";
 
 // Export Matchpoint functions
 export {
@@ -26,6 +28,9 @@ export {
 export {
   initiateContact,
 } from "./chat";
+export {
+  logChatPreSendWarning,
+} from "./chat_safety";
 
 // Export Moderation functions
 export {
@@ -61,6 +66,7 @@ export {
   getFeaturedProfiles,
   lookupUser,
   searchUsers,
+  listUsersAdmin,
   listReports,
   updateReportStatus,
   listSuspensions,
@@ -235,6 +241,19 @@ export const onMessageCreated = onDocumentCreated(
     const conversationRef = db.collection("conversations").doc(conversationId);
 
     try {
+      try {
+        await logChatSafetyEvent({
+          userId: senderId,
+          conversationId,
+          messageId: snapshot.id,
+          text: typeof text === "string" ? text : "",
+          source: "post_send_detected",
+          platform: "server",
+        });
+      } catch (safetyError) {
+        console.error("Error logging chat safety event:", safetyError);
+      }
+
       // 1. Update conversation metadata
       const conversationDoc = await conversationRef.get();
       if (!conversationDoc.exists) {
@@ -392,7 +411,7 @@ export const onMessageCreated = onDocumentCreated(
       });
 
       // Reset message count after push is sent
-      await notificationRef.update({ messageCount: 1 });
+      await notificationRef.update({messageCount: 1});
     } catch (error) {
       console.error("Error processing onMessageCreated:", error);
     }

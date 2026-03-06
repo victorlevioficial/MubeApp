@@ -7,6 +7,7 @@ This index marks the former `project_docs` files as active, analysis, or archive
 | File | Status | Notes | Current Reference |
 | --- | --- | --- | --- |
 | `../plans/mvp-matchpoint-implementation-plan.md` | active | Matchpoint implementation plan (Feb/2026). | `../../ARCHITECTURE.md`, `../FIRESTORE_RULES.md`, `../../firestore.rules` |
+| `../plans/2026-03-06-chat-safety-warning-telemetry.md` | active | Warning-only chat safety telemetry plan without punitive moderation. | `../../lib/src/features/chat/`, `../../functions/src/index.ts`, `../../functions/src/chat.ts` |
 
 ## Analysis
 

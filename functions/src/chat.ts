@@ -14,6 +14,8 @@ import {
 import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 
+import {logChatSafetyEvent} from "./chat_safety";
+
 const db = admin.firestore();
 
 /**
@@ -270,7 +272,7 @@ async function createConversation(
     conversationType = "matchpoint";
   }
 
-  return await db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const conversationRef = db
       .collection("conversations")
       .doc(conversationId);
@@ -367,6 +369,25 @@ async function createConversation(
 
     return {conversationId};
   });
+
+  if (initialMessage) {
+    try {
+      await logChatSafetyEvent({
+        userId: userId1,
+        conversationId: result.conversationId,
+        text: initialMessage,
+        source: "initial_message_detected",
+        platform: "server",
+      });
+    } catch (error) {
+      console.error(
+        "Erro ao registrar chat safety da mensagem inicial:",
+        error
+      );
+    }
+  }
+
+  return result;
 }
 
 /**
