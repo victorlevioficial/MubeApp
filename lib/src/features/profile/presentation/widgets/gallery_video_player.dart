@@ -2,19 +2,21 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/providers/firebase_providers.dart';
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/app_logger.dart';
+import '../../domain/video_transcode_state.dart';
 
 /// Professional video player widget with auto-hide controls
-class GalleryVideoPlayer extends StatefulWidget {
+class GalleryVideoPlayer extends ConsumerStatefulWidget {
   final String videoUrl;
   final String? thumbnailUrl;
   final bool isActive;
@@ -27,16 +29,11 @@ class GalleryVideoPlayer extends StatefulWidget {
   });
 
   @override
-  State<GalleryVideoPlayer> createState() => _GalleryVideoPlayerState();
+  ConsumerState<GalleryVideoPlayer> createState() => _GalleryVideoPlayerState();
 }
 
-class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
+class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     with WidgetsBindingObserver {
-  static const Set<String> _successfulTranscodeStatuses = {
-    'succeeded',
-    'succeeded_without_gallery_update',
-  };
-
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   bool _hasError = false;
@@ -170,6 +167,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
         '| transcodedFallback=${transcodedUrl ?? "unavailable"}',
         StateError('gallery_video_playback_failed'),
         StackTrace.current,
+        true,
       );
       setState(() => _hasError = true);
     }
@@ -313,6 +311,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
         'Erro ao inicializar vídeo | hint=$formatHint | os=${Platform.operatingSystem} ${Platform.operatingSystemVersion} | controllerError=$controllerError | url=$videoUrl',
         e,
         s,
+        false,
       );
       await controller?.dispose();
       return false;
@@ -324,7 +323,7 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
   }
 
   Future<String?> _resolveTranscodedVideoUrl(String originalUrl) async {
-    if (_isTranscodedStorageUrl(originalUrl)) return null;
+    if (isTranscodedVideoUrl(originalUrl)) return null;
 
     final sourceIds = _extractSourceIdsFromStorageUrl(originalUrl);
     if (sourceIds == null) return null;
@@ -339,7 +338,8 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
 
   Future<String?> _loadTranscodedUrlFromJob(_StorageVideoSourceIds ids) async {
     try {
-      final jobDoc = await FirebaseFirestore.instance
+      final jobDoc = await ref
+          .read(firebaseFirestoreProvider)
           .collection('mediaTranscodeJobs')
           .doc('${ids.userId}_${ids.mediaId}')
           .get();
@@ -352,7 +352,8 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
           transcodedUrl != null && transcodedUrl.isNotEmpty;
       if (!hasTranscodedUrl) return null;
 
-      if (status.isEmpty || _successfulTranscodeStatuses.contains(status)) {
+      if (status.isEmpty ||
+          kSuccessfulVideoTranscodeStatuses.contains(status)) {
         return transcodedUrl;
       }
 
@@ -378,7 +379,11 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
     final path =
         'gallery_videos_transcoded/${ids.userId}/${ids.mediaId}/master.mp4';
     try {
-      return await FirebaseStorage.instance.ref().child(path).getDownloadURL();
+      return await ref
+          .read(firebaseStorageProvider)
+          .ref()
+          .child(path)
+          .getDownloadURL();
     } on FirebaseException catch (e, s) {
       if (e.code != 'object-not-found') {
         AppLogger.warning(
@@ -398,13 +403,6 @@ class _GalleryVideoPlayerState extends State<GalleryVideoPlayer>
       );
       return null;
     }
-  }
-
-  bool _isTranscodedStorageUrl(String url) {
-    final normalized = url.toLowerCase();
-    return normalized.contains('/gallery_videos_transcoded/') ||
-        normalized.contains('%2fgallery_videos_transcoded%2f') ||
-        normalized.contains('gallery_videos_transcoded%2f');
   }
 
   _StorageVideoSourceIds? _extractSourceIdsFromStorageUrl(String url) {

@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/providers/firebase_providers.dart';
+import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/app_user.dart';
@@ -34,6 +36,8 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
+  static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
@@ -61,11 +65,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl(
     this._auth,
     this._firestore, {
-    FirebaseFunctions? functions,
-    app_check.FirebaseAppCheck? appCheck,
-  }) : _functions =
-           functions ?? FirebaseFunctions.instanceFor(region: _functionsRegion),
-       _appCheck = appCheck ?? app_check.FirebaseAppCheck.instance;
+    required FirebaseFunctions functions,
+    required app_check.FirebaseAppCheck appCheck,
+  }) : _functions = functions,
+       _appCheck = appCheck;
 
   @override
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -247,24 +250,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (currentUser != null) {
       try {
         await currentUser.getIdToken(true);
+        await currentUser.reload();
       } catch (error, stack) {
         AppLogger.warning(
           'Falha ao atualizar token do FirebaseAuth antes do retry da Cloud Function',
           error,
           stack,
+          false,
         );
       }
     }
 
-    try {
-      await _appCheck.getToken(true);
-    } catch (error, stack) {
-      AppLogger.warning(
-        'Falha ao atualizar token do App Check antes do retry da Cloud Function',
-        error,
-        stack,
-      );
-    }
+    await AppCheckRefreshCoordinator.ensureValidToken(
+      _appCheck,
+      operationLabel: 'retry de Cloud Function de auth',
+      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
+      throttledBackoff: _throttledAppCheckBackoff,
+    );
   }
 
   Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
@@ -406,26 +408,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     await currentUser.getIdToken(true);
     await currentUser.reload();
-
-    try {
-      await _appCheck.getToken(true);
-    } catch (error, stack) {
-      AppLogger.warning(
-        'Falha ao atualizar token do App Check durante refresh de sessao',
-        error,
-        stack,
-      );
-    }
+    await AppCheckRefreshCoordinator.ensureValidToken(
+      _appCheck,
+      operationLabel: 'refresh de sessao',
+      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
+      throttledBackoff: _throttledAppCheckBackoff,
+    );
   }
 }
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
   return AuthRemoteDataSourceImpl(
-    FirebaseAuth.instance,
-    FirebaseFirestore.instance,
-    functions: FirebaseFunctions.instanceFor(
-      region: AuthRemoteDataSourceImpl._functionsRegion,
-    ),
-    appCheck: app_check.FirebaseAppCheck.instance,
+    ref.read(firebaseAuthProvider),
+    ref.read(firebaseFirestoreProvider),
+    functions: ref.read(firebaseFunctionsProvider),
+    appCheck: ref.read(firebaseAppCheckProvider),
   );
 });

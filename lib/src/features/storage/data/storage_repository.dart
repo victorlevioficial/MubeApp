@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../domain/image_compressor.dart';
 import '../domain/upload_validator.dart';
@@ -13,7 +14,10 @@ part 'storage_repository.g.dart';
 
 @Riverpod(keepAlive: true)
 StorageRepository storageRepository(Ref ref) {
-  return StorageRepository(FirebaseStorage.instance);
+  return StorageRepository(
+    ref.watch(firebaseStorageProvider),
+    auth: ref.watch(firebaseAuthProvider),
+  );
 }
 
 /// Modelo para URLs de imagem em múltiplas resoluções
@@ -61,8 +65,9 @@ class ImageUrls {
 
 class StorageRepository {
   final FirebaseStorage _storage;
+  final FirebaseAuth _auth;
 
-  StorageRepository(this._storage);
+  StorageRepository(this._storage, {required FirebaseAuth auth}) : _auth = auth;
 
   /// Faz upload de uma imagem de perfil em múltiplas resoluções.
   /// Retorna um [ImageUrls] com as URLs de cada resolução.
@@ -73,7 +78,7 @@ class StorageRepository {
     required File file,
     bool generateMultipleSizes = true,
   }) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception(
         'Você precisa estar logado para atualizar a foto de perfil.',
@@ -192,7 +197,7 @@ class StorageRepository {
     void Function(double progress)? onProgress,
   }) async {
     // NOVO: Verificar autenticação antes de iniciar upload
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception(
         'Você precisa estar logado para fazer upload. '
@@ -401,7 +406,7 @@ class StorageRepository {
     void Function(double progress)? onProgress,
   }) async {
     // NOVO: Verificar autenticação antes de iniciar upload
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception(
         'Você precisa estar logado para fazer upload. '
@@ -495,6 +500,41 @@ class StorageRepository {
       contentType: 'image/webp',
       onProgress: onProgress,
     );
+  }
+
+  Future<String?> getTranscodedVideoUrl({
+    required String userId,
+    required String mediaId,
+  }) async {
+    final ref = _storage.ref().child(
+      'gallery_videos_transcoded/$userId/$mediaId/master.mp4',
+    );
+
+    try {
+      return await ref.getDownloadURL();
+    } on FirebaseException catch (error) {
+      if (error.code == 'object-not-found' || error.code == 'not-found') {
+        return null;
+      }
+
+      AppLogger.warning(
+        'Falha ao consultar vídeo transcodificado em Storage '
+        'user=$userId media=$mediaId',
+        error,
+        error.stackTrace,
+        false,
+      );
+      return null;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha inesperada ao consultar vídeo transcodificado em Storage '
+        'user=$userId media=$mediaId',
+        error,
+        stackTrace,
+        false,
+      );
+      return null;
+    }
   }
 
   /// Deleta uma imagem dada sua URL (útil para cleanup)
@@ -603,7 +643,7 @@ class StorageRepository {
     required String ticketId,
     required File file,
   }) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception('Você precisa estar logado para enviar anexos.');
     }

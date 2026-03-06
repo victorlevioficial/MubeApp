@@ -10,11 +10,13 @@ import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
+import 'package:mube/src/utils/app_check_refresh_coordinator.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/distance_calculator.dart';
 import 'package:mube/src/utils/geohash_helper.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/providers/firebase_providers.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 
@@ -57,24 +59,22 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
   final AnalyticsService? _analytics;
-  final FirebaseAuth? _auth;
-  final app_check.FirebaseAppCheck? _appCheck;
+  final FirebaseAuth _auth;
+  final app_check.FirebaseAppCheck _appCheck;
   Future<void>? _securityRefreshInFlight;
-  DateTime? _nextForcedAppCheckRefreshAt;
 
   MatchpointRemoteDataSourceImpl(
     this._firestore,
     this._functions, {
     AnalyticsService? analytics,
-    FirebaseAuth? auth,
-    app_check.FirebaseAppCheck? appCheck,
+    required FirebaseAuth auth,
+    required app_check.FirebaseAppCheck appCheck,
   }) : _analytics = analytics,
        _auth = auth,
        _appCheck = appCheck;
 
-  FirebaseAuth get _firebaseAuth => _auth ?? FirebaseAuth.instance;
-  app_check.FirebaseAppCheck get _firebaseAppCheck =>
-      _appCheck ?? app_check.FirebaseAppCheck.instance;
+  FirebaseAuth get _firebaseAuth => _auth;
+  app_check.FirebaseAppCheck get _firebaseAppCheck => _appCheck;
 
   bool _isAuthContextError(FirebaseFunctionsException e) {
     final code = e.code.toLowerCase();
@@ -111,76 +111,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       }
     }
 
-    try {
-      final cachedToken = await _firebaseAppCheck.getToken();
-      if (_isValidAppCheckToken(cachedToken)) return;
-    } catch (e, stack) {
-      if (_isAppCheckThrottled(e)) {
-        _scheduleForcedAppCheckRefreshAfter(_throttledAppCheckBackoff);
-        AppLogger.warning(
-          'App Check token refresh throttled. Backing off forced refresh attempts.',
-        );
-        return;
-      }
-      AppLogger.warning(
-        'Failed to read cached App Check token before retry.',
-        e,
-        stack,
-      );
-    }
-
-    if (!_canAttemptForcedAppCheckRefresh()) {
-      AppLogger.info(
-        'Skipping forced App Check token refresh due to cooldown window.',
-      );
-      return;
-    }
-
-    try {
-      final refreshedToken = await _firebaseAppCheck.getToken(true);
-      if (_isValidAppCheckToken(refreshedToken)) {
-        _scheduleForcedAppCheckRefreshAfter(_forcedAppCheckRefreshCooldown);
-        return;
-      }
-      _scheduleForcedAppCheckRefreshAfter(const Duration(seconds: 30));
-      AppLogger.warning(
-        'Forced App Check token refresh returned an empty token.',
-      );
-    } catch (e, stack) {
-      if (_isAppCheckThrottled(e)) {
-        _scheduleForcedAppCheckRefreshAfter(_throttledAppCheckBackoff);
-        AppLogger.warning(
-          'App Check token refresh throttled. Backing off forced refresh attempts.',
-        );
-        return;
-      }
-      _scheduleForcedAppCheckRefreshAfter(_forcedAppCheckRefreshCooldown);
-      AppLogger.warning(
-        'Failed to refresh App Check token before retry.',
-        e,
-        stack,
-      );
-    }
-  }
-
-  bool _isValidAppCheckToken(String? token) {
-    return token != null && token.trim().isNotEmpty;
-  }
-
-  bool _isAppCheckThrottled(Object error) {
-    final message = error.toString().toLowerCase();
-    return message.contains('too many attempts') ||
-        message.contains('too-many-requests');
-  }
-
-  bool _canAttemptForcedAppCheckRefresh() {
-    final nextAttemptAt = _nextForcedAppCheckRefreshAt;
-    if (nextAttemptAt == null) return true;
-    return !DateTime.now().isBefore(nextAttemptAt);
-  }
-
-  void _scheduleForcedAppCheckRefreshAfter(Duration delay) {
-    _nextForcedAppCheckRefreshAt = DateTime.now().add(delay);
+    await AppCheckRefreshCoordinator.ensureValidToken(
+      _firebaseAppCheck,
+      operationLabel: 'retry de MatchPoint',
+      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
+      throttledBackoff: _throttledAppCheckBackoff,
+    );
   }
 
   Future<HttpsCallableResult<dynamic>> _callWithRecovery(
@@ -641,6 +577,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         'MatchPoint: failed to mirror ranking audit to backend.',
         error,
         stackTrace,
+        false,
       );
     }
   }
@@ -815,9 +752,11 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 final matchpointRemoteDataSourceProvider = Provider<MatchpointRemoteDataSource>(
   (ref) {
     return MatchpointRemoteDataSourceImpl(
-      FirebaseFirestore.instance,
-      FirebaseFunctions.instanceFor(region: 'southamerica-east1'),
+      ref.read(firebaseFirestoreProvider),
+      ref.read(firebaseFunctionsProvider),
       analytics: ref.watch(analyticsServiceProvider),
+      auth: ref.read(firebaseAuthProvider),
+      appCheck: ref.read(firebaseAppCheckProvider),
     );
   },
 );

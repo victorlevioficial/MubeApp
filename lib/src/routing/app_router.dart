@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -53,6 +53,8 @@ class _GoRouterRefreshNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Main router provider.
 final goRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _GoRouterRefreshNotifier();
@@ -66,6 +68,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.listen(notificationPermissionPromptProvider, (_, _) => notifier.notify());
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: RoutePaths.splash,
     debugLogDiagnostics: AppLogger.verboseLoggingEnabled,
     refreshListenable: notifier,

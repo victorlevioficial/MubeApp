@@ -72,12 +72,11 @@ class AppSnackBar {
           ],
         ),
         backgroundColor: AppColors.surface,
-        behavior: SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.fixed,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.all12,
           side: BorderSide(color: color.withValues(alpha: 0.5), width: 1),
         ),
-        margin: AppSpacing.all16,
         elevation: 4,
         duration: _getDuration(type),
       ),

@@ -2,6 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthExceptionHandler {
   static String handleException(Object e) {
+    if (e is String) {
+      return e;
+    }
+
     if (e is FirebaseAuthException) {
       switch (e.code) {
         case 'email-already-in-use':

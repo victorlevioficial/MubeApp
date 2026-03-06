@@ -14,6 +14,21 @@ void main() {
     fakeAuthRepository = FakeAuthRepository();
   });
 
+  Future<void> pumpPublicProfile(WidgetTester tester, AppUser user) async {
+    fakeAuthRepository.appUser = user;
+
+    await tester.pumpApp(
+      PublicProfileScreen(uid: user.uid),
+      overrides: [
+        authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+      ],
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
   testWidgets(
     'shows personal gender for contractor instead of musical genre label',
     (tester) async {
@@ -25,20 +40,7 @@ void main() {
         cadastroStatus: 'concluido',
         dadosContratante: {'genero': 'Feminino'},
       );
-      fakeAuthRepository.appUser = contractor;
-
-      await tester.pumpApp(
-        const PublicProfileScreen(uid: 'contractor-uid'),
-        overrides: [
-          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
-          currentUserProfileProvider.overrideWith(
-            (ref) => Stream.value(contractor),
-          ),
-        ],
-      );
-
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await pumpPublicProfile(tester, contractor);
 
       expect(find.text('Gênero'), findsOneWidget);
       expect(find.text('Feminino'), findsOneWidget);
@@ -46,7 +48,64 @@ void main() {
     },
   );
 
-  testWidgets('shows instagram for contractor when available', (tester) async {
+  testWidgets('does not show instagram for professional', (tester) async {
+    const professional = AppUser(
+      uid: 'professional-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instagram': '@session.player',
+        'instrumentos': ['Guitarra'],
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Instagram'), findsNothing);
+    expect(find.text('@session.player'), findsNothing);
+  });
+
+  testWidgets('does not show instagram for band', (tester) async {
+    const band = AppUser(
+      uid: 'band-uid',
+      email: 'band@example.com',
+      nome: 'Band',
+      tipoPerfil: AppUserType.band,
+      cadastroStatus: 'concluido',
+      dadosBanda: {
+        'instagram': 'instagram.com/the.band',
+        'generosMusicais': ['Rock'],
+      },
+    );
+
+    await pumpPublicProfile(tester, band);
+
+    expect(find.text('Instagram'), findsNothing);
+    expect(find.text('@the.band'), findsNothing);
+  });
+
+  testWidgets('does not show instagram for studio', (tester) async {
+    const studio = AppUser(
+      uid: 'studio-uid',
+      email: 'studio@example.com',
+      nome: 'Studio',
+      tipoPerfil: AppUserType.studio,
+      cadastroStatus: 'concluido',
+      dadosEstudio: {
+        'instagram': 'studio.session',
+        'services': ['Mixagem'],
+      },
+    );
+
+    await pumpPublicProfile(tester, studio);
+
+    expect(find.text('Instagram'), findsNothing);
+    expect(find.text('@studio.session'), findsNothing);
+  });
+
+  testWidgets('does not show instagram for contractor', (tester) async {
     const contractor = AppUser(
       uid: 'contractor-uid',
       email: 'contractor@example.com',
@@ -55,22 +114,10 @@ void main() {
       cadastroStatus: 'concluido',
       dadosContratante: {'instagram': 'instagram.com/event.house'},
     );
-    fakeAuthRepository.appUser = contractor;
 
-    await tester.pumpApp(
-      const PublicProfileScreen(uid: 'contractor-uid'),
-      overrides: [
-        authRepositoryProvider.overrideWithValue(fakeAuthRepository),
-        currentUserProfileProvider.overrideWith(
-          (ref) => Stream.value(contractor),
-        ),
-      ],
-    );
+    await pumpPublicProfile(tester, contractor);
 
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text('Instagram'), findsOneWidget);
-    expect(find.text('@event.house'), findsOneWidget);
+    expect(find.text('Instagram'), findsNothing);
+    expect(find.text('@event.house'), findsNothing);
   });
 }

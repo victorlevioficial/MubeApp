@@ -105,6 +105,31 @@ void main() {
       expect(find.textContaining('Erro'), findsOneWidget);
     });
 
+    testWidgets('allows pull-to-refresh recovery from error state', (
+      tester,
+    ) async {
+      fakeFeedRepository.throwError = true;
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(createSubject());
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+      });
+
+      expect(find.textContaining('Erro'), findsOneWidget);
+
+      fakeFeedRepository.throwError = false;
+
+      await mockNetworkImagesFor(() async {
+        await tester.drag(find.byType(ListView), const Offset(0, 300));
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+      });
+
+      expect(find.byType(CustomScrollView), findsOneWidget);
+      expect(find.textContaining('Erro'), findsNothing);
+    });
+
     testWidgets('shows empty state when no users found', (tester) async {
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(createSubject());

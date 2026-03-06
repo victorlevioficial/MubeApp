@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/providers/firebase_providers.dart';
 
 /// Interface for raw feed data access
 abstract class FeedRemoteDataSource {
@@ -32,6 +33,11 @@ abstract class FeedRemoteDataSource {
 
   Future<QuerySnapshot<Map<String, dynamic>>> getMainFeed({
     String? filterType,
+    required int limit,
+    DocumentSnapshot? startAfter,
+  });
+
+  Future<QuerySnapshot<Map<String, dynamic>>> getDiscoverFeedBatch({
     required int limit,
     DocumentSnapshot? startAfter,
   });
@@ -208,6 +214,35 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
   }
 
   @override
+  Future<QuerySnapshot<Map<String, dynamic>>> getDiscoverFeedBatch({
+    required int limit,
+    DocumentSnapshot? startAfter,
+  }) {
+    var query = _firestore
+        .collection(FirestoreCollections.users)
+        .where(
+          FirestoreFields.registrationStatus,
+          isEqualTo: RegistrationStatus.complete,
+        )
+        .where(
+          FirestoreFields.profileType,
+          whereIn: [
+            ProfileType.professional,
+            ProfileType.band,
+            ProfileType.studio,
+          ],
+        )
+        .orderBy(FieldPath.documentId)
+        .limit(limit);
+
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
+    }
+
+    return query.get();
+  }
+
+  @override
   Future<QuerySnapshot<Map<String, dynamic>>> getUsersByIds(List<String> ids) {
     if (ids.isEmpty) {
       return Future.value(
@@ -263,5 +298,5 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
 }
 
 final feedRemoteDataSourceProvider = Provider<FeedRemoteDataSource>((ref) {
-  return FeedRemoteDataSourceImpl(FirebaseFirestore.instance);
+  return FeedRemoteDataSourceImpl(ref.read(firebaseFirestoreProvider));
 });

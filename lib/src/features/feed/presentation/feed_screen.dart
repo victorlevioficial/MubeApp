@@ -8,6 +8,7 @@ import 'package:mube/src/utils/app_logger.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
@@ -25,6 +26,8 @@ import 'widgets/feed_section_widget.dart';
 import 'widgets/feed_skeleton.dart';
 import 'widgets/quick_filter_bar.dart';
 import 'widgets/vertical_feed_list.dart';
+
+part 'feed_screen_ui.dart';
 
 /// Constants for the Feed screen layout and behavior
 abstract final class FeedConstants {
@@ -321,219 +324,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return const FeedScreenSkeleton();
     }
 
-    final hasError =
-        stateAsync.hasError || state.status == PaginationStatus.error;
-    final errorMessage =
-        state.errorMessage ??
-        stateAsync.error?.toString() ??
-        'Erro desconhecido';
-
-    if (hasError && state.sectionItems.isEmpty) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Erro ao carregar feed: $errorMessage'),
-              const SizedBox(height: AppSpacing.s16),
-              AppButton.primary(
-                text: 'Tentar novamente',
-                onPressed: () => controller.loadAllData(),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final currentUser = ref.watch(currentUserProfileProvider).asData?.value;
-    final spotlightItems = _getSpotlightItems(state);
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        backgroundColor: AppColors.surface,
-        onRefresh: () async {
-          await controller.refresh();
-        },
-        child: CustomScrollView(
-          controller: _scrollController,
-          cacheExtent: FeedConstants.initialCacheExtent,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // Pro Max: SliverAppBar with Glassmorphism (Refactored to FeedHeader)
-            FeedHeader(
-              currentUser: currentUser,
-              isScrolled: _isScrolled,
-              onNotificationTap: () {
-                context.push(RoutePaths.notifications);
-              },
-            ),
-
-            // Spotlight carousel with top trending items
-            if (spotlightItems.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s8),
-                  child: FeaturedSpotlightCarousel(
-                    items: spotlightItems,
-                    onItemTap: _navigateToUser,
-                  ),
-                ),
-              ),
-
-            // Horizontal Sections (Lazy Load)
-            if (state.sectionItems.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.only(top: AppSpacing.s8),
-                sliver: SliverList.builder(
-                  itemCount: state.sectionItems.length,
-                  itemBuilder: (context, index) {
-                    final entry = state.sectionItems.entries.elementAt(index);
-                    if (entry.value.isEmpty) return const SizedBox.shrink();
-
-                    return Padding(
-                      key: ValueKey('section_${entry.key.name}'),
-                      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-                      child: FeedSectionWidget(
-                        title: _getSectionTitle(entry.key),
-                        items: entry.value,
-                        onSeeAllTap: () => _navigateToSectionList(entry.key),
-                        onItemTap: _navigateToUser,
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-            // Opaque Filter Bar
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverAppBarDelegate(
-                minHeight: FeedConstants.filterBarHeight,
-                maxHeight: FeedConstants.filterBarHeight,
-                topPadding: MediaQuery.of(context).padding.top,
-                selectedFilter: state.currentFilter,
-                onFilterSelected: controller.onFilterChanged,
-              ),
-            ),
-
-            // Section Title: Principais / Destaques
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s20,
-                  AppSpacing.s24,
-                  AppSpacing.s20,
-                  AppSpacing.s16,
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, AppColors.primaryPressed],
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.local_fire_department_rounded,
-                        size: 16,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s8),
-                    Text(
-                      'Principais Perfis',
-                      style: AppTypography.titleLarge.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Empty State or Vertical List
-            if (state.items.isEmpty && !state.isLoading)
-              const SliverToBoxAdapter(
-                child: EmptyStateWidget(
-                  icon: Icons.music_off_rounded,
-                  title: 'Nenhum músico encontrado',
-                  subtitle: 'Tente ajustar seus filtros ou volte mais tarde',
-                ),
-              )
-            else
-              // Vertical List (Animated) - já inclui loading interno
-              VerticalFeedList(
-                useSliverMode: true,
-                items: state.items,
-                isLoading: state.status == PaginationStatus.loading,
-                isLoadingMore: state.status == PaginationStatus.loadingMore,
-                hasMore: state.hasMore,
-                onLoadMore: controller.loadMoreMainFeed,
-                padding:
-                    EdgeInsets.zero, // Remove padding duplo, o skeleton já tem
-              ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.s48)),
-          ],
-        ),
-      ),
+    return _buildFeedScaffold(
+      context: context,
+      stateAsync: stateAsync,
+      state: state,
+      controller: controller,
     );
-  }
-}
-
-class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final double minHeight;
-  final double maxHeight;
-  final double topPadding;
-  final String selectedFilter;
-  final Function(String) onFilterSelected;
-
-  _SliverAppBarDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.topPadding,
-    required this.selectedFilter,
-    required this.onFilterSelected,
-  });
-
-  @override
-  double get minExtent => minHeight + topPadding;
-  @override
-  double get maxExtent => maxHeight + topPadding;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: AppColors.background, // Ensure background covers the status bar
-      padding: EdgeInsets.only(top: topPadding),
-      child: SizedBox.expand(
-        child: Container(
-          color: AppColors.background,
-          alignment: Alignment.center,
-          child: QuickFilterBar(
-            selectedFilter: selectedFilter,
-            onFilterSelected: onFilterSelected,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        selectedFilter != oldDelegate.selectedFilter ||
-        topPadding != oldDelegate.topPadding;
   }
 }

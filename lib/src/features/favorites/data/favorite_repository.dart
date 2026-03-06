@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../domain/paginated_favorites_response.dart';
 
@@ -309,5 +310,8 @@ class FavoriteRepository {
 
 @Riverpod(keepAlive: true)
 FavoriteRepository favoriteRepository(Ref ref) {
-  return FavoriteRepository(FirebaseFirestore.instance, FirebaseAuth.instance);
+  return FavoriteRepository(
+    ref.read(firebaseFirestoreProvider),
+    ref.read(firebaseAuthProvider),
+  );
 }

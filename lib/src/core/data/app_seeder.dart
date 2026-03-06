@@ -11,6 +11,7 @@ import '../../constants/firestore_constants.dart';
 import '../../features/auth/domain/user_type.dart';
 import '../../utils/app_logger.dart';
 import '../domain/app_config.dart';
+import '../providers/firebase_providers.dart';
 import 'app_config_repository.dart';
 
 part 'app_seeder.g.dart';
@@ -1336,7 +1337,7 @@ class AppSeeder {
 @riverpod
 AppSeeder appSeeder(Ref ref) {
   return AppSeeder(
-    FirebaseFirestore.instance,
+    ref.read(firebaseFirestoreProvider),
     ref.watch(appConfigRepositoryProvider),
   );
 }

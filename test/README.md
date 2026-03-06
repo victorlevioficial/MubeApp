@@ -60,7 +60,7 @@ flutter test --coverage
 Validacao complementar:
 
 ```bash
-flutter analyze
+./scripts/analyze_app.sh
 ```
 
 ## Helpers principais
@@ -122,5 +122,5 @@ Mocks e utilitarios para cenarios com Firebase Auth/Core em suites de integracao
 
 ## Status atual
 
-- `flutter analyze` deve permanecer limpo
-- `flutter test` esta verde na revisao de `2026-03-04`
+- `./scripts/analyze_app.sh` deve permanecer limpo
+- `flutter test` esta verde na revisao de `2026-03-06`

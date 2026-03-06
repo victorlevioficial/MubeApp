@@ -53,9 +53,21 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   String? _fotoUrl;
   final MediaPickerService _mediaPicker = MediaPickerService();
   bool _isUploadingPhoto = false;
+  ProviderSubscription<OnboardingFormState>? _onboardingFormSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _onboardingFormSubscription = ref.listenManual<OnboardingFormState>(
+      onboardingFormProvider,
+      (_, next) => _syncPersistedForm(next),
+      fireImmediately: true,
+    );
+  }
 
   @override
   void dispose() {
+    _onboardingFormSubscription?.close();
     _nomeController.dispose();
     _cidadeController.dispose();
     _estadoController.dispose();
@@ -66,6 +78,34 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     _servicosController.dispose();
     _mediaPicker.dispose();
     super.dispose();
+  }
+
+  void _syncPersistedForm(OnboardingFormState next) {
+    if (_nomeController.text.isEmpty && next.nome != null) {
+      _nomeController.text = next.nome!;
+    }
+    if (_cidadeController.text.isEmpty && next.cidade != null) {
+      _cidadeController.text = next.cidade!;
+    }
+    if (_estadoController.text.isEmpty && next.estado != null) {
+      _estadoController.text = next.estado!;
+    }
+
+    if (_generoController.text.isEmpty && next.genero != null) {
+      _generoController.text = next.genero!;
+    }
+    if (_instrumentoController.text.isEmpty &&
+        next.selectedInstruments.isNotEmpty) {
+      _instrumentoController.text = next.selectedInstruments.first;
+    }
+    if (_generosMusicaisController.text.isEmpty &&
+        next.selectedGenres.isNotEmpty) {
+      _generosMusicaisController.text = next.selectedGenres.join(', ');
+    }
+
+    if (_servicosController.text.isEmpty && next.selectedServices.isNotEmpty) {
+      _servicosController.text = next.selectedServices.join(', ');
+    }
   }
 
   Future<void> _pickAndUploadPhoto() async {
@@ -190,38 +230,6 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
     final userAsync = ref.watch(currentUserProfileProvider);
-
-    // Listen to persistence changes
-    ref.listen(onboardingFormProvider, (_, next) {
-      if (_nomeController.text.isEmpty && next.nome != null) {
-        _nomeController.text = next.nome!;
-      }
-      if (_cidadeController.text.isEmpty && next.cidade != null) {
-        _cidadeController.text = next.cidade!;
-      }
-      if (_estadoController.text.isEmpty && next.estado != null) {
-        _estadoController.text = next.estado!;
-      }
-
-      // Profissional fields map
-      if (_generoController.text.isEmpty && next.genero != null) {
-        _generoController.text = next.genero!;
-      }
-      if (_instrumentoController.text.isEmpty &&
-          next.selectedInstruments.isNotEmpty) {
-        _instrumentoController.text = next.selectedInstruments.first;
-      }
-      if (_generosMusicaisController.text.isEmpty &&
-          next.selectedGenres.isNotEmpty) {
-        _generosMusicaisController.text = next.selectedGenres.join(', ');
-      }
-
-      // Studio
-      if (_servicosController.text.isEmpty &&
-          next.selectedServices.isNotEmpty) {
-        _servicosController.text = next.selectedServices.join(', ');
-      }
-    });
 
     return userAsync.when(
       skipLoadingOnReload: true,

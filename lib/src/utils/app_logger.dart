@@ -23,6 +23,25 @@ class AppLogger {
   static bool get verboseLoggingEnabled =>
       kDebugMode && _enableVerboseDebugLogs;
 
+  static void _mirrorToFlutterConsole(
+    String loggerName,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    if (!kDebugMode) return;
+
+    final buffer = StringBuffer('[$loggerName] $message');
+    if (error != null) {
+      buffer.write(' | error=$error');
+    }
+
+    debugPrintSynchronously(buffer.toString());
+    if (stackTrace != null) {
+      debugPrintSynchronously(stackTrace.toString());
+    }
+  }
+
   /// Inicializa o Crashlytics. Deve ser chamado no main() antes de usar o app.
   static Future<void> initialize() async {
     if (kReleaseMode) {
@@ -38,6 +57,12 @@ class AppLogger {
   /// Em produção, não envia ao Crashlytics (apenas logs de erro/warning)
   static void info(String message, [Object? error, StackTrace? stackTrace]) {
     if (verboseLoggingEnabled) {
+      _mirrorToFlutterConsole(
+        'MubeApp INFO',
+        message,
+        error: error,
+        stackTrace: stackTrace,
+      );
       developer.log(
         message,
         name: 'MubeApp ℹ️',
@@ -51,8 +76,20 @@ class AppLogger {
 
   /// Log de erro (algo deu errado)
   /// Em produção, envia automaticamente ao Crashlytics
-  static void error(String message, [Object? error, StackTrace? stackTrace]) {
+  /// Passe `false` no último argumento para não abrir issue para erro esperado.
+  static void error(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+    bool reportToCrashlytics = true,
+  ]) {
     if (kDebugMode) {
+      _mirrorToFlutterConsole(
+        'MubeApp ERROR',
+        message,
+        error: error,
+        stackTrace: stackTrace,
+      );
       developer.log(
         message,
         name: 'MubeApp 🚨',
@@ -62,7 +99,7 @@ class AppLogger {
       );
     }
 
-    if (_isCrashlyticsEnabled) {
+    if (_isCrashlyticsEnabled && reportToCrashlytics) {
       _crashlytics.log('[ERROR] $message');
       if (error != null) {
         _crashlytics.recordError(
@@ -79,6 +116,12 @@ class AppLogger {
   /// Use apenas para erros que impedem o funcionamento do app
   static void fatal(String message, Object error, StackTrace stackTrace) {
     if (kDebugMode) {
+      _mirrorToFlutterConsole(
+        'MubeApp FATAL',
+        message,
+        error: error,
+        stackTrace: stackTrace,
+      );
       developer.log(
         message,
         name: 'MubeApp 💥 FATAL',
@@ -100,6 +143,12 @@ class AppLogger {
     bool fatal = false,
   }) {
     if (kDebugMode) {
+      _mirrorToFlutterConsole(
+        fatal ? 'MubeApp FATAL' : 'MubeApp ERROR',
+        'Flutter Framework Error',
+        error: details.exception,
+        stackTrace: details.stack,
+      );
       developer.log(
         'Flutter Framework Error',
         name: fatal ? 'MubeApp 💥 FATAL' : 'MubeApp 🚨',
@@ -122,6 +171,7 @@ class AppLogger {
   /// Apenas em modo debug, não envia ao Crashlytics
   static void debug(String message) {
     if (verboseLoggingEnabled) {
+      _mirrorToFlutterConsole('MubeApp DEBUG', message);
       developer.log(
         message,
         name: 'MubeApp 🐛',
@@ -132,8 +182,20 @@ class AppLogger {
 
   /// Log de warning (atenção)
   /// Em produção, envia como log não-crítico ao Crashlytics
-  static void warning(String message, [Object? error, StackTrace? stackTrace]) {
+  /// Passe `false` no último argumento para não abrir issue para erro esperado.
+  static void warning(
+    String message, [
+    Object? error,
+    StackTrace? stackTrace,
+    bool reportToCrashlytics = true,
+  ]) {
     if (kDebugMode) {
+      _mirrorToFlutterConsole(
+        'MubeApp WARNING',
+        message,
+        error: error,
+        stackTrace: stackTrace,
+      );
       developer.log(
         message,
         name: 'MubeApp ⚠️',
@@ -143,7 +205,7 @@ class AppLogger {
       );
     }
 
-    if (_isCrashlyticsEnabled) {
+    if (_isCrashlyticsEnabled && reportToCrashlytics) {
       _crashlytics.log('[WARNING] $message');
       if (error != null) {
         _crashlytics.recordError(

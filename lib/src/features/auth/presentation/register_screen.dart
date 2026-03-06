@@ -36,6 +36,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  ProviderSubscription<AsyncValue<void>>? _registerSubscription;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -65,11 +66,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           ),
         );
 
+    _registerSubscription = ref.listenManual<AsyncValue<void>>(
+      registerControllerProvider,
+      (prev, next) {
+        if (next.hasError && !(prev?.hasError ?? false)) {
+          final message = AuthExceptionHandler.handleException(next.error!);
+          if (mounted) {
+            AppSnackBar.show(context, message, isError: true);
+          }
+        }
+      },
+    );
+
     _animationController.forward();
   }
 
   @override
   void dispose() {
+    _registerSubscription?.close();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -107,15 +121,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<void>>(registerControllerProvider, (prev, next) {
-      if (next.hasError && !(prev?.hasError ?? false)) {
-        final message = AuthExceptionHandler.handleException(next.error!);
-        if (context.mounted) {
-          AppSnackBar.show(context, message, isError: true);
-        }
-      }
-    });
-
     final state = ref.watch(registerControllerProvider);
 
     return Scaffold(

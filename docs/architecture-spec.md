@@ -112,7 +112,7 @@ Active test layers:
 
 Required quality gates:
 
-- `flutter analyze`
+- `./scripts/analyze_app.sh`
 - `flutter test`
 
 As of `2026-03-04`, both are expected to be green in the main workspace.

@@ -200,7 +200,7 @@ final name = user!.displayName!;
 
 ```bash
 # Analyze code
-flutter analyze
+./scripts/analyze_app.sh
 
 # Format code
 dart format lib test

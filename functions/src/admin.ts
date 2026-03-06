@@ -39,6 +39,561 @@ function readAuditNumber(
   return Math.max(0, Math.floor(raw));
 }
 
+const USER_PAGE_SCAN_LIMIT = 400;
+const USER_QUERY_BATCH_SIZE = 80;
+
+type AdminUserListFilters = {
+  status: string;
+  profileType: string;
+  registrationStatus: string;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function firstNonEmptyString(values: unknown[], fallback = ""): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
+function toNonNegativeInt(value: unknown): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.max(0, Math.floor(num));
+}
+
+function parseDateStringToMillis(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const millis = Date.parse(value);
+  return Number.isFinite(millis) ? millis : null;
+}
+
+function getTimestampMillis(value: unknown): number | null {
+  if (value instanceof Timestamp) {
+    return value.toMillis();
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.floor(value);
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return parseDateStringToMillis(value.trim());
+  }
+
+  const raw = asRecord(value);
+  const seconds = Number(raw._seconds);
+  if (Number.isFinite(seconds)) {
+    const nanos = Number(raw._nanoseconds);
+    const millisFromNanos = Number.isFinite(nanos) ? nanos / 1e6 : 0;
+    return Math.floor(seconds * 1000 + millisFromNanos);
+  }
+
+  return null;
+}
+
+function normalizeText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function buildShortPersonName(fullName: string): string {
+  const normalized = fullName.trim().replace(/\s+/g, " ");
+  if (!normalized) return "";
+
+  const parts = normalized.split(" ");
+  if (parts.length <= 2) return normalized;
+
+  const connectors = new Set(["de", "da", "do", "dos", "das", "e"]);
+  const takeCount = connectors.has(parts[1].toLowerCase()) ? 3 : 2;
+  return parts.slice(0, takeCount).join(" ");
+}
+
+function resolveUserDisplayName(userData: Record<string, unknown>): string {
+  const profileType = firstNonEmptyString([
+    userData.tipo_perfil,
+    userData.tipoPerfil,
+  ]);
+  const professional = asRecord(userData.profissional);
+  const band = asRecord(userData.banda);
+  const studio = asRecord(userData.estudio);
+  const contractor = asRecord(userData.contratante);
+  const registrationName = firstNonEmptyString([userData.nome]);
+
+  switch (profileType) {
+  case "profissional":
+    return firstNonEmptyString([
+      professional.nomeArtistico,
+      userData.nome_artistico,
+      registrationName,
+    ], "Profissional");
+  case "banda":
+    return firstNonEmptyString([
+      band.nomeBanda,
+      band.nomeArtistico,
+      band.nome,
+      registrationName,
+    ], "Banda");
+  case "estudio":
+    return firstNonEmptyString([
+      studio.nomeEstudio,
+      studio.nomeArtistico,
+      studio.nome,
+      registrationName,
+    ], "Estúdio");
+  case "contratante":
+    return firstNonEmptyString([
+      contractor.nomeExibicao,
+      buildShortPersonName(registrationName),
+      registrationName,
+    ], "Contratante");
+  default:
+    return firstNonEmptyString([registrationName], "Perfil");
+  }
+}
+
+function resolveProfileType(rawValue: unknown): { key: string; label: string } {
+  const raw = firstNonEmptyString([rawValue]).toLowerCase();
+  switch (raw) {
+  case "profissional":
+    return { key: "profissional", label: "Profissional" };
+  case "banda":
+    return { key: "banda", label: "Banda" };
+  case "estudio":
+    return { key: "estudio", label: "Estúdio" };
+  case "contratante":
+    return { key: "contratante", label: "Contratante" };
+  default:
+    return {
+      key: raw || "desconhecido",
+      label: raw || "Desconhecido",
+    };
+  }
+}
+
+function normalizeUserStatus(
+  rawValue: unknown
+): { key: string; label: string; raw: string } {
+  const raw = firstNonEmptyString([rawValue], "ativo");
+  const normalized = raw.toLowerCase();
+
+  switch (normalized) {
+  case "ativo":
+  case "active":
+    return { key: "active", label: "Ativo", raw };
+  case "suspenso":
+  case "suspended":
+    return { key: "suspended", label: "Suspenso", raw };
+  case "rascunho":
+  case "draft":
+    return { key: "draft", label: "Rascunho", raw };
+  case "inativo":
+  case "inactive":
+    return { key: "inactive", label: "Inativo", raw };
+  default:
+    return { key: "pending", label: raw || "Pendente", raw };
+  }
+}
+
+function normalizeRegistrationStatus(
+  rawValue: unknown
+): { key: string; label: string; raw: string } {
+  const raw = firstNonEmptyString([rawValue], "tipo_pendente");
+
+  switch (raw) {
+  case "concluido":
+    return { key: "completed", label: "Concluído", raw };
+  case "perfil_pendente":
+    return { key: "profile-pending", label: "Perfil pendente", raw };
+  case "tipo_pendente":
+    return { key: "type-pending", label: "Tipo pendente", raw };
+  default:
+    return {
+      key: raw || "unknown",
+      label: raw || "Desconhecido",
+      raw,
+    };
+  }
+}
+
+function resolvePrimaryAddress(userData: Record<string, unknown>): Record<string, unknown> {
+  const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+
+  const addressRecords = addresses
+    .map((item) => asRecord(item))
+    .filter((item) => Object.keys(item).length > 0);
+
+  return (
+    addressRecords.find((item) => item.isPrimary === true) ||
+    addressRecords[0] ||
+    asRecord(userData.location)
+  );
+}
+
+function resolveUserLocation(userData: Record<string, unknown>): {
+  bairro: string;
+  cidade: string;
+  estado: string;
+  display: string;
+} {
+  const address = resolvePrimaryAddress(userData);
+  const location = asRecord(userData.location);
+
+  const bairro = firstNonEmptyString([address.bairro, location.bairro]);
+  const cidade = firstNonEmptyString([
+    address.cidade,
+    location.cidade,
+    userData.cidade,
+  ]);
+  const estado = firstNonEmptyString([
+    address.estado,
+    location.estado,
+    userData.estado,
+  ]);
+
+  const displayParts = [];
+  if (bairro) displayParts.push(bairro);
+  if (cidade && estado) {
+    displayParts.push(`${cidade} - ${estado}`);
+  } else if (cidade) {
+    displayParts.push(cidade);
+  } else if (estado) {
+    displayParts.push(estado);
+  }
+
+  return {
+    bairro,
+    cidade,
+    estado,
+    display: displayParts.join(" • "),
+  };
+}
+
+function matchesAdminFilters(
+  userData: Record<string, unknown>,
+  filters: AdminUserListFilters
+): boolean {
+  const status = normalizeUserStatus(userData.status).key;
+  const profileType = resolveProfileType(
+    firstNonEmptyString([userData.tipo_perfil, userData.tipoPerfil])
+  ).key;
+  const registrationStatus = firstNonEmptyString([
+    userData.cadastro_status,
+  ], "tipo_pendente");
+
+  if (filters.status !== "all" && status !== filters.status) {
+    return false;
+  }
+
+  if (filters.profileType !== "all" && profileType !== filters.profileType) {
+    return false;
+  }
+
+  if (
+    filters.registrationStatus !== "all" &&
+    registrationStatus !== filters.registrationStatus
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function buildOrderedUsersQuery(
+  createdAtCursor: Timestamp | null = null,
+  uidCursor = ""
+): FirebaseFirestore.Query {
+  let query = db.collection("users")
+    .orderBy("created_at", "desc")
+    .orderBy(admin.firestore.FieldPath.documentId(), "desc") as
+      FirebaseFirestore.Query;
+
+  if (createdAtCursor && uidCursor) {
+    query = query.startAfter(createdAtCursor, uidCursor);
+  }
+
+  return query;
+}
+
+async function loadAuthUsersByUid(
+  uids: string[]
+): Promise<Map<string, admin.auth.UserRecord>> {
+  const authMap = new Map<string, admin.auth.UserRecord>();
+  const uniqueUids = [...new Set(uids.filter((uid) => uid.trim().length > 0))];
+
+  for (let i = 0; i < uniqueUids.length; i += 100) {
+    const batch = uniqueUids.slice(i, i + 100);
+    const result = await admin.auth().getUsers(
+      batch.map((uid) => ({ uid }))
+    );
+
+    for (const user of result.users) {
+      authMap.set(user.uid, user);
+    }
+  }
+
+  return authMap;
+}
+
+async function loadModerationByUid(
+  uids: string[]
+): Promise<Map<string, Record<string, unknown>>> {
+  const moderationMap = new Map<string, Record<string, unknown>>();
+  const uniqueUids = [...new Set(uids.filter((uid) => uid.trim().length > 0))];
+
+  if (uniqueUids.length === 0) {
+    return moderationMap;
+  }
+
+  const snapshots = await db.getAll(
+    ...uniqueUids.map((uid) => db.collection("userModerations").doc(uid))
+  );
+
+  for (const snapshot of snapshots) {
+    if (snapshot.exists) {
+      moderationMap.set(snapshot.id, snapshot.data() || {});
+    }
+  }
+
+  return moderationMap;
+}
+
+function buildAdminUserPayload(
+  uid: string,
+  userData: Record<string, unknown>,
+  authRecord?: admin.auth.UserRecord | null,
+  moderationData?: Record<string, unknown> | null
+): Record<string, unknown> {
+  const registrationName = firstNonEmptyString([userData.nome]);
+  const displayName = resolveUserDisplayName(userData);
+  const profileType = resolveProfileType(
+    firstNonEmptyString([userData.tipo_perfil, userData.tipoPerfil])
+  );
+  const status = normalizeUserStatus(userData.status);
+  const registrationStatus = normalizeRegistrationStatus(userData.cadastro_status);
+  const location = resolveUserLocation(userData);
+  const privacySettings = asRecord(userData.privacy_settings);
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  const blockedUsers = Array.isArray(userData.blocked_users) ?
+    userData.blocked_users.filter((item) => typeof item === "string") :
+    [];
+  const addresses = Array.isArray(userData.addresses) ?
+    userData.addresses
+      .map((item) => asRecord(item))
+      .filter((item) => Object.keys(item).length > 0) :
+    [];
+  const favoritesCount = toNonNegativeInt(
+    userData.favorites_count ?? userData.likeCount
+  );
+
+  return {
+    uid,
+    nome: displayName || registrationName || uid,
+    displayName: displayName || registrationName || uid,
+    nomeCadastro: registrationName,
+    email: firstNonEmptyString([userData.email, authRecord?.email]),
+    foto: firstNonEmptyString([userData.foto, authRecord?.photoURL]),
+    tipoPerfil: profileType.key,
+    tipoPerfilLabel: profileType.label,
+    status: status.key,
+    statusKey: status.key,
+    statusLabel: status.label,
+    statusRaw: status.raw,
+    cadastroStatus: registrationStatus.raw,
+    cadastroStatusKey: registrationStatus.key,
+    cadastroStatusLabel: registrationStatus.label,
+    bairro: location.bairro,
+    cidade: location.cidade,
+    estado: location.estado,
+    displayLocation: location.display,
+    bio: firstNonEmptyString([userData.bio]),
+    createdAt:
+      getTimestampMillis(userData.created_at) ||
+      getTimestampMillis(userData.createdAt) ||
+      parseDateStringToMillis(authRecord?.metadata.creationTime),
+    updatedAt:
+      getTimestampMillis(userData.updated_at) ||
+      getTimestampMillis(userData.updatedAt),
+    lastSignInAt: parseDateStringToMillis(authRecord?.metadata.lastSignInTime),
+    suspendedUntil:
+      getTimestampMillis(userData.suspended_until) ||
+      getTimestampMillis(userData.suspension_end_date),
+    likeCount: favoritesCount,
+    favoritesCount,
+    reportCount: toNonNegativeInt(
+      moderationData?.report_count ?? userData.report_count
+    ),
+    suspensionCount: toNonNegativeInt(moderationData?.suspension_count),
+    blockedUsersCount: blockedUsers.length,
+    addressesCount: addresses.length,
+    emailVerified: authRecord?.emailVerified ?? false,
+    authDisabled: authRecord?.disabled ?? false,
+    authExists: Boolean(authRecord),
+    providerIds: (authRecord?.providerData || [])
+      .map((provider) => provider.providerId)
+      .filter((providerId) => typeof providerId === "string"),
+    visibleInHome: privacySettings.visible_in_home !== false,
+    visibleInSearch: privacySettings.visible_in_search !== false,
+    ghostMode: privacySettings.ghost_mode === true,
+    matchpointActive: matchpointProfile.is_active === true,
+    hasPhoto: firstNonEmptyString([userData.foto, authRecord?.photoURL]).length > 0,
+  };
+}
+
+async function buildAdminUsersFromDocs(
+  docs: Array<
+    FirebaseFirestore.QueryDocumentSnapshot |
+    FirebaseFirestore.DocumentSnapshot
+  >
+): Promise<Record<string, unknown>[]> {
+  const items = docs
+    .filter((doc) => doc.exists)
+    .map((doc) => ({
+      uid: doc.id,
+      data: (doc.data() || {}) as Record<string, unknown>,
+    }));
+  const authMap = await loadAuthUsersByUid(items.map((item) => item.uid));
+  const moderationMap = await loadModerationByUid(items.map((item) => item.uid));
+
+  return items.map((item) => buildAdminUserPayload(
+    item.uid,
+    item.data,
+    authMap.get(item.uid) || null,
+    moderationMap.get(item.uid) || null
+  ));
+}
+
+function matchesAdminSearch(
+  user: Record<string, unknown>,
+  query: string
+): boolean {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) return true;
+
+  const haystack = [
+    user.uid,
+    user.nome,
+    user.displayName,
+    user.nomeCadastro,
+    user.email,
+    user.tipoPerfilLabel,
+    user.bairro,
+    user.cidade,
+    user.estado,
+  ]
+    .map((value) => normalizeText(String(value || "")))
+    .join(" ");
+
+  return haystack.includes(normalizedQuery);
+}
+
+async function collectAdminUserDocsPage(params: {
+  pageSize: number;
+  cursorCreatedAtMs?: number | null;
+  cursorUid?: string;
+  filters: AdminUserListFilters;
+  scanLimit?: number;
+}): Promise<{
+  docs: FirebaseFirestore.QueryDocumentSnapshot[];
+  lastScannedDoc: FirebaseFirestore.QueryDocumentSnapshot | null;
+  hasMore: boolean;
+  scannedCount: number;
+}> {
+  const {
+    pageSize,
+    cursorCreatedAtMs,
+    cursorUid = "",
+    filters,
+    scanLimit = USER_PAGE_SCAN_LIMIT,
+  } = params;
+
+  let query = buildOrderedUsersQuery(
+    cursorCreatedAtMs != null ? Timestamp.fromMillis(cursorCreatedAtMs) : null,
+    cursorUid
+  );
+  const matchedDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+  let lastScannedDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+  let scannedCount = 0;
+  let hasMore = false;
+
+  while (matchedDocs.length < pageSize && scannedCount < scanLimit) {
+    const remainingToScan = scanLimit - scannedCount;
+    const batchSize = Math.min(USER_QUERY_BATCH_SIZE, remainingToScan);
+    const snap = await query.limit(batchSize).get();
+
+    if (snap.empty) {
+      hasMore = false;
+      break;
+    }
+
+    for (let i = 0; i < snap.docs.length; i++) {
+      const doc = snap.docs[i];
+      const data = doc.data() as Record<string, unknown>;
+
+      scannedCount += 1;
+      lastScannedDoc = doc;
+
+      if (matchesAdminFilters(data, filters)) {
+        matchedDocs.push(doc);
+      }
+
+      if (matchedDocs.length >= pageSize) {
+        hasMore = i < snap.docs.length - 1 || snap.docs.length === batchSize;
+        break;
+      }
+    }
+
+    if (matchedDocs.length >= pageSize) {
+      break;
+    }
+
+    if (snap.docs.length < batchSize) {
+      hasMore = false;
+      break;
+    }
+
+    if (!lastScannedDoc) {
+      hasMore = false;
+      break;
+    }
+
+    const lastCreatedAt = lastScannedDoc.get("created_at");
+    if (!(lastCreatedAt instanceof Timestamp)) {
+      hasMore = false;
+      break;
+    }
+
+    hasMore = true;
+    query = buildOrderedUsersQuery(lastCreatedAt, lastScannedDoc.id);
+  }
+
+  if (scannedCount >= scanLimit && matchedDocs.length < pageSize) {
+    hasMore = true;
+  }
+
+  return {
+    docs: matchedDocs,
+    lastScannedDoc,
+    hasMore,
+    scannedCount,
+  };
+}
+
 // ================================================================
 // AUTH: Definir custom claim admin
 // ================================================================
@@ -147,13 +702,17 @@ export const getFeaturedProfiles = onCall(
       const userDoc = await db.collection("users").doc(uid).get();
       if (userDoc.exists) {
         const userData = userDoc.data() || {};
+        const payload = buildAdminUserPayload(
+          uid,
+          userData as Record<string, unknown>
+        );
         profiles.push({
           uid,
-          nome: userData.nome || userData.name || "",
-          foto: userData.foto || userData.photoUrl || "",
-          tipoPerfil: userData.tipo_perfil || userData.tipoPerfil || "",
-          likeCount: userData.likeCount || 0,
-          cidade: userData.cidade || "",
+          nome: payload.nome,
+          foto: payload.foto,
+          tipoPerfil: payload.tipoPerfilLabel,
+          likeCount: payload.likeCount,
+          cidade: payload.cidade,
         });
       }
     }
@@ -182,81 +741,131 @@ export const lookupUser = onCall(
 
     const userData = userDoc.data() || {};
 
-    // Buscar moderação
+    let authRecord: admin.auth.UserRecord | null = null;
+    try {
+      authRecord = await admin.auth().getUser(uid);
+    } catch (error) {
+      console.warn(`Auth record não encontrado para ${uid}:`, error);
+    }
+
     const modDoc = await db.collection("userModerations").doc(uid).get();
     const modData = modDoc.exists ? modDoc.data() : null;
 
-    return {
+    return buildAdminUserPayload(
       uid,
-      nome: userData.nome || userData.name || "",
-      email: userData.email || "",
-      foto: userData.foto || userData.photoUrl || "",
-      tipoPerfil: userData.tipo_perfil || userData.tipoPerfil || "",
-      status: userData.status || "active",
-      likeCount: userData.likeCount || 0,
-      cidade: userData.cidade || "",
-      estado: userData.estado || "",
-      bio: userData.bio || "",
-      createdAt: userData.createdAt || null,
-      suspendedUntil: userData.suspended_until || null,
-      reportCount: modData?.report_count || 0,
-      suspensionCount: modData?.suspension_count || 0,
-    };
+      userData as Record<string, unknown>,
+      authRecord,
+      modData as Record<string, unknown> | null
+    );
   }
 );
 
 export const searchUsers = onCall(
-  { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
+  { region: "southamerica-east1", memory: "256MiB", invoker: "public", maxInstances: 1 },
   async (request) => {
     assertAdmin(request);
 
-    const query = request.data?.query as string || "";
+    const rawQuery = (request.data?.query as string || "").trim();
     const limit = Math.min((request.data?.limit as number) || 20, 50);
-    const results: Record<string, unknown>[] = [];
 
-    if (!query || query.length < 2) {
-      // Retornar usuários recentes
-      const snap = await db.collection("users")
-        .orderBy("createdAt", "desc")
-        .limit(limit)
-        .get();
-      for (const doc of snap.docs) {
-        const data = doc.data();
-        results.push({
-          uid: doc.id,
-          nome: data.nome || data.name || "",
-          email: data.email || "",
-          foto: data.foto || data.photoUrl || "",
-          tipoPerfil: data.tipo_perfil || data.tipoPerfil || "",
-          status: data.status || "active",
-        });
-      }
+    if (!rawQuery || rawQuery.length < 2) {
+      const page = await collectAdminUserDocsPage({
+        pageSize: limit,
+        filters: {
+          status: "all",
+          profileType: "all",
+          registrationStatus: "all",
+        },
+        scanLimit: Math.max(limit * 4, 120),
+      });
+
+      const results = await buildAdminUsersFromDocs(page.docs);
       return { results, total: results.length };
     }
 
-    const queryLower = query.toLowerCase();
+    const userDocsByUid = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+    const trimmedQuery = rawQuery.trim();
 
-    // Busca por nome (prefixo)
-    const nameSnap = await db
-      .collection("users")
-      .where("searchName", ">=", queryLower)
-      .where("searchName", "<=", queryLower + "\uf8ff")
-      .limit(limit)
-      .get();
-
-    for (const doc of nameSnap.docs) {
-      const data = doc.data();
-      results.push({
-        uid: doc.id,
-        nome: data.nome || data.name || "",
-        email: data.email || "",
-        foto: data.foto || data.photoUrl || "",
-        tipoPerfil: data.tipo_perfil || data.tipoPerfil || "",
-        status: data.status || "active",
-      });
+    if (trimmedQuery.length > 20 && !trimmedQuery.includes(" ")) {
+      const exactDoc = await db.collection("users").doc(trimmedQuery).get();
+      if (exactDoc.exists) {
+        userDocsByUid.set(exactDoc.id, exactDoc);
+      }
     }
 
+    if (trimmedQuery.includes("@")) {
+      const emailSnap = await db.collection("users")
+        .where("email", "==", trimmedQuery)
+        .limit(Math.min(limit, 10))
+        .get();
+
+      for (const doc of emailSnap.docs) {
+        userDocsByUid.set(doc.id, doc);
+      }
+    }
+
+    const searchPoolLimit = Math.min(Math.max(limit * 12, 200), 500);
+    const recentSnap = await buildOrderedUsersQuery()
+      .limit(searchPoolLimit)
+      .get();
+
+    for (const doc of recentSnap.docs) {
+      userDocsByUid.set(doc.id, doc);
+    }
+
+    const enrichedUsers = await buildAdminUsersFromDocs([...userDocsByUid.values()]);
+    const results = enrichedUsers
+      .filter((user) => matchesAdminSearch(user, trimmedQuery))
+      .sort((a, b) => toNonNegativeInt(b.createdAt) - toNonNegativeInt(a.createdAt))
+      .slice(0, limit);
+
     return { results, total: results.length };
+  }
+);
+
+export const listUsersAdmin = onCall(
+  { region: "southamerica-east1", memory: "512MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const rawPageSize = Number(request.data?.pageSize ?? 24);
+    const pageSize = Math.min(
+      Math.max(Number.isFinite(rawPageSize) ? Math.floor(rawPageSize) : 24, 1),
+      60
+    );
+    const cursor = asRecord(request.data?.cursor);
+    const includeTotal = request.data?.includeTotal !== false;
+    const filters: AdminUserListFilters = {
+      status: firstNonEmptyString([request.data?.status], "all"),
+      profileType: firstNonEmptyString([request.data?.profileType], "all"),
+      registrationStatus: firstNonEmptyString(
+        [request.data?.registrationStatus],
+        "all"
+      ),
+    };
+
+    const page = await collectAdminUserDocsPage({
+      pageSize,
+      cursorCreatedAtMs: getTimestampMillis(cursor.createdAt),
+      cursorUid: firstNonEmptyString([cursor.uid]),
+      filters,
+    });
+    const users = await buildAdminUsersFromDocs(page.docs);
+    const lastReturnedDoc = page.lastScannedDoc;
+    const totalUsersBase = includeTotal ?
+      (await db.collection("users").count().get()).data().count || 0 :
+      null;
+
+    return {
+      users,
+      totalUsersBase,
+      scannedCount: page.scannedCount,
+      hasMore: page.hasMore,
+      nextCursor: lastReturnedDoc ? {
+        uid: lastReturnedDoc.id,
+        createdAt: getTimestampMillis(lastReturnedDoc.get("created_at")),
+      } : null,
+    };
   }
 );
 
@@ -568,12 +1177,12 @@ export const getDashboardStats = onCall(
 
     // New users last 24h
     const newUsers24h = await db.collection("users")
-      .where("createdAt", ">=", oneDayAgo)
+      .where("created_at", ">=", oneDayAgo)
       .count().get();
 
     // New users last 7d
     const newUsers7d = await db.collection("users")
-      .where("createdAt", ">=", sevenDaysAgo)
+      .where("created_at", ">=", sevenDaysAgo)
       .count().get();
 
     // Pending reports

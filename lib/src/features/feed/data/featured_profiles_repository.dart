@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../domain/feed_item.dart';
 
@@ -12,7 +13,7 @@ part 'featured_profiles_repository.g.dart';
 /// uma lista de UIDs definidos manualmente pelo painel admin.
 @Riverpod(keepAlive: true)
 FeaturedProfilesRepository featuredProfilesRepository(Ref ref) {
-  return FeaturedProfilesRepository(FirebaseFirestore.instance);
+  return FeaturedProfilesRepository(ref.read(firebaseFirestoreProvider));
 }
 
 class FeaturedProfilesRepository {

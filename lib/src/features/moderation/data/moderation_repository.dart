@@ -4,10 +4,11 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../constants/firestore_constants.dart';
 import '../../../core/errors/failures.dart';
+import '../../../core/providers/firebase_providers.dart';
 import '../../../core/typedefs.dart';
 
 final moderationRepositoryProvider = Provider<ModerationRepository>((ref) {
-  return ModerationRepository(FirebaseFirestore.instance);
+  return ModerationRepository(ref.read(firebaseFirestoreProvider));
 });
 
 class ModerationRepository {

@@ -45,7 +45,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
                   onTap: () {
                     if (match.conversationId != null) {
                       context.push(
-                        '${RoutePaths.conversation}/${match.conversationId}',
+                        RoutePaths.conversationById(match.conversationId!),
                         extra: {
                           'otherUserId': match.otherUserId,
                           'otherUserName': otherUserName,
@@ -196,8 +196,9 @@ class _MatchTile extends StatelessWidget {
                             ),
                           ),
                           onTap: () {
-                            context.pop();
-                            context.push('${RoutePaths.publicProfile}/$userId');
+                            final router = GoRouter.of(context);
+                            router.pop();
+                            router.push(RoutePaths.publicProfileById(userId));
                           },
                         ),
                         ListTile(

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -8,6 +10,16 @@ import 'package:mube/src/features/bands/data/invites_repository.dart';
 
 @GenerateMocks([FirebaseFunctions, HttpsCallable, HttpsCallableResult])
 import 'invites_repository_test.mocks.dart';
+
+class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  @override
+  User? get currentUser => null;
+}
+
+class _FakeAppCheck extends Fake implements app_check.FirebaseAppCheck {
+  @override
+  Future<String?> getToken([bool? forceRefresh]) async => null;
+}
 
 void main() {
   late InvitesRepository repository;
@@ -25,7 +37,12 @@ void main() {
     when(mockResult.data).thenReturn({'success': true});
     when(mockCallable.call<dynamic>(any)).thenAnswer((_) async => mockResult);
 
-    repository = InvitesRepository(mockFunctions, fakeFirestore);
+    repository = InvitesRepository(
+      mockFunctions,
+      fakeFirestore,
+      auth: _FakeFirebaseAuth(),
+      appCheck: _FakeAppCheck(),
+    );
   });
 
   group('InvitesRepository', () {

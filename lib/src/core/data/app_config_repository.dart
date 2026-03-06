@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../constants/app_constants.dart' as fallback;
 import '../domain/app_config.dart';
+import '../providers/firebase_providers.dart';
 
 part 'app_config_repository.g.dart';
 
@@ -14,8 +14,12 @@ class AppConfigRepository {
   static const _versionKey = 'app_config_version';
 
   final FirebaseFirestore _firestore;
+  final SharedPreferencesLoader _loadPreferences;
 
-  AppConfigRepository(this._firestore);
+  AppConfigRepository(
+    this._firestore, {
+    required SharedPreferencesLoader loadPreferences,
+  }) : _loadPreferences = loadPreferences;
 
   /// Busca config do Firestore, com cache local e fallback
   Future<AppConfig> fetchConfig() async {
@@ -43,7 +47,7 @@ class AppConfigRepository {
 
   Future<void> _saveToCache(AppConfig config) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _loadPreferences();
       await prefs.setString(_cacheKey, jsonEncode(config.toJson()));
       await prefs.setInt(_versionKey, config.version);
     } catch (e) {
@@ -53,7 +57,7 @@ class AppConfigRepository {
 
   Future<AppConfig?> _loadFromCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _loadPreferences();
       final json = prefs.getString(_cacheKey);
       if (json != null) {
         return AppConfig.fromJson(jsonDecode(json));
@@ -119,5 +123,8 @@ class AppConfigRepository {
 
 @Riverpod(keepAlive: true)
 AppConfigRepository appConfigRepository(Ref ref) {
-  return AppConfigRepository(FirebaseFirestore.instance);
+  return AppConfigRepository(
+    ref.watch(firebaseFirestoreProvider),
+    loadPreferences: ref.watch(sharedPreferencesLoaderProvider),
+  );
 }

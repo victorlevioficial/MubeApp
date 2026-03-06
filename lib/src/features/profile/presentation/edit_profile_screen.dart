@@ -188,7 +188,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       if (mounted) {
         AppSnackBar.warning(
           context,
-          'Aguarde o envio da mídia terminar para salvar o perfil.',
+          editState.uploadStatus.isNotEmpty
+              ? editState.uploadStatus
+              : 'Aguarde o envio da mídia terminar para salvar o perfil.',
         );
       }
       return;
@@ -223,6 +225,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   Future<void> _handleBack(AppUser user) async {
     final state = ref.read(editProfileControllerProvider(user.uid));
+
+    if (state.isUploadingMedia) {
+      if (mounted) {
+        AppSnackBar.warning(
+          context,
+          state.uploadStatus.isNotEmpty
+              ? state.uploadStatus
+              : 'Aguarde o processamento da mídia terminar antes de sair.',
+        );
+      }
+      return;
+    }
 
     if (!state.hasChanges) {
       context.pop();
@@ -271,7 +285,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         final isContractor = user.tipoPerfil == AppUserType.contractor;
 
         return PopScope(
-          canPop: !editState.hasChanges,
+          canPop: !editState.hasChanges && !editState.isUploadingMedia,
           onPopInvokedWithResult: (didPop, result) async {
             if (didPop) return;
             unawaited(_handleBack(user));

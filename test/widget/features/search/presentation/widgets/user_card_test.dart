@@ -214,11 +214,11 @@ void main() {
         ),
       );
 
-      final textWidget = tester.widget<Text>(
-        find.text(
-          'Nome Muito Longo Que Deveria Ser Truncado Para Caber No Card',
-        ),
-      );
+      final textWidget = tester
+          .widgetList<Text>(find.byType(Text))
+          .firstWhere(
+            (widget) => widget.data == userWithLongName.appDisplayName,
+          );
       expect(textWidget.overflow, TextOverflow.ellipsis);
       expect(textWidget.maxLines, 1);
     });

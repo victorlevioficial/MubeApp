@@ -9,13 +9,22 @@ import '../../utils/app_logger.dart';
 import 'push_notification_event_bus.dart';
 
 class PushNotificationService {
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+  final FirebaseMessaging _fcm;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+  final FlutterLocalNotificationsPlugin _localNotifications;
   static Future<void>? _activeInitialization;
   static bool _isInitialized = false;
+
+  PushNotificationService({
+    required FirebaseMessaging fcm,
+    required FirebaseFirestore firestore,
+    required FirebaseAuth auth,
+    required FlutterLocalNotificationsPlugin localNotifications,
+  }) : _fcm = fcm,
+       _firestore = firestore,
+       _auth = auth,
+       _localNotifications = localNotifications;
 
   /// The conversation currently being viewed by the user.
   /// When set, push notifications for this conversation are suppressed

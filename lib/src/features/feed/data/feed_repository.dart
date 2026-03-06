@@ -11,6 +11,7 @@ import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/distance_calculator.dart';
 import '../../../utils/geohash_helper.dart';
+import '../domain/feed_discovery.dart';
 import '../domain/feed_item.dart';
 import '../domain/paginated_feed_response.dart';
 import 'feed_remote_data_source.dart';
@@ -23,9 +24,86 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
 
 /// Repository for feed-related data operations.
 class FeedRepository {
+  static const int _discoverScanBatchSize = 120;
+
   final FeedRemoteDataSource _dataSource;
 
   FeedRepository(this._dataSource);
+
+  /// Loads the complete visible feed pool and sorts it deterministically.
+  ///
+  /// This is the canonical source for discovery surfaces that need
+  /// consistent pagination, because the full candidate set is built before
+  /// slicing local pages.
+  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    List<String> excludedIds = const [],
+    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+  }) async {
+    final scanStopwatch = AppPerformanceTracker.startSpan(
+      'feed.repo.discover_pool_scan',
+      data: {'filter': filter.name},
+    );
+    try {
+      final items = <FeedItem>[];
+      DocumentSnapshot<Map<String, dynamic>>? cursor;
+      var scannedDocs = 0;
+      final diagnostics = _FeedPoolDiagnostics();
+
+      while (true) {
+        final snapshot = await _dataSource.getDiscoverFeedBatch(
+          limit: _discoverScanBatchSize,
+          startAfter: cursor,
+        );
+
+        if (snapshot.docs.isEmpty) break;
+
+        scannedDocs += snapshot.docs.length;
+        cursor = snapshot.docs.last;
+
+        for (final doc in snapshot.docs) {
+          final item = _buildVisibleFeedItem(
+            data: doc.data(),
+            docId: doc.id,
+            currentUserId: currentUserId,
+            userLat: userLat,
+            userLong: userLong,
+            excludedIds: excludedIds,
+            diagnostics: diagnostics,
+          );
+          if (item == null) continue;
+          if (!FeedDiscovery.matchesFilter(item, filter)) continue;
+          diagnostics.countAdded(item);
+          items.add(item);
+        }
+
+        if (snapshot.docs.length < _discoverScanBatchSize) {
+          break;
+        }
+      }
+
+      items.sort(FeedDiscovery.compareByDistance);
+      AppPerformanceTracker.finishSpan(
+        'feed.repo.discover_pool_scan',
+        scanStopwatch,
+        data: {
+          'scanned_docs': scannedDocs,
+          'results': items.length,
+          ...diagnostics.toMap(),
+        },
+      );
+      return Right(items);
+    } catch (e) {
+      AppPerformanceTracker.finishSpan(
+        'feed.repo.discover_pool_scan',
+        scanStopwatch,
+        data: {'status': 'error', 'error_type': e.runtimeType.toString()},
+      );
+      return Left(mapExceptionToFailure(e));
+    }
+  }
 
   /// Fetches users near a location. Returns [Right(List<FeedItem>)] or [Left(Failure)].
   ///
@@ -262,8 +340,8 @@ class FeedRepository {
 
       // Calculate distance if we have user location
       if (userLat != null && userLong != null && item.location != null) {
-        final itemLat = item.location!['lat'] as double?;
-        final itemLng = item.location!['lng'] as double?;
+        final itemLat = (item.location!['lat'] as num?)?.toDouble();
+        final itemLng = (item.location!['lng'] as num?)?.toDouble();
 
         if (itemLat != null && itemLng != null) {
           item = item.copyWith(
@@ -281,6 +359,74 @@ class FeedRepository {
     }
 
     return items;
+  }
+
+  FeedItem? _buildVisibleFeedItem({
+    required Map<String, dynamic> data,
+    required String docId,
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    required List<String> excludedIds,
+    _FeedPoolDiagnostics? diagnostics,
+  }) {
+    if (docId == currentUserId) {
+      diagnostics?.skippedSelf++;
+      return null;
+    }
+    if (excludedIds.contains(docId)) {
+      diagnostics?.skippedBlocked++;
+      return null;
+    }
+
+    final tipoPerfil = data[FirestoreFields.profileType] as String?;
+    if (tipoPerfil != ProfileType.professional &&
+        tipoPerfil != ProfileType.band &&
+        tipoPerfil != ProfileType.studio) {
+      diagnostics?.skippedType++;
+      return null;
+    }
+
+    final cadastroStatus = data[FirestoreFields.registrationStatus] as String?;
+    if (cadastroStatus != RegistrationStatus.complete) {
+      diagnostics?.skippedIncomplete++;
+      return null;
+    }
+
+    final status = data['status'] as String? ?? 'ativo';
+    if (status != 'ativo') {
+      diagnostics?.skippedInactive++;
+      return null;
+    }
+
+    final privacy = data['privacy_settings'] as Map<String, dynamic>?;
+    if (privacy != null && privacy['visible_in_home'] == false) {
+      diagnostics?.skippedHidden++;
+      return null;
+    }
+
+    var item = FeedItem.fromFirestore(data, docId);
+
+    if (userLat != null && userLong != null && item.location != null) {
+      final itemLat = (item.location!['lat'] as num?)?.toDouble();
+      final itemLng = (item.location!['lng'] as num?)?.toDouble();
+      if (itemLat != null && itemLng != null) {
+        item = item.copyWith(
+          distanceKm: DistanceCalculator.haversine(
+            fromLat: userLat,
+            fromLng: userLong,
+            toLat: itemLat,
+            toLng: itemLng,
+          ),
+        );
+      } else {
+        diagnostics?.resultsWithoutDistance++;
+      }
+    } else {
+      diagnostics?.resultsWithoutDistance++;
+    }
+
+    return item;
   }
 
   List<FeedItem> _filterProfessionals(
@@ -746,49 +892,70 @@ class FeedRepository {
     List<String> excludedIds,
   ) {
     for (final doc in snapshot.docs) {
-      // Skip self
-      if (doc.id == currentUserId) continue;
-
-      // Skip duplicates
       if (seenUids.contains(doc.id)) continue;
-
-      // Skip blocked
-      if (excludedIds.contains(doc.id)) continue;
-
-      final data = doc.data();
-
-      // Skip contractors
-      if (data['tipo_perfil'] == 'contratante') continue;
-
-      // Skip incomplete profiles
-      final cadastroStatus = data['cadastro_status'] as String?;
-      final status = data['status'] as String? ?? 'ativo';
-      if (cadastroStatus != 'concluido' || status != 'ativo') continue;
-
-      // Skip ghost mode
-      final privacy = data['privacy_settings'] as Map<String, dynamic>?;
-      if (privacy != null && privacy['visible_in_home'] == false) continue;
-
-      var item = FeedItem.fromFirestore(data, doc.id);
-
-      // Calculate exact distance
-      if (item.location != null) {
-        final itemLat = item.location!['lat'] as double?;
-        final itemLng = item.location!['lng'] as double?;
-        if (itemLat != null && itemLng != null) {
-          item = item.copyWith(
-            distanceKm: DistanceCalculator.haversine(
-              fromLat: userLat,
-              fromLng: userLong,
-              toLat: itemLat,
-              toLng: itemLng,
-            ),
-          );
-        }
-      }
+      final item = _buildVisibleFeedItem(
+        data: doc.data(),
+        docId: doc.id,
+        currentUserId: currentUserId,
+        userLat: userLat,
+        userLong: userLong,
+        excludedIds: excludedIds,
+      );
+      if (item == null) continue;
 
       seenUids.add(doc.id);
       results.add(item);
     }
+  }
+}
+
+final class _FeedPoolDiagnostics {
+  int skippedSelf = 0;
+  int skippedBlocked = 0;
+  int skippedType = 0;
+  int skippedIncomplete = 0;
+  int skippedInactive = 0;
+  int skippedHidden = 0;
+  int professionals = 0;
+  int bands = 0;
+  int studios = 0;
+  int technicians = 0;
+  int artists = 0;
+  int resultsWithoutDistance = 0;
+
+  void countAdded(FeedItem item) {
+    switch (item.tipoPerfil) {
+      case ProfileType.professional:
+        professionals++;
+        if (FeedDiscovery.isPureTechnician(item)) {
+          technicians++;
+        } else {
+          artists++;
+        }
+        break;
+      case ProfileType.band:
+        bands++;
+        break;
+      case ProfileType.studio:
+        studios++;
+        break;
+    }
+  }
+
+  Map<String, Object> toMap() {
+    return {
+      'skipped_self': skippedSelf,
+      'skipped_blocked': skippedBlocked,
+      'skipped_type': skippedType,
+      'skipped_incomplete': skippedIncomplete,
+      'skipped_inactive': skippedInactive,
+      'skipped_hidden': skippedHidden,
+      'pool_professionals': professionals,
+      'pool_artists': artists,
+      'pool_technicians': technicians,
+      'pool_bands': bands,
+      'pool_studios': studios,
+      'results_without_distance': resultsWithoutDistance,
+    };
   }
 }

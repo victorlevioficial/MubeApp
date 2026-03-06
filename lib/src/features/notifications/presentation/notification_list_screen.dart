@@ -111,7 +111,7 @@ class NotificationListScreen extends ConsumerWidget {
       case NotificationType.chatMessage:
         if (notification.conversationId != null) {
           context.push(
-            '${RoutePaths.conversation}/${notification.conversationId}',
+            RoutePaths.conversationById(notification.conversationId!),
           );
         }
         break;

@@ -20,6 +20,7 @@ import 'package:mube/src/features/chat/domain/message.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/paginated_favorites_response.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
+import 'package:mube/src/features/feed/domain/feed_discovery.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
@@ -279,6 +280,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   List<FeedItem> studios = [];
   List<FeedItem> technicians = [];
   List<FeedItem> professionals = [];
+  List<FeedItem> discoverFeedPool = [];
   PaginatedFeedResponse? mainFeedResponse;
 
   Future<void> _maybeWait() async {
@@ -348,6 +350,33 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
     return Either.right(nearbyUsers);
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    List<String> excludedIds = const [],
+    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    final source = discoverFeedPool.isNotEmpty
+        ? discoverFeedPool
+        : [
+            ...nearbyUsers,
+            ...professionals,
+            ...artists,
+            ...technicians,
+            ...bands,
+            ...studios,
+          ];
+    final filtered = source
+        .where((item) => !excludedIds.contains(item.uid))
+        .where((item) => FeedDiscovery.matchesFilter(item, filter))
+        .toList(growable: false);
+    return Either.right(filtered);
   }
 
   @override

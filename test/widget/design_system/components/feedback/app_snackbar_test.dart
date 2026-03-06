@@ -30,6 +30,10 @@ void main() {
 
       expect(find.text('Success Message'), findsOneWidget);
       expect(find.byIcon(Icons.check_circle_outline), findsOneWidget);
+      expect(
+        tester.widget<SnackBar>(find.byType(SnackBar)).behavior,
+        SnackBarBehavior.fixed,
+      );
     });
 
     testWidgets('shows error snackbar', (WidgetTester tester) async {
@@ -53,6 +57,10 @@ void main() {
 
       expect(find.text('Error Message'), findsOneWidget);
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(
+        tester.widget<SnackBar>(find.byType(SnackBar)).behavior,
+        SnackBarBehavior.fixed,
+      );
     });
   });
 }

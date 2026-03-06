@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../foundations/tokens/app_colors.dart';
+import '../../foundations/tokens/app_effects.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
 import '../../foundations/tokens/app_typography.dart';
@@ -137,110 +138,211 @@ class _EnhancedMultiSelectModalState<T>
     return AnimatedPadding(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: Material(
-        color: AppColors.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius: AppRadius.top24,
-          side: BorderSide(color: AppColors.border),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SizedBox(
-          height: maxHeight,
-          child: Column(
-            children: [
-              _ModalHeader(
-                title: widget.title,
-                subtitle: widget.subtitle,
-                selectedCount: _selected.length,
+      padding: AppSpacing.screenHorizontal.add(
+        EdgeInsets.only(bottom: bottomInset),
+      ),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.top24,
+              boxShadow: AppEffects.floatingShadow,
+            ),
+            child: Material(
+              color: AppColors.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.top24,
+                side: BorderSide(color: AppColors.border),
               ),
-              if (widget.showSearch)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.s16,
-                    AppSpacing.s16,
-                    AppSpacing.s16,
-                    AppSpacing.s8,
-                  ),
-                  child: AppTextField(
-                    controller: _searchController,
-                    hint: widget.searchHint ?? 'Buscar...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(
-                              Icons.clear,
-                              size: 18,
-                              color: AppColors.textSecondary,
-                            ),
-                            onPressed: _searchController.clear,
-                          )
-                        : null,
-                    textInputAction: TextInputAction.search,
-                  ),
-                ),
-              Expanded(
-                child: _filteredItems.isEmpty
-                    ? _EmptySelectionState(searchQuery: _searchController.text)
-                    : ListView.separated(
+              clipBehavior: Clip.antiAlias,
+              child: SizedBox(
+                height: maxHeight,
+                child: Column(
+                  children: [
+                    _ModalHeader(
+                      title: widget.title,
+                      subtitle: widget.subtitle,
+                      selectedCount: _selected.length,
+                    ),
+                    if (widget.showSearch)
+                      Padding(
                         padding: const EdgeInsets.fromLTRB(
                           AppSpacing.s16,
+                          AppSpacing.s16,
+                          AppSpacing.s16,
                           AppSpacing.s8,
-                          AppSpacing.s16,
-                          AppSpacing.s16,
                         ),
-                        itemCount: _filteredItems.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.s10),
-                        itemBuilder: (context, index) {
-                          final item = _filteredItems[index];
-                          return _SelectionTile(
-                            key: ValueKey('${widget.title}-$index'),
-                            label: widget.itemLabel(item),
-                            isSelected: _selected.contains(item),
-                            onTap: () => _toggleItem(item),
-                          );
-                        },
+                        child: AppTextField(
+                          controller: _searchController,
+                          hint: widget.searchHint ?? 'Buscar...',
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    size: 18,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                  onPressed: _searchController.clear,
+                                )
+                              : null,
+                          textInputAction: TextInputAction.search,
+                        ),
                       ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s16,
-                  AppSpacing.s16,
-                  AppSpacing.s16,
-                  AppSpacing.s20,
-                ),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border(
-                    top: BorderSide(color: AppColors.border, width: 1),
-                  ),
-                ),
-                child: Row(
-                  children: [
                     Expanded(
-                      child: AppButton.outline(
-                        text: 'Cancelar',
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
+                      child: _filteredItems.isEmpty
+                          ? _EmptySelectionState(
+                              searchQuery: _searchController.text,
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.s16,
+                                AppSpacing.s8,
+                                AppSpacing.s16,
+                                AppSpacing.s16,
+                              ),
+                              itemCount: _filteredItems.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: AppSpacing.s10),
+                              itemBuilder: (context, index) {
+                                final item = _filteredItems[index];
+                                return _SelectionTile(
+                                  key: ValueKey('${widget.title}-$index'),
+                                  label: widget.itemLabel(item),
+                                  isSelected: _selected.contains(item),
+                                  onTap: () => _toggleItem(item),
+                                );
+                              },
+                            ),
                     ),
-                    const SizedBox(width: AppSpacing.s12),
-                    Expanded(
-                      flex: 2,
-                      child: AppButton.primary(
-                        text:
-                            'Confirmar${_selected.isNotEmpty ? ' (${_selected.length})' : ''}',
-                        onPressed: _selected.isNotEmpty
-                            ? () => Navigator.of(context).pop(_selected)
-                            : null,
-                      ),
+                    _ModalFooter(
+                      selectedCount: _selected.length,
+                      onCancel: () => Navigator.of(context).pop(),
+                      onConfirm: _selected.isNotEmpty
+                          ? () => Navigator.of(context).pop(_selected)
+                          : null,
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ModalFooter extends StatelessWidget {
+  const _ModalFooter({
+    required this.selectedCount,
+    required this.onCancel,
+    required this.onConfirm,
+  });
+
+  final int selectedCount;
+  final VoidCallback onCancel;
+  final VoidCallback? onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelection = selectedCount > 0;
+    final summaryText = hasSelection
+        ? '$selectedCount ${selectedCount == 1 ? 'item pronto' : 'itens prontos'} para confirmar'
+        : 'Selecione pelo menos um item para continuar';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s16,
+        AppSpacing.s14,
+        AppSpacing.s16,
+        AppSpacing.s20,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.surface.withValues(alpha: 0.94),
+            AppColors.surface,
+          ],
+        ),
+        border: const Border(
+          top: BorderSide(color: AppColors.border, width: 1),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s10,
+            ),
+            decoration: BoxDecoration(
+              color: hasSelection
+                  ? AppColors.primary.withValues(alpha: 0.12)
+                  : AppColors.surface2,
+              borderRadius: AppRadius.all12,
+              border: Border.all(
+                color: hasSelection
+                    ? AppColors.primary.withValues(alpha: 0.24)
+                    : AppColors.border,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  hasSelection
+                      ? Icons.playlist_add_check_circle_outlined
+                      : Icons.touch_app_rounded,
+                  size: 18,
+                  color: hasSelection
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                ),
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: Text(
+                    summaryText,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: hasSelection
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                      fontWeight: hasSelection ? FontWeight.w600 : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton.secondary(
+                  text: 'Cancelar',
+                  size: AppButtonSize.large,
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: onCancel,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                flex: 2,
+                child: AppButton.primary(
+                  text: hasSelection ? 'Confirmar seleção' : 'Selecionar itens',
+                  size: AppButtonSize.large,
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  onPressed: onConfirm,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

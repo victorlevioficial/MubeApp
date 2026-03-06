@@ -21,6 +21,7 @@ import '../../../utils/app_logger.dart';
 import '../data/auth_repository.dart';
 
 part 'email_verification_screen.g.dart';
+part 'email_verification_screen_ui.dart';
 
 /// State class for email verification with cooldown and polling info
 class EmailVerificationState {
@@ -338,239 +339,36 @@ class _EmailVerificationScreenState
     }
   }
 
+  void _onResendPressed() {
+    ref
+        .read(emailVerificationControllerProvider.notifier)
+        .resendVerificationEmail();
+  }
+
+  void _onCheckPressed() {
+    ref
+        .read(emailVerificationControllerProvider.notifier)
+        .checkVerificationStatus();
+  }
+
+  Future<void> _signOut() async {
+    await ref.read(authRepositoryProvider).signOut();
+    if (!mounted) return;
+    context.go(RoutePaths.login);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    if (l10n == null) return const SizedBox.shrink();
+    if (AppLocalizations.of(context) == null) {
+      return const SizedBox.shrink();
+    }
 
     final state = ref.watch(emailVerificationControllerProvider);
-
     final user = ref.watch(authRepositoryProvider).currentUser;
     final email = user?.email ?? 'seu email';
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveCenter(
-            maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s16,
-              vertical: AppSpacing.s32,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // HEADER
-                Column(
-                  children: [
-                    Center(
-                      child: SvgPicture.asset(
-                        AppAssets.logoHorizontalSvg,
-                        height: AppSpacing.s48,
-                        fit: BoxFit.scaleDown,
-                        placeholderBuilder: (context) =>
-                            const SizedBox(height: AppSpacing.s48),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s32),
-
-                    // Animated Email Icon
-                    ScaleTransition(
-                      scale: _pulseAnimation,
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: AppRadius.all24,
-                        ),
-                        child: const Icon(
-                          Icons.mark_email_unread_outlined,
-                          size: 40,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s24),
-
-                    Text(
-                      'Verifique seu email',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.headlineCompact.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s16),
-
-                    Text(
-                      'Enviamos um link de verificação para',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s8),
-                    Text(
-                      email,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodyLarge.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: AppTypography.titleSmall.fontWeight,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s16),
-
-                    Text(
-                      'Clique no link no email para verificar sua conta e continuar.',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.s40),
-
-                // INFO BOX
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.s16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceHighlight,
-                    borderRadius: AppRadius.all12,
-                    border: Border.all(
-                      color: AppColors.border.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: AppSpacing.s8),
-                          Expanded(
-                            child: Text(
-                              'Não recebeu o email?',
-                              style: AppTypography.titleSmall.copyWith(
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.s8),
-                      Text(
-                        'Verifique sua pasta de spam ou lixo eletrônico. Se não encontrar, você pode solicitar um novo email.',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.s32),
-
-                // Success message when email was resent
-                if (state.resendCooldownSeconds > 0 &&
-                    state.resendCooldownSeconds >= 55) ...[
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.s16),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: AppRadius.all12,
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_outline,
-                          color: AppColors.success,
-                        ),
-                        const SizedBox(width: AppSpacing.s8),
-                        Expanded(
-                          child: Text(
-                            'Email reenviado com sucesso!',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.s16),
-                ],
-
-                // RESEND BUTTON with cooldown
-                SizedBox(
-                  height: 56,
-                  child: AppButton.primary(
-                    text: state.resendCooldownSeconds > 0
-                        ? 'Reenviar em ${state.resendCooldownSeconds}s'
-                        : 'Reenviar email',
-                    isLoading: state.isResending,
-                    onPressed:
-                        state.isResending ||
-                            state.isChecking ||
-                            state.resendCooldownSeconds > 0
-                        ? null
-                        : () {
-                            ref
-                                .read(
-                                  emailVerificationControllerProvider.notifier,
-                                )
-                                .resendVerificationEmail();
-                          },
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.s16),
-
-                // CHECK BUTTON
-                SizedBox(
-                  height: 56,
-                  child: AppButton.secondary(
-                    text: 'Já verifiquei meu email',
-                    isLoading: state.isChecking,
-                    onPressed: state.isChecking || state.isResending
-                        ? null
-                        : () {
-                            ref
-                                .read(
-                                  emailVerificationControllerProvider.notifier,
-                                )
-                                .checkVerificationStatus();
-                          },
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.s24),
-
-                // LOGOUT OPTION
-                Center(
-                  child: TextButton(
-                    onPressed: () async {
-                      await ref.read(authRepositoryProvider).signOut();
-                      if (context.mounted) {
-                        context.go(RoutePaths.login);
-                      }
-                    },
-                    child: Text(
-                      'Sair e usar outra conta',
-                      style: AppTypography.link,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      body: _buildVerificationBody(state: state, email: email),
     );
   }
 }

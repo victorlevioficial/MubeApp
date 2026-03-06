@@ -4,6 +4,7 @@ import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../../onboarding/providers/notification_permission_prompt_provider.dart';
 
@@ -17,20 +18,16 @@ enum AppBootstrapState { idle, running, ready }
 typedef AppCheckBootstrapper = Future<void> Function();
 
 final appCheckBootstrapperProvider = Provider<AppCheckBootstrapper>((ref) {
-  return initializeAppCheck;
+  final appCheck = ref.watch(firebaseAppCheckProvider);
+  return () => initializeAppCheck(appCheck);
 });
 
 class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
-  static const Duration _appCheckStartupDelay = Duration(seconds: 3);
   bool _isStarting = false;
   Future<void>? _appCheckActivation;
-  Timer? _appCheckTimer;
 
   @override
   AppBootstrapState build() {
-    ref.onDispose(() {
-      _appCheckTimer?.cancel();
-    });
     return AppBootstrapState.idle;
   }
 
@@ -43,7 +40,7 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     state = AppBootstrapState.running;
 
     try {
-      _ensureAppCheckActivation();
+      await _ensureAppCheckActivation();
       unawaited(_warmNotificationPermissionPromptState());
     } catch (error, stack) {
       AppLogger.warning(
@@ -57,20 +54,27 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     }
   }
 
-  void _ensureAppCheckActivation() {
-    if (_appCheckActivation != null || _appCheckTimer != null) return;
+  Future<void> _ensureAppCheckActivation() {
+    final inFlight = _appCheckActivation;
+    if (inFlight != null) return inFlight;
 
-    _appCheckTimer = Timer(_appCheckStartupDelay, () {
-      _appCheckTimer = null;
-      _appCheckActivation = ref
-          .read(appCheckBootstrapperProvider)()
-          .catchError((Object error, StackTrace stack) {
-            AppLogger.warning('Falha ao inicializar App Check', error, stack);
-          })
-          .whenComplete(() {
-            _appCheckActivation = null;
-          });
-    });
+    final activation = ref
+        .read(appCheckBootstrapperProvider)()
+        .timeout(const Duration(seconds: 8))
+        .catchError((Object error, StackTrace stack) {
+          AppLogger.warning(
+            'Falha ao inicializar App Check',
+            error,
+            stack,
+            false,
+          );
+        })
+        .whenComplete(() {
+          _appCheckActivation = null;
+        });
+
+    _appCheckActivation = activation;
+    return activation;
   }
 
   Future<void> _warmNotificationPermissionPromptState() async {
@@ -91,10 +95,10 @@ final appBootstrapProvider =
       AppBootstrapNotifier.new,
     );
 
-Future<void> initializeAppCheck() async {
+Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
   try {
     if (kReleaseMode) {
-      await app_check.FirebaseAppCheck.instance.activate(
+      await appCheck.activate(
         // ignore: deprecated_member_use
         androidProvider: app_check.AndroidProvider.playIntegrity,
         // ignore: deprecated_member_use
@@ -103,7 +107,7 @@ Future<void> initializeAppCheck() async {
       return;
     }
 
-    await app_check.FirebaseAppCheck.instance.activate(
+    await appCheck.activate(
       providerAndroid: const app_check.AndroidDebugProvider(),
       providerApple: const app_check.AppleDebugProvider(
         debugToken: _appCheckDebugToken,
@@ -115,6 +119,11 @@ Future<void> initializeAppCheck() async {
       'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
     );
   } catch (error, stack) {
-    AppLogger.warning('Falha ao ativar provider do App Check', error, stack);
+    AppLogger.warning(
+      'Falha ao ativar provider do App Check',
+      error,
+      stack,
+      false,
+    );
   }
 }

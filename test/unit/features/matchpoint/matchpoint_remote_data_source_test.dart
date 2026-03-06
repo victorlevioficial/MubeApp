@@ -183,16 +183,29 @@ Map<String, dynamic> _optionalEntry(String key, Object? value) {
   return <String, dynamic>{key: value};
 }
 
+MatchpointRemoteDataSourceImpl _buildDataSource(
+  FirebaseFirestore firestore,
+  FirebaseFunctions functions, {
+  AnalyticsService? analytics,
+  FirebaseAuth? auth,
+  app_check.FirebaseAppCheck? appCheck,
+}) {
+  return MatchpointRemoteDataSourceImpl(
+    firestore,
+    functions,
+    analytics: analytics,
+    auth: auth ?? _FakeFirebaseAuth(),
+    appCheck: appCheck ?? _FakeAppCheck(),
+  );
+}
+
 void main() {
   group('MatchpointRemoteDataSource.fetchCandidates', () {
     test(
       'keeps legacy genre matching with case-insensitive normalization',
       () async {
         final firestore = FakeFirebaseFirestore();
-        final dataSource = MatchpointRemoteDataSourceImpl(
-          firestore,
-          _FakeFunctions(),
-        );
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
         final currentUser = AppUser.fromJson(
           _userDoc(uid: 'current', email: 'current@test.com'),
@@ -232,10 +245,7 @@ void main() {
       'returns active profiles even without shared hashtags or genres',
       () async {
         final firestore = FakeFirebaseFirestore();
-        final dataSource = MatchpointRemoteDataSourceImpl(
-          firestore,
-          _FakeFunctions(),
-        );
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
         final currentUser = AppUser.fromJson(
           _userDoc(uid: 'current', email: 'current@test.com'),
@@ -276,10 +286,7 @@ void main() {
       'prioritizes nearby profiles before hashtag and genre affinity',
       () async {
         final firestore = FakeFirebaseFirestore();
-        final dataSource = MatchpointRemoteDataSourceImpl(
-          firestore,
-          _FakeFunctions(),
-        );
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
         final currentUser = AppUser.fromJson(
           _userDoc(
@@ -350,7 +357,7 @@ void main() {
       final firestore = FakeFirebaseFirestore();
       final analytics = _RecordingAnalyticsService();
       final functions = _FakeFunctions();
-      final dataSource = MatchpointRemoteDataSourceImpl(
+      final dataSource = _buildDataSource(
         firestore,
         functions,
         analytics: analytics,
@@ -471,10 +478,7 @@ void main() {
       'keeps likes and active dislikes but ignores expired dislikes',
       () async {
         final firestore = FakeFirebaseFirestore();
-        final dataSource = MatchpointRemoteDataSourceImpl(
-          firestore,
-          _FakeFunctions(),
-        );
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
         await firestore.collection('interactions').doc('like').set({
           'source_user_id': 'current',
@@ -523,8 +527,9 @@ void main() {
       );
       final appCheck = _FakeAppCheck(
         cachedError: Exception('Too many attempts.'),
+        forcedError: Exception('Should not force refresh while throttled.'),
       );
-      final dataSource = MatchpointRemoteDataSourceImpl(
+      final dataSource = _buildDataSource(
         firestore,
         functions,
         auth: _FakeFirebaseAuth(),
@@ -548,7 +553,7 @@ void main() {
         },
       );
       final appCheck = _FakeAppCheck(cachedToken: null, forcedToken: 'fresh');
-      final dataSource = MatchpointRemoteDataSourceImpl(
+      final dataSource = _buildDataSource(
         firestore,
         functions,
         auth: _FakeFirebaseAuth(),
@@ -580,7 +585,7 @@ void main() {
         forcedToken: 'fresh',
         cachedTokenDelay: const Duration(milliseconds: 60),
       );
-      final dataSource = MatchpointRemoteDataSourceImpl(
+      final dataSource = _buildDataSource(
         firestore,
         functions,
         auth: _FakeFirebaseAuth(),
@@ -588,8 +593,8 @@ void main() {
       );
 
       await Future.wait<void>([
-        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, __) {}),
-        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, __) {}),
+        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, _) {}),
+        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, _) {}),
       ]);
 
       expect(appCheck.cachedTokenCalls, 1);

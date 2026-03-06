@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
+import '../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -88,9 +89,9 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   }
 
   Future<void> _refreshConversations() async {
-    ref.invalidate(userConversationsProvider);
     try {
-      await ref.read(userConversationsProvider.future);
+      final refreshFuture = ref.refresh(userConversationsProvider.future);
+      await refreshFuture;
     } catch (_) {
       // Keep pull-to-refresh silent when stream emits error.
     }
@@ -114,10 +115,10 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
               )
               .toList(growable: false);
           if (visibleConversations.isEmpty) {
-            return RefreshIndicator(
+            return AppRefreshIndicator(
               onRefresh: _refreshConversations,
               child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics: AppRefreshIndicator.defaultScrollPhysics,
                 children: [
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.72,
@@ -127,10 +128,10 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
               ),
             );
           }
-          return RefreshIndicator(
+          return AppRefreshIndicator(
             onRefresh: _refreshConversations,
             child: ListView.builder(
-              physics: const AlwaysScrollableScrollPhysics(),
+              physics: AppRefreshIndicator.defaultScrollPhysics,
               padding: AppSpacing.v8,
               itemCount: visibleConversations.length,
               itemBuilder: (context, index) {
@@ -151,7 +152,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
                     currentUserId: currentUserId,
                     isDeleting: isDeleting,
                     onTap: () => context.push(
-                      '${RoutePaths.conversation}/${preview.id}',
+                      RoutePaths.conversationById(preview.id),
                       extra: {
                         'otherUserId': preview.otherUserId,
                         'otherUserName': preview.otherUserName,
@@ -166,10 +167,10 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
         },
         loading: () =>
             const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
-        error: (error, stack) => RefreshIndicator(
+        error: (error, stack) => AppRefreshIndicator(
           onRefresh: _refreshConversations,
           child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: AppRefreshIndicator.defaultScrollPhysics,
             padding: AppSpacing.all24,
             children: [
               SizedBox(

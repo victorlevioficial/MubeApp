@@ -65,6 +65,13 @@ abstract final class RoutePaths {
   static String conversationById(String conversationId) =>
       '$conversation/$conversationId';
 
+  static String supportCreatePath() => '$support/$supportCreate';
+
+  static String supportTicketsPath() => '$support/$supportTickets';
+
+  static String supportTicketDetailById(String ticketId) =>
+      '${supportTicketsPath()}/ticket/$ticketId';
+
   static String legalDetail(String type) => '$legal/$type';
 
   /// Extra key used to pass avatar Hero tags across profile navigations.

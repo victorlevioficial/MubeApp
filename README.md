@@ -148,7 +148,7 @@ Guias relacionados:
 Comandos uteis:
 
 ```bash
-flutter analyze
+./scripts/analyze_app.sh
 flutter test
 flutter test test/unit/
 flutter test test/widget/
@@ -162,7 +162,7 @@ Referencia:
 
 Status esperado do workspace:
 
-- `flutter analyze` limpo
+- `./scripts/analyze_app.sh` limpo
 - `flutter test` verde
 
 ## Convenções
@@ -189,13 +189,13 @@ Fonte de verdade atual:
 - Regras de negocio: `docs/business-rules-catalog.md`
 - Estado geral do projeto: `docs/project/status.md`
 - Build e operacao: `docs/operations/build-guide.md`
+- Governanca de dependencias: `docs/dependency-governance.md`
 
 ## Internacionalizacao
 
-Idiomas suportados:
+Idioma ativo na interface:
 
 - `pt` (padrao)
-- `en`
 
 ## Projeto
 

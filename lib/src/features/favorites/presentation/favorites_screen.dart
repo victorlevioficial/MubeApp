@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/design_system/components/feedback/app_refresh_indicator.dart';
 import 'package:mube/src/design_system/components/navigation/app_app_bar.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
@@ -202,6 +203,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const refreshPhysics = AppRefreshIndicator.defaultScrollPhysics;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Meus Favoritos', showBackButton: true),
@@ -221,13 +224,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           ),
 
           Expanded(
-            child: RefreshIndicator(
-              color: AppColors.primary,
-              backgroundColor: AppColors.surface,
+            child: AppRefreshIndicator(
               onRefresh: _loadFavorites,
               child: _isLoading
                   ? ListView.separated(
                       controller: _scrollController,
+                      physics: refreshPhysics,
                       padding: EdgeInsets.zero,
                       itemCount: 6, // Show 6 skeletons
                       separatorBuilder: (context, index) =>
@@ -237,6 +239,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   : _error != null
                   ? ListView(
                       controller: _scrollController,
+                      physics: refreshPhysics,
                       children: [
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.6,
@@ -262,6 +265,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                   : _filteredItems.isEmpty
                   ? ListView(
                       controller: _scrollController,
+                      physics: refreshPhysics,
                       children: [
                         SizedBox(
                           height: MediaQuery.of(context).size.height * 0.6,
@@ -289,6 +293,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     )
                   : ListView.builder(
                       controller: _scrollController,
+                      physics: refreshPhysics,
                       padding: EdgeInsets.zero,
                       itemCount: _filteredItems.length + (_hasMore ? 1 : 0),
                       itemBuilder: (context, index) {

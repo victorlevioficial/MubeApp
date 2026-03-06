@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
@@ -586,5 +587,8 @@ class MessagesPage {
 /// Provider para ChatRepository.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   final analytics = ref.read(analyticsServiceProvider);
-  return ChatRepository(FirebaseFirestore.instance, analytics: analytics);
+  return ChatRepository(
+    ref.read(firebaseFirestoreProvider),
+    analytics: analytics,
+  );
 });

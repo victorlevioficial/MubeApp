@@ -11,7 +11,7 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
 import 'profile_type_badge.dart';
 
-/// Featured carousel that highlights top profiles from the loaded sections.
+/// Featured carousel that rotates spotlight profiles on the home feed.
 class FeaturedSpotlightCarousel extends StatefulWidget {
   final List<FeedItem> items;
   final void Function(FeedItem) onItemTap;

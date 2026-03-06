@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/analytics/analytics_provider.dart';
+import '../../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../../design_system/components/patterns/fade_in_slide.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -135,7 +136,10 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
   /// Build as a regular adaptive list/grid
   Widget _buildRegularLayout(bool isWide) {
     if (widget.isLoading && widget.items.isEmpty) {
-      return Column(
+      return ListView(
+        controller: _scrollController,
+        physics: AppRefreshIndicator.defaultScrollPhysics,
+        padding: widget.padding,
         children: List.generate(
           6,
           (index) => FeedItemSkeleton(
@@ -148,22 +152,30 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
     }
 
     if (widget.items.isEmpty && !widget.isLoading) {
-      return Center(
-        child: Text(
-          widget.emptyMessage,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+      return ListView(
+        controller: _scrollController,
+        physics: AppRefreshIndicator.defaultScrollPhysics,
+        padding: widget.padding,
+        children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.6,
+            child: Center(
+              child: Text(
+                widget.emptyMessage,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       );
     }
 
     if (!isWide) {
       return ListView.builder(
         controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: AppRefreshIndicator.defaultScrollPhysics,
         padding: widget.padding,
         itemCount: widget.items.length + (widget.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -178,6 +190,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
     // Wide Grid Layout
     return GridView.builder(
       controller: _scrollController,
+      physics: AppRefreshIndicator.defaultScrollPhysics,
       padding: widget.padding.add(const EdgeInsets.all(AppSpacing.s8)),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 450,

@@ -150,9 +150,10 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                           widget.currentUser.uid,
                           widget.matchUser.uid,
                         );
-                    context.pop(); // Close Success Screen
-                    context.push(
-                      '${RoutePaths.conversation}/$conversationId',
+                    final router = GoRouter.of(context);
+                    router.pop();
+                    router.push(
+                      RoutePaths.conversationById(conversationId),
                       extra: {
                         'otherUserId': widget.matchUser.uid,
                         'otherUserName': matchUserName,

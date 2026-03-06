@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/services/push_notification_service.dart';
+import '../../../core/services/push_notification_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_assets.dart';
@@ -76,7 +76,7 @@ class _NotificationPermissionScreenState
 
     try {
       await _markPermissionPromptAsShown();
-      await PushNotificationService().init();
+      await ref.read(pushNotificationServiceProvider).init();
     } catch (error, stackTrace) {
       AppLogger.warning(
         'Failed to handle notification permission accept flow',

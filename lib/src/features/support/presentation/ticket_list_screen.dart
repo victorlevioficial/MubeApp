@@ -95,10 +95,10 @@ class _TicketCard extends StatelessWidget {
         color: AppColors.transparent,
         child: InkWell(
           onTap: () {
-            final path =
-                '${RoutePaths.support}/${RoutePaths.supportTickets}/${RoutePaths.supportTicketDetail}'
-                    .replaceAll(':ticketId', ticket.id);
-            context.go(path, extra: ticket);
+            context.go(
+              RoutePaths.supportTicketDetailById(ticket.id),
+              extra: ticket,
+            );
           },
           borderRadius: AppRadius.all12,
           child: Padding(

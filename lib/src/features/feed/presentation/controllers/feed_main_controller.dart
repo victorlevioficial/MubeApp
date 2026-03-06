@@ -1,25 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-import '../../../../constants/firestore_constants.dart';
 import '../../../../core/mixins/pagination_mixin.dart';
-import '../../../../utils/app_logger.dart';
 import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/feed_repository.dart';
+import '../../domain/feed_discovery.dart';
 import '../../domain/feed_item.dart';
 import '../feed_state.dart';
 
-/// Estado operacional do feed principal que não pertence ao estado de UI.
+/// Runtime cache for the fully sorted discovery pool.
 class FeedMainRuntime {
   List<FeedItem> allSortedUsers = [];
-  bool remoteHasMore = true;
-  bool geoFetchCompleted = false;
-  DocumentSnapshot? lastMainFeedDocument;
+  bool hasLoadedPool = false;
   double? userLat;
   double? userLong;
 }
 
-/// Controller especializado na paginação e carga do feed principal.
+/// Controller responsible for deterministic main feed pagination.
 class FeedMainController {
   final FeedRepository _feedRepository;
 
@@ -32,221 +27,103 @@ class FeedMainController {
     required List<String> blockedIds,
     required FeedMainRuntime runtime,
     required bool reset,
+    required bool invalidatePool,
     required int batchSize,
   }) async {
     final mainFeedStopwatch = AppPerformanceTracker.startSpan(
       'feed.main_fetch',
       data: {'reset': reset, 'filter': currentState.currentFilter},
     );
-    if (reset) {
+
+    if (reset && invalidatePool) {
       runtime.allSortedUsers = [];
-      runtime.remoteHasMore = true;
-      runtime.geoFetchCompleted = false;
-      runtime.lastMainFeedDocument = null;
+      runtime.hasLoadedPool = false;
     }
 
     try {
-      final localRemaining =
-          runtime.allSortedUsers.length -
-          (currentState.currentPage * currentState.pageSize);
-      final canTryRemote = runtime.remoteHasMore;
-      final shouldFetchFromFirestore =
-          reset || (localRemaining <= 0 && canTryRemote);
+      if (!runtime.hasLoadedPool) {
+        final poolResult = await _feedRepository.getDiscoverFeedPoolSorted(
+          currentUserId: user.uid,
+          userLat: runtime.userLat,
+          userLong: runtime.userLong,
+          excludedIds: blockedIds,
+        );
 
-      AppLogger.debug(
-        'Feed Debug: localRemaining=$localRemaining, '
-        'shouldFetch=$shouldFetchFromFirestore, reset=$reset, '
-        'total=${runtime.allSortedUsers.length}',
-      );
-
-      if (shouldFetchFromFirestore) {
-        final filterType = _resolveFilterType(currentState.currentFilter);
-        final isNearbyFilter = currentState.currentFilter == 'Perto de mim';
-        var shouldFetchCursor = false;
-
-        if (runtime.userLat != null && runtime.userLong != null) {
-          if (!runtime.geoFetchCompleted) {
-            var fallbackToCursor = false;
-            var shouldReturnError = false;
-            String? errorMessage;
-
-            AppLogger.debug('Feed: Buscando usuários do Firestore...');
-            final result = await _feedRepository.getNearbyUsersOptimized(
-              currentUserId: user.uid,
-              userLat: runtime.userLat!,
-              userLong: runtime.userLong!,
-              filterType: filterType,
-              excludedIds: blockedIds,
-              targetResults: batchSize,
-            );
-
-            result.fold(
-              (failure) {
-                AppLogger.error('Feed: Erro ao buscar usuários', failure);
-                if (reset) {
-                  shouldReturnError = true;
-                  errorMessage = failure.message;
-                  runtime.allSortedUsers = [];
-                }
-              },
-              (success) {
-                AppLogger.debug(
-                  'Feed: ${success.length} usuários retornados do Firestore',
-                );
-                if (reset) {
-                  runtime.allSortedUsers = success;
-                  // Non-nearby filters should backfill from cursor when geohash
-                  // returns only a partial batch (common for users without geohash).
-                  final needsCursorBackfill =
-                      !isNearbyFilter && success.length < batchSize;
-                  fallbackToCursor = success.isEmpty || needsCursorBackfill;
-                } else {
-                  final existingIds = runtime.allSortedUsers
-                      .map((u) => u.uid)
-                      .toSet();
-                  final newUsers = success
-                      .where((u) => !existingIds.contains(u.uid))
-                      .toList();
-                  AppLogger.debug(
-                    'Feed: ${newUsers.length} usuários são novos',
-                  );
-
-                  if (newUsers.isEmpty) {
-                    AppLogger.debug('Feed: Nenhum usuário novo encontrado');
-                    fallbackToCursor = true;
-                  } else {
-                    runtime.allSortedUsers.addAll(newUsers);
-                    runtime.allSortedUsers.sort(
-                      (a, b) =>
-                          (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
-                    );
-                  }
-                }
-
-                runtime.geoFetchCompleted = true;
-
-                if (fallbackToCursor) {
-                  if (isNearbyFilter) {
-                    runtime.remoteHasMore = false;
-                  } else {
-                    shouldFetchCursor = true;
-                  }
-                }
-              },
-            );
-
-            if (shouldReturnError) {
-              AppPerformanceTracker.finishSpan(
-                'feed.main_fetch',
-                mainFeedStopwatch,
-                data: {'status': 'error', 'source': 'nearby_users'},
-              );
-              return currentState.copyWithFeed(
-                status: PaginationStatus.error,
-                errorMessage: errorMessage ?? 'Erro ao buscar usuários',
-              );
-            }
-          } else {
-            if (isNearbyFilter) {
-              runtime.remoteHasMore = false;
-            } else {
-              shouldFetchCursor = true;
-            }
-          }
-        } else {
-          if (isNearbyFilter) {
-            runtime.remoteHasMore = false;
-          } else {
-            shouldFetchCursor = true;
-          }
-        }
-
-        if (shouldFetchCursor) {
-          final cursorError = await _fetchMainFeedPage(
-            userId: user.uid,
-            filterType: filterType,
-            reset: reset,
-            blockedIds: blockedIds,
-            runtime: runtime,
-            limit: batchSize,
+        String? failureMessage;
+        poolResult.fold((error) => failureMessage = error.message, (_) => null);
+        if (failureMessage != null) {
+          AppPerformanceTracker.finishSpan(
+            'feed.main_fetch',
+            mainFeedStopwatch,
+            data: {'status': 'error', 'source': 'discover_pool'},
           );
-
-          if (cursorError != null) {
-            AppPerformanceTracker.finishSpan(
-              'feed.main_fetch',
-              mainFeedStopwatch,
-              data: {'status': 'error', 'source': 'cursor_page'},
-            );
-            return currentState.copyWithFeed(
-              status: PaginationStatus.error,
-              errorMessage: cursorError,
-            );
-          }
+          return currentState.copyWithFeed(
+            status: PaginationStatus.error,
+            errorMessage: failureMessage,
+          );
         }
-      } else {
-        AppLogger.debug(
-          'Feed: Usando paginação local, $localRemaining usuários restantes',
+
+        runtime.allSortedUsers = poolResult.getOrElse((_) => const []);
+        runtime.hasLoadedPool = true;
+        AppPerformanceTracker.mark(
+          'feed.main_pool.ready',
+          data: {
+            'pool_items': runtime.allSortedUsers.length,
+            ..._diagnosticCounts(runtime.allSortedUsers, prefix: 'pool'),
+          },
         );
       }
 
-      if (blockedIds.isNotEmpty) {
-        runtime.allSortedUsers.removeWhere(
-          (item) => blockedIds.contains(item.uid),
-        );
-      }
-
+      final filteredItems = _applyCurrentFilter(
+        runtime.allSortedUsers,
+        currentState.currentFilter,
+      );
       final page = reset ? 0 : currentState.currentPage;
-      final startIndex = page * currentState.pageSize;
-      if (startIndex >= runtime.allSortedUsers.length) {
-        final hasMore = runtime.remoteHasMore;
+      final startIndex = page * batchSize;
+
+      if (startIndex >= filteredItems.length) {
         final baseState = reset
             ? currentState.copyWithFeed(items: [], currentPage: 0)
             : currentState;
-
         AppPerformanceTracker.finishSpan(
           'feed.main_fetch',
           mainFeedStopwatch,
           data: {
-            'status': hasMore ? 'loaded' : 'no_more_data',
+            'status': 'no_more_data',
             'items': baseState.items.length,
-            'remote_has_more': runtime.remoteHasMore,
+            'pool_items': runtime.allSortedUsers.length,
+            'filtered_items': filteredItems.length,
+            ..._diagnosticCounts(filteredItems, prefix: 'filtered'),
           },
         );
         return baseState.copyWithFeed(
-          status: hasMore
-              ? PaginationStatus.loaded
-              : PaginationStatus.noMoreData,
-          hasMore: hasMore,
+          status: PaginationStatus.noMoreData,
+          hasMore: false,
         );
       }
 
-      final endIndex = (startIndex + currentState.pageSize).clamp(
-        0,
-        runtime.allSortedUsers.length,
-      );
-
-      final newItems = runtime.allSortedUsers.sublist(startIndex, endIndex);
-      final allItems = reset ? newItems : [...currentState.items, ...newItems];
-
-      final hasMoreLocal = endIndex < runtime.allSortedUsers.length;
-      final hasMore = hasMoreLocal || runtime.remoteHasMore;
-
-      AppLogger.debug(
-        'Feed: endIndex=$endIndex, total=${runtime.allSortedUsers.length}, hasMore=$hasMore',
-      );
+      final endIndex = (startIndex + batchSize).clamp(0, filteredItems.length);
+      final nextSlice = filteredItems.sublist(startIndex, endIndex);
+      final pagedItems = reset
+          ? nextSlice
+          : [...currentState.items, ...nextSlice];
+      final hasMore = endIndex < filteredItems.length;
 
       AppPerformanceTracker.finishSpan(
         'feed.main_fetch',
         mainFeedStopwatch,
         data: {
           'status': hasMore ? 'loaded' : 'no_more_data',
-          'items': allItems.length,
-          'batch_items': newItems.length,
-          'remote_has_more': runtime.remoteHasMore,
+          'items': pagedItems.length,
+          'batch_items': nextSlice.length,
+          'pool_items': runtime.allSortedUsers.length,
+          'filtered_items': filteredItems.length,
+          ..._diagnosticCounts(filteredItems, prefix: 'filtered'),
         },
       );
+
       return currentState.copyWithFeed(
-        items: allItems,
+        items: pagedItems,
         status: hasMore ? PaginationStatus.loaded : PaginationStatus.noMoreData,
         currentPage: page + 1,
         hasMore: hasMore,
@@ -264,82 +141,60 @@ class FeedMainController {
     }
   }
 
-  Future<String?> _fetchMainFeedPage({
-    required String userId,
-    required String? filterType,
-    required bool reset,
-    required List<String> blockedIds,
-    required FeedMainRuntime runtime,
-    required int limit,
-  }) async {
-    final result = await _feedRepository.getMainFeedPaginated(
-      currentUserId: userId,
-      filterType: filterType,
-      userLat: runtime.userLat,
-      userLong: runtime.userLong,
-      limit: limit,
-      startAfter: runtime.lastMainFeedDocument,
-    );
+  List<FeedItem> _applyCurrentFilter(
+    List<FeedItem> items,
+    String currentFilter,
+  ) {
+    final filter = switch (currentFilter) {
+      'Profissionais' => FeedDiscoveryFilter.professionals,
+      'Bandas' => FeedDiscoveryFilter.bands,
+      'Estúdios' => FeedDiscoveryFilter.studios,
+      _ => FeedDiscoveryFilter.all,
+    };
 
-    return result.fold(
-      (failure) {
-        AppLogger.error('Feed: Erro ao buscar página', failure);
-        runtime.remoteHasMore = false;
-
-        if (reset && runtime.allSortedUsers.isEmpty) {
-          final message = failure.message.trim();
-          return message.isNotEmpty ? message : 'Erro ao buscar usuários';
-        }
-
-        if (reset) {
-          AppLogger.debug(
-            'Feed: falha em cursor durante reset, mantendo fallback local',
-          );
-        }
-
-        return null;
-      },
-      (response) {
-        runtime.lastMainFeedDocument = response.lastDocument;
-        runtime.remoteHasMore = response.hasMore;
-
-        final remoteItems = blockedIds.isEmpty
-            ? response.items
-            : response.items
-                  .where((item) => !blockedIds.contains(item.uid))
-                  .toList();
-
-        final existingIds = runtime.allSortedUsers.map((u) => u.uid).toSet();
-        final newUsers = remoteItems
-            .where((u) => !existingIds.contains(u.uid))
-            .toList();
-
-        if (newUsers.isNotEmpty) {
-          // Keep cursor batches consistent with proximity ordering.
-          newUsers.sort(
-            (a, b) =>
-                (a.distanceKm ?? double.infinity).compareTo(
-                  b.distanceKm ?? double.infinity,
-                ),
-          );
-          runtime.allSortedUsers.addAll(newUsers);
-        }
-
-        return null;
-      },
-    );
+    return items
+        .where((item) => FeedDiscovery.matchesFilter(item, filter))
+        .toList(growable: false);
   }
 
-  String? _resolveFilterType(String currentFilter) {
-    switch (currentFilter) {
-      case 'Profissionais':
-        return ProfileType.professional;
-      case 'Bandas':
-        return ProfileType.band;
-      case 'Estúdios':
-        return ProfileType.studio;
-      default:
-        return null;
+  Map<String, Object> _diagnosticCounts(
+    List<FeedItem> items, {
+    required String prefix,
+  }) {
+    var professionals = 0;
+    var artists = 0;
+    var technicians = 0;
+    var bands = 0;
+    var studios = 0;
+    var withoutDistance = 0;
+
+    for (final item in items) {
+      if (item.distanceKm == null) withoutDistance++;
+      switch (item.tipoPerfil) {
+        case 'profissional':
+          professionals++;
+          if (FeedDiscovery.isPureTechnician(item)) {
+            technicians++;
+          } else {
+            artists++;
+          }
+          break;
+        case 'banda':
+          bands++;
+          break;
+        case 'estudio':
+          studios++;
+          break;
+      }
     }
+
+    return {
+      '${prefix}_professionals': professionals,
+      '${prefix}_artists': artists,
+      '${prefix}_technicians': technicians,
+      '${prefix}_bands': bands,
+      '${prefix}_studios': studios,
+      '${prefix}_without_distance': withoutDistance,
+    };
   }
 }

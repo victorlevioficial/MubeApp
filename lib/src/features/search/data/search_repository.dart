@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
@@ -28,9 +29,11 @@ class SearchRepository {
   final FirebaseFirestore _firestore;
   final AnalyticsService? _analytics;
 
-  SearchRepository({FirebaseFirestore? firestore, AnalyticsService? analytics})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _analytics = analytics;
+  SearchRepository({
+    required FirebaseFirestore firestore,
+    AnalyticsService? analytics,
+  }) : _firestore = firestore,
+       _analytics = analytics;
 
   /// Search for users based on filters.
   ///
@@ -433,5 +436,8 @@ class SearchRepository {
 /// Provider for SearchRepository
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   final analytics = ref.read(analyticsServiceProvider);
-  return SearchRepository(analytics: analytics);
+  return SearchRepository(
+    firestore: ref.read(firebaseFirestoreProvider),
+    analytics: analytics,
+  );
 });

@@ -38,10 +38,33 @@ class _MatchpointSetupWizardScreenState
   final TextEditingController _tagController = TextEditingController();
   bool _isVisibleInHome = true;
   bool _didPrefillFromProfile = false;
+  ProviderSubscription<AsyncValue<void>>? _matchpointSubscription;
 
   @override
   void initState() {
     super.initState();
+    _matchpointSubscription = ref.listenManual<AsyncValue<void>>(
+      matchpointControllerProvider,
+      (prev, next) {
+        next.whenOrNull(
+          error: (err, stack) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao salvar: $err'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          },
+          data: (_) {
+            if (prev?.isLoading == true && mounted) {
+              ref.invalidate(matchpointCandidatesProvider);
+              context.pop();
+            }
+          },
+        );
+      },
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefillFromCurrentProfile();
     });
@@ -104,6 +127,7 @@ class _MatchpointSetupWizardScreenState
 
   @override
   void dispose() {
+    _matchpointSubscription?.close();
     _tagController.dispose();
     super.dispose();
   }
@@ -122,26 +146,6 @@ class _MatchpointSetupWizardScreenState
         _prefillFromCurrentProfile();
       });
     }
-
-    ref.listen(matchpointControllerProvider, (prev, next) {
-      next.whenOrNull(
-        error: (err, stack) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao salvar: $err'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        },
-        data: (_) {
-          if (prev?.isLoading == true) {
-            // Only pop if we were loading (avoids init pop)
-            ref.invalidate(matchpointCandidatesProvider);
-            context.pop();
-          }
-        },
-      );
-    });
 
     return Scaffold(
       appBar: const AppAppBar(

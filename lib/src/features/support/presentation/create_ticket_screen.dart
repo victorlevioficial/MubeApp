@@ -31,6 +31,25 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
 
   final List<File> _attachments = [];
   final _picker = ImagePicker();
+  ProviderSubscription<AsyncValue<void>>? _supportSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _supportSubscription = ref.listenManual<AsyncValue<void>>(
+      supportControllerProvider,
+      (prev, next) {
+        if (next.hasValue && !next.isLoading && !next.hasError) {
+          if (mounted) {
+            AppSnackBar.success(context, 'Ticket enviado com sucesso!');
+            context.pop();
+          }
+        } else if (next.hasError && mounted) {
+          AppSnackBar.error(context, 'Erro ao enviar: ${next.error}');
+        }
+      },
+    );
+  }
 
   Future<void> _pickImage() async {
     if (_attachments.length >= 3) {
@@ -74,6 +93,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
 
   @override
   void dispose() {
+    _supportSubscription?.close();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -94,19 +114,6 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(supportControllerProvider, (prev, next) {
-      if (next.hasValue && !next.isLoading && !next.hasError) {
-        if (context.mounted) {
-          AppSnackBar.success(context, 'Ticket enviado com sucesso!');
-          context.pop(); // Go back to Support Hub
-        }
-      } else if (next.hasError) {
-        if (context.mounted) {
-          AppSnackBar.error(context, 'Erro ao enviar: ${next.error}');
-        }
-      }
-    });
-
     final isLoading = ref.watch(supportControllerProvider).isLoading;
 
     return Scaffold(

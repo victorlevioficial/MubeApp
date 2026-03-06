@@ -8,7 +8,7 @@ import '../domain/feed_section.dart';
 /// Estado específico do feed, estendendo [PaginationState].
 @immutable
 class FeedState extends PaginationState<FeedItem> {
-  /// Itens em destaque configurados pelo admin.
+  /// Itens exibidos no carrossel rotativo da home.
   final List<FeedItem> featuredItems;
 
   /// Itens das seções horizontais (destaques).

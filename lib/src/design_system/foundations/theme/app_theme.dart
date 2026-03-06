@@ -135,8 +135,7 @@ class AppTheme {
         color: AppColors.textPrimary,
       ),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.all8),
-      behavior: SnackBarBehavior.floating,
-      insetPadding: const EdgeInsets.all(AppSpacing.s16),
+      behavior: SnackBarBehavior.fixed,
       actionTextColor: AppColors.primary,
     ),
 

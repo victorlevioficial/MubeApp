@@ -417,11 +417,8 @@ void main() {
         await tester.tap(find.byKey(const Key('login_button')));
         await tester.pumpAndSettle();
 
-        // Assert - error should be shown in snackbar (the handler converts to a generic message)
-        expect(
-          find.text('Ocorreu um erro inesperado. Tente novamente.'),
-          findsOneWidget,
-        );
+        // Assert - error should be shown in snackbar with the original failure message
+        expect(find.textContaining('Credenciais'), findsOneWidget);
       });
 
       testWidgets(
@@ -463,10 +460,7 @@ void main() {
 
           // The login screen doesn't navigate automatically - the auth guard/router handles that
           // So we just verify the login was successful by checking no error is shown
-          expect(
-            find.text('Ocorreu um erro inesperado. Tente novamente.'),
-            findsNothing,
-          );
+          expect(find.textContaining('Credenciais'), findsNothing);
         },
       );
     });

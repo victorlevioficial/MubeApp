@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 
+import '../../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../../design_system/components/loading/app_shimmer.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
@@ -14,22 +15,53 @@ import '../controllers/matchpoint_controller.dart';
 class HashtagRankingScreen extends ConsumerWidget {
   const HashtagRankingScreen({super.key});
 
+  Future<void> _refreshRanking(WidgetRef ref) async {
+    final refreshFuture = ref.refresh(hashtagRankingProvider(50).future);
+    await refreshFuture;
+  }
+
+  Widget _buildRefreshableState(
+    BuildContext context,
+    WidgetRef ref, {
+    required Widget child,
+  }) {
+    return AppRefreshIndicator(
+      onRefresh: () => _refreshRanking(ref),
+      child: ListView(
+        physics: AppRefreshIndicator.defaultScrollPhysics,
+        padding: const EdgeInsets.all(AppSpacing.s16),
+        children: [
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.72,
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rankingAsync = ref.watch(hashtagRankingProvider(50));
 
     return rankingAsync.when(
-      data: (rankings) => _buildRankingList(rankings, ref),
+      data: (rankings) => _buildRankingList(context, rankings, ref),
       loading: () => _buildLoadingState(),
-      error: (error, stack) => EmptyStateWidget(
-        icon: Icons.error_outline,
-        title: 'Erro ao carregar ranking',
-        subtitle: 'Tente novamente mais tarde',
-        actionButton: TextButton(
-          onPressed: () => ref.refresh(hashtagRankingProvider(50)),
-          child: Text(
-            'Tentar novamente',
-            style: AppTypography.labelLarge.copyWith(color: AppColors.primary),
+      error: (error, stack) => _buildRefreshableState(
+        context,
+        ref,
+        child: EmptyStateWidget(
+          icon: Icons.error_outline,
+          title: 'Erro ao carregar ranking',
+          subtitle: 'Puxe para atualizar ou tente novamente.',
+          actionButton: TextButton(
+            onPressed: () => _refreshRanking(ref),
+            child: Text(
+              'Tentar novamente',
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.primary,
+              ),
+            ),
           ),
         ),
       ),
@@ -57,22 +89,31 @@ class HashtagRankingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRankingList(List<HashtagRanking> rankings, WidgetRef ref) {
+  Widget _buildRankingList(
+    BuildContext context,
+    List<HashtagRanking> rankings,
+    WidgetRef ref,
+  ) {
     final visibleRankings = rankings
         .where((item) => item.useCount > 0)
         .toList();
 
     if (visibleRankings.isEmpty) {
-      return const EmptyStateWidget(
-        icon: Icons.tag,
-        title: 'Nenhuma hashtag ainda',
-        subtitle: 'As hashtags mais populares aparecerão aqui',
+      return _buildRefreshableState(
+        context,
+        ref,
+        child: const EmptyStateWidget(
+          icon: Icons.tag,
+          title: 'Nenhuma hashtag ainda',
+          subtitle: 'As hashtags mais populares aparecerão aqui',
+        ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async => ref.refresh(hashtagRankingProvider(50)),
+    return AppRefreshIndicator(
+      onRefresh: () => _refreshRanking(ref),
       child: ListView.builder(
+        physics: AppRefreshIndicator.defaultScrollPhysics,
         padding: const EdgeInsets.all(AppSpacing.s16),
         itemCount: visibleRankings.length + 1, // +1 para header
         itemBuilder: (context, index) {

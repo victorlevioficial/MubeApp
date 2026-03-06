@@ -490,6 +490,7 @@ class _VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isProcessing = item.isProcessing;
+    final isTranscodePending = item.isUploading && item.uploadProgress >= 1.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -519,6 +520,15 @@ class _VideoCard extends StatelessWidget {
                         color: AppColors.primary,
                       ),
                     ),
+                    if (isTranscodePending) ...[
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        'Processando',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

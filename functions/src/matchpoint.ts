@@ -17,6 +17,8 @@ const db = admin.firestore();
 
 const DAILY_SWIPE_LIMIT = 50;
 const INTERACTION_EXPIRY_DAYS = 30;
+const MATCH_NOTIFICATION_TYPE = "system";
+const MATCH_NOTIFICATION_ROUTE_PREFIX = "/conversation/";
 
 /**
  * Estrutura do request para submitMatchpointAction.
@@ -71,6 +73,214 @@ interface RankingAuditResponse {
   bucketId: string;
 }
 
+interface NotificationInput {
+  userId: string;
+  notificationId: string;
+  type: string;
+  title: string;
+  body: string;
+  senderId?: string;
+  conversationId?: string;
+  route?: string;
+  data?: Record<string, string>;
+}
+
+interface MatchNotificationInput {
+  senderUserId: string;
+  recipientUserId: string;
+  conversationId: string;
+}
+
+/**
+ * Retorna o primeiro texto não vazio de uma lista.
+ *
+ * @param {unknown[]} values - Valores candidatos.
+ * @param {string=} fallback - Valor padrão quando nada é válido.
+ * @return {string} Primeiro texto válido encontrado.
+ */
+function firstNonEmptyString(values: unknown[], fallback = ""): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
+/**
+ * Converte um valor arbitrário em objeto indexável.
+ *
+ * @param {unknown} value - Valor recebido do Firestore.
+ * @return {Record<string, unknown>} Objeto seguro para leitura.
+ */
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+/**
+ * Resolve nome de exibição para notificações de match.
+ *
+ * @param {Record<string, unknown>} userData - Documento do usuário.
+ * @return {string} Nome amigável para título da notificação.
+ */
+function resolveMatchSenderName(userData: Record<string, unknown>): string {
+  const professionalProfile = asRecord(userData.profissional);
+  const bandProfile = asRecord(userData.banda);
+  const studioProfile = asRecord(userData.estudio);
+  const contractorProfile = asRecord(userData.contratante);
+
+  return firstNonEmptyString([
+    professionalProfile.nomeArtistico,
+    bandProfile.nomeBanda,
+    bandProfile.nomeArtistico,
+    studioProfile.nomeEstudio,
+    studioProfile.nomeArtistico,
+    contractorProfile.nomeExibicao,
+    userData.nome_artistico,
+    userData.nome,
+  ], "Novo match");
+}
+
+/**
+ * Cria/atualiza uma notificação no Firestore do usuário.
+ *
+ * @param {NotificationInput} input - Dados da notificação.
+ * @return {Promise<void>} Promise concluída após persistência.
+ */
+async function upsertUserNotification(input: NotificationInput): Promise<void> {
+  const {
+    userId,
+    notificationId,
+    type,
+    title,
+    body,
+    senderId,
+    conversationId,
+    route,
+    data,
+  } = input;
+
+  await db
+    .collection("users")
+    .doc(userId)
+    .collection("notifications")
+    .doc(notificationId)
+    .set({
+      type,
+      title,
+      body,
+      senderId: senderId ?? null,
+      conversationId: conversationId ?? null,
+      route: route ?? null,
+      ...data,
+      isRead: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+}
+
+/**
+ * Envia push notification best-effort para o usuário.
+ *
+ * @param {NotificationInput} input - Dados da notificação.
+ * @return {Promise<void>} Promise concluída após tentativa de envio.
+ */
+async function sendPushNotification(input: NotificationInput): Promise<void> {
+  const userDoc = await db.collection("users").doc(input.userId).get();
+  const userData = userDoc.data() || {};
+  const fcmToken = userData.fcm_token;
+
+  if (typeof fcmToken !== "string" || fcmToken.trim().length === 0) {
+    return;
+  }
+
+  await admin.messaging().send({
+    token: fcmToken,
+    notification: {
+      title: input.title,
+      body: input.body,
+    },
+    data: {
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+      type: input.type,
+      route: input.route ?? "",
+      sender_id: input.senderId ?? "",
+      conversation_id: input.conversationId ?? "",
+      ...(input.data ?? {}),
+    },
+    android: {
+      notification: {
+        channelId: "high_importance_channel",
+        tag: input.notificationId,
+      },
+      collapseKey: input.notificationId,
+    },
+    apns: {
+      headers: {
+        "apns-collapse-id": input.notificationId,
+      },
+    },
+  });
+}
+
+/**
+ * Persiste a notificação e tenta enviar push sem derrubar o fluxo principal.
+ *
+ * @param {NotificationInput} input - Dados da notificação.
+ * @return {Promise<void>} Promise concluída após tentativa.
+ */
+async function notifyUser(input: NotificationInput): Promise<void> {
+  try {
+    await upsertUserNotification(input);
+    await sendPushNotification(input);
+  } catch (error) {
+    console.error(`Erro ao notificar usuario ${input.userId}:`, error);
+  }
+}
+
+/**
+ * Notifica o usuário que recebeu match de volta no MatchPoint.
+ *
+ * @param {MatchNotificationInput} input - Dados do match.
+ * @return {Promise<void>} Promise concluída após tentativa.
+ */
+async function notifyMatchCreated(
+  input: MatchNotificationInput
+): Promise<void> {
+  const {
+    senderUserId,
+    recipientUserId,
+    conversationId,
+  } = input;
+
+  try {
+    const senderDoc = await db.collection("users").doc(senderUserId).get();
+    const senderData = senderDoc.data() || {};
+    const senderName = resolveMatchSenderName(senderData);
+    const route = `${MATCH_NOTIFICATION_ROUTE_PREFIX}${conversationId}`;
+
+    await notifyUser({
+      userId: recipientUserId,
+      notificationId: `match_${conversationId}`,
+      type: MATCH_NOTIFICATION_TYPE,
+      title: "Novo match no MatchPoint",
+      body: `${senderName} curtiu você também.`,
+      senderId: senderUserId,
+      conversationId,
+      route,
+      data: {conversation_id: conversationId},
+    });
+  } catch (error) {
+    console.error(
+      `Erro ao enviar notificacao de match para ${recipientUserId}:`,
+      error
+    );
+  }
+}
+
 /**
  * Cloud Function: submitMatchpointAction.
  *
@@ -82,7 +292,9 @@ interface RankingAuditResponse {
 export const submitMatchpointAction = onCall(
   {
     region: "southamerica-east1",
-    memory: "256MiB",
+    memory: "128MiB",
+    cpu: "gcf_gen1",
+    maxInstances: 1,
     timeoutSeconds: 10,
     enforceAppCheck: true,
     invoker: "public",
@@ -247,6 +459,12 @@ export const submitMatchpointAction = onCall(
         }),
         mutualLikeQuery.docs[0].ref.update({resulted_in_match: true}),
       ]);
+
+      await notifyMatchCreated({
+        senderUserId: currentUserId,
+        recipientUserId: targetUserId,
+        conversationId: matchResult.conversationId,
+      });
 
       return {
         success: true,
@@ -618,9 +836,13 @@ export const recordMatchpointRankingAudit = onCall(
           pool_genre_sum: FieldValue.increment(payload.poolGenre),
           pool_fallback_sum: FieldValue.increment(payload.poolFallback),
           pool_local_total_sum: FieldValue.increment(payload.poolLocalTotal),
-          pool_local_hashtag_sum: FieldValue.increment(payload.poolLocalHashtag),
+          pool_local_hashtag_sum: FieldValue.increment(
+            payload.poolLocalHashtag
+          ),
           pool_local_genre_sum: FieldValue.increment(payload.poolLocalGenre),
-          returned_proximity_sum: FieldValue.increment(payload.returnedProximity),
+          returned_proximity_sum: FieldValue.increment(
+            payload.returnedProximity
+          ),
           returned_hashtag_sum: FieldValue.increment(payload.returnedHashtag),
           returned_genre_sum: FieldValue.increment(payload.returnedGenre),
           returned_fallback_sum: FieldValue.increment(payload.returnedFallback),
@@ -648,6 +870,12 @@ export const recordMatchpointRankingAudit = onCall(
   }
 );
 
+/**
+ * Valida e normaliza payload de auditoria de ranking.
+ *
+ * @param {Partial<RankingAuditRequest>} payload - Payload bruto recebido.
+ * @return {RankingAuditRequest} Payload sanitizado.
+ */
 function sanitizeRankingAuditRequest(
   payload: Partial<RankingAuditRequest>
 ): RankingAuditRequest {
@@ -767,6 +995,14 @@ function sanitizeRankingAuditRequest(
   return result;
 }
 
+/**
+ * Lê e valida um inteiro não-negativo para auditoria.
+ *
+ * @param {unknown} value - Valor bruto.
+ * @param {string} fieldName - Nome do campo para erro.
+ * @param {number=} max - Máximo permitido.
+ * @return {number} Valor inteiro validado.
+ */
 function readAuditInteger(
   value: unknown,
   fieldName: string,
@@ -778,12 +1014,21 @@ function readAuditInteger(
 
   const normalized = Math.floor(value);
   if (normalized < 0 || normalized > max) {
-    throw new HttpsError("invalid-argument", `${fieldName} fora do intervalo.`);
+    throw new HttpsError(
+      "invalid-argument",
+      `${fieldName} fora do intervalo.`
+    );
   }
 
   return normalized;
 }
 
+/**
+ * Gera identificador/bucket horário para agregação de auditoria.
+ *
+ * @param {Date} now - Data/hora de referência.
+ * @return {{bucketId: string, bucketStart: Timestamp}} Bucket normalizado.
+ */
 function getRankingAuditBucket(now: Date): {
   bucketId: string;
   bucketStart: Timestamp;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -125,9 +126,7 @@ class _ReceivedFavoritesScreenState
         title: 'Quem favoritou você',
         showBackButton: true,
       ),
-      body: RefreshIndicator(
-        color: AppColors.primary,
-        backgroundColor: AppColors.surface,
+      body: AppRefreshIndicator(
         onRefresh: _loadReceivedFavorites,
         child: _buildContent(context),
       ),
@@ -135,9 +134,7 @@ class _ReceivedFavoritesScreenState
   }
 
   Widget _buildContent(BuildContext context) {
-    const physics = AlwaysScrollableScrollPhysics(
-      parent: BouncingScrollPhysics(),
-    );
+    const physics = AppRefreshIndicator.defaultScrollPhysics;
 
     if (_isLoading) {
       return SkeletonShimmer(
@@ -253,7 +250,7 @@ class _ReceivedFavoriteTile extends StatelessWidget {
       color: Colors.transparent,
       borderRadius: AppRadius.all16,
       child: InkWell(
-        onTap: () => context.push('${RoutePaths.publicProfile}/${item.uid}'),
+        onTap: () => context.push(RoutePaths.publicProfileById(item.uid)),
         borderRadius: AppRadius.all16,
         child: Ink(
           decoration: BoxDecoration(

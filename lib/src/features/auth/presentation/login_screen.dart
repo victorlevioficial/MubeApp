@@ -81,6 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  ProviderSubscription<AsyncValue<void>>? _loginSubscription;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -110,11 +111,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         );
 
+    _loginSubscription = ref.listenManual<AsyncValue<void>>(
+      loginControllerProvider,
+      (previous, next) {
+        if (next.hasError && !(previous?.hasError ?? false)) {
+          final message = AuthExceptionHandler.handleException(next.error!);
+          if (mounted) {
+            AppSnackBar.show(context, message, isError: true);
+          }
+        }
+      },
+    );
+
     _animationController.forward();
   }
 
   @override
   void dispose() {
+    _loginSubscription?.close();
     _emailController.dispose();
     _passwordController.dispose();
     _animationController.dispose();
@@ -144,15 +158,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<void>>(loginControllerProvider, (previous, next) {
-      if (next.hasError && !(previous?.hasError ?? false)) {
-        final message = AuthExceptionHandler.handleException(next.error!);
-        if (context.mounted) {
-          AppSnackBar.show(context, message, isError: true);
-        }
-      }
-    });
-
     final state = ref.watch(loginControllerProvider);
 
     return Scaffold(

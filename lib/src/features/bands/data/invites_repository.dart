@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/providers/firebase_providers.dart';
+import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 
 part 'invites_repository.g.dart';
@@ -12,22 +14,26 @@ part 'invites_repository.g.dart';
 @Riverpod(keepAlive: true)
 InvitesRepository invitesRepository(Ref ref) {
   return InvitesRepository(
-    FirebaseFunctions.instanceFor(region: 'southamerica-east1'),
-    FirebaseFirestore.instance,
+    ref.read(firebaseFunctionsProvider),
+    ref.read(firebaseFirestoreProvider),
+    auth: ref.read(firebaseAuthProvider),
+    appCheck: ref.read(firebaseAppCheckProvider),
   );
 }
 
 class InvitesRepository {
+  static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
+  static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
   final FirebaseFunctions _functions;
   final FirebaseFirestore _firestore;
-  final FirebaseAuth? _auth;
-  final app_check.FirebaseAppCheck? _appCheck;
+  final FirebaseAuth _auth;
+  final app_check.FirebaseAppCheck _appCheck;
 
   InvitesRepository(
     this._functions,
     this._firestore, {
-    FirebaseAuth? auth,
-    app_check.FirebaseAppCheck? appCheck,
+    required FirebaseAuth auth,
+    required app_check.FirebaseAppCheck appCheck,
   }) : _auth = auth,
        _appCheck = appCheck;
 
@@ -50,28 +56,27 @@ class InvitesRepository {
   }
 
   Future<void> _refreshFunctionSecurityContext() async {
-    final currentUser = (_auth ?? FirebaseAuth.instance).currentUser;
+    final currentUser = _auth.currentUser;
     if (currentUser != null) {
       try {
         await currentUser.getIdToken(true);
+        await currentUser.reload();
       } catch (error, stack) {
         AppLogger.warning(
           'Falha ao atualizar token do FirebaseAuth antes do retry de convite',
           error,
           stack,
+          false,
         );
       }
     }
 
-    try {
-      await (_appCheck ?? app_check.FirebaseAppCheck.instance).getToken(true);
-    } catch (error, stack) {
-      AppLogger.warning(
-        'Falha ao atualizar token do App Check antes do retry de convite',
-        error,
-        stack,
-      );
-    }
+    await AppCheckRefreshCoordinator.ensureValidToken(
+      _appCheck,
+      operationLabel: 'retry de convite de banda',
+      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
+      throttledBackoff: _throttledAppCheckBackoff,
+    );
   }
 
   Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(

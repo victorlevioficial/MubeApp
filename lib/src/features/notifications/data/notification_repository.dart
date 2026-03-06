@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/firebase_providers.dart';
 import '../domain/notification_model.dart';
 
 /// Provider for the NotificationRepository.
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository(FirebaseFirestore.instance);
+  return NotificationRepository(ref.read(firebaseFirestoreProvider));
 });
 
 /// Repository for managing user notifications in Firestore.

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
+import '../feedback/app_refresh_indicator.dart';
 
 // =============================================================================
 // SKELETON PRIMITIVES
@@ -255,13 +257,18 @@ class FeedCardSkeleton extends StatelessWidget {
 /// Lista de FeedCardSkeletons.
 class FeedListSkeleton extends StatelessWidget {
   final int itemCount;
+  final ScrollPhysics physics;
 
-  const FeedListSkeleton({super.key, this.itemCount = 5});
+  const FeedListSkeleton({
+    super.key,
+    this.itemCount = 5,
+    this.physics = AppRefreshIndicator.defaultScrollPhysics,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      physics: const NeverScrollableScrollPhysics(),
+      physics: physics,
       itemCount: itemCount,
       itemBuilder: (context, index) => const FeedCardSkeleton(),
     );

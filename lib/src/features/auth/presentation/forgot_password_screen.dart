@@ -57,9 +57,33 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _emailSent = false;
+  ProviderSubscription<AsyncValue<void>>? _forgotPasswordSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _forgotPasswordSubscription = ref.listenManual<AsyncValue<void>>(
+      forgotPasswordControllerProvider,
+      (previous, next) {
+        if (next.hasError && !(previous?.hasError ?? false)) {
+          final message = AuthExceptionHandler.handleException(next.error!);
+          if (mounted) {
+            AppSnackBar.show(context, message, isError: true);
+          }
+        }
+
+        if (next.hasValue && previous?.isLoading == true && mounted) {
+          setState(() {
+            _emailSent = true;
+          });
+        }
+      },
+    );
+  }
 
   @override
   void dispose() {
+    _forgotPasswordSubscription?.close();
     _emailController.dispose();
     super.dispose();
   }
@@ -76,24 +100,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (l10n == null) return const SizedBox.shrink();
-
-    ref.listen<AsyncValue<void>>(forgotPasswordControllerProvider, (
-      previous,
-      next,
-    ) {
-      if (next.hasError && !(previous?.hasError ?? false)) {
-        final message = AuthExceptionHandler.handleException(next.error!);
-        if (context.mounted) {
-          AppSnackBar.show(context, message, isError: true);
-        }
-      }
-
-      if (next.hasValue && previous?.isLoading == true) {
-        setState(() {
-          _emailSent = true;
-        });
-      }
-    });
 
     final state = ref.watch(forgotPasswordControllerProvider);
 

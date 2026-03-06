@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../constants/firestore_constants.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
@@ -47,7 +47,7 @@ class _MatchpointExploreScreenState
   }
 
   Future<void> _checkTutorialStatus() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ref.read(sharedPreferencesLoaderProvider)();
     final seen = prefs.getBool('matchpoint_tutorial_seen') ?? false;
     if (mounted && !seen) {
       setState(() {
@@ -57,7 +57,7 @@ class _MatchpointExploreScreenState
   }
 
   Future<void> _dismissTutorial() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ref.read(sharedPreferencesLoaderProvider)();
     await prefs.setBool('matchpoint_tutorial_seen', true);
     if (mounted) {
       setState(() {

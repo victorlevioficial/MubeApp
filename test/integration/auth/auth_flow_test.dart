@@ -152,11 +152,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SnackBar), findsOneWidget);
-        // It shows 'Ocorreu um erro inesperado' because next.error is a String (failure.message)
-        expect(
-          find.textContaining('Ocorreu um erro inesperado'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('conta com este e-mail'), findsOneWidget);
       });
     });
 
@@ -240,10 +236,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SnackBar), findsOneWidget);
-        expect(
-          find.textContaining('Ocorreu um erro inesperado'),
-          findsOneWidget,
-        );
+        expect(find.textContaining('Erro de conex'), findsOneWidget);
       });
 
       testWidgets('should trim email', (tester) async {

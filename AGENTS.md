@@ -12,7 +12,8 @@ Para detalhes, siga sempre os arquivos-fonte citados aqui. Eles sao a fonte da v
 - App Flutter para conectar musicos, bandas, estudios e contratantes no Brasil
 - Stack principal: Flutter, Dart 3.8+, Firebase, Riverpod, GoRouter
 - Tema atual: dark only
-- Idiomas suportados: `pt` e `en`, com `pt` como padrao
+- Idioma ativo na interface: `pt`
+- Infra de localizacao para `en` existe, mas nao esta em circulacao no app
 
 Arquivos-chave:
 
@@ -37,6 +38,7 @@ Em praticamente toda tarefa, leia nesta ordem:
 Para contexto adicional:
 
 - Visao geral do projeto: `README.md`
+- Governanca de dependencias: `docs/dependency-governance.md`
 - Testes: `test/README.md`
 - Arquitetura e indices: `CODE_INDEX.md`, `ARCHITECTURE.md`, `docs/architecture-spec.md`
 - Design system atual: `docs/reference/design-system-current.md`
@@ -174,6 +176,7 @@ test/
 
 Comandos uteis:
 
+- `./scripts/analyze_app.sh`
 - `flutter test`
 - `flutter test test/unit/`
 - `flutter test test/widget/`

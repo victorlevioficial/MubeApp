@@ -9,16 +9,20 @@ import 'package:go_router/go_router.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
-import 'core/services/push_notification_service.dart';
+import 'core/services/push_notification_provider.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/domain/app_user.dart';
+import 'features/auth/domain/user_type.dart';
 import 'features/auth/presentation/account_deletion_provider.dart';
+import 'features/bands/domain/band_activation_rules.dart';
+import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/feed/presentation/feed_controller.dart';
 import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'routing/app_router.dart';
 import 'routing/route_paths.dart';
+import 'shared/widgets/dismiss_keyboard_on_tap.dart';
 import 'utils/app_logger.dart';
 import 'utils/app_performance_tracker.dart';
 
@@ -44,6 +48,10 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasBootstrappedPushForSession = false;
   bool _hasPrefetchedFeedForSession = false;
   bool _hasReleasedInitialRoute = false;
+  bool _hasPendingBandMembersReminderEvaluation = false;
+  bool _hasShownBandMembersReminderForSession = false;
+  bool _isBandMembersReminderVisible = false;
+  String? _bandMembersReminderUserId;
   Timer? _pushBootstrapTimer;
 
   @override
@@ -105,6 +113,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
             AppLogger.clearUserIdentifier();
             AppLogger.setCustomKey('auth_user_present', false);
           }
+          _handleBandMembersReminderSession(user);
           _handlePushBootstrapForAuthState(user);
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
             ref.read(accountDeletionInProgressProvider.notifier).clear();
@@ -151,8 +160,29 @@ class _MubeAppState extends ConsumerState<MubeApp> {
             },
           );
           _maybePrefetchFeed(profile);
+          unawaited(_maybeShowBandMembersReminder(profile));
         });
       },
+    );
+  }
+
+  void _handleBandMembersReminderSession(User? user) {
+    if (user == null) {
+      _hasPendingBandMembersReminderEvaluation = false;
+      _hasShownBandMembersReminderForSession = false;
+      _isBandMembersReminderVisible = false;
+      _bandMembersReminderUserId = null;
+      return;
+    }
+
+    if (_bandMembersReminderUserId == user.uid) return;
+
+    _bandMembersReminderUserId = user.uid;
+    _hasPendingBandMembersReminderEvaluation = true;
+    _hasShownBandMembersReminderForSession = false;
+    _isBandMembersReminderVisible = false;
+    unawaited(
+      _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
     );
   }
 
@@ -195,7 +225,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
         return;
       }
 
-      await PushNotificationService().initIfPermissionAlreadyGranted();
+      await ref
+          .read(pushNotificationServiceProvider)
+          .initIfPermissionAlreadyGranted();
       AppPerformanceTracker.finishSpan(
         'push.bootstrap_for_logged_user',
         pushBootstrapStopwatch,
@@ -212,16 +244,128 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   }
 
   void _handleRouterStateChanged() {
-    if (_hasReleasedInitialRoute) return;
+    final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (!_hasReleasedInitialRoute) {
+      if (currentPath == RoutePaths.splash) return;
+
+      _hasReleasedInitialRoute = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        widget.onInitialRouteReady?.call();
+      });
+    }
+
+    unawaited(
+      _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
+    );
+  }
+
+  Future<void> _maybeShowBandMembersReminder(AppUser? profile) async {
+    if (!mounted ||
+        !_hasPendingBandMembersReminderEvaluation ||
+        _hasShownBandMembersReminderForSession ||
+        _isBandMembersReminderVisible) {
+      return;
+    }
 
     final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
-    if (currentPath == RoutePaths.splash) return;
+    if (_shouldWaitForBandMembersReminderRoute(currentPath)) {
+      return;
+    }
 
-    _hasReleasedInitialRoute = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      widget.onInitialRouteReady?.call();
-    });
+    if (profile == null) {
+      return;
+    }
+
+    if (!profile.isCadastroConcluido) {
+      _skipBandMembersReminderForSession(
+        reason: 'registration_incomplete',
+        currentPath: currentPath,
+      );
+      return;
+    }
+
+    if (profile.tipoPerfil != AppUserType.band) {
+      _skipBandMembersReminderForSession(
+        reason: 'not_a_band',
+        currentPath: currentPath,
+      );
+      return;
+    }
+
+    if (isBandEligibleForActivation(profile.members.length)) {
+      _skipBandMembersReminderForSession(
+        reason: 'minimum_members_met',
+        currentPath: currentPath,
+      );
+      return;
+    }
+
+    if (!_canShowBandMembersReminderOnPath(currentPath)) {
+      _skipBandMembersReminderForSession(
+        reason: 'path_not_supported',
+        currentPath: currentPath,
+      );
+      return;
+    }
+
+    final dialogContext = rootNavigatorKey.currentContext;
+    if (dialogContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          _maybeShowBandMembersReminder(
+            ref.read(currentUserProfileProvider).value,
+          ),
+        );
+      });
+      return;
+    }
+
+    _hasPendingBandMembersReminderEvaluation = false;
+    _hasShownBandMembersReminderForSession = true;
+    _isBandMembersReminderVisible = true;
+
+    final shouldOpenManageMembers = await BandFormationReminderDialog.show(
+      context: dialogContext,
+      bandName: profile.appDisplayName,
+      acceptedMembers: profile.members.length,
+    );
+
+    _isBandMembersReminderVisible = false;
+    if (!mounted || !shouldOpenManageMembers) return;
+
+    final activePath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (activePath != RoutePaths.manageMembers) {
+      unawaited(_goRouter.push(RoutePaths.manageMembers));
+    }
+  }
+
+  bool _shouldWaitForBandMembersReminderRoute(String currentPath) {
+    return currentPath == RoutePaths.splash ||
+        currentPath == RoutePaths.login ||
+        currentPath == RoutePaths.register ||
+        currentPath == RoutePaths.forgotPassword ||
+        currentPath == RoutePaths.emailVerification ||
+        currentPath == RoutePaths.notificationPermission;
+  }
+
+  bool _canShowBandMembersReminderOnPath(String currentPath) {
+    if (currentPath.startsWith(RoutePaths.onboarding)) {
+      return false;
+    }
+
+    return !RoutePaths.isPublic(currentPath);
+  }
+
+  void _skipBandMembersReminderForSession({
+    required String reason,
+    required String currentPath,
+  }) {
+    _hasPendingBandMembersReminderEvaluation = false;
+    AppLogger.debug(
+      '[BandFormationReminder] Skipped for session: $reason ($currentPath)',
+    );
   }
 
   @override
@@ -248,7 +392,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
       // Wrap all screens with offline indicator banner
       builder: (context, child) {
-        return _DismissKeyboardOnTap(
+        return DismissKeyboardOnTap(
           child: OfflineIndicator(child: child ?? const SizedBox.shrink()),
         );
       },
@@ -262,46 +406,8 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       ],
       supportedLocales: const [
         Locale('pt'), // Portuguese (Brazil) - default
-        Locale('en'), // English
       ],
-      locale: const Locale('pt'), // Default to Portuguese for MVP
+      locale: const Locale('pt'),
     );
-  }
-}
-
-/// Dismisses the active keyboard focus when tapping outside the focused field.
-class _DismissKeyboardOnTap extends StatelessWidget {
-  final Widget child;
-
-  const _DismissKeyboardOnTap({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: _handlePointerDown,
-      child: child,
-    );
-  }
-
-  void _handlePointerDown(PointerDownEvent event) {
-    final focusedNode = FocusManager.instance.primaryFocus;
-    if (focusedNode == null) return;
-
-    final focusedContext = focusedNode.context;
-    final focusedRenderObject = focusedContext?.findRenderObject();
-    if (focusedRenderObject is! RenderBox || !focusedRenderObject.hasSize) {
-      focusedNode.unfocus();
-      return;
-    }
-
-    final localTapPosition = focusedRenderObject.globalToLocal(event.position);
-    final tapInsideFocusedField = focusedRenderObject.paintBounds.contains(
-      localTapPosition,
-    );
-
-    if (!tapInsideFocusedField) {
-      focusedNode.unfocus();
-    }
   }
 }

@@ -1,26 +1,42 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../../core/providers/firebase_providers.dart';
+import '../../../../../utils/app_logger.dart';
 import '../../../../auth/data/auth_repository.dart';
 import '../../../../auth/domain/app_user.dart';
 import '../../../../auth/domain/user_type.dart';
 import '../../../../storage/data/storage_repository.dart';
 import '../../../domain/media_item.dart';
+import '../../../domain/video_transcode_state.dart';
 import '../../profile_controller.dart';
 import '../../public_profile_controller.dart';
 import 'edit_profile_state.dart';
 
 part 'edit_profile_controller.g.dart';
 
+class _VideoTranscodeException implements Exception {
+  final String message;
+
+  const _VideoTranscodeException(this.message);
+
+  @override
+  String toString() => message;
+}
+
 @riverpod
 class EditProfileController extends _$EditProfileController {
   static const int _maxPhotos = 6;
   static const int _maxVideos = 3;
   static const int _maxTotal = 9;
+  static const Duration _transcodePollInterval = Duration(seconds: 4);
+  static const Duration _transcodeWaitTimeout = Duration(minutes: 9);
+  static const String _videoUploadStatus = 'Enviando vídeo...';
+  static const String _videoTranscodeStatus =
+      'Processando vídeo para máxima compatibilidade...';
 
   @override
   EditProfileState build(String userId) {
@@ -243,6 +259,17 @@ class EditProfileController extends _$EditProfileController {
     state = state.copyWith(galleryItems: newGallery);
   }
 
+  void _replaceGalleryItem(String mediaId, MediaItem replacement) {
+    final newGallery = state.galleryItems.map((item) {
+      if (item.id == mediaId) {
+        return replacement;
+      }
+      return item;
+    }).toList();
+
+    state = state.copyWith(galleryItems: newGallery);
+  }
+
   Future<void> _cleanupManagedTemporaryVideo(File file) async {
     final fileName = path.basename(file.path);
     if (!fileName.startsWith('mube_trimmed_')) return;
@@ -420,7 +447,7 @@ class EditProfileController extends _$EditProfileController {
       galleryItems: [placeholder, ...state.galleryItems],
       isUploadingMedia: true,
       uploadProgress: 0.0,
-      uploadStatus: 'Enviando vídeo...',
+      uploadStatus: _videoUploadStatus,
       hasChanges: true,
     );
 
@@ -461,24 +488,42 @@ class EditProfileController extends _$EditProfileController {
       final results = await Future.wait<Object>([videoFuture, thumbnailFuture]);
       final mediaUrls = results[0] as GalleryMediaUrls;
       final thumbUrl = results[1] as String;
-
-      // Replace placeholder with final item
-      final finalItem = MediaItem(
+      final uploadedVideoUrl = mediaUrls.full ?? '';
+      final pendingItem = MediaItem(
         id: mediaId,
-        url: mediaUrls.full ?? '',
+        url: uploadedVideoUrl,
         type: MediaType.video,
         thumbnailUrl: thumbUrl,
         order: placeholder.order,
+        isUploading: true,
+        uploadProgress: 1.0,
       );
 
-      final newGallery = state.galleryItems
-          .map((item) => item.id == mediaId ? finalItem : item)
-          .toList();
+      _replaceGalleryItem(mediaId, pendingItem);
 
       state = state.copyWith(
-        galleryItems: newGallery,
+        isUploadingMedia: true,
+        uploadProgress: 1.0,
+        uploadStatus: _videoTranscodeStatus,
+      );
+
+      final transcodedUrl = await _waitForTranscodedVideoUrl(
+        userId: userId,
+        mediaId: mediaId,
+        uploadedVideoUrl: uploadedVideoUrl,
+      );
+
+      final finalItem = pendingItem.copyWith(
+        url: transcodedUrl,
+        isUploading: false,
+        uploadProgress: 0.0,
+      );
+
+      _replaceGalleryItem(mediaId, finalItem);
+      state = state.copyWith(
         isUploadingMedia: false,
         uploadProgress: 0.0,
+        uploadStatus: '',
       );
 
       ref.invalidate(publicProfileControllerProvider(userId));
@@ -497,6 +542,7 @@ class EditProfileController extends _$EditProfileController {
         galleryItems: newGallery,
         isUploadingMedia: false,
         uploadProgress: 0.0,
+        uploadStatus: '',
       );
       rethrow;
     } finally {
@@ -589,7 +635,8 @@ class EditProfileController extends _$EditProfileController {
 
     try {
       final docId = '${userId}_${item.id}';
-      final transcodeDoc = await FirebaseFirestore.instance
+      final transcodeDoc = await ref
+          .read(firebaseFirestoreProvider)
           .collection('mediaTranscodeJobs')
           .doc(docId)
           .get();
@@ -599,15 +646,9 @@ class EditProfileController extends _$EditProfileController {
         return item.url;
       }
 
-      final status = (data['status'] as String? ?? '').toLowerCase();
-      final transcodedUrl = data['transcodedUrl'] as String?;
-      final hasTranscodedUrl =
-          transcodedUrl != null && transcodedUrl.isNotEmpty;
-      final isCompleted =
-          status == 'succeeded' || status == 'succeeded_without_gallery_update';
-
-      if (hasTranscodedUrl && isCompleted) {
-        return transcodedUrl;
+      final jobState = parseVideoTranscodeJobState(data);
+      if (jobState.isReady) {
+        return jobState.transcodedUrl!;
       }
     } catch (_) {
       // Falha na leitura de status de transcode nao deve bloquear o save.
@@ -731,5 +772,80 @@ class EditProfileController extends _$EditProfileController {
       state = state.copyWith(isSaving: false);
       rethrow;
     }
+  }
+
+  Future<String> _waitForTranscodedVideoUrl({
+    required String userId,
+    required String mediaId,
+    required String uploadedVideoUrl,
+  }) async {
+    if (uploadedVideoUrl.isEmpty) {
+      throw Exception(
+        'O upload do vídeo foi concluído sem URL válida. Tente novamente.',
+      );
+    }
+
+    if (isTranscodedVideoUrl(uploadedVideoUrl)) {
+      return uploadedVideoUrl;
+    }
+
+    final firestore = ref.read(firebaseFirestoreProvider);
+    final storage = ref.read(storageRepositoryProvider);
+    final transcodeDocId = '${userId}_$mediaId';
+    final deadline = DateTime.now().add(_transcodeWaitTimeout);
+
+    while (DateTime.now().isBefore(deadline)) {
+      try {
+        final snapshot = await firestore
+            .collection('mediaTranscodeJobs')
+            .doc(transcodeDocId)
+            .get();
+        final jobState = parseVideoTranscodeJobState(snapshot.data());
+
+        if (jobState.isReady) {
+          return jobState.transcodedUrl!;
+        }
+
+        if (jobState.isFailed) {
+          throw _VideoTranscodeException(
+            _messageForTranscodeFailure(jobState.errorMessage),
+          );
+        }
+      } on _VideoTranscodeException {
+        rethrow;
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Falha ao acompanhar transcode do vídeo user=$userId media=$mediaId',
+          error,
+          stackTrace,
+          false,
+        );
+      }
+
+      final storageUrl = await storage.getTranscodedVideoUrl(
+        userId: userId,
+        mediaId: mediaId,
+      );
+      if (storageUrl != null && storageUrl.isNotEmpty) {
+        return storageUrl;
+      }
+
+      await Future<void>.delayed(_transcodePollInterval);
+    }
+
+    throw Exception(
+      'O vídeo demorou mais do que o esperado para ser processado. '
+      'Tente enviar novamente.',
+    );
+  }
+
+  String _messageForTranscodeFailure(String? errorMessage) {
+    final normalized = errorMessage?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return 'Não foi possível preparar o vídeo para reprodução segura.';
+    }
+
+    return 'Não foi possível preparar o vídeo para reprodução segura. '
+        'Detalhes: $normalized';
   }
 }

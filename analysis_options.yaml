@@ -2,6 +2,8 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   exclude:
+    - ".dart_tool/**"
+    - ".agents/**"
     - "build/**"
     - "lib/**/*.g.dart"
     - "lib/**/*.freezed.dart"

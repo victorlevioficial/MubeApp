@@ -12,7 +12,7 @@ import '../../moderation/data/blocked_users_provider.dart';
 import '../data/featured_profiles_repository.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
-import '../domain/feed_section.dart';
+import '../domain/spotlight_rotation.dart';
 import 'controllers/featured_profiles_controller.dart';
 import 'controllers/feed_main_controller.dart';
 import 'controllers/feed_sections_controller.dart';
@@ -31,8 +31,8 @@ abstract final class FeedDataConstants {
 @Riverpod(keepAlive: true)
 class FeedController extends _$FeedController {
   final FeedMainRuntime _mainRuntime = FeedMainRuntime();
-  List<FeedItem> _featuredItems = [];
-  int _sectionsRequestToken = 0;
+  List<FeedItem> _manualFeaturedItems = [];
+  List<FeedItem> _spotlightItems = [];
   bool _blockedUsersListenerRegistered = false;
   Timer? _favoritesSyncTimer;
   Future<void>? _featuredProfilesLoad;
@@ -43,22 +43,17 @@ class FeedController extends _$FeedController {
   FeedMainController? _mainController;
   FeaturedProfilesController? _featuredProfilesController;
 
-  /// Always inject the latest featured list to avoid race conditions.
-  void _emitState(FeedState Function(FeedState current) updater) {
-    final current = state.value ?? const FeedState();
-    final updated = updater(current);
-    state = AsyncValue.data(
-      updated.featuredItems.isNotEmpty
-          ? updated
-          : updated.copyWithFeed(featuredItems: _featuredItems),
+  FeedState _withSpotlightItems(FeedState currentState) {
+    _spotlightItems = SpotlightRotation.build(
+      priorityItems: _manualFeaturedItems,
+      candidateItems: _mainRuntime.allSortedUsers,
     );
+    return currentState.copyWithFeed(featuredItems: _spotlightItems);
   }
 
   void _ensureControllers() {
     final feedRepository = ref.read(feedRepositoryProvider);
-    _sectionsController ??= FeedSectionsController(
-      feedRepository: feedRepository,
-    );
+    _sectionsController ??= const FeedSectionsController();
     _mainController ??= FeedMainController(feedRepository: feedRepository);
   }
 
@@ -136,17 +131,12 @@ class FeedController extends _$FeedController {
     _loadFeaturedProfilesInBackground();
 
     try {
-      final requestToken = ++_sectionsRequestToken;
-      AppPerformanceTracker.mark(
-        'feed.load_all_data.request_token',
-        data: {'request_token': requestToken},
-      );
       final user = await _resolveCurrentUserProfile();
       if (!ref.mounted) return;
 
       if (user != null) {
-        _mainRuntime.userLat = user.location?['lat'];
-        _mainRuntime.userLong = user.location?['lng'];
+        _mainRuntime.userLat = (user.location?['lat'] as num?)?.toDouble();
+        _mainRuntime.userLong = (user.location?['lng'] as num?)?.toDouble();
       }
 
       List<String>? blockedIds;
@@ -167,16 +157,6 @@ class FeedController extends _$FeedController {
         final latestState = state.value ?? currentState;
         state = AsyncValue.data(
           latestState.copyWithFeed(isInitialLoading: false),
-        );
-      }
-
-      if (user != null) {
-        unawaited(
-          _loadSections(
-            user: user,
-            requestToken: requestToken,
-            blockedIds: blockedIds,
-          ),
         );
       }
       final latestState = state.value ?? const FeedState();
@@ -221,16 +201,15 @@ class FeedController extends _$FeedController {
       final featured = await _getFeaturedProfilesController()
           .loadFeaturedProfiles();
       if (!ref.mounted) return;
+      _manualFeaturedItems = featured;
       AppLogger.debug(
         'FeedController: featured profiles carregados: ${featured.length}',
       );
-      if (featured.isNotEmpty) {
-        _featuredItems = featured;
-        _emitState((s) => s.copyWithFeed(featuredItems: featured));
-        AppLogger.debug(
-          'FeedController: state atualizado com ${featured.length} destaques',
-        );
-      }
+      final currentState = state.value ?? const FeedState();
+      state = AsyncValue.data(_withSpotlightItems(currentState));
+      AppLogger.debug(
+        'FeedController: state atualizado com ${_spotlightItems.length} destaques',
+      );
     } catch (error, stack) {
       featuredStatus = 'error';
       AppLogger.error(
@@ -242,7 +221,7 @@ class FeedController extends _$FeedController {
       AppPerformanceTracker.finishSpan(
         'feed.featured_profiles',
         featuredStopwatch,
-        data: {'status': featuredStatus, 'items': _featuredItems.length},
+        data: {'status': featuredStatus, 'items': _spotlightItems.length},
       );
       _featuredProfilesLoad = null;
     }
@@ -264,41 +243,11 @@ class FeedController extends _$FeedController {
     });
   }
 
-  Future<void> _loadSections({
-    required AppUser user,
-    required int requestToken,
-    List<String>? blockedIds,
-  }) async {
-    try {
-      final sections = await _fetchSections(user: user, blockedIds: blockedIds);
-      if (!ref.mounted) return;
-      if (requestToken != _sectionsRequestToken) return;
-      _emitState((s) => s.copyWithFeed(sectionItems: sections));
-    } catch (error, stack) {
-      AppLogger.error('Feed: erro ao carregar secoes', error, stack);
-    }
-  }
-
-  Future<Map<FeedSectionType, List<FeedItem>>> _fetchSections({
-    required AppUser user,
-    List<String>? blockedIds,
-  }) async {
-    _ensureControllers();
-    final effectiveBlockedIds =
-        blockedIds ?? await _resolveBlockedIds(user: user);
-    return _sectionsController!.fetchSections(
-      user: user,
-      blockedIds: effectiveBlockedIds,
-      userLat: _mainRuntime.userLat,
-      userLong: _mainRuntime.userLong,
-      sectionLimit: FeedDataConstants.sectionLimit,
-    );
-  }
-
   /// Fetches the main feed with pagination support.
   Future<void> _fetchMainFeed({
     bool reset = false,
     bool preserveExistingItems = false,
+    bool invalidatePool = true,
     AppUser? userOverride,
     List<String>? blockedIdsOverride,
   }) async {
@@ -351,18 +300,24 @@ class FeedController extends _$FeedController {
       blockedIds: blockedIds,
       runtime: _mainRuntime,
       reset: reset,
+      invalidatePool: invalidatePool,
       batchSize: FeedDataConstants.mainFeedBatchSize,
     );
 
     if (!ref.mounted) return;
     final latestState = state.value;
-    final mergedState = nextState.copyWithFeed(
-      sectionItems: latestState?.sectionItems ?? nextState.sectionItems,
-      featuredItems: latestState?.featuredItems ?? nextState.featuredItems,
-      isInitialLoading:
-          latestState?.isInitialLoading ?? nextState.isInitialLoading,
+    final sections = _sectionsController!.buildSections(
+      allItems: _mainRuntime.allSortedUsers,
+      sectionLimit: FeedDataConstants.sectionLimit,
     );
-    _emitState((_) => mergedState);
+    final mergedState = _withSpotlightItems(
+      nextState.copyWithFeed(
+        sectionItems: sections,
+        isInitialLoading:
+            latestState?.isInitialLoading ?? nextState.isInitialLoading,
+      ),
+    );
+    state = AsyncValue.data(mergedState);
   }
 
   /// Loads more items for the main feed.
@@ -376,7 +331,7 @@ class FeedController extends _$FeedController {
     if (currentState == null || currentState.currentFilter == filter) return;
 
     state = AsyncValue.data(currentState.copyWithFeed(currentFilter: filter));
-    await _fetchMainFeed(reset: true);
+    await _fetchMainFeed(reset: true, invalidatePool: false);
   }
 
   /// Updates like count for a specific item.
@@ -398,11 +353,15 @@ class FeedController extends _$FeedController {
     final newSectionItems = currentState.sectionItems.map((key, value) {
       return MapEntry(key, value.map(updateItem).toList());
     });
+    final newSpotlightItems = currentState.featuredItems
+        .map(updateItem)
+        .toList();
 
     state = AsyncValue.data(
       currentState.copyWithFeed(
         items: newMainItems,
         sectionItems: newSectionItems,
+        featuredItems: newSpotlightItems,
       ),
     );
   }
