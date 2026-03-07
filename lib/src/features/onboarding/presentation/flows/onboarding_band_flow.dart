@@ -179,39 +179,48 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveCenter(
-            maxContentWidth: 600,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s24,
-              vertical: AppSpacing.s24,
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  OnboardingHeader(
-                    currentStep: _currentStep,
-                    totalSteps: _totalSteps,
-                    onBack: _prevStep,
-                  ),
-                  const SizedBox(height: AppSpacing.s32),
+    final isSubmitting = ref.watch(onboardingControllerProvider).isLoading;
 
-                  if (_currentStep == 1) _buildStep1UI(),
-                  if (_currentStep == 2) _buildStep2UI(),
-                  if (_currentStep == 3)
-                    OnboardingAddressStep(
-                      onNext: _finishOnboarding,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || isSubmitting) return;
+        _prevStep();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: ResponsiveCenter(
+              maxContentWidth: 600,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s24,
+                vertical: AppSpacing.s24,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    OnboardingHeader(
+                      currentStep: _currentStep,
+                      totalSteps: _totalSteps,
                       onBack: _prevStep,
-                      initialLocationLabel: ref
-                          .watch(onboardingFormProvider)
-                          .initialLocationLabel,
                     ),
-                ],
+                    const SizedBox(height: AppSpacing.s32),
+
+                    if (_currentStep == 1) _buildStep1UI(),
+                    if (_currentStep == 2) _buildStep2UI(),
+                    if (_currentStep == 3)
+                      OnboardingAddressStep(
+                        onNext: _finishOnboarding,
+                        onBack: _prevStep,
+                        initialLocationLabel: ref
+                            .watch(onboardingFormProvider)
+                            .initialLocationLabel,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

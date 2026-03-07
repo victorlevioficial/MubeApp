@@ -348,6 +348,26 @@ void main() {
         // Assert
         verify(mockAuthRepository.signInWithApple()).called(1);
       });
+
+      testWidgets('mostra erro amigavel quando login Google falha', (
+        tester,
+      ) async {
+        when(mockAuthRepository.signInWithGoogle()).thenAnswer(
+          (_) async =>
+              const Left(AuthFailure(message: 'Login social cancelado.')),
+        );
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(
+          find.byKey(const Key('google_login_button')),
+        );
+        await tester.tap(find.byKey(const Key('google_login_button')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Login social cancelado.'), findsOneWidget);
+      });
     });
 
     group('Estados', () {

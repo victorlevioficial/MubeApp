@@ -43,7 +43,6 @@ abstract final class RoutePaths {
     login,
     register,
     forgotPassword,
-    emailVerification,
     gallery,
     legal,
   };

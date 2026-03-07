@@ -102,6 +102,9 @@ void main() {
         when(
           mockDataSource.registerWithEmailAndPassword(email, password),
         ).thenAnswer((_) async => mockUser);
+        when(
+          mockDataSource.sendEmailVerification(),
+        ).thenAnswer((_) async => {});
         when(mockDataSource.saveUserProfile(any)).thenAnswer((_) async => {});
 
         // Act
@@ -116,9 +119,10 @@ void main() {
           mockDataSource.registerWithEmailAndPassword(email, password),
         ).called(1);
         verify(mockDataSource.saveUserProfile(any)).called(1);
+        verify(mockDataSource.sendEmailVerification()).called(1);
       });
 
-      test('should return Right(Unit) even if user is null', () async {
+      test('should return Left(AuthFailure) if created user is null', () async {
         // Arrange
         when(
           mockDataSource.registerWithEmailAndPassword(email, password),
@@ -131,11 +135,12 @@ void main() {
         );
 
         // Assert
-        expect(result.isRight(), true);
+        expect(result.isLeft(), true);
         verify(
           mockDataSource.registerWithEmailAndPassword(email, password),
         ).called(1);
         verifyNever(mockDataSource.saveUserProfile(any));
+        verifyNever(mockDataSource.sendEmailVerification());
       });
 
       test(
@@ -162,6 +167,57 @@ void main() {
             (failure) => expect(failure, isA<AuthFailure>()),
             (_) => fail('Expected Left'),
           );
+        },
+      );
+
+      test(
+        'rolls back created auth user when profile save fails after registration',
+        () async {
+          final mockUser = _MockUser(uid: uid);
+          when(
+            mockDataSource.registerWithEmailAndPassword(email, password),
+          ).thenAnswer((_) async => mockUser);
+          when(
+            mockDataSource.saveUserProfile(any),
+          ).thenThrow(Exception('SocketException: Connection reset by peer'));
+          when(mockDataSource.signOut()).thenAnswer((_) async => {});
+
+          final result = await repository.registerWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
+          expect(result.isLeft(), true);
+          expect(mockUser.deleteCallCount, 1);
+          verify(mockDataSource.signOut()).called(1);
+          verifyNever(mockDataSource.sendEmailVerification());
+        },
+      );
+
+      test(
+        'keeps registration successful when initial verification email send fails',
+        () async {
+          final mockUser = _MockUser(uid: uid);
+          when(
+            mockDataSource.registerWithEmailAndPassword(email, password),
+          ).thenAnswer((_) async => mockUser);
+          when(mockDataSource.saveUserProfile(any)).thenAnswer((_) async => {});
+          when(mockDataSource.sendEmailVerification()).thenThrow(
+            FirebaseAuthException(
+              code: 'network-request-failed',
+              message: 'offline',
+            ),
+          );
+
+          final result = await repository.registerWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+
+          expect(result.isRight(), true);
+          expect(mockUser.deleteCallCount, 0);
+          verify(mockDataSource.saveUserProfile(any)).called(1);
+          verify(mockDataSource.sendEmailVerification()).called(1);
         },
       );
     });
@@ -240,6 +296,26 @@ void main() {
         expect(result.isRight(), true);
         verify(mockDataSource.saveUserProfile(any)).called(1);
       });
+
+      test(
+        'should map social login cancellation to a friendly failure',
+        () async {
+          when(mockDataSource.signInWithGoogle()).thenThrow(
+            FirebaseAuthException(
+              code: 'sign-in-cancelled',
+              message: 'Login social cancelado.',
+            ),
+          );
+
+          final result = await repository.signInWithGoogle();
+
+          expect(result.isLeft(), true);
+          result.fold(
+            (failure) => expect(failure.message, 'Login social cancelado.'),
+            (_) => fail('Expected Left'),
+          );
+        },
+      );
     });
 
     group('signInWithApple', () {
@@ -414,6 +490,7 @@ class _MockUser implements User {
   final String? _email;
   final String? _displayName;
   final String? _photoURL;
+  int deleteCallCount = 0;
 
   _MockUser({
     required String uid,
@@ -436,6 +513,11 @@ class _MockUser implements User {
 
   @override
   String? get photoURL => _photoURL;
+
+  @override
+  Future<void> delete() async {
+    deleteCallCount++;
+  }
 
   // Implement other required methods as stubs
   @override

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../common_widgets/location_service.dart';
 import '../../address/domain/resolved_address.dart';
+import '../../auth/data/auth_repository.dart';
 
 class OnboardingFormState {
   final String? nome;
@@ -217,6 +218,8 @@ class OnboardingFormState {
 class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   static const _storageKey = 'onboarding_form_state';
   static const _persistDebounce = Duration(milliseconds: 350);
+  static const _storageUidKey = 'uid';
+  static const _storageStateKey = 'state';
 
   final _locationService = LocationService();
   SharedPreferences? _prefs;
@@ -245,7 +248,12 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     final jsonStr = prefs.getString(_storageKey);
     if (jsonStr != null) {
       try {
-        state = OnboardingFormState.fromJson(jsonStr);
+        final restoredState = _decodePersistedState(jsonStr);
+        if (restoredState != null) {
+          state = restoredState;
+        } else {
+          await prefs.remove(_storageKey);
+        }
       } catch (error, stackTrace) {
         AppLogger.warning(
           'Falha ao restaurar estado do onboarding',
@@ -259,7 +267,41 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   Future<void> _saveState() async {
     final prefs = await _getPrefs();
     if (!ref.mounted) return;
-    await prefs.setString(_storageKey, state.toJson());
+    final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+    if (currentUserId == null || currentUserId.isEmpty) {
+      await prefs.remove(_storageKey);
+      return;
+    }
+
+    final payload = json.encode({
+      _storageUidKey: currentUserId,
+      _storageStateKey: state.toMap(),
+    });
+    await prefs.setString(_storageKey, payload);
+  }
+
+  OnboardingFormState? _decodePersistedState(String rawJson) {
+    final decoded = json.decode(rawJson);
+    if (decoded is! Map) {
+      return null;
+    }
+
+    final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+    if (currentUserId == null || currentUserId.isEmpty) {
+      return null;
+    }
+
+    final storedUserId = decoded[_storageUidKey];
+    final stateMap = decoded[_storageStateKey];
+    if (storedUserId is! String || stateMap is! Map) {
+      return null;
+    }
+
+    if (storedUserId != currentUserId) {
+      return null;
+    }
+
+    return OnboardingFormState.fromMap(Map<String, dynamic>.from(stateMap));
   }
 
   void _scheduleSave() {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -114,59 +116,66 @@ class _NotificationPermissionScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: ResponsiveCenter(
-            maxContentWidth: 480,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s24,
-              vertical: AppSpacing.s48,
-            ),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _NotificationHeader(),
-                    const SizedBox(height: AppSpacing.s40),
-                    const _BenefitsCard(),
-                    const SizedBox(height: AppSpacing.s32),
-                    SizedBox(
-                      height: 56,
-                      child: Semantics(
-                        button: true,
-                        label: 'Ativar notificações',
-                        child: AppButton.primary(
-                          text: 'Ativar notificações',
-                          size: AppButtonSize.large,
-                          isLoading: _isLoading,
-                          onPressed: _handleAccept,
-                          isFullWidth: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s16),
-                    Center(
-                      child: GestureDetector(
-                        onTap: _isLoading ? null : _handleSkip,
-                        child: Text(
-                          'Agora não',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: _isLoading
-                                ? AppColors.textTertiary
-                                : AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || _isLoading) return;
+        unawaited(_handleSkip());
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ResponsiveCenter(
+              maxContentWidth: 480,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s24,
+                vertical: AppSpacing.s48,
+              ),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _NotificationHeader(),
+                      const SizedBox(height: AppSpacing.s40),
+                      const _BenefitsCard(),
+                      const SizedBox(height: AppSpacing.s32),
+                      SizedBox(
+                        height: 56,
+                        child: Semantics(
+                          button: true,
+                          label: 'Ativar notificações',
+                          child: AppButton.primary(
+                            text: 'Ativar notificações',
+                            size: AppButtonSize.large,
+                            isLoading: _isLoading,
+                            onPressed: _handleAccept,
+                            isFullWidth: true,
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.s16),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _isLoading ? null : _handleSkip,
+                          child: Text(
+                            'Agora não',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: _isLoading
+                                  ? AppColors.textTertiary
+                                  : AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

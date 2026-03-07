@@ -47,6 +47,82 @@ class _FakeBuildContext extends Fake implements BuildContext {}
 void main() {
   group('AuthGuard', () {
     test(
+      'allows authenticated users with unverified email to continue outside chat gate',
+      () async {
+        final fakeUser = FakeFirebaseUser(
+          uid: 'user-1',
+          email: 'test@mube.app',
+          emailVerified: false,
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              AsyncValue.data(
+                TestData.pendingUser(
+                  uid: 'user-1',
+                ).copyWith(email: 'test@mube.app'),
+              ),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.onboarding),
+        );
+
+        expect(redirect, isNull);
+      },
+    );
+
+    test(
+      'redirects unauthenticated verification route back to register',
+      () async {
+        final fakeAuthRepository = FakeAuthRepository();
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              const AsyncValue.data(null),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              const AsyncValue.data(null),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.emailVerification),
+        );
+
+        expect(redirect, RoutePaths.register);
+      },
+    );
+
+    test(
       'refreshes security context instead of signing out on permission-related profile stream error',
       () async {
         final fakeUser = FakeFirebaseUser(

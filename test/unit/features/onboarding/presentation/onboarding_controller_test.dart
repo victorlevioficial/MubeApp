@@ -4,6 +4,8 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/bands/domain/band_activation_rules.dart';
 import 'package:mube/src/features/onboarding/presentation/onboarding_controller.dart';
+import 'package:mube/src/features/onboarding/presentation/onboarding_form_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -13,6 +15,7 @@ void main() {
   late ProviderContainer container;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     fakeAuthRepository = FakeAuthRepository();
     container = ProviderContainer(
       overrides: [authRepositoryProvider.overrideWithValue(fakeAuthRepository)],
@@ -172,6 +175,75 @@ void main() {
           expect(updatedUser, isNotNull);
           expect(updatedUser!.cadastroStatus, 'concluido');
           expect(updatedUser.status, profileDraftStatus);
+        },
+      );
+
+      test('preserves existing photo when no new photo is provided', () async {
+        final user = TestData.user(
+          uid: 'user-1',
+          tipoPerfil: AppUserType.professional,
+          cadastroStatus: 'perfil_pendente',
+          foto: 'https://example.com/social-avatar.jpg',
+        );
+        fakeAuthRepository.appUser = user;
+
+        final controller = container.read(
+          onboardingControllerProvider.notifier,
+        );
+
+        await controller.submitProfileForm(
+          currentUser: user,
+          location: const {
+            'cidade': 'Sao Paulo',
+            'estado': 'SP',
+            'lat': -23.5,
+            'lng': -46.6,
+          },
+          nome: 'Nome Teste',
+          dadosProfissional: const {'nomeArtistico': 'Teste'},
+        );
+
+        final updatedUser = fakeAuthRepository.lastUpdatedUser;
+        expect(updatedUser, isNotNull);
+        expect(updatedUser!.foto, 'https://example.com/social-avatar.jpg');
+      });
+
+      test(
+        'clears persisted onboarding draft after successful submit',
+        () async {
+          final user = TestData.user(
+            uid: 'user-1',
+            tipoPerfil: AppUserType.professional,
+            cadastroStatus: 'perfil_pendente',
+          );
+          fakeAuthRepository.emitUser(FakeFirebaseUser(uid: 'user-1'));
+          fakeAuthRepository.appUser = user;
+
+          final draftNotifier = container.read(onboardingFormProvider.notifier);
+          draftNotifier
+            ..updateNome('Draft Name')
+            ..updateGenero('Masculino');
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+
+          final controller = container.read(
+            onboardingControllerProvider.notifier,
+          );
+          await controller.submitProfileForm(
+            currentUser: user,
+            location: const {
+              'cidade': 'Rio de Janeiro',
+              'estado': 'RJ',
+              'lat': -22.9,
+              'lng': -43.1,
+            },
+            nome: 'Nome Final',
+            dadosProfissional: const {'nomeArtistico': 'Final'},
+          );
+
+          expect(
+            container.read(onboardingFormProvider),
+            const OnboardingFormState(),
+          );
         },
       );
 

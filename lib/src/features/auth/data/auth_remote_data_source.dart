@@ -42,6 +42,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
   final app_check.FirebaseAppCheck _appCheck;
+  bool _googleSignInInitialized = false;
   static const String _functionsRegion = 'southamerica-east1';
   static const Set<String> _blockedClientUpdateKeys = {
     'status',
@@ -102,7 +103,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return _auth.signInWithPopup(provider);
     }
 
-    await GoogleSignIn.instance.initialize();
+    await _ensureGoogleSignInInitialized();
     if (!GoogleSignIn.instance.supportsAuthenticate()) {
       throw FirebaseAuthException(
         code: 'operation-not-supported',
@@ -110,7 +111,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
 
-    final googleUser = await GoogleSignIn.instance.authenticate();
+    final googleUser = await _authenticateWithGoogle();
     final googleAuth = googleUser.authentication;
     final idToken = googleAuth.idToken;
 
@@ -137,6 +138,55 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     return _auth.signInWithProvider(appleProvider);
+  }
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+    await GoogleSignIn.instance.initialize();
+    _googleSignInInitialized = true;
+  }
+
+  Future<GoogleSignInAccount> _authenticateWithGoogle() async {
+    try {
+      return await GoogleSignIn.instance.authenticate();
+    } on GoogleSignInException catch (error) {
+      throw _mapGoogleSignInException(error);
+    }
+  }
+
+  FirebaseAuthException _mapGoogleSignInException(GoogleSignInException error) {
+    switch (error.code) {
+      case GoogleSignInExceptionCode.canceled:
+        return FirebaseAuthException(
+          code: 'sign-in-cancelled',
+          message: 'Login social cancelado.',
+        );
+      case GoogleSignInExceptionCode.interrupted:
+        return FirebaseAuthException(
+          code: 'sign-in-interrupted',
+          message: 'Login social interrompido.',
+        );
+      case GoogleSignInExceptionCode.clientConfigurationError:
+      case GoogleSignInExceptionCode.providerConfigurationError:
+        return FirebaseAuthException(
+          code: 'google-sign-in-misconfigured',
+          message: error.description ?? 'Google Sign-In mal configurado.',
+        );
+      case GoogleSignInExceptionCode.uiUnavailable:
+        return FirebaseAuthException(
+          code: 'google-sign-in-unavailable',
+          message:
+              error.description ??
+              'Google Sign-In indisponível neste dispositivo.',
+        );
+      case GoogleSignInExceptionCode.userMismatch:
+      case GoogleSignInExceptionCode.unknownError:
+        return FirebaseAuthException(
+          code: 'invalid-credential',
+          message:
+              error.description ?? 'Não foi possível autenticar com o Google.',
+        );
+    }
   }
 
   @override
@@ -232,7 +282,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    await _auth.signOut();
+
+    if (kIsWeb) {
+      return;
+    }
+
+    try {
+      await _ensureGoogleSignInInitialized();
+      if (GoogleSignIn.instance.supportsAuthenticate()) {
+        await GoogleSignIn.instance.signOut();
+      }
+    } on GoogleSignInException catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao encerrar sessao do Google Sign-In',
+        error,
+        stack,
+      );
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha inesperada ao encerrar sessao do Google Sign-In',
+        error,
+        stack,
+      );
+    }
+  }
 
   bool _isRecoverableFunctionsError(FirebaseFunctionsException error) {
     final code = error.code.toLowerCase();

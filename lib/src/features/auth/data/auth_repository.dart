@@ -10,6 +10,7 @@ import '../../../core/errors/failures.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
+import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/auth_exception_handler.dart';
 import '../domain/app_user.dart';
@@ -72,34 +73,40 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    User? createdUser;
     try {
-      final user = await _dataSource.registerWithEmailAndPassword(
+      createdUser = await _dataSource.registerWithEmailAndPassword(
         email,
         password,
       );
-      if (user != null) {
-        // Send email verification
-        await _dataSource.sendEmailVerification();
-
-        final appUser = AppUser(
-          uid: user.uid,
-          email: email,
-          cadastroStatus: RegistrationStatus.pending,
-          createdAt: FieldValue.serverTimestamp(),
+      if (createdUser == null) {
+        return const Left(
+          AuthFailure(
+            message: 'Não foi possível criar sua conta agora. Tente novamente.',
+          ),
         );
-        await _dataSource.saveUserProfile(appUser);
-
-        // Log analytics event for successful registration
-        await _analytics?.logEvent(
-          name: 'user_registration',
-          parameters: {'method': 'email', 'user_type': 'pending'},
-        );
-
-        // Set user ID for analytics
-        await _analytics?.setUserId(user.uid);
       }
+
+      final appUser = AppUser(
+        uid: createdUser.uid,
+        email: email,
+        cadastroStatus: RegistrationStatus.pending,
+        createdAt: FieldValue.serverTimestamp(),
+      );
+      await _dataSource.saveUserProfile(appUser);
+      await _sendRegistrationVerificationEmailBestEffort();
+
+      // Log analytics event for successful registration
+      _logAnalyticsEvent(
+        name: 'user_registration',
+        parameters: {'method': 'email', 'user_type': 'pending'},
+      );
+
+      // Set user ID for analytics
+      _setAnalyticsUserId(createdUser.uid);
       return const Right(unit);
     } on FirebaseAuthException catch (e) {
+      await _rollbackFailedRegistration(createdUser);
       // Log analytics event for registration error
       await _analytics?.logEvent(
         name: 'registration_error',
@@ -114,6 +121,7 @@ class AuthRepository {
         AuthFailure(message: AuthExceptionHandler.handleException(e)),
       );
     } catch (e) {
+      await _rollbackFailedRegistration(createdUser);
       await _analytics?.logEvent(
         name: 'registration_error',
         parameters: {
@@ -376,7 +384,9 @@ class AuthRepository {
           'error_message': e.message ?? 'Unknown error',
         },
       );
-      return Left(AuthFailure(message: e.message ?? 'Authentication failed'));
+      return Left(
+        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+      );
     } catch (e) {
       _logAnalyticsEvent(
         name: 'login_error',
@@ -386,7 +396,69 @@ class AuthRepository {
           'error_message': e.toString(),
         },
       );
-      return Left(AuthFailure(message: e.toString()));
+      return Left(
+        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+      );
+    }
+  }
+
+  Future<void> _sendRegistrationVerificationEmailBestEffort() async {
+    try {
+      await _dataSource.sendEmailVerification();
+    } on FirebaseAuthException catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao enviar email de verificacao apos cadastro',
+        error,
+        stack,
+      );
+      _logAnalyticsEvent(
+        name: 'email_verification_error',
+        parameters: {
+          'error_code': error.code,
+          'error_message': error.message ?? 'Unknown error',
+          'flow': 'registration',
+        },
+      );
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha inesperada ao enviar email de verificacao apos cadastro',
+        error,
+        stack,
+      );
+      _logAnalyticsEvent(
+        name: 'email_verification_error',
+        parameters: {
+          'error_code': 'unknown',
+          'error_message': error.toString(),
+          'flow': 'registration',
+        },
+      );
+    }
+  }
+
+  Future<void> _rollbackFailedRegistration(User? createdUser) async {
+    if (createdUser == null) {
+      return;
+    }
+
+    try {
+      await createdUser.delete();
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao reverter usuario criado apos erro no cadastro',
+        error,
+        stack,
+      );
+    }
+
+    try {
+      await _dataSource.signOut();
+    } catch (error, stack) {
+      AppLogger.warning(
+        'Falha ao encerrar sessao apos rollback de cadastro',
+        error,
+        stack,
+      );
     }
   }
 
@@ -415,7 +487,10 @@ class AuthRepository {
 
     final email = user.email;
     if (email == null || email.isEmpty) {
-      throw Exception('A conta social não retornou um e-mail válido.');
+      throw FirebaseAuthException(
+        code: 'social-email-missing',
+        message: 'A conta social não retornou um e-mail válido.',
+      );
     }
 
     final appUser = AppUser(

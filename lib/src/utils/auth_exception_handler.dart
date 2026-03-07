@@ -28,6 +28,22 @@ class AuthExceptionHandler {
           return 'Já existe uma conta com este e-mail usando outro método de login.';
         case 'network-request-failed':
           return 'Erro de conexão. Verifique sua internet.';
+        case 'popup-closed-by-user':
+        case 'sign-in-cancelled':
+          return 'Login social cancelado.';
+        case 'sign-in-interrupted':
+          return 'O login social foi interrompido. Tente novamente.';
+        case 'google-sign-in-unavailable':
+        case 'ui-unavailable':
+          return 'O login do Google não está disponível neste dispositivo agora.';
+        case 'google-sign-in-misconfigured':
+        case 'client-configuration-error':
+        case 'provider-configuration-error':
+          return 'O login social não está configurado corretamente no aplicativo.';
+        case 'missing-google-id-token':
+          return 'Não foi possível obter o token de autenticação do Google.';
+        case 'social-email-missing':
+          return 'A conta social não retornou um e-mail válido.';
         default:
           return 'Ocorreu um erro no servidor. Tente novamente mais tarde. (${e.code})';
       }

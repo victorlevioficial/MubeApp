@@ -5,6 +5,7 @@ import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../../bands/domain/band_activation_rules.dart';
 import '../../settings/domain/saved_address.dart';
+import 'onboarding_form_provider.dart';
 
 part 'onboarding_controller.g.dart';
 
@@ -68,7 +69,7 @@ class OnboardingController extends _$OnboardingController {
 
       final updatedUser = currentUser.copyWith(
         nome: nome,
-        foto: foto,
+        foto: foto ?? currentUser.foto,
         location: location,
         addresses: _buildOnboardingAddresses(location),
         cadastroStatus: 'concluido',
@@ -86,6 +87,7 @@ class OnboardingController extends _$OnboardingController {
           .read(authRepositoryProvider)
           .updateUser(updatedUser);
       result.fold((l) => throw l, (r) => null);
+      await ref.read(onboardingFormProvider.notifier).clearState();
     });
   }
 

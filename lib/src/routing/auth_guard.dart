@@ -89,6 +89,7 @@ class AuthGuard {
     AsyncValue<dynamic> userProfileAsync,
   ) async {
     final isDeletingAccount = _ref.read(accountDeletionInProgressProvider);
+    final authRepository = _ref.read(authRepositoryProvider);
 
     // Email verification can be opened from authenticated flows (e.g. chat send gate).
     // Keep this route accessible to avoid redirect collisions with imperative push().
@@ -149,8 +150,7 @@ class AuthGuard {
       }
 
       _log('Profile missing for authenticated user - attempting recovery');
-      final recoveryResult = await _ref
-          .read(authRepositoryProvider)
+      final recoveryResult = await authRepository
           .ensureCurrentUserProfileExists();
 
       if (recoveryResult.isLeft()) {
@@ -169,9 +169,7 @@ class AuthGuard {
           return _recoverPermissionRelatedProfileAccess(
             currentPath,
             reason: 'profile-create',
-            afterRefresh: () => _ref
-                .read(authRepositoryProvider)
-                .ensureCurrentUserProfileExists(),
+            afterRefresh: () => authRepository.ensureCurrentUserProfileExists(),
           );
         }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_typography.dart';
@@ -52,7 +53,10 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canPop = Navigator.of(context).canPop();
+    final canPop =
+        GoRouter.maybeOf(context)?.canPop() ??
+        Navigator.maybeOf(context)?.canPop() ??
+        false;
     final shouldShowBack = showBackButton ?? canPop;
     final resolvedLeading =
         leading ??

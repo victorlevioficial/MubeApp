@@ -11,7 +11,13 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
-import {DocumentData, FieldValue, Timestamp} from "firebase-admin/firestore";
+import {
+  DocumentData,
+  DocumentReference,
+  FieldValue,
+  Timestamp,
+  Transaction,
+} from "firebase-admin/firestore";
 
 const db = admin.firestore();
 
@@ -91,6 +97,47 @@ interface MatchNotificationInput {
   conversationId: string;
 }
 
+interface MatchArtifactsInput {
+  transaction: Transaction;
+  userId1: string;
+  userId2: string;
+  conversationId: string;
+  now: Timestamp;
+}
+
+/**
+ * Valida e normaliza o payload do callable de swipe.
+ *
+ * Evita TypeError em payload nulo/inesperado e garante mensagens explícitas
+ * para o cliente.
+ *
+ * @param {unknown} rawData - Payload bruto recebido do callable.
+ * @return {MatchpointActionRequest} Payload validado e normalizado.
+ */
+function readMatchpointActionRequest(
+  rawData: unknown
+): MatchpointActionRequest {
+  const payload = asRecord(rawData);
+  const targetUserId = firstNonEmptyString([payload.targetUserId]);
+  const rawAction = firstNonEmptyString([payload.action]).toLowerCase();
+
+  if (!targetUserId) {
+    throw new HttpsError("invalid-argument", "targetUserId é obrigatório");
+  }
+
+  if (rawAction !== "like" && rawAction !== "dislike") {
+    throw new HttpsError(
+      "invalid-argument",
+      "action deve ser 'like' ou 'dislike'"
+    );
+  }
+
+  return {
+    targetUserId,
+    action: rawAction as MatchpointActionRequest["action"],
+  };
+}
+
 /**
  * Retorna o primeiro texto não vazio de uma lista.
  *
@@ -142,6 +189,106 @@ function resolveMatchSenderName(userData: Record<string, unknown>): string {
     userData.nome_artistico,
     userData.nome,
   ], "Novo match");
+}
+
+/**
+ * Normaliza o tipo salvo em um documento de interação.
+ *
+ * @param {DocumentData|undefined} data - Dados brutos do documento.
+ * @return {string} Tipo normalizado ou string vazia.
+ */
+function readInteractionType(data: DocumentData | undefined): string {
+  return typeof data?.type === "string" ? data.type : "";
+}
+
+/**
+ * Resolve o conversationId persistido em documentos de match legados/atuais.
+ *
+ * @param {DocumentData|undefined} matchData - Dados do match.
+ * @param {string} fallback - conversationId determinístico padrão.
+ * @return {string} conversationId utilizável.
+ */
+function resolveMatchConversationId(
+  matchData: DocumentData | undefined,
+  fallback: string
+): string {
+  return firstNonEmptyString([
+    matchData?.conversation_id,
+    matchData?.conversationId,
+  ], fallback);
+}
+
+/**
+ * Garante conversa e previews mínimos para um match.
+ *
+ * @param {MatchArtifactsInput} input - Dependências da transação.
+ * @return {Promise<void>} Promise concluída após garantir os artefatos.
+ */
+async function ensureMatchArtifacts(input: MatchArtifactsInput): Promise<void> {
+  const {transaction, userId1, userId2, conversationId, now} = input;
+  const conversationRef = db.collection("conversations").doc(conversationId);
+  const existingConversation = await transaction.get(conversationRef);
+
+  const user1Ref = db.collection("users").doc(userId1);
+  const user2Ref = db.collection("users").doc(userId2);
+  const user1Doc = await transaction.get(user1Ref);
+  const user2Doc = await transaction.get(user2Ref);
+  const user1Data = user1Doc.data() || {};
+  const user2Data = user2Doc.data() || {};
+
+  if (!existingConversation.exists) {
+    transaction.set(conversationRef, {
+      participants: [userId1, userId2],
+      participantsMap: {[userId1]: true, [userId2]: true},
+      createdAt: now,
+      updatedAt: now,
+      readUntil: {
+        [userId1]: Timestamp.fromMillis(0),
+        [userId2]: Timestamp.fromMillis(0),
+      },
+      lastMessageText: null,
+      lastMessageAt: null,
+      lastSenderId: null,
+      type: "matchpoint",
+    });
+  }
+
+  const preview1Ref = user1Ref.collection("conversationPreviews").doc(
+    conversationId
+  );
+  const preview2Ref = user2Ref.collection("conversationPreviews").doc(
+    conversationId
+  );
+  const preview1Doc = await transaction.get(preview1Ref);
+  const preview2Doc = await transaction.get(preview2Ref);
+
+  if (!preview1Doc.exists) {
+    transaction.set(preview1Ref, {
+      otherUserId: userId2,
+      otherUserName: user2Data.nome || user2Data.nome_artistico || "Usuário",
+      otherUserPhoto: user2Data.foto || null,
+      lastMessageText: null,
+      lastMessageAt: null,
+      lastSenderId: null,
+      unreadCount: 0,
+      updatedAt: now,
+      type: "matchpoint",
+    });
+  }
+
+  if (!preview2Doc.exists) {
+    transaction.set(preview2Ref, {
+      otherUserId: userId1,
+      otherUserName: user1Data.nome || user1Data.nome_artistico || "Usuário",
+      otherUserPhoto: user1Data.foto || null,
+      lastMessageText: null,
+      lastMessageAt: null,
+      lastSenderId: null,
+      unreadCount: 0,
+      updatedAt: now,
+      type: "matchpoint",
+    });
+  }
 }
 
 /**
@@ -306,18 +453,7 @@ export const submitMatchpointAction = onCall(
     }
 
     const currentUserId = request.auth.uid;
-    const {targetUserId, action} = request.data as MatchpointActionRequest;
-
-    if (!targetUserId || typeof targetUserId !== "string") {
-      throw new HttpsError("invalid-argument", "targetUserId é obrigatório");
-    }
-
-    if (!action || !["like", "dislike"].includes(action)) {
-      throw new HttpsError(
-        "invalid-argument",
-        "action deve ser 'like' ou 'dislike'"
-      );
-    }
+    const {targetUserId, action} = readMatchpointActionRequest(request.data);
 
     if (currentUserId === targetUserId) {
       throw new HttpsError(
@@ -325,6 +461,8 @@ export const submitMatchpointAction = onCall(
         "Não pode interagir consigo mesmo"
       );
     }
+
+    let stage = "load_current_user";
 
     try {
       const userRef = db.collection("users").doc(currentUserId);
@@ -337,6 +475,7 @@ export const submitMatchpointAction = onCall(
       const userData = userDoc.data() || {};
       const remainingLikesSnapshot = getRemainingLikesSnapshot(userData);
 
+      stage = "load_existing_interaction";
       const existingInteractionQuery = await db
         .collection("interactions")
         .where("source_user_id", "==", currentUserId)
@@ -354,6 +493,7 @@ export const submitMatchpointAction = onCall(
       let remainingQuota = remainingLikesSnapshot.remainingLikes;
 
       if (!existingInteraction) {
+        stage = "check_rate_limit";
         const rateLimitResult = await checkAndUpdateRateLimit(currentUserId);
         if (!rateLimitResult.allowed) {
           throw new HttpsError(
@@ -373,6 +513,7 @@ export const submitMatchpointAction = onCall(
 
         if (existingInteraction) {
           if (existingType !== "dislike") {
+            stage = "persist_dislike_existing";
             await existingInteraction.ref.update({
               type: "dislike",
               updated_at: now,
@@ -381,6 +522,7 @@ export const submitMatchpointAction = onCall(
             });
           }
         } else {
+          stage = "persist_dislike_new";
           const interactionRef = db.collection("interactions").doc();
           await interactionRef.set({
             source_user_id: currentUserId,
@@ -392,6 +534,7 @@ export const submitMatchpointAction = onCall(
           });
         }
 
+        stage = "remove_match";
         const removedMatch = await removeMatch(currentUserId, targetUserId);
 
         return {
@@ -413,6 +556,7 @@ export const submitMatchpointAction = onCall(
       }
 
       if (existingInteraction) {
+        stage = "persist_like_existing";
         await existingInteraction.ref.update({
           type: "like",
           updated_at: now,
@@ -421,6 +565,7 @@ export const submitMatchpointAction = onCall(
         });
         interactionRef = existingInteraction.ref;
       } else {
+        stage = "persist_like_new";
         interactionRef = db.collection("interactions").doc();
         await interactionRef.set({
           source_user_id: currentUserId,
@@ -431,6 +576,7 @@ export const submitMatchpointAction = onCall(
         });
       }
 
+      stage = "load_mutual_like";
       const mutualLikeQuery = await db
         .collection("interactions")
         .where("source_user_id", "==", targetUserId)
@@ -450,16 +596,24 @@ export const submitMatchpointAction = onCall(
         };
       }
 
-      const matchResult = await createMatch(currentUserId, targetUserId);
+      stage = "finalize_match";
+      const matchResult = await createMatch(
+        currentUserId,
+        targetUserId,
+        interactionRef,
+        mutualLikeQuery.docs[0].ref
+      );
 
-      await Promise.all([
-        interactionRef.update({
-          resulted_in_match: true,
-          updated_at: Timestamp.now(),
-        }),
-        mutualLikeQuery.docs[0].ref.update({resulted_in_match: true}),
-      ]);
+      if (matchResult === null) {
+        return {
+          success: true,
+          isMatch: false,
+          remainingLikes: remainingQuota,
+          message: "Like registrado",
+        };
+      }
 
+      stage = "notify_match";
       await notifyMatchCreated({
         senderUserId: currentUserId,
         recipientUserId: targetUserId,
@@ -475,7 +629,13 @@ export const submitMatchpointAction = onCall(
         message: "Match! Vocês podem conversar agora",
       };
     } catch (error) {
-      console.error("Erro em submitMatchpointAction:", error);
+      console.error("Erro em submitMatchpointAction:", {
+        currentUserId,
+        targetUserId,
+        action,
+        stage,
+        error,
+      });
 
       if (error instanceof HttpsError) {
         throw error;
@@ -604,95 +764,71 @@ function readLastLikeDate(userData: DocumentData): Date | null {
  *
  * @param {string} userId1 - UID do usuário atual
  * @param {string} userId2 - UID do usuário alvo
- * @return {Promise<{matchId: string, conversationId: string}>} Resultado
+ * @param {DocumentReference<DocumentData>} sourceInteractionRef - Interação
+ *   atual persistida pelo usuário que acabou de curtir.
+ * @param {DocumentReference<DocumentData>} reciprocalInteractionRef -
+ *   Interação recíproca já encontrada para o potencial match.
+ * @return {Promise<{matchId: string, conversationId: string} | null>}
+ *   Resultado do match ou null quando a reciprocidade sumiu durante a corrida.
  */
 async function createMatch(
   userId1: string,
-  userId2: string
-): Promise<{ matchId: string; conversationId: string }> {
+  userId2: string,
+  sourceInteractionRef: DocumentReference<DocumentData>,
+  reciprocalInteractionRef: DocumentReference<DocumentData>
+): Promise<{ matchId: string; conversationId: string } | null> {
   const now = Timestamp.now();
 
   const pairKey = [userId1, userId2].sort().join("_");
   const matchId = `match_${pairKey}`;
-  const conversationId = pairKey;
-
   const matchRef = db.collection("matches").doc(matchId);
-  const conversationRef = db.collection("conversations").doc(conversationId);
 
   return await db.runTransaction(async (transaction) => {
+    const sourceInteractionDoc = await transaction.get(sourceInteractionRef);
+    const reciprocalInteractionDoc = await transaction.get(
+      reciprocalInteractionRef
+    );
+
+    if (!sourceInteractionDoc.exists || !reciprocalInteractionDoc.exists) {
+      return null;
+    }
+
+    if (
+      readInteractionType(sourceInteractionDoc.data()) !== "like" ||
+      readInteractionType(reciprocalInteractionDoc.data()) !== "like"
+    ) {
+      return null;
+    }
+
     const existingMatch = await transaction.get(matchRef);
+    const conversationId = resolveMatchConversationId(
+      existingMatch.data(),
+      pairKey
+    );
+
+    await ensureMatchArtifacts({
+      transaction,
+      userId1,
+      userId2,
+      conversationId,
+      now,
+    });
+
+    transaction.set(sourceInteractionRef, {
+      resulted_in_match: true,
+      updated_at: now,
+    }, {merge: true});
+    transaction.set(reciprocalInteractionRef, {
+      resulted_in_match: true,
+      updated_at: now,
+    }, {merge: true});
+
     if (existingMatch.exists) {
-      const matchData = existingMatch.data() || {};
-      return {
-        matchId: existingMatch.id,
-        conversationId: matchData.conversation_id as string,
-      };
-    }
-
-    const existingConversation = await transaction.get(conversationRef);
-
-    const user1Doc = await transaction.get(db.collection("users").doc(userId1));
-    const user2Doc = await transaction.get(db.collection("users").doc(userId2));
-    const user1Data = user1Doc.data() || {};
-    const user2Data = user2Doc.data() || {};
-
-    if (!existingConversation.exists) {
-      transaction.set(conversationRef, {
-        participants: [userId1, userId2],
-        participantsMap: {[userId1]: true, [userId2]: true},
-        createdAt: now,
-        updatedAt: now,
-        readUntil: {
-          [userId1]: Timestamp.fromMillis(0),
-          [userId2]: Timestamp.fromMillis(0),
-        },
-        lastMessageText: null,
-        lastMessageAt: null,
-        lastSenderId: null,
-        type: "matchpoint",
-      });
-    }
-
-    const preview1Ref = db
-      .collection("users")
-      .doc(userId1)
-      .collection("conversationPreviews")
-      .doc(conversationId);
-    const preview2Ref = db
-      .collection("users")
-      .doc(userId2)
-      .collection("conversationPreviews")
-      .doc(conversationId);
-
-    const preview1Doc = await transaction.get(preview1Ref);
-    const preview2Doc = await transaction.get(preview2Ref);
-
-    if (!preview1Doc.exists) {
-      transaction.set(preview1Ref, {
-        otherUserId: userId2,
-        otherUserName: user2Data.nome || user2Data.nome_artistico || "Usuário",
-        otherUserPhoto: user2Data.foto || null,
-        lastMessageText: null,
-        lastMessageAt: null,
-        lastSenderId: null,
-        unreadCount: 0,
-        updatedAt: now,
-        type: "matchpoint",
-      });
-    }
-
-    if (!preview2Doc.exists) {
-      transaction.set(preview2Ref, {
-        otherUserId: userId1,
-        otherUserName: user1Data.nome || user1Data.nome_artistico || "Usuário",
-        otherUserPhoto: user1Data.foto || null,
-        lastMessageText: null,
-        lastMessageAt: null,
-        lastSenderId: null,
-        unreadCount: 0,
-        updatedAt: now,
-        type: "matchpoint",
-      });
+      transaction.set(matchRef, {
+        conversation_id: conversationId,
+        updated_at: now,
+      }, {merge: true});
+      return {matchId: existingMatch.id, conversationId};
     }
 
     transaction.set(matchRef, {
@@ -1096,6 +1232,9 @@ export const getRemainingLikes = onCall(
         resetTime: tomorrow.toISOString(),
       };
     } catch (error) {
+      if (error instanceof HttpsError) {
+        throw error;
+      }
       console.error("Erro em getRemainingLikes:", error);
       throw new HttpsError("internal", "Erro ao consultar swipes");
     }

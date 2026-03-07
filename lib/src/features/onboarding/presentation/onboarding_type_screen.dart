@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -12,6 +15,7 @@ import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../bands/domain/band_activation_rules.dart';
@@ -36,6 +40,7 @@ class OnboardingTypeScreen extends ConsumerStatefulWidget {
 class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
     with SingleTickerProviderStateMixin {
   String? _selectedType;
+  ProviderSubscription<AsyncValue<void>>? _controllerSubscription;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -92,11 +97,25 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
           ),
         );
 
+    _controllerSubscription = ref.listenManual<AsyncValue<void>>(
+      onboardingControllerProvider,
+      (previous, next) {
+        if (!mounted || !next.hasError || previous?.hasError == true) {
+          return;
+        }
+        AppSnackBar.error(
+          context,
+          'Não foi possível continuar o cadastro. Tente novamente.',
+        );
+      },
+    );
+
     _animationController.forward();
   }
 
   @override
   void dispose() {
+    _controllerSubscription?.close();
     _animationController.dispose();
     super.dispose();
   }
@@ -141,118 +160,157 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
     });
   }
 
+  Future<void> _signOutAndGoToLogin() async {
+    await ref.read(authRepositoryProvider).signOut();
+    if (!mounted) return;
+    context.go(RoutePaths.login);
+  }
+
+  void _handleLockedBackNavigation() {
+    if (ref.read(onboardingControllerProvider).isLoading) {
+      return;
+    }
+    unawaited(_signOutAndGoToLogin());
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
     final userAsync = ref.watch(currentUserProfileProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: userAsync.when(
-        skipLoadingOnReload: true,
-        loading: () => const Center(child: AppLoadingIndicator.medium()),
-        error: (err, stack) => Center(
-          child: Text(
-            'Erro: $err',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleLockedBackNavigation();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: userAsync.when(
+          skipLoadingOnReload: true,
+          loading: () => const Center(child: AppLoadingIndicator.medium()),
+          error: (err, stack) => Center(
+            child: Text(
+              'Erro: $err',
+              style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+            ),
           ),
-        ),
-        data: (user) {
-          if (user == null) {
-            return Center(
-              child: Text(
-                'Usuário não autenticado.',
-                style: AppTypography.bodyMedium,
-              ),
-            );
-          }
+          data: (user) {
+            if (user == null) {
+              return Center(
+                child: Text(
+                  'Usuário não autenticado.',
+                  style: AppTypography.bodyMedium,
+                ),
+              );
+            }
 
-          return Column(
-            children: [
-              Expanded(
-                child: SafeArea(
-                  bottom: false,
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: ResponsiveCenter(
-                      maxContentWidth: 600,
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s24,
-                        AppSpacing.s32,
-                        AppSpacing.s24,
-                        AppSpacing.s24,
-                      ),
-                      child: FadeTransition(
-                        opacity: _fadeAnimation,
-                        child: SlideTransition(
-                          position: _slideAnimation,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildHeader(),
-                              const SizedBox(height: AppSpacing.s32),
-                              ...List.generate(_types.length, (index) {
-                                final type = _types[index];
-                                return Padding(
-                                  padding: EdgeInsets.only(
-                                    bottom: index < _types.length - 1
-                                        ? AppSpacing.s12
-                                        : 0,
-                                  ),
-                                  child: FullWidthSelectionCard(
-                                    icon: type['icon'] as IconData,
-                                    title: type['label'] as String,
-                                    description: type['description'] as String?,
-                                    isSelected: _selectedType == type['value'],
-                                    onTap: () => _handleTypeSelection(type),
-                                    density: SelectionCardDensity.compact,
-                                  ),
-                                );
-                              }),
-                            ],
+            return Column(
+              children: [
+                Expanded(
+                  child: SafeArea(
+                    bottom: false,
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: ResponsiveCenter(
+                        maxContentWidth: 600,
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.s24,
+                          AppSpacing.s32,
+                          AppSpacing.s24,
+                          AppSpacing.s24,
+                        ),
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: SlideTransition(
+                            position: _slideAnimation,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildHeader(),
+                                const SizedBox(height: AppSpacing.s32),
+                                ...List.generate(_types.length, (index) {
+                                  final type = _types[index];
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: index < _types.length - 1
+                                          ? AppSpacing.s12
+                                          : 0,
+                                    ),
+                                    child: FullWidthSelectionCard(
+                                      icon: type['icon'] as IconData,
+                                      title: type['label'] as String,
+                                      description:
+                                          type['description'] as String?,
+                                      isSelected:
+                                          _selectedType == type['value'],
+                                      onTap: () => _handleTypeSelection(type),
+                                      density: SelectionCardDensity.compact,
+                                    ),
+                                  );
+                                }),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SafeArea(
-                top: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    border: const Border(
-                      top: BorderSide(color: AppColors.border),
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      border: const Border(
+                        top: BorderSide(color: AppColors.border),
+                      ),
+                      boxShadow: AppEffects.subtleShadow,
                     ),
-                    boxShadow: AppEffects.subtleShadow,
-                  ),
-                  child: ResponsiveCenter(
-                    maxContentWidth: 600,
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.s24,
-                      AppSpacing.s16,
-                      AppSpacing.s24,
-                      AppSpacing.s24,
-                    ),
-                    child: SizedBox(
-                      height: 56,
-                      child: AppButton.primary(
-                        text: 'Continuar',
-                        size: AppButtonSize.large,
-                        isLoading: state.isLoading,
-                        onPressed: _selectedType != null
-                            ? () => _submit(user)
-                            : null,
-                        isFullWidth: true,
+                    child: ResponsiveCenter(
+                      maxContentWidth: 600,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.s24,
+                        AppSpacing.s16,
+                        AppSpacing.s24,
+                        AppSpacing.s24,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: 56,
+                            child: AppButton.primary(
+                              text: 'Continuar',
+                              size: AppButtonSize.large,
+                              isLoading: state.isLoading,
+                              onPressed: _selectedType != null
+                                  ? () => _submit(user)
+                                  : null,
+                              isFullWidth: true,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s12),
+                          Center(
+                            child: TextButton(
+                              onPressed: state.isLoading
+                                  ? null
+                                  : _handleLockedBackNavigation,
+                              child: Text(
+                                'Sair e usar outra conta',
+                                style: AppTypography.link,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

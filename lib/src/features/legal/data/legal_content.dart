@@ -237,13 +237,13 @@ O Serviço envia notificações push sobre matches, mensagens, atualizações e 
 
 ---
 
-## 12. PLANOS E ASSINATURAS
+## 12. ACESSO AO SERVIÇO
 
-12.1. Atualmente, o MUBE oferece exclusivamente o **plano gratuito (free)** com acesso a todas as funcionalidades básicas do Serviço.
+12.1. Atualmente, o MUBE **não vende conteúdo digital, assinaturas, créditos ou funcionalidades pagas dentro do aplicativo**. O acesso às funcionalidades atualmente disponibilizadas no app é gratuito.
 
-12.2. **Planos pagos poderão ser implementados futuramente.** Nesse caso, estes Termos serão atualizados previamente, e o usuário será notificado sobre as condições, preços, formas de pagamento, renovação e política de cancelamento e reembolso.
+12.2. O MUBE também **não processa pagamentos entre usuários nem desbloqueia recursos pagos por compra externa vinculada ao aplicativo**.
 
-12.3. O MUBE reserva-se o direito de introduzir, modificar ou descontinuar funcionalidades gratuitas a qualquer momento, mediante aviso prévio aos usuários.
+12.3. Caso o modelo comercial do Serviço seja alterado no futuro, estes Termos serão atualizados previamente, e eventuais mudanças serão implementadas em conformidade com a legislação aplicável e as políticas da plataforma.
 
 ---
 

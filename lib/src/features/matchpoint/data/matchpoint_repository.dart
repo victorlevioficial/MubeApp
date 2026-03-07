@@ -24,6 +24,82 @@ class MatchpointRepository {
   MatchpointRepository(this._dataSource, {AnalyticsService? analytics})
     : _analytics = analytics;
 
+  static const String _submitActionFallbackMessage =
+      'Não foi possível registrar sua ação agora. Tente novamente.';
+  static const String _likesQuotaFallbackMessage =
+      'Não foi possível consultar seus swipes agora. Tente novamente.';
+
+  Failure _mapFunctionsFailure(
+    FirebaseFunctionsException error, {
+    required String fallbackMessage,
+  }) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+    final mentionsAppCheck = message.contains('app check');
+
+    if (code == 'resource-exhausted') {
+      return QuotaExceededFailure.dailyLikes();
+    }
+    if (mentionsAppCheck &&
+        (code == 'unauthenticated' ||
+            code == 'failed-precondition' ||
+            code == 'permission-denied')) {
+      return const ServerFailure(
+        message:
+            'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
+        debugMessage: 'app-check-auth-context-failure',
+      );
+    }
+    if (code == 'unauthenticated') {
+      return AuthFailure(
+        message: 'Sua sessão expirou. Faça login novamente.',
+        debugMessage: 'functions-unauthenticated',
+        originalError: error,
+      );
+    }
+    if (code == 'permission-denied') {
+      return PermissionFailure.firestore();
+    }
+
+    return ServerFailure(
+      message: _resolveFunctionsMessage(
+        error,
+        fallbackMessage: fallbackMessage,
+      ),
+      debugMessage: code,
+      originalError: error,
+    );
+  }
+
+  String _resolveFunctionsMessage(
+    FirebaseFunctionsException error, {
+    required String fallbackMessage,
+  }) {
+    final rawMessage = error.message?.trim();
+    if (rawMessage == null || rawMessage.isEmpty) {
+      return fallbackMessage;
+    }
+
+    final normalizedMessage = rawMessage.toLowerCase();
+    final normalizedCode = error.code.toLowerCase();
+    const genericMessages = <String>{
+      'internal',
+      'unknown',
+      'internal error',
+      'an internal error has occurred',
+      'an internal error has occurred.',
+      'internal server error',
+    };
+
+    final isGenericMessage =
+        normalizedMessage == normalizedCode ||
+        genericMessages.contains(normalizedMessage) ||
+        normalizedMessage.contains('erro interno') ||
+        normalizedMessage.contains('internal error');
+
+    return isGenericMessage ? fallbackMessage : rawMessage;
+  }
+
   FutureResult<List<AppUser>> fetchCandidates({
     required AppUser currentUser,
     required List<String> genres,
@@ -98,43 +174,8 @@ class MatchpointRepository {
 
       return Right(result);
     } on FirebaseFunctionsException catch (e) {
-      // Tratar erros específicos do Firebase Functions
-      final code = e.code.toLowerCase();
-      final message = (e.message ?? '').toLowerCase();
-      final mentionsAppCheck = message.contains('app check');
-
-      if (code == 'resource-exhausted') {
-        return Left(QuotaExceededFailure.dailyLikes());
-      }
-      if (mentionsAppCheck &&
-          (code == 'unauthenticated' ||
-              code == 'failed-precondition' ||
-              code == 'permission-denied')) {
-        return const Left(
-          ServerFailure(
-            message:
-                'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
-            debugMessage: 'app-check-auth-context-failure',
-          ),
-        );
-      }
-      if (code == 'unauthenticated') {
-        return Left(
-          AuthFailure(
-            message: 'Sua sessão expirou. Faça login novamente.',
-            debugMessage: 'functions-unauthenticated',
-            originalError: e,
-          ),
-        );
-      }
-      if (code == 'permission-denied') {
-        return Left(PermissionFailure.firestore());
-      }
       return Left(
-        ServerFailure(
-          message: e.message ?? 'Erro no servidor',
-          debugMessage: code,
-        ),
+        _mapFunctionsFailure(e, fallbackMessage: _submitActionFallbackMessage),
       );
     } catch (e) {
       await _analytics?.logEvent(
@@ -154,6 +195,10 @@ class MatchpointRepository {
     try {
       final quota = await _dataSource.getRemainingLikes();
       return Right(quota);
+    } on FirebaseFunctionsException catch (e) {
+      return Left(
+        _mapFunctionsFailure(e, fallbackMessage: _likesQuotaFallbackMessage),
+      );
     } catch (e) {
       return Left(ServerFailure(message: e.toString()));
     }

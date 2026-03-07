@@ -184,7 +184,7 @@ const List<FAQItem> kAppFAQs = [
     category: FAQCategories.privacyLgpd,
     question: 'O app coleta dados de pagamento?',
     answer:
-        'Não no momento. Se funcionalidades pagas forem implementadas no futuro, os documentos legais serão atualizados com transparência.',
+        'Não. No momento, o Mube não coleta dados de pagamento e não oferece assinatura, créditos ou compra interna de conteúdo e funcionalidades digitais.',
     tags: ['pagamento', 'cobrança', 'financeiro'],
   ),
   FAQItem(
@@ -219,7 +219,7 @@ const List<FAQItem> kAppFAQs = [
     category: FAQCategories.supportTickets,
     question: 'O aplicativo é gratuito?',
     answer:
-        'Sim. O Mube é gratuito para download e uso das funcionalidades principais da plataforma.',
+        'Sim. O Mube é gratuito para download e para uso das funcionalidades disponíveis atualmente. Não há assinatura, compra interna ou desbloqueio pago no app neste momento.',
     tags: ['gratuito', 'plano', 'assinatura', 'preço'],
   ),
 ];

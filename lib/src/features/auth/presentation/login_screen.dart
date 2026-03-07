@@ -56,12 +56,15 @@ class LoginController extends _$LoginController {
   }) async {
     state = const AsyncLoading();
     final result = await action();
+    if (!ref.mounted) return;
 
     result.fold(
       (failure) {
+        if (!ref.mounted) return;
         state = AsyncError(failure.message, StackTrace.current);
       },
       (success) {
+        if (!ref.mounted) return;
         state = const AsyncData(null);
       },
     );

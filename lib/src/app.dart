@@ -19,6 +19,7 @@ import 'features/auth/presentation/account_deletion_provider.dart';
 import 'features/bands/domain/band_activation_rules.dart';
 import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/feed/presentation/feed_controller.dart';
+import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'routing/app_router.dart';
 import 'routing/route_paths.dart';
@@ -52,6 +53,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasShownBandMembersReminderForSession = false;
   bool _isBandMembersReminderVisible = false;
   String? _bandMembersReminderUserId;
+  String? _onboardingDraftOwnerUid;
   Timer? _pushBootstrapTimer;
 
   @override
@@ -113,6 +115,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
             AppLogger.clearUserIdentifier();
             AppLogger.setCustomKey('auth_user_present', false);
           }
+          _handleOnboardingDraftSession(user);
           _handleBandMembersReminderSession(user);
           _handlePushBootstrapForAuthState(user);
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
@@ -121,6 +124,18 @@ class _MubeAppState extends ConsumerState<MubeApp> {
         });
       },
     );
+  }
+
+  void _handleOnboardingDraftSession(User? user) {
+    final nextUid = user?.uid;
+    final previousUid = _onboardingDraftOwnerUid;
+    _onboardingDraftOwnerUid = nextUid;
+
+    if (previousUid == null || previousUid == nextUid) {
+      return;
+    }
+
+    unawaited(ref.read(onboardingFormProvider.notifier).clearState());
   }
 
   void _handlePushBootstrapForAuthState(User? user) {

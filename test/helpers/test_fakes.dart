@@ -45,16 +45,18 @@ class FakeFirebaseUser extends Fake implements firebase_auth.User {
   final String? displayName;
   @override
   final String? photoURL;
+  final bool _emailVerified;
 
   FakeFirebaseUser({
     this.uid = 'test-user-id',
     this.email = 'test@example.com',
     this.displayName = 'Test User',
     this.photoURL,
-  });
+    bool emailVerified = true,
+  }) : _emailVerified = emailVerified;
 
   @override
-  bool get emailVerified => true;
+  bool get emailVerified => _emailVerified;
 
   @override
   bool get isAnonymous => false;
@@ -93,6 +95,9 @@ class FakeAuthRepository extends Fake implements AuthRepository {
 
   @override
   firebase_auth.User? get currentUser => _currentUser;
+
+  @override
+  bool get isCurrentUserEmailVerified => _currentUser?.emailVerified ?? false;
 
   // Helper to set initial state for watchUser
   set appUser(AppUser? user) {

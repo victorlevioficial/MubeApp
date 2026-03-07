@@ -10,13 +10,14 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/domain/user_type.dart';
 
 /// Enhanced profile header with modern bento grid layout
 ///
 /// Features:
 /// - Large profile card with avatar, name, email
 /// - Edit button with refined styling
-/// - Stats grid showing favorites and plan type
+/// - Stats grid showing favorites and profile type
 /// - Glassmorphic effects and subtle depth
 class BentoHeader extends ConsumerWidget {
   const BentoHeader({super.key});
@@ -25,6 +26,7 @@ class BentoHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProfileProvider);
     final user = userAsync.value;
+    final profileSummary = _ProfileSummary.fromUserType(user?.tipoPerfil);
 
     return Column(
       children: [
@@ -41,11 +43,58 @@ class BentoHeader extends ConsumerWidget {
         // STATS GRID
         _StatsGrid(
           favoritesCount: user?.favoritesCount ?? 0,
-          planType: 'free',
+          profileSummary: profileSummary,
           onFavoritesTap: () => context.push(RoutePaths.receivedFavorites),
         ),
       ],
     );
+  }
+}
+
+class _ProfileSummary {
+  final String value;
+  final IconData icon;
+  final Color iconColor;
+
+  const _ProfileSummary({
+    required this.value,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  factory _ProfileSummary.fromUserType(AppUserType? userType) {
+    switch (userType) {
+      case AppUserType.professional:
+        return const _ProfileSummary(
+          value: 'Profissional',
+          icon: Icons.music_note_rounded,
+          iconColor: AppColors.primary,
+        );
+      case AppUserType.band:
+        return const _ProfileSummary(
+          value: 'Banda',
+          icon: Icons.groups_rounded,
+          iconColor: AppColors.warning,
+        );
+      case AppUserType.studio:
+        return const _ProfileSummary(
+          value: 'Estudio',
+          icon: Icons.graphic_eq_rounded,
+          iconColor: AppColors.info,
+        );
+      case AppUserType.contractor:
+        return const _ProfileSummary(
+          value: 'Contratante',
+          icon: Icons.event_available_rounded,
+          iconColor: AppColors.success,
+        );
+      default:
+        return const _ProfileSummary(
+          value: 'Perfil',
+          icon: Icons.person_outline_rounded,
+          iconColor: AppColors.textSecondary,
+        );
+    }
   }
 }
 
@@ -203,12 +252,12 @@ class _EditButton extends StatelessWidget {
 /// Stats grid showing user statistics
 class _StatsGrid extends StatelessWidget {
   final int favoritesCount;
-  final String planType;
+  final _ProfileSummary profileSummary;
   final VoidCallback onFavoritesTap;
 
   const _StatsGrid({
     required this.favoritesCount,
-    required this.planType,
+    required this.profileSummary,
     required this.onFavoritesTap,
   });
 
@@ -229,17 +278,13 @@ class _StatsGrid extends StatelessWidget {
 
         const SizedBox(width: AppSpacing.s12),
 
-        // Plan Stat
+        // Profile Stat
         Expanded(
           child: _StatCard(
-            icon: planType == 'pro'
-                ? Icons.workspace_premium
-                : Icons.star_border_rounded,
-            iconColor: planType == 'pro'
-                ? AppColors.warning
-                : AppColors.textSecondary.withValues(alpha: 0.6),
-            value: planType == 'pro' ? 'Pro' : 'Free',
-            label: 'Plano Ativo',
+            icon: profileSummary.icon,
+            iconColor: profileSummary.iconColor,
+            value: profileSummary.value,
+            label: 'Tipo de Perfil',
           ),
         ),
       ],

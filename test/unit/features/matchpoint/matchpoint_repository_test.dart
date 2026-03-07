@@ -122,5 +122,32 @@ void main() {
         expect(failure.debugMessage, 'app-check-auth-context-failure');
       }, (_) => fail('Expected failure'));
     });
+
+    test(
+      'maps internal code leaked by Cloud Functions to a friendly message',
+      () async {
+        final dataSource = _FakeMatchpointRemoteDataSource()
+          ..submitActionError = FirebaseFunctionsException(
+            code: 'internal',
+            message: 'internal',
+          );
+        final repository = MatchpointRepository(dataSource);
+
+        final result = await repository.submitAction(
+          targetUserId: 'target-1',
+          type: 'like',
+        );
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(
+            failure.message,
+            'Não foi possível registrar sua ação agora. Tente novamente.',
+          );
+          expect(failure.debugMessage, 'internal');
+        }, (_) => fail('Expected failure'));
+      },
+    );
   });
 }

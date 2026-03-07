@@ -18,7 +18,20 @@ class AppBackButton extends StatelessWidget {
         color: AppColors.textPrimary,
         size: 20,
       ),
-      onPressed: onPressed ?? () => context.pop(),
+      onPressed:
+          onPressed ??
+          () {
+            final router = GoRouter.maybeOf(context);
+            if (router?.canPop() ?? false) {
+              context.pop();
+              return;
+            }
+
+            final navigator = Navigator.maybeOf(context);
+            if (navigator?.canPop() ?? false) {
+              navigator!.pop();
+            }
+          },
       tooltip: 'Voltar',
     );
   }

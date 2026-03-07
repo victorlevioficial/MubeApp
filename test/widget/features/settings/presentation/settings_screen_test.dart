@@ -98,6 +98,8 @@ void main() {
       expect(find.text('Meus Favoritos'), findsOneWidget);
       expect(find.text('Alterar Senha'), findsOneWidget);
       expect(find.text('Sair da Conta'), findsOneWidget);
+      expect(find.text('Tipo de Perfil'), findsOneWidget);
+      expect(find.text('Plano Ativo'), findsNothing);
     });
 
     testWidgets('renders "Minhas Bandas" for non-band user', (tester) async {

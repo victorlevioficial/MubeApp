@@ -33,12 +33,15 @@ class ForgotPasswordController extends _$ForgotPasswordController {
     final result = await ref
         .read(authRepositoryProvider)
         .sendPasswordResetEmail(email);
+    if (!ref.mounted) return;
 
     result.fold(
       (failure) {
+        if (!ref.mounted) return;
         state = AsyncError(failure.message, StackTrace.current);
       },
       (success) {
+        if (!ref.mounted) return;
         state = const AsyncData(null);
       },
     );
@@ -96,6 +99,15 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     }
   }
 
+  void _handleBackNavigation() {
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go(RoutePaths.login);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -103,139 +115,150 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     final state = ref.watch(forgotPasswordControllerProvider);
 
-    return Scaffold(
-      appBar: const AppAppBar(
-        title: SizedBox.shrink(),
-        backgroundColor: AppColors.transparent,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: ResponsiveCenter(
-          maxContentWidth: 600,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s16,
-            vertical: AppSpacing.s32,
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // HEADER
-                Column(
-                  children: [
-                    Center(
-                      child: SvgPicture.asset(
-                        AppAssets.logoHorizontalSvg,
-                        height: AppSpacing.s48,
-                        fit: BoxFit.scaleDown,
-                        placeholderBuilder: (context) =>
-                            const SizedBox(height: AppSpacing.s48),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBackNavigation();
+      },
+      child: Scaffold(
+        appBar: AppAppBar(
+          title: const SizedBox.shrink(),
+          showBackButton: true,
+          onBackPressed: _handleBackNavigation,
+          backgroundColor: AppColors.transparent,
+          elevation: 0,
+        ),
+        body: SingleChildScrollView(
+          child: ResponsiveCenter(
+            maxContentWidth: 600,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s16,
+              vertical: AppSpacing.s32,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // HEADER
+                  Column(
+                    children: [
+                      Center(
+                        child: SvgPicture.asset(
+                          AppAssets.logoHorizontalSvg,
+                          height: AppSpacing.s48,
+                          fit: BoxFit.scaleDown,
+                          placeholderBuilder: (context) =>
+                              const SizedBox(height: AppSpacing.s48),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.s24),
+                      Text(
+                        'Recuperar senha',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.headlineCompact.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        _emailSent
+                            ? 'Verifique seu e-mail para redefinir sua senha'
+                            : 'Digite seu e-mail para receber um link de recuperação',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: AppSpacing.s32),
+
+                  if (!_emailSent) ...[
+                    // EMAIL INPUT
+                    AppTextField(
+                      fieldKey: const Key('forgot_password_email_input'),
+                      controller: _emailController,
+                      label: 'E-mail',
+                      hint: 'seu@email.com',
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) =>
+                          value == null || !value.contains('@')
+                          ? 'E-mail inválido'
+                          : null,
+                    ),
+
+                    const SizedBox(height: AppSpacing.s32),
+
+                    // BUTTON "ENVIAR"
+                    SizedBox(
+                      height: 56,
+                      child: Semantics(
+                        button: true,
+                        label: 'Enviar link de recuperação',
+                        child: AppButton.primary(
+                          key: const Key('forgot_password_button'),
+                          text: 'Enviar link',
+                          isLoading: state.isLoading,
+                          onPressed: _submit,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s24),
-                    Text(
-                      'Recuperar senha',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.headlineCompact.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
+                  ] else ...[
+                    // SUCCESS STATE
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.s24),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.1),
+                        borderRadius: AppRadius.all12,
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline,
+                            size: 64,
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(height: AppSpacing.s16),
+                          Text(
+                            'E-mail enviado!',
+                            style: AppTypography.titleLarge.copyWith(
+                              color: AppColors.success,
+                              fontWeight:
+                                  AppTypography.buttonPrimary.fontWeight,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s8),
+                          Text(
+                            'Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s8),
-                    Text(
-                      _emailSent
-                          ? 'Verifique seu e-mail para redefinir sua senha'
-                          : 'Digite seu e-mail para receber um link de recuperação',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+
+                    const SizedBox(height: AppSpacing.s32),
+
+                    // BUTTON "VOLTAR PARA LOGIN"
+                    SizedBox(
+                      height: 56,
+                      child: AppButton.secondary(
+                        key: const Key('back_to_login_button'),
+                        text: 'Voltar para o login',
+                        onPressed: () => context.go(RoutePaths.login),
                       ),
                     ),
                   ],
-                ),
 
-                const SizedBox(height: AppSpacing.s32),
-
-                if (!_emailSent) ...[
-                  // EMAIL INPUT
-                  AppTextField(
-                    fieldKey: const Key('forgot_password_email_input'),
-                    controller: _emailController,
-                    label: 'E-mail',
-                    hint: 'seu@email.com',
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) => value == null || !value.contains('@')
-                        ? 'E-mail inválido'
-                        : null,
-                  ),
-
-                  const SizedBox(height: AppSpacing.s32),
-
-                  // BUTTON "ENVIAR"
-                  SizedBox(
-                    height: 56,
-                    child: Semantics(
-                      button: true,
-                      label: 'Enviar link de recuperação',
-                      child: AppButton.primary(
-                        key: const Key('forgot_password_button'),
-                        text: 'Enviar link',
-                        isLoading: state.isLoading,
-                        onPressed: _submit,
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  // SUCCESS STATE
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.s24),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: AppRadius.all12,
-                    ),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: AppColors.success,
-                        ),
-                        const SizedBox(height: AppSpacing.s16),
-                        Text(
-                          'E-mail enviado!',
-                          style: AppTypography.titleLarge.copyWith(
-                            color: AppColors.success,
-                            fontWeight: AppTypography.buttonPrimary.fontWeight,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.s8),
-                        Text(
-                          'Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.',
-                          textAlign: TextAlign.center,
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSpacing.s32),
-
-                  // BUTTON "VOLTAR PARA LOGIN"
-                  SizedBox(
-                    height: 56,
-                    child: AppButton.secondary(
-                      key: const Key('back_to_login_button'),
-                      text: 'Voltar para o login',
-                      onPressed: () => context.go(RoutePaths.login),
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.s24),
                 ],
-
-                const SizedBox(height: AppSpacing.s24),
-              ],
+              ),
             ),
           ),
         ),

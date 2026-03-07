@@ -326,9 +326,8 @@ class _EmailVerificationScreenState
     if (!mounted || _handledVerifiedNavigation) return;
     _handledVerifiedNavigation = true;
 
-    final navigator = Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
+    if (_canPopVerificationRoute()) {
+      context.pop();
       return;
     }
 
@@ -357,6 +356,12 @@ class _EmailVerificationScreenState
     context.go(RoutePaths.login);
   }
 
+  bool _canPopVerificationRoute() {
+    return GoRouter.maybeOf(context)?.canPop() ??
+        Navigator.maybeOf(context)?.canPop() ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (AppLocalizations.of(context) == null) {
@@ -367,8 +372,12 @@ class _EmailVerificationScreenState
     final user = ref.watch(authRepositoryProvider).currentUser;
     final email = user?.email ?? 'seu email';
 
-    return Scaffold(
-      body: _buildVerificationBody(state: state, email: email),
+    return PopScope(
+      canPop: _canPopVerificationRoute(),
+      onPopInvokedWithResult: (didPop, result) {},
+      child: Scaffold(
+        body: _buildVerificationBody(state: state, email: email),
+      ),
     );
   }
 }
