@@ -6,8 +6,10 @@ import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../design_system/components/feedback/empty_state_widget.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -56,8 +58,22 @@ class GigsScreen extends ConsumerWidget {
         ],
       ),
       body: gigsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Erro ao carregar gigs: $error')),
+        loading: () => const _GigsListSkeleton(),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: EmptyStateWidget(
+              icon: Icons.cloud_off_rounded,
+              title: 'Nao foi possivel carregar as gigs',
+              subtitle:
+                  'Tente novamente em instantes. Se o erro persistir, verifique sua conexao.',
+              actionButton: AppButton.secondary(
+                text: 'Tentar novamente',
+                onPressed: () => ref.invalidate(gigsStreamProvider),
+              ),
+            ),
+          ),
+        ),
         data: (gigs) {
           if (gigs.isEmpty) {
             return EmptyStateWidget(
@@ -89,7 +105,8 @@ class GigsScreen extends ConsumerWidget {
                   extra: gigs[index],
                 ),
               ),
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.s12),
               itemCount: gigs.length,
             ),
           );
@@ -119,5 +136,82 @@ class GigsScreen extends ConsumerWidget {
     if (result is GigFilters && context.mounted) {
       ref.read(gigFiltersControllerProvider.notifier).updateFilters(result);
     }
+  }
+}
+
+class _GigsListSkeleton extends StatelessWidget {
+  const _GigsListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      itemCount: 4,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+      itemBuilder: (_, _) => const _GigCardSkeleton(),
+    );
+  }
+}
+
+class _GigCardSkeleton extends StatelessWidget {
+  const _GigCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+      ),
+      child: const SkeletonShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonText(width: 220, height: 20),
+                      SizedBox(height: AppSpacing.s10),
+                      Row(
+                        children: [
+                          SkeletonBox(width: 72, height: 24, borderRadius: 12),
+                          SizedBox(width: AppSpacing.s8),
+                          SkeletonBox(width: 92, height: 24, borderRadius: 12),
+                          SizedBox(width: AppSpacing.s8),
+                          SkeletonBox(width: 88, height: 24, borderRadius: 12),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.s16),
+            SkeletonText(height: 14),
+            SizedBox(height: AppSpacing.s8),
+            SkeletonText(width: double.infinity, height: 14),
+            SizedBox(height: AppSpacing.s8),
+            SkeletonText(width: 180, height: 14),
+            SizedBox(height: AppSpacing.s16),
+            Wrap(
+              spacing: AppSpacing.s12,
+              runSpacing: AppSpacing.s8,
+              children: [
+                SkeletonBox(width: 136, height: 32, borderRadius: 12),
+                SkeletonBox(width: 128, height: 32, borderRadius: 12),
+                SkeletonBox(width: 112, height: 32, borderRadius: 12),
+                SkeletonBox(width: 124, height: 32, borderRadius: 12),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
