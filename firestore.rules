@@ -405,12 +405,7 @@ service cloud.firestore {
         request.resource.data.slots_total >= 1 &&
         request.resource.data.slots_filled == 0 &&
         request.resource.data.applicant_count == 0 &&
-        request.resource.data.status == 'open' &&
-        (
-          !userExists(request.auth.uid) ||
-          !(userDoc(request.auth.uid).data.gigs_open_count is int) ||
-          userDoc(request.auth.uid).data.gigs_open_count < 5
-        );
+        request.resource.data.status == 'open';
 
       allow update: if isGigCreator(gigId) &&
         isCompletedProfile(request.auth.uid) &&
