@@ -225,6 +225,37 @@ cp ../AppMube_release_<versao>/build/app/outputs/bundle/release/app-release.aab 
 
 Quando possivel, continue preferindo a rota oficial com Fastlane, porque ela faz o upload direto para o track fechado. Esta rota alternativa existe para destravar o build quando o ambiente de upload nao estiver pronto.
 
+### 6. Rota alternativa: upload direto para a Play Console sem Fastlane
+
+Se o `.aab` ja estiver gerado e o bloqueio for apenas o ambiente de upload, use o script Node do projeto para publicar direto pela Google Play Developer API.
+
+Pre-requisitos:
+- `android/fastlane/play-store-service-account.json` disponivel localmente
+- `.aab` ja gerado
+
+Exemplo para o track fechado padrao do projeto (`alpha`):
+
+```bash
+node scripts/upload_play_store_release.mjs \
+  --aab build/releases/mube-1.3.0+19-closed.aab \
+  --track alpha \
+  --status draft \
+  --name "1.3.0 (19)"
+```
+
+Opcoes suportadas:
+- `--aab`: caminho do bundle
+- `--track`: track do Google Play
+- `--status`: `draft`, `completed`, `inProgress` ou `halted`
+- `--package`: package name Android
+- `--json-key`: service account JSON
+- `--name`: nome exibido no release
+
+Observacoes:
+- o script abre um `edit`, sobe o bundle, atualiza o track e faz o `commit`
+- se o app estiver configurado para enviar mudancas automaticamente para review, o script detecta isso e refaz o `commit` sem `changesNotSentForReview`
+- essa rota evita dependencias de Ruby/Bundler/Fastlane quando o objetivo for apenas publicar o artefato ja pronto
+
 ---
 
 ## Deploy Firebase
