@@ -58,7 +58,9 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     super.initState();
     final gig = widget.initialGig;
     _titleController = TextEditingController(text: gig?.title ?? '');
-    _descriptionController = TextEditingController(text: gig?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: gig?.description ?? '',
+    );
     _locationController = TextEditingController(
       text: gig?.location?['label']?.toString() ?? '',
     );
@@ -100,12 +102,11 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppAppBar(
-        title: _isEditing ? 'Editar gig' : 'Nova gig',
-      ),
+      appBar: AppAppBar(title: _isEditing ? 'Editar gig' : 'Nova gig'),
       body: configAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Erro ao carregar config: $error')),
+        error: (error, _) =>
+            Center(child: Text('Erro ao carregar config: $error')),
         data: (config) => SafeArea(
           child: Form(
             key: _formKey,
@@ -116,6 +117,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                   controller: _titleController,
                   label: 'Titulo',
                   hint: 'Ex: Procuro baterista para show de pop/rock',
+                  textCapitalization: TextCapitalization.words,
                   readOnly: !_canEditAllFields,
                   validator: (value) {
                     if ((value ?? '').trim().length < 6) {
@@ -128,7 +130,8 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                 AppTextField(
                   controller: _descriptionController,
                   label: 'Descricao da demanda',
-                  hint: 'Explique contexto, repertorio, expectativa e detalhes.',
+                  hint:
+                      'Explique contexto, repertorio, expectativa e detalhes.',
                   maxLines: 5,
                   minLines: 5,
                   textCapitalization: TextCapitalization.sentences,
@@ -230,6 +233,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                   hint: _locationType == GigLocationType.remote
                       ? 'Ex: remoto para todo Brasil'
                       : 'Ex: Sao Paulo - SP',
+                  textCapitalization: TextCapitalization.words,
                   readOnly: !_canEditAllFields,
                 ),
                 const SizedBox(height: AppSpacing.s16),
@@ -448,7 +452,10 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
       context.pop();
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, error.toString().replaceFirst('Exception: ', ''));
+      AppSnackBar.error(
+        context,
+        error.toString().replaceFirst('Exception: ', ''),
+      );
     }
   }
 }
@@ -491,14 +498,15 @@ class _ConfigMultiSelectField extends StatelessWidget {
           onTap: !enabled
               ? null
               : () async {
-                  final result = await EnhancedMultiSelectModal.show<ConfigItem>(
-                    context: context,
-                    title: title,
-                    subtitle: subtitle,
-                    items: items,
-                    selectedItems: selectedItems,
-                    itemLabel: (item) => item.label,
-                  );
+                  final result =
+                      await EnhancedMultiSelectModal.show<ConfigItem>(
+                        context: context,
+                        title: title,
+                        subtitle: subtitle,
+                        items: items,
+                        selectedItems: selectedItems,
+                        itemLabel: (item) => item.label,
+                      );
                   if (result == null) return;
                   onChanged(
                     result.map((item) => item.id).toList(growable: false),

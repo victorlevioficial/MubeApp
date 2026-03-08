@@ -34,6 +34,7 @@ void main() {
       expect(find.text('Selecione seus instrumentos'), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
       expect(find.text('Confirmar'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
     });
 
     testWidgets('updates selection count when item is toggled', (
@@ -47,13 +48,13 @@ void main() {
       );
 
       expect(find.text('1 selecionado'), findsOneWidget);
-      expect(find.text('Confirmar (1)'), findsOneWidget);
+      expect(find.text('Confirmar'), findsOneWidget);
 
       await tester.tap(find.text('Bateria'));
       await tester.pumpAndSettle();
 
       expect(find.text('2 selecionados'), findsOneWidget);
-      expect(find.text('Confirmar (2)'), findsOneWidget);
+      expect(find.text('Confirmar'), findsOneWidget);
     });
 
     testWidgets('shows empty search state when no items match query', (

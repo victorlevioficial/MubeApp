@@ -322,27 +322,71 @@ class _ModalFooter extends StatelessWidget {
           const SizedBox(height: AppSpacing.s12),
           Row(
             children: [
-              Expanded(
-                child: AppButton.secondary(
-                  text: 'Cancelar',
-                  size: AppButtonSize.large,
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  onPressed: onCancel,
-                ),
+              _FooterIconButton(
+                icon: Icons.close_rounded,
+                semanticLabel: 'Cancelar seleção',
+                onPressed: onCancel,
               ),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
-                flex: 2,
                 child: AppButton.primary(
-                  text: hasSelection ? 'Confirmar seleção' : 'Selecionar itens',
+                  text: 'Confirmar',
                   size: AppButtonSize.large,
-                  icon: const Icon(Icons.check_rounded, size: 18),
                   onPressed: onConfirm,
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FooterIconButton extends StatelessWidget {
+  const _FooterIconButton({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = onPressed != null;
+
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: Material(
+          color: isEnabled ? AppColors.surface2 : AppColors.surfaceHighlight,
+          borderRadius: AppRadius.all16,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: AppRadius.all16,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: AppRadius.all16,
+                border: Border.all(
+                  color: isEnabled ? AppColors.border : AppColors.border,
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: isEnabled
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

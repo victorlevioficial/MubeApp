@@ -433,7 +433,10 @@ service cloud.firestore {
 
       match /gig_applications/{applicantId} {
         allow read: if request.auth != null &&
-          (applicantId == request.auth.uid || isGigCreator(gigId));
+          (
+            resource.data.applicant_id == request.auth.uid ||
+            isGigCreator(gigId)
+          );
 
         allow create: if isAuthenticated() &&
           isCompletedProfile(request.auth.uid) &&

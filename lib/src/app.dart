@@ -19,6 +19,7 @@ import 'features/auth/presentation/account_deletion_provider.dart';
 import 'features/bands/domain/band_activation_rules.dart';
 import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/feed/presentation/feed_controller.dart';
+import 'features/gigs/domain/gig_review_opportunity.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
@@ -417,7 +418,19 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       return;
     }
 
-    final opportunities = await ref.read(pendingGigReviewsProvider.future);
+    final List<GigReviewOpportunity> opportunities = await (() async {
+      try {
+        return await ref.read(pendingGigReviewsProvider.future);
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Failed to load pending gig reviews for reminder',
+          error,
+          stackTrace,
+        );
+        return <GigReviewOpportunity>[];
+      }
+    })();
+
     _hasPendingGigReviewReminderEvaluation = false;
     _hasShownGigReviewReminderForSession = true;
 
