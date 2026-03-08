@@ -131,6 +131,7 @@ class NotificationListScreen extends ConsumerWidget {
       case NotificationType.gigApplicationRejected:
       case NotificationType.gigCancelled:
       case NotificationType.gigReviewReminder:
+      case NotificationType.gigOpportunity:
       case NotificationType.like:
       case NotificationType.system:
         // No specific navigation for now
@@ -403,6 +404,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.event_busy_outlined;
       case NotificationType.gigReviewReminder:
         return Icons.star_outline_rounded;
+      case NotificationType.gigOpportunity:
+        return Icons.bolt_rounded;
       case NotificationType.like:
         return Icons.favorite_border;
       case NotificationType.system:

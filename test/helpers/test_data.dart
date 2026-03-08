@@ -80,6 +80,7 @@ abstract final class TestData {
     bool isRead = false,
     DateTime? createdAt,
     String? conversationId,
+    String? route,
   }) {
     return AppNotification(
       id: id,
@@ -89,6 +90,7 @@ abstract final class TestData {
       isRead: isRead,
       createdAt: createdAt ?? DateTime(2025, 1, 1),
       conversationId: conversationId,
+      route: route,
     );
   }
 

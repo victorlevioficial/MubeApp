@@ -48,6 +48,11 @@ void main() {
           builder: (context, state) =>
               const Scaffold(body: Text('Manage Members Screen')),
         ),
+        GoRoute(
+          path: '/gigs/:id',
+          builder: (context, state) =>
+              Scaffold(body: Text('Gig: ${state.pathParameters['id']}')),
+        ),
       ],
     );
 
@@ -169,6 +174,27 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Invites Screen'), findsOneWidget);
+    });
+
+    testWidgets('navigates using route for gig opportunity notifications', (
+      tester,
+    ) async {
+      final notifications = [
+        TestData.notification(
+          id: 'notif-1',
+          type: NotificationType.gigOpportunity,
+          route: '/gigs/gig-123',
+        ),
+      ];
+
+      await tester.pumpWidget(createSubject(notifications: notifications));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(InkWell).first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Gig: gig-123'), findsOneWidget);
     });
 
     testWidgets(

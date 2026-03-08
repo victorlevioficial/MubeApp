@@ -15,6 +15,10 @@ import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/geohash_helper.dart';
+import '../../../auth/data/auth_repository.dart';
+import '../../../auth/domain/app_user.dart';
+import '../../../settings/domain/saved_address_book.dart';
 import '../../domain/compensation_type.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_date_mode.dart';
@@ -385,6 +389,10 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     }
 
     try {
+      final currentUser = ref.read(currentUserProfileProvider).asData?.value;
+      final locationPayload = _buildLocationPayload(currentUser);
+      final geohash = _buildLocationGeohash(locationPayload);
+
       if (_isEditing) {
         final update = _canEditAllFields
             ? GigUpdate(
@@ -395,10 +403,9 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                 gigDate: _gigDate,
                 clearGigDate: _dateMode != GigDateMode.fixedDate,
                 locationType: _locationType,
-                location: _locationController.text.trim().isEmpty
-                    ? null
-                    : {'label': _locationController.text.trim()},
-                clearLocation: _locationController.text.trim().isEmpty,
+                location: locationPayload,
+                geohash: geohash,
+                clearLocation: locationPayload == null,
                 genres: _selectedGenres,
                 requiredInstruments: _selectedInstruments,
                 requiredCrewRoles: _selectedRoles,
@@ -426,9 +433,8 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
           dateMode: _dateMode,
           gigDate: _gigDate,
           locationType: _locationType,
-          location: _locationController.text.trim().isEmpty
-              ? null
-              : {'label': _locationController.text.trim()},
+          location: locationPayload,
+          geohash: geohash,
           genres: _selectedGenres,
           requiredInstruments: _selectedInstruments,
           requiredCrewRoles: _selectedRoles,
@@ -457,6 +463,48 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
         error.toString().replaceFirst('Exception: ', ''),
       );
     }
+  }
+
+  Map<String, dynamic>? _buildLocationPayload(AppUser? currentUser) {
+    final label = _locationController.text.trim();
+    if (_locationType == GigLocationType.remote) {
+      if (label.isEmpty) return null;
+      return {'label': label};
+    }
+
+    final primaryAddress = currentUser == null
+        ? null
+        : SavedAddressBook.effectiveAddresses(currentUser).firstOrNull;
+
+    final payload = <String, dynamic>{};
+    if (label.isNotEmpty) {
+      payload['label'] = label;
+    } else if (primaryAddress != null && primaryAddress.shortDisplay.isNotEmpty) {
+      payload['label'] = primaryAddress.shortDisplay;
+    }
+
+    if (primaryAddress?.lat != null) payload['lat'] = primaryAddress!.lat;
+    if (primaryAddress?.lng != null) payload['lng'] = primaryAddress!.lng;
+    if (primaryAddress != null && primaryAddress.cidade.isNotEmpty) {
+      payload['cidade'] = primaryAddress.cidade;
+    }
+    if (primaryAddress != null && primaryAddress.estado.isNotEmpty) {
+      payload['estado'] = primaryAddress.estado;
+    }
+
+    return payload.isEmpty ? null : payload;
+  }
+
+  String? _buildLocationGeohash(Map<String, dynamic>? locationPayload) {
+    if (_locationType != GigLocationType.onsite || locationPayload == null) {
+      return null;
+    }
+
+    final lat = (locationPayload['lat'] as num?)?.toDouble();
+    final lng = (locationPayload['lng'] as num?)?.toDouble();
+    if (lat == null || lng == null) return null;
+
+    return GeohashHelper.encode(lat, lng, precision: 5);
   }
 }
 

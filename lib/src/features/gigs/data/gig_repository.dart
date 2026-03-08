@@ -305,7 +305,11 @@ class GigRepository {
       payload[GigFields.geohash] = null;
     } else {
       if (update.location != null) payload[GigFields.location] = update.location;
-      if (update.geohash != null) payload[GigFields.geohash] = update.geohash;
+      if (update.locationType == GigLocationType.remote) {
+        payload[GigFields.geohash] = null;
+      } else if (update.geohash != null) {
+        payload[GigFields.geohash] = update.geohash;
+      }
     }
     if (update.genres != null) payload[GigFields.genres] = update.genres;
     if (update.requiredInstruments != null) {

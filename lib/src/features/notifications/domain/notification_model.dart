@@ -22,6 +22,8 @@ enum NotificationType {
   gigCancelled,
   @JsonValue('gig_review_reminder')
   gigReviewReminder,
+  @JsonValue('gig_opportunity')
+  gigOpportunity,
   @JsonValue('like')
   like,
   @JsonValue('system')
@@ -81,6 +83,8 @@ abstract class AppNotification with _$AppNotification {
         return NotificationType.gigCancelled;
       case 'gig_review_reminder':
         return NotificationType.gigReviewReminder;
+      case 'gig_opportunity':
+        return NotificationType.gigOpportunity;
       case 'like':
         return NotificationType.like;
       default:
@@ -110,6 +114,8 @@ extension AppNotificationX on AppNotification {
         return 'event_busy_outlined';
       case NotificationType.gigReviewReminder:
         return 'star_outline';
+      case NotificationType.gigOpportunity:
+        return 'bolt_outlined';
       case NotificationType.like:
         return 'favorite_border';
       case NotificationType.system:

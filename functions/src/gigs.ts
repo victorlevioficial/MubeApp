@@ -13,6 +13,44 @@ const GIGS_COLLECTION = "gigs";
 const APPLICATIONS_COLLECTION = "gig_applications";
 const USERS_COLLECTION = "users";
 const NOTIFICATIONS_COLLECTION = "notifications";
+const APP_CONFIG_COLLECTION = "config";
+const APP_CONFIG_DOC = "app_data";
+const GIG_OPPORTUNITY_RADIUS_KM = 50;
+
+type ConfigItem = {
+  id?: unknown;
+  label?: unknown;
+  aliases?: unknown;
+};
+
+type AppConfigData = {
+  genres?: ConfigItem[];
+  instruments?: ConfigItem[];
+  crewRoles?: ConfigItem[];
+  studioServices?: ConfigItem[];
+};
+
+type GigMatcherSet = {
+  genres: Set<string>;
+  requiredInstruments: Set<string>;
+  requiredCrewRoles: Set<string>;
+  requiredStudioServices: Set<string>;
+};
+
+type LatLng = {
+  lat: number | null;
+  lng: number | null;
+};
+
+type NotificationPayload = {
+  userId: string;
+  notificationId: string;
+  type: string;
+  title: string;
+  body: string;
+  route?: string;
+  senderId?: string;
+};
 
 function buildGigRoute(gigId: string): string {
   return `/gigs/${gigId}`;
@@ -40,6 +78,157 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asConfigItems(value: unknown): ConfigItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item !== null && typeof item === "object")
+    .map((item) => item as ConfigItem);
+}
+
+function readStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item) => typeof item === "string")
+    .map((item) => (item as string).trim())
+    .filter((item) => item.length > 0);
+}
+
+function normalizeToken(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function createCanonicalizer(items: ConfigItem[]): (values: string[]) => Set<string> {
+  const aliases = new Map<string, string>();
+
+  for (const item of items) {
+    const canonicalSource = firstNonEmptyString([item.id, item.label]);
+    if (!canonicalSource) continue;
+
+    const canonical = normalizeToken(canonicalSource);
+    if (!canonical) continue;
+
+    aliases.set(normalizeToken(firstNonEmptyString([item.id])), canonical);
+    aliases.set(normalizeToken(firstNonEmptyString([item.label])), canonical);
+
+    for (const alias of readStringList(item.aliases)) {
+      aliases.set(normalizeToken(alias), canonical);
+    }
+  }
+
+  return (values: string[]) => {
+    const normalized = new Set<string>();
+    for (const value of values) {
+      const token = normalizeToken(value);
+      if (!token) continue;
+      normalized.add(aliases.get(token) ?? token);
+    }
+    return normalized;
+  };
+}
+
+function intersects(left: Set<string>, right: Set<string>): boolean {
+  if (left.size === 0 || right.size === 0) return false;
+
+  for (const value of left) {
+    if (right.has(value)) return true;
+  }
+
+  return false;
+}
+
+function parseCoordinate(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function haversineDistanceKm(from: LatLng, to: LatLng): number {
+  const earthRadiusKm = 6371;
+  const dLat = degreesToRadians((to.lat ?? 0) - (from.lat ?? 0));
+  const dLng = degreesToRadians((to.lng ?? 0) - (from.lng ?? 0));
+  const lat1 = degreesToRadians(from.lat ?? 0);
+  const lat2 = degreesToRadians(to.lat ?? 0);
+
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLng / 2) * Math.sin(dLng / 2) *
+      Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+}
+
+function degreesToRadians(value: number): number {
+  return value * (Math.PI / 180);
+}
+
+function readLatLng(record: Record<string, unknown>): LatLng {
+  return {
+    lat: parseCoordinate(record.lat),
+    lng: parseCoordinate(record.lng ?? record.long),
+  };
+}
+
+function resolveUserLatLng(userData: Record<string, unknown>): LatLng {
+  const addresses = Array.isArray(userData.addresses) ? userData.addresses : [];
+  const primaryAddress = addresses.find((item) =>
+    item !== null &&
+    typeof item === "object" &&
+    (item as Record<string, unknown>).isPrimary === true
+  );
+
+  if (primaryAddress !== undefined) {
+    const candidate = readLatLng(asRecord(primaryAddress));
+    if (candidate.lat !== null && candidate.lng !== null) return candidate;
+  }
+
+  for (const address of addresses) {
+    const candidate = readLatLng(asRecord(address));
+    if (candidate.lat !== null && candidate.lng !== null) return candidate;
+  }
+
+  return readLatLng(asRecord(userData.location));
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  if (items.length === 0) return [];
+
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+
+  return result;
+}
+
+async function loadAppConfig(): Promise<AppConfigData> {
+  const snapshot = await db
+    .collection(APP_CONFIG_COLLECTION)
+    .doc(APP_CONFIG_DOC)
+    .get();
+
+  if (!snapshot.exists) return {};
+
+  const data = snapshot.data() || {};
+  return {
+    genres: asConfigItems(data.genres),
+    instruments: asConfigItems(data.instruments),
+    crewRoles: asConfigItems(data.crewRoles),
+    studioServices: asConfigItems(data.studioServices),
+  };
 }
 
 function shortenPersonName(fullName: string): string {
@@ -101,15 +290,7 @@ async function getUserDisplayName(userId: string): Promise<string> {
   return resolveUserDisplayName(snapshot.data() || {});
 }
 
-async function createNotification(params: {
-  userId: string;
-  notificationId: string;
-  type: string;
-  title: string;
-  body: string;
-  route?: string;
-  senderId?: string;
-}): Promise<void> {
+async function createNotification(params: NotificationPayload): Promise<void> {
   const {
     userId,
     notificationId,
@@ -136,6 +317,189 @@ async function createNotification(params: {
       isRead: false,
       createdAt: FieldValue.serverTimestamp(),
     }, {merge: true});
+}
+
+async function sendPushNotification(params: NotificationPayload): Promise<void> {
+  const userDoc = await db.collection(USERS_COLLECTION).doc(params.userId).get();
+  const userData = userDoc.data() || {};
+  const fcmToken = firstNonEmptyString([userData.fcm_token]);
+
+  if (!fcmToken) return;
+
+  await admin.messaging().send({
+    token: fcmToken,
+    notification: {
+      title: params.title,
+      body: params.body,
+    },
+    data: {
+      click_action: "FLUTTER_NOTIFICATION_CLICK",
+      type: params.type,
+      route: params.route ?? "",
+      sender_id: params.senderId ?? "",
+    },
+    android: {
+      notification: {
+        channelId: "high_importance_channel",
+        tag: params.notificationId,
+      },
+      collapseKey: params.notificationId,
+    },
+    apns: {
+      headers: {
+        "apns-collapse-id": params.notificationId,
+      },
+    },
+  });
+}
+
+async function notifyUser(params: NotificationPayload): Promise<void> {
+  try {
+    await createNotification(params);
+    await sendPushNotification(params);
+  } catch (error) {
+    console.error(`Erro ao notificar usuario ${params.userId}:`, error);
+  }
+}
+
+async function notifyGigOpportunities(
+  gigId: string,
+  gigData: Record<string, unknown>
+): Promise<void> {
+  const creatorId = firstNonEmptyString([gigData.creator_id]);
+  const gigTitle = firstNonEmptyString([gigData.title], "Nova gig");
+  const locationType = firstNonEmptyString([gigData.location_type], "presencial");
+
+  const [config, creatorSnapshot, usersSnapshot] = await Promise.all([
+    loadAppConfig(),
+    creatorId
+      ? db.collection(USERS_COLLECTION).doc(creatorId).get()
+      : Promise.resolve(null),
+    db.collection(USERS_COLLECTION)
+      .where("cadastro_status", "==", "concluido")
+      .get(),
+  ]);
+
+  const canonicalizeGenres = createCanonicalizer(config.genres ?? []);
+  const canonicalizeInstruments = createCanonicalizer(config.instruments ?? []);
+  const canonicalizeCrewRoles = createCanonicalizer(config.crewRoles ?? []);
+  const canonicalizeStudioServices = createCanonicalizer(
+    config.studioServices ?? []
+  );
+
+  const gigMatchers: GigMatcherSet = {
+    genres: canonicalizeGenres(readStringList(gigData.genres)),
+    requiredInstruments: canonicalizeInstruments(
+      readStringList(gigData.required_instruments)
+    ),
+    requiredCrewRoles: canonicalizeCrewRoles(
+      readStringList(gigData.required_crew_roles)
+    ),
+    requiredStudioServices: canonicalizeStudioServices(
+      readStringList(gigData.required_studio_services)
+    ),
+  };
+
+  const hasTargeting =
+    gigMatchers.genres.size > 0 &&
+    (
+      gigMatchers.requiredInstruments.size > 0 ||
+      gigMatchers.requiredCrewRoles.size > 0 ||
+      gigMatchers.requiredStudioServices.size > 0
+    );
+
+  if (!hasTargeting) return;
+
+  const gigLocation = readLatLng(asRecord(gigData.location));
+  const creatorLocation = resolveUserLatLng(creatorSnapshot?.data() || {});
+  const effectiveGigLocation = {
+    lat: gigLocation.lat ?? creatorLocation.lat,
+    lng: gigLocation.lng ?? creatorLocation.lng,
+  };
+
+  const isRemote = locationType === "remoto";
+  const matchedUserIds: string[] = [];
+
+  for (const userDoc of usersSnapshot.docs) {
+    if (userDoc.id === creatorId) continue;
+
+    const userData = userDoc.data() || {};
+    const userStatus = firstNonEmptyString([userData.status], "ativo");
+    if (userStatus !== "ativo") continue;
+
+    const tipoPerfil = firstNonEmptyString([userData.tipo_perfil, userData.tipoPerfil]);
+    const profissional = asRecord(userData.profissional);
+    const estudio = asRecord(userData.estudio);
+
+    const userGenres = canonicalizeGenres([
+      ...readStringList(profissional.generosMusicais),
+      ...readStringList(estudio.generosMusicais),
+    ]);
+
+    if (!intersects(gigMatchers.genres, userGenres)) continue;
+
+    let requirementMatched = false;
+
+    if (tipoPerfil === "profissional") {
+      const userInstruments = canonicalizeInstruments(
+        readStringList(profissional.instrumentos)
+      );
+      const userCrewRoles = canonicalizeCrewRoles(
+        readStringList(profissional.funcoes)
+      );
+
+      requirementMatched =
+        intersects(gigMatchers.requiredInstruments, userInstruments) ||
+        intersects(gigMatchers.requiredCrewRoles, userCrewRoles);
+    } else if (tipoPerfil === "estudio") {
+      const userStudioServices = canonicalizeStudioServices([
+        ...readStringList(estudio.servicosOferecidos),
+        ...readStringList(estudio.services),
+      ]);
+      requirementMatched = intersects(
+        gigMatchers.requiredStudioServices,
+        userStudioServices
+      );
+    }
+
+    if (!requirementMatched) continue;
+
+    if (!isRemote) {
+      if (effectiveGigLocation.lat === null || effectiveGigLocation.lng === null) {
+        continue;
+      }
+
+      const userLocation = resolveUserLatLng(userData);
+      if (userLocation.lat === null || userLocation.lng === null) continue;
+
+      if (
+        haversineDistanceKm(effectiveGigLocation, userLocation) >
+        GIG_OPPORTUNITY_RADIUS_KM
+      ) {
+        continue;
+      }
+    }
+
+    matchedUserIds.push(userDoc.id);
+  }
+
+  if (matchedUserIds.length === 0) return;
+
+  for (const batch of chunk(matchedUserIds, 25)) {
+    await Promise.all(
+      batch.map((userId) =>
+        notifyUser({
+          userId,
+          notificationId: `gig_opportunity_${gigId}`,
+          type: "gig_opportunity",
+          title: "Nova oportunidade para voce",
+          body: `"${gigTitle}" combina com seu perfil.`,
+          route: buildGigRoute(gigId),
+          senderId: creatorId,
+        })
+      )
+    );
+  }
 }
 
 async function syncGigCounters(gigId: string): Promise<void> {
@@ -183,7 +547,7 @@ async function notifyGigApplicationCreated(
   const [applicantName] = await Promise.all([getUserDisplayName(applicantId)]);
   const gigTitle = firstNonEmptyString([gigData.title], "sua gig");
 
-  await createNotification({
+  await notifyUser({
     userId: creatorId,
     notificationId: `gig_application_${gigId}_${applicantId}`,
     type: "gig_application",
@@ -206,7 +570,7 @@ async function notifyGigApplicationDecision(params: {
   if (!applicantId) return;
 
   if (status === "accepted") {
-    await createNotification({
+    await notifyUser({
       userId: applicantId,
       notificationId: `gig_application_accepted_${gigId}_${applicantId}`,
       type: "gig_application_accepted",
@@ -219,7 +583,7 @@ async function notifyGigApplicationDecision(params: {
   }
 
   if (status === "rejected") {
-    await createNotification({
+    await notifyUser({
       userId: applicantId,
       notificationId: `gig_application_rejected_${gigId}_${applicantId}`,
       type: "gig_application_rejected",
@@ -232,7 +596,7 @@ async function notifyGigApplicationDecision(params: {
   }
 
   if (status === "gig_cancelled") {
-    await createNotification({
+    await notifyUser({
       userId: applicantId,
       notificationId: `gig_cancelled_${gigId}_${applicantId}`,
       type: "gig_cancelled",
@@ -288,7 +652,7 @@ async function queueReviewNotifications(
     const participantName = await getUserDisplayName(participantId);
 
     await Promise.all([
-      createNotification({
+      notifyUser({
         userId: creatorId,
         notificationId: `gig_review_creator_${gigId}_${participantId}`,
         type: "gig_review_reminder",
@@ -297,7 +661,7 @@ async function queueReviewNotifications(
         route: buildGigReviewRoute(gigId, participantId),
         senderId: participantId,
       }),
-      createNotification({
+      notifyUser({
         userId: participantId,
         notificationId: `gig_review_participant_${gigId}_${creatorId}`,
         type: "gig_review_reminder",
@@ -321,7 +685,10 @@ export const onGigCreated = onDocumentCreated(
 
     const gigData = snapshot.data() || {};
     const creatorId = firstNonEmptyString([gigData.creator_id]);
-    await syncCreatorOpenGigCount(creatorId);
+    await Promise.all([
+      syncCreatorOpenGigCount(creatorId),
+      notifyGigOpportunities(event.params.gigId as string, gigData),
+    ]);
   }
 );
 

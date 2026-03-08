@@ -41,6 +41,7 @@ const _$NotificationTypeEnumMap = {
   NotificationType.gigApplicationRejected: 'gig_application_rejected',
   NotificationType.gigCancelled: 'gig_cancelled',
   NotificationType.gigReviewReminder: 'gig_review_reminder',
+  NotificationType.gigOpportunity: 'gig_opportunity',
   NotificationType.like: 'like',
   NotificationType.system: 'system',
 };
