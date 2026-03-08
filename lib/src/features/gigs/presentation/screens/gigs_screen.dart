@@ -123,6 +123,10 @@ class GigsScreen extends ConsumerWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textPrimary,
               elevation: 6,
+              extendedPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s20,
+              ),
+              shape: const StadiumBorder(),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Nova gig'),
             ),
