@@ -11,6 +11,13 @@ import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/feed/presentation/feed_screen.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
+import 'package:mube/src/features/gigs/domain/compensation_type.dart';
+import 'package:mube/src/features/gigs/domain/gig.dart';
+import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
+import 'package:mube/src/features/gigs/domain/gig_location_type.dart';
+import 'package:mube/src/features/gigs/domain/gig_status.dart';
+import 'package:mube/src/features/gigs/domain/gig_type.dart';
+import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/notifications/data/notification_repository.dart';
 import 'package:network_image_mock/network_image_mock.dart';
 
@@ -66,6 +73,7 @@ void main() {
         notificationRepositoryProvider.overrideWithValue(
           fakeNotificationRepository,
         ),
+        ...additionalOverrides,
       ],
       child: const MaterialApp(home: FeedScreen()),
     );
@@ -143,6 +151,51 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(EmptyStateWidget), findsOneWidget);
+    });
+
+    testWidgets('shows gigs preview section on home when gigs exist', (
+      tester,
+    ) async {
+      final previewGig = Gig(
+        id: 'gig-preview-1',
+        title: 'Baterista para show pop',
+        description:
+            'Set de 90 minutos com repertorio nacional e internacional.',
+        gigType: GigType.liveShow,
+        status: GigStatus.open,
+        dateMode: GigDateMode.fixedDate,
+        gigDate: DateTime(2026, 4, 12, 20),
+        locationType: GigLocationType.onsite,
+        location: const {'label': 'Sao Paulo, SP'},
+        genres: const ['Pop'],
+        requiredInstruments: const ['Bateria'],
+        requiredCrewRoles: const [],
+        requiredStudioServices: const [],
+        slotsTotal: 2,
+        slotsFilled: 1,
+        compensationType: CompensationType.fixed,
+        compensationValue: 600,
+        creatorId: 'creator-1',
+        applicantCount: 1,
+      );
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(
+          createSubject(
+            additionalOverrides: [
+              homeGigsPreviewProvider.overrideWith(
+                (ref) => Stream.value([previewGig]),
+              ),
+            ],
+          ),
+        );
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+      });
+
+      expect(find.text('Gigs em aberto'), findsOneWidget);
+      expect(find.text('Baterista para show pop'), findsOneWidget);
+      expect(find.text('Ver todos'), findsOneWidget);
     });
   });
 }

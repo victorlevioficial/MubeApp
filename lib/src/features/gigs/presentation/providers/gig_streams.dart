@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../auth/domain/app_user.dart';
@@ -9,6 +10,10 @@ import '../../domain/gig_review_opportunity.dart';
 import 'gig_filters_controller.dart';
 
 part 'gig_streams.g.dart';
+
+final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
+  return ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
+});
 
 @riverpod
 Stream<List<Gig>> gigsStream(Ref ref) {

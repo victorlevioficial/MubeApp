@@ -23,6 +23,10 @@ extension _FeedScreenUi on _FeedScreenState {
 
     final currentUser = ref.watch(currentUserProfileProvider).asData?.value;
     final spotlightItems = _getSpotlightItems(state);
+    final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
+    final showGigsPreview =
+        gigsPreviewAsync.isLoading ||
+        gigsPreviewAsync.asData?.value.isNotEmpty == true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -47,6 +51,25 @@ extension _FeedScreenUi on _FeedScreenState {
                   child: FeaturedSpotlightCarousel(
                     items: spotlightItems,
                     onItemTap: _navigateToUser,
+                  ),
+                ),
+              ),
+            if (showGigsPreview)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.s16,
+                    bottom: AppSpacing.s8,
+                  ),
+                  child: HomeGigsPreviewSection(
+                    gigsAsync: gigsPreviewAsync,
+                    onSeeAllTap: () => context.go(RoutePaths.gigs),
+                    onGigTap: (gig) {
+                      context.push(
+                        RoutePaths.gigDetailById(gig.id),
+                        extra: gig,
+                      );
+                    },
                   ),
                 ),
               ),

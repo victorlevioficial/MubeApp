@@ -16,6 +16,7 @@ import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../gigs/presentation/providers/gig_streams.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import 'feed_controller.dart';
@@ -24,6 +25,7 @@ import 'widgets/featured_spotlight_carousel.dart';
 import 'widgets/feed_header.dart';
 import 'widgets/feed_section_widget.dart';
 import 'widgets/feed_skeleton.dart';
+import 'widgets/home_gigs_preview_section.dart';
 import 'widgets/quick_filter_bar.dart';
 import 'widgets/vertical_feed_list.dart';
 

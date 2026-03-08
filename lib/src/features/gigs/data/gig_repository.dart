@@ -110,6 +110,18 @@ class GigRepository {
     });
   }
 
+  Stream<List<Gig>> watchLatestOpenGigs({int limit = 3}) {
+    return _gigs
+        .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.open))
+        .orderBy(GigFields.createdAt, descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
+        );
+  }
+
   bool _matchesFilters(Gig gig, GigFilters filters) {
     if (filters.onlyOpenSlots && gig.availableSlots <= 0) return false;
 
