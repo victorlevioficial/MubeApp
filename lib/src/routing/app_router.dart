@@ -19,6 +19,14 @@ import '../features/feed/domain/feed_section.dart';
 import '../features/feed/presentation/feed_list_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
 import '../features/gallery/presentation/design_system_gallery_screen.dart';
+import '../features/gigs/domain/gig.dart';
+import '../features/gigs/presentation/screens/create_gig_screen.dart';
+import '../features/gigs/presentation/screens/gig_applicants_screen.dart';
+import '../features/gigs/presentation/screens/gig_detail_screen.dart';
+import '../features/gigs/presentation/screens/gig_review_screen.dart';
+import '../features/gigs/presentation/screens/gigs_screen.dart';
+import '../features/gigs/presentation/screens/my_applications_screen.dart';
+import '../features/gigs/presentation/screens/my_gigs_screen.dart';
 import '../features/legal/presentation/legal_detail_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_screen.dart';
 import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
@@ -184,26 +192,67 @@ List<RouteBase> _buildRoutes(Ref ref) {
             ),
           ],
         ),
-        // MatchPoint tab
+        // Gigs tab
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: RoutePaths.matchpoint,
+              path: RoutePaths.gigs,
               pageBuilder: (context, state) =>
-                  const NoTransitionPage(child: MatchpointWrapperScreen()),
+                  const NoTransitionPage(child: GigsScreen()),
               routes: [
                 GoRoute(
-                  path: 'history',
+                  path: 'create',
+                  pageBuilder: (context, state) {
+                    final initialGig = state.extra;
+                    return NoTransitionPage(
+                      key: state.pageKey,
+                      child: CreateGigScreen(
+                        initialGig: initialGig is Gig ? initialGig : null,
+                      ),
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: ':gigId',
                   pageBuilder: (context, state) => NoTransitionPage(
                     key: state.pageKey,
-                    child: const SwipeHistoryScreen(),
+                    child: GigDetailScreen(
+                      gigId: state.pathParameters['gigId']!,
+                    ),
                   ),
+                  routes: [
+                    GoRoute(
+                      path: 'applicants',
+                      pageBuilder: (context, state) => NoTransitionPage(
+                        key: state.pageKey,
+                        child: GigApplicantsScreen(
+                          gigId: state.pathParameters['gigId']!,
+                        ),
+                      ),
+                    ),
+                    GoRoute(
+                      path: 'review/:userId',
+                      pageBuilder: (context, state) {
+                        final extra = state.extra as Map<String, dynamic>?;
+                        return NoTransitionPage(
+                          key: state.pageKey,
+                          child: GigReviewScreen(
+                            gigId: state.pathParameters['gigId']!,
+                            userId: state.pathParameters['userId']!,
+                            userName: extra?['userName'] as String?,
+                            userPhoto: extra?['userPhoto'] as String?,
+                            gigTitle: extra?['gigTitle'] as String?,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
         ),
-        // Chat tab (replaced Perfil)
+        // Chat tab
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -216,7 +265,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
             ),
           ],
         ),
-        // Settings tab
+        // Account hub tab
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -226,6 +275,20 @@ List<RouteBase> _buildRoutes(Ref ref) {
                 child: const SettingsScreen(),
               ),
               routes: [
+                GoRoute(
+                  path: 'my-gigs',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const MyGigsScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'my-applications',
+                  pageBuilder: (context, state) => NoTransitionPage(
+                    key: state.pageKey,
+                    child: const MyApplicationsScreen(),
+                  ),
+                ),
                 GoRoute(
                   path: 'addresses',
                   pageBuilder: (context, state) => NoTransitionPage(
@@ -400,6 +463,20 @@ List<RouteBase> _buildRoutes(Ref ref) {
         key: state.pageKey,
         child: const MatchpointSetupWizardScreen(),
       ),
+    ),
+    GoRoute(
+      path: RoutePaths.matchpoint,
+      pageBuilder: (context, state) =>
+          const NoTransitionPage(child: MatchpointWrapperScreen()),
+      routes: [
+        GoRoute(
+          path: 'history',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const SwipeHistoryScreen(),
+          ),
+        ),
+      ],
     ),
 
     // Notifications List

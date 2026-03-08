@@ -12,6 +12,16 @@ enum NotificationType {
   bandInvite,
   @JsonValue('band_invite_accepted')
   bandInviteAccepted,
+  @JsonValue('gig_application')
+  gigApplication,
+  @JsonValue('gig_application_accepted')
+  gigApplicationAccepted,
+  @JsonValue('gig_application_rejected')
+  gigApplicationRejected,
+  @JsonValue('gig_cancelled')
+  gigCancelled,
+  @JsonValue('gig_review_reminder')
+  gigReviewReminder,
   @JsonValue('like')
   like,
   @JsonValue('system')
@@ -28,6 +38,7 @@ abstract class AppNotification with _$AppNotification {
     required String body,
     String? conversationId,
     String? senderId,
+    String? route,
     @Default(false) bool isRead,
     required DateTime createdAt,
   }) = _AppNotification;
@@ -45,6 +56,7 @@ abstract class AppNotification with _$AppNotification {
       body: data['body'] as String? ?? '',
       conversationId: data['conversationId'] as String?,
       senderId: data['senderId'] as String?,
+      route: data['route'] as String?,
       isRead: data['isRead'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -59,6 +71,16 @@ abstract class AppNotification with _$AppNotification {
         return NotificationType.bandInvite;
       case 'band_invite_accepted':
         return NotificationType.bandInviteAccepted;
+      case 'gig_application':
+        return NotificationType.gigApplication;
+      case 'gig_application_accepted':
+        return NotificationType.gigApplicationAccepted;
+      case 'gig_application_rejected':
+        return NotificationType.gigApplicationRejected;
+      case 'gig_cancelled':
+        return NotificationType.gigCancelled;
+      case 'gig_review_reminder':
+        return NotificationType.gigReviewReminder;
       case 'like':
         return NotificationType.like;
       default:
@@ -78,6 +100,16 @@ extension AppNotificationX on AppNotification {
         return 'group_add';
       case NotificationType.bandInviteAccepted:
         return 'groups';
+      case NotificationType.gigApplication:
+        return 'work_outline';
+      case NotificationType.gigApplicationAccepted:
+        return 'check_circle_outline';
+      case NotificationType.gigApplicationRejected:
+        return 'cancel_outlined';
+      case NotificationType.gigCancelled:
+        return 'event_busy_outlined';
+      case NotificationType.gigReviewReminder:
+        return 'star_outline';
       case NotificationType.like:
         return 'favorite_border';
       case NotificationType.system:

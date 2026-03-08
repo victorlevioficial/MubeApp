@@ -92,6 +92,17 @@ export {
   backfillContractorDisplayNames,
 } from "./users";
 
+// Export Gigs functions
+export {
+  onGigCreated,
+  onGigUpdated,
+  onGigDeleted,
+  onGigApplicationCreated,
+  onGigApplicationUpdated,
+  onGigApplicationDeleted,
+  expireFixedDateGigs,
+} from "./gigs";
+
 // Export Video transcode functions
 export {
   onGalleryVideoUploaded,

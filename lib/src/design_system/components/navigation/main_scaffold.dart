@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/chat/data/chat_unread_provider.dart';
-import 'package:mube/src/features/matchpoint/domain/matchpoint_availability.dart';
 
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_effects.dart';
@@ -55,23 +53,13 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final isWide = size.width >= 600;
-    final userType = ref.watch(
-      currentUserProfileProvider.select((value) => value.value?.tipoPerfil),
-    );
-    final canUseMatchpoint = isMatchpointAvailableForType(userType);
-    final visibleBranchIndexes = canUseMatchpoint
-        ? const <int>[0, 1, 2, 3, 4]
-        : const <int>[0, 1, 3, 4];
-    final selectedVisibleIndex = _toVisibleIndex(
-      currentBranchIndex: widget.navigationShell.currentIndex,
-      visibleBranchIndexes: visibleBranchIndexes,
-    );
+    const visibleBranchIndexes = <int>[0, 1, 2, 3, 4];
+    final selectedVisibleIndex = widget.navigationShell.currentIndex;
 
     if (isWide) {
       return _buildWideLayout(
         context,
         selectedVisibleIndex: selectedVisibleIndex,
-        showMatchpointDestination: canUseMatchpoint,
         visibleBranchIndexes: visibleBranchIndexes,
       );
     }
@@ -79,7 +67,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     return _buildNarrowLayout(
       context,
       selectedVisibleIndex: selectedVisibleIndex,
-      showMatchpointDestination: canUseMatchpoint,
       visibleBranchIndexes: visibleBranchIndexes,
     );
   }
@@ -87,7 +74,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget _buildWideLayout(
     BuildContext context, {
     required int selectedVisibleIndex,
-    required bool showMatchpointDestination,
     required List<int> visibleBranchIndexes,
   }) {
     return Scaffold(
@@ -95,7 +81,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
         children: [
           _AdaptiveRail(
             selectedIndex: selectedVisibleIndex,
-            showMatchpointDestination: showMatchpointDestination,
             onDestinationSelected: (index) =>
                 _onDestinationSelected(index, visibleBranchIndexes),
           ),
@@ -119,7 +104,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   Widget _buildNarrowLayout(
     BuildContext context, {
     required int selectedVisibleIndex,
-    required bool showMatchpointDestination,
     required List<int> visibleBranchIndexes,
   }) {
     final unreadCount = _enableUnreadCount
@@ -134,20 +118,11 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       ),
       bottomNavigationBar: _ModernNavBar(
         selectedIndex: selectedVisibleIndex,
-        showMatchpointDestination: showMatchpointDestination,
         onDestinationSelected: (index) =>
             _onDestinationSelected(index, visibleBranchIndexes),
         unreadCount: unreadCount,
       ),
     );
-  }
-
-  int _toVisibleIndex({
-    required int currentBranchIndex,
-    required List<int> visibleBranchIndexes,
-  }) {
-    final visibleIndex = visibleBranchIndexes.indexOf(currentBranchIndex);
-    return visibleIndex < 0 ? 0 : visibleIndex;
   }
 
   void _onDestinationSelected(
@@ -173,22 +148,17 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 /// Modern floating navigation bar with glassmorphic design
 class _ModernNavBar extends StatelessWidget {
   final int selectedIndex;
-  final bool showMatchpointDestination;
   final ValueChanged<int> onDestinationSelected;
   final int unreadCount;
 
   const _ModernNavBar({
     required this.selectedIndex,
-    required this.showMatchpointDestination,
     required this.onDestinationSelected,
     required this.unreadCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chatIndex = showMatchpointDestination ? 3 : 2;
-    final settingsIndex = showMatchpointDestination ? 4 : 3;
-
     return SafeArea(
       top: false,
       left: false,
@@ -238,7 +208,7 @@ class _ModernNavBar extends StatelessWidget {
             _NavBarItem(
               icon: Icons.home_outlined,
               selectedIcon: Icons.home_rounded,
-              label: 'Home',
+              label: 'Feed',
               isSelected: selectedIndex == 0,
               onTap: () => onDestinationSelected(0),
             ),
@@ -249,29 +219,27 @@ class _ModernNavBar extends StatelessWidget {
               isSelected: selectedIndex == 1,
               onTap: () => onDestinationSelected(1),
             ),
-            if (showMatchpointDestination)
-              _NavBarItem(
-                icon: Icons.bolt_outlined,
-                selectedIcon: Icons.bolt_rounded,
-                label: 'Match',
-                isSelected: selectedIndex == 2,
-                onTap: () => onDestinationSelected(2),
-                isPrimary: true, // Highlight for main feature
-              ),
+            _NavBarItem(
+              icon: Icons.work_outline_rounded,
+              selectedIcon: Icons.work_rounded,
+              label: 'Gigs',
+              isSelected: selectedIndex == 2,
+              onTap: () => onDestinationSelected(2),
+            ),
             _NavBarItem(
               icon: Icons.chat_bubble_outline_rounded,
               selectedIcon: Icons.chat_bubble_rounded,
               label: 'Chat',
-              isSelected: selectedIndex == chatIndex,
-              onTap: () => onDestinationSelected(chatIndex),
+              isSelected: selectedIndex == 3,
+              onTap: () => onDestinationSelected(3),
               badgeCount: unreadCount,
             ),
             _NavBarItem(
-              icon: Icons.settings_outlined,
-              selectedIcon: Icons.settings_rounded,
-              label: 'Config',
-              isSelected: selectedIndex == settingsIndex,
-              onTap: () => onDestinationSelected(settingsIndex),
+              icon: Icons.person_outline_rounded,
+              selectedIcon: Icons.person_rounded,
+              label: 'Conta',
+              isSelected: selectedIndex == 4,
+              onTap: () => onDestinationSelected(4),
             ),
           ],
         ),
@@ -288,7 +256,6 @@ class _NavBarItem extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final int badgeCount;
-  final bool isPrimary;
 
   const _NavBarItem({
     required this.icon,
@@ -297,7 +264,6 @@ class _NavBarItem extends StatefulWidget {
     required this.isSelected,
     required this.onTap,
     this.badgeCount = 0,
-    this.isPrimary = false,
   });
 
   @override
@@ -350,9 +316,7 @@ class _NavBarItemState extends State<_NavBarItem>
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = widget.isPrimary
-        ? AppColors.primary
-        : AppColors.primary;
+    const activeColor = AppColors.primary;
     final inactiveColor = AppColors.textSecondary.withValues(alpha: 0.6);
 
     return Expanded(
@@ -536,12 +500,10 @@ class _UnreadBadgeState extends State<_UnreadBadge>
 /// Adaptive navigation rail for wide screens
 class _AdaptiveRail extends ConsumerWidget {
   final int selectedIndex;
-  final bool showMatchpointDestination;
   final ValueChanged<int> onDestinationSelected;
 
   const _AdaptiveRail({
     required this.selectedIndex,
-    required this.showMatchpointDestination,
     required this.onDestinationSelected,
   });
 
@@ -561,28 +523,27 @@ class _AdaptiveRail extends ConsumerWidget {
         const NavigationRailDestination(
           icon: Icon(Icons.home_outlined),
           selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-          label: Text('Home'),
+          label: Text('Feed'),
         ),
         const NavigationRailDestination(
           icon: Icon(Icons.search_outlined),
           selectedIcon: Icon(Icons.search_rounded, color: AppColors.primary),
           label: Text('Busca'),
         ),
-        if (showMatchpointDestination)
-          const NavigationRailDestination(
-            icon: Icon(Icons.bolt_outlined),
-            selectedIcon: Icon(Icons.bolt_rounded, color: AppColors.primary),
-            label: Text('MatchPoint'),
-          ),
+        const NavigationRailDestination(
+          icon: Icon(Icons.work_outline_rounded),
+          selectedIcon: Icon(Icons.work_rounded, color: AppColors.primary),
+          label: Text('Gigs'),
+        ),
         NavigationRailDestination(
           icon: _ChatRailIcon(count: unreadCount, isSelected: false),
           selectedIcon: _ChatRailIcon(count: unreadCount, isSelected: true),
           label: const Text('Chat'),
         ),
         const NavigationRailDestination(
-          icon: Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings_rounded, color: AppColors.primary),
-          label: Text('Config'),
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded, color: AppColors.primary),
+          label: Text('Conta'),
         ),
       ],
     );

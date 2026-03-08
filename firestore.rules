@@ -21,6 +21,72 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid in conversationId.split('_');
     }
 
+    function userDoc(userId) {
+      return get(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function gigDoc(gigId) {
+      return get(/databases/$(database)/documents/gigs/$(gigId));
+    }
+
+    function gigExists(gigId) {
+      return exists(/databases/$(database)/documents/gigs/$(gigId));
+    }
+
+    function isCompletedProfile(userId) {
+      return request.auth != null &&
+        userExists(userId) &&
+        userDoc(userId).data.cadastro_status == 'concluido';
+    }
+
+    function isGigCreator(gigId) {
+      return request.auth != null &&
+        gigExists(gigId) &&
+        gigDoc(gigId).data.creator_id == request.auth.uid;
+    }
+
+    function isAllowedGigStatus(status) {
+      return ['open', 'closed', 'expired', 'cancelled'].hasAny([status]);
+    }
+
+    function isAllowedGigType(value) {
+      return [
+        'show_ao_vivo',
+        'evento_privado',
+        'gravacao',
+        'ensaio_jam',
+        'outro'
+      ].hasAny([value]);
+    }
+
+    function isAllowedGigDateMode(value) {
+      return ['fixed_date', 'to_be_arranged', 'unspecified'].hasAny([value]);
+    }
+
+    function isAllowedGigLocationType(value) {
+      return ['presencial', 'remoto'].hasAny([value]);
+    }
+
+    function isAllowedCompensationType(value) {
+      return ['fixed', 'negotiable', 'volunteer', 'tbd'].hasAny([value]);
+    }
+
+    function isValidGigStatusTransition(current, next) {
+      return next == current ||
+        (current == 'open' && ['closed', 'cancelled'].hasAny([next]));
+    }
+
+    function isValidGigApplicationStatusTransition(current, next) {
+      return next == current ||
+        (current == 'pending' &&
+          ['accepted', 'rejected', 'gig_cancelled'].hasAny([next])) ||
+        (current == 'accepted' && ['gig_cancelled'].hasAny([next]));
+    }
+
     // ================================================================
     // CONFIG - Configurações do App (Gêneros, Instrumentos, etc)
     // ================================================================
@@ -316,6 +382,106 @@ service cloud.firestore {
       
       // Delete: apenas o autor ou admin (via function)
       allow delete: if request.auth != null && resource.data.author_id == request.auth.uid;
+    }
+
+    // ================================================================
+    // GIGS - Opportunities marketplace
+    // ================================================================
+    match /gigs/{gigId} {
+      allow read: if request.auth != null;
+
+      allow create: if isAuthenticated() &&
+        isCompletedProfile(request.auth.uid) &&
+        request.resource.data.creator_id == request.auth.uid &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 6 &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() >= 20 &&
+        isAllowedGigType(request.resource.data.gig_type) &&
+        isAllowedGigDateMode(request.resource.data.date_mode) &&
+        isAllowedGigLocationType(request.resource.data.location_type) &&
+        isAllowedCompensationType(request.resource.data.compensation_type) &&
+        request.resource.data.slots_total is int &&
+        request.resource.data.slots_total >= 1 &&
+        request.resource.data.slots_filled == 0 &&
+        request.resource.data.applicant_count == 0 &&
+        request.resource.data.status == 'open' &&
+        (
+          !userExists(request.auth.uid) ||
+          !(userDoc(request.auth.uid).data.gigs_open_count is int) ||
+          userDoc(request.auth.uid).data.gigs_open_count < 5
+        );
+
+      allow update: if isGigCreator(gigId) &&
+        isCompletedProfile(request.auth.uid) &&
+        request.resource.data.creator_id == resource.data.creator_id &&
+        request.resource.data.slots_filled == resource.data.slots_filled &&
+        request.resource.data.applicant_count == resource.data.applicant_count &&
+        request.resource.data.created_at == resource.data.created_at &&
+        isAllowedGigStatus(request.resource.data.status) &&
+        isValidGigStatusTransition(resource.data.status, request.resource.data.status) &&
+        (
+          resource.data.applicant_count == 0 ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'description',
+            'status',
+            'updated_at'
+          ])
+        );
+
+      allow delete: if false;
+
+      match /gig_applications/{applicantId} {
+        allow read: if request.auth != null &&
+          (applicantId == request.auth.uid || isGigCreator(gigId));
+
+        allow create: if isAuthenticated() &&
+          isCompletedProfile(request.auth.uid) &&
+          applicantId == request.auth.uid &&
+          request.resource.data.applicant_id == request.auth.uid &&
+          request.resource.data.message is string &&
+          request.resource.data.status == 'pending' &&
+          gigExists(gigId) &&
+          gigDoc(gigId).data.creator_id != request.auth.uid &&
+          gigDoc(gigId).data.status == 'open' &&
+          gigDoc(gigId).data.slots_filled < gigDoc(gigId).data.slots_total;
+
+        allow update: if isGigCreator(gigId) &&
+          request.resource.data.applicant_id == resource.data.applicant_id &&
+          request.resource.data.message == resource.data.message &&
+          request.resource.data.applied_at == resource.data.applied_at &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'responded_at'
+          ]) &&
+          isValidGigApplicationStatusTransition(
+            resource.data.status,
+            request.resource.data.status
+          );
+
+        allow delete: if isAuthenticated() &&
+          applicantId == request.auth.uid &&
+          ['pending', 'accepted'].hasAny([resource.data.status]);
+      }
+    }
+
+    // ================================================================
+    // GIG REVIEWS - Creator <-> accepted participant
+    // ================================================================
+    match /gig_reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if isAuthenticated() &&
+        isCompletedProfile(request.auth.uid) &&
+        request.resource.data.reviewer_id == request.auth.uid &&
+        request.resource.data.gig_id is string &&
+        request.resource.data.reviewed_user_id is string &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        ['creator_to_participant', 'participant_to_creator'].hasAny([
+          request.resource.data.review_type
+        ]);
+      allow update, delete: if false;
     }
 
     // ================================================================

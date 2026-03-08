@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppNotification {
 
- String get id; NotificationType get type; String get title; String get body; String? get conversationId; String? get senderId; bool get isRead; DateTime get createdAt;
+ String get id; NotificationType get type; String get title; String get body; String? get conversationId; String? get senderId; String? get route; bool get isRead; DateTime get createdAt;
 /// Create a copy of AppNotification
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AppNotificationCopyWith<AppNotification> get copyWith => _$AppNotificationCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.route, route) || other.route == route)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,type,title,body,conversationId,senderId,isRead,createdAt);
+int get hashCode => Object.hash(runtimeType,id,type,title,body,conversationId,senderId,route,isRead,createdAt);
 
 @override
 String toString() {
-  return 'AppNotification(id: $id, type: $type, title: $title, body: $body, conversationId: $conversationId, senderId: $senderId, isRead: $isRead, createdAt: $createdAt)';
+  return 'AppNotification(id: $id, type: $type, title: $title, body: $body, conversationId: $conversationId, senderId: $senderId, route: $route, isRead: $isRead, createdAt: $createdAt)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AppNotificationCopyWith<$Res>  {
   factory $AppNotificationCopyWith(AppNotification value, $Res Function(AppNotification) _then) = _$AppNotificationCopyWithImpl;
 @useResult
 $Res call({
- String id, NotificationType type, String title, String body, String? conversationId, String? senderId, bool isRead, DateTime createdAt
+ String id, NotificationType type, String title, String body, String? conversationId, String? senderId, String? route, bool isRead, DateTime createdAt
 });
 
 
@@ -65,7 +65,7 @@ class _$AppNotificationCopyWithImpl<$Res>
 
 /// Create a copy of AppNotification
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? title = null,Object? body = null,Object? conversationId = freezed,Object? senderId = freezed,Object? isRead = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? title = null,Object? body = null,Object? conversationId = freezed,Object? senderId = freezed,Object? route = freezed,Object? isRead = null,Object? createdAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -73,6 +73,7 @@ as NotificationType,title: null == title ? _self.title : title // ignore: cast_n
 as String,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as String,conversationId: freezed == conversationId ? _self.conversationId : conversationId // ignore: cast_nullable_to_non_nullable
 as String?,senderId: freezed == senderId ? _self.senderId : senderId // ignore: cast_nullable_to_non_nullable
+as String?,route: freezed == route ? _self.route : route // ignore: cast_nullable_to_non_nullable
 as String?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
@@ -160,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  bool isRead,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  String? route,  bool isRead,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppNotification() when $default != null:
-return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.isRead,_that.createdAt);case _:
+return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.route,_that.isRead,_that.createdAt);case _:
   return orElse();
 
 }
@@ -181,10 +182,10 @@ return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  bool isRead,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  String? route,  bool isRead,  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _AppNotification():
-return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.isRead,_that.createdAt);case _:
+return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.route,_that.isRead,_that.createdAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  bool isRead,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  NotificationType type,  String title,  String body,  String? conversationId,  String? senderId,  String? route,  bool isRead,  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AppNotification() when $default != null:
-return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.isRead,_that.createdAt);case _:
+return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,_that.senderId,_that.route,_that.isRead,_that.createdAt);case _:
   return null;
 
 }
@@ -216,7 +217,7 @@ return $default(_that.id,_that.type,_that.title,_that.body,_that.conversationId,
 @JsonSerializable()
 
 class _AppNotification implements AppNotification {
-  const _AppNotification({required this.id, required this.type, required this.title, required this.body, this.conversationId, this.senderId, this.isRead = false, required this.createdAt});
+  const _AppNotification({required this.id, required this.type, required this.title, required this.body, this.conversationId, this.senderId, this.route, this.isRead = false, required this.createdAt});
   factory _AppNotification.fromJson(Map<String, dynamic> json) => _$AppNotificationFromJson(json);
 
 @override final  String id;
@@ -225,6 +226,7 @@ class _AppNotification implements AppNotification {
 @override final  String body;
 @override final  String? conversationId;
 @override final  String? senderId;
+@override final  String? route;
 @override@JsonKey() final  bool isRead;
 @override final  DateTime createdAt;
 
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.senderId, senderId) || other.senderId == senderId)&&(identical(other.route, route) || other.route == route)&&(identical(other.isRead, isRead) || other.isRead == isRead)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,type,title,body,conversationId,senderId,isRead,createdAt);
+int get hashCode => Object.hash(runtimeType,id,type,title,body,conversationId,senderId,route,isRead,createdAt);
 
 @override
 String toString() {
-  return 'AppNotification(id: $id, type: $type, title: $title, body: $body, conversationId: $conversationId, senderId: $senderId, isRead: $isRead, createdAt: $createdAt)';
+  return 'AppNotification(id: $id, type: $type, title: $title, body: $body, conversationId: $conversationId, senderId: $senderId, route: $route, isRead: $isRead, createdAt: $createdAt)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$AppNotificationCopyWith<$Res> implements $AppNotification
   factory _$AppNotificationCopyWith(_AppNotification value, $Res Function(_AppNotification) _then) = __$AppNotificationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, NotificationType type, String title, String body, String? conversationId, String? senderId, bool isRead, DateTime createdAt
+ String id, NotificationType type, String title, String body, String? conversationId, String? senderId, String? route, bool isRead, DateTime createdAt
 });
 
 
@@ -278,7 +280,7 @@ class __$AppNotificationCopyWithImpl<$Res>
 
 /// Create a copy of AppNotification
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? title = null,Object? body = null,Object? conversationId = freezed,Object? senderId = freezed,Object? isRead = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? title = null,Object? body = null,Object? conversationId = freezed,Object? senderId = freezed,Object? route = freezed,Object? isRead = null,Object? createdAt = null,}) {
   return _then(_AppNotification(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -286,6 +288,7 @@ as NotificationType,title: null == title ? _self.title : title // ignore: cast_n
 as String,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as String,conversationId: freezed == conversationId ? _self.conversationId : conversationId // ignore: cast_nullable_to_non_nullable
 as String?,senderId: freezed == senderId ? _self.senderId : senderId // ignore: cast_nullable_to_non_nullable
+as String?,route: freezed == route ? _self.route : route // ignore: cast_nullable_to_non_nullable
 as String?,isRead: null == isRead ? _self.isRead : isRead // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,

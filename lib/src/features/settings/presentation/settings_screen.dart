@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,9 +35,14 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authUser =
+        ref.watch(authStateChangesProvider).value ??
+        ref.read(authRepositoryProvider).currentUser;
+    final canChangePassword = _supportsPasswordReset(authUser);
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Configurações', showBackButton: false),
+      appBar: const AppAppBar(title: 'Conta', showBackButton: false),
       extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -56,23 +62,50 @@ class SettingsScreen extends ConsumerWidget {
               title: 'CONTA',
               children: [
                 NeonSettingsTile(
-                  icon: Icons.location_on_outlined,
-                  title: 'Meus Endereços',
-                  subtitle: 'Gerenciar entregas',
-                  onTap: () => context.push(RoutePaths.addresses),
-                  customAccentColor: AppColors.info,
-                ),
-                NeonSettingsTile(
                   icon: Icons.person_outline,
                   title: 'Editar Perfil',
                   onTap: () => context.push(RoutePaths.profileEdit),
                   customAccentColor: AppColors.primary,
                 ),
                 NeonSettingsTile(
+                  icon: Icons.work_outline_rounded,
+                  title: 'Meus Gigs',
+                  subtitle: 'Publicações, status e vagas',
+                  onTap: () => context.push(RoutePaths.settingsMyGigs),
+                  customAccentColor: AppColors.warning,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.assignment_outlined,
+                  title: 'Minhas Candidaturas',
+                  subtitle: 'Acompanhar respostas e mensagens',
+                  onTap: () => context.push(RoutePaths.settingsMyApplications),
+                  customAccentColor: AppColors.info,
+                ),
+                NeonSettingsTile(
                   icon: Icons.favorite_outline,
                   title: 'Meus Favoritos',
                   onTap: () => context.push(RoutePaths.favorites),
                   customAccentColor: AppColors.primary,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Notificações',
+                  onTap: () => context.push(RoutePaths.notifications),
+                  customAccentColor: AppColors.info,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.bolt_outlined,
+                  title: 'MatchPoint',
+                  subtitle: 'Descoberta e histórico',
+                  onTap: () => context.push(RoutePaths.matchpoint),
+                  customAccentColor: AppColors.warning,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.location_on_outlined,
+                  title: 'Meus Endereços',
+                  subtitle: 'Gerenciar entregas',
+                  onTap: () => context.push(RoutePaths.addresses),
+                  customAccentColor: AppColors.info,
                 ),
                 if (ref.watch(
                       currentUserProfileProvider.select(
@@ -95,12 +128,13 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => context.push(RoutePaths.invites),
                     customAccentColor: AppColors.warning,
                   ),
-                NeonSettingsTile(
-                  icon: Icons.lock_outline,
-                  title: 'Alterar Senha',
-                  onTap: () => _changePassword(context, ref),
-                  customAccentColor: AppColors.info,
-                ),
+                if (canChangePassword)
+                  NeonSettingsTile(
+                    icon: Icons.lock_outline,
+                    title: 'Alterar Senha',
+                    onTap: () => _changePassword(context, ref),
+                    customAccentColor: AppColors.info,
+                  ),
                 NeonSettingsTile(
                   icon: Icons.public,
                   title: 'Privacidade e Visibilidade',
@@ -265,6 +299,19 @@ class SettingsScreen extends ConsumerWidget {
 
     return message.trim();
   }
+}
+
+bool _supportsPasswordReset(User? user) {
+  if (user == null) return false;
+
+  // Password reset only applies to accounts that authenticate with
+  // Firebase email/password. Social-only providers like Apple should not
+  // expose this action in settings.
+  final providerIds = user.providerData
+      .map((provider) => provider.providerId)
+      .toSet();
+
+  return providerIds.contains('password');
 }
 
 class _LogoutSection extends StatelessWidget {

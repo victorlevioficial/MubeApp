@@ -19,6 +19,7 @@ import 'features/auth/presentation/account_deletion_provider.dart';
 import 'features/bands/domain/band_activation_rules.dart';
 import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/feed/presentation/feed_controller.dart';
+import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'routing/app_router.dart';
@@ -53,6 +54,10 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasShownBandMembersReminderForSession = false;
   bool _isBandMembersReminderVisible = false;
   String? _bandMembersReminderUserId;
+  bool _hasPendingGigReviewReminderEvaluation = false;
+  bool _hasShownGigReviewReminderForSession = false;
+  bool _isGigReviewReminderVisible = false;
+  String? _gigReviewReminderUserId;
   String? _onboardingDraftOwnerUid;
   Timer? _pushBootstrapTimer;
 
@@ -117,6 +122,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
           }
           _handleOnboardingDraftSession(user);
           _handleBandMembersReminderSession(user);
+          _handleGigReviewReminderSession(user);
           _handlePushBootstrapForAuthState(user);
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
             ref.read(accountDeletionInProgressProvider.notifier).clear();
@@ -176,6 +182,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
           );
           _maybePrefetchFeed(profile);
           unawaited(_maybeShowBandMembersReminder(profile));
+          unawaited(_maybeShowGigReviewReminder(profile));
         });
       },
     );
@@ -198,6 +205,26 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     _isBandMembersReminderVisible = false;
     unawaited(
       _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
+    );
+  }
+
+  void _handleGigReviewReminderSession(User? user) {
+    if (user == null) {
+      _hasPendingGigReviewReminderEvaluation = false;
+      _hasShownGigReviewReminderForSession = false;
+      _isGigReviewReminderVisible = false;
+      _gigReviewReminderUserId = null;
+      return;
+    }
+
+    if (_gigReviewReminderUserId == user.uid) return;
+
+    _gigReviewReminderUserId = user.uid;
+    _hasPendingGigReviewReminderEvaluation = true;
+    _hasShownGigReviewReminderForSession = false;
+    _isGigReviewReminderVisible = false;
+    unawaited(
+      _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
     );
   }
 
@@ -272,6 +299,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
     unawaited(
       _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
+    );
+    unawaited(
+      _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
     );
   }
 
@@ -353,6 +383,93 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     final activePath = _goRouter.routerDelegate.currentConfiguration.uri.path;
     if (activePath != RoutePaths.manageMembers) {
       unawaited(_goRouter.push(RoutePaths.manageMembers));
+    }
+  }
+
+  Future<void> _maybeShowGigReviewReminder(AppUser? profile) async {
+    if (!mounted ||
+        !_hasPendingGigReviewReminderEvaluation ||
+        _hasShownGigReviewReminderForSession ||
+        _isGigReviewReminderVisible) {
+      return;
+    }
+
+    final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (_shouldWaitForBandMembersReminderRoute(currentPath) ||
+        !_canShowBandMembersReminderOnPath(currentPath)) {
+      return;
+    }
+
+    if (profile == null || !profile.isCadastroConcluido) {
+      return;
+    }
+
+    final dialogContext = rootNavigatorKey.currentContext;
+    if (dialogContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(
+          _maybeShowGigReviewReminder(
+            ref.read(currentUserProfileProvider).value,
+          ),
+        );
+      });
+      return;
+    }
+
+    final opportunities = await ref.read(pendingGigReviewsProvider.future);
+    _hasPendingGigReviewReminderEvaluation = false;
+    _hasShownGigReviewReminderForSession = true;
+
+    if (!mounted || opportunities.isEmpty) {
+      return;
+    }
+
+    final activeDialogContext = rootNavigatorKey.currentContext;
+    if (activeDialogContext == null || !activeDialogContext.mounted) return;
+
+    final opportunity = opportunities.first;
+    _isGigReviewReminderVisible = true;
+
+    final shouldOpenReview = await showDialog<bool>(
+      context: activeDialogContext,
+      builder: (context) => AlertDialog(
+        title: const Text('Avaliação pendente'),
+        content: Text(
+          'Voce ainda precisa avaliar ${opportunity.reviewedUserName} '
+          'pela gig "${opportunity.gigTitle}".',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Agora nao'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Avaliar'),
+          ),
+        ],
+      ),
+    );
+
+    _isGigReviewReminderVisible = false;
+    if (!mounted || shouldOpenReview != true) return;
+
+    final route = RoutePaths.gigReviewById(
+      opportunity.gigId,
+      opportunity.reviewedUserId,
+    );
+    if (_goRouter.routerDelegate.currentConfiguration.uri.path != route) {
+      unawaited(
+        _goRouter.push(
+          route,
+          extra: {
+            'userName': opportunity.reviewedUserName,
+            'userPhoto': opportunity.reviewedUserPhoto,
+            'gigTitle': opportunity.gigTitle,
+          },
+        ),
+      );
     }
   }
 

@@ -14,6 +14,7 @@ _AppNotification _$AppNotificationFromJson(Map<String, dynamic> json) =>
       body: json['body'] as String,
       conversationId: json['conversationId'] as String?,
       senderId: json['senderId'] as String?,
+      route: json['route'] as String?,
       isRead: json['isRead'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
@@ -26,6 +27,7 @@ Map<String, dynamic> _$AppNotificationToJson(_AppNotification instance) =>
       'body': instance.body,
       'conversationId': instance.conversationId,
       'senderId': instance.senderId,
+      'route': instance.route,
       'isRead': instance.isRead,
       'createdAt': instance.createdAt.toIso8601String(),
     };
@@ -34,6 +36,11 @@ const _$NotificationTypeEnumMap = {
   NotificationType.chatMessage: 'chat_message',
   NotificationType.bandInvite: 'band_invite',
   NotificationType.bandInviteAccepted: 'band_invite_accepted',
+  NotificationType.gigApplication: 'gig_application',
+  NotificationType.gigApplicationAccepted: 'gig_application_accepted',
+  NotificationType.gigApplicationRejected: 'gig_application_rejected',
+  NotificationType.gigCancelled: 'gig_cancelled',
+  NotificationType.gigReviewReminder: 'gig_review_reminder',
   NotificationType.like: 'like',
   NotificationType.system: 'system',
 };

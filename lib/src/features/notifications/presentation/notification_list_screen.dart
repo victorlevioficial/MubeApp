@@ -106,6 +106,11 @@ class NotificationListScreen extends ConsumerWidget {
           .markAsRead(userId, notification.id);
     }
 
+    if ((notification.route ?? '').trim().isNotEmpty) {
+      context.push(notification.route!);
+      return;
+    }
+
     // Navigate based on type
     switch (notification.type) {
       case NotificationType.chatMessage:
@@ -121,6 +126,11 @@ class NotificationListScreen extends ConsumerWidget {
       case NotificationType.bandInviteAccepted:
         context.push(RoutePaths.manageMembers);
         break;
+      case NotificationType.gigApplication:
+      case NotificationType.gigApplicationAccepted:
+      case NotificationType.gigApplicationRejected:
+      case NotificationType.gigCancelled:
+      case NotificationType.gigReviewReminder:
       case NotificationType.like:
       case NotificationType.system:
         // No specific navigation for now
@@ -383,6 +393,16 @@ class _NotificationTile extends StatelessWidget {
         return Icons.group_add_outlined;
       case NotificationType.bandInviteAccepted:
         return Icons.groups_rounded;
+      case NotificationType.gigApplication:
+        return Icons.work_outline_rounded;
+      case NotificationType.gigApplicationAccepted:
+        return Icons.check_circle_outline_rounded;
+      case NotificationType.gigApplicationRejected:
+        return Icons.cancel_outlined;
+      case NotificationType.gigCancelled:
+        return Icons.event_busy_outlined;
+      case NotificationType.gigReviewReminder:
+        return Icons.star_outline_rounded;
       case NotificationType.like:
         return Icons.favorite_border;
       case NotificationType.system:

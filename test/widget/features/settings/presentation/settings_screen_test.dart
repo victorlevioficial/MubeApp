@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/settings/presentation/settings_screen.dart';
 import 'package:mube/src/routing/route_paths.dart';
@@ -18,8 +20,16 @@ void main() {
     fakeAuthRepository = FakeAuthRepository();
   });
 
-  Widget createSubject({required AppUserType userType}) {
-    final user = TestData.user(uid: 'user-1', tipoPerfil: userType);
+  Widget createSubject({
+    required AppUserType userType,
+    AppUser? profileUser,
+    firebase_auth.User? authUser,
+  }) {
+    final user =
+        profileUser ?? TestData.user(uid: 'user-1', tipoPerfil: userType);
+    fakeAuthRepository.emitUser(
+      authUser ?? FakeFirebaseUser(uid: user.uid, email: user.email),
+    );
 
     final router = GoRouter(
       initialLocation: '/',
@@ -99,6 +109,7 @@ void main() {
       expect(find.text('Alterar Senha'), findsOneWidget);
       expect(find.text('Sair da Conta'), findsOneWidget);
       expect(find.text('Tipo de Perfil'), findsOneWidget);
+      expect(find.text('Plano free'), findsNothing);
       expect(find.text('Plano Ativo'), findsNothing);
     });
 
@@ -110,6 +121,48 @@ void main() {
 
       expect(find.text('Minhas Bandas'), findsOneWidget);
       expect(find.text('Gerenciar Banda'), findsNothing);
+    });
+
+    testWidgets('masks Apple relay email in header', (tester) async {
+      const relayEmail = '7cc8ngqs6g@privaterelay.appleid.com';
+
+      await tester.pumpWidget(
+        createSubject(
+          userType: AppUserType.professional,
+          profileUser: TestData.user(
+            uid: 'user-1',
+            tipoPerfil: AppUserType.professional,
+            email: relayEmail,
+          ),
+          authUser: FakeFirebaseUser(
+            uid: 'user-1',
+            email: relayEmail,
+            providerIds: const ['apple.com'],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Email protegido pela Apple'), findsOneWidget);
+      expect(find.text(relayEmail), findsNothing);
+    });
+
+    testWidgets('hides password reset for Apple sign-in accounts', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createSubject(
+          userType: AppUserType.professional,
+          authUser: FakeFirebaseUser(
+            uid: 'user-1',
+            email: '7cc8ngqs6g@privaterelay.appleid.com',
+            providerIds: const ['apple.com'],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alterar Senha'), findsNothing);
     });
 
     testWidgets('renders "Gerenciar Banda" for band user', (tester) async {
@@ -126,6 +179,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Meus Endereços'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Meus Endereços'));
       await tester.pumpAndSettle();
 
@@ -216,13 +271,11 @@ void main() {
     });
 
     testWidgets('confirming logout calls signOut', (tester) async {
-      // We set current user initially
-      fakeAuthRepository.emitUser(
-        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
-      );
-
       await tester.pumpWidget(
-        createSubject(userType: AppUserType.professional),
+        createSubject(
+          userType: AppUserType.professional,
+          authUser: FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -244,12 +297,11 @@ void main() {
     testWidgets('confirming delete account clears local session', (
       tester,
     ) async {
-      fakeAuthRepository.emitUser(
-        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
-      );
-
       await tester.pumpWidget(
-        createSubject(userType: AppUserType.professional),
+        createSubject(
+          userType: AppUserType.professional,
+          authUser: FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -267,13 +319,13 @@ void main() {
     });
 
     testWidgets('delete account failure keeps local session', (tester) async {
-      fakeAuthRepository.emitUser(
-        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
-      );
       fakeAuthRepository.shouldFailDeleteAccount = true;
 
       await tester.pumpWidget(
-        createSubject(userType: AppUserType.professional),
+        createSubject(
+          userType: AppUserType.professional,
+          authUser: FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        ),
       );
       await tester.pumpAndSettle();
 

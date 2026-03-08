@@ -15,8 +15,11 @@ abstract final class RoutePaths {
   // Main app routes (inside shell)
   static const String feed = '/feed';
   static const String search = '/search';
+  static const String gigs = '/gigs';
   static const String chat = '/chat';
   static const String settings = '/settings';
+  static const String settingsMyGigs = '/settings/my-gigs';
+  static const String settingsMyApplications = '/settings/my-applications';
   static const String addresses = '/settings/addresses';
   static const String privacySettings = '/settings/privacy';
   static const String blockedUsers = '/settings/blocked-users';
@@ -58,8 +61,13 @@ abstract final class RoutePaths {
   static const String manageMembers = '/profile/manage-members';
   static const String conversation = '/conversation';
   static const String notifications = '/notifications';
+  static const String gigCreate = '/gigs/create';
 
   static String publicProfileById(String uid) => '$publicProfile/$uid';
+  static String gigDetailById(String gigId) => '$gigs/$gigId';
+  static String gigApplicantsById(String gigId) => '${gigDetailById(gigId)}/applicants';
+  static String gigReviewById(String gigId, String userId) =>
+      '${gigDetailById(gigId)}/review/$userId';
 
   static String conversationById(String conversationId) =>
       '$conversation/$conversationId';

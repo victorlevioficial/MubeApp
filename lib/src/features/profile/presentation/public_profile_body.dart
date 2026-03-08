@@ -4,6 +4,8 @@ class _ProfileBody extends StatelessWidget {
   final AppUser user;
   final List<MediaItem> galleryItems;
   final List<AppUser> bandMembers;
+  final double? averageRating;
+  final int reviewCount;
   final String avatarHeroTag;
   final VoidCallback onAvatarTap;
   final void Function(int index, List<MediaItem> items) onMediaTap;
@@ -12,6 +14,8 @@ class _ProfileBody extends StatelessWidget {
     required this.user,
     required this.galleryItems,
     required this.bandMembers,
+    required this.averageRating,
+    required this.reviewCount,
     required this.avatarHeroTag,
     required this.onAvatarTap,
     required this.onMediaTap,
@@ -107,6 +111,11 @@ class _ProfileBody extends StatelessWidget {
             _BioCard(bio: bio),
             const SizedBox(height: AppSpacing.s16),
           ],
+          UserRatingDisplay(
+            averageRating: averageRating,
+            reviewCount: reviewCount,
+          ),
+          const SizedBox(height: AppSpacing.s16),
           _buildDetails(),
           if (user.tipoPerfil != AppUserType.contractor) ...[
             const SizedBox(height: AppSpacing.s20),

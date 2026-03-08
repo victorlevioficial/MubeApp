@@ -22,6 +22,8 @@ import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../gigs/presentation/providers/gig_streams.dart';
+import '../../gigs/presentation/widgets/user_rating_display.dart';
 import '../domain/media_item.dart';
 import 'public_profile_controller.dart';
 import 'widgets/band_members_section.dart';
@@ -48,6 +50,8 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stateAsync = ref.watch(publicProfileControllerProvider(uid));
     final user = stateAsync.value?.user;
+    final averageRatingAsync = ref.watch(userAverageRatingProvider(uid));
+    final reviewsAsync = ref.watch(userReviewsProvider(uid));
     final resolvedAvatarHeroTag = avatarHeroTag ?? 'avatar-$uid';
 
     return Scaffold(
@@ -70,6 +74,8 @@ class PublicProfileScreen extends ConsumerWidget {
                   user: state.user!,
                   galleryItems: state.galleryItems,
                   bandMembers: state.bandMembers,
+                  averageRating: averageRatingAsync.asData?.value,
+                  reviewCount: reviewsAsync.asData?.value.length ?? 0,
                   avatarHeroTag: resolvedAvatarHeroTag,
                   onAvatarTap: () => _showAvatarViewer(
                     context,
