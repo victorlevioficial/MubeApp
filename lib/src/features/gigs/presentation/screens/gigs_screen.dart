@@ -27,6 +27,9 @@ class GigsScreen extends ConsumerWidget {
     final gigsAsync = ref.watch(gigsStreamProvider);
     final filters = ref.watch(gigFiltersControllerProvider);
     final profile = ref.watch(currentUserProfileProvider).value;
+    final canCreateGig = profile?.isCadastroConcluido == true;
+    final showCreateFab =
+        canCreateGig && gigsAsync.asData?.value.isNotEmpty == true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -112,11 +115,16 @@ class GigsScreen extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: profile == null || !profile.isCadastroConcluido
+      floatingActionButton: !showCreateFab
           ? null
-          : AppButton.primary(
-              text: 'Nova gig',
+          : FloatingActionButton.extended(
+              heroTag: 'gigs_create_fab',
               onPressed: () => context.push(RoutePaths.gigCreate),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textPrimary,
+              elevation: 6,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Nova gig'),
             ),
     );
   }
