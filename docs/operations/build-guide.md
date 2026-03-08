@@ -175,6 +175,56 @@ cd android
 bundle exec fastlane android production validate_only:true
 ```
 
+### 5. Rota alternativa: gerar o AAB em checkout limpo sem Fastlane
+
+Use esta rota quando o ambiente atual nao tiver Ruby/Bundler/Fastlane disponiveis, mas voce ainda precisar gerar o artefato de Android para teste fechado.
+
+Importante:
+- esta rota gera o `.aab` pronto para upload manual no Google Play Console
+- ela nao publica automaticamente no track `closed`
+- use um checkout limpo para nao embutir alteracoes locais nao commitadas no artefato
+
+Passo a passo:
+
+1. Criar um worktree limpo no commit que sera publicado:
+
+```bash
+git worktree add --detach ../AppMube_release_<versao> HEAD
+```
+
+2. Copiar os arquivos locais necessarios para signing e Firebase Android:
+
+```bash
+cp android/key.properties ../AppMube_release_<versao>/android/key.properties
+cp android/upload-keystore.jks ../AppMube_release_<versao>/android/upload-keystore.jks
+cp android/app/upload-keystore.jks ../AppMube_release_<versao>/android/app/upload-keystore.jks
+cp android/app/google-services.json ../AppMube_release_<versao>/android/app/google-services.json
+```
+
+3. No Windows, rodar o build de release no worktree limpo:
+
+```powershell
+cd C:\Users\Victor\Desktop\AppMube_release_<versao>
+flutter pub get
+flutter build appbundle --release
+```
+
+4. O artefato sera gerado em:
+
+```text
+build/app/outputs/bundle/release/app-release.aab
+```
+
+5. Opcionalmente, copie o arquivo final para um caminho mais estavel no repo principal:
+
+```bash
+mkdir -p build/releases
+cp ../AppMube_release_<versao>/build/app/outputs/bundle/release/app-release.aab \
+  build/releases/mube-<versao>-closed.aab
+```
+
+Quando possivel, continue preferindo a rota oficial com Fastlane, porque ela faz o upload direto para o track fechado. Esta rota alternativa existe para destravar o build quando o ambiente de upload nao estiver pronto.
+
 ---
 
 ## Deploy Firebase
