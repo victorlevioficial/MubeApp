@@ -13,62 +13,49 @@ import '../../domain/gig_draft.dart';
 
 part 'gig_actions_controller.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class GigActionsController extends _$GigActionsController {
   @override
   FutureOr<void> build() {}
 
   Future<void> applyToGig(String gigId, String message) async {
-    state = const AsyncLoading();
-    try {
-      await ref.read(gigRepositoryProvider).applyToGig(gigId, message);
-      state = const AsyncData(null);
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
-    }
+    await _runGigAction(
+      (repository) => repository.applyToGig(gigId, message),
+    );
   }
 
   Future<void> withdrawApplication(String gigId) async {
-    state = const AsyncLoading();
-    try {
-      await ref.read(gigRepositoryProvider).withdrawApplication(gigId);
-      state = const AsyncData(null);
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
-    }
+    await _runGigAction(
+      (repository) => repository.withdrawApplication(gigId),
+    );
   }
 
   Future<void> closeGig(String gigId) async {
-    state = const AsyncLoading();
-    try {
-      await ref.read(gigRepositoryProvider).closeGig(gigId);
-      state = const AsyncData(null);
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
-    }
+    await _runGigAction((repository) => repository.closeGig(gigId));
   }
 
   Future<void> cancelGig(String gigId) async {
-    state = const AsyncLoading();
-    try {
-      await ref.read(gigRepositoryProvider).cancelGig(gigId);
-      state = const AsyncData(null);
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
-    }
+    await _runGigAction((repository) => repository.cancelGig(gigId));
   }
 
   Future<void> updateGig(String gigId, GigUpdate update) async {
+    await _runGigAction((repository) => repository.updateGig(gigId, update));
+  }
+
+  Future<void> _runGigAction(
+    Future<void> Function(GigRepository repository) action,
+  ) async {
     state = const AsyncLoading();
+    final repository = ref.read(gigRepositoryProvider);
+
     try {
-      await ref.read(gigRepositoryProvider).updateGig(gigId, update);
+      await action(repository);
+      if (!ref.mounted) return;
       state = const AsyncData(null);
     } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+      if (ref.mounted) {
+        state = AsyncError(error, stackTrace);
+      }
       rethrow;
     }
   }
@@ -78,18 +65,22 @@ class GigActionsController extends _$GigActionsController {
     required String applicantId,
   }) async {
     state = const AsyncLoading();
+    final repository = ref.read(gigRepositoryProvider);
+
     try {
-      await ref
-          .read(gigRepositoryProvider)
-          .updateApplicationStatus(
-            gigId,
-            applicantId,
-            ApplicationStatus.accepted,
-          );
+      await repository.updateApplicationStatus(
+        gigId,
+        applicantId,
+        ApplicationStatus.accepted,
+      );
+      if (!ref.mounted) return;
       await _ensureConversationExists(applicantId);
+      if (!ref.mounted) return;
       state = const AsyncData(null);
     } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+      if (ref.mounted) {
+        state = AsyncError(error, stackTrace);
+      }
       rethrow;
     }
   }
@@ -98,20 +89,13 @@ class GigActionsController extends _$GigActionsController {
     required String gigId,
     required String applicantId,
   }) async {
-    state = const AsyncLoading();
-    try {
-      await ref
-          .read(gigRepositoryProvider)
-          .updateApplicationStatus(
-            gigId,
-            applicantId,
-            ApplicationStatus.rejected,
-          );
-      state = const AsyncData(null);
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
-      rethrow;
-    }
+    await _runGigAction(
+      (repository) => repository.updateApplicationStatus(
+        gigId,
+        applicantId,
+        ApplicationStatus.rejected,
+      ),
+    );
   }
 
   Future<void> openConversation(
@@ -132,23 +116,24 @@ class GigActionsController extends _$GigActionsController {
 
   Future<void> _ensureConversationExists(String otherUserId) async {
     final currentUser = ref.read(currentUserProfileProvider).value;
+    final repository = ref.read(gigRepositoryProvider);
+    final chatRepository = ref.read(chatRepositoryProvider);
     if (currentUser == null) return;
 
-    final users = await ref.read(gigRepositoryProvider).getUsersByIds([otherUserId]);
+    final users = await repository.getUsersByIds([otherUserId]);
+    if (!ref.mounted) return;
     final otherUser = users[otherUserId];
     if (otherUser == null) return;
 
-    final result = await ref
-        .read(chatRepositoryProvider)
-        .getOrCreateConversation(
-          myUid: currentUser.uid,
-          otherUid: otherUser.uid,
-          otherUserName: otherUser.appDisplayName,
-          otherUserPhoto: otherUser.foto,
-          myName: currentUser.appDisplayName,
-          myPhoto: currentUser.foto,
-          type: 'gig',
-        );
+    final result = await chatRepository.getOrCreateConversation(
+      myUid: currentUser.uid,
+      otherUid: otherUser.uid,
+      otherUserName: otherUser.appDisplayName,
+      otherUserPhoto: otherUser.foto,
+      myName: currentUser.appDisplayName,
+      myPhoto: currentUser.foto,
+      type: 'gig',
+    );
 
     result.fold((_) => null, (_) => null);
   }

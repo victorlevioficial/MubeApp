@@ -20,7 +20,7 @@ final class GigActionsControllerProvider
         argument: null,
         retry: null,
         name: r'gigActionsControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -34,7 +34,7 @@ final class GigActionsControllerProvider
 }
 
 String _$gigActionsControllerHash() =>
-    r'9397f7f656fd6b7160fb41ba7df5634309158943';
+    r'f4ea9fe33e0f3d408259f24da6ef150638d90576';
 
 abstract class _$GigActionsController extends $AsyncNotifier<void> {
   FutureOr<void> build();
