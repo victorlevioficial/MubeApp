@@ -10,6 +10,7 @@ import '../../../../design_system/components/feedback/app_confirmation_dialog.da
 import '../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -39,19 +40,21 @@ class GigDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gigAsync = ref.watch(gigDetailProvider(gigId));
     final myApplicationsAsync = ref.watch(myApplicationsProvider);
-    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final currentUserAsync = ref.watch(currentUserProfileProvider);
+    final appConfigAsync = ref.watch(appConfigProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Detalhes da gig'),
       body: gigAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _GigDetailSkeleton(),
         error: (error, _) => Center(child: Text('Erro: $error')),
         data: (gig) {
           if (gig == null) {
             return const Center(child: Text('Gig nao encontrada.'));
           }
 
+          final currentUser = currentUserAsync.asData?.value;
           final applications = myApplicationsAsync.asData?.value ?? const [];
           GigApplication? myApplication;
           for (final application in applications) {
@@ -139,43 +142,44 @@ class GigDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.s16),
-              ref.watch(appConfigProvider).when(
-                loading: () => const SizedBox.shrink(),
+              appConfigAsync.when(
+                loading: () =>
+                    const _DetailCard(child: _RequirementsSectionSkeleton()),
                 error: (_, _) => const SizedBox.shrink(),
                 data: (config) => _DetailCard(
                   child: _RequirementsSection(gig: gig, config: config),
                 ),
               ),
               const SizedBox(height: AppSpacing.s20),
-              _ActionPanel(
-                gig: gig,
-                isCreator: isCreator,
-                myApplication: myApplication,
-                onApply: () => _showApplyDialog(context, ref, gig.id),
-                onWithdraw: myApplication == null
-                    ? null
-                    : () => _withdraw(context, ref, gig.id),
-                onViewApplicants: () =>
-                    context.push(RoutePaths.gigApplicantsById(gig.id)),
-                onCloseGig: () => _confirmCloseGig(context, ref, gig.id),
-                onCancelGig: () => _confirmCancelGig(context, ref, gig.id),
-                onEdit: () => context.push(
-                  RoutePaths.gigCreate,
-                  extra: gig,
+              if (myApplicationsAsync.isLoading || currentUserAsync.isLoading)
+                const _ActionPanelSkeleton()
+              else
+                _ActionPanel(
+                  gig: gig,
+                  isCreator: isCreator,
+                  myApplication: myApplication,
+                  onApply: () => _showApplyDialog(context, ref, gig.id),
+                  onWithdraw: myApplication == null
+                      ? null
+                      : () => _withdraw(context, ref, gig.id),
+                  onViewApplicants: () =>
+                      context.push(RoutePaths.gigApplicantsById(gig.id)),
+                  onCloseGig: () => _confirmCloseGig(context, ref, gig.id),
+                  onCancelGig: () => _confirmCancelGig(context, ref, gig.id),
+                  onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
+                  onEditDescriptionOnly: gig.canEditDescriptionOnly
+                      ? () => _showEditDescriptionDialog(context, ref, gig)
+                      : null,
+                  onOpenChat: () {
+                    if (myApplication == null) return;
+                    final otherUserId = isCreator
+                        ? myApplication.applicantId
+                        : gig.creatorId;
+                    ref
+                        .read(gigActionsControllerProvider.notifier)
+                        .openConversation(context, otherUserId: otherUserId);
+                  },
                 ),
-                onEditDescriptionOnly: gig.canEditDescriptionOnly
-                    ? () => _showEditDescriptionDialog(context, ref, gig)
-                    : null,
-                onOpenChat: () {
-                  if (myApplication == null) return;
-                  final otherUserId = isCreator
-                      ? myApplication.applicantId
-                      : gig.creatorId;
-                  ref
-                      .read(gigActionsControllerProvider.notifier)
-                      .openConversation(context, otherUserId: otherUserId);
-                },
-              ),
             ],
           );
         },
@@ -227,8 +231,12 @@ class GigDetailScreen extends ConsumerWidget {
       await ref
           .read(gigActionsControllerProvider.notifier)
           .applyToGig(gigId, controller.text);
+      await _refreshGigDetailState(ref, gigId);
       if (!context.mounted) return;
-      AppSnackBar.success(context, 'Candidatura enviada com sucesso.');
+      AppSnackBar.success(
+        context,
+        'Candidatura enviada. A gig agora aparece em Minhas candidaturas.',
+      );
     } catch (error) {
       if (!context.mounted) return;
       AppSnackBar.error(
@@ -244,9 +252,10 @@ class GigDetailScreen extends ConsumerWidget {
     String gigId,
   ) async {
     try {
-      await ref.read(gigActionsControllerProvider.notifier).withdrawApplication(
-        gigId,
-      );
+      await ref
+          .read(gigActionsControllerProvider.notifier)
+          .withdrawApplication(gigId);
+      await _refreshGigDetailState(ref, gigId);
       if (!context.mounted) return;
       AppSnackBar.success(context, 'Candidatura retirada com sucesso.');
     } catch (error) {
@@ -256,6 +265,16 @@ class GigDetailScreen extends ConsumerWidget {
         error.toString().replaceFirst('Exception: ', ''),
       );
     }
+  }
+
+  Future<void> _refreshGigDetailState(WidgetRef ref, String gigId) async {
+    ref.invalidate(myApplicationsProvider);
+    ref.invalidate(gigDetailProvider(gigId));
+
+    await Future.wait<Object?>([
+      ref.read(myApplicationsProvider.future),
+      ref.read(gigDetailProvider(gigId).future),
+    ]);
   }
 
   Future<void> _confirmCloseGig(
@@ -295,7 +314,8 @@ class GigDetailScreen extends ConsumerWidget {
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Cancelar gig?',
-        message: 'As candidaturas serao congeladas e os envolvidos notificados.',
+        message:
+            'As candidaturas serao congeladas e os envolvidos notificados.',
         confirmText: 'Cancelar gig',
         isDestructive: true,
       ),
@@ -506,6 +526,45 @@ class _RequirementWrap extends StatelessWidget {
   }
 }
 
+class _RequirementsSectionSkeleton extends StatelessWidget {
+  const _RequirementsSectionSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonShimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SkeletonText(width: 112, height: 16),
+          SizedBox(height: AppSpacing.s12),
+          SkeletonText(width: 88, height: 12),
+          SizedBox(height: AppSpacing.s8),
+          Wrap(
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s8,
+            children: [
+              SkeletonBox(width: 92, height: 28, borderRadius: 14),
+              SkeletonBox(width: 116, height: 28, borderRadius: 14),
+              SkeletonBox(width: 84, height: 28, borderRadius: 14),
+            ],
+          ),
+          SizedBox(height: AppSpacing.s12),
+          SkeletonText(width: 96, height: 12),
+          SizedBox(height: AppSpacing.s8),
+          Wrap(
+            spacing: AppSpacing.s8,
+            runSpacing: AppSpacing.s8,
+            children: [
+              SkeletonBox(width: 110, height: 28, borderRadius: 14),
+              SkeletonBox(width: 138, height: 28, borderRadius: 14),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ActionPanel extends StatelessWidget {
   const _ActionPanel({
     required this.gig,
@@ -537,9 +596,19 @@ class _ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isCreator) {
       return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            gig.applicantCount == 0
+                ? 'Nenhuma candidatura ainda.'
+                : _candidateSocialProof(gig.applicantCount),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
           AppButton.primary(
-            text: 'Ver candidaturas',
+            text: _creatorApplicantsLabel(gig.applicantCount),
             isFullWidth: true,
             onPressed: onViewApplicants,
           ),
@@ -626,10 +695,129 @@ class _ActionPanel extends StatelessWidget {
     }
 
     final canApply = gig.status == GigStatus.open && !gig.isFull;
-    return AppButton.primary(
-      text: canApply ? 'Candidatar-se' : 'Sem vagas disponiveis',
-      isFullWidth: true,
-      onPressed: canApply ? onApply : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _candidateSocialProof(gig.applicantCount),
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        AppButton.primary(
+          text: canApply ? 'Candidatar-se' : 'Sem vagas disponiveis',
+          isFullWidth: true,
+          onPressed: canApply ? onApply : null,
+        ),
+      ],
+    );
+  }
+
+  String _creatorApplicantsLabel(int applicantCount) {
+    if (applicantCount == 1) return 'Ver 1 candidatura';
+    return 'Ver $applicantCount candidaturas';
+  }
+
+  String _candidateSocialProof(int applicantCount) {
+    if (applicantCount <= 0) {
+      return 'Seja a primeira pessoa a se candidatar.';
+    }
+    if (applicantCount == 1) {
+      return '1 pessoa ja se candidatou.';
+    }
+    if (applicantCount <= 25) {
+      return '$applicantCount pessoas ja se candidataram.';
+    }
+    return 'Alta procura: mais de 25 pessoas ja se candidataram.';
+  }
+}
+
+class _ActionPanelSkeleton extends StatelessWidget {
+  const _ActionPanelSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonShimmer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SkeletonText(width: 220, height: 12),
+          SizedBox(height: AppSpacing.s12),
+          SkeletonBox(width: double.infinity, height: 48, borderRadius: 14),
+          SizedBox(height: AppSpacing.s12),
+          SkeletonBox(width: double.infinity, height: 48, borderRadius: 14),
+        ],
+      ),
+    );
+  }
+}
+
+class _GigDetailSkeleton extends StatelessWidget {
+  const _GigDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      children: const [
+        SkeletonShimmer(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonText(width: 240, height: 28),
+              SizedBox(height: AppSpacing.s12),
+              Wrap(
+                spacing: AppSpacing.s8,
+                runSpacing: AppSpacing.s8,
+                children: [
+                  SkeletonBox(width: 104, height: 28, borderRadius: 14),
+                  SkeletonBox(width: 92, height: 28, borderRadius: 14),
+                  SkeletonBox(width: 116, height: 28, borderRadius: 14),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: AppSpacing.s20),
+        _DetailCard(
+          child: SkeletonShimmer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(height: 14),
+                SizedBox(height: AppSpacing.s12),
+                SkeletonText(height: 14),
+                SizedBox(height: AppSpacing.s12),
+                SkeletonText(height: 14),
+                SizedBox(height: AppSpacing.s12),
+                SkeletonText(width: 96, height: 14),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: AppSpacing.s16),
+        _DetailCard(
+          child: SkeletonShimmer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonText(width: 112, height: 16),
+                SizedBox(height: AppSpacing.s10),
+                SkeletonText(height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(height: 14),
+                SizedBox(height: AppSpacing.s8),
+                SkeletonText(width: 220, height: 14),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: AppSpacing.s16),
+        _DetailCard(child: _RequirementsSectionSkeleton()),
+        SizedBox(height: AppSpacing.s20),
+        _ActionPanelSkeleton(),
+      ],
     );
   }
 }

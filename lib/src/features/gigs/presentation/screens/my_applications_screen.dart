@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/components/feedback/empty_state_widget.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -26,14 +27,15 @@ class MyApplicationsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Minhas candidaturas'),
       body: applicationsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _MyApplicationsListSkeleton(),
         error: (error, _) => Center(child: Text('Erro: $error')),
         data: (applications) {
           if (applications.isEmpty) {
             return const EmptyStateWidget(
               icon: Icons.assignment_outlined,
               title: 'Nenhuma candidatura ainda',
-              subtitle: 'Quando voce se candidatar a uma gig, ela aparecera aqui.',
+              subtitle:
+                  'Quando voce se candidatar a uma gig, ela aparecera aqui.',
             );
           }
 
@@ -154,5 +156,58 @@ class MyApplicationsScreen extends ConsumerWidget {
       case ApplicationStatus.gigCancelled:
         return AppColors.textSecondary;
     }
+  }
+}
+
+class _MyApplicationsListSkeleton extends StatelessWidget {
+  const _MyApplicationsListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      itemBuilder: (_, _) => const _MyApplicationCardSkeleton(),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+      itemCount: 4,
+    );
+  }
+}
+
+class _MyApplicationCardSkeleton extends StatelessWidget {
+  const _MyApplicationCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+      ),
+      child: const SkeletonShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonText(width: 190, height: 18),
+            SizedBox(height: AppSpacing.s8),
+            SkeletonText(width: 84, height: 12),
+            SizedBox(height: AppSpacing.s12),
+            SkeletonText(height: 14),
+            SizedBox(height: AppSpacing.s8),
+            SkeletonText(width: 220, height: 14),
+            SizedBox(height: AppSpacing.s16),
+            Row(
+              children: [
+                Expanded(child: SkeletonBox(height: 44, borderRadius: 14)),
+                SizedBox(width: AppSpacing.s12),
+                Expanded(child: SkeletonBox(height: 44, borderRadius: 14)),
+              ],
+            ),
+            SizedBox(height: AppSpacing.s12),
+            SkeletonBox(height: 44, borderRadius: 14),
+          ],
+        ),
+      ),
+    );
   }
 }
