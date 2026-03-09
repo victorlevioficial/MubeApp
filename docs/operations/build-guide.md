@@ -256,6 +256,76 @@ Observacoes:
 - se o app estiver configurado para enviar mudancas automaticamente para review, o script detecta isso e refaz o `commit` sem `changesNotSentForReview`
 - essa rota evita dependencias de Ruby/Bundler/Fastlane quando o objetivo for apenas publicar o artefato ja pronto
 
+### 7. Fluxo validado no projeto para closed testing sem Fastlane
+
+Este foi o fluxo que funcionou de ponta a ponta no projeto para publicar no teste fechado da Play Store usando o track `alpha`.
+
+Ordem recomendada:
+
+1. Atualizar a versao no `pubspec.yaml`
+
+Exemplo:
+
+```yaml
+version: 1.3.1+20
+```
+
+2. Commitar e dar `push` na `main`
+
+Isso garante que o artefato de release saia exatamente do commit que tambem sera puxado em outras maquinas.
+
+3. Criar um worktree limpo do commit publicado
+
+```bash
+git worktree add --detach ../AppMube_release_1_3_1_20 HEAD
+```
+
+4. Copiar os arquivos locais obrigatorios para o worktree
+
+```bash
+cp android/key.properties ../AppMube_release_1_3_1_20/android/key.properties
+cp android/upload-keystore.jks ../AppMube_release_1_3_1_20/android/upload-keystore.jks
+cp android/app/upload-keystore.jks ../AppMube_release_1_3_1_20/android/app/upload-keystore.jks
+cp android/app/google-services.json ../AppMube_release_1_3_1_20/android/app/google-services.json
+cp android/fastlane/play-store-service-account.json ../AppMube_release_1_3_1_20/android/fastlane/play-store-service-account.json
+```
+
+5. No Windows, gerar o App Bundle de release
+
+```powershell
+cd C:\Users\Victor\Desktop\AppMube_release_1_3_1_20
+flutter pub get
+flutter build appbundle --release
+```
+
+6. Copiar o `.aab` final para um caminho estavel no repo principal
+
+```bash
+mkdir -p build/releases
+cp ../AppMube_release_1_3_1_20/build/app/outputs/bundle/release/app-release.aab \
+  build/releases/mube-1.3.1+20-closed.aab
+```
+
+7. Publicar no closed testing via API
+
+```bash
+node scripts/upload_play_store_release.mjs \
+  --aab build/releases/mube-1.3.1+20-closed.aab \
+  --track alpha \
+  --status completed \
+  --name "1.3.1 (20)"
+```
+
+Resultado esperado:
+- o script retorna `versionCode` igual ao `BUILD_NUMBER`
+- o `trackUpdate` volta com `track: "alpha"`
+- o release volta com `status: "completed"`
+
+Notas operacionais:
+- se o objetivo for apenas deixar o release preparado sem expor para testers, usar `--status draft`
+- o track fechado atual do projeto eh `alpha`
+- essa rota foi usada com sucesso para os releases `1.3.0+19` e `1.3.1+20`
+
 ---
 
 ## Deploy Firebase
