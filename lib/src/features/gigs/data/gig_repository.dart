@@ -386,10 +386,8 @@ class GigRepository {
     }
 
     final applicationRef = _applications(gigId).doc(_uid);
-    final existing = await _applications(
-      gigId,
-    ).where(GigFields.applicantId, isEqualTo: _uid).limit(1).get();
-    if (existing.docs.isNotEmpty) {
+    final existing = await applicationRef.get();
+    if (existing.exists) {
       throw Exception('Voce ja tem uma candidatura ativa para esta gig.');
     }
 
@@ -540,10 +538,8 @@ class GigRepository {
   }
 
   Future<bool> hasApplied(String gigId) async {
-    final snapshot = await _applications(
-      gigId,
-    ).where(GigFields.applicantId, isEqualTo: _uid).limit(1).get();
-    return snapshot.docs.isNotEmpty;
+    final snapshot = await _applications(gigId).doc(_uid).get();
+    return snapshot.exists;
   }
 
   Future<void> submitReview(GigReviewDraft review) async {

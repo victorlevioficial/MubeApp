@@ -109,6 +109,40 @@ void main() {
         );
       },
     );
+
+    test(
+      'ignores legacy documents with another id and creates the canonical application doc',
+      () async {
+        await fakeFirestore
+            .collection('gigs')
+            .doc(gigId)
+            .collection('gig_applications')
+            .doc('legacy-doc')
+            .set({
+              'applicant_id': applicantId,
+              'message': 'Mensagem legado',
+              'status': 'pending',
+              'applied_at': Timestamp.fromDate(DateTime(2026, 3, 9)),
+              'responded_at': null,
+            });
+
+        await repository.applyToGig(gigId, 'Nova candidatura');
+
+        final canonicalDoc = await fakeFirestore
+            .collection('gigs')
+            .doc(gigId)
+            .collection('gig_applications')
+            .doc(applicantId)
+            .get();
+
+        expect(canonicalDoc.exists, isTrue);
+        expect(canonicalDoc.data(), containsPair('applicant_id', applicantId));
+        expect(
+          canonicalDoc.data(),
+          containsPair('message', 'Nova candidatura'),
+        );
+      },
+    );
   });
 
   group('GigRepository.hasApplied', () {
@@ -132,5 +166,25 @@ void main() {
 
       expect(await repository.hasApplied(gigId), isTrue);
     });
+
+    test(
+      'returns false when only a legacy non-canonical document exists',
+      () async {
+        await fakeFirestore
+            .collection('gigs')
+            .doc(gigId)
+            .collection('gig_applications')
+            .doc('legacy-doc')
+            .set({
+              'applicant_id': applicantId,
+              'message': 'Mensagem anterior',
+              'status': 'pending',
+              'applied_at': Timestamp.fromDate(DateTime(2026, 3, 9)),
+              'responded_at': null,
+            });
+
+        expect(await repository.hasApplied(gigId), isFalse);
+      },
+    );
   });
 }
