@@ -40,9 +40,8 @@ class GigRepository {
   CollectionReference<Map<String, dynamic>> get _gigs =>
       _firestore.collection(FirestoreCollections.gigs);
 
-  CollectionReference<Map<String, dynamic>> _applications(String gigId) => _gigs
-      .doc(gigId)
-      .collection(FirestoreCollections.gigApplications);
+  CollectionReference<Map<String, dynamic>> _applications(String gigId) =>
+      _gigs.doc(gigId).collection(FirestoreCollections.gigApplications);
 
   CollectionReference<Map<String, dynamic>> get _reviews =>
       _firestore.collection(FirestoreCollections.gigReviews);
@@ -104,9 +103,9 @@ class GigRepository {
 
     return query.snapshots().map((snapshot) {
       final gigs = snapshot.docs.map(Gig.fromFirestore).toList(growable: false);
-      return gigs.where((gig) => _matchesFilters(gig, filters)).toList(
-        growable: false,
-      );
+      return gigs
+          .where((gig) => _matchesFilters(gig, filters))
+          .toList(growable: false);
     });
   }
 
@@ -145,8 +144,7 @@ class GigRepository {
       if (!haystack.contains(term)) return false;
     }
 
-    if (filters.genres.isNotEmpty &&
-        !gig.genres.any(filters.genres.contains)) {
+    if (filters.genres.isNotEmpty && !gig.genres.any(filters.genres.contains)) {
       return false;
     }
 
@@ -224,7 +222,9 @@ class GigRepository {
       GigFields.requiredStudioServices: draft.requiredStudioServices,
       GigFields.slotsTotal: draft.slotsTotal,
       GigFields.slotsFilled: 0,
-      GigFields.compensationType: _compensationTypeValue(draft.compensationType),
+      GigFields.compensationType: _compensationTypeValue(
+        draft.compensationType,
+      ),
       GigFields.compensationValue: draft.compensationValue,
       GigFields.creatorId: _uid,
       GigFields.applicantCount: 0,
@@ -304,7 +304,8 @@ class GigRepository {
       payload[GigFields.location] = null;
       payload[GigFields.geohash] = null;
     } else {
-      if (update.location != null) payload[GigFields.location] = update.location;
+      if (update.location != null)
+        payload[GigFields.location] = update.location;
       if (update.locationType == GigLocationType.remote) {
         payload[GigFields.geohash] = null;
       } else if (update.geohash != null) {
@@ -319,8 +320,7 @@ class GigRepository {
       payload[GigFields.requiredCrewRoles] = update.requiredCrewRoles;
     }
     if (update.requiredStudioServices != null) {
-      payload[GigFields.requiredStudioServices] =
-          update.requiredStudioServices;
+      payload[GigFields.requiredStudioServices] = update.requiredStudioServices;
     }
     if (update.slotsTotal != null) {
       payload[GigFields.slotsTotal] = update.slotsTotal;
@@ -385,8 +385,10 @@ class GigRepository {
     }
 
     final applicationRef = _applications(gigId).doc(_uid);
-    final existing = await applicationRef.get();
-    if (existing.exists) {
+    final existing = await _applications(
+      gigId,
+    ).where(GigFields.applicantId, isEqualTo: _uid).limit(1).get();
+    if (existing.docs.isNotEmpty) {
       throw Exception('Voce ja tem uma candidatura ativa para esta gig.');
     }
 
@@ -503,18 +505,20 @@ class GigRepository {
 
           final gigsById = await _loadGigsByIds(gigIds);
 
-          return snapshot.docs.map((doc) {
-            final gigId = doc.reference.parent.parent?.id ?? '';
-            final gig = gigsById[gigId];
-            return GigApplication.fromFirestore(
-              doc,
-              gigId: gigId,
-              gigTitle: gig?.title,
-              gigType: gig?.gigType,
-              gigStatus: gig?.status,
-              creatorId: gig?.creatorId,
-            );
-          }).toList(growable: false);
+          return snapshot.docs
+              .map((doc) {
+                final gigId = doc.reference.parent.parent?.id ?? '';
+                final gig = gigsById[gigId];
+                return GigApplication.fromFirestore(
+                  doc,
+                  gigId: gigId,
+                  gigTitle: gig?.title,
+                  gigType: gig?.gigType,
+                  gigStatus: gig?.status,
+                  creatorId: gig?.creatorId,
+                );
+              })
+              .toList(growable: false);
         });
   }
 
@@ -535,8 +539,10 @@ class GigRepository {
   }
 
   Future<bool> hasApplied(String gigId) async {
-    final snapshot = await _applications(gigId).doc(_uid).get();
-    return snapshot.exists;
+    final snapshot = await _applications(
+      gigId,
+    ).where(GigFields.applicantId, isEqualTo: _uid).limit(1).get();
+    return snapshot.docs.isNotEmpty;
   }
 
   Future<void> submitReview(GigReviewDraft review) async {
@@ -553,7 +559,9 @@ class GigRepository {
     final gig = Gig.fromFirestore(gigSnapshot);
 
     if (gig.status != GigStatus.closed) {
-      throw Exception('A avaliacao so pode ser enviada apos a gig ser fechada.');
+      throw Exception(
+        'A avaliacao so pode ser enviada apos a gig ser fechada.',
+      );
     }
 
     final reviewType = await _resolveReviewType(
@@ -606,7 +614,8 @@ class GigRepository {
     final status = _applicationStatusFromString(
       ownApplication.data()![GigFields.status] as String?,
     );
-    if (status != ApplicationStatus.accepted || reviewedUserId != gig.creatorId) {
+    if (status != ApplicationStatus.accepted ||
+        reviewedUserId != gig.creatorId) {
       throw Exception('Apenas o criador pode ser avaliado por participantes.');
     }
 
@@ -619,8 +628,9 @@ class GigRepository {
         .orderBy(GigFields.createdAt, descending: true)
         .snapshots()
         .map(
-          (snapshot) =>
-              snapshot.docs.map(GigReview.fromFirestore).toList(growable: false),
+          (snapshot) => snapshot.docs
+              .map(GigReview.fromFirestore)
+              .toList(growable: false),
         );
   }
 

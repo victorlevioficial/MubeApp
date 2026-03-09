@@ -429,7 +429,7 @@ service cloud.firestore {
       match /gig_applications/{applicantId} {
         allow read: if request.auth != null &&
           (
-            resource.data.applicant_id == request.auth.uid ||
+            applicantId == request.auth.uid ||
             isGigCreator(gigId)
           );
 
