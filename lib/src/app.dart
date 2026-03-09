@@ -7,9 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import 'core/providers/app_update_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'core/services/push_notification_provider.dart';
+import 'design_system/components/feedback/app_overlay.dart';
+import 'design_system/components/feedback/app_snackbar.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
 import 'features/auth/data/auth_repository.dart';
@@ -18,7 +21,6 @@ import 'features/auth/domain/user_type.dart';
 import 'features/auth/presentation/account_deletion_provider.dart';
 import 'features/bands/domain/band_activation_rules.dart';
 import 'features/bands/presentation/band_formation_reminder_dialog.dart';
-import 'features/feed/presentation/feed_controller.dart';
 import 'features/gigs/domain/gig_review_opportunity.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
@@ -51,6 +53,10 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasBootstrappedPushForSession = false;
   bool _hasPrefetchedFeedForSession = false;
   bool _hasReleasedInitialRoute = false;
+  bool _hasPendingAppUpdateNoticeEvaluation = true;
+  bool _hasShownAppUpdateNoticeForSession = false;
+  bool _isEvaluatingAppUpdateNotice = false;
+  bool _isAppUpdateNoticeVisible = false;
   bool _hasPendingBandMembersReminderEvaluation = false;
   bool _hasShownBandMembersReminderForSession = false;
   bool _isBandMembersReminderVisible = false;
@@ -238,10 +244,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     if (_hasPrefetchedFeedForSession) return;
     _hasPrefetchedFeedForSession = true;
     AppPerformanceTracker.mark(
-      'app.feed_prefetch.scheduled',
-      data: {'uid': profile.uid},
+      'app.feed_prefetch.skipped',
+      data: {'uid': profile.uid, 'reason': 'disabled_to_reduce_boot_work'},
     );
-    unawaited(ref.read(feedControllerProvider.notifier).loadAllData());
   }
 
   Future<void> _bootstrapPushForLoggedInUser() async {
@@ -298,6 +303,111 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       });
     }
 
+    unawaited(_maybeShowAppUpdateNotice());
+    unawaited(
+      _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
+    );
+    unawaited(
+      _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
+    );
+  }
+
+  Future<void> _maybeShowAppUpdateNotice() async {
+    if (!mounted ||
+        !_hasPendingAppUpdateNoticeEvaluation ||
+        _hasShownAppUpdateNoticeForSession ||
+        _isEvaluatingAppUpdateNotice ||
+        _isAppUpdateNoticeVisible) {
+      return;
+    }
+
+    final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (currentPath == RoutePaths.splash) {
+      return;
+    }
+
+    _isEvaluatingAppUpdateNotice = true;
+    final notice = await (() async {
+      try {
+        return await ref.read(appUpdateNoticeProvider.future);
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Failed to evaluate app update notice',
+          error,
+          stackTrace,
+        );
+        return null;
+      }
+    })();
+    _isEvaluatingAppUpdateNotice = false;
+    _hasPendingAppUpdateNoticeEvaluation = false;
+
+    if (!mounted || notice == null) {
+      _resumeDeferredSessionDialogs();
+      return;
+    }
+
+    _hasShownAppUpdateNoticeForSession = true;
+    _isAppUpdateNoticeVisible = true;
+
+    final dialogContext = rootNavigatorKey.currentContext;
+    if (dialogContext == null) {
+      _isAppUpdateNoticeVisible = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_maybeShowAppUpdateNotice());
+      });
+      return;
+    }
+    if (!dialogContext.mounted) {
+      _isAppUpdateNoticeVisible = false;
+      return;
+    }
+
+    final shouldOpenStore = await AppOverlay.dialog<bool>(
+      context: dialogContext,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: const Text('Atualizacao disponivel'),
+        content: Text(
+          'Voce esta usando a versao ${notice.installedVersion}. '
+          'Existe uma versao mais recente do Mube com correcoes e melhorias.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Depois'),
+          ),
+          if (notice.storeUri != null)
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Atualizar'),
+            ),
+        ],
+      ),
+    );
+
+    _isAppUpdateNoticeVisible = false;
+
+    if (!mounted) return;
+
+    if (shouldOpenStore == true && notice.storeUri != null) {
+      final opened = await ref.read(appUpdateLauncherProvider)(
+        notice.storeUri!,
+      );
+      if (!mounted) return;
+      if (!opened) {
+        final currentContext = rootNavigatorKey.currentContext;
+        if (currentContext != null && currentContext.mounted) {
+          AppSnackBar.error(currentContext, 'Nao foi possivel abrir a loja.');
+        }
+      }
+    }
+
+    _resumeDeferredSessionDialogs();
+  }
+
+  void _resumeDeferredSessionDialogs() {
     unawaited(
       _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
     );
@@ -308,6 +418,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   Future<void> _maybeShowBandMembersReminder(AppUser? profile) async {
     if (!mounted ||
+        _hasPendingAppUpdateNoticeEvaluation ||
+        _isEvaluatingAppUpdateNotice ||
+        _isAppUpdateNoticeVisible ||
         !_hasPendingBandMembersReminderEvaluation ||
         _hasShownBandMembersReminderForSession ||
         _isBandMembersReminderVisible) {
@@ -389,6 +502,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   Future<void> _maybeShowGigReviewReminder(AppUser? profile) async {
     if (!mounted ||
+        _hasPendingAppUpdateNoticeEvaluation ||
+        _isEvaluatingAppUpdateNotice ||
+        _isAppUpdateNoticeVisible ||
         !_hasPendingGigReviewReminderEvaluation ||
         _hasShownGigReviewReminderForSession ||
         _isGigReviewReminderVisible) {

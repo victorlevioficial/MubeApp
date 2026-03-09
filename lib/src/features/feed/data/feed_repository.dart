@@ -159,6 +159,7 @@ class FeedRepository {
         userLat,
         userLong,
       );
+      allItems.sort(FeedDiscovery.compareByDistance);
 
       // Filter blocked users
       final filteredItems = allItems
@@ -176,6 +177,7 @@ class FeedRepository {
   FutureResult<PaginatedFeedResponse> getUsersByTypePaginated({
     required String type,
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 20,
@@ -193,6 +195,10 @@ class FeedRepository {
         userLat,
         userLong,
       );
+      if (excludedIds.isNotEmpty) {
+        items.removeWhere((item) => excludedIds.contains(item.uid));
+      }
+      items.sort(FeedDiscovery.compareByDistance);
 
       return Right(
         PaginatedFeedResponse(
@@ -228,6 +234,7 @@ class FeedRepository {
         userLat,
         userLong,
       );
+      allItems.sort(FeedDiscovery.compareByDistance);
 
       final filteredItems = allItems
           .where((item) => !excludedIds.contains(item.uid))
@@ -440,75 +447,7 @@ class FeedRepository {
   }
 
   bool _isPureTechnician(FeedItem item) {
-    if (item.tipoPerfil != ProfileType.professional) return false;
-
-    final normalizedCategories = item.subCategories
-        .map(_normalizeCategory)
-        .where((value) => value.isNotEmpty)
-        .toSet();
-
-    final hasCrew = normalizedCategories.contains('crew');
-    final hasArtistCategory =
-        normalizedCategories.contains('singer') ||
-        normalizedCategories.contains('instrumentalist') ||
-        normalizedCategories.contains('dj');
-
-    return hasCrew && !hasArtistCategory;
-  }
-
-  String _normalizeCategory(String value) {
-    if (value.trim().isEmpty) return '';
-
-    final normalized = value
-        .toLowerCase()
-        .replaceAll('á', 'a')
-        .replaceAll('à', 'a')
-        .replaceAll('â', 'a')
-        .replaceAll('ã', 'a')
-        .replaceAll('ä', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('è', 'e')
-        .replaceAll('ê', 'e')
-        .replaceAll('ë', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ì', 'i')
-        .replaceAll('î', 'i')
-        .replaceAll('ï', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ò', 'o')
-        .replaceAll('ô', 'o')
-        .replaceAll('õ', 'o')
-        .replaceAll('ö', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ù', 'u')
-        .replaceAll('û', 'u')
-        .replaceAll('ü', 'u')
-        .replaceAll('ç', 'c')
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
-
-    switch (normalized) {
-      case 'crew':
-      case 'equipe_tecnica':
-      case 'equipe_tecnico':
-      case 'tecnico':
-      case 'tecnica':
-        return 'crew';
-      case 'cantor':
-      case 'cantora':
-      case 'cantor_a':
-      case 'vocalista':
-      case 'singer':
-        return 'singer';
-      case 'instrumentista':
-      case 'instrumentalist':
-        return 'instrumentalist';
-      case 'dj':
-        return 'dj';
-      default:
-        return normalized;
-    }
+    return FeedDiscovery.isPureTechnician(item);
   }
 
   FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
@@ -661,6 +600,7 @@ class FeedRepository {
   FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
     required String currentUserId,
     String? filterType,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
@@ -674,15 +614,16 @@ class FeedRepository {
       );
 
       var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+      if (excludedIds.isNotEmpty) {
+        items.removeWhere((item) => excludedIds.contains(item.uid));
+      }
 
       if (filterType == 'Perto de mim' && userLat != null && userLong != null) {
         items = items
             .where((i) => i.distanceKm != null && i.distanceKm! <= 50)
             .toList();
-        items.sort(
-          (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
-        );
       }
+      items.sort(FeedDiscovery.compareByDistance);
 
       return Right(
         PaginatedFeedResponse(

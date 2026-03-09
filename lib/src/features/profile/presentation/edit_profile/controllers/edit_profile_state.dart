@@ -23,6 +23,7 @@ abstract class EditProfileState with _$EditProfileState {
     @Default([]) List<String> selectedRoles,
     @Default('0') String backingVocalMode,
     @Default(false) bool instrumentalistBackingVocal,
+    @Default(false) bool offersRemoteRecording,
 
     // Studio Fields
     String? studioType,

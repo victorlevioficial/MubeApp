@@ -13,6 +13,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/domain/app_user.dart';
 import '../../domain/gig_filters.dart';
 import '../providers/gig_filters_controller.dart';
 import '../providers/gig_streams.dart';
@@ -78,6 +79,17 @@ class GigsScreen extends ConsumerWidget {
           ),
         ),
         data: (gigs) {
+          final creatorIdsKey = encodeGigUserIdsKey(
+            gigs.map((gig) => gig.creatorId),
+          );
+          final creatorsById = creatorIdsKey.isEmpty
+              ? const <String, AppUser>{}
+              : ref
+                        .watch(gigUsersByStableIdsProvider(creatorIdsKey))
+                        .asData
+                        ?.value ??
+                    const <String, AppUser>{};
+
           if (gigs.isEmpty) {
             return EmptyStateWidget(
               icon: Icons.storefront_outlined,
@@ -103,6 +115,7 @@ class GigsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.s16),
               itemBuilder: (context, index) => GigCard(
                 gig: gigs[index],
+                creator: creatorsById[gigs[index].creatorId],
                 onTap: () => context.push(
                   RoutePaths.gigDetailById(gigs[index].id),
                   extra: gigs[index],

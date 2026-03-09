@@ -124,6 +124,31 @@ void main() {
       expect(find.text('Pop'), findsOneWidget);
     });
 
+    testWidgets('highlights remote recording when available', (
+      WidgetTester tester,
+    ) async {
+      const remoteRecordingItem = FeedItem(
+        uid: 'user-remote',
+        nome: 'Produtor',
+        nomeArtistico: 'Produtor Remoto',
+        tipoPerfil: 'profissional',
+        subCategories: ['production'],
+        offersRemoteRecording: true,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: FeedCardVertical(item: remoteRecordingItem, onTap: () {}),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Gravação remota'), findsOneWidget);
+    });
+
     testWidgets('renders UserAvatar', (WidgetTester tester) async {
       await tester.pumpWidget(
         ProviderScope(

@@ -24,6 +24,15 @@ class ProfileController extends _$ProfileController {
     required Map<String, dynamic> updates,
   }) async {
     final authRepo = ref.read(authRepositoryProvider);
+    Map<String, String>? updatedMusicLinks;
+    if (updates.containsKey('musicLinks')) {
+      final rawMusicLinks = updates['musicLinks'];
+      if (rawMusicLinks is Map) {
+        updatedMusicLinks = rawMusicLinks.map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
+        );
+      }
+    }
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
@@ -64,6 +73,7 @@ class ProfileController extends _$ProfileController {
         dadosEstudio: updatedDadosEstudio,
         dadosBanda: updatedDadosBanda,
         dadosContratante: updatedDadosContratante,
+        musicLinks: updatedMusicLinks ?? currentUser.musicLinks,
       );
 
       final result = await authRepo.updateUser(updatedUser);

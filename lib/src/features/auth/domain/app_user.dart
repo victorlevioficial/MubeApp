@@ -96,6 +96,9 @@ abstract class AppUser with _$AppUser {
     @JsonKey(name: 'privacy_settings')
     Map<String, dynamic> privacySettings,
 
+    /// Optional music streaming links shared across non-contractor profiles.
+    @Default({}) @JsonKey(name: 'music_links') Map<String, String> musicLinks,
+
     /// MatchPoint configuration data.
     /// Contains: is_active, intent, genres, hashtags, target_roles, search_radius.
     @JsonKey(name: 'matchpoint_profile')

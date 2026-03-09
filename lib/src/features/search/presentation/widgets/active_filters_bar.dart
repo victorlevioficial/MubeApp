@@ -287,8 +287,10 @@ class ActiveFiltersBar extends StatelessWidget {
         return 'Cantor(a)';
       case ProfessionalSubcategory.instrumentalist:
         return 'Instrumentista';
-      case ProfessionalSubcategory.crew:
-        return 'Equipe Técnica';
+      case ProfessionalSubcategory.production:
+        return 'Produção Musical';
+      case ProfessionalSubcategory.stageTech:
+        return 'Técnica de Palco';
       case ProfessionalSubcategory.dj:
         return 'DJ';
     }
@@ -300,7 +302,9 @@ class ActiveFiltersBar extends StatelessWidget {
         return Icons.mic_rounded;
       case ProfessionalSubcategory.instrumentalist:
         return Icons.music_note_rounded;
-      case ProfessionalSubcategory.crew:
+      case ProfessionalSubcategory.production:
+        return Icons.tune_rounded;
+      case ProfessionalSubcategory.stageTech:
         return Icons.build_rounded;
       case ProfessionalSubcategory.dj:
         return Icons.album_rounded;

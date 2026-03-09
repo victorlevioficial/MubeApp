@@ -23,13 +23,16 @@ import '../../../utils/instagram_utils.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../domain/music_link_validator.dart';
 import 'edit_profile/controllers/edit_profile_controller.dart';
 import 'edit_profile/widgets/edit_profile_header.dart';
 import 'edit_profile/widgets/forms/band_form_fields.dart';
 import 'edit_profile/widgets/forms/contractor_form_fields.dart';
+import 'edit_profile/widgets/forms/music_links_form.dart';
 import 'edit_profile/widgets/forms/professional_form_fields.dart';
 import 'edit_profile/widgets/forms/studio_form_fields.dart';
 import 'edit_profile/widgets/media_gallery_section.dart';
+import 'music_platform_catalog.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -42,7 +45,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     with SingleTickerProviderStateMixin {
   final _bioFormatter = SentenceStartUppercaseTextInputFormatter();
   late TabController _tabController;
-  final _formKey = GlobalKey<FormState>();
+  final _profileFormKey = GlobalKey<FormState>();
+  final _musicLinksFormKey = GlobalKey<FormState>();
+  final Set<int> _visitedTabs = {0};
 
   // Controllers for text fields managed in UI state
   late TextEditingController _nomeController;
@@ -52,6 +57,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   late TextEditingController _generoController;
   late TextEditingController _instagramController;
   late TextEditingController _bioController;
+  late TextEditingController _spotifyController;
+  late TextEditingController _deezerController;
+  late TextEditingController _youtubeMusicController;
+  late TextEditingController _appleMusicController;
 
   final _celularMask = MaskTextInputFormatter(
     mask: '(##) #####-####',
@@ -63,7 +72,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabChange);
     // Preload app config to avoid empty option lists on first modal open.
     unawaited(ref.read(appConfigProvider.future));
@@ -81,6 +90,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       _generoController.dispose();
       _instagramController.dispose();
       _bioController.dispose();
+      _spotifyController.dispose();
+      _deezerController.dispose();
+      _youtubeMusicController.dispose();
+      _appleMusicController.dispose();
     }
     super.dispose();
   }
@@ -88,6 +101,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   void _handleTabChange() {
     if (_tabController.index == _tabController.previousIndex) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    if (_visitedTabs.add(_tabController.index) && mounted) {
+      setState(() {});
+    }
   }
 
   String _normalizeBio(String value) {
@@ -161,6 +177,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _instagramController = TextEditingController(
       text: normalizeInstagramHandle(insta),
     );
+    _spotifyController = TextEditingController(
+      text: user.musicLinks[MusicLinkValidator.spotifyKey] ?? '',
+    );
+    _deezerController = TextEditingController(
+      text: user.musicLinks[MusicLinkValidator.deezerKey] ?? '',
+    );
+    _youtubeMusicController = TextEditingController(
+      text: user.musicLinks[MusicLinkValidator.youtubeMusicKey] ?? '',
+    );
+    _appleMusicController = TextEditingController(
+      text: user.musicLinks[MusicLinkValidator.appleMusicKey] ?? '',
+    );
 
     // Listen for changes to mark state as dirty
     void markChanged() {
@@ -174,8 +202,90 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _dataNascimentoController.addListener(markChanged);
     _generoController.addListener(markChanged);
     _instagramController.addListener(markChanged);
+    _spotifyController.addListener(markChanged);
+    _deezerController.addListener(markChanged);
+    _youtubeMusicController.addListener(markChanged);
+    _appleMusicController.addListener(markChanged);
 
     _isControllersInitialized = true;
+  }
+
+  Map<String, TextEditingController> get _musicLinkControllers => {
+    MusicLinkValidator.spotifyKey: _spotifyController,
+    MusicLinkValidator.deezerKey: _deezerController,
+    MusicLinkValidator.youtubeMusicKey: _youtubeMusicController,
+    MusicLinkValidator.appleMusicKey: _appleMusicController,
+  };
+
+  bool _shouldBuildTab(int index) =>
+      _visitedTabs.contains(index) || _tabController.index == index;
+
+  Future<bool> _validateProfileForm({required bool isContractor}) async {
+    final profileFormState = _profileFormKey.currentState;
+    if (profileFormState == null) return true;
+
+    final isValid = profileFormState.validate();
+    if (!isValid && !isContractor && _tabController.index != 0) {
+      _tabController.animateTo(0);
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+
+    return isValid;
+  }
+
+  Future<Map<String, String>?> _resolveMusicLinksForSave({
+    required AppUser user,
+    required bool isContractor,
+  }) async {
+    if (isContractor) {
+      return const <String, String>{};
+    }
+
+    final preservedUnsupportedLinks = <String, String>{
+      for (final entry in user.musicLinks.entries)
+        if (!MusicLinkValidator.supportedKeys.contains(entry.key))
+          entry.key: entry.value,
+    };
+
+    final sanitized = MusicLinkValidator.sanitize({
+      for (final platform in musicPlatformCatalog)
+        platform.key: _musicLinkControllers[platform.key]!.text,
+    });
+
+    for (final platform in musicPlatformCatalog) {
+      final value = sanitized[platform.key];
+      final error = MusicLinkValidator.validate(platform.key, value);
+      if (error == null) continue;
+
+      if (_tabController.index != 2) {
+        _tabController.animateTo(2);
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+
+      if (!mounted) return null;
+      _musicLinksFormKey.currentState?.validate();
+      AppSnackBar.warning(context, error);
+      return null;
+    }
+
+    final linksFormState = _musicLinksFormKey.currentState;
+    if (linksFormState == null) {
+      return {...preservedUnsupportedLinks, ...sanitized};
+    }
+
+    final isValid = linksFormState.validate();
+    if (!isValid) {
+      if (_tabController.index != 2) {
+        _tabController.animateTo(2);
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+      if (!mounted) return null;
+      linksFormState.validate();
+      AppSnackBar.warning(context, 'Revise os links musicais preenchidos.');
+      return null;
+    }
+
+    return {...preservedUnsupportedLinks, ...sanitized};
   }
 
   Future<void> _handleSave(AppUser user) async {
@@ -183,6 +293,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     final controller = ref.read(
       editProfileControllerProvider(user.uid).notifier,
     );
+    final isContractor = user.tipoPerfil == AppUserType.contractor;
 
     if (editState.isUploadingMedia) {
       if (mounted) {
@@ -196,7 +307,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
-    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
+    final isProfileFormValid = await _validateProfileForm(
+      isContractor: isContractor,
+    );
+    if (!isProfileFormValid) {
+      return;
+    }
+
+    final musicLinks = await _resolveMusicLinksForSave(
+      user: user,
+      isContractor: isContractor,
+    );
+    if (musicLinks == null) {
       return;
     }
 
@@ -210,6 +332,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         dataNascimento: _dataNascimentoController.text.trim(),
         genero: normalizeGenderValue(_generoController.text),
         instagram: normalizeInstagramHandle(_instagramController.text),
+        musicLinks: musicLinks,
       );
 
       if (mounted) {
@@ -281,11 +404,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         }
 
         // Watch edit state
-        final editState = ref.watch(editProfileControllerProvider(user.uid));
+        final editUiState = ref.watch(
+          editProfileControllerProvider(user.uid).select(
+            (state) => (
+              hasChanges: state.hasChanges,
+              isSaving: state.isSaving,
+              isUploadingMedia: state.isUploadingMedia,
+              uploadStatus: state.uploadStatus,
+            ),
+          ),
+        );
         final isContractor = user.tipoPerfil == AppUserType.contractor;
 
         return PopScope(
-          canPop: !editState.hasChanges && !editState.isUploadingMedia,
+          canPop: !editUiState.hasChanges && !editUiState.isUploadingMedia,
           onPopInvokedWithResult: (didPop, result) async {
             if (didPop) return;
             unawaited(_handleBack(user));
@@ -326,7 +458,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                       padding: AppSpacing.all4,
                       tabs: const [
                         Tab(text: 'Perfil'),
-                        Tab(text: 'Mídia & Portfólio'),
+                        Tab(text: 'Mídia'),
+                        Tab(text: 'Links Musicais'),
                       ],
                     ),
                   ),
@@ -337,7 +470,24 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                           controller: _tabController,
                           children: [
                             _buildProfileTab(user),
-                            MediaGallerySection(user: user),
+                            _shouldBuildTab(1)
+                                ? MediaGallerySection(user: user)
+                                : const SizedBox.shrink(),
+                            _shouldBuildTab(2)
+                                ? Form(
+                                    key: _musicLinksFormKey,
+                                    child: MusicLinksForm(
+                                      controllers: _musicLinkControllers,
+                                      onChanged: ref
+                                          .read(
+                                            editProfileControllerProvider(
+                                              user.uid,
+                                            ).notifier,
+                                          )
+                                          .markChanged,
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
                           ],
                         ),
                 ),
@@ -381,12 +531,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                 child: AppButton.primary(
                   text: 'Salvar Alterações',
                   onPressed:
-                      editState.hasChanges &&
-                          !editState.isSaving &&
-                          !editState.isUploadingMedia
+                      editUiState.hasChanges &&
+                          !editUiState.isSaving &&
+                          !editUiState.isUploadingMedia
                       ? () => _handleSave(user)
                       : null,
-                  isLoading: editState.isSaving,
+                  isLoading: editUiState.isSaving,
                   isFullWidth: true,
                   size: AppButtonSize.large,
                 ),
@@ -402,7 +552,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
       child: Form(
-        key: _formKey,
+        key: _profileFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -448,6 +598,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           instrumentalistBackingVocal: editState.instrumentalistBackingVocal,
           onInstrumentalistBackingVocalChanged:
               notifier.setInstrumentalistBackingVocal,
+          offersRemoteRecording: editState.offersRemoteRecording,
+          onOffersRemoteRecordingChanged: notifier.setOffersRemoteRecording,
           onStateChanged: notifier.markChanged,
         );
       case AppUserType.studio:

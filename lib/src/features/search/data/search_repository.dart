@@ -10,6 +10,7 @@ import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/utils/app_logger.dart';
+import 'package:mube/src/utils/category_normalizer.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/paginated_search_response.dart';
@@ -17,8 +18,8 @@ import '../domain/search_filters.dart';
 
 /// Search configuration constants
 class SearchConfig {
-  static const int batchSize = 50;
-  static const int maxDocsRead = 300;
+  static const int batchSize = 40;
+  static const int maxDocsRead = 180;
   static const int targetResults = 20;
 }
 
@@ -290,8 +291,11 @@ class SearchRepository {
 
     // Professional subcategory filter
     if (filters.professionalSubcategory != null) {
-      final categories = List<String>.from(profData['categorias'] ?? []);
-      final subcatValue = filters.professionalSubcategory!.name;
+      final categories = CategoryNormalizer.resolveCategories(
+        rawCategories: List<String>.from(profData['categorias'] ?? []),
+        rawRoles: List<String>.from(profData['funcoes'] ?? []),
+      );
+      final subcatValue = filters.professionalSubcategory!.firestoreId;
       if (!categories.contains(subcatValue)) {
         return false;
       }
@@ -318,10 +322,15 @@ class SearchRepository {
       }
     }
 
-    // Roles filter (crew only)
+    // Roles filter (production/stage tech)
     if (filters.roles.isNotEmpty) {
-      final itemRoles = List<String>.from(profData['funcoes'] ?? []);
-      if (!listContainsAny(itemRoles, filters.roles)) {
+      final itemRoles = List<String>.from(
+        profData['funcoes'] ?? [],
+      ).map(CategoryNormalizer.normalizeRoleId).toList();
+      final filterRoles = filters.roles
+          .map(CategoryNormalizer.normalizeRoleId)
+          .toList();
+      if (!listContainsAny(itemRoles, filterRoles)) {
         return false;
       }
     }

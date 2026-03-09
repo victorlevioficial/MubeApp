@@ -92,6 +92,7 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
           isEqualTo: RegistrationStatus.complete,
         )
         .where(FirestoreFields.profileType, isEqualTo: type)
+        .orderBy(FieldPath.documentId)
         .limit(limit);
 
     if (startAfter != null) {
@@ -118,6 +119,7 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
           '${FirestoreFields.professional}.${FirestoreFields.category}',
           isEqualTo: category,
         )
+        .orderBy(FieldPath.documentId)
         .limit(limit);
 
     if (startAfter != null) {
@@ -201,6 +203,8 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
         ],
       );
     }
+
+    query = query.orderBy(FieldPath.documentId);
 
     if (limit > 0) {
       query = query.limit(limit);

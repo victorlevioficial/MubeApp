@@ -278,7 +278,7 @@ void main() {
       expect(state.filters.instruments, instruments);
     });
 
-    test('setRoles should update crew roles filter', () async {
+    test('setRoles should update professional roles filter', () async {
       // Arrange
       final controller = container.read(searchControllerProvider.notifier);
       const roles = ['sound_engineer', 'lighting_technician'];
@@ -544,15 +544,13 @@ void main() {
     );
 
     test('refresh should reload search results', () async {
-      // Arrange
       final controller = container.read(searchControllerProvider.notifier);
-      await Future.delayed(const Duration(milliseconds: 100));
+      controller.setTerm('guitarra');
+      await Future.delayed(const Duration(milliseconds: 500));
       fakeSearchRepository.searchCallCount = 0;
 
-      // Act
       await controller.refresh();
 
-      // Assert
       expect(fakeSearchRepository.searchCallCount, greaterThan(0));
     });
 

@@ -248,6 +248,36 @@ void main() {
         verify(mockAuthRepository.updateUser(any)).called(1);
       });
 
+      test('should update musicLinks when provided', () async {
+        when(
+          mockAuthRepository.updateUser(any),
+        ).thenAnswer((_) async => const Right(unit));
+
+        final controller = container.read(profileControllerProvider.notifier);
+        final userWithLinks = testUser.copyWith(
+          musicLinks: {'spotify': 'https://open.spotify.com/artist/original'},
+        );
+
+        await controller.updateProfile(
+          currentUser: userWithLinks,
+          updates: {
+            'musicLinks': {
+              'spotify': 'https://open.spotify.com/artist/updated',
+              'deezer': 'https://www.deezer.com/artist/updated',
+            },
+          },
+        );
+
+        final capturedUser =
+            verify(mockAuthRepository.updateUser(captureAny)).captured.single
+                as AppUser;
+
+        expect(capturedUser.musicLinks, {
+          'spotify': 'https://open.spotify.com/artist/updated',
+          'deezer': 'https://www.deezer.com/artist/updated',
+        });
+      });
+
       test('should call analytics on successful update', () async {
         // Arrange
         when(

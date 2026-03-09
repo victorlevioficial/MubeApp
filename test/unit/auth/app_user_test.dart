@@ -109,6 +109,7 @@ void main() {
         expect(user.dadosBanda, isNull);
         expect(user.dadosEstudio, isNull);
         expect(user.dadosContratante, isNull);
+        expect(user.musicLinks, isEmpty);
       });
     });
 
@@ -156,6 +157,34 @@ void main() {
         );
 
         expect(user.profileBio, 'Bio legacy do estudio');
+      });
+    });
+
+    group('musicLinks serialization', () {
+      test('serializes musicLinks using music_links key', () {
+        const user = AppUser(
+          uid: 'artist-uid',
+          email: 'artist@example.com',
+          musicLinks: {'spotify': 'https://open.spotify.com/artist/test'},
+        );
+
+        final json = user.toJson();
+
+        expect(json['music_links'], {
+          'spotify': 'https://open.spotify.com/artist/test',
+        });
+      });
+
+      test('deserializes music_links into musicLinks', () {
+        final user = AppUser.fromJson({
+          'uid': 'artist-uid',
+          'email': 'artist@example.com',
+          'music_links': {'deezer': 'https://www.deezer.com/artist/test'},
+        });
+
+        expect(user.musicLinks, {
+          'deezer': 'https://www.deezer.com/artist/test',
+        });
       });
     });
   });

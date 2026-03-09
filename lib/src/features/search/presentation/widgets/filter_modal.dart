@@ -59,6 +59,48 @@ class _FilterModalState extends ConsumerState<FilterModal> {
 
   bool get _hasActiveFilters => _activeFilterCount > 0;
 
+  List<String> _roleItems() {
+    switch (_professionalSubcategory) {
+      case ProfessionalSubcategory.production:
+        return ref.read(productionRoleLabelsProvider);
+      case ProfessionalSubcategory.stageTech:
+        return ref.read(stageTechRoleLabelsProvider);
+      case ProfessionalSubcategory.singer:
+      case ProfessionalSubcategory.instrumentalist:
+      case ProfessionalSubcategory.dj:
+      case null:
+        return ref.read(crewRoleLabelsProvider);
+    }
+  }
+
+  String get _roleSectionTitle {
+    switch (_professionalSubcategory) {
+      case ProfessionalSubcategory.production:
+        return 'Funcoes de producao';
+      case ProfessionalSubcategory.stageTech:
+        return 'Funcoes tecnicas';
+      case ProfessionalSubcategory.singer:
+      case ProfessionalSubcategory.instrumentalist:
+      case ProfessionalSubcategory.dj:
+      case null:
+        return 'Funcoes profissionais';
+    }
+  }
+
+  String get _roleSectionSubtitle {
+    switch (_professionalSubcategory) {
+      case ProfessionalSubcategory.production:
+        return 'Selecione funcoes de producao musical.';
+      case ProfessionalSubcategory.stageTech:
+        return 'Selecione funcoes tecnicas de palco.';
+      case ProfessionalSubcategory.singer:
+      case ProfessionalSubcategory.instrumentalist:
+      case ProfessionalSubcategory.dj:
+      case null:
+        return 'Selecione funcoes de palco, audio ou producao.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final category = widget.filters.category;
@@ -157,15 +199,13 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
                         icon: FontAwesomeIcons.toolbox,
-                        title: 'Funcoes tecnicas',
-                        description:
-                            'Selecione funcoes de palco, audio ou producao.',
+                        title: _roleSectionTitle,
+                        description: _roleSectionSubtitle,
                         selectedItems: _selectedRoles,
                         onTap: () => _openMultiSelect(
-                          title: 'Funcoes tecnicas',
-                          subtitle:
-                              'Selecione as funcoes tecnicas para filtrar',
-                          items: ref.read(crewRoleLabelsProvider),
+                          title: _roleSectionTitle,
+                          subtitle: _roleSectionSubtitle,
+                          items: _roleItems(),
                           selected: _selectedRoles,
                           searchHint: 'Buscar funcao...',
                           onChanged: (value) {
@@ -237,8 +277,13 @@ class _FilterModalState extends ConsumerState<FilterModal> {
         FontAwesomeIcons.guitar,
       ),
       (
-        ProfessionalSubcategory.crew,
-        'Equipe tecnica',
+        ProfessionalSubcategory.production,
+        'Producao Musical',
+        FontAwesomeIcons.sliders,
+      ),
+      (
+        ProfessionalSubcategory.stageTech,
+        'Tecnica de Palco',
         FontAwesomeIcons.toolbox,
       ),
       (ProfessionalSubcategory.dj, 'DJ', FontAwesomeIcons.compactDisc),
@@ -255,7 +300,11 @@ class _FilterModalState extends ConsumerState<FilterModal> {
           isSelected: isSelected,
           onSelected: (_) {
             setState(() {
-              _professionalSubcategory = isSelected ? null : item.$1;
+              final next = isSelected ? null : item.$1;
+              if (_professionalSubcategory != next) {
+                _selectedRoles.clear();
+              }
+              _professionalSubcategory = next;
             });
           },
         );

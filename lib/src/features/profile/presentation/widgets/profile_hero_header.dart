@@ -302,6 +302,29 @@ class _SubCategoriesRow extends StatelessWidget {
 
     final widgets = <Widget>[];
     for (final id in ids) {
+      if (id == 'crew') {
+        widgets.add(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.build_rounded,
+                size: 12,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.s4),
+              Text(
+                'Equipe Técnica',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        );
+        continue;
+      }
+
       final config = professionalCategories.firstWhere(
         (c) => c['id'] == id,
         orElse: () => <String, dynamic>{},

@@ -273,6 +273,9 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
   }
 
   String _getCategoryLabel(String id) {
+    if (id == 'crew') {
+      return 'Equipe Técnica';
+    }
     try {
       final category = professionalCategories.firstWhere(
         (element) => element['id'] == id,

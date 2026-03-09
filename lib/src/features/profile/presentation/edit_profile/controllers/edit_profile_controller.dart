@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../../core/providers/firebase_providers.dart';
 import '../../../../../utils/app_logger.dart';
+import '../../../../../utils/category_normalizer.dart';
+import '../../../../../utils/professional_profile_utils.dart';
 import '../../../../auth/data/auth_repository.dart';
 import '../../../../auth/domain/app_user.dart';
 import '../../../../auth/domain/user_type.dart';
@@ -54,6 +56,7 @@ class EditProfileController extends _$EditProfileController {
     List<String> roles = [];
     String backingVocal = '0';
     bool instBacking = false;
+    bool offersRemoteRecording = false;
     String? studioType;
     List<String> services = [];
     List<String> bandGenres = [];
@@ -62,15 +65,19 @@ class EditProfileController extends _$EditProfileController {
     switch (user.tipoPerfil) {
       case AppUserType.professional:
         final data = user.dadosProfissional ?? {};
-        categories = List<String>.from(data['categorias'] ?? []);
+        roles = List<String>.from(data['funcoes'] ?? []);
+        categories = CategoryNormalizer.resolveCategories(
+          rawCategories: List<String>.from(data['categorias'] ?? []),
+          rawRoles: roles,
+        );
         genres = List<String>.from(data['generosMusicais'] ?? []);
         instruments = List<String>.from(data['instrumentos'] ?? []);
-        roles = List<String>.from(data['funcoes'] ?? []);
         backingVocal = (data['backingVocalMode'] ?? '0').toString();
         instBacking =
             data['instrumentalistBackingVocal'] ??
             data['fazBackingVocal'] ??
             false;
+        offersRemoteRecording = professionalOffersRemoteRecording(data);
         gallery = _parseGallery(data['gallery']);
         break;
 
@@ -100,6 +107,7 @@ class EditProfileController extends _$EditProfileController {
       selectedRoles: roles,
       backingVocalMode: backingVocal,
       instrumentalistBackingVocal: instBacking,
+      offersRemoteRecording: offersRemoteRecording,
       studioType: studioType,
       selectedServices: services,
       bandGenres: bandGenres,
@@ -186,6 +194,10 @@ class EditProfileController extends _$EditProfileController {
       instrumentalistBackingVocal: value,
       hasChanges: true,
     );
+  }
+
+  void setOffersRemoteRecording(bool value) {
+    state = state.copyWith(offersRemoteRecording: value, hasChanges: true);
   }
 
   void setStudioType(String? type) {
@@ -612,8 +624,16 @@ class EditProfileController extends _$EditProfileController {
           state.selectedInstruments.isEmpty) {
         return false;
       }
-      if (state.selectedCategories.contains('crew') &&
-          state.selectedRoles.isEmpty) {
+      if (state.selectedCategories.contains('production') &&
+          CategoryNormalizer.filterProductionRoles(
+            state.selectedRoles,
+          ).isEmpty) {
+        return false;
+      }
+      if (state.selectedCategories.contains('stage_tech') &&
+          CategoryNormalizer.filterStageTechRoles(
+            state.selectedRoles,
+          ).isEmpty) {
         return false;
       }
       if (state.selectedGenres.isEmpty) return false;
@@ -691,6 +711,7 @@ class EditProfileController extends _$EditProfileController {
     required String dataNascimento,
     required String genero,
     required String instagram,
+    required Map<String, String> musicLinks,
   }) async {
     if (state.isSaving) return;
 
@@ -719,8 +740,12 @@ class EditProfileController extends _$EditProfileController {
             'backingVocalMode': state.backingVocalMode,
             'instrumentalistBackingVocal': state.instrumentalistBackingVocal,
             'fazBackingVocal': state.instrumentalistBackingVocal,
+            professionalRemoteRecordingFieldKey:
+                state.selectedCategories.contains('production') &&
+                state.offersRemoteRecording,
             'gallery': gallery,
           };
+          updates['musicLinks'] = musicLinks;
           break;
 
         case AppUserType.studio:
@@ -736,6 +761,7 @@ class EditProfileController extends _$EditProfileController {
             'services': state.selectedServices,
             'gallery': gallery,
           };
+          updates['musicLinks'] = musicLinks;
           break;
 
         case AppUserType.band:
@@ -748,6 +774,7 @@ class EditProfileController extends _$EditProfileController {
             'generosMusicais': state.bandGenres,
             'gallery': gallery,
           };
+          updates['musicLinks'] = musicLinks;
           break;
 
         case AppUserType.contractor:

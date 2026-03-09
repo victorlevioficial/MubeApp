@@ -12,8 +12,9 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 /// Allows selecting from:
 /// - Cantor(a)
 /// - Instrumentista
-/// - Equipe Técnica
 /// - DJ
+/// - Produção Musical
+/// - Técnica de Palco
 ///
 /// Uses the modern full-width card design instead of grid.
 class ProfessionalCategoryStep extends StatefulWidget {
@@ -52,16 +53,22 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
       'icon': FontAwesomeIcons.guitar,
     },
     {
-      'id': 'crew',
-      'label': 'Equipe Técnica',
-      'description': 'Ex: Técnico de som, luz, roadie, produtor musical',
-      'icon': FontAwesomeIcons.wrench,
-    },
-    {
       'id': 'dj',
       'label': 'DJ',
-      'description': 'Ex: DJ de festa e eventos',
+      'description': 'Ex: DJ de festa, eventos e sets ao vivo',
       'icon': FontAwesomeIcons.compactDisc,
+    },
+    {
+      'id': 'production',
+      'label': 'Produção Musical',
+      'description': 'Ex: Produção, direção, gravação, mixagem e arranjos',
+      'icon': FontAwesomeIcons.sliders,
+    },
+    {
+      'id': 'stage_tech',
+      'label': 'Técnica de Palco',
+      'description': 'Ex: PA, monitor, RF, luz, LED, roadie e backline',
+      'icon': FontAwesomeIcons.wrench,
     },
   ];
 

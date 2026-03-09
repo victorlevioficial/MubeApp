@@ -18,7 +18,17 @@ enum SearchCategory {
 }
 
 /// Professional subcategories (only applies when category is [SearchCategory.professionals])
-enum ProfessionalSubcategory { singer, instrumentalist, crew, dj }
+enum ProfessionalSubcategory {
+  singer('singer'),
+  instrumentalist('instrumentalist'),
+  production('production'),
+  stageTech('stage_tech'),
+  dj('dj');
+
+  const ProfessionalSubcategory(this.firestoreId);
+
+  final String firestoreId;
+}
 
 /// Represents the current search filter state.
 @freezed
@@ -30,7 +40,7 @@ abstract class SearchFilters with _$SearchFilters {
     /// Main category filter
     @Default(SearchCategory.all) SearchCategory category,
 
-    /// Professional subcategory (singer, instrumentalist, crew, dj)
+    /// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
     ProfessionalSubcategory? professionalSubcategory,
 
     /// Selected genres filter
@@ -39,7 +49,7 @@ abstract class SearchFilters with _$SearchFilters {
     /// Selected instruments filter (for instrumentalists)
     @Default([]) List<String> instruments,
 
-    /// Selected crew roles filter (for crew)
+    /// Selected professional role filters (production/stage tech)
     @Default([]) List<String> roles,
 
     /// Selected studio services filter (for studios)

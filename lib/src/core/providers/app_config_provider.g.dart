@@ -179,6 +179,90 @@ final class CrewRoleLabelsProvider
 
 String _$crewRoleLabelsHash() => r'5b17c10047853267357935dec90f87b3219371c7';
 
+@ProviderFor(productionRoleLabels)
+const productionRoleLabelsProvider = ProductionRoleLabelsProvider._();
+
+final class ProductionRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const ProductionRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'productionRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$productionRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return productionRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$productionRoleLabelsHash() =>
+    r'bf2cfd1b59c6d2c0f97b7dfacad0be2fe99808d3';
+
+@ProviderFor(stageTechRoleLabels)
+const stageTechRoleLabelsProvider = StageTechRoleLabelsProvider._();
+
+final class StageTechRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const StageTechRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'stageTechRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$stageTechRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return stageTechRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$stageTechRoleLabelsHash() =>
+    r'b5474f6d61fee1728c2e28da949a7cdc29c4d545';
+
 @ProviderFor(studioServiceLabels)
 const studioServiceLabelsProvider = StudioServiceLabelsProvider._();
 

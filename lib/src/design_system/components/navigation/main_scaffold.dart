@@ -107,7 +107,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     required List<int> visibleBranchIndexes,
   }) {
     final unreadCount = _enableUnreadCount
-        ? (ref.watch(unreadMessagesCountProvider).value ?? 0)
+        ? ref.watch(unreadMessagesCountProvider)
         : 0;
 
     return Scaffold(
@@ -509,8 +509,7 @@ class _AdaptiveRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCountAsync = ref.watch(unreadMessagesCountProvider);
-    final unreadCount = unreadCountAsync.value ?? 0;
+    final unreadCount = ref.watch(unreadMessagesCountProvider);
 
     return NavigationRail(
       selectedIndex: selectedIndex,

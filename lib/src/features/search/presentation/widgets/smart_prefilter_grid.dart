@@ -119,9 +119,58 @@ const _kMusiciansSection = _PrefilterSection(
   ],
 );
 
-const _kCrewSection = _PrefilterSection(
-  title: 'Equipe Técnica',
-  subtitle: 'Profissionais de palco e estúdio',
+const _kProductionSection = _PrefilterSection(
+  title: 'Produção Musical',
+  subtitle: 'Produção, gravação e direção musical',
+  items: [
+    SmartPrefilter(
+      label: 'Produtores',
+      subtitle: 'Produção & Direção',
+      icon: FontAwesomeIcons.sliders,
+      accentColor: Color(0xFFC026D3),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.production,
+        roles: [
+          'Produtor Musical',
+          'Beatmaker',
+          'Programação de Instrumentos (MIDI)',
+        ],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Mixagem & Master',
+      subtitle: 'Gravação & Edição',
+      icon: FontAwesomeIcons.volumeHigh,
+      accentColor: Color(0xFFE8466C),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.production,
+        roles: [
+          'Mixagem',
+          'Masterização',
+          'Técnico de Gravação',
+          'Edição de Áudio',
+        ],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Arranjadores',
+      subtitle: 'Composição & Direção',
+      icon: FontAwesomeIcons.music,
+      accentColor: Color(0xFF34D399),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.production,
+        roles: ['Arranjador', 'Compositor', 'Diretor Vocal'],
+      ),
+    ),
+  ],
+);
+
+const _kStageTechSection = _PrefilterSection(
+  title: 'Técnica de Palco',
+  subtitle: 'Profissionais de palco, áudio e operação ao vivo',
   items: [
     SmartPrefilter(
       label: 'Técnicos de Som',
@@ -130,7 +179,7 @@ const _kCrewSection = _PrefilterSection(
       accentColor: Color(0xFF60A5FA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
+        professionalSubcategory: ProfessionalSubcategory.stageTech,
         roles: ['Técnico de PA', 'Técnico de Monitor', 'Técnico de RF'],
       ),
     ),
@@ -141,19 +190,8 @@ const _kCrewSection = _PrefilterSection(
       accentColor: Color(0xFFFBBF24),
       filters: SearchFilters(
         category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
+        professionalSubcategory: ProfessionalSubcategory.stageTech,
         roles: ['Técnico de Luz', 'VJ (Telão)', 'Técnico de LED (Painel)'],
-      ),
-    ),
-    SmartPrefilter(
-      label: 'Produtores',
-      subtitle: 'Produção & Direção',
-      icon: FontAwesomeIcons.sliders,
-      accentColor: Color(0xFFC026D3),
-      filters: SearchFilters(
-        category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
-        roles: ['Produtor', 'Produtor Musical', 'Diretor Musical'],
       ),
     ),
     SmartPrefilter(
@@ -163,13 +201,13 @@ const _kCrewSection = _PrefilterSection(
       accentColor: Color(0xFFF87171),
       filters: SearchFilters(
         category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
+        professionalSubcategory: ProfessionalSubcategory.stageTech,
         roles: [
           'Roadie',
-          'Backline Tech',
           'Guitar Tech',
           'Drum Tech',
           'Bass Tech',
+          'Keyboard Tech',
         ],
       ),
     ),
@@ -180,24 +218,8 @@ const _kCrewSection = _PrefilterSection(
       accentColor: Color(0xFF34D399),
       filters: SearchFilters(
         category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
+        professionalSubcategory: ProfessionalSubcategory.stageTech,
         roles: ['Stage Manager'],
-      ),
-    ),
-    SmartPrefilter(
-      label: 'Mixagem & Master',
-      subtitle: 'Gravação & Edição',
-      icon: FontAwesomeIcons.volumeHigh,
-      accentColor: Color(0xFFE8466C),
-      filters: SearchFilters(
-        category: SearchCategory.professionals,
-        professionalSubcategory: ProfessionalSubcategory.crew,
-        roles: [
-          'Mixagem',
-          'Masterização',
-          'Técnico de Gravação',
-          'Edição de Áudio',
-        ],
       ),
     ),
   ],
@@ -293,7 +315,8 @@ const _kGenresSection = _PrefilterSection(
 
 final List<_PrefilterSection> _kAllSections = [
   _kMusiciansSection,
-  _kCrewSection,
+  _kProductionSection,
+  _kStageTechSection,
   _kBandsStudiosSection,
   _kGenresSection,
 ];

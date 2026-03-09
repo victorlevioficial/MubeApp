@@ -83,8 +83,7 @@ class AppScaffold extends StatelessWidget {
     return NavigationDestination(
       icon: Consumer(
         builder: (context, ref, _) {
-          final unreadCountAsync = ref.watch(unreadMessagesCountProvider);
-          final unreadCount = unreadCountAsync.asData?.value ?? 0;
+          final unreadCount = ref.watch(unreadMessagesCountProvider);
 
           return Badge(
             isLabelVisible: unreadCount > 0,
@@ -105,8 +104,7 @@ class AppScaffold extends StatelessWidget {
       ),
       selectedIcon: Consumer(
         builder: (context, ref, _) {
-          final unreadCountAsync = ref.watch(unreadMessagesCountProvider);
-          final unreadCount = unreadCountAsync.asData?.value ?? 0;
+          final unreadCount = ref.watch(unreadMessagesCountProvider);
 
           return Badge(
             isLabelVisible: unreadCount > 0,

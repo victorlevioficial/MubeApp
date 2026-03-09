@@ -325,6 +325,33 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   List<FeedItem> professionals = [];
   List<FeedItem> discoverFeedPool = [];
   PaginatedFeedResponse? mainFeedResponse;
+  List<PaginatedFeedResponse> mainFeedResponses = [];
+  final Map<String, List<PaginatedFeedResponse>> typePaginatedResponses = {};
+  final List<String> paginatedTypeCallHistory = [];
+  final List<DocumentSnapshot?> paginatedTypeStartAfterHistory = [];
+  final List<DocumentSnapshot?> mainFeedStartAfterHistory = [];
+
+  void enqueueMainFeedResponses(List<PaginatedFeedResponse> responses) {
+    mainFeedResponses = List<PaginatedFeedResponse>.from(responses);
+  }
+
+  void enqueueTypePaginatedResponses(
+    String type,
+    List<PaginatedFeedResponse> responses,
+  ) {
+    typePaginatedResponses[type] = List<PaginatedFeedResponse>.from(responses);
+  }
+
+  PaginatedFeedResponse? _dequeueMainFeedResponse() {
+    if (mainFeedResponses.isEmpty) return null;
+    return mainFeedResponses.removeAt(0);
+  }
+
+  PaginatedFeedResponse? _dequeueTypePaginatedResponse(String type) {
+    final queue = typePaginatedResponses[type];
+    if (queue == null || queue.isEmpty) return null;
+    return queue.removeAt(0);
+  }
 
   Future<void> _maybeWait() async {
     if (throwError) throw Exception('Connection failed');
@@ -341,7 +368,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     int limit = 10,
   }) async {
     await _maybeWait();
-    return Either.right(nearbyUsers);
+    final filtered = nearbyUsers
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(limit)
+        .toList(growable: false);
+    return Either.right(filtered);
   }
 
   @override
@@ -354,7 +385,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(artists);
+    final filtered = artists
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(limit)
+        .toList(growable: false);
+    return Either.right(filtered);
   }
 
   @override
@@ -369,16 +404,17 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    switch (type) {
-      case 'banda':
-        return Either.right(bands);
-      case 'estudio':
-        return Either.right(studios);
-      case 'profissional':
-        return Either.right(professionals.isNotEmpty ? professionals : artists);
-      default:
-        return Either.right(bands);
-    }
+    final List<FeedItem> source = switch (type) {
+      'banda' => bands,
+      'estudio' => studios,
+      'profissional' => professionals.isNotEmpty ? professionals : artists,
+      _ => bands,
+    };
+    final filtered = source
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(limit)
+        .toList(growable: false);
+    return Either.right(filtered);
   }
 
   @override
@@ -392,7 +428,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(nearbyUsers);
+    final filtered = nearbyUsers
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(targetResults)
+        .toList(growable: false);
+    return Either.right(filtered);
   }
 
   @override
@@ -448,6 +488,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
     required String currentUserId,
     String? filterType,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 10,
@@ -455,13 +496,23 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
+    mainFeedStartAfterHistory.add(startAfter);
+    final queuedResponse = _dequeueMainFeedResponse();
+    if (queuedResponse != null) {
+      return Either.right(
+        _filterPaginatedResponse(queuedResponse, excludedIds),
+      );
+    }
     return Either.right(
-      mainFeedResponse ??
-          const PaginatedFeedResponse(
-            items: [],
-            hasMore: false,
-            lastDocument: null,
-          ),
+      _filterPaginatedResponse(
+        mainFeedResponse ??
+            const PaginatedFeedResponse(
+              items: [],
+              hasMore: false,
+              lastDocument: null,
+            ),
+        excludedIds,
+      ),
     );
   }
 
@@ -498,6 +549,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   FutureResult<PaginatedFeedResponse> getUsersByTypePaginated({
     required String type,
     required String currentUserId,
+    List<String> excludedIds = const [],
     double? userLat,
     double? userLong,
     int limit = 20,
@@ -505,6 +557,14 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
+    paginatedTypeCallHistory.add(type);
+    paginatedTypeStartAfterHistory.add(startAfter);
+    final queuedResponse = _dequeueTypePaginatedResponse(type);
+    if (queuedResponse != null) {
+      return Either.right(
+        _filterPaginatedResponse(queuedResponse, excludedIds),
+      );
+    }
     final List<FeedItem> fallbackItems = switch (type) {
       'banda' => bands,
       'estudio' => studios,
@@ -513,12 +573,15 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     };
 
     return Either.right(
-      mainFeedResponse ??
-          PaginatedFeedResponse(
-            items: fallbackItems,
-            hasMore: false,
-            lastDocument: null,
-          ),
+      _filterPaginatedResponse(
+        mainFeedResponse ??
+            PaginatedFeedResponse(
+              items: fallbackItems.take(limit).toList(growable: false),
+              hasMore: false,
+              lastDocument: null,
+            ),
+        excludedIds,
+      ),
     );
   }
 
@@ -532,7 +595,25 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
-    return Either.right(technicians);
+    final filtered = technicians
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(limit)
+        .toList(growable: false);
+    return Either.right(filtered);
+  }
+
+  PaginatedFeedResponse _filterPaginatedResponse(
+    PaginatedFeedResponse response,
+    List<String> excludedIds,
+  ) {
+    if (excludedIds.isEmpty) return response;
+    return PaginatedFeedResponse(
+      items: response.items
+          .where((item) => !excludedIds.contains(item.uid))
+          .toList(growable: false),
+      hasMore: response.hasMore,
+      lastDocument: response.lastDocument,
+    );
   }
 }
 

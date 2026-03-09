@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +20,8 @@ import 'package:mube/src/features/gigs/domain/gig_type.dart';
 import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/gigs/presentation/screens/gig_detail_screen.dart';
 
+import '../../../../helpers/test_fakes.dart';
+
 void main() {
   const gigId = 'gig-1';
   const creatorId = 'creator-1';
@@ -36,32 +39,40 @@ void main() {
     creatorId: creatorId,
     applicantCount: 7,
   );
-  const creatorUser = AppUser(
+  final creatorAuthUser = FakeFirebaseUser(
     uid: creatorId,
     email: 'creator@mube.com',
-    cadastroStatus: 'concluido',
-    tipoPerfil: AppUserType.contractor,
-    dadosContratante: {'nomeExibicao': 'Casa Aurora'},
   );
-  const candidateUser = AppUser(
+  final candidateAuthUser = FakeFirebaseUser(
     uid: candidateId,
     email: 'candidate@mube.com',
-    cadastroStatus: 'concluido',
-    tipoPerfil: AppUserType.professional,
-    dadosProfissional: {'nomeArtistico': 'Lia Vox'},
   );
 
   Widget createSubject({
     required Stream<Gig?> gigStream,
     required Stream<List<GigApplication>> applicationsStream,
-    required Stream<AppUser?> userStream,
+    required Stream<firebase_auth.User?> authUserStream,
     Future<AppConfig> Function()? appConfigLoader,
   }) {
+    final creatorIdsKey = encodeGigUserIdsKey([creatorId]);
+    final creatorsById = <String, AppUser>{
+      creatorId: AppUser(
+        uid: creatorId,
+        email: 'creator@mube.com',
+        cadastroStatus: 'concluido',
+        tipoPerfil: AppUserType.contractor,
+        dadosContratante: {'nomeExibicao': 'Produtora Aurora'},
+      ),
+    };
+
     return ProviderScope(
       overrides: [
         gigDetailProvider(gigId).overrideWith((ref) => gigStream),
         myApplicationsProvider.overrideWith((ref) => applicationsStream),
-        currentUserProfileProvider.overrideWith((ref) => userStream),
+        gigUsersByStableIdsProvider(
+          creatorIdsKey,
+        ).overrideWith((ref) => Future.value(creatorsById)),
+        authStateChangesProvider.overrideWith((ref) => authUserStream),
         appConfigProvider.overrideWith(
           (ref) => appConfigLoader?.call() ?? Future.value(const AppConfig()),
         ),
@@ -75,11 +86,15 @@ void main() {
       createSubject(
         gigStream: Stream.value(sampleGig),
         applicationsStream: Stream.value(const []),
-        userStream: Stream.value(candidateUser),
+        authUserStream: Stream.value(candidateAuthUser),
       ),
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Produtora Aurora'), findsOneWidget);
+    expect(find.text('Contratante'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Candidatar-se'), 300);
+    await tester.pumpAndSettle();
     expect(find.text('7 pessoas ja se candidataram.'), findsOneWidget);
     expect(find.text('Candidatar-se'), findsOneWidget);
   });
@@ -89,11 +104,13 @@ void main() {
       createSubject(
         gigStream: Stream.value(sampleGig),
         applicationsStream: Stream.value(const []),
-        userStream: Stream.value(creatorUser),
+        authUserStream: Stream.value(creatorAuthUser),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(find.text('Ver 7 candidaturas'), 300);
+    await tester.pumpAndSettle();
     expect(find.text('Ver 7 candidaturas'), findsOneWidget);
     expect(find.text('Candidatar-se'), findsNothing);
   });
@@ -101,14 +118,13 @@ void main() {
   testWidgets('shows skeleton while action dependencies are loading', (
     tester,
   ) async {
-    final applicationsController = StreamController<List<GigApplication>>();
-    addTearDown(applicationsController.close);
+    final pendingApplications = Completer<List<GigApplication>>();
 
     await tester.pumpWidget(
       createSubject(
         gigStream: Stream.value(sampleGig),
-        applicationsStream: applicationsController.stream,
-        userStream: Stream.value(candidateUser),
+        applicationsStream: Stream.fromFuture(pendingApplications.future),
+        authUserStream: Stream.value(candidateAuthUser),
       ),
     );
     await tester.pump();
@@ -117,4 +133,27 @@ void main() {
     expect(find.text('Candidatar-se'), findsNothing);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
+
+  testWidgets(
+    'shows creator actions without waiting for my applications stream',
+    (tester) async {
+      final pendingApplications = Completer<List<GigApplication>>();
+
+      await tester.pumpWidget(
+        createSubject(
+          gigStream: Stream.value(sampleGig),
+          applicationsStream: Stream.fromFuture(pendingApplications.future),
+          authUserStream: Stream.value(creatorAuthUser),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      await tester.scrollUntilVisible(find.text('Ver 7 candidaturas'), 300);
+      await tester.pumpAndSettle();
+      expect(find.text('Ver 7 candidaturas'), findsOneWidget);
+      expect(find.text('Editar descricao'), findsOneWidget);
+      expect(find.text('Candidatar-se'), findsNothing);
+    },
+  );
 }

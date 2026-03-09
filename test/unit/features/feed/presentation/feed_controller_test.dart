@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -10,13 +11,14 @@ import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
-import 'package:mube/src/features/feed/domain/feed_discovery.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/feed_section.dart';
+import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 
+import '../../../../helpers/firebase_mocks.dart';
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
 
@@ -57,7 +59,7 @@ void main() {
     });
 
     test(
-      'loadAllData builds sections and first page from a single pool',
+      'loadAllData builds sections and first page from paginated sources',
       () async {
         final user = TestData.user(uid: 'user-1');
         fakeAuthRepository.appUser = user;
@@ -66,29 +68,59 @@ void main() {
         );
         await waitForUser(container);
 
-        fakeFeedRepository.discoverFeedPool = const [
-          FeedItem(
-            uid: 'artist-1',
-            nome: 'Artist 1',
-            nomeArtistico: 'Artist 1',
-            tipoPerfil: ProfileType.professional,
-            subCategories: ['singer'],
-            distanceKm: 2.0,
-          ),
+        fakeFeedRepository.mainFeedResponse = const PaginatedFeedResponse(
+          items: [
+            FeedItem(
+              uid: 'artist-1',
+              nome: 'Artist 1',
+              nomeArtistico: 'Artist 1',
+              tipoPerfil: ProfileType.professional,
+              subCategories: ['singer'],
+              distanceKm: 2.0,
+            ),
+            FeedItem(
+              uid: 'tech-1',
+              nome: 'Tech 1',
+              nomeArtistico: 'Tech 1',
+              tipoPerfil: ProfileType.professional,
+              subCategories: ['stage_tech'],
+              distanceKm: 3.0,
+            ),
+            FeedItem(
+              uid: 'band-1',
+              nome: 'Band 1',
+              tipoPerfil: ProfileType.band,
+              distanceKm: 4.0,
+            ),
+            FeedItem(
+              uid: 'studio-1',
+              nome: 'Studio 1',
+              tipoPerfil: ProfileType.studio,
+              distanceKm: 5.0,
+            ),
+          ],
+          hasMore: false,
+          lastDocument: null,
+        );
+        fakeFeedRepository.technicians = const [
           FeedItem(
             uid: 'tech-1',
             nome: 'Tech 1',
             nomeArtistico: 'Tech 1',
             tipoPerfil: ProfileType.professional,
-            subCategories: ['crew'],
+            subCategories: ['stage_tech'],
             distanceKm: 3.0,
           ),
+        ];
+        fakeFeedRepository.bands = const [
           FeedItem(
             uid: 'band-1',
             nome: 'Band 1',
             tipoPerfil: ProfileType.band,
             distanceKm: 4.0,
           ),
+        ];
+        fakeFeedRepository.studios = const [
           FeedItem(
             uid: 'studio-1',
             nome: 'Studio 1',
@@ -125,37 +157,7 @@ void main() {
       },
     );
 
-    test(
-      'onFilterChanged reapplies local filter without losing ordering',
-      () async {
-        final user = TestData.user(uid: 'user-1');
-        fakeAuthRepository.appUser = user;
-        fakeAuthRepository.emitUser(
-          FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
-        );
-        await waitForUser(container);
-
-        fakeFeedRepository.discoverFeedPool = const [
-          FeedItem(uid: 'band-1', nome: 'Band 1', tipoPerfil: ProfileType.band),
-          FeedItem(
-            uid: 'artist-1',
-            nome: 'Artist 1',
-            tipoPerfil: ProfileType.professional,
-          ),
-          FeedItem(uid: 'band-2', nome: 'Band 2', tipoPerfil: ProfileType.band),
-        ];
-
-        final controller = container.read(feedControllerProvider.notifier);
-        await controller.loadAllData();
-        await controller.onFilterChanged('Bandas');
-
-        final state = container.read(feedControllerProvider).value!;
-        expect(state.currentFilter, 'Bandas');
-        expect(state.items.map((item) => item.uid), ['band-1', 'band-2']);
-      },
-    );
-
-    test('loadMoreMainFeed paginates locally from the sorted pool', () async {
+    test('onFilterChanged fetches the selected paginated source', () async {
       final user = TestData.user(uid: 'user-1');
       fakeAuthRepository.appUser = user;
       fakeAuthRepository.emitUser(
@@ -163,15 +165,94 @@ void main() {
       );
       await waitForUser(container);
 
-      fakeFeedRepository.discoverFeedPool = List.generate(
-        25,
-        (index) => FeedItem(
-          uid: 'item-$index',
-          nome: 'Item $index',
-          tipoPerfil: ProfileType.professional,
-          distanceKm: index.toDouble(),
-        ),
+      fakeFeedRepository.mainFeedResponse = const PaginatedFeedResponse(
+        items: [
+          FeedItem(
+            uid: 'artist-1',
+            nome: 'Artist 1',
+            tipoPerfil: ProfileType.professional,
+          ),
+          FeedItem(uid: 'band-0', nome: 'Band 0', tipoPerfil: ProfileType.band),
+        ],
+        hasMore: false,
+        lastDocument: null,
       );
+      fakeFeedRepository.enqueueTypePaginatedResponses(ProfileType.band, const [
+        PaginatedFeedResponse(
+          items: [
+            FeedItem(
+              uid: 'band-1',
+              nome: 'Band 1',
+              tipoPerfil: ProfileType.band,
+            ),
+            FeedItem(
+              uid: 'band-2',
+              nome: 'Band 2',
+              tipoPerfil: ProfileType.band,
+            ),
+          ],
+          hasMore: false,
+          lastDocument: null,
+        ),
+      ]);
+      fakeFeedRepository.bands = const [
+        FeedItem(uid: 'band-1', nome: 'Band 1', tipoPerfil: ProfileType.band),
+        FeedItem(uid: 'band-2', nome: 'Band 2', tipoPerfil: ProfileType.band),
+      ];
+
+      final controller = container.read(feedControllerProvider.notifier);
+      await controller.loadAllData();
+      await controller.onFilterChanged('Bandas');
+
+      final state = container.read(feedControllerProvider).value!;
+      expect(state.currentFilter, 'Bandas');
+      expect(state.items.map((item) => item.uid), ['band-1', 'band-2']);
+    });
+
+    test('loadMoreMainFeed paginates from repository pages', () async {
+      final user = TestData.user(uid: 'user-1');
+      fakeAuthRepository.appUser = user;
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+      await waitForUser(container);
+
+      final firstPageDoc = MockDocumentSnapshot<Map<String, dynamic>>(
+        id: 'page-1',
+        data: const {'id': 'page-1'},
+      );
+      final secondPageDoc = MockDocumentSnapshot<Map<String, dynamic>>(
+        id: 'page-2',
+        data: const {'id': 'page-2'},
+      );
+      fakeFeedRepository.enqueueMainFeedResponses([
+        PaginatedFeedResponse(
+          items: List.generate(
+            20,
+            (index) => FeedItem(
+              uid: 'item-$index',
+              nome: 'Item $index',
+              tipoPerfil: ProfileType.professional,
+              distanceKm: index.toDouble(),
+            ),
+          ),
+          hasMore: true,
+          lastDocument: firstPageDoc,
+        ),
+        PaginatedFeedResponse(
+          items: List.generate(
+            5,
+            (index) => FeedItem(
+              uid: 'item-${index + 20}',
+              nome: 'Item ${index + 20}',
+              tipoPerfil: ProfileType.professional,
+              distanceKm: (index + 20).toDouble(),
+            ),
+          ),
+          hasMore: false,
+          lastDocument: secondPageDoc,
+        ),
+      ]);
 
       final controller = container.read(feedControllerProvider.notifier);
       await controller.loadAllData();
@@ -192,12 +273,25 @@ void main() {
       );
       await waitForUser(container);
 
-      fakeFeedRepository.discoverFeedPool = const [
+      fakeFeedRepository.mainFeedResponse = const PaginatedFeedResponse(
+        items: [
+          FeedItem(
+            uid: 'tech-1',
+            nome: 'Tech 1',
+            tipoPerfil: ProfileType.professional,
+            subCategories: ['stage_tech'],
+            likeCount: 0,
+          ),
+        ],
+        hasMore: false,
+        lastDocument: null,
+      );
+      fakeFeedRepository.technicians = const [
         FeedItem(
           uid: 'tech-1',
           nome: 'Tech 1',
           tipoPerfil: ProfileType.professional,
-          subCategories: ['crew'],
+          subCategories: ['stage_tech'],
           likeCount: 0,
         ),
       ];
@@ -231,9 +325,9 @@ void main() {
     });
 
     test(
-      'loadAllData surfaces discovery pool failure on initial reset',
+      'loadAllData surfaces paginated feed failure on initial reset',
       () async {
-        final failureRepository = _DiscoverPoolFailureFeedRepository();
+        final failureRepository = _MainFeedFailureFeedRepository();
         final localContainer = ProviderContainer(
           overrides: [
             authRepositoryProvider.overrideWithValue(fakeAuthRepository),
@@ -264,22 +358,24 @@ void main() {
 
         final state = localContainer.read(feedControllerProvider).value!;
         expect(state.status, PaginationStatus.error);
-        expect(state.errorMessage, contains('Pool failed'));
+        expect(state.errorMessage, contains('Main feed failed'));
       },
     );
   });
 }
 
-class _DiscoverPoolFailureFeedRepository extends FakeFeedRepository {
+class _MainFeedFailureFeedRepository extends FakeFeedRepository {
   @override
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
     required String currentUserId,
-    required double? userLat,
-    required double? userLong,
+    String? filterType,
     List<String> excludedIds = const [],
-    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+    DocumentSnapshot? startAfter,
   }) async {
-    return Either.left(const ServerFailure(message: 'Pool failed'));
+    return Either.left(const ServerFailure(message: 'Main feed failed'));
   }
 }
 

@@ -27,6 +27,7 @@ class OnboardingFormState {
   final List<String> selectedRoles;
   final String backingVocalMode;
   final bool instrumentalistBackingVocal;
+  final bool offersRemoteRecording;
 
   // Studio
   final String? studioType;
@@ -56,6 +57,7 @@ class OnboardingFormState {
     this.selectedRoles = const [],
     this.backingVocalMode = '0',
     this.instrumentalistBackingVocal = false,
+    this.offersRemoteRecording = false,
     this.studioType,
     this.selectedServices = const [],
     this.cep,
@@ -82,6 +84,7 @@ class OnboardingFormState {
     List<String>? selectedRoles,
     String? backingVocalMode,
     bool? instrumentalistBackingVocal,
+    bool? offersRemoteRecording,
     String? studioType,
     List<String>? selectedServices,
     String? cep,
@@ -108,6 +111,8 @@ class OnboardingFormState {
       backingVocalMode: backingVocalMode ?? this.backingVocalMode,
       instrumentalistBackingVocal:
           instrumentalistBackingVocal ?? this.instrumentalistBackingVocal,
+      offersRemoteRecording:
+          offersRemoteRecording ?? this.offersRemoteRecording,
       studioType: studioType ?? this.studioType,
       selectedServices: selectedServices ?? this.selectedServices,
       cep: cep ?? this.cep,
@@ -136,6 +141,7 @@ class OnboardingFormState {
       'selectedRoles': selectedRoles,
       'backingVocalMode': backingVocalMode,
       'instrumentalistBackingVocal': instrumentalistBackingVocal,
+      'offersRemoteRecording': offersRemoteRecording,
       'studioType': studioType,
       'selectedServices': selectedServices,
       'cep': cep,
@@ -164,6 +170,7 @@ class OnboardingFormState {
       selectedRoles: List<String>.from(map['selectedRoles'] ?? []),
       backingVocalMode: map['backingVocalMode'] ?? '0',
       instrumentalistBackingVocal: map['instrumentalistBackingVocal'] ?? false,
+      offersRemoteRecording: map['offersRemoteRecording'] ?? false,
       studioType: map['studioType'],
       selectedServices: List<String>.from(map['selectedServices'] ?? []),
       cep: map['cep'],
@@ -434,6 +441,12 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   void updateInstrumentalistBackingVocal(bool value) {
     if (state.instrumentalistBackingVocal == value) return;
     state = state.copyWith(instrumentalistBackingVocal: value);
+    _scheduleSave();
+  }
+
+  void updateOffersRemoteRecording(bool value) {
+    if (state.offersRemoteRecording == value) return;
+    state = state.copyWith(offersRemoteRecording: value);
     _scheduleSave();
   }
 

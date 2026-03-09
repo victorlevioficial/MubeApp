@@ -18,7 +18,9 @@ import '../../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../../utils/category_normalizer.dart';
 import '../../../../../../utils/instagram_utils.dart';
+import '../../../../../../utils/professional_profile_utils.dart';
 
 /// Enhanced Professional Form Fields with modern card-based design.
 /// Matches the onboarding flow UI.
@@ -46,6 +48,9 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
   final bool instrumentalistBackingVocal;
   final ValueChanged<bool> onInstrumentalistBackingVocalChanged;
 
+  final bool offersRemoteRecording;
+  final ValueChanged<bool> onOffersRemoteRecordingChanged;
+
   final VoidCallback onStateChanged;
   final ValueChanged<List<String>> onCategoriesChanged;
 
@@ -69,6 +74,8 @@ class ProfessionalFormFields extends ConsumerStatefulWidget {
     required this.onBackingVocalModeChanged,
     required this.instrumentalistBackingVocal,
     required this.onInstrumentalistBackingVocalChanged,
+    required this.offersRemoteRecording,
+    required this.onOffersRemoteRecordingChanged,
     required this.onStateChanged,
     required this.onCategoriesChanged,
   });
@@ -96,18 +103,50 @@ class _ProfessionalFormFieldsState
       'icon': FontAwesomeIcons.guitar,
     },
     {
-      'id': 'crew',
-      'label': 'Equipe Técnica',
-      'description': 'Técnico de som, luz, roadie, produtor',
-      'icon': FontAwesomeIcons.wrench,
-    },
-    {
       'id': 'dj',
       'label': 'DJ',
-      'description': 'DJ de festa, club, eventos, produtor musical',
+      'description': 'DJ de festa, club, eventos e sets ao vivo',
       'icon': FontAwesomeIcons.compactDisc,
     },
+    {
+      'id': 'production',
+      'label': 'Produção Musical',
+      'description': 'Produção, direção, gravação, mixagem e arranjos',
+      'icon': FontAwesomeIcons.sliders,
+    },
+    {
+      'id': 'stage_tech',
+      'label': 'Técnica de Palco',
+      'description': 'PA, monitor, RF, luz, LED, roadie e backline',
+      'icon': FontAwesomeIcons.wrench,
+    },
   ];
+
+  List<String> get _selectedProductionRoles =>
+      CategoryNormalizer.filterProductionRoles(widget.selectedRoles);
+
+  List<String> get _selectedStageTechRoles =>
+      CategoryNormalizer.filterStageTechRoles(widget.selectedRoles);
+
+  void _updateProductionRoles(List<String> roles) {
+    final next = [
+      ...widget.selectedRoles.where(
+        (role) => !CategoryNormalizer.isProductionRole(role),
+      ),
+      ...roles,
+    ];
+    widget.onRolesChanged(next);
+  }
+
+  void _updateStageTechRoles(List<String> roles) {
+    final next = [
+      ...widget.selectedRoles.where(
+        (role) => !CategoryNormalizer.isStageTechRole(role),
+      ),
+      ...roles,
+    ];
+    widget.onRolesChanged(next);
+  }
 
   @override
   void initState() {
@@ -317,10 +356,18 @@ class _ProfessionalFormFieldsState
       ]);
     }
 
-    // Crew Specifics
-    if (_selectedCategories.contains('crew')) {
+    if (_selectedCategories.contains('production')) {
       widgets.addAll([
-        _buildRolesSelector(),
+        _buildProductionRolesSelector(),
+        const SizedBox(height: AppSpacing.s16),
+        _buildRemoteRecordingCheckbox(),
+        const SizedBox(height: AppSpacing.s48),
+      ]);
+    }
+
+    if (_selectedCategories.contains('stage_tech')) {
+      widgets.addAll([
+        _buildStageTechRolesSelector(),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
@@ -367,14 +414,47 @@ class _ProfessionalFormFieldsState
     );
   }
 
-  Widget _buildRolesSelector() {
+  Widget _buildProductionRolesSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Funções Técnicas', style: AppTypography.headlineMedium),
+        Text('Produção Musical', style: AppTypography.headlineMedium),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Quais são suas funções técnicas?',
+          'Quais são suas funções de produção?',
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s16),
+        _buildSelectionContainer(
+          label: 'Funções de Produção',
+          selectedItems: _selectedProductionRoles,
+          onEdit: () => _showEnhancedModal(
+            title: 'Produção Musical',
+            subtitle: 'Selecione suas funções de produção',
+            items: ref.watch(productionRoleLabelsProvider),
+            loadItems: () async {
+              final config = await ref.read(appConfigProvider.future);
+              return config.productionRoles.map((item) => item.label).toList();
+            },
+            selectedItems: _selectedProductionRoles,
+            onChanged: _updateProductionRoles,
+            searchHint: 'Buscar função...',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStageTechRolesSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Técnica de Palco', style: AppTypography.headlineMedium),
+        const SizedBox(height: AppSpacing.s8),
+        Text(
+          'Quais são suas funções técnicas de palco?',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -382,17 +462,17 @@ class _ProfessionalFormFieldsState
         const SizedBox(height: AppSpacing.s16),
         _buildSelectionContainer(
           label: 'Funções Técnicas',
-          selectedItems: widget.selectedRoles,
+          selectedItems: _selectedStageTechRoles,
           onEdit: () => _showEnhancedModal(
-            title: 'Funções Técnicas',
-            subtitle: 'Selecione suas funções',
-            items: ref.watch(crewRoleLabelsProvider),
+            title: 'Técnica de Palco',
+            subtitle: 'Selecione suas funções técnicas',
+            items: ref.watch(stageTechRoleLabelsProvider),
             loadItems: () async {
               final config = await ref.read(appConfigProvider.future);
-              return config.crewRoles.map((item) => item.label).toList();
+              return config.stageTechRoles.map((item) => item.label).toList();
             },
-            selectedItems: widget.selectedRoles,
-            onChanged: widget.onRolesChanged,
+            selectedItems: _selectedStageTechRoles,
+            onChanged: _updateStageTechRoles,
             searchHint: 'Buscar função...',
           ),
         ),
@@ -458,6 +538,39 @@ class _ProfessionalFormFieldsState
           Expanded(
             child: Text(
               'Faço backing vocal tocando',
+              style: AppTypography.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemoteRecordingCheckbox() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 1.2,
+            child: Checkbox(
+              value: widget.offersRemoteRecording,
+              activeColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.textSecondary, width: 2),
+              shape: const RoundedRectangleBorder(borderRadius: AppRadius.all4),
+              onChanged: (v) =>
+                  widget.onOffersRemoteRecordingChanged(v ?? false),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Text(
+              professionalRemoteRecordingCheckboxLabel,
               style: AppTypography.bodyMedium,
             ),
           ),

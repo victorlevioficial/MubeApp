@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mube/src/design_system/components/loading/app_skeleton.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/gigs/domain/compensation_type.dart';
 import 'package:mube/src/features/gigs/domain/gig.dart';
 import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
@@ -32,10 +34,29 @@ void main() {
     creatorId: 'creator-1',
   );
 
-  Widget createSubject(Stream<List<Gig>> gigsStream) {
+  Widget createSubject(
+    Stream<List<Gig>> gigsStream, {
+    Map<String, AppUser>? creatorsById,
+  }) {
+    final resolvedCreatorsById =
+        creatorsById ??
+        <String, AppUser>{
+          sampleGig.creatorId: AppUser(
+            uid: sampleGig.creatorId,
+            email: 'creator@mube.com',
+            cadastroStatus: 'concluido',
+            tipoPerfil: AppUserType.contractor,
+            dadosContratante: {'nomeExibicao': 'Casa Aurora'},
+          ),
+        };
+    final creatorIdsKey = encodeGigUserIdsKey(resolvedCreatorsById.keys);
+
     return ProviderScope(
       overrides: [
         gigsStreamProvider.overrideWith((ref) => gigsStream),
+        gigUsersByStableIdsProvider(
+          creatorIdsKey,
+        ).overrideWith((ref) => Future.value(resolvedCreatorsById)),
         currentUserProfileProvider.overrideWith(
           (ref) => Stream.value(TestData.user()),
         ),
@@ -66,9 +87,36 @@ void main() {
 
   testWidgets('renders extended fab when gigs are available', (tester) async {
     await tester.pumpWidget(createSubject(Stream.value(const [sampleGig])));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('Nova gig'), findsOneWidget);
+    expect(find.text('Casa Aurora'), findsOneWidget);
+    expect(find.text('Contratante'), findsOneWidget);
+  });
+
+  testWidgets('renders perfil individual label for professional creators', (
+    tester,
+  ) async {
+    final professionalCreators = <String, AppUser>{
+      sampleGig.creatorId: const AppUser(
+        uid: 'creator-1',
+        email: 'creator@mube.com',
+        cadastroStatus: 'concluido',
+        tipoPerfil: AppUserType.professional,
+        dadosProfissional: {'nomeArtistico': 'Lia Vox'},
+      ),
+    };
+
+    await tester.pumpWidget(
+      createSubject(
+        Stream.value(const [sampleGig]),
+        creatorsById: professionalCreators,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lia Vox'), findsOneWidget);
+    expect(find.text('Perfil Individual'), findsOneWidget);
   });
 }

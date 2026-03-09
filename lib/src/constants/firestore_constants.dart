@@ -99,6 +99,9 @@ class ProfileType {
 }
 
 class ProfessionalCategory {
+  @Deprecated('Use production and stageTech.')
   static const String techCrew = 'Equipe Técnica';
+  static const String production = 'Produção Musical';
+  static const String stageTech = 'Técnica de Palco';
   static const String professional = 'Profissional';
 }

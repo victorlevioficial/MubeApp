@@ -27,6 +27,11 @@ Map<String, dynamic> _$ConfigItemToJson(_ConfigItem instance) =>
 
 _AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => _AppConfig(
   version: (json['version'] as num?)?.toInt() ?? 0,
+  minAndroidBuildNumber:
+      (json['min_android_build_number'] as num?)?.toInt() ?? 0,
+  minIosBuildNumber: (json['min_ios_build_number'] as num?)?.toInt() ?? 0,
+  androidStoreUrl: json['android_store_url'] as String?,
+  iosStoreUrl: json['ios_store_url'] as String?,
   genres:
       (json['genres'] as List<dynamic>?)
           ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
@@ -34,6 +39,16 @@ _AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => _AppConfig(
       const [],
   instruments:
       (json['instruments'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  productionRoles:
+      (json['productionRoles'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  stageTechRoles:
+      (json['stageTechRoles'] as List<dynamic>?)
           ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
@@ -57,8 +72,14 @@ _AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => _AppConfig(
 Map<String, dynamic> _$AppConfigToJson(_AppConfig instance) =>
     <String, dynamic>{
       'version': instance.version,
+      'min_android_build_number': instance.minAndroidBuildNumber,
+      'min_ios_build_number': instance.minIosBuildNumber,
+      'android_store_url': instance.androidStoreUrl,
+      'ios_store_url': instance.iosStoreUrl,
       'genres': instance.genres,
       'instruments': instance.instruments,
+      'productionRoles': instance.productionRoles,
+      'stageTechRoles': instance.stageTechRoles,
       'crewRoles': instance.crewRoles,
       'studioServices': instance.studioServices,
       'professionalCategories': instance.professionalCategories,

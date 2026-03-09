@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../core/services/analytics/analytics_provider.dart';
 import '../design_system/components/navigation/main_scaffold.dart';
 import '../features/auth/data/auth_repository.dart';
+import '../features/auth/domain/app_user.dart';
 import '../features/auth/domain/user_type.dart';
 import '../features/auth/presentation/email_verification_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
@@ -61,6 +62,9 @@ class _GoRouterRefreshNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
+typedef _ProfileRedirectState =
+    ({bool hasError, bool isLoading, String? cadastroStatus, String? uid});
+
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Main router provider.
@@ -71,7 +75,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
   // Listen to state changes to trigger route re-evaluation
   ref.listen(authStateChangesProvider, (_, _) => notifier.notify());
-  ref.listen(currentUserProfileProvider, (_, _) => notifier.notify());
+  ref.listen(
+    currentUserProfileProvider.select(_profileRedirectStateForRouting),
+    (_, _) => notifier.notify(),
+  );
   ref.listen(splashFinishedProvider, (_, _) => notifier.notify());
   ref.listen(notificationPermissionPromptProvider, (_, _) => notifier.notify());
 
@@ -85,6 +92,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: _buildRoutes(ref),
   );
 });
+
+_ProfileRedirectState _profileRedirectStateForRouting(
+  AsyncValue<AppUser?> asyncProfile,
+) {
+  final profile = asyncProfile.asData?.value;
+  return (
+    isLoading: asyncProfile.isLoading,
+    hasError: asyncProfile.hasError,
+    uid: profile?.uid,
+    cadastroStatus: profile?.cadastroStatus,
+  );
+}
 
 /// Builds the route tree. Separated for readability.
 List<RouteBase> _buildRoutes(Ref ref) {

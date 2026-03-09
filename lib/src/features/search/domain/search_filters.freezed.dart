@@ -16,10 +16,10 @@ mixin _$SearchFilters {
 
 /// Text search term (normalized)
  String get term;/// Main category filter
- SearchCategory get category;/// Professional subcategory (singer, instrumentalist, crew, dj)
+ SearchCategory get category;/// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
  ProfessionalSubcategory? get professionalSubcategory;/// Selected genres filter
  List<String> get genres;/// Selected instruments filter (for instrumentalists)
- List<String> get instruments;/// Selected crew roles filter (for crew)
+ List<String> get instruments;/// Selected professional role filters (production/stage tech)
  List<String> get roles;/// Selected studio services filter (for studios)
  List<String> get services;/// Filter for backing vocal capability
 /// null = don't filter, true = must do backing, false = solo only
@@ -231,7 +231,7 @@ class _SearchFilters extends SearchFilters {
 @override@JsonKey() final  String term;
 /// Main category filter
 @override@JsonKey() final  SearchCategory category;
-/// Professional subcategory (singer, instrumentalist, crew, dj)
+/// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
 @override final  ProfessionalSubcategory? professionalSubcategory;
 /// Selected genres filter
  final  List<String> _genres;
@@ -251,9 +251,9 @@ class _SearchFilters extends SearchFilters {
   return EqualUnmodifiableListView(_instruments);
 }
 
-/// Selected crew roles filter (for crew)
+/// Selected professional role filters (production/stage tech)
  final  List<String> _roles;
-/// Selected crew roles filter (for crew)
+/// Selected professional role filters (production/stage tech)
 @override@JsonKey() List<String> get roles {
   if (_roles is EqualUnmodifiableListView) return _roles;
   // ignore: implicit_dynamic_type

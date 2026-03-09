@@ -30,17 +30,38 @@ class _ProfessionalDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prof = user.dadosProfissional;
-    if (prof == null) return const SizedBox.shrink();
-
+    final prof = user.dadosProfissional ?? const <String, dynamic>{};
     final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
     final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
     final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final offersRemoteRecording = professionalOffersRemoteRecording(prof);
+    final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    if (instrumentos.isEmpty &&
+        funcoes.isEmpty &&
+        generos.isEmpty &&
+        !offersRemoteRecording &&
+        musicLinks.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (offersRemoteRecording) ...[
+          _InfoCard(
+            icon: Icons.language_rounded,
+            title: 'Disponibilidade',
+            accentColor: color,
+            child: _ChipWrap(
+              items: const [professionalRemoteRecordingLabel],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+        ],
         if (instrumentos.isNotEmpty) ...[
           _InfoCard(
             icon: Icons.piano_rounded,
@@ -70,6 +91,13 @@ class _ProfessionalDetails extends StatelessWidget {
             accentColor: color,
             child: _ChipWrap(items: generos, accentColor: color),
           ),
+        if (musicLinks.isNotEmpty) ...[
+          if (instrumentos.isNotEmpty ||
+              funcoes.isNotEmpty ||
+              generos.isNotEmpty)
+            const SizedBox(height: AppSpacing.s12),
+          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
+        ],
       ],
     );
   }
@@ -85,6 +113,7 @@ class _BandDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final banda = user.dadosBanda;
     final generos = (banda?['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     return Column(
@@ -106,6 +135,10 @@ class _BandDetails extends StatelessWidget {
             child: _ChipWrap(items: generos, accentColor: color),
           ),
         ],
+        if (musicLinks.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s12),
+          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
+        ],
       ],
     );
   }
@@ -118,15 +151,18 @@ class _StudioDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final estudio = user.dadosEstudio;
-    if (estudio == null) return const SizedBox.shrink();
-
+    final estudio = user.dadosEstudio ?? const <String, dynamic>{};
     final studioType = estudio['studioType'] as String?;
     final services =
         (estudio['services'] as List?)?.cast<String>() ??
         (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
         [];
+    final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    if (studioType == null && services.isEmpty && musicLinks.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     String? studioTypeLabel;
     if (studioType != null) {
@@ -162,6 +198,11 @@ class _StudioDetails extends StatelessWidget {
               isSkill: true,
             ),
           ),
+        if (musicLinks.isNotEmpty) ...[
+          if (studioTypeLabel != null || services.isNotEmpty)
+            const SizedBox(height: AppSpacing.s12),
+          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
+        ],
       ],
     );
   }
@@ -197,6 +238,104 @@ class _ContractorDetails extends StatelessWidget {
             child: _ChipWrap(items: [genero], accentColor: color),
           ),
       ],
+    );
+  }
+}
+
+class _MusicLinksSection extends StatelessWidget {
+  final Map<String, String> musicLinks;
+  final Color accentColor;
+
+  const _MusicLinksSection({
+    required this.musicLinks,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      icon: Icons.headphones_rounded,
+      title: 'Ouça nas plataformas',
+      accentColor: accentColor,
+      child: Wrap(
+        spacing: AppSpacing.s12,
+        runSpacing: AppSpacing.s12,
+        children: [
+          for (final platform in musicPlatformCatalog)
+            if (musicLinks.containsKey(platform.key))
+              _MusicLinkButton(
+                platform: platform,
+                url: musicLinks[platform.key]!,
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MusicLinkButton extends StatelessWidget {
+  final MusicPlatformDefinition platform;
+  final String url;
+
+  const _MusicLinkButton({required this.platform, required this.url});
+
+  Future<void> _open(BuildContext context) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      AppSnackBar.warning(context, 'Link inválido do ${platform.label}.');
+      return;
+    }
+
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (opened || !context.mounted) return;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao abrir link musical da plataforma ${platform.key}',
+        error,
+        stackTrace,
+        false,
+      );
+      if (!context.mounted) return;
+    }
+
+    AppSnackBar.info(
+      context,
+      'Não foi possível abrir ${platform.label} agora.',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: platform.label,
+      child: Semantics(
+        button: true,
+        label: 'Abrir ${platform.label}',
+        child: Material(
+          color: AppColors.transparent,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => _open(context),
+            child: Container(
+              width: AppSpacing.s48 + AppSpacing.s8,
+              height: AppSpacing.s48 + AppSpacing.s8,
+              padding: const EdgeInsets.all(AppSpacing.s14),
+              decoration: BoxDecoration(
+                color: platform.color.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: platform.color.withValues(alpha: 0.28),
+                ),
+              ),
+              child: SvgPicture.asset(
+                platform.assetPath,
+                colorFilter: ColorFilter.mode(platform.color, BlendMode.srcIn),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -11,11 +11,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'src/app.dart';
 import 'src/core/services/image_cache_config.dart';
+import 'src/core/services/performance/app_performance_monitoring.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/utils/app_logger.dart';
 import 'src/utils/app_performance_tracker.dart';
 
 const Color _bootstrapBackgroundColor = Color(0xFF0A0A0A);
+const int _firestoreCacheSizeBytes = 100 * 1024 * 1024;
 
 void main() {
   runZonedGuarded(
@@ -88,9 +90,11 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         firebaseInitStopwatch,
       );
 
+      await AppPerformanceMonitoring.initialize();
+
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        cacheSizeBytes: _firestoreCacheSizeBytes,
       );
       AppPerformanceTracker.mark('firebase.firestore.settings_applied');
 

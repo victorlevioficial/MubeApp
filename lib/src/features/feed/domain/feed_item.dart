@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../utils/category_normalizer.dart';
+import '../../../utils/professional_profile_utils.dart';
+
 part 'feed_item.freezed.dart';
 
 /// Model representing a user profile item in the feed.
@@ -19,6 +22,7 @@ sealed class FeedItem with _$FeedItem {
     @Default(0) int likeCount,
     @Default([]) List<String> skills,
     @Default([]) List<String> subCategories,
+    @Default(false) bool offersRemoteRecording,
     // @Default(false) bool isFavorited, // Removed
     double? distanceKm,
   }) = _FeedItem;
@@ -81,6 +85,7 @@ sealed class FeedItem with _$FeedItem {
     final List<String> extractedSkills = [];
     final List<String> extractedSubCategories = [];
     List<String> extractedGenres = [];
+    var offersRemoteRecording = false;
 
     final tipoPerfil = data['tipo_perfil'] as String? ?? 'profissional';
 
@@ -98,16 +103,21 @@ sealed class FeedItem with _$FeedItem {
       final rawCategories = (profData['categorias'] as List<dynamic>? ?? [])
           .map((item) => item.toString())
           .toList();
+      final rawRoles = (profData['funcoes'] as List<dynamic>? ?? [])
+          .map((item) => item.toString())
+          .toList();
       final legacyCategory = profData['categoria'];
       if (legacyCategory is String && legacyCategory.isNotEmpty) {
         rawCategories.add(legacyCategory);
       }
       extractedSubCategories.addAll(
-        _normalizeProfessionalCategories(rawCategories),
+        CategoryNormalizer.resolveCategories(
+          rawCategories: rawCategories,
+          rawRoles: rawRoles,
+        ),
       );
-      if (profData['funcoes'] != null) {
-        extractedSkills.addAll(List<String>.from(profData['funcoes']));
-      }
+      extractedSkills.addAll(rawRoles);
+      offersRemoteRecording = professionalOffersRemoteRecording(profData);
 
       // Extract genres
       if (profData['generosMusicais'] != null) {
@@ -161,73 +171,7 @@ sealed class FeedItem with _$FeedItem {
       likeCount: data['likeCount'] ?? 0,
       skills: extractedSkills,
       subCategories: extractedSubCategories.toSet().toList(),
+      offersRemoteRecording: offersRemoteRecording,
     );
-  }
-
-  static List<String> _normalizeProfessionalCategories(List<String> raw) {
-    return raw
-        .map(_normalizeCategoryId)
-        .where((item) => item.isNotEmpty)
-        .toList();
-  }
-
-  static String _normalizeCategoryId(String raw) {
-    if (raw.trim().isEmpty) return '';
-
-    final normalized = _sanitizeCategoryValue(raw);
-    switch (normalized) {
-      case 'crew':
-      case 'equipe_tecnica':
-      case 'equipe_tecnico':
-      case 'tecnico':
-      case 'tecnica':
-        return 'crew';
-      case 'cantor':
-      case 'cantora':
-      case 'cantor_a':
-      case 'vocalista':
-      case 'singer':
-        return 'singer';
-      case 'instrumentista':
-      case 'instrumentalist':
-        return 'instrumentalist';
-      case 'dj':
-        return 'dj';
-      default:
-        return normalized;
-    }
-  }
-
-  static String _sanitizeCategoryValue(String value) {
-    final withoutAccents = value
-        .toLowerCase()
-        .replaceAll('á', 'a')
-        .replaceAll('à', 'a')
-        .replaceAll('â', 'a')
-        .replaceAll('ã', 'a')
-        .replaceAll('ä', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('è', 'e')
-        .replaceAll('ê', 'e')
-        .replaceAll('ë', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ì', 'i')
-        .replaceAll('î', 'i')
-        .replaceAll('ï', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ò', 'o')
-        .replaceAll('ô', 'o')
-        .replaceAll('õ', 'o')
-        .replaceAll('ö', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ù', 'u')
-        .replaceAll('û', 'u')
-        .replaceAll('ü', 'u')
-        .replaceAll('ç', 'c');
-
-    return withoutAccents
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
   }
 }

@@ -8,6 +8,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart'
     show AppTypography;
+import '../../../../utils/professional_profile_utils.dart';
 import '../../domain/feed_item.dart'; // Restored
 import 'profile_type_badge.dart';
 
@@ -150,6 +151,11 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
                           ],
                         ),
                       ),
+                      if (item.offersRemoteRecording)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                          child: _buildRemoteRecordingChip(),
+                        ),
                       if (item.skills.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.s8),
@@ -229,6 +235,38 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         softWrap: false,
+      ),
+    );
+  }
+
+  Widget _buildRemoteRecordingChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s10,
+        vertical: AppSpacing.s4,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.16),
+        borderRadius: AppRadius.pill,
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.32)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.radio_button_checked_rounded,
+            size: 14,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: AppSpacing.s4),
+          Text(
+            professionalRemoteRecordingLabel,
+            style: AppTypography.chipLabel.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

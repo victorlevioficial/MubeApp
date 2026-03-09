@@ -120,4 +120,88 @@ void main() {
     expect(find.text('Instagram'), findsNothing);
     expect(find.text('@event.house'), findsNothing);
   });
+
+  testWidgets('shows music links section when profile has streaming links', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-links-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+      musicLinks: {
+        'spotify': 'https://open.spotify.com/artist/test',
+        'deezer': 'https://www.deezer.com/artist/test',
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Ouça nas plataformas'), findsOneWidget);
+    expect(find.byTooltip('Spotify'), findsOneWidget);
+    expect(find.byTooltip('Deezer'), findsOneWidget);
+  });
+
+  testWidgets('highlights remote recording for music production profiles', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-remote-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'categorias': ['production'],
+        'funcoes': ['Produtor Musical'],
+        'fazGravacaoRemota': true,
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Disponibilidade'), findsOneWidget);
+    expect(find.text('Gravação remota'), findsOneWidget);
+  });
+
+  testWidgets('does not show music links section when map is empty', (
+    tester,
+  ) async {
+    const band = AppUser(
+      uid: 'band-no-links-uid',
+      email: 'band@example.com',
+      nome: 'Band',
+      tipoPerfil: AppUserType.band,
+      cadastroStatus: 'concluido',
+      dadosBanda: {
+        'generosMusicais': ['Rock'],
+      },
+    );
+
+    await pumpPublicProfile(tester, band);
+
+    expect(find.text('Ouça nas plataformas'), findsNothing);
+  });
+
+  testWidgets('shows music links even when type-specific map is missing', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-legacy-links-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      musicLinks: {'spotify': 'https://open.spotify.com/artist/test'},
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Ouça nas plataformas'), findsOneWidget);
+    expect(find.byTooltip('Spotify'), findsOneWidget);
+  });
 }

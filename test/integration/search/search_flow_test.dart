@@ -1,11 +1,13 @@
 import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/mixins/pagination_mixin.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
@@ -16,29 +18,21 @@ import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/paginated_search_response.dart';
+import 'package:mube/src/features/search/domain/search_filters.dart';
+import 'package:mube/src/features/search/presentation/search_controller.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
+import 'package:mube/src/features/search/presentation/widgets/smart_prefilter_grid.dart';
 
 import '../../helpers/firebase_mocks.dart';
 import '../../helpers/firebase_test_config.dart';
 import '../../helpers/pump_app.dart';
+
 @GenerateNiceMocks([
   MockSpec<AuthRemoteDataSource>(),
   MockSpec<SearchRepository>(),
 ])
 import 'search_flow_test.mocks.dart';
 
-/// Testes de integração para o fluxo de busca
-///
-/// Cobertura:
-/// - Busca por termo
-/// - Filtros por categoria
-/// - Filtros por gênero musical
-/// - Filtros por instrumentos
-/// - Filtros por funções (crew)
-/// - Filtros por serviços de estúdio
-/// - Paginação de resultados
-/// - Estado vazio
-/// - Erros de busca
 void main() {
   group('Search Flow Integration Tests', () {
     late MockAuthRemoteDataSource mockAuthDataSource;
@@ -56,66 +50,151 @@ void main() {
       mockSearchRepository = MockSearchRepository();
     });
 
-    group('Search by Term', () {
-      testWidgets('should search users by name', (tester) async {
-        // Arrange
-        const testResults = PaginatedSearchResponse(
-          items: [
-            FeedItem(
-              uid: 'user-1',
-              nome: 'John Doe',
-              nomeArtistico: 'Johnny Rock',
-              tipoPerfil: 'profissional',
-              generosMusicais: ['rock', 'pop'],
-            ),
-          ],
-          hasMore: false,
-        );
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
+    Future<ProviderContainer> pumpSearchScreen(
+      WidgetTester tester, {
+      AppUser? currentUser,
+      List<String> blockedUsers = const [],
+    }) async {
+      await tester.pumpApp(
+        const SearchScreen(),
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            AuthRepository(mockAuthDataSource),
           ),
-        ).thenAnswer((_) async => const Right(testResults));
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(currentUser),
           ),
-        ).called(greaterThanOrEqualTo(1));
-      });
+          searchRepositoryProvider.overrideWithValue(mockSearchRepository),
+          blockedUsersProvider.overrideWith(
+            (ref) => Stream.value(blockedUsers),
+          ),
+          analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+        ],
+      );
+      await tester.pump();
 
-      testWidgets('should show empty state when no results', (tester) async {
-        // Arrange
+      return ProviderScope.containerOf(
+        tester.element(find.byType(SearchScreen)),
+      );
+    }
+
+    Future<void> settleSearch(WidgetTester tester) async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
+    }
+
+    Future<void> runTermSearch(
+      WidgetTester tester,
+      ProviderContainer container,
+      String term,
+    ) async {
+      container.read(searchControllerProvider.notifier).setTerm(term);
+      await settleSearch(tester);
+    }
+
+    Future<void> applySearchFilters(
+      WidgetTester tester,
+      ProviderContainer container,
+      SearchFilters filters,
+    ) async {
+      container.read(searchControllerProvider.notifier).applyFilters(filters);
+      await settleSearch(tester);
+    }
+
+    VerificationResult verifySearchUsersCalled() {
+      return verify(
+        mockSearchRepository.searchUsers(
+          filters: captureAnyNamed('filters'),
+          startAfter: captureAnyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: captureAnyNamed('blockedUsers'),
+        ),
+      );
+    }
+
+    testWidgets('starts in discovery mode by default', (tester) async {
+      final container = await pumpSearchScreen(tester);
+
+      expect(find.byType(SmartPrefilterGrid), findsOneWidget);
+      expect(
+        container.read(searchControllerProvider).status,
+        PaginationStatus.initial,
+      );
+      verifyNever(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      );
+    });
+
+    testWidgets('searches by term and renders results', (tester) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer(
+        (_) async => const Right(
+          PaginatedSearchResponse(
+            items: [
+              FeedItem(
+                uid: 'user-1',
+                nome: 'John Doe',
+                nomeArtistico: 'Johnny Rock',
+                tipoPerfil: 'profissional',
+              ),
+            ],
+            hasMore: false,
+          ),
+        ),
+      );
+
+      final container = await pumpSearchScreen(tester);
+      await runTermSearch(tester, container, 'john');
+
+      expect(
+        container.read(searchControllerProvider).items.map((item) => item.uid),
+        ['user-1'],
+      );
+      final captured = verifySearchUsersCalled().captured;
+      expect((captured[0] as SearchFilters).term, 'john');
+    });
+
+    testWidgets('shows empty state when no results are returned', (
+      tester,
+    ) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
+
+      final container = await pumpSearchScreen(tester);
+      await runTermSearch(tester, container, 'sem resultado');
+
+      expect(find.text('Nenhum resultado encontrado'), findsOneWidget);
+      expect(
+        find.text('Tente ajustar os filtros ou buscar por outros termos'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'runs category-only searches for professionals, bands and studios',
+      (tester) async {
         when(
           mockSearchRepository.searchUsers(
             filters: anyNamed('filters'),
@@ -126,766 +205,33 @@ void main() {
           ),
         ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert - Deve mostrar estado vazio
-        expect(find.byType(SearchScreen), findsOneWidget);
-      });
-    });
-
-    group('Category Filters', () {
-      testWidgets('should filter by professionals category', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Professional User',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by bands category', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'band-1',
-            nome: 'Rock Band',
-            tipoPerfil: 'banda',
-            generosMusicais: ['rock', 'metal'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by studios category', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'studio-1',
-            nome: 'Music Studio',
-            tipoPerfil: 'estudio',
-            generosMusicais: [],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Genre Filters', () {
-      testWidgets('should filter by music genres', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Rock Star',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Professional Subcategory Filters', () {
-      testWidgets('should filter by singers', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Singer Name',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['pop'],
-            subCategories: ['singer'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by instrumentalists', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Guitar Player',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-            skills: ['guitar'],
-            subCategories: ['instrumentalist'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by crew', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Sound Engineer',
-            tipoPerfil: 'profissional',
-            generosMusicais: [],
-            skills: ['sound_engineer'],
-            subCategories: ['crew'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by DJs', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'DJ Name',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['electronic'],
-            subCategories: ['dj'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Instrument Filters', () {
-      testWidgets('should filter by instruments', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Guitar Player',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-            skills: ['guitar', 'bass'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Studio Filters', () {
-      testWidgets('should filter by studio services', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'studio-1',
-            nome: 'Recording Studio',
-            tipoPerfil: 'estudio',
-            skills: ['recording', 'mixing'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should filter by studio type', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'studio-1',
-            nome: 'Home Studio',
-            tipoPerfil: 'estudio',
-            skills: ['recording'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Search State Management', () {
-      testWidgets('should handle loading state', (tester) async {
-        // Arrange
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer((_) async {
-          await Future.delayed(const Duration(milliseconds: 500));
-          return const Right(PaginatedSearchResponse.empty());
-        });
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.enterText(find.byType(EditableText), 'rock');
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 450));
-
-        // Assert - Deve mostrar indicador de loading
-        expect(find.byType(FeedItemSkeleton), findsWidgets);
-
-        // Wait for potential timers (e.g. debounce) to complete
-        await tester.pump(const Duration(seconds: 1));
-      });
-
-      testWidgets('should handle search errors', (tester) async {
-        // Arrange
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => const Left(ServerFailure(message: 'Erro na busca')),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert - Deve mostrar mensagem de erro
-        expect(find.byType(SearchScreen), findsOneWidget);
-      });
-
-      testWidgets('should handle rate limiting', (tester) async {
-        // Arrange - Simular muitas requisições
+        final container = await pumpSearchScreen(tester);
+
+        container
+            .read(searchControllerProvider.notifier)
+            .setCategory(SearchCategory.professionals);
+        await settleSearch(tester);
+        container
+            .read(searchControllerProvider.notifier)
+            .setCategory(SearchCategory.bands);
+        await settleSearch(tester);
+        container
+            .read(searchControllerProvider.notifier)
+            .setCategory(SearchCategory.studios);
+        await settleSearch(tester);
+
+        final captured = verifySearchUsersCalled().captured
+            .whereType<SearchFilters>()
+            .toList();
+        expect(captured[0].category, SearchCategory.professionals);
+        expect(captured[1].category, SearchCategory.bands);
+        expect(captured.last.category, SearchCategory.studios);
+      },
+    );
+
+    testWidgets(
+      'applies professional and studio filters through applyFilters',
+      (tester) async {
         when(
           mockSearchRepository.searchUsers(
             filters: anyNamed('filters'),
@@ -896,92 +242,162 @@ void main() {
           ),
         ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
+        final container = await pumpSearchScreen(tester);
 
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
-          ],
+        await applySearchFilters(
+          tester,
+          container,
+          const SearchFilters(
+            professionalSubcategory: ProfessionalSubcategory.stageTech,
+            genres: ['rock'],
+            instruments: ['guitarra'],
+            roles: ['Roadie'],
+            canDoBackingVocal: true,
+          ),
         );
 
-        // Act - Fazer várias buscas rapidamente
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert - A busca deve ser executada
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
+        await applySearchFilters(
+          tester,
+          container,
+          const SearchFilters(
+            category: SearchCategory.studios,
+            services: ['Gravacao'],
+            studioType: 'home_studio',
           ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-
-      testWidgets('should clear filters', (tester) async {
-        // Arrange
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
-          ],
         );
 
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+        final capturedFilters = verifySearchUsersCalled().captured
+            .whereType<SearchFilters>()
+            .toList();
+        final professionalFilters = capturedFilters.first;
 
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
+        expect(
+          professionalFilters.professionalSubcategory,
+          ProfessionalSubcategory.stageTech,
+        );
+        expect(professionalFilters.genres, ['rock']);
+        expect(professionalFilters.instruments, ['guitarra']);
+        expect(professionalFilters.roles, ['Roadie']);
+        expect(professionalFilters.canDoBackingVocal, true);
+
+        expect(
+          capturedFilters.any(
+            (filters) =>
+                filters.category == SearchCategory.studios &&
+                filters.services.contains('Gravacao') &&
+                filters.studioType == 'home_studio',
           ),
-        ).called(greaterThanOrEqualTo(1));
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets('shows loading skeletons while a search is in flight', (
+      tester,
+    ) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+        return const Right(PaginatedSearchResponse.empty());
       });
+
+      final container = await pumpSearchScreen(tester);
+      container.read(searchControllerProvider.notifier).setTerm('rock');
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+
+      expect(find.byType(FeedItemSkeleton), findsWidgets);
+
+      await tester.pump(const Duration(milliseconds: 700));
     });
 
-    group('Blocked Users', () {
-      testWidgets('should exclude blocked users from results', (tester) async {
-        // Arrange
+    testWidgets('shows error state when the repository fails', (tester) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer(
+        (_) async => const Left(ServerFailure(message: 'Erro na busca')),
+      );
+
+      final container = await pumpSearchScreen(tester);
+      await runTermSearch(tester, container, 'erro');
+
+      expect(find.text('Erro ao buscar'), findsOneWidget);
+      expect(find.textContaining('Erro na busca'), findsWidgets);
+    });
+
+    testWidgets('coalesces rapid term updates into a single debounced search', (
+      tester,
+    ) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
+
+      final container = await pumpSearchScreen(tester);
+      final controller = container.read(searchControllerProvider.notifier);
+
+      controller.setTerm('r');
+      controller.setTerm('ro');
+      controller.setTerm('rock');
+      await settleSearch(tester);
+
+      final verification = verifySearchUsersCalled();
+      final captured = verification.captured;
+      expect((captured[0] as SearchFilters).term, 'rock');
+      verification.called(1);
+    });
+
+    testWidgets('reset returns the screen to discovery mode', (tester) async {
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
+
+      final container = await pumpSearchScreen(tester);
+      await applySearchFilters(
+        tester,
+        container,
+        const SearchFilters(term: 'rock', genres: ['rock']),
+      );
+
+      container.read(searchControllerProvider.notifier).reset();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byType(SmartPrefilterGrid), findsOneWidget);
+      expect(
+        container.read(searchControllerProvider).status,
+        PaginationStatus.initial,
+      );
+    });
+
+    testWidgets(
+      'forwards blocked users from profile and stream to the repository',
+      (tester) async {
         const currentUser = AppUser(
           uid: 'current-user',
           email: 'current@example.com',
@@ -989,10 +405,6 @@ void main() {
         );
 
         when(
-          mockAuthDataSource.currentUser,
-        ).thenReturn(MockUser(uid: 'current-user'));
-
-        when(
           mockSearchRepository.searchUsers(
             filters: anyNamed('filters'),
             startAfter: anyNamed('startAfter'),
@@ -1002,234 +414,82 @@ void main() {
           ),
         ).thenAnswer((_) async => const Right(PaginatedSearchResponse.empty()));
 
-        when(
-          mockAuthDataSource.currentUser,
-        ).thenReturn(MockUser(uid: 'current-user'));
-
-        when(
-          mockAuthDataSource.watchUserProfile('current-user'),
-        ).thenAnswer((_) => Stream.value(currentUser));
-
-        // final profileController = StreamController<AppUser?>.broadcast(
-        //   onListen: () => debugPrint('[Test] profileController listened'),
-        // );
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-            authStateChangesProvider.overrideWith(
-              (ref) => Stream.value(mockAuthDataSource.currentUser),
-            ),
-            // currentUserProfileProvider.overrideWith((ref) {
-            //   debugPrint('[Test] currentUserProfileProvider override created');
-            //   return Stream.value(currentUser);
-            // }),
-          ],
+        final container = await pumpSearchScreen(
+          tester,
+          currentUser: currentUser,
+          blockedUsers: const ['blocked-stream-1'],
         );
+        await runTermSearch(tester, container, 'rock');
 
-        // Emit cached user first (simulating loading then data)
-        await tester.pump(const Duration(milliseconds: 500));
-        await tester.pump(const Duration(milliseconds: 100));
+        final captured = verifySearchUsersCalled().captured;
+        expect(
+          captured[2] as List<String>,
+          containsAll(['blocked-user-1', 'blocked-user-2', 'blocked-stream-1']),
+        );
+      },
+    );
 
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: argThat(
-              containsAll(['blocked-user-1', 'blocked-user-2']),
-              named: 'blockedUsers',
+    testWidgets('loads another page when pagination is requested', (
+      tester,
+    ) async {
+      final cursor = MockDocumentSnapshot<Map<String, dynamic>>(
+        id: 'cursor-1',
+        data: const {'id': 'cursor-1'},
+      );
+      var calls = 0;
+
+      when(
+        mockSearchRepository.searchUsers(
+          filters: anyNamed('filters'),
+          startAfter: anyNamed('startAfter'),
+          requestId: anyNamed('requestId'),
+          getCurrentRequestId: anyNamed('getCurrentRequestId'),
+          blockedUsers: anyNamed('blockedUsers'),
+        ),
+      ).thenAnswer((_) async {
+        calls++;
+        if (calls == 1) {
+          return Right(
+            PaginatedSearchResponse(
+              items: const [
+                FeedItem(
+                  uid: 'user-1',
+                  nome: 'User 1',
+                  tipoPerfil: 'profissional',
+                ),
+              ],
+              hasMore: true,
+              lastDocument: cursor,
             ),
+          );
+        }
+
+        return const Right(
+          PaginatedSearchResponse(
+            items: [
+              FeedItem(
+                uid: 'user-2',
+                nome: 'User 2',
+                tipoPerfil: 'profissional',
+              ),
+            ],
+            hasMore: false,
           ),
-        ).called(greaterThanOrEqualTo(1));
+        );
       });
-    });
 
-    group('Backing Vocal Filter', () {
-      testWidgets('should filter by backing vocal capability', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Singer with Backing',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['pop'],
-            subCategories: ['singer'],
-          ),
-        ];
+      final container = await pumpSearchScreen(tester);
+      await runTermSearch(tester, container, 'rock');
 
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
+      await container.read(searchControllerProvider.notifier).loadMore();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Ghost Mode Exclusion', () {
-      testWidgets('should exclude users in ghost mode', (tester) async {
-        // Arrange
-        final testResults = [
-          const FeedItem(
-            uid: 'user-1',
-            nome: 'Visible User',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-          ),
-        ];
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: testResults, hasMore: false),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert - O repository deve filtrar usuários em ghost mode
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
-    });
-
-    group('Pagination', () {
-      testWidgets('should load more results on scroll', (tester) async {
-        // Arrange
-        final initialResults = List.generate(
-          20,
-          (index) => FeedItem(
-            uid: 'user-$index',
-            nome: 'User $index',
-            tipoPerfil: 'profissional',
-            generosMusicais: ['rock'],
-          ),
-        );
-
-        when(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).thenAnswer(
-          (_) async => Right(
-            PaginatedSearchResponse(items: initialResults, hasMore: true),
-          ),
-        );
-
-        when(
-          mockAuthDataSource.watchUserProfile(any),
-        ).thenAnswer((_) => Stream.value(null));
-
-        await tester.pumpApp(
-          const SearchScreen(),
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              AuthRepository(mockAuthDataSource),
-            ),
-            searchRepositoryProvider.overrideWithValue(mockSearchRepository),
-            blockedUsersProvider.overrideWith((ref) => Stream.value([])),
-            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
-          ],
-        );
-
-        // Act
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // Assert
-        verify(
-          mockSearchRepository.searchUsers(
-            filters: anyNamed('filters'),
-            startAfter: anyNamed('startAfter'),
-            requestId: anyNamed('requestId'),
-            getCurrentRequestId: anyNamed('getCurrentRequestId'),
-            blockedUsers: anyNamed('blockedUsers'),
-          ),
-        ).called(greaterThanOrEqualTo(1));
-      });
+      expect(
+        container.read(searchControllerProvider).items.map((item) => item.uid),
+        ['user-1', 'user-2'],
+      );
+      verifySearchUsersCalled().called(2);
     });
   });
 }

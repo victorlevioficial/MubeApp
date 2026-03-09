@@ -296,7 +296,7 @@ as List<String>,
 /// @nodoc
 mixin _$AppConfig {
 
- int get version; List<ConfigItem> get genres; List<ConfigItem> get instruments; List<ConfigItem> get crewRoles; List<ConfigItem> get studioServices; List<ConfigItem> get professionalCategories;
+ int get version;@JsonKey(name: 'min_android_build_number') int get minAndroidBuildNumber;@JsonKey(name: 'min_ios_build_number') int get minIosBuildNumber;@JsonKey(name: 'android_store_url') String? get androidStoreUrl;@JsonKey(name: 'ios_store_url') String? get iosStoreUrl; List<ConfigItem> get genres; List<ConfigItem> get instruments; List<ConfigItem> get productionRoles; List<ConfigItem> get stageTechRoles; List<ConfigItem> get crewRoles; List<ConfigItem> get studioServices; List<ConfigItem> get professionalCategories;
 /// Create a copy of AppConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -309,16 +309,16 @@ $AppConfigCopyWith<AppConfig> get copyWith => _$AppConfigCopyWithImpl<AppConfig>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppConfig&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other.genres, genres)&&const DeepCollectionEquality().equals(other.instruments, instruments)&&const DeepCollectionEquality().equals(other.crewRoles, crewRoles)&&const DeepCollectionEquality().equals(other.studioServices, studioServices)&&const DeepCollectionEquality().equals(other.professionalCategories, professionalCategories));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppConfig&&(identical(other.version, version) || other.version == version)&&(identical(other.minAndroidBuildNumber, minAndroidBuildNumber) || other.minAndroidBuildNumber == minAndroidBuildNumber)&&(identical(other.minIosBuildNumber, minIosBuildNumber) || other.minIosBuildNumber == minIosBuildNumber)&&(identical(other.androidStoreUrl, androidStoreUrl) || other.androidStoreUrl == androidStoreUrl)&&(identical(other.iosStoreUrl, iosStoreUrl) || other.iosStoreUrl == iosStoreUrl)&&const DeepCollectionEquality().equals(other.genres, genres)&&const DeepCollectionEquality().equals(other.instruments, instruments)&&const DeepCollectionEquality().equals(other.productionRoles, productionRoles)&&const DeepCollectionEquality().equals(other.stageTechRoles, stageTechRoles)&&const DeepCollectionEquality().equals(other.crewRoles, crewRoles)&&const DeepCollectionEquality().equals(other.studioServices, studioServices)&&const DeepCollectionEquality().equals(other.professionalCategories, professionalCategories));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,version,const DeepCollectionEquality().hash(genres),const DeepCollectionEquality().hash(instruments),const DeepCollectionEquality().hash(crewRoles),const DeepCollectionEquality().hash(studioServices),const DeepCollectionEquality().hash(professionalCategories));
+int get hashCode => Object.hash(runtimeType,version,minAndroidBuildNumber,minIosBuildNumber,androidStoreUrl,iosStoreUrl,const DeepCollectionEquality().hash(genres),const DeepCollectionEquality().hash(instruments),const DeepCollectionEquality().hash(productionRoles),const DeepCollectionEquality().hash(stageTechRoles),const DeepCollectionEquality().hash(crewRoles),const DeepCollectionEquality().hash(studioServices),const DeepCollectionEquality().hash(professionalCategories));
 
 @override
 String toString() {
-  return 'AppConfig(version: $version, genres: $genres, instruments: $instruments, crewRoles: $crewRoles, studioServices: $studioServices, professionalCategories: $professionalCategories)';
+  return 'AppConfig(version: $version, minAndroidBuildNumber: $minAndroidBuildNumber, minIosBuildNumber: $minIosBuildNumber, androidStoreUrl: $androidStoreUrl, iosStoreUrl: $iosStoreUrl, genres: $genres, instruments: $instruments, productionRoles: $productionRoles, stageTechRoles: $stageTechRoles, crewRoles: $crewRoles, studioServices: $studioServices, professionalCategories: $professionalCategories)';
 }
 
 
@@ -329,7 +329,7 @@ abstract mixin class $AppConfigCopyWith<$Res>  {
   factory $AppConfigCopyWith(AppConfig value, $Res Function(AppConfig) _then) = _$AppConfigCopyWithImpl;
 @useResult
 $Res call({
- int version, List<ConfigItem> genres, List<ConfigItem> instruments, List<ConfigItem> crewRoles, List<ConfigItem> studioServices, List<ConfigItem> professionalCategories
+ int version,@JsonKey(name: 'min_android_build_number') int minAndroidBuildNumber,@JsonKey(name: 'min_ios_build_number') int minIosBuildNumber,@JsonKey(name: 'android_store_url') String? androidStoreUrl,@JsonKey(name: 'ios_store_url') String? iosStoreUrl, List<ConfigItem> genres, List<ConfigItem> instruments, List<ConfigItem> productionRoles, List<ConfigItem> stageTechRoles, List<ConfigItem> crewRoles, List<ConfigItem> studioServices, List<ConfigItem> professionalCategories
 });
 
 
@@ -346,11 +346,17 @@ class _$AppConfigCopyWithImpl<$Res>
 
 /// Create a copy of AppConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? version = null,Object? genres = null,Object? instruments = null,Object? crewRoles = null,Object? studioServices = null,Object? professionalCategories = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? version = null,Object? minAndroidBuildNumber = null,Object? minIosBuildNumber = null,Object? androidStoreUrl = freezed,Object? iosStoreUrl = freezed,Object? genres = null,Object? instruments = null,Object? productionRoles = null,Object? stageTechRoles = null,Object? crewRoles = null,Object? studioServices = null,Object? professionalCategories = null,}) {
   return _then(_self.copyWith(
 version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
-as int,genres: null == genres ? _self.genres : genres // ignore: cast_nullable_to_non_nullable
+as int,minAndroidBuildNumber: null == minAndroidBuildNumber ? _self.minAndroidBuildNumber : minAndroidBuildNumber // ignore: cast_nullable_to_non_nullable
+as int,minIosBuildNumber: null == minIosBuildNumber ? _self.minIosBuildNumber : minIosBuildNumber // ignore: cast_nullable_to_non_nullable
+as int,androidStoreUrl: freezed == androidStoreUrl ? _self.androidStoreUrl : androidStoreUrl // ignore: cast_nullable_to_non_nullable
+as String?,iosStoreUrl: freezed == iosStoreUrl ? _self.iosStoreUrl : iosStoreUrl // ignore: cast_nullable_to_non_nullable
+as String?,genres: null == genres ? _self.genres : genres // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,instruments: null == instruments ? _self.instruments : instruments // ignore: cast_nullable_to_non_nullable
+as List<ConfigItem>,productionRoles: null == productionRoles ? _self.productionRoles : productionRoles // ignore: cast_nullable_to_non_nullable
+as List<ConfigItem>,stageTechRoles: null == stageTechRoles ? _self.stageTechRoles : stageTechRoles // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,crewRoles: null == crewRoles ? _self.crewRoles : crewRoles // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,studioServices: null == studioServices ? _self.studioServices : studioServices // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,professionalCategories: null == professionalCategories ? _self.professionalCategories : professionalCategories // ignore: cast_nullable_to_non_nullable
@@ -439,10 +445,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int version,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int version, @JsonKey(name: 'min_android_build_number')  int minAndroidBuildNumber, @JsonKey(name: 'min_ios_build_number')  int minIosBuildNumber, @JsonKey(name: 'android_store_url')  String? androidStoreUrl, @JsonKey(name: 'ios_store_url')  String? iosStoreUrl,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> productionRoles,  List<ConfigItem> stageTechRoles,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppConfig() when $default != null:
-return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
+return $default(_that.version,_that.minAndroidBuildNumber,_that.minIosBuildNumber,_that.androidStoreUrl,_that.iosStoreUrl,_that.genres,_that.instruments,_that.productionRoles,_that.stageTechRoles,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
   return orElse();
 
 }
@@ -460,10 +466,10 @@ return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int version,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int version, @JsonKey(name: 'min_android_build_number')  int minAndroidBuildNumber, @JsonKey(name: 'min_ios_build_number')  int minIosBuildNumber, @JsonKey(name: 'android_store_url')  String? androidStoreUrl, @JsonKey(name: 'ios_store_url')  String? iosStoreUrl,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> productionRoles,  List<ConfigItem> stageTechRoles,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)  $default,) {final _that = this;
 switch (_that) {
 case _AppConfig():
-return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
+return $default(_that.version,_that.minAndroidBuildNumber,_that.minIosBuildNumber,_that.androidStoreUrl,_that.iosStoreUrl,_that.genres,_that.instruments,_that.productionRoles,_that.stageTechRoles,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -480,10 +486,10 @@ return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int version,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int version, @JsonKey(name: 'min_android_build_number')  int minAndroidBuildNumber, @JsonKey(name: 'min_ios_build_number')  int minIosBuildNumber, @JsonKey(name: 'android_store_url')  String? androidStoreUrl, @JsonKey(name: 'ios_store_url')  String? iosStoreUrl,  List<ConfigItem> genres,  List<ConfigItem> instruments,  List<ConfigItem> productionRoles,  List<ConfigItem> stageTechRoles,  List<ConfigItem> crewRoles,  List<ConfigItem> studioServices,  List<ConfigItem> professionalCategories)?  $default,) {final _that = this;
 switch (_that) {
 case _AppConfig() when $default != null:
-return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
+return $default(_that.version,_that.minAndroidBuildNumber,_that.minIosBuildNumber,_that.androidStoreUrl,_that.iosStoreUrl,_that.genres,_that.instruments,_that.productionRoles,_that.stageTechRoles,_that.crewRoles,_that.studioServices,_that.professionalCategories);case _:
   return null;
 
 }
@@ -495,10 +501,14 @@ return $default(_that.version,_that.genres,_that.instruments,_that.crewRoles,_th
 @JsonSerializable()
 
 class _AppConfig implements AppConfig {
-  const _AppConfig({this.version = 0, final  List<ConfigItem> genres = const [], final  List<ConfigItem> instruments = const [], final  List<ConfigItem> crewRoles = const [], final  List<ConfigItem> studioServices = const [], final  List<ConfigItem> professionalCategories = const []}): _genres = genres,_instruments = instruments,_crewRoles = crewRoles,_studioServices = studioServices,_professionalCategories = professionalCategories;
+  const _AppConfig({this.version = 0, @JsonKey(name: 'min_android_build_number') this.minAndroidBuildNumber = 0, @JsonKey(name: 'min_ios_build_number') this.minIosBuildNumber = 0, @JsonKey(name: 'android_store_url') this.androidStoreUrl, @JsonKey(name: 'ios_store_url') this.iosStoreUrl, final  List<ConfigItem> genres = const [], final  List<ConfigItem> instruments = const [], final  List<ConfigItem> productionRoles = const [], final  List<ConfigItem> stageTechRoles = const [], final  List<ConfigItem> crewRoles = const [], final  List<ConfigItem> studioServices = const [], final  List<ConfigItem> professionalCategories = const []}): _genres = genres,_instruments = instruments,_productionRoles = productionRoles,_stageTechRoles = stageTechRoles,_crewRoles = crewRoles,_studioServices = studioServices,_professionalCategories = professionalCategories;
   factory _AppConfig.fromJson(Map<String, dynamic> json) => _$AppConfigFromJson(json);
 
 @override@JsonKey() final  int version;
+@override@JsonKey(name: 'min_android_build_number') final  int minAndroidBuildNumber;
+@override@JsonKey(name: 'min_ios_build_number') final  int minIosBuildNumber;
+@override@JsonKey(name: 'android_store_url') final  String? androidStoreUrl;
+@override@JsonKey(name: 'ios_store_url') final  String? iosStoreUrl;
  final  List<ConfigItem> _genres;
 @override@JsonKey() List<ConfigItem> get genres {
   if (_genres is EqualUnmodifiableListView) return _genres;
@@ -511,6 +521,20 @@ class _AppConfig implements AppConfig {
   if (_instruments is EqualUnmodifiableListView) return _instruments;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_instruments);
+}
+
+ final  List<ConfigItem> _productionRoles;
+@override@JsonKey() List<ConfigItem> get productionRoles {
+  if (_productionRoles is EqualUnmodifiableListView) return _productionRoles;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_productionRoles);
+}
+
+ final  List<ConfigItem> _stageTechRoles;
+@override@JsonKey() List<ConfigItem> get stageTechRoles {
+  if (_stageTechRoles is EqualUnmodifiableListView) return _stageTechRoles;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_stageTechRoles);
 }
 
  final  List<ConfigItem> _crewRoles;
@@ -548,16 +572,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppConfig&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other._genres, _genres)&&const DeepCollectionEquality().equals(other._instruments, _instruments)&&const DeepCollectionEquality().equals(other._crewRoles, _crewRoles)&&const DeepCollectionEquality().equals(other._studioServices, _studioServices)&&const DeepCollectionEquality().equals(other._professionalCategories, _professionalCategories));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppConfig&&(identical(other.version, version) || other.version == version)&&(identical(other.minAndroidBuildNumber, minAndroidBuildNumber) || other.minAndroidBuildNumber == minAndroidBuildNumber)&&(identical(other.minIosBuildNumber, minIosBuildNumber) || other.minIosBuildNumber == minIosBuildNumber)&&(identical(other.androidStoreUrl, androidStoreUrl) || other.androidStoreUrl == androidStoreUrl)&&(identical(other.iosStoreUrl, iosStoreUrl) || other.iosStoreUrl == iosStoreUrl)&&const DeepCollectionEquality().equals(other._genres, _genres)&&const DeepCollectionEquality().equals(other._instruments, _instruments)&&const DeepCollectionEquality().equals(other._productionRoles, _productionRoles)&&const DeepCollectionEquality().equals(other._stageTechRoles, _stageTechRoles)&&const DeepCollectionEquality().equals(other._crewRoles, _crewRoles)&&const DeepCollectionEquality().equals(other._studioServices, _studioServices)&&const DeepCollectionEquality().equals(other._professionalCategories, _professionalCategories));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,version,const DeepCollectionEquality().hash(_genres),const DeepCollectionEquality().hash(_instruments),const DeepCollectionEquality().hash(_crewRoles),const DeepCollectionEquality().hash(_studioServices),const DeepCollectionEquality().hash(_professionalCategories));
+int get hashCode => Object.hash(runtimeType,version,minAndroidBuildNumber,minIosBuildNumber,androidStoreUrl,iosStoreUrl,const DeepCollectionEquality().hash(_genres),const DeepCollectionEquality().hash(_instruments),const DeepCollectionEquality().hash(_productionRoles),const DeepCollectionEquality().hash(_stageTechRoles),const DeepCollectionEquality().hash(_crewRoles),const DeepCollectionEquality().hash(_studioServices),const DeepCollectionEquality().hash(_professionalCategories));
 
 @override
 String toString() {
-  return 'AppConfig(version: $version, genres: $genres, instruments: $instruments, crewRoles: $crewRoles, studioServices: $studioServices, professionalCategories: $professionalCategories)';
+  return 'AppConfig(version: $version, minAndroidBuildNumber: $minAndroidBuildNumber, minIosBuildNumber: $minIosBuildNumber, androidStoreUrl: $androidStoreUrl, iosStoreUrl: $iosStoreUrl, genres: $genres, instruments: $instruments, productionRoles: $productionRoles, stageTechRoles: $stageTechRoles, crewRoles: $crewRoles, studioServices: $studioServices, professionalCategories: $professionalCategories)';
 }
 
 
@@ -568,7 +592,7 @@ abstract mixin class _$AppConfigCopyWith<$Res> implements $AppConfigCopyWith<$Re
   factory _$AppConfigCopyWith(_AppConfig value, $Res Function(_AppConfig) _then) = __$AppConfigCopyWithImpl;
 @override @useResult
 $Res call({
- int version, List<ConfigItem> genres, List<ConfigItem> instruments, List<ConfigItem> crewRoles, List<ConfigItem> studioServices, List<ConfigItem> professionalCategories
+ int version,@JsonKey(name: 'min_android_build_number') int minAndroidBuildNumber,@JsonKey(name: 'min_ios_build_number') int minIosBuildNumber,@JsonKey(name: 'android_store_url') String? androidStoreUrl,@JsonKey(name: 'ios_store_url') String? iosStoreUrl, List<ConfigItem> genres, List<ConfigItem> instruments, List<ConfigItem> productionRoles, List<ConfigItem> stageTechRoles, List<ConfigItem> crewRoles, List<ConfigItem> studioServices, List<ConfigItem> professionalCategories
 });
 
 
@@ -585,11 +609,17 @@ class __$AppConfigCopyWithImpl<$Res>
 
 /// Create a copy of AppConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? version = null,Object? genres = null,Object? instruments = null,Object? crewRoles = null,Object? studioServices = null,Object? professionalCategories = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? version = null,Object? minAndroidBuildNumber = null,Object? minIosBuildNumber = null,Object? androidStoreUrl = freezed,Object? iosStoreUrl = freezed,Object? genres = null,Object? instruments = null,Object? productionRoles = null,Object? stageTechRoles = null,Object? crewRoles = null,Object? studioServices = null,Object? professionalCategories = null,}) {
   return _then(_AppConfig(
 version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
-as int,genres: null == genres ? _self._genres : genres // ignore: cast_nullable_to_non_nullable
+as int,minAndroidBuildNumber: null == minAndroidBuildNumber ? _self.minAndroidBuildNumber : minAndroidBuildNumber // ignore: cast_nullable_to_non_nullable
+as int,minIosBuildNumber: null == minIosBuildNumber ? _self.minIosBuildNumber : minIosBuildNumber // ignore: cast_nullable_to_non_nullable
+as int,androidStoreUrl: freezed == androidStoreUrl ? _self.androidStoreUrl : androidStoreUrl // ignore: cast_nullable_to_non_nullable
+as String?,iosStoreUrl: freezed == iosStoreUrl ? _self.iosStoreUrl : iosStoreUrl // ignore: cast_nullable_to_non_nullable
+as String?,genres: null == genres ? _self._genres : genres // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,instruments: null == instruments ? _self._instruments : instruments // ignore: cast_nullable_to_non_nullable
+as List<ConfigItem>,productionRoles: null == productionRoles ? _self._productionRoles : productionRoles // ignore: cast_nullable_to_non_nullable
+as List<ConfigItem>,stageTechRoles: null == stageTechRoles ? _self._stageTechRoles : stageTechRoles // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,crewRoles: null == crewRoles ? _self._crewRoles : crewRoles // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,studioServices: null == studioServices ? _self._studioServices : studioServices // ignore: cast_nullable_to_non_nullable
 as List<ConfigItem>,professionalCategories: null == professionalCategories ? _self._professionalCategories : professionalCategories // ignore: cast_nullable_to_non_nullable

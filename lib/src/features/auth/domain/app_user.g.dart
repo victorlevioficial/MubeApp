@@ -38,6 +38,11 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
       const [],
   privacySettings:
       json['privacy_settings'] as Map<String, dynamic>? ?? const {},
+  musicLinks:
+      (json['music_links'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
   matchpointProfile: json['matchpoint_profile'] as Map<String, dynamic>?,
 );
 
@@ -62,6 +67,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'created_at': instance.createdAt,
   'blocked_users': instance.blockedUsers,
   'privacy_settings': instance.privacySettings,
+  'music_links': instance.musicLinks,
   'matchpoint_profile': instance.matchpointProfile,
 };
 

@@ -71,7 +71,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     _scrollController.addListener(_onScroll);
     _setupPrecacheListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(feedControllerProvider.notifier).loadAllData();
+      ref.read(feedControllerProvider.notifier).ensureLoaded();
     });
   }
 

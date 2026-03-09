@@ -70,6 +70,10 @@ class ProfileScreen extends ConsumerWidget {
           return 'Banda';
         case 'dj':
           return 'DJ';
+        case 'production':
+          return 'Produção Musical';
+        case 'stage_tech':
+          return 'Técnica de Palco';
         case 'crew':
           return 'Equipe Técnica';
         case 'other':

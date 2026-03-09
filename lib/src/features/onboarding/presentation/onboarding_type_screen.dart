@@ -50,7 +50,8 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
     {
       'value': 'profissional',
       'label': 'Perfil Individual',
-      'description': 'Cantor, instrumentista, DJ ou equipe técnica',
+      'description':
+          'Cantor, instrumentista, DJ, produção musical ou técnica de palco',
       'icon': FontAwesomeIcons.music,
     },
     {

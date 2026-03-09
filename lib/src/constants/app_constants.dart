@@ -8,8 +8,17 @@ const List<Map<String, dynamic>> professionalCategories = [
     'label': 'Instrumentista',
     'icon': FontAwesomeIcons.guitar,
   },
-  {'id': 'crew', 'label': 'Equipe Técnica', 'icon': FontAwesomeIcons.wrench},
   {'id': 'dj', 'label': 'DJ', 'icon': FontAwesomeIcons.compactDisc},
+  {
+    'id': 'production',
+    'label': 'Produção Musical',
+    'icon': FontAwesomeIcons.sliders,
+  },
+  {
+    'id': 'stage_tech',
+    'label': 'Técnica de Palco',
+    'icon': FontAwesomeIcons.wrench,
+  },
 ];
 
 // Gêneros Musicais
@@ -142,24 +151,8 @@ const List<String> instruments = [
   'Flugelhorn',
 ];
 
-// Funções de Equipe
-const List<String> crewRoles = [
-  'Técnico de PA',
-  'Técnico de Monitor',
-  'Técnico de RF',
-  'Técnico de Luz',
-  'VJ (Telão)',
-  'Técnico de LED (Painel)',
-  'Técnico de Teleprompter',
-  'Roadie',
-  'Stage Manager',
-  'Drum Tech',
-  'Guitar Tech',
-  'Bass Tech',
-  'Keyboard Tech',
-  'Backline Tech',
-  'Produtor',
-  'Diretor Musical',
+// Funções de Produção Musical
+const List<String> productionRoles = [
   'Produtor Musical',
   'Técnico de Gravação',
   'Edição de Áudio',
@@ -175,6 +168,31 @@ const List<String> crewRoles = [
   'Compositor',
   'Diretor Vocal',
 ];
+
+// Funções de Técnica de Palco
+const List<String> stageTechRoles = [
+  'Produtor Técnico',
+  'Produtor Artístico',
+  'Produtor Executivo',
+  'Técnico de PA',
+  'Técnico de Monitor',
+  'Técnico de RF',
+  'Técnico de Luz',
+  'VJ (Telão)',
+  'Técnico de LED (Painel)',
+  'Técnico de Teleprompter',
+  'Roadie',
+  'Stage Manager',
+  'Drum Tech',
+  'Guitar Tech',
+  'Bass Tech',
+  'Keyboard Tech',
+];
+
+@Deprecated(
+  'Use productionRoles and stageTechRoles. Kept for transition compatibility.',
+)
+const List<String> crewRoles = [...productionRoles, ...stageTechRoles];
 
 // Serviços de Estúdio
 const List<String> studioServices = [

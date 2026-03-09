@@ -18,7 +18,9 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/category_normalizer.dart';
 import '../../../../utils/instagram_utils.dart';
+import '../../../../utils/professional_profile_utils.dart';
 import '../../../auth/domain/app_user.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
@@ -29,7 +31,7 @@ import '../steps/professional_category_step.dart';
 ///
 /// Steps:
 /// 1. Basic Info (Name, Birth Date, Gender, Contact)
-/// 2. Category Selection (Singer, Instrumentalist, Crew, DJ)
+/// 2. Category Selection (Singer, Instrumentalist, DJ, Production, Stage Tech)
 /// 3. Specialization (based on selected categories)
 /// 4. Address
 ///
@@ -70,9 +72,38 @@ class _OnboardingProfessionalFlowState
   List<String> _selectedCategories = [];
   String _backingVocalMode = '0';
   bool _instrumentalistBackingVocal = false;
+  bool _offersRemoteRecording = false;
   List<String> _selectedInstruments = [];
   List<String> _selectedRoles = [];
   List<String> _selectedGenres = [];
+
+  List<String> get _selectedProductionRoles =>
+      CategoryNormalizer.filterProductionRoles(_selectedRoles);
+
+  List<String> get _selectedStageTechRoles =>
+      CategoryNormalizer.filterStageTechRoles(_selectedRoles);
+
+  void _updateProductionRoles(List<String> roles) {
+    setState(() {
+      _selectedRoles = [
+        ..._selectedRoles.where(
+          (role) => !CategoryNormalizer.isProductionRole(role),
+        ),
+        ...roles,
+      ];
+    });
+  }
+
+  void _updateStageTechRoles(List<String> roles) {
+    setState(() {
+      _selectedRoles = [
+        ..._selectedRoles.where(
+          (role) => !CategoryNormalizer.isStageTechRole(role),
+        ),
+        ...roles,
+      ];
+    });
+  }
 
   @override
   void initState() {
@@ -126,6 +157,7 @@ class _OnboardingProfessionalFlowState
     _selectedRoles = List.from(formState.selectedRoles);
     _backingVocalMode = formState.backingVocalMode;
     _instrumentalistBackingVocal = formState.instrumentalistBackingVocal;
+    _offersRemoteRecording = formState.offersRemoteRecording;
 
     // Fetch location preview
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -243,8 +275,13 @@ class _OnboardingProfessionalFlowState
       return false;
     }
 
-    // Crew must select roles
-    if (_selectedCategories.contains('crew') && _selectedRoles.isEmpty) {
+    if (_selectedCategories.contains('production') &&
+        _selectedProductionRoles.isEmpty) {
+      return false;
+    }
+
+    if (_selectedCategories.contains('stage_tech') &&
+        _selectedStageTechRoles.isEmpty) {
       return false;
     }
 
@@ -260,6 +297,12 @@ class _OnboardingProfessionalFlowState
     List<String> roleIds = _selectedRoles;
 
     if (appConfig != null) {
+      final professionalRoles = [
+        ...appConfig.productionRoles,
+        ...appConfig.stageTechRoles,
+        ...appConfig.crewRoles,
+      ];
+
       genreIds = _selectedGenres.map((label) {
         return appConfig.genres
             .firstWhere(
@@ -279,7 +322,7 @@ class _OnboardingProfessionalFlowState
       }).toList();
 
       roleIds = _selectedRoles.map((label) {
-        return appConfig.crewRoles
+        return professionalRoles
             .firstWhere(
               (r) => r.label == label,
               orElse: () => ConfigItem(id: label, label: label, order: 0),
@@ -310,9 +353,13 @@ class _OnboardingProfessionalFlowState
           _instrumentalistBackingVocal;
     }
 
-    if (_selectedCategories.contains('crew')) {
+    if (_selectedCategories.contains('production') ||
+        _selectedCategories.contains('stage_tech')) {
       professionalData['funcoes'] = roleIds;
     }
+
+    professionalData[professionalRemoteRecordingFieldKey] =
+        _selectedCategories.contains('production') && _offersRemoteRecording;
 
     final formState = ref.read(onboardingFormProvider);
 
@@ -637,29 +684,57 @@ class _OnboardingProfessionalFlowState
           ),
         ],
 
-        // Crew Section
-        if (_selectedCategories.contains('crew')) ...[
+        if (_selectedCategories.contains('production')) ...[
           const SizedBox(height: AppSpacing.s24),
           _buildSelectionSection(
-            title: 'Funções Técnicas *',
-            subtitle: _selectedRoles.isEmpty
-                ? 'Quais funções você desempenha?'
-                : '${_selectedRoles.length} função${_selectedRoles.length > 1 ? 'ões' : ''} selecionada${_selectedRoles.length > 1 ? 's' : ''}',
-            buttonText: _selectedRoles.isEmpty
+            title: 'Produção Musical *',
+            subtitle: _selectedProductionRoles.isEmpty
+                ? 'Quais funções de produção você desempenha?'
+                : '${_selectedProductionRoles.length} função${_selectedProductionRoles.length > 1 ? 'ões' : ''} selecionada${_selectedProductionRoles.length > 1 ? 's' : ''}',
+            buttonText: _selectedProductionRoles.isEmpty
                 ? 'Selecionar Funções'
                 : 'Editar Funções',
-            selectedItems: _selectedRoles,
+            selectedItems: _selectedProductionRoles,
             onTap: () async {
               final result = await EnhancedMultiSelectModal.show<String>(
                 context: context,
-                title: 'Funções Técnicas',
-                subtitle: 'Selecione suas áreas de atuação',
-                items: crewRoles,
-                selectedItems: _selectedRoles,
+                title: 'Produção Musical',
+                subtitle: 'Selecione suas funções de produção',
+                items: productionRoles,
+                selectedItems: _selectedProductionRoles,
                 searchHint: 'Buscar função...',
               );
               if (result != null) {
-                setState(() => _selectedRoles = result);
+                _updateProductionRoles(result);
+              }
+            },
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          _buildRemoteRecordingCheckbox(),
+        ],
+
+        if (_selectedCategories.contains('stage_tech')) ...[
+          const SizedBox(height: AppSpacing.s24),
+          _buildSelectionSection(
+            title: 'Técnica de Palco *',
+            subtitle: _selectedStageTechRoles.isEmpty
+                ? 'Quais funções técnicas você desempenha?'
+                : '${_selectedStageTechRoles.length} função${_selectedStageTechRoles.length > 1 ? 'ões' : ''} selecionada${_selectedStageTechRoles.length > 1 ? 's' : ''}',
+            buttonText: _selectedStageTechRoles.isEmpty
+                ? 'Selecionar Funções'
+                : 'Editar Funções',
+            selectedItems: _selectedStageTechRoles,
+            onTap: () async {
+              final result = await EnhancedMultiSelectModal.show<String>(
+                context: context,
+                title: 'Técnica de Palco',
+                subtitle: 'Selecione suas funções técnicas de palco',
+                items: stageTechRoles,
+                selectedItems: _selectedStageTechRoles,
+                searchHint: 'Buscar função...',
+              );
+              if (result != null) {
+                _updateStageTechRoles(result);
               }
             },
           ),
@@ -770,6 +845,44 @@ class _OnboardingProfessionalFlowState
                 selectedItems.isEmpty ? Icons.add : Icons.edit_outlined,
                 size: 18,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemoteRecordingCheckbox() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 1.2,
+            child: Checkbox(
+              value: _offersRemoteRecording,
+              activeColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.textSecondary, width: 2),
+              shape: const RoundedRectangleBorder(borderRadius: AppRadius.all4),
+              onChanged: (value) {
+                final enabled = value ?? false;
+                setState(() => _offersRemoteRecording = enabled);
+                ref
+                    .read(onboardingFormProvider.notifier)
+                    .updateOffersRemoteRecording(enabled);
+              },
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Text(
+              professionalRemoteRecordingCheckboxLabel,
+              style: AppTypography.bodyMedium,
             ),
           ),
         ],

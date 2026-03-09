@@ -5,10 +5,12 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../auth/domain/app_user.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_date_mode.dart';
 import '../../domain/gig_location_type.dart';
 import 'gig_compensation_chip.dart';
+import 'gig_creator_preview.dart';
 import 'gig_status_badge.dart';
 import 'gig_type_chip.dart';
 
@@ -16,11 +18,13 @@ class GigCard extends StatelessWidget {
   const GigCard({
     super.key,
     required this.gig,
+    this.creator,
     this.onTap,
     this.trailing,
   });
 
   final Gig gig;
+  final AppUser? creator;
   final VoidCallback? onTap;
   final Widget? trailing;
 
@@ -31,8 +35,8 @@ class GigCard extends StatelessWidget {
 
     final dateLabel = switch (gig.dateMode) {
       _ when gig.gigDate != null => DateFormat(
-          'dd/MM/yyyy HH:mm',
-        ).format(gig.gigDate!),
+        'dd/MM/yyyy HH:mm',
+      ).format(gig.gigDate!),
       GigDateMode.toBeArranged => 'A combinar',
       _ => 'Sem data',
     };
@@ -86,6 +90,10 @@ class GigCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s16),
+                if (creator != null) ...[
+                  GigCreatorPreview(creator: creator!, compact: true),
+                  const SizedBox(height: AppSpacing.s16),
+                ],
                 Text(
                   gig.description,
                   maxLines: 3,

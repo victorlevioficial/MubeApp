@@ -27,6 +27,8 @@ class GigApplicantsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Candidaturas'),
       body: applicationsAsync.when(
+        skipLoadingOnRefresh: false,
+        skipLoadingOnReload: false,
         loading: () => const _ApplicantsListSkeleton(),
         error: (error, _) => Center(child: Text('Erro: $error')),
         data: (applications) {
@@ -49,6 +51,8 @@ class GigApplicantsScreen extends ConsumerWidget {
           );
 
           return usersAsync.when(
+            skipLoadingOnRefresh: false,
+            skipLoadingOnReload: false,
             loading: () => const _ApplicantsListSkeleton(),
             error: (error, _) => Center(child: Text('Erro: $error')),
             data: (users) {

@@ -1,28 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../auth/data/auth_repository.dart';
-import 'chat_repository.dart';
 
-/// Provides the total count of unread messages for the current user.
-///
-/// Listens to the [userConversationsProvider] stream and sums up the 'unreadCount' field
-/// of each conversation preview.
-///
-/// Returns 0 if no user is logged in or if there are no unread messages.
-final unreadMessagesCountProvider = StreamProvider<int>((ref) {
-  final user = ref.watch(currentUserProfileProvider).value;
-  if (user == null) {
-    return Stream.value(0);
-  }
+import 'chat_providers.dart';
 
-  return ref.watch(chatRepositoryProvider).getUserConversations(user.uid).map((
-    previews,
-  ) {
-    int count = 0;
-    for (final preview in previews) {
-      if (preview.unreadCount > 0) {
-        count++;
-      }
+/// Total de conversas com mensagens não lidas.
+///
+/// Deriva do stream já compartilhado por [userConversationsProvider] para evitar
+/// um segundo listener redundante em `conversationPreviews`.
+final unreadMessagesCountProvider = Provider<int>((ref) {
+  final previews = ref.watch(userConversationsProvider).value ?? const [];
+  var count = 0;
+  for (final preview in previews) {
+    if (preview.unreadCount > 0) {
+      count++;
     }
-    return count;
-  });
+  }
+  return count;
 });

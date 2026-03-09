@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$FeedItem {
 
- String get uid; String get nome; String? get nomeArtistico; String? get foto; String? get categoria; List<String> get generosMusicais; String get tipoPerfil; Map<String, dynamic>? get location; int get likeCount; List<String> get skills; List<String> get subCategories;// @Default(false) bool isFavorited, // Removed
+ String get uid; String get nome; String? get nomeArtistico; String? get foto; String? get categoria; List<String> get generosMusicais; String get tipoPerfil; Map<String, dynamic>? get location; int get likeCount; List<String> get skills; List<String> get subCategories; bool get offersRemoteRecording;// @Default(false) bool isFavorited, // Removed
  double? get distanceKm;
 /// Create a copy of FeedItem
 /// with the given fields replaced by the non-null parameter values.
@@ -26,16 +26,16 @@ $FeedItemCopyWith<FeedItem> get copyWith => _$FeedItemCopyWithImpl<FeedItem>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedItem&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.nomeArtistico, nomeArtistico) || other.nomeArtistico == nomeArtistico)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.categoria, categoria) || other.categoria == categoria)&&const DeepCollectionEquality().equals(other.generosMusicais, generosMusicais)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&const DeepCollectionEquality().equals(other.location, location)&&(identical(other.likeCount, likeCount) || other.likeCount == likeCount)&&const DeepCollectionEquality().equals(other.skills, skills)&&const DeepCollectionEquality().equals(other.subCategories, subCategories)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FeedItem&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.nomeArtistico, nomeArtistico) || other.nomeArtistico == nomeArtistico)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.categoria, categoria) || other.categoria == categoria)&&const DeepCollectionEquality().equals(other.generosMusicais, generosMusicais)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&const DeepCollectionEquality().equals(other.location, location)&&(identical(other.likeCount, likeCount) || other.likeCount == likeCount)&&const DeepCollectionEquality().equals(other.skills, skills)&&const DeepCollectionEquality().equals(other.subCategories, subCategories)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,nome,nomeArtistico,foto,categoria,const DeepCollectionEquality().hash(generosMusicais),tipoPerfil,const DeepCollectionEquality().hash(location),likeCount,const DeepCollectionEquality().hash(skills),const DeepCollectionEquality().hash(subCategories),distanceKm);
+int get hashCode => Object.hash(runtimeType,uid,nome,nomeArtistico,foto,categoria,const DeepCollectionEquality().hash(generosMusicais),tipoPerfil,const DeepCollectionEquality().hash(location),likeCount,const DeepCollectionEquality().hash(skills),const DeepCollectionEquality().hash(subCategories),offersRemoteRecording,distanceKm);
 
 @override
 String toString() {
-  return 'FeedItem(uid: $uid, nome: $nome, nomeArtistico: $nomeArtistico, foto: $foto, categoria: $categoria, generosMusicais: $generosMusicais, tipoPerfil: $tipoPerfil, location: $location, likeCount: $likeCount, skills: $skills, subCategories: $subCategories, distanceKm: $distanceKm)';
+  return 'FeedItem(uid: $uid, nome: $nome, nomeArtistico: $nomeArtistico, foto: $foto, categoria: $categoria, generosMusicais: $generosMusicais, tipoPerfil: $tipoPerfil, location: $location, likeCount: $likeCount, skills: $skills, subCategories: $subCategories, offersRemoteRecording: $offersRemoteRecording, distanceKm: $distanceKm)';
 }
 
 
@@ -46,7 +46,7 @@ abstract mixin class $FeedItemCopyWith<$Res>  {
   factory $FeedItemCopyWith(FeedItem value, $Res Function(FeedItem) _then) = _$FeedItemCopyWithImpl;
 @useResult
 $Res call({
- String uid, String nome, String? nomeArtistico, String? foto, String? categoria, List<String> generosMusicais, String tipoPerfil, Map<String, dynamic>? location, int likeCount, List<String> skills, List<String> subCategories, double? distanceKm
+ String uid, String nome, String? nomeArtistico, String? foto, String? categoria, List<String> generosMusicais, String tipoPerfil, Map<String, dynamic>? location, int likeCount, List<String> skills, List<String> subCategories, bool offersRemoteRecording, double? distanceKm
 });
 
 
@@ -63,7 +63,7 @@ class _$FeedItemCopyWithImpl<$Res>
 
 /// Create a copy of FeedItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? nome = null,Object? nomeArtistico = freezed,Object? foto = freezed,Object? categoria = freezed,Object? generosMusicais = null,Object? tipoPerfil = null,Object? location = freezed,Object? likeCount = null,Object? skills = null,Object? subCategories = null,Object? distanceKm = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? uid = null,Object? nome = null,Object? nomeArtistico = freezed,Object? foto = freezed,Object? categoria = freezed,Object? generosMusicais = null,Object? tipoPerfil = null,Object? location = freezed,Object? likeCount = null,Object? skills = null,Object? subCategories = null,Object? offersRemoteRecording = null,Object? distanceKm = freezed,}) {
   return _then(_self.copyWith(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,nome: null == nome ? _self.nome : nome // ignore: cast_nullable_to_non_nullable
@@ -76,7 +76,8 @@ as String,location: freezed == location ? _self.location : location // ignore: c
 as Map<String, dynamic>?,likeCount: null == likeCount ? _self.likeCount : likeCount // ignore: cast_nullable_to_non_nullable
 as int,skills: null == skills ? _self.skills : skills // ignore: cast_nullable_to_non_nullable
 as List<String>,subCategories: null == subCategories ? _self.subCategories : subCategories // ignore: cast_nullable_to_non_nullable
-as List<String>,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
+as List<String>,offersRemoteRecording: null == offersRemoteRecording ? _self.offersRemoteRecording : offersRemoteRecording // ignore: cast_nullable_to_non_nullable
+as bool,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
 as double?,
   ));
 }
@@ -159,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  double? distanceKm)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  bool offersRemoteRecording,  double? distanceKm)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _FeedItem() when $default != null:
-return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.distanceKm);case _:
+return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.offersRemoteRecording,_that.distanceKm);case _:
   return orElse();
 
 }
@@ -180,10 +181,10 @@ return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.catego
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  double? distanceKm)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  bool offersRemoteRecording,  double? distanceKm)  $default,) {final _that = this;
 switch (_that) {
 case _FeedItem():
-return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.distanceKm);}
+return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.offersRemoteRecording,_that.distanceKm);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -197,10 +198,10 @@ return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.catego
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  double? distanceKm)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String uid,  String nome,  String? nomeArtistico,  String? foto,  String? categoria,  List<String> generosMusicais,  String tipoPerfil,  Map<String, dynamic>? location,  int likeCount,  List<String> skills,  List<String> subCategories,  bool offersRemoteRecording,  double? distanceKm)?  $default,) {final _that = this;
 switch (_that) {
 case _FeedItem() when $default != null:
-return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.distanceKm);case _:
+return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.categoria,_that.generosMusicais,_that.tipoPerfil,_that.location,_that.likeCount,_that.skills,_that.subCategories,_that.offersRemoteRecording,_that.distanceKm);case _:
   return null;
 
 }
@@ -212,7 +213,7 @@ return $default(_that.uid,_that.nome,_that.nomeArtistico,_that.foto,_that.catego
 
 
 class _FeedItem extends FeedItem {
-  const _FeedItem({required this.uid, required this.nome, this.nomeArtistico, this.foto, this.categoria, final  List<String> generosMusicais = const [], required this.tipoPerfil, final  Map<String, dynamic>? location, this.likeCount = 0, final  List<String> skills = const [], final  List<String> subCategories = const [], this.distanceKm}): _generosMusicais = generosMusicais,_location = location,_skills = skills,_subCategories = subCategories,super._();
+  const _FeedItem({required this.uid, required this.nome, this.nomeArtistico, this.foto, this.categoria, final  List<String> generosMusicais = const [], required this.tipoPerfil, final  Map<String, dynamic>? location, this.likeCount = 0, final  List<String> skills = const [], final  List<String> subCategories = const [], this.offersRemoteRecording = false, this.distanceKm}): _generosMusicais = generosMusicais,_location = location,_skills = skills,_subCategories = subCategories,super._();
   
 
 @override final  String uid;
@@ -252,6 +253,7 @@ class _FeedItem extends FeedItem {
   return EqualUnmodifiableListView(_subCategories);
 }
 
+@override@JsonKey() final  bool offersRemoteRecording;
 // @Default(false) bool isFavorited, // Removed
 @override final  double? distanceKm;
 
@@ -265,16 +267,16 @@ _$FeedItemCopyWith<_FeedItem> get copyWith => __$FeedItemCopyWithImpl<_FeedItem>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedItem&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.nomeArtistico, nomeArtistico) || other.nomeArtistico == nomeArtistico)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.categoria, categoria) || other.categoria == categoria)&&const DeepCollectionEquality().equals(other._generosMusicais, _generosMusicais)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&const DeepCollectionEquality().equals(other._location, _location)&&(identical(other.likeCount, likeCount) || other.likeCount == likeCount)&&const DeepCollectionEquality().equals(other._skills, _skills)&&const DeepCollectionEquality().equals(other._subCategories, _subCategories)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FeedItem&&(identical(other.uid, uid) || other.uid == uid)&&(identical(other.nome, nome) || other.nome == nome)&&(identical(other.nomeArtistico, nomeArtistico) || other.nomeArtistico == nomeArtistico)&&(identical(other.foto, foto) || other.foto == foto)&&(identical(other.categoria, categoria) || other.categoria == categoria)&&const DeepCollectionEquality().equals(other._generosMusicais, _generosMusicais)&&(identical(other.tipoPerfil, tipoPerfil) || other.tipoPerfil == tipoPerfil)&&const DeepCollectionEquality().equals(other._location, _location)&&(identical(other.likeCount, likeCount) || other.likeCount == likeCount)&&const DeepCollectionEquality().equals(other._skills, _skills)&&const DeepCollectionEquality().equals(other._subCategories, _subCategories)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.distanceKm, distanceKm) || other.distanceKm == distanceKm));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uid,nome,nomeArtistico,foto,categoria,const DeepCollectionEquality().hash(_generosMusicais),tipoPerfil,const DeepCollectionEquality().hash(_location),likeCount,const DeepCollectionEquality().hash(_skills),const DeepCollectionEquality().hash(_subCategories),distanceKm);
+int get hashCode => Object.hash(runtimeType,uid,nome,nomeArtistico,foto,categoria,const DeepCollectionEquality().hash(_generosMusicais),tipoPerfil,const DeepCollectionEquality().hash(_location),likeCount,const DeepCollectionEquality().hash(_skills),const DeepCollectionEquality().hash(_subCategories),offersRemoteRecording,distanceKm);
 
 @override
 String toString() {
-  return 'FeedItem(uid: $uid, nome: $nome, nomeArtistico: $nomeArtistico, foto: $foto, categoria: $categoria, generosMusicais: $generosMusicais, tipoPerfil: $tipoPerfil, location: $location, likeCount: $likeCount, skills: $skills, subCategories: $subCategories, distanceKm: $distanceKm)';
+  return 'FeedItem(uid: $uid, nome: $nome, nomeArtistico: $nomeArtistico, foto: $foto, categoria: $categoria, generosMusicais: $generosMusicais, tipoPerfil: $tipoPerfil, location: $location, likeCount: $likeCount, skills: $skills, subCategories: $subCategories, offersRemoteRecording: $offersRemoteRecording, distanceKm: $distanceKm)';
 }
 
 
@@ -285,7 +287,7 @@ abstract mixin class _$FeedItemCopyWith<$Res> implements $FeedItemCopyWith<$Res>
   factory _$FeedItemCopyWith(_FeedItem value, $Res Function(_FeedItem) _then) = __$FeedItemCopyWithImpl;
 @override @useResult
 $Res call({
- String uid, String nome, String? nomeArtistico, String? foto, String? categoria, List<String> generosMusicais, String tipoPerfil, Map<String, dynamic>? location, int likeCount, List<String> skills, List<String> subCategories, double? distanceKm
+ String uid, String nome, String? nomeArtistico, String? foto, String? categoria, List<String> generosMusicais, String tipoPerfil, Map<String, dynamic>? location, int likeCount, List<String> skills, List<String> subCategories, bool offersRemoteRecording, double? distanceKm
 });
 
 
@@ -302,7 +304,7 @@ class __$FeedItemCopyWithImpl<$Res>
 
 /// Create a copy of FeedItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? nome = null,Object? nomeArtistico = freezed,Object? foto = freezed,Object? categoria = freezed,Object? generosMusicais = null,Object? tipoPerfil = null,Object? location = freezed,Object? likeCount = null,Object? skills = null,Object? subCategories = null,Object? distanceKm = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uid = null,Object? nome = null,Object? nomeArtistico = freezed,Object? foto = freezed,Object? categoria = freezed,Object? generosMusicais = null,Object? tipoPerfil = null,Object? location = freezed,Object? likeCount = null,Object? skills = null,Object? subCategories = null,Object? offersRemoteRecording = null,Object? distanceKm = freezed,}) {
   return _then(_FeedItem(
 uid: null == uid ? _self.uid : uid // ignore: cast_nullable_to_non_nullable
 as String,nome: null == nome ? _self.nome : nome // ignore: cast_nullable_to_non_nullable
@@ -315,7 +317,8 @@ as String,location: freezed == location ? _self._location : location // ignore: 
 as Map<String, dynamic>?,likeCount: null == likeCount ? _self.likeCount : likeCount // ignore: cast_nullable_to_non_nullable
 as int,skills: null == skills ? _self._skills : skills // ignore: cast_nullable_to_non_nullable
 as List<String>,subCategories: null == subCategories ? _self._subCategories : subCategories // ignore: cast_nullable_to_non_nullable
-as List<String>,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
+as List<String>,offersRemoteRecording: null == offersRemoteRecording ? _self.offersRemoteRecording : offersRemoteRecording // ignore: cast_nullable_to_non_nullable
+as bool,distanceKm: freezed == distanceKm ? _self.distanceKm : distanceKm // ignore: cast_nullable_to_non_nullable
 as double?,
   ));
 }

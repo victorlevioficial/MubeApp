@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:diacritic/diacritic.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../constants/app_constants.dart' as fallback;
@@ -28,7 +29,7 @@ class AppConfigRepository {
       final doc = await _firestore.collection('config').doc('app_data').get();
 
       if (doc.exists && doc.data() != null) {
-        final config = AppConfig.fromJson(doc.data()!);
+        final config = _normalizeConfig(AppConfig.fromJson(doc.data()!));
         await _saveToCache(config);
         return config;
       }
@@ -60,7 +61,7 @@ class AppConfigRepository {
       final prefs = await _loadPreferences();
       final json = prefs.getString(_cacheKey);
       if (json != null) {
-        return AppConfig.fromJson(jsonDecode(json));
+        return _normalizeConfig(AppConfig.fromJson(jsonDecode(json)));
       }
     } catch (e) {
       // print('Erro lendo cache: $e');
@@ -69,12 +70,35 @@ class AppConfigRepository {
   }
 
   AppConfig _buildFallbackConfig() {
+    final productionRoles = fallback.productionRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: fallback.productionRoles.indexOf(r),
+          ),
+        )
+        .toList();
+    final stageTechRoles = fallback.stageTechRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: fallback.stageTechRoles.indexOf(r),
+          ),
+        )
+        .toList();
+
     return AppConfig(
       version: 0,
+      minAndroidBuildNumber: 0,
+      minIosBuildNumber: 0,
+      androidStoreUrl: null,
+      iosStoreUrl: null,
       genres: fallback.genres
           .map(
             (g) => ConfigItem(
-              id: g.toLowerCase().replaceAll(' ', '_'),
+              id: _toId(g),
               label: g,
               order: fallback.genres.indexOf(g),
             ),
@@ -83,16 +107,18 @@ class AppConfigRepository {
       instruments: fallback.instruments
           .map(
             (i) => ConfigItem(
-              id: i.toLowerCase().replaceAll(' ', '_'),
+              id: _toId(i),
               label: i,
               order: fallback.instruments.indexOf(i),
             ),
           )
           .toList(),
+      productionRoles: productionRoles,
+      stageTechRoles: stageTechRoles,
       crewRoles: fallback.crewRoles
           .map(
             (r) => ConfigItem(
-              id: r.toLowerCase().replaceAll(' ', '_'),
+              id: _toId(r),
               label: r,
               order: fallback.crewRoles.indexOf(r),
             ),
@@ -101,7 +127,7 @@ class AppConfigRepository {
       studioServices: fallback.studioServices
           .map(
             (s) => ConfigItem(
-              id: s.toLowerCase().replaceAll(' ', '_'),
+              id: _toId(s),
               label: s,
               order: fallback.studioServices.indexOf(s),
             ),
@@ -119,6 +145,87 @@ class AppConfigRepository {
           .toList(),
     );
   }
+
+  AppConfig _normalizeConfig(AppConfig config) {
+    final fallbackConfig = _buildFallbackConfig();
+
+    final productionRoles = config.productionRoles.isNotEmpty
+        ? config.productionRoles
+        : _pickRolesFromUnion(
+            config.crewRoles,
+            fallback.productionRoles,
+          ).ifEmpty(fallbackConfig.productionRoles);
+    final stageTechRoles = config.stageTechRoles.isNotEmpty
+        ? config.stageTechRoles
+        : _pickRolesFromUnion(
+            config.crewRoles,
+            fallback.stageTechRoles,
+          ).ifEmpty(fallbackConfig.stageTechRoles);
+
+    final crewRoles = config.crewRoles.isNotEmpty
+        ? config.crewRoles
+        : [...productionRoles, ...stageTechRoles];
+
+    final categoryIds = config.professionalCategories.map((c) => c.id).toSet();
+    final hasSplitCategories =
+        categoryIds.contains('production') &&
+        categoryIds.contains('stage_tech');
+
+    return config.copyWith(
+      minAndroidBuildNumber: _normalizeMinimumBuildNumber(
+        config.minAndroidBuildNumber,
+      ),
+      minIosBuildNumber: _normalizeMinimumBuildNumber(config.minIosBuildNumber),
+      androidStoreUrl: _normalizeStoreUrl(config.androidStoreUrl),
+      iosStoreUrl: _normalizeStoreUrl(config.iosStoreUrl),
+      productionRoles: productionRoles,
+      stageTechRoles: stageTechRoles,
+      crewRoles: crewRoles,
+      professionalCategories: hasSplitCategories
+          ? config.professionalCategories
+          : fallbackConfig.professionalCategories,
+    );
+  }
+
+  List<ConfigItem> _pickRolesFromUnion(
+    List<ConfigItem> source,
+    List<String> targetLabels,
+  ) {
+    if (source.isEmpty) return const [];
+
+    final wanted = targetLabels.map(_toId).toSet();
+    return source.where((item) {
+      final itemId = _toId(item.id);
+      final labelId = _toId(item.label);
+      return wanted.contains(itemId) || wanted.contains(labelId);
+    }).toList();
+  }
+
+  String _toId(Object? value) {
+    return removeDiacritics(value.toString())
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+  }
+
+  int _normalizeMinimumBuildNumber(int value) {
+    if (value < 0) return 0;
+    return value;
+  }
+
+  String? _normalizeStoreUrl(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+    return normalized;
+  }
+}
+
+extension _ConfigItemListCompat on List<ConfigItem> {
+  List<ConfigItem> ifEmpty(List<ConfigItem> fallback) =>
+      isEmpty ? fallback : this;
 }
 
 @Riverpod(keepAlive: true)

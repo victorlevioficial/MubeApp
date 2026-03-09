@@ -14,6 +14,7 @@ import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/profile/presentation/edit_profile/widgets/forms/music_links_form.dart';
 import 'package:mube/src/features/profile/presentation/edit_profile_screen.dart';
 import 'package:mube/src/features/profile/presentation/profile_controller.dart';
 import 'package:mube/src/features/profile/presentation/profile_screen.dart';
@@ -416,6 +417,189 @@ void main() {
         // Assert
         expect(find.byType(EditProfileScreen), findsOneWidget);
       });
+
+      testWidgets('should navigate to music links tab when a link is invalid', (
+        tester,
+      ) async {
+        const testUser = AppUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          nome: 'John Doe',
+          tipoPerfil: AppUserType.professional,
+          cadastroStatus: 'concluido',
+          dadosProfissional: {
+            'nomeArtistico': 'John',
+            'celular': '(11) 99999-9999',
+            'categorias': ['singer'],
+            'generosMusicais': ['Rock'],
+          },
+        );
+
+        when(
+          mockAuthDataSource.watchUserProfile('test-uid'),
+        ).thenAnswer((_) => Stream.value(testUser));
+        when(
+          mockAuthDataSource.currentUser,
+        ).thenReturn(MockUser(uid: 'test-uid'));
+
+        await tester.pumpApp(
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.tap(find.text('Links Musicais'));
+        await tester.pumpAndSettle();
+
+        final musicLinksFields = find.descendant(
+          of: find.byType(MusicLinksForm),
+          matching: find.byType(TextFormField),
+        );
+
+        await tester.enterText(
+          musicLinksFields.first,
+          'https://google.com/artist/test',
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Perfil'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Salvar Alterações'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Use um link válido do Spotify.'), findsWidgets);
+        expect(find.text('Links Musicais'), findsWidgets);
+      });
+
+      testWidgets('should show shortened media tab label', (tester) async {
+        const testUser = AppUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          nome: 'John Doe',
+          tipoPerfil: AppUserType.professional,
+          cadastroStatus: 'concluido',
+          dadosProfissional: {
+            'nomeArtistico': 'John',
+            'celular': '(11) 99999-9999',
+            'categorias': ['singer'],
+            'generosMusicais': ['Rock'],
+          },
+        );
+
+        when(
+          mockAuthDataSource.watchUserProfile('test-uid'),
+        ).thenAnswer((_) => Stream.value(testUser));
+        when(
+          mockAuthDataSource.currentUser,
+        ).thenReturn(MockUser(uid: 'test-uid'));
+
+        await tester.pumpApp(
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Mídia'), findsOneWidget);
+        expect(find.text('Mídia & Portfólio'), findsNothing);
+      });
+
+      testWidgets('should keep music links tab selected while saving', (
+        tester,
+      ) async {
+        const testUser = AppUser(
+          uid: 'test-uid',
+          email: 'test@example.com',
+          nome: 'John Doe',
+          tipoPerfil: AppUserType.professional,
+          cadastroStatus: 'concluido',
+          dadosProfissional: {
+            'nomeArtistico': 'John',
+            'celular': '(11) 99999-9999',
+            'categorias': ['singer'],
+            'generosMusicais': ['Rock'],
+          },
+        );
+        final saveCompleter = Completer<void>();
+
+        addTearDown(() {
+          if (!saveCompleter.isCompleted) {
+            saveCompleter.complete();
+          }
+        });
+
+        when(
+          mockAuthDataSource.watchUserProfile('test-uid'),
+        ).thenAnswer((_) => Stream.value(testUser));
+        when(
+          mockAuthDataSource.currentUser,
+        ).thenReturn(MockUser(uid: 'test-uid'));
+        when(mockAuthDataSource.updateUserProfile(any)).thenAnswer((_) async {
+          await saveCompleter.future;
+        });
+
+        await tester.pumpApp(
+          const EditProfileScreen(),
+          overrides: [
+            authRepositoryProvider.overrideWithValue(
+              AuthRepository(mockAuthDataSource),
+            ),
+            authRemoteDataSourceProvider.overrideWithValue(mockAuthDataSource),
+            analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(mockAuthDataSource.currentUser),
+            ),
+          ],
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await tester.tap(find.text('Links Musicais'));
+        await tester.pumpAndSettle();
+
+        final musicLinksFields = find.descendant(
+          of: find.byType(MusicLinksForm),
+          matching: find.byType(TextFormField),
+        );
+
+        await tester.enterText(
+          musicLinksFields.first,
+          'https://open.spotify.com/artist/test',
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Salvar Alterações'));
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final tabBar = tester.widget<TabBar>(find.byType(TabBar));
+        expect(tabBar.controller?.index, 2);
+
+        saveCompleter.complete();
+        await tester.pumpAndSettle();
+      });
     });
 
     group('Profile Image', () {
@@ -737,7 +921,7 @@ void main() {
           cadastroStatus: 'concluido',
           dadosProfissional: {
             'nomeArtistico': 'Johnny Rock',
-            'categorias': ['singer', 'instrumentalist', 'crew'],
+            'categorias': ['singer', 'instrumentalist', 'stage_tech'],
             'instrumentos': ['guitar', 'piano', 'drums'],
             'funcoes': ['sound_engineer', 'lighting_technician'],
             'generosMusicais': ['rock', 'pop', 'jazz'],

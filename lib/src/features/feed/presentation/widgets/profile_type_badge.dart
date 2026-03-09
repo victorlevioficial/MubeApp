@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/category_normalizer.dart';
 
 /// Determines the profile classification based on selected categories.
 enum ProfileClassification {
   musician, // Cantor/Instrumentista without technical crew
-  professional, // Has technical crew category
+  technician, // Pure stage technician
   band,
   studio,
 }
@@ -57,11 +58,11 @@ class ProfileTypeBadge extends StatelessWidget {
       case 'estudio':
         return ProfileClassification.studio;
       case 'profissional':
-        final hasTechnicalCrew = subCategories
-            .map(_normalizeCategory)
-            .contains('crew');
-        return hasTechnicalCrew
-            ? ProfileClassification.professional
+        return CategoryNormalizer.isPureTechnician(
+              rawCategories: subCategories,
+              rawRoles: const [],
+            )
+            ? ProfileClassification.technician
             : ProfileClassification.musician;
       default:
         return ProfileClassification.musician;
@@ -74,41 +75,12 @@ class ProfileTypeBadge extends StatelessWidget {
     switch (classification) {
       case ProfileClassification.musician:
         return ('Músico', Icons.music_note, AppColors.badgeMusician);
-      case ProfileClassification.professional:
-        return ('Profissional', Icons.music_note, AppColors.badgeMusician);
+      case ProfileClassification.technician:
+        return ('Técnico', Icons.build_rounded, AppColors.badgeMusician);
       case ProfileClassification.band:
         return ('Banda', Icons.groups, AppColors.badgeBand);
       case ProfileClassification.studio:
         return ('Estúdio', Icons.headphones, AppColors.badgeStudio);
     }
-  }
-
-  String _normalizeCategory(String value) {
-    final normalized = value
-        .toLowerCase()
-        .replaceAll('á', 'a')
-        .replaceAll('à', 'a')
-        .replaceAll('â', 'a')
-        .replaceAll('ã', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('ê', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ô', 'o')
-        .replaceAll('õ', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ç', 'c')
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
-
-    if (normalized == 'crew' ||
-        normalized == 'equipe_tecnica' ||
-        normalized == 'tecnico' ||
-        normalized == 'tecnica') {
-      return 'crew';
-    }
-
-    return normalized;
   }
 }

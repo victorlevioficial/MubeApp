@@ -1,7 +1,7 @@
 class LegalContent {
   static const String termsOfUse = '''
 # Termos de Uso
-**Aplicativo MUBE** • Última atualização: 22 de fevereiro de 2026
+**Aplicativo MUBE** • Última atualização: 9 de março de 2026
 
 ---
 
@@ -229,7 +229,7 @@ O Serviço envia notificações push sobre matches, mensagens, atualizações e 
 ## 11. SERVIÇOS DE TERCEIROS
 
 11.1. O MUBE utiliza serviços de terceiros para viabilizar o funcionamento da plataforma, incluindo, mas não se limitando a:
-> • **Firebase/Google:** autenticação (Firebase Auth), banco de dados (Cloud Firestore), armazenamento de mídia (Cloud Storage), análise de uso (Firebase Analytics), monitoramento de erros (Firebase Crashlytics), notificações push (Firebase Cloud Messaging), configuração remota (Firebase Remote Config) e funções serverless (Cloud Functions).
+> • **Firebase/Google:** autenticação (Firebase Auth), banco de dados (Cloud Firestore), armazenamento de mídia (Cloud Storage), análise de uso (Firebase Analytics), monitoramento de desempenho (Firebase Performance Monitoring), monitoramento de erros (Firebase Crashlytics), notificações push (Firebase Cloud Messaging), configuração remota (Firebase Remote Config) e funções serverless (Cloud Functions).
 
 11.2. O uso destes serviços está sujeito às suas próprias políticas e termos, disponíveis nos respectivos websites.
 
@@ -344,7 +344,7 @@ Em caso de dúvidas, reclamações ou sugestões sobre estes Termos de Uso:
 
   static const String privacyPolicy = '''
 # Política de Privacidade
-**Aplicativo MUBE** • Última atualização: 22 de fevereiro de 2026
+**Aplicativo MUBE** • Última atualização: 9 de março de 2026
 
 ---
 
@@ -486,7 +486,7 @@ Coletamos dados pessoais conforme a interação do usuário com o Serviço. As c
 | Dado | Finalidade |
 |------|-----------|
 | Eventos de uso e telas acessadas | Melhoria do produto |
-| Métricas de desempenho | Estabilidade e performance |
+| Métricas de desempenho | Estabilidade, latência técnica e performance (via Firebase Performance Monitoring) |
 | Endereço IP | Segurança e diagnóstico |
 | Tipo, modelo e versão do dispositivo | Compatibilidade e diagnóstico |
 | Sistema operacional e versão | Compatibilidade |
@@ -550,6 +550,7 @@ Tratamos dados pessoais para as seguintes finalidades, conforme bases legais pre
 **Base legal:** legítimo interesse (art. 7º, IX, LGPD)
 
 > • Analisar uso do aplicativo para melhorar recursos, desempenho e estabilidade (Firebase Analytics);
+> • Monitorar desempenho técnico, tempo de inicialização e latência de rede para identificar gargalos e degradações do aplicativo (Firebase Performance Monitoring);
 > • Diagnosticar e corrigir erros e falhas (Firebase Crashlytics);
 > • Identificar tendências e padrões de uso;
 > • Ajustar dinamicamente funcionalidades e configurações (Firebase Remote Config).
@@ -582,6 +583,7 @@ Para suporte técnico, hospedagem, análise de uso e segurança, sempre sob cont
 | **Cloud Firestore (Google)** | Banco de dados | Dados de perfil, interações, preferências |
 | **Cloud Storage (Google)** | Armazenamento de mídia | Fotos, imagens de perfil |
 | **Firebase Analytics (Google)** | Análise de uso | Eventos de uso, dados de dispositivo |
+| **Firebase Performance Monitoring (Google)** | Monitoramento de performance | Métricas de inicialização, latência de rede e dados técnicos de dispositivo/sessão |
 | **Firebase Crashlytics (Google)** | Monitoramento de erros | Logs de erro, stack traces, dados de dispositivo |
 | **Firebase Cloud Messaging (Google)** | Notificações push | Tokens de notificação, dados de mensagem |
 | **Firebase Remote Config (Google)** | Configuração remota | Identificadores de sessão |
@@ -746,7 +748,7 @@ Imagens e arquivos enviados pelos usuários podem passar por processos automáti
 
 14.1. O aplicativo MUBE, por ser um aplicativo móvel nativo, **não utiliza cookies de navegador**. Entretanto, podem ser utilizados identificadores técnicos e tokens de sessão para manutenção da autenticação e do funcionamento do Serviço.
 
-14.2. Os SDKs de terceiros integrados ao aplicativo (Firebase Analytics, Crashlytics) podem utilizar identificadores de dispositivo para fins de análise e diagnóstico, conforme suas respectivas políticas de privacidade.
+14.2. Os SDKs de terceiros integrados ao aplicativo (Firebase Analytics, Firebase Performance Monitoring e Crashlytics) podem utilizar identificadores de dispositivo para fins de análise, diagnóstico e monitoramento técnico, conforme suas respectivas políticas de privacidade.
 
 ---
 

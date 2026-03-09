@@ -21,8 +21,8 @@ class FeedSection {
   static const List<FeedSection> homeSections = [
     FeedSection(
       type: FeedSectionType.technicians,
-      title: 'Equipe técnica',
-      filterValue: 'crew',
+      title: 'Técnicos',
+      filterValue: 'stage_tech',
     ),
     FeedSection(
       type: FeedSectionType.bands,

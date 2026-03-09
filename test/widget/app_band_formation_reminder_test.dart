@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/app.dart';
+import 'package:mube/src/core/providers/app_update_provider.dart';
 import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
+import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/routing/app_router.dart';
 import 'package:mube/src/routing/route_paths.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -159,6 +161,8 @@ class _ReminderAppHarness {
         currentUserProfileProvider.overrideWith(
           (ref) => _profileController.stream,
         ),
+        appUpdateNoticeProvider.overrideWith((ref) async => null),
+        pendingGigReviewsProvider.overrideWith((ref) async => const []),
         feedControllerProvider.overrideWith(_StubFeedController.new),
         connectivityProvider.overrideWith(
           (ref) => Stream.value(ConnectivityStatus.online),

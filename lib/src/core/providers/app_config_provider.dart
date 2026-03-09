@@ -41,6 +41,24 @@ List<String> crewRoleLabels(Ref ref) {
 }
 
 @riverpod
+List<String> productionRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.productionRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
+List<String> stageTechRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.stageTechRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
 List<String> studioServiceLabels(Ref ref) {
   final config = ref.watch(appConfigProvider);
   return config.maybeWhen(

@@ -144,20 +144,16 @@ class SearchController extends Notifier<SearchPaginationState> {
     ref.listen(currentUserProfileProvider, (prev, next) {
       final previousUser = prev?.value;
       final nextUser = next.value;
-      if (_didSearchContextChange(previousUser, nextUser)) {
-        _performSearch();
+      if (_didSearchContextChange(previousUser, nextUser) &&
+          _shouldRunSearch(state.filters)) {
+        unawaited(_performSearch());
       }
     });
 
     ref.listen(blockedUsersProvider, (prev, next) {
-      if (prev != next) {
-        _performSearch();
+      if (prev != next && _shouldRunSearch(state.filters)) {
+        unawaited(_performSearch());
       }
-    });
-
-    Future.microtask(() {
-      if (!_mounted) return;
-      _performSearch();
     });
 
     return SearchPaginationState(userLat: lat, userLng: lng);
@@ -184,15 +180,34 @@ class SearchController extends Notifier<SearchPaginationState> {
     return !setEquals(previousBlocked, nextBlocked);
   }
 
+  bool _shouldRunSearch(SearchFilters filters) {
+    return filters.term.trim().isNotEmpty ||
+        filters.hasActiveFilters ||
+        filters.category != SearchCategory.all;
+  }
+
   void _setFilters(SearchFilters filters, {bool debounced = false}) {
     final nextFilters = filters.sanitizedForSearch();
+    final shouldRunSearch = _shouldRunSearch(nextFilters);
     _updateState(
       state.copyWithSearch(
         filters: nextFilters,
         effectiveFilters: nextFilters,
+        items: shouldRunSearch ? state.items : const [],
+        status: shouldRunSearch ? state.status : PaginationStatus.initial,
+        hasMore: shouldRunSearch ? state.hasMore : false,
+        currentPage: shouldRunSearch ? state.currentPage : 0,
         clearError: true,
+        clearLastDocument: !shouldRunSearch,
       ),
     );
+
+    if (!shouldRunSearch) {
+      _debounceTimer?.cancel();
+      _homeDistanceSnapshot.clear();
+      _useHomeDistancePagination = false;
+      return;
+    }
 
     if (debounced) {
       _debouncedSearch();
@@ -285,6 +300,7 @@ class SearchController extends Notifier<SearchPaginationState> {
   }
 
   Future<void> refresh() async {
+    if (!_shouldRunSearch(state.filters)) return;
     await _performSearch();
   }
 
@@ -406,6 +422,24 @@ class SearchController extends Notifier<SearchPaginationState> {
   Future<void> _performSearch() async {
     final requestId = ++_currentRequestId;
     final requestedFilters = state.filters.sanitizedForSearch();
+    if (!_shouldRunSearch(requestedFilters)) {
+      _debounceTimer?.cancel();
+      _homeDistanceSnapshot.clear();
+      _useHomeDistancePagination = false;
+      _updateState(
+        state.copyWithSearch(
+          filters: requestedFilters,
+          effectiveFilters: requestedFilters,
+          items: const [],
+          status: PaginationStatus.initial,
+          hasMore: false,
+          currentPage: 0,
+          clearError: true,
+          clearLastDocument: true,
+        ),
+      );
+      return;
+    }
     final user = ref.read(currentUserProfileProvider).value;
     final blockedUsers = await _resolveBlockedUsers(user);
 

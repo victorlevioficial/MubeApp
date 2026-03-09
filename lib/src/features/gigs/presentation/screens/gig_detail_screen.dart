@@ -28,6 +28,7 @@ import '../../domain/gig_status.dart';
 import '../controllers/gig_actions_controller.dart';
 import '../providers/gig_streams.dart';
 import '../widgets/gig_compensation_chip.dart';
+import '../widgets/gig_creator_preview.dart';
 import '../widgets/gig_status_badge.dart';
 import '../widgets/gig_type_chip.dart';
 
@@ -39,8 +40,6 @@ class GigDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gigAsync = ref.watch(gigDetailProvider(gigId));
-    final myApplicationsAsync = ref.watch(myApplicationsProvider);
-    final currentUserAsync = ref.watch(currentUserProfileProvider);
     final appConfigAsync = ref.watch(appConfigProvider);
 
     return Scaffold(
@@ -54,16 +53,10 @@ class GigDetailScreen extends ConsumerWidget {
             return const Center(child: Text('Gig nao encontrada.'));
           }
 
-          final currentUser = currentUserAsync.asData?.value;
-          final applications = myApplicationsAsync.asData?.value ?? const [];
-          GigApplication? myApplication;
-          for (final application in applications) {
-            if (application.gigId == gig.id) {
-              myApplication = application;
-              break;
-            }
-          }
-          final isCreator = currentUser?.uid == gig.creatorId;
+          final creatorAsync = ref.watch(
+            gigUsersByStableIdsProvider(encodeGigUserIdsKey([gig.creatorId])),
+          );
+          final creator = creatorAsync.asData?.value[gig.creatorId];
 
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.s16),
@@ -84,6 +77,10 @@ class GigDetailScreen extends ConsumerWidget {
                   GigCompensationChip(gig: gig),
                 ],
               ),
+              if (creator != null) ...[
+                const SizedBox(height: AppSpacing.s16),
+                GigCreatorPreview(creator: creator),
+              ],
               const SizedBox(height: AppSpacing.s20),
               _DetailCard(
                 child: Column(
@@ -151,35 +148,19 @@ class GigDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.s20),
-              if (myApplicationsAsync.isLoading || currentUserAsync.isLoading)
-                const _ActionPanelSkeleton()
-              else
-                _ActionPanel(
-                  gig: gig,
-                  isCreator: isCreator,
-                  myApplication: myApplication,
-                  onApply: () => _showApplyDialog(context, ref, gig.id),
-                  onWithdraw: myApplication == null
-                      ? null
-                      : () => _withdraw(context, ref, gig.id),
-                  onViewApplicants: () =>
-                      context.push(RoutePaths.gigApplicantsById(gig.id)),
-                  onCloseGig: () => _confirmCloseGig(context, ref, gig.id),
-                  onCancelGig: () => _confirmCancelGig(context, ref, gig.id),
-                  onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
-                  onEditDescriptionOnly: gig.canEditDescriptionOnly
-                      ? () => _showEditDescriptionDialog(context, ref, gig)
-                      : null,
-                  onOpenChat: () {
-                    if (myApplication == null) return;
-                    final otherUserId = isCreator
-                        ? myApplication.applicantId
-                        : gig.creatorId;
-                    ref
-                        .read(gigActionsControllerProvider.notifier)
-                        .openConversation(context, otherUserId: otherUserId);
-                  },
-                ),
+              _ActionPanelSection(
+                gig: gig,
+                onApply: () => _showApplyDialog(context, ref, gig.id),
+                onWithdraw: () => _withdraw(context, ref, gig.id),
+                onViewApplicants: () =>
+                    context.push(RoutePaths.gigApplicantsById(gig.id)),
+                onCloseGig: () => _confirmCloseGig(context, ref, gig.id),
+                onCancelGig: () => _confirmCancelGig(context, ref, gig.id),
+                onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
+                onEditDescriptionOnly: gig.canEditDescriptionOnly
+                    ? () => _showEditDescriptionDialog(context, ref, gig)
+                    : null,
+              ),
             ],
           );
         },
@@ -561,6 +542,77 @@ class _RequirementsSectionSkeleton extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ActionPanelSection extends ConsumerWidget {
+  const _ActionPanelSection({
+    required this.gig,
+    required this.onApply,
+    required this.onWithdraw,
+    required this.onViewApplicants,
+    required this.onCloseGig,
+    required this.onCancelGig,
+    required this.onEdit,
+    required this.onEditDescriptionOnly,
+  });
+
+  final Gig gig;
+  final VoidCallback onApply;
+  final VoidCallback onWithdraw;
+  final VoidCallback onViewApplicants;
+  final VoidCallback onCloseGig;
+  final VoidCallback onCancelGig;
+  final VoidCallback onEdit;
+  final VoidCallback? onEditDescriptionOnly;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authUserAsync = ref.watch(authStateChangesProvider);
+    if (authUserAsync.isLoading) {
+      return const _ActionPanelSkeleton();
+    }
+
+    final currentUserId = authUserAsync.asData?.value?.uid;
+    final isCreator = currentUserId == gig.creatorId;
+    GigApplication? myApplication;
+
+    if (!isCreator) {
+      final myApplicationsAsync = ref.watch(myApplicationsProvider);
+      if (myApplicationsAsync.isLoading) {
+        return const _ActionPanelSkeleton();
+      }
+
+      final applications = myApplicationsAsync.asData?.value ?? const [];
+      for (final application in applications) {
+        if (application.gigId == gig.id) {
+          myApplication = application;
+          break;
+        }
+      }
+    }
+
+    return _ActionPanel(
+      gig: gig,
+      isCreator: isCreator,
+      myApplication: myApplication,
+      onApply: onApply,
+      onWithdraw: myApplication == null ? null : onWithdraw,
+      onViewApplicants: onViewApplicants,
+      onCloseGig: onCloseGig,
+      onCancelGig: onCancelGig,
+      onEdit: onEdit,
+      onEditDescriptionOnly: onEditDescriptionOnly,
+      onOpenChat: () {
+        if (myApplication == null) return;
+        final otherUserId = isCreator
+            ? myApplication!.applicantId
+            : gig.creatorId;
+        ref
+            .read(gigActionsControllerProvider.notifier)
+            .openConversation(context, otherUserId: otherUserId);
+      },
     );
   }
 }

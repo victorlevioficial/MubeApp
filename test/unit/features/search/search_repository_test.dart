@@ -158,5 +158,73 @@ void main() {
         expect(r.hasMore, false);
       });
     });
+
+    test(
+      'should match legacy crew profile when filtering production',
+      () async {
+        await fakeFirestore.collection('users').doc('producer-1').set({
+          'nome': 'Produtor',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Produtor Legacy',
+            'categorias': ['crew'],
+            'funcoes': ['Diretor Musical'],
+            'generosMusicais': ['rock'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        const filters = SearchFilters(
+          category: SearchCategory.professionals,
+          professionalSubcategory: ProfessionalSubcategory.production,
+        );
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 6,
+          getCurrentRequestId: () => 6,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('producer-1'));
+        });
+      },
+    );
+
+    test(
+      'should match legacy crew profile when filtering stage tech',
+      () async {
+        await fakeFirestore.collection('users').doc('tech-1').set({
+          'nome': 'Tecnico',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Tecnico Legacy',
+            'categorias': ['crew'],
+            'funcoes': ['Backline Tech'],
+            'generosMusicais': ['rock'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        const filters = SearchFilters(
+          category: SearchCategory.professionals,
+          professionalSubcategory: ProfessionalSubcategory.stageTech,
+        );
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 7,
+          getCurrentRequestId: () => 7,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('tech-1'));
+        });
+      },
+    );
   });
 }
