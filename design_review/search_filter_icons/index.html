@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Review de Icones da Busca</title>
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --surface: #151515;
+        --surface-2: #1d1d1d;
+        --surface-3: #242424;
+        --border: #2c2c2c;
+        --text: #f5f5f5;
+        --muted: #aaaaaa;
+        --pill: #ffffff12;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 32px 20px 56px;
+        font-family: Inter, system-ui, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(232, 70, 108, 0.14), transparent 28%),
+          radial-gradient(circle at right top, rgba(96, 165, 250, 0.14), transparent 24%),
+          var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        width: min(1200px, 100%);
+        margin: 0 auto;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      .hero {
+        margin-bottom: 28px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+        backdrop-filter: blur(10px);
+      }
+
+      .hero h1 {
+        font-size: clamp(28px, 3vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+      }
+
+      .hero p {
+        margin-top: 12px;
+        max-width: 780px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .pill {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--pill);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 13px;
+      }
+
+      .section {
+        margin-top: 28px;
+      }
+
+      .section-head {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .section-accent {
+        width: 4px;
+        align-self: stretch;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #e8466c, #60a5fa);
+      }
+
+      .section-head p {
+        margin-top: 4px;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 14px;
+      }
+
+      .card {
+        display: grid;
+        gap: 16px;
+        min-height: 240px;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, var(--surface), var(--surface-2));
+      }
+
+      .card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .card-title {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .card-subtitle {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .file-tag {
+        padding: 5px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .preview-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .preview-box {
+        padding: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--surface-3);
+      }
+
+      .preview-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+
+      .preview-canvas {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 92px;
+        margin-top: 12px;
+        border-radius: 14px;
+      }
+
+      .preview-canvas--mube {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .preview-canvas--raw {
+        background: #f6f6f6;
+      }
+
+      .app-shell {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--accent) 16%, transparent);
+      }
+
+      .icon-mask {
+        width: 24px;
+        height: 24px;
+        background: var(--accent);
+        -webkit-mask: var(--icon-url) center / contain no-repeat;
+        mask: var(--icon-url) center / contain no-repeat;
+      }
+
+      .raw-svg {
+        width: 30px;
+        height: 30px;
+        display: block;
+      }
+
+      .source {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+      }
+
+      .action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        text-decoration: none;
+        font-size: 13px;
+      }
+
+      .action:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      footer {
+        margin-top: 32px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding-inline: 14px;
+        }
+
+        .preview-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Review local de SVGs para os filtros da busca</h1>
+        <p>
+          Esta galeria existe para aprovar os icones antes de levar qualquer asset
+          para o Flutter. Cada card mostra uma previa no clima visual do app,
+          uma visualizacao do SVG cru e um link para abrir o arquivo direto.
+        </p>
+        <div class="meta">
+          <span class="pill">Sem abrir o app</span>
+          <span class="pill">SVGs locais em <code>design_review/</code></span>
+          <span class="pill">Base oficial: Font Awesome Free 7.x</span>
+        </div>
+      </section>
+
+      <div id="sections"></div>
+
+      <footer>
+        Abra qualquer link <strong>Abrir SVG</strong> para inspecionar o arquivo
+        individualmente. A origem detalhada de cada asset esta em
+        <code>SOURCES.md</code>.
+      </footer>
+    </main>
+
+    <script>
+      const items = [
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "Cantores",
+          subtitle: "Vocais & Backing",
+          file: "icons/cantores.svg",
+          sourceName: "microphone",
+          accent: "#A78BFA",
+        },
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "Guitarristas",
+          subtitle: "Violao & Guitarra",
+          file: "icons/guitarristas.svg",
+          sourceName: "guitar",
+          accent: "#E8466C",
+        },
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "Bateristas",
+          subtitle: "Percussao & Bateria",
+          file: "icons/bateristas.svg",
+          sourceName: "drum",
+          accent: "#60A5FA",
+        },
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "Baixistas",
+          subtitle: "Contrabaixo & Baixo",
+          file: "icons/baixistas.svg",
+          sourceName: "guitar",
+          accent: "#34D399",
+        },
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "Tecladistas",
+          subtitle: "Piano & Teclado",
+          file: "icons/tecladistas.svg",
+          sourceName: "custom piano-keys",
+          accent: "#FBBF24",
+        },
+        {
+          section: "Musicos",
+          sectionSubtitle: "Instrumentistas e cantores",
+          label: "DJs",
+          subtitle: "Eletronica & Mix",
+          file: "icons/djs.svg",
+          sourceName: "compact-disc",
+          accent: "#F472B6",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Tecnicos de Som",
+          subtitle: "PA, Monitor & RF",
+          file: "icons/tecnicos-de-som.svg",
+          sourceName: "volume-high",
+          accent: "#60A5FA",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Tecnicos de Luz",
+          subtitle: "Iluminacao & LED",
+          file: "icons/tecnicos-de-luz.svg",
+          sourceName: "lightbulb",
+          accent: "#FBBF24",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Produtores",
+          subtitle: "Producao & Direcao",
+          file: "icons/produtores.svg",
+          sourceName: "sliders",
+          accent: "#C026D3",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Roadies",
+          subtitle: "Techs & Backline",
+          file: "icons/roadies.svg",
+          sourceName: "toolbox",
+          accent: "#F87171",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Stage Managers",
+          subtitle: "Gestao de Palco",
+          file: "icons/stage-managers.svg",
+          sourceName: "clipboard-list",
+          accent: "#34D399",
+        },
+        {
+          section: "Equipe Tecnica",
+          sectionSubtitle: "Palco, audio e producao",
+          label: "Mixagem & Master",
+          subtitle: "Gravacao & Edicao",
+          file: "icons/mixagem-master.svg",
+          sourceName: "volume-high",
+          accent: "#E8466C",
+        },
+        {
+          section: "Bandas e Estudios",
+          sectionSubtitle: "Grupos e espacos musicais",
+          label: "Bandas",
+          subtitle: "Grupos musicais",
+          file: "icons/bandas.svg",
+          sourceName: "people-group",
+          accent: "#C026D3",
+        },
+        {
+          section: "Bandas e Estudios",
+          sectionSubtitle: "Grupos e espacos musicais",
+          label: "Estudios",
+          subtitle: "Gravacao & Ensaio",
+          file: "icons/estudios.svg",
+          sourceName: "headset",
+          accent: "#DC2626",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Sertanejo",
+          subtitle: "Universitario & Raiz",
+          file: "icons/sertanejo.svg",
+          sourceName: "hat-cowboy",
+          accent: "#FBBF24",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Rock",
+          subtitle: "Classico, Indie & Alt",
+          file: "icons/rock.svg",
+          sourceName: "bolt-lightning",
+          accent: "#F87171",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Gospel",
+          subtitle: "Worship & Louvor",
+          file: "icons/gospel.svg",
+          sourceName: "hands-praying",
+          accent: "#60A5FA",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Funk & Eletronica",
+          subtitle: "EDM, House & Funk",
+          file: "icons/funk-eletronica.svg",
+          sourceName: "record-vinyl",
+          accent: "#A78BFA",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Pagode & Samba",
+          subtitle: "Samba-enredo & Pagode",
+          file: "icons/pagode-samba.svg",
+          sourceName: "champagne-glasses",
+          accent: "#34D399",
+        },
+        {
+          section: "Por Genero",
+          sectionSubtitle: "Atalhos por estilo musical",
+          label: "Forro & Nordeste",
+          subtitle: "Forro, Piseiro & Xote",
+          file: "icons/forro-nordeste.svg",
+          sourceName: "sun",
+          accent: "#E8466C",
+        },
+      ];
+
+      const sections = [];
+      for (const item of items) {
+        let section = sections.find((value) => value.name === item.section);
+        if (!section) {
+          section = {
+            name: item.section,
+            subtitle: item.sectionSubtitle,
+            items: [],
+          };
+          sections.push(section);
+        }
+        section.items.push(item);
+      }
+
+      const container = document.getElementById("sections");
+
+      for (const section of sections) {
+        const sectionNode = document.createElement("section");
+        sectionNode.className = "section";
+
+        const head = document.createElement("div");
+        head.className = "section-head";
+        head.innerHTML = `
+          <div class="section-accent"></div>
+          <div>
+            <h2>${section.name}</h2>
+            <p>${section.subtitle}</p>
+          </div>
+        `;
+
+        const grid = document.createElement("div");
+        grid.className = "grid";
+
+        for (const item of section.items) {
+          const fileName = item.file.split("/").pop();
+          const card = document.createElement("article");
+          card.className = "card";
+          card.innerHTML = `
+            <div class="card-head">
+              <div>
+                <h3 class="card-title">${item.label}</h3>
+                <p class="card-subtitle">${item.subtitle}</p>
+              </div>
+              <span class="file-tag">${fileName}</span>
+            </div>
+
+            <div class="preview-row">
+              <div class="preview-box">
+                <div class="preview-label">Contexto Mube</div>
+                <div class="preview-canvas preview-canvas--mube">
+                  <div class="app-shell" style="--accent: ${item.accent}">
+                    <div
+                      class="icon-mask"
+                      style="--accent: ${item.accent}; --icon-url: url('${item.file}')"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="preview-box">
+                <div class="preview-label">SVG cru</div>
+                <div class="preview-canvas preview-canvas--raw">
+                  <img class="raw-svg" src="${item.file}" alt="${item.label}" />
+                </div>
+              </div>
+            </div>
+
+            <p class="source">
+              Fonte upstream: <code>${item.sourceName}.svg</code>
+            </p>
+
+            <div class="card-actions">
+              <a class="action" href="${item.file}" target="_blank" rel="noreferrer">Abrir SVG</a>
+            </div>
+          `;
+
+          grid.appendChild(card);
+        }
+
+        sectionNode.appendChild(head);
+        sectionNode.appendChild(grid);
+        container.appendChild(sectionNode);
+      }
+    </script>
+  </body>
+</html>

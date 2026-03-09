@@ -97,6 +97,12 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
     }
   }
 
+  bool _hasConversationActivity(ConversationPreview preview) {
+    final lastMessageText = preview.lastMessageText?.trim();
+    return preview.lastMessageAt != null ||
+        (lastMessageText != null && lastMessageText.isNotEmpty);
+  }
+
   @override
   Widget build(BuildContext context) {
     final conversationsAsync = ref.watch(directConversationsProvider);
@@ -111,6 +117,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
           final visibleConversations = conversations
               .where(
                 (conversation) =>
+                    _hasConversationActivity(conversation) &&
                     !_hiddenConversationIds.contains(conversation.id),
               )
               .toList(growable: false);

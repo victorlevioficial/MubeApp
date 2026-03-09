@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -267,7 +268,7 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   Future<void> _saveState() async {
     final prefs = await _getPrefs();
     if (!ref.mounted) return;
-    final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+    final currentUserId = _currentUserIdOrNull();
     if (currentUserId == null || currentUserId.isEmpty) {
       await prefs.remove(_storageKey);
       return;
@@ -286,7 +287,7 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
       return null;
     }
 
-    final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+    final currentUserId = _currentUserIdOrNull();
     if (currentUserId == null || currentUserId.isEmpty) {
       return null;
     }
@@ -302,6 +303,18 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     }
 
     return OnboardingFormState.fromMap(Map<String, dynamic>.from(stateMap));
+  }
+
+  String? _currentUserIdOrNull() {
+    if (Firebase.apps.isEmpty) {
+      return null;
+    }
+
+    try {
+      return ref.read(authRepositoryProvider).currentUser?.uid;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _scheduleSave() {

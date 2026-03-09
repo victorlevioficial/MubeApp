@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/core/mixins/pagination_mixin.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_assets.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
@@ -75,6 +78,29 @@ void main() {
       expect(find.byType(CustomScrollView), findsOneWidget);
       expect(find.text('Busca'), findsOneWidget);
       expect(find.byType(SmartPrefilterGrid), findsOneWidget);
+    });
+
+    testWidgets('renders context-aware discovery icons', (tester) async {
+      await tester.pumpWidget(createSubject());
+      await tester.pump();
+
+      expect(find.byIcon(FontAwesomeIcons.microphone), findsOneWidget);
+      expect(find.byIcon(FontAwesomeIcons.guitar), findsAtLeastNWidgets(2));
+      expect(find.byIcon(FontAwesomeIcons.drum), findsOneWidget);
+      expect(find.byIcon(FontAwesomeIcons.compactDisc), findsOneWidget);
+      expect(find.byIcon(FontAwesomeIcons.volumeHigh), findsAtLeastNWidgets(2));
+      expect(find.byIcon(FontAwesomeIcons.toolbox), findsAtLeastNWidgets(1));
+      expect(find.byIcon(FontAwesomeIcons.hatCowboy), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is SvgPicture &&
+              widget.bytesLoader.toString().contains(
+                AppAssets.searchPrefilterKeyboardSvg,
+              ),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders empty state when no results', (tester) async {

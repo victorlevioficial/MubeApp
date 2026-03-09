@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/mixins/pagination_mixin.dart';
@@ -198,6 +199,11 @@ class FeedController extends _$FeedController {
     );
     var featuredStatus = 'done';
     try {
+      if (Firebase.apps.isEmpty) {
+        featuredStatus = 'skipped';
+        return;
+      }
+
       final featured = await _getFeaturedProfilesController()
           .loadFeaturedProfiles();
       if (!ref.mounted) return;

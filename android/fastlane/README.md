@@ -1,98 +1,56 @@
-# Fastlane Android
+fastlane documentation
+----
 
-Automacao de deploy para Google Play usando App Bundle (`.aab`) gerado pelo Flutter.
+# Installation
 
-## Pre-requisitos
+Make sure you have the latest version of the Xcode command line tools installed:
 
-1. Ruby e Bundler instalados
-2. `flutter pub get` executado ao menos uma vez
-3. Keystore Android configurado em `android/key.properties`
-4. Conta de servico do Google Play Console com permissao de release
-
-## Setup
-
-1. Instale as gems:
-
-```bash
-bundle install
+```sh
+xcode-select --install
 ```
 
-2. Salve o JSON da conta de servico, por exemplo:
+For _fastlane_ installation instructions, see [Installing _fastlane_](https://docs.fastlane.tools/#installing-fastlane)
 
-```text
-android/fastlane/play-store-service-account.json
+# Available Actions
+
+## Android
+
+### android internal
+
+```sh
+[bundle exec] fastlane android internal
 ```
 
-3. Exporte a variavel de ambiente antes do deploy:
+Build and upload the Android App Bundle to the internal track
 
-```bash
-export PLAY_STORE_JSON_KEY="$PWD/android/fastlane/play-store-service-account.json"
+### android beta
+
+```sh
+[bundle exec] fastlane android beta
 ```
 
-Tambem e aceito `SUPPLY_JSON_KEY`.
+Build and upload the Android App Bundle to the closed beta track
 
-4. Rode o Fastlane dentro de `android/`:
+### android closed
 
-```bash
-cd android
-bundle exec fastlane android closed
+```sh
+[bundle exec] fastlane android closed
 ```
 
-## Lanes
+Build and upload the Android App Bundle to the closed testing track
 
-Comandos abaixo executados a partir de `android/`:
+### android production
 
-Deploy para teste interno:
-
-```bash
-bundle exec fastlane android internal
+```sh
+[bundle exec] fastlane android production
 ```
 
-Deploy para track beta/closed testing:
+Build and upload the Android App Bundle to production
 
-```bash
-bundle exec fastlane android beta
-```
+----
 
-Deploy para teste fechado:
+This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
 
-```bash
-bundle exec fastlane android closed
-```
+More information about _fastlane_ can be found on [fastlane.tools](https://fastlane.tools).
 
-Por padrao, essa lane envia para a track `alpha`.
-
-Se sua track fechada tiver outro nome no Google Play Console:
-
-```bash
-export PLAY_STORE_CLOSED_TRACK="nome-da-sua-track"
-bundle exec fastlane android closed
-```
-
-Deploy para producao:
-
-```bash
-bundle exec fastlane android production
-```
-
-Somente validacao no Google Play:
-
-```bash
-bundle exec fastlane android production validate_only:true
-```
-
-## WSL em `/mnt/c` (opcional)
-
-Se o Bundler falhar por permissao de `vendor/bundle` (`world-writable`), rode:
-
-```bash
-BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle install
-cd android
-BUNDLE_IGNORE_CONFIG=1 BUNDLE_PATH="$HOME/.bundle_mube" bundle exec fastlane android closed
-```
-
-## Observacoes
-
-- O bundle e gerado com `flutter build appbundle --release`
-- A lane nao envia metadata, screenshots nem imagens da Play Store
-- `versionName` e `versionCode` continuam vindo do `pubspec.yaml`
+The documentation of _fastlane_ can be found on [docs.fastlane.tools](https://docs.fastlane.tools).

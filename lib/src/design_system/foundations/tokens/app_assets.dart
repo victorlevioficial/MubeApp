@@ -1,6 +1,10 @@
 class AppAssets {
   const AppAssets._();
 
+  // Icons
+  static const String searchPrefilterKeyboardSvg =
+      'assets/images/icons/search_prefilter_keyboard.svg';
+
   // Logos
   static const String logoHorizontalSvg =
       'assets/images/logos_svg/logo_horizontal.svg';

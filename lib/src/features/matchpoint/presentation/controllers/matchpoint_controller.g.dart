@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'85359e14c8abe55ef70f51f9a9b43c794d5c0f3a';
+    r'ce27c13665a41844ce3c6f31f3eaf8e6a2781273';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -379,7 +379,7 @@ final class SwipeHistoryProvider
   }
 }
 
-String _$swipeHistoryHash() => r'65dc9de5bcd08014947570a1fe1928b8d2047dad';
+String _$swipeHistoryHash() => r'785b50e6201745184474f81833f5fbd5f428dadd';
 
 abstract class _$SwipeHistory extends $Notifier<List<SwipeHistoryEntry>> {
   List<SwipeHistoryEntry> build();

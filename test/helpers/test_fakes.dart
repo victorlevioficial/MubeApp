@@ -36,6 +36,28 @@ import 'package:mube/src/features/support/domain/ticket_model.dart';
 import 'firebase_mocks.dart';
 
 /// Fake implementation of Firebase User
+class FakeUserInfo extends Fake implements firebase_auth.UserInfo {
+  @override
+  final String providerId;
+  @override
+  final String uid;
+  @override
+  final String? email;
+  @override
+  final String? displayName;
+  @override
+  final String? photoURL;
+
+  FakeUserInfo({
+    required this.providerId,
+    this.uid = 'test-user-id',
+    this.email,
+    this.displayName,
+    this.photoURL,
+  });
+}
+
+/// Fake implementation of Firebase User
 class FakeFirebaseUser extends Fake implements firebase_auth.User {
   @override
   final String uid;
@@ -45,6 +67,7 @@ class FakeFirebaseUser extends Fake implements firebase_auth.User {
   final String? displayName;
   @override
   final String? photoURL;
+  final List<String> _providerIds;
   final bool _emailVerified;
 
   FakeFirebaseUser({
@@ -52,14 +75,29 @@ class FakeFirebaseUser extends Fake implements firebase_auth.User {
     this.email = 'test@example.com',
     this.displayName = 'Test User',
     this.photoURL,
+    List<String> providerIds = const ['password'],
     bool emailVerified = true,
-  }) : _emailVerified = emailVerified;
+  }) : _providerIds = providerIds,
+       _emailVerified = emailVerified;
 
   @override
   bool get emailVerified => _emailVerified;
 
   @override
   bool get isAnonymous => false;
+
+  @override
+  List<firebase_auth.UserInfo> get providerData => _providerIds
+      .map(
+        (providerId) => FakeUserInfo(
+          providerId: providerId,
+          uid: uid,
+          email: email,
+          displayName: displayName,
+          photoURL: photoURL,
+        ),
+      )
+      .toList(growable: false);
 
   @override
   Future<String?> getIdToken([bool forceRefresh = false]) async => 'fake-token';

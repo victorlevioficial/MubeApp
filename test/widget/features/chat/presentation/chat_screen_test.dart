@@ -97,6 +97,128 @@ class _ReadyChatRepository extends FakeChatRepository {
   }
 }
 
+class _DraftChatRepository extends FakeChatRepository {
+  final DocumentSnapshot<Map<String, dynamic>> _conversationDoc;
+  int getOrCreateCalls = 0;
+  int sendCalls = 0;
+
+  _DraftChatRepository({required String conversationId})
+    : _conversationDoc = MockDocumentSnapshot<Map<String, dynamic>>(
+        id: conversationId,
+        exists: false,
+      );
+
+  @override
+  Future<DocumentSnapshot?> getConversationDoc(String conversationId) async {
+    return null;
+  }
+
+  @override
+  Stream<DocumentSnapshot> getConversationStream(String conversationId) {
+    return Stream.value(_conversationDoc);
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = 50,
+  }) {
+    return Stream.value(MockQuerySnapshot<Map<String, dynamic>>(data: null));
+  }
+
+  @override
+  FutureResult<String> getOrCreateConversation({
+    required String myUid,
+    required String otherUid,
+    required String otherUserName,
+    String? otherUserPhoto,
+    required String myName,
+    String? myPhoto,
+    String type = 'direct',
+  }) async {
+    getOrCreateCalls += 1;
+    return Right(getConversationId(myUid, otherUid));
+  }
+
+  @override
+  FutureResult<Unit> sendMessage({
+    required String conversationId,
+    required String text,
+    required String myUid,
+    required String otherUid,
+    String? clientMessageId,
+  }) async {
+    sendCalls += 1;
+    return const Right(unit);
+  }
+}
+
+class _DelayedRestoreChatRepository extends _ReadyChatRepository {
+  final Completer<void> restoreCompleter;
+
+  _DelayedRestoreChatRepository({
+    required super.conversationId,
+    required super.participants,
+    required this.restoreCompleter,
+  });
+
+  @override
+  FutureResult<Unit> restoreConversationPreview({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+    String? fallbackOtherUserName,
+    String? fallbackOtherUserPhoto,
+  }) async {
+    await restoreCompleter.future;
+    return const Right(unit);
+  }
+}
+
+class _SlowConversationAccessRepository extends FakeChatRepository {
+  final Completer<DocumentSnapshot?> conversationDocCompleter;
+
+  _SlowConversationAccessRepository({required this.conversationDocCompleter});
+
+  @override
+  Future<DocumentSnapshot?> getConversationDoc(String conversationId) {
+    return conversationDocCompleter.future;
+  }
+
+  @override
+  Stream<DocumentSnapshot> getConversationStream(String conversationId) {
+    return Stream.value(
+      MockDocumentSnapshot<Map<String, dynamic>>(
+        id: conversationId,
+        data: {
+          'participants': const ['user-1', 'user-2'],
+          'readUntil': <String, dynamic>{},
+        },
+        exists: true,
+      ),
+    );
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = 50,
+  }) {
+    return Stream.value(MockQuerySnapshot<Map<String, dynamic>>(data: null));
+  }
+
+  @override
+  FutureResult<Unit> restoreConversationPreview({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+    String? fallbackOtherUserName,
+    String? fallbackOtherUserPhoto,
+  }) async {
+    return const Right(unit);
+  }
+}
+
 class _FakeChatSafetyRepository extends Fake implements ChatSafetyRepository {
   int logCalls = 0;
   String? lastText;
@@ -116,7 +238,7 @@ class _FakeChatSafetyRepository extends Fake implements ChatSafetyRepository {
 
 void main() {
   late FakeAuthRepository fakeAuthRepo;
-  late _ReadyChatRepository fakeChatRepo;
+  late FakeChatRepository fakeChatRepo;
   late _FakeChatSafetyRepository fakeChatSafetyRepo;
   late AppUser user;
   late StreamController<AppUser?> profileController;
@@ -167,6 +289,8 @@ void main() {
 
     expect(field.keyboardType, TextInputType.multiline);
     expect(field.textInputAction, TextInputAction.newline);
+    expect(field.enableSuggestions, isTrue);
+    expect(field.autocorrect, isTrue);
   });
 
   testWidgets('prepares conversation after delayed user profile load', (
@@ -184,6 +308,83 @@ void main() {
       find.text('Nenhuma mensagem ainda\nEnvie a primeira!'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('opens draft chat without creating conversation automatically', (
+    tester,
+  ) async {
+    fakeChatRepo = _DraftChatRepository(conversationId: 'user-1_user-2');
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Nenhuma mensagem ainda\nEnvie a primeira!'),
+      findsOneWidget,
+    );
+    expect((fakeChatRepo as _DraftChatRepository).getOrCreateCalls, 0);
+  });
+
+  testWidgets('does not block messages UI while restoring preview', (
+    tester,
+  ) async {
+    final restoreCompleter = Completer<void>();
+    fakeChatRepo = _DelayedRestoreChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      restoreCompleter: restoreCompleter,
+    );
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(
+      find.text('Nenhuma mensagem ainda\nEnvie a primeira!'),
+      findsOneWidget,
+    );
+
+    restoreCompleter.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('shows chat body immediately when preview already exists', (
+    tester,
+  ) async {
+    final docCompleter = Completer<DocumentSnapshot?>();
+    fakeChatRepo = _SlowConversationAccessRepository(
+      conversationDocCompleter: docCompleter,
+    );
+    fakeChatRepo.setConversations([
+      TestData.conversationPreview(
+        id: 'user-1_user-2',
+        otherUserId: 'user-2',
+        otherUserName: 'Other User',
+        lastMessageText: 'Oi',
+      ),
+    ]);
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(EditableText), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    docCompleter.complete(
+      MockDocumentSnapshot<Map<String, dynamic>>(
+        id: 'user-1_user-2',
+        data: {
+          'participants': const ['user-1', 'user-2'],
+          'readUntil': <String, dynamic>{},
+        },
+        exists: true,
+      ),
+    );
+    await tester.pumpAndSettle();
   });
 
   testWidgets('renders conversation messages with larger text size', (
@@ -222,7 +423,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pumpAndSettle();
 
-    expect(fakeChatRepo.sendCalls, 0);
+    expect((fakeChatRepo as _ReadyChatRepository).sendCalls, 0);
     expect(fakeChatSafetyRepo.logCalls, 1);
     expect(fakeChatSafetyRepo.lastText, 'me chama no whatsapp');
     expect(find.byType(AppConfirmationDialog), findsOneWidget);

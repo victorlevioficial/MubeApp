@@ -33,7 +33,11 @@ class BentoHeader extends ConsumerWidget {
         // ENHANCED PROFILE CARD
         _ProfileCard(
           name: user?.appDisplayName ?? 'Bem-vindo',
-          email: user?.email ?? 'Visitante',
+          email: user == null
+              ? 'Visitante'
+              : user.hasApplePrivateRelayEmail
+              ? 'Email protegido pela Apple'
+              : user.email,
           photoUrl: user?.foto,
           onEditTap: () => context.push(RoutePaths.profileEdit),
         ),

@@ -18,6 +18,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../auth/data/auth_repository.dart';
 import '../data/chat_providers.dart';
 import '../data/chat_repository.dart';
@@ -84,6 +85,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   static const Duration _unverifiedEmailCacheTtl = Duration(seconds: 8);
   static const int _messagesPageSize = 50;
   static const double _paginationTriggerDistance = 240;
+  late final Stopwatch _firstMessagesFrameStopwatch;
+  bool _hasFinishedFirstMessagesFrameSpan = false;
+
+  bool get _hasKnownConversationContext =>
+      _otherUserId.isNotEmpty || _hasCachedConversationPreview();
 
   @override
   void initState() {
@@ -92,6 +98,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.addListener(_handleMessagesScroll);
 
     _initializeData();
+    _firstMessagesFrameStopwatch = AppPerformanceTracker.startSpan(
+      'chat.open.first_messages_frame',
+      data: {
+        'conversation_id': widget.conversationId,
+        'has_cached_preview': _hasCachedConversationPreview(),
+        'has_other_user_hint': _otherUserId.isNotEmpty,
+      },
+    );
+    if (_hasKnownConversationContext) {
+      _accessState = _ConversationAccessState.ready;
+    }
     _setupConversationPreviewListener();
     unawaited(_prepareConversation());
   }
@@ -146,6 +163,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _otherUserId = extra?['otherUserId'] ?? cachedPreview?.otherUserId ?? '';
   }
 
+  bool _hasCachedConversationPreview() {
+    return ref
+            .read(userConversationsProvider)
+            .value
+            ?.any((preview) => preview.id == widget.conversationId) ??
+        false;
+  }
+
+  void _setConversationReady({
+    required String myUid,
+    required ChatRepository repository,
+    bool markAsRead = false,
+  }) {
+    if (mounted &&
+        (_accessState != _ConversationAccessState.ready ||
+            _conversationAccessMessage != null)) {
+      setState(() {
+        _accessState = _ConversationAccessState.ready;
+        _conversationAccessMessage = null;
+      });
+    }
+
+    _startRealtimeReadReceiptListener(myUid, repository);
+    if (markAsRead) {
+      unawaited(_markConversationAsRead(repository, myUid));
+    }
+  }
+
   Future<void> _prepareConversation() async {
     if (_isPreparingConversation) return;
     _isPreparingConversation = true;
@@ -156,6 +201,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     final repository = ref.read(chatRepositoryProvider);
+    final prepareConversationStopwatch = AppPerformanceTracker.startSpan(
+      'chat.prepare_conversation',
+      data: {
+        'conversation_id': widget.conversationId,
+        'has_cached_preview': _hasCachedConversationPreview(),
+        'has_other_user_hint': _otherUserId.isNotEmpty,
+      },
+    );
+    var outcome = 'unknown';
 
     try {
       final existingDoc = await repository.getConversationDoc(
@@ -165,102 +219,76 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
       if (existingDoc != null && existingDoc.exists) {
         if (!_isUserParticipant(existingDoc, user.uid)) {
+          outcome = 'forbidden_not_participant';
           setState(() {
             _accessState = _ConversationAccessState.forbidden;
             _conversationAccessMessage =
                 'Você não tem permissão para acessar esta conversa.';
           });
+          _finishFirstMessagesFrameSpan(status: 'forbidden', renderedCount: 0);
           return;
         }
 
         final otherUid = _resolveConversationParticipant(existingDoc, user.uid);
         if (otherUid.isEmpty) {
+          outcome = 'unavailable_missing_participant';
           setState(() {
             _accessState = _ConversationAccessState.unavailable;
             _conversationAccessMessage =
                 'Não foi possível carregar os participantes da conversa.';
           });
+          _finishFirstMessagesFrameSpan(
+            status: 'unavailable_missing_participant',
+            renderedCount: 0,
+          );
           return;
         }
 
-        final restoreResult = await repository.restoreConversationPreview(
-          conversationId: widget.conversationId,
-          myUid: user.uid,
-          otherUid: otherUid,
-          fallbackOtherUserName: _otherUserName,
-          fallbackOtherUserPhoto: _otherUserPhoto,
-        );
-        if (!mounted) return;
-
-        restoreResult.fold(
-          (failure) => AppLogger.warning(
-            'Falha ao restaurar preview da conversa',
-            failure.message,
-          ),
-          (_) {},
-        );
-
         setState(() {
           _otherUserId = otherUid;
-          _accessState = _ConversationAccessState.ready;
-          _conversationAccessMessage = null;
         });
-        unawaited(_markConversationAsRead(repository, user.uid));
-        _startRealtimeReadReceiptListener(user.uid, repository);
+
+        _setConversationReady(
+          myUid: user.uid,
+          repository: repository,
+          markAsRead: true,
+        );
+
+        if (!_hasCachedConversationPreview()) {
+          unawaited(
+            _restoreConversationPreview(
+              repository: repository,
+              myUid: user.uid,
+              otherUid: otherUid,
+            ),
+          );
+        }
+        outcome = 'existing_conversation';
         return;
       }
 
       if (_otherUserId.isEmpty) {
+        outcome = 'unavailable_missing_other_uid';
         setState(() {
           _accessState = _ConversationAccessState.unavailable;
           _conversationAccessMessage =
               'Não foi possível carregar os dados desta conversa.';
         });
+        _finishFirstMessagesFrameSpan(
+          status: 'unavailable_missing_other_uid',
+          renderedCount: 0,
+        );
         return;
       }
 
-      final createResult = await repository.getOrCreateConversation(
+      _setConversationReady(
         myUid: user.uid,
-        otherUid: _otherUserId,
-        otherUserName: _otherUserName,
-        otherUserPhoto: _otherUserPhoto,
-        myName: user.appDisplayName.isNotEmpty
-            ? user.appDisplayName
-            : (user.nome ?? 'Usuario'),
-        myPhoto: user.foto,
+        repository: repository,
+        markAsRead: false,
       );
-      if (!mounted) return;
-
-      await createResult.fold(
-        (failure) async {
-          if (!mounted) return;
-          setState(() {
-            _accessState = _ConversationAccessState.forbidden;
-            _conversationAccessMessage = _mapConversationFailureToMessage(
-              failure.message,
-            );
-          });
-        },
-        (conversationId) async {
-          if (!mounted) return;
-          if (conversationId != widget.conversationId) {
-            setState(() {
-              _accessState = _ConversationAccessState.unavailable;
-              _conversationAccessMessage =
-                  'Não foi possível abrir esta conversa agora.';
-            });
-            return;
-          }
-
-          setState(() {
-            _accessState = _ConversationAccessState.ready;
-            _conversationAccessMessage = null;
-          });
-          unawaited(_markConversationAsRead(repository, user.uid));
-          _startRealtimeReadReceiptListener(user.uid, repository);
-        },
-      );
+      outcome = 'draft_conversation';
     } catch (e, stack) {
+      outcome = 'error';
       AppLogger.error('Erro ao preparar conversa', e, stack);
       if (mounted) {
         setState(() {
@@ -269,9 +297,80 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               'Erro ao abrir conversa. Tente novamente.';
         });
       }
+      _finishFirstMessagesFrameSpan(status: 'prepare_error', renderedCount: 0);
     } finally {
+      AppPerformanceTracker.finishSpan(
+        'chat.prepare_conversation',
+        prepareConversationStopwatch,
+        data: {'conversation_id': widget.conversationId, 'outcome': outcome},
+      );
       _isPreparingConversation = false;
     }
+  }
+
+  Future<void> _restoreConversationPreview({
+    required ChatRepository repository,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    final restorePreviewStopwatch = AppPerformanceTracker.startSpan(
+      'chat.restore_preview',
+      data: {'conversation_id': widget.conversationId},
+    );
+    final result = await repository.restoreConversationPreview(
+      conversationId: widget.conversationId,
+      myUid: myUid,
+      otherUid: otherUid,
+      fallbackOtherUserName: _otherUserName,
+      fallbackOtherUserPhoto: _otherUserPhoto,
+    );
+
+    result.fold(
+      (failure) {
+        AppPerformanceTracker.finishSpan(
+          'chat.restore_preview',
+          restorePreviewStopwatch,
+          data: {'conversation_id': widget.conversationId, 'outcome': 'error'},
+        );
+        AppLogger.warning(
+          'Falha ao restaurar preview da conversa',
+          failure.message,
+        );
+      },
+      (_) {
+        AppPerformanceTracker.finishSpan(
+          'chat.restore_preview',
+          restorePreviewStopwatch,
+          data: {
+            'conversation_id': widget.conversationId,
+            'outcome': 'success',
+          },
+        );
+      },
+    );
+  }
+
+  void _finishFirstMessagesFrameSpan({
+    QuerySnapshot<Map<String, dynamic>>? snapshot,
+    required int renderedCount,
+    String? status,
+  }) {
+    if (_hasFinishedFirstMessagesFrameSpan) return;
+    _hasFinishedFirstMessagesFrameSpan = true;
+    AppPerformanceTracker.finishSpan(
+      'chat.open.first_messages_frame',
+      _firstMessagesFrameStopwatch,
+      data: {
+        'conversation_id': widget.conversationId,
+        'status': status,
+        'source': snapshot == null
+            ? null
+            : (snapshot.metadata.isFromCache ? 'cache' : 'server'),
+        'snapshot_size': snapshot?.docs.length,
+        'rendered_count': renderedCount,
+        'has_pending_writes': snapshot?.metadata.hasPendingWrites,
+      },
+    );
   }
 
   bool _isUserParticipant(DocumentSnapshot doc, String uid) {
@@ -494,20 +593,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  String _mapConversationFailureToMessage(String rawMessage) {
-    final lower = rawMessage.toLowerCase();
-
-    if (lower.contains('permission-denied')) {
-      return 'Conversa indisponivel no momento.';
-    }
-
-    if (lower.contains('not-found')) {
-      return 'Conversa nao encontrada.';
-    }
-
-    return 'Não foi possível abrir esta conversa agora.';
   }
 
   Future<bool> _canSendMessageWithVerifiedEmail() async {

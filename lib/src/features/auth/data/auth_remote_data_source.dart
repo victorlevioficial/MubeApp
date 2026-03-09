@@ -38,6 +38,10 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
   static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
+  static const String _googleServerClientId =
+      '798301748829-lrgta4d45h0k1d1o1vbpuhd7447e6121.apps.googleusercontent.com';
+  static const String _googleIosClientId =
+      '798301748829-oi72iiabk4jjdib7kgu4un3ugjs2a4c5.apps.googleusercontent.com';
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
@@ -142,7 +146,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   Future<void> _ensureGoogleSignInInitialized() async {
     if (_googleSignInInitialized) return;
-    await GoogleSignIn.instance.initialize();
+    await GoogleSignIn.instance.initialize(
+      clientId: defaultTargetPlatform == TargetPlatform.iOS
+          ? _googleIosClientId
+          : null,
+      serverClientId: _googleServerClientId,
+    );
     _googleSignInInitialized = true;
   }
 

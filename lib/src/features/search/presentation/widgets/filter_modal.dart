@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
@@ -113,7 +114,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                       const SizedBox(height: AppSpacing.s20),
                     ],
                     _SelectionLauncherCard(
-                      icon: Icons.library_music_rounded,
+                      icon: FontAwesomeIcons.recordVinyl,
                       title: 'Generos musicais',
                       description:
                           'Selecione estilos para refinar os resultados.',
@@ -135,7 +136,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                     if (isProfessional) ...[
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
-                        icon: Icons.music_note_rounded,
+                        icon: FontAwesomeIcons.guitar,
                         title: 'Instrumentos',
                         description: 'Escolha os instrumentos mais relevantes.',
                         selectedItems: _selectedInstruments,
@@ -155,7 +156,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                       ),
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
-                        icon: Icons.build_rounded,
+                        icon: FontAwesomeIcons.toolbox,
                         title: 'Funcoes tecnicas',
                         description:
                             'Selecione funcoes de palco, audio ou producao.',
@@ -179,7 +180,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                     if (isStudio) ...[
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
-                        icon: Icons.headset_mic_rounded,
+                        icon: FontAwesomeIcons.headset,
                         title: 'Servicos de estudio',
                         description:
                             'Filtre pelos servicos disponiveis no estudio.',
@@ -225,14 +226,22 @@ class _FilterModalState extends ConsumerState<FilterModal> {
 
   Widget _buildSubcategoryChips() {
     final items = <(ProfessionalSubcategory, String, IconData)>[
-      (ProfessionalSubcategory.singer, 'Cantor(a)', Icons.mic_rounded),
+      (
+        ProfessionalSubcategory.singer,
+        'Cantor(a)',
+        FontAwesomeIcons.microphone,
+      ),
       (
         ProfessionalSubcategory.instrumentalist,
         'Instrumentista',
-        Icons.music_note_rounded,
+        FontAwesomeIcons.guitar,
       ),
-      (ProfessionalSubcategory.crew, 'Equipe tecnica', Icons.build_rounded),
-      (ProfessionalSubcategory.dj, 'DJ', Icons.album_rounded),
+      (
+        ProfessionalSubcategory.crew,
+        'Equipe tecnica',
+        FontAwesomeIcons.toolbox,
+      ),
+      (ProfessionalSubcategory.dj, 'DJ', FontAwesomeIcons.compactDisc),
     ];
 
     return Wrap(

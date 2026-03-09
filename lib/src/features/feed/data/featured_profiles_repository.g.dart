@@ -69,4 +69,4 @@ final class FeaturedProfilesRepositoryProvider
 }
 
 String _$featuredProfilesRepositoryHash() =>
-    r'0ac842ddba6e2e9b9f98a9f83d353398f20a58d2';
+    r'166594fd8a24b1c51b98d6e8720513c2b045e760';

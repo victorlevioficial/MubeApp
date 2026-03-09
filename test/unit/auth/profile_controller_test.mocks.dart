@@ -578,6 +578,21 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
           as _i5.Future<String>);
 
   @override
+  _i5.Future<String?> getTranscodedVideoUrl({
+    required String? userId,
+    required String? mediaId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTranscodedVideoUrl, [], {
+              #userId: userId,
+              #mediaId: mediaId,
+            }),
+            returnValue: _i5.Future<String?>.value(),
+            returnValueForMissingStub: _i5.Future<String?>.value(),
+          )
+          as _i5.Future<String?>);
+
+  @override
   _i5.Future<void> deleteImage(String? imageUrl) =>
       (super.noSuchMethod(
             Invocation.method(#deleteImage, [imageUrl]),

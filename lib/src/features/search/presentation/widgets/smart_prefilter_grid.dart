@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -10,7 +13,8 @@ import '../../domain/search_filters.dart';
 class SmartPrefilter {
   final String label;
   final String subtitle;
-  final IconData icon;
+  final IconData? icon;
+  final String? svgAssetPath;
   final Color accentColor;
 
   /// The filters to apply when this pre-filter is tapped.
@@ -19,10 +23,14 @@ class SmartPrefilter {
   const SmartPrefilter({
     required this.label,
     required this.subtitle,
-    required this.icon,
+    this.icon,
+    this.svgAssetPath,
     required this.accentColor,
     required this.filters,
-  });
+  }) : assert(
+         (icon != null) != (svgAssetPath != null),
+         'Provide either icon or svgAssetPath.',
+       );
 }
 
 /// A group of prefilters under a section header.
@@ -47,7 +55,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Cantores',
       subtitle: 'Vocais & Backing',
-      icon: Icons.mic_rounded,
+      icon: FontAwesomeIcons.microphone,
       accentColor: Color(0xFFA78BFA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -57,7 +65,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Guitarristas',
       subtitle: 'Violão & Guitarra',
-      icon: Icons.music_note_rounded,
+      icon: FontAwesomeIcons.guitar,
       accentColor: Color(0xFFE8466C),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -68,7 +76,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Bateristas',
       subtitle: 'Percussão & Bateria',
-      icon: Icons.surround_sound_rounded,
+      icon: FontAwesomeIcons.drum,
       accentColor: Color(0xFF60A5FA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -79,7 +87,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Baixistas',
       subtitle: 'Contrabaixo & Baixo',
-      icon: Icons.graphic_eq_rounded,
+      icon: FontAwesomeIcons.guitar,
       accentColor: Color(0xFF34D399),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -90,7 +98,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Tecladistas',
       subtitle: 'Piano & Teclado',
-      icon: Icons.piano_rounded,
+      svgAssetPath: AppAssets.searchPrefilterKeyboardSvg,
       accentColor: Color(0xFFFBBF24),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -101,7 +109,7 @@ const _kMusiciansSection = _PrefilterSection(
     SmartPrefilter(
       label: 'DJs',
       subtitle: 'Eletrônica & Mix',
-      icon: Icons.album_rounded,
+      icon: FontAwesomeIcons.compactDisc,
       accentColor: Color(0xFFF472B6),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -118,7 +126,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Técnicos de Som',
       subtitle: 'PA, Monitor & RF',
-      icon: Icons.speaker_rounded,
+      icon: FontAwesomeIcons.volumeHigh,
       accentColor: Color(0xFF60A5FA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -129,7 +137,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Técnicos de Luz',
       subtitle: 'Iluminação & LED',
-      icon: Icons.lightbulb_rounded,
+      icon: FontAwesomeIcons.solidLightbulb,
       accentColor: Color(0xFFFBBF24),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -140,7 +148,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Produtores',
       subtitle: 'Produção & Direção',
-      icon: Icons.equalizer_rounded,
+      icon: FontAwesomeIcons.sliders,
       accentColor: Color(0xFFC026D3),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -151,7 +159,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Roadies',
       subtitle: 'Techs & Backline',
-      icon: Icons.build_rounded,
+      icon: FontAwesomeIcons.toolbox,
       accentColor: Color(0xFFF87171),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -168,7 +176,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Stage Managers',
       subtitle: 'Gestão de Palco',
-      icon: Icons.event_note_rounded,
+      icon: FontAwesomeIcons.clipboardList,
       accentColor: Color(0xFF34D399),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -179,7 +187,7 @@ const _kCrewSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Mixagem & Master',
       subtitle: 'Gravação & Edição',
-      icon: Icons.tune_rounded,
+      icon: FontAwesomeIcons.volumeHigh,
       accentColor: Color(0xFFE8466C),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -202,14 +210,14 @@ const _kBandsStudiosSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Bandas',
       subtitle: 'Grupos musicais',
-      icon: Icons.groups_rounded,
+      icon: FontAwesomeIcons.peopleGroup,
       accentColor: Color(0xFFC026D3),
       filters: SearchFilters(category: SearchCategory.bands),
     ),
     SmartPrefilter(
       label: 'Estúdios',
       subtitle: 'Gravação & Ensaio',
-      icon: Icons.headset_rounded,
+      icon: FontAwesomeIcons.headset,
       accentColor: Color(0xFFDC2626),
       filters: SearchFilters(category: SearchCategory.studios),
     ),
@@ -223,7 +231,7 @@ const _kGenresSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Sertanejo',
       subtitle: 'Universitário & Raiz',
-      icon: Icons.nightlife_rounded,
+      icon: FontAwesomeIcons.hatCowboy,
       accentColor: Color(0xFFFBBF24),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -233,7 +241,7 @@ const _kGenresSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Rock',
       subtitle: 'Clássico, Indie & Alt',
-      icon: Icons.electric_bolt_rounded,
+      icon: FontAwesomeIcons.boltLightning,
       accentColor: Color(0xFFF87171),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -243,7 +251,7 @@ const _kGenresSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Gospel',
       subtitle: 'Worship & Louvor',
-      icon: Icons.church_rounded,
+      icon: FontAwesomeIcons.handsPraying,
       accentColor: Color(0xFF60A5FA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -253,7 +261,7 @@ const _kGenresSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Funk & Eletrônica',
       subtitle: 'EDM, House & Funk',
-      icon: Icons.flash_on_rounded,
+      icon: FontAwesomeIcons.recordVinyl,
       accentColor: Color(0xFFA78BFA),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -273,7 +281,7 @@ const _kGenresSection = _PrefilterSection(
     SmartPrefilter(
       label: 'Forró & Nordeste',
       subtitle: 'Forró, Piseiro & Xote',
-      icon: Icons.music_note_rounded,
+      icon: Icons.wb_sunny_rounded,
       accentColor: Color(0xFFE8466C),
       filters: SearchFilters(
         category: SearchCategory.professionals,
@@ -463,7 +471,19 @@ class _PrefilterCardState extends State<_PrefilterCard> {
                     color: accent.withValues(alpha: 0.15),
                     borderRadius: AppRadius.all8,
                   ),
-                  child: Icon(widget.item.icon, color: accent, size: 18),
+                  child: Center(
+                    child: widget.item.svgAssetPath != null
+                        ? SvgPicture.asset(
+                            widget.item.svgAssetPath!,
+                            width: 18,
+                            height: 18,
+                            colorFilter: ColorFilter.mode(
+                              accent,
+                              BlendMode.srcIn,
+                            ),
+                          )
+                        : Icon(widget.item.icon, color: accent, size: 18),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.s12),
                 Text(

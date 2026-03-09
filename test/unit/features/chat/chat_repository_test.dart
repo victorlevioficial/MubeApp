@@ -86,6 +86,72 @@ void main() {
     });
 
     group('sendMessage', () {
+      test(
+        'should create conversation metadata on first message when conversation does not exist',
+        () async {
+          await fakeFirestore.collection('users').doc(myUid).set({
+            'nome': myName,
+          });
+          await fakeFirestore.collection('users').doc(otherUid).set({
+            'nome': otherUserName,
+          });
+
+          final result = await repository.sendMessage(
+            conversationId: conversationId,
+            text: 'Primeira mensagem',
+            myUid: myUid,
+            otherUid: otherUid,
+          );
+
+          expect(result.isRight(), true);
+
+          final conversationDoc = await fakeFirestore
+              .collection('conversations')
+              .doc(conversationId)
+              .get();
+          expect(conversationDoc.exists, true);
+          expect(
+            conversationDoc.data()?['participants'],
+            containsAll([myUid, otherUid]),
+          );
+          expect(
+            conversationDoc.data()?['lastMessageText'],
+            'Primeira mensagem',
+          );
+
+          final myPreview = await fakeFirestore
+              .collection('users')
+              .doc(myUid)
+              .collection('conversationPreviews')
+              .doc(conversationId)
+              .get();
+          expect(myPreview.exists, true);
+          expect(myPreview.data()?['lastMessageText'], 'Primeira mensagem');
+
+          final otherPreview = await fakeFirestore
+              .collection('users')
+              .doc(otherUid)
+              .collection('conversationPreviews')
+              .doc(conversationId)
+              .get();
+          expect(otherPreview.exists, true);
+          expect(otherPreview.data()?['lastMessageText'], 'Primeira mensagem');
+
+          verify(
+            mockAnalytics.logEvent(
+              name: 'chat_initiated',
+              parameters: anyNamed('parameters'),
+            ),
+          ).called(1);
+          verify(
+            mockAnalytics.logEvent(
+              name: 'message_sent',
+              parameters: anyNamed('parameters'),
+            ),
+          ).called(1);
+        },
+      );
+
       test('should send message successfully', () async {
         await repository.getOrCreateConversation(
           myUid: myUid,

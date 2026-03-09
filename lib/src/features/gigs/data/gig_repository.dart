@@ -304,8 +304,9 @@ class GigRepository {
       payload[GigFields.location] = null;
       payload[GigFields.geohash] = null;
     } else {
-      if (update.location != null)
+      if (update.location != null) {
         payload[GigFields.location] = update.location;
+      }
       if (update.locationType == GigLocationType.remote) {
         payload[GigFields.geohash] = null;
       } else if (update.geohash != null) {

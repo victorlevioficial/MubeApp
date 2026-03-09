@@ -138,6 +138,24 @@ void main() {
       expect(find.text('5'), findsOneWidget);
     });
 
+    testWidgets('hides previews without any message activity', (tester) async {
+      final conversations = [
+        ConversationPreview(
+          id: 'conv-empty',
+          otherUserId: 'user-2',
+          otherUserName: 'John Doe',
+          unreadCount: 0,
+          updatedAt: Timestamp.fromDate(DateTime(2025, 1, 1)),
+        ),
+      ];
+
+      await tester.pumpWidget(createSubject(conversations: conversations));
+      await tester.pumpAndSettle();
+
+      expect(find.text('John Doe'), findsNothing);
+      expect(find.text('Nenhuma conversa ainda'), findsOneWidget);
+    });
+
     testWidgets('navigates to chat when conversation tapped', (tester) async {
       final conversations = [
         TestData.conversationPreview(id: 'conv-123', otherUserName: 'John Doe'),

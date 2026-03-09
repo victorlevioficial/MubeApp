@@ -55,4 +55,4 @@ final class AppConfigRepositoryProvider
 }
 
 String _$appConfigRepositoryHash() =>
-    r'4abf151e8ffe3e9e06a272e3b3efca32488e0133';
+    r'481eea6630d8d56aa2416381418d488469c3cf63';

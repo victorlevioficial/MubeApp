@@ -33,6 +33,10 @@
 		</array>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>GIDClientID</key>
+		<string>798301748829-oi72iiabk4jjdib7kgu4un3ugjs2a4c5.apps.googleusercontent.com</string>
+		<key>GIDServerClientID</key>
+		<string>798301748829-lrgta4d45h0k1d1o1vbpuhd7447e6121.apps.googleusercontent.com</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UILaunchStoryboardName</key>

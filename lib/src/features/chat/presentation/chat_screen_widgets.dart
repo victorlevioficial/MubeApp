@@ -45,6 +45,11 @@ extension _ChatScreenWidgets on _ChatScreenState {
                       ...pendingMessages,
                       ...serverMessages,
                     ];
+                    _finishFirstMessagesFrameSpan(
+                      snapshot: messagesSnapshot,
+                      renderedCount: mergedMessages.length,
+                      status: mergedMessages.isEmpty ? 'empty' : 'data',
+                    );
                     final showPaginationLoader =
                         _isLoadingOlderMessages || _hasMoreOlderMessages;
 
@@ -134,6 +139,10 @@ extension _ChatScreenWidgets on _ChatScreenState {
                   },
                   loading: () => const _ChatShimmer(),
                   error: (error, stack) {
+                    _finishFirstMessagesFrameSpan(
+                      renderedCount: 0,
+                      status: 'messages_error',
+                    );
                     AppLogger.error(
                       'Error loading messages for conversation ${widget.conversationId}',
                       error,
@@ -206,8 +215,6 @@ extension _ChatScreenWidgets on _ChatScreenState {
               minLines: 1,
               textInputAction: TextInputAction.newline,
               textCapitalization: TextCapitalization.sentences,
-              enableSuggestions: false,
-              autocorrect: false,
               hint: _canReadConversation
                   ? 'Mensagem...'
                   : 'Conversa indisponivel',

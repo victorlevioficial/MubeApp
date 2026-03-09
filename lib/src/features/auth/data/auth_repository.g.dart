@@ -86,7 +86,7 @@ final class AuthStateChangesProvider
   }
 }
 
-String _$authStateChangesHash() => r'346b4034b145750aef0a6f0135919eb8e0c35d34';
+String _$authStateChangesHash() => r'6271420e4504c204797713e56e016870ad22e7c6';
 
 /// Stream provider for the current user's profile data from Firestore.
 ///
@@ -132,7 +132,7 @@ final class CurrentUserProfileProvider
 }
 
 String _$currentUserProfileHash() =>
-    r'948b684ce3436adc8ae6ddb0dc9677eac9a2bf04';
+    r'5a50a2996638cec649da3a545f3ad2f59c77dba9';
 
 @ProviderFor(membersList)
 const membersListProvider = MembersListFamily._();

@@ -120,6 +120,10 @@ abstract class AppUser with _$AppUser {
   /// Name used for internal registration data.
   String get registrationName => (nome ?? '').trim();
 
+  /// Whether the email is Apple's private relay alias from Sign in with Apple.
+  bool get hasApplePrivateRelayEmail =>
+      email.trim().toLowerCase().endsWith('@privaterelay.appleid.com');
+
   /// Name shown in app surfaces (cards, profile headers, search, etc).
   ///
   /// Rules:

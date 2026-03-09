@@ -48,4 +48,4 @@ final class AppSeederProvider
   }
 }
 
-String _$appSeederHash() => r'41c096626a7d849f87be7892d4e40c5faeafc91e';
+String _$appSeederHash() => r'd56cc5b26da36d10bd67e647f78187320b5928b8';

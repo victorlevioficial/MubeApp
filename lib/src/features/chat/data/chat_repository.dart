@@ -7,6 +7,7 @@ import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/utils/app_logger.dart';
+import 'package:mube/src/utils/app_performance_tracker.dart';
 
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
@@ -276,6 +277,7 @@ class ChatRepository {
       final otherInfo = await otherInfoFuture;
       final conversationData = _asMap(conversationSnapshot.data());
       final conversationType = _conversationTypeFromData(conversationData);
+      final isNewConversation = !conversationSnapshot.exists;
 
       final messageRef = conversationRef.collection('messages').doc();
       final messageData = <String, dynamic>{
@@ -289,12 +291,26 @@ class ChatRepository {
       }
       batch.set(messageRef, messageData);
 
-      batch.set(conversationRef, {
-        'lastMessageText': normalizedText,
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'lastSenderId': myUid,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (isNewConversation) {
+        batch.set(conversationRef, {
+          'participants': [myUid, otherUid],
+          'participantsMap': {myUid: true, otherUid: true},
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'readUntil': {myUid: Timestamp(0, 0), otherUid: Timestamp(0, 0)},
+          'lastMessageText': normalizedText,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'lastSenderId': myUid,
+          'type': conversationType,
+        });
+      } else {
+        batch.set(conversationRef, {
+          'lastMessageText': normalizedText,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'lastSenderId': myUid,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
 
       final myPreviewRef = _firestore
           .collection('users')
@@ -333,6 +349,17 @@ class ChatRepository {
       }, SetOptions(merge: true));
 
       await batch.commit();
+
+      if (isNewConversation) {
+        await _analytics?.logEvent(
+          name: 'chat_initiated',
+          parameters: {
+            'conversation_id': conversationId,
+            'other_user_id': otherUid,
+            'source': conversationType,
+          },
+        );
+      }
 
       await _analytics?.logEvent(
         name: 'message_sent',
@@ -402,8 +429,117 @@ class ChatRepository {
   Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
     String conversationId, {
     int limit = _defaultMessagesPageSize,
-  }) {
-    return _messagesQuery(conversationId).limit(limit).snapshots();
+  }) async* {
+    final query = _messagesQuery(conversationId).limit(limit);
+    final firstSnapshotStopwatch = AppPerformanceTracker.startSpan(
+      'chat.messages_stream.first_snapshot',
+      data: {'conversation_id': conversationId, 'limit': limit},
+    );
+    final firstServerSnapshotStopwatch = AppPerformanceTracker.startSpan(
+      'chat.messages_stream.first_server_snapshot',
+      data: {'conversation_id': conversationId, 'limit': limit},
+    );
+    var hasFinishedFirstSnapshot = false;
+    var hasFinishedFirstServerSnapshot = false;
+
+    final cacheLookupStopwatch = AppPerformanceTracker.startSpan(
+      'chat.messages_stream.cache_lookup',
+      data: {'conversation_id': conversationId, 'limit': limit},
+    );
+    try {
+      final cachedSnapshot = await query.get(
+        const GetOptions(source: Source.cache),
+      );
+      final cachedDocsCount = cachedSnapshot.docs.length;
+      AppPerformanceTracker.finishSpan(
+        'chat.messages_stream.cache_lookup',
+        cacheLookupStopwatch,
+        data: {
+          'conversation_id': conversationId,
+          'status': cachedDocsCount > 0 ? 'hit' : 'empty',
+          'size': cachedDocsCount,
+        },
+      );
+
+      if (cachedDocsCount > 0) {
+        AppPerformanceTracker.finishSpan(
+          'chat.messages_stream.first_snapshot',
+          firstSnapshotStopwatch,
+          data: {
+            'conversation_id': conversationId,
+            'source': 'cache',
+            'size': cachedDocsCount,
+            'has_pending_writes': cachedSnapshot.metadata.hasPendingWrites,
+          },
+        );
+        hasFinishedFirstSnapshot = true;
+        yield cachedSnapshot;
+      }
+    } catch (_) {
+      AppPerformanceTracker.finishSpan(
+        'chat.messages_stream.cache_lookup',
+        cacheLookupStopwatch,
+        data: {'conversation_id': conversationId, 'status': 'error'},
+      );
+    }
+
+    try {
+      await for (final snapshot in query.snapshots(
+        includeMetadataChanges: true,
+      )) {
+        if (!hasFinishedFirstSnapshot) {
+          AppPerformanceTracker.finishSpan(
+            'chat.messages_stream.first_snapshot',
+            firstSnapshotStopwatch,
+            data: {
+              'conversation_id': conversationId,
+              'source': snapshot.metadata.isFromCache
+                  ? 'stream_cache'
+                  : 'server',
+              'size': snapshot.docs.length,
+              'has_pending_writes': snapshot.metadata.hasPendingWrites,
+            },
+          );
+          hasFinishedFirstSnapshot = true;
+        }
+
+        if (!hasFinishedFirstServerSnapshot && !snapshot.metadata.isFromCache) {
+          AppPerformanceTracker.finishSpan(
+            'chat.messages_stream.first_server_snapshot',
+            firstServerSnapshotStopwatch,
+            data: {
+              'conversation_id': conversationId,
+              'size': snapshot.docs.length,
+              'has_pending_writes': snapshot.metadata.hasPendingWrites,
+            },
+          );
+          hasFinishedFirstServerSnapshot = true;
+        }
+
+        yield snapshot;
+      }
+    } finally {
+      if (!hasFinishedFirstSnapshot) {
+        AppPerformanceTracker.finishSpan(
+          'chat.messages_stream.first_snapshot',
+          firstSnapshotStopwatch,
+          data: {
+            'conversation_id': conversationId,
+            'status': 'disposed_without_snapshot',
+          },
+        );
+      }
+      if (!hasFinishedFirstServerSnapshot) {
+        AppPerformanceTracker.finishSpan(
+          'chat.messages_stream.first_server_snapshot',
+          firstServerSnapshotStopwatch,
+          data: {
+            'conversation_id': conversationId,
+            'status': 'disposed_without_server',
+          },
+        );
+      }
+    }
   }
 
   /// Stream de mensagens de uma conversa (ultimas 50).

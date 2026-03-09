@@ -54,4 +54,4 @@ final class SupportRepositoryProvider
   }
 }
 
-String _$supportRepositoryHash() => r'd9ebf20718ef9e3af91d38a3a9e1a825e53ca6ea';
+String _$supportRepositoryHash() => r'969e13514e0d6590d10b1955beb6debab96a418e';
