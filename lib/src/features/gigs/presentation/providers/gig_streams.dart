@@ -11,6 +11,13 @@ import 'gig_filters_controller.dart';
 
 part 'gig_streams.g.dart';
 
+final gigUsersByStableIdsProvider = FutureProvider.autoDispose
+    .family<Map<String, AppUser>, String>((ref, idsKey) {
+      return ref
+          .watch(gigRepositoryProvider)
+          .getUsersByIds(_decodeGigUserIdsKey(idsKey));
+    });
+
 final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
   return ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
 });
@@ -64,4 +71,24 @@ Future<Map<String, AppUser>> gigUsersByIds(Ref ref, List<String> ids) {
 @riverpod
 Future<List<GigReviewOpportunity>> pendingGigReviews(Ref ref) {
   return ref.watch(gigRepositoryProvider).getPendingReviewsForCurrentUser();
+}
+
+String encodeGigUserIdsKey(Iterable<String> ids) {
+  final normalizedIds =
+      ids
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false)
+        ..sort();
+  return normalizedIds.join('|');
+}
+
+List<String> _decodeGigUserIdsKey(String idsKey) {
+  if (idsKey.trim().isEmpty) return const [];
+  return idsKey
+      .split('|')
+      .map((id) => id.trim())
+      .where((id) => id.isNotEmpty)
+      .toList(growable: false);
 }

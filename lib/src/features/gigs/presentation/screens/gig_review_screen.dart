@@ -46,7 +46,9 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final reviewState = ref.watch(gigReviewControllerProvider);
-    final userAsync = ref.watch(gigUsersByIdsProvider([widget.userId]));
+    final userAsync = ref.watch(
+      gigUsersByStableIdsProvider(encodeGigUserIdsKey([widget.userId])),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -56,7 +58,8 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
         error: (error, _) => Center(child: Text('Erro: $error')),
         data: (users) {
           final user = users[widget.userId];
-          final displayName = widget.userName ?? user?.appDisplayName ?? 'Usuario';
+          final displayName =
+              widget.userName ?? user?.appDisplayName ?? 'Usuario';
           final photo = widget.userPhoto ?? user?.foto;
 
           return ListView(
@@ -67,9 +70,9 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
               Text(
                 displayName,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(color: AppColors.textPrimary),
               ),
               if ((widget.gigTitle ?? '').trim().isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.s8),
@@ -84,9 +87,9 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
               const SizedBox(height: AppSpacing.s32),
               Text(
                 'Qual nota voce da para esta experiencia?',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
               ),
               const SizedBox(height: AppSpacing.s12),
               Center(
@@ -121,14 +124,16 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
 
   Future<void> _submit() async {
     try {
-      await ref.read(gigReviewControllerProvider.notifier).submitReview(
-        GigReviewDraft(
-          gigId: widget.gigId,
-          reviewedUserId: widget.userId,
-          rating: _rating,
-          comment: _commentController.text.trim(),
-        ),
-      );
+      await ref
+          .read(gigReviewControllerProvider.notifier)
+          .submitReview(
+            GigReviewDraft(
+              gigId: widget.gigId,
+              reviewedUserId: widget.userId,
+              rating: _rating,
+              comment: _commentController.text.trim(),
+            ),
+          );
       if (!mounted) return;
       AppSnackBar.success(context, 'Avaliacao enviada com sucesso.');
       Navigator.of(context).pop(true);

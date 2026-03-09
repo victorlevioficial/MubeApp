@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -26,7 +27,7 @@ class GigApplicantsScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Candidaturas'),
       body: applicationsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _ApplicantsListSkeleton(),
         error: (error, _) => Center(child: Text('Erro: $error')),
         data: (applications) {
           if (applications.isEmpty) {
@@ -40,13 +41,15 @@ class GigApplicantsScreen extends ConsumerWidget {
             );
           }
 
-          final applicantIds = applications
-              .map((application) => application.applicantId)
-              .toList(growable: false);
-          final usersAsync = ref.watch(gigUsersByIdsProvider(applicantIds));
+          final applicantIdsKey = encodeGigUserIdsKey(
+            applications.map((application) => application.applicantId),
+          );
+          final usersAsync = ref.watch(
+            gigUsersByStableIdsProvider(applicantIdsKey),
+          );
 
           return usersAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const _ApplicantsListSkeleton(),
             error: (error, _) => Center(child: Text('Erro: $error')),
             data: (users) {
               return ListView.separated(
@@ -113,11 +116,13 @@ class GigApplicantsScreen extends ConsumerWidget {
                                     try {
                                       await ref
                                           .read(
-                                            gigActionsControllerProvider.notifier,
+                                            gigActionsControllerProvider
+                                                .notifier,
                                           )
                                           .acceptApplication(
                                             gigId: gigId,
-                                            applicantId: application.applicantId,
+                                            applicantId:
+                                                application.applicantId,
                                           );
                                       if (!context.mounted) return;
                                       AppSnackBar.success(
@@ -128,9 +133,10 @@ class GigApplicantsScreen extends ConsumerWidget {
                                       if (!context.mounted) return;
                                       AppSnackBar.error(
                                         context,
-                                        error
-                                            .toString()
-                                            .replaceFirst('Exception: ', ''),
+                                        error.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        ),
                                       );
                                     }
                                   },
@@ -144,11 +150,13 @@ class GigApplicantsScreen extends ConsumerWidget {
                                     try {
                                       await ref
                                           .read(
-                                            gigActionsControllerProvider.notifier,
+                                            gigActionsControllerProvider
+                                                .notifier,
                                           )
                                           .rejectApplication(
                                             gigId: gigId,
-                                            applicantId: application.applicantId,
+                                            applicantId:
+                                                application.applicantId,
                                           );
                                       if (!context.mounted) return;
                                       AppSnackBar.success(
@@ -159,9 +167,10 @@ class GigApplicantsScreen extends ConsumerWidget {
                                       if (!context.mounted) return;
                                       AppSnackBar.error(
                                         context,
-                                        error
-                                            .toString()
-                                            .replaceFirst('Exception: ', ''),
+                                        error.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        ),
                                       );
                                     }
                                   },
@@ -185,7 +194,8 @@ class GigApplicantsScreen extends ConsumerWidget {
                     ),
                   );
                 },
-                separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.s12),
                 itemCount: applications.length,
               );
             },
@@ -206,5 +216,69 @@ class GigApplicantsScreen extends ConsumerWidget {
       case ApplicationStatus.gigCancelled:
         return AppColors.textSecondary;
     }
+  }
+}
+
+class _ApplicantsListSkeleton extends StatelessWidget {
+  const _ApplicantsListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      itemBuilder: (_, _) => const _ApplicantCardSkeleton(),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s12),
+      itemCount: 4,
+    );
+  }
+}
+
+class _ApplicantCardSkeleton extends StatelessWidget {
+  const _ApplicantCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+      ),
+      child: const SkeletonShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SkeletonCircle(size: 48),
+                SizedBox(width: AppSpacing.s12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonText(width: 156, height: 16),
+                      SizedBox(height: AppSpacing.s8),
+                      SkeletonText(width: 92, height: 12),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.s16),
+            SkeletonText(height: 14),
+            SizedBox(height: AppSpacing.s8),
+            SkeletonText(width: 220, height: 14),
+            SizedBox(height: AppSpacing.s16),
+            Row(
+              children: [
+                Expanded(child: SkeletonBox(height: 44, borderRadius: 14)),
+                SizedBox(width: AppSpacing.s12),
+                Expanded(child: SkeletonBox(height: 44, borderRadius: 14)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
