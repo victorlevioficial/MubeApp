@@ -131,6 +131,35 @@ jobs:
             exit 1
           fi
 
+      - name: Restore Android signing config
+        env:
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+          ANDROID_KEY_PROPERTIES_BASE64: ${{ secrets.ANDROID_KEY_PROPERTIES_BASE64 }}
+          ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          ANDROID_UPLOAD_KEYSTORE_JKS_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_JKS_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEY_PROPERTIES" ]; then
+            printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+          elif [ -n "$ANDROID_KEY_PROPERTIES_BASE64" ]; then
+            printf '%s' "$ANDROID_KEY_PROPERTIES_BASE64" | base64 --decode > android/key.properties
+          else
+            echo "Missing Android signing secret. Set ANDROID_KEY_PROPERTIES or ANDROID_KEY_PROPERTIES_BASE64 in GitHub Actions secrets."
+            exit 1
+          fi
+
+          keystore_base64="${ANDROID_UPLOAD_KEYSTORE_BASE64:-$ANDROID_UPLOAD_KEYSTORE_JKS_BASE64}"
+          if [ -z "$keystore_base64" ]; then
+            echo "Missing Android keystore secret. Set ANDROID_UPLOAD_KEYSTORE_BASE64 or ANDROID_UPLOAD_KEYSTORE_JKS_BASE64 in GitHub Actions secrets."
+            exit 1
+          fi
+
+          printf '%s' "$keystore_base64" | base64 --decode > android/app/upload-keystore.jks
+          cp android/app/upload-keystore.jks android/upload-keystore.jks
+          sed -i 's/\r$//' android/key.properties
+          grep -v '^storeFile=' android/key.properties > android/key.properties.tmp || true
+          printf 'storeFile=upload-keystore.jks\n' >> android/key.properties.tmp
+          mv android/key.properties.tmp android/key.properties
+
       - name: Build APK
         run: flutter build apk --release
         env:
