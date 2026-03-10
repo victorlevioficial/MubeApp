@@ -141,6 +141,7 @@ flutter build ios --release
 Guias relacionados:
 
 - `docs/operations/build-guide.md`
+- `docs/operations/xcode-cloud.md`
 - `docs/windows-mac-ios-workflow.md`
 
 ## Testes
