@@ -7,8 +7,23 @@ platform :ios do
   lane :build_ipa do |options|
     repo_root = File.expand_path("../..", __dir__)
     export_method = options[:export_method] || "app-store"
+    maps_api_key = ENV["GOOGLE_MAPS_API_KEY"].to_s.strip
+    vision_api_key = ENV["GOOGLE_VISION_API_KEY"].to_s.strip
 
-    sh("cd #{repo_root.shellescape} && flutter build ipa --release --export-method #{export_method.shellescape}")
+    UI.user_error!("Set GOOGLE_MAPS_API_KEY before running iOS release lanes.") if maps_api_key.empty?
+
+    build_command = [
+      "flutter",
+      "build",
+      "ipa",
+      "--release",
+      "--export-method",
+      export_method.to_s,
+      "--dart-define=GOOGLE_MAPS_API_KEY=#{maps_api_key}",
+    ]
+    build_command << "--dart-define=GOOGLE_VISION_API_KEY=#{vision_api_key}" unless vision_api_key.empty?
+
+    sh("cd #{repo_root.shellescape} && #{build_command.map(&:shellescape).join(' ')}")
   end
 
   desc "Upload an existing IPA to TestFlight using App Store Connect API key"

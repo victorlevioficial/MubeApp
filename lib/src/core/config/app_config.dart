@@ -1,5 +1,3 @@
-import '../../../firebase_options.dart';
-
 /// Application configuration constants.
 ///
 /// This class centralizes all environment-specific configuration
@@ -37,13 +35,9 @@ class AppConfig {
 
   /// Effective Google Maps key used by location flows.
   ///
-  /// Priority:
-  /// 1. `GOOGLE_MAPS_API_KEY` provided via `--dart-define`
-  /// 2. Firebase API key from `firebase_options.dart` as a runtime fallback
+  /// The key must be provided via `--dart-define`.
   static String get effectiveGoogleMapsApiKey {
-    final fromEnv = googleMapsApiKey;
-    if (fromEnv.isNotEmpty) return fromEnv;
-    return _firebaseApiKeyFallback;
+    return googleMapsApiKey;
   }
 
   // ===========================================================================
@@ -182,14 +176,6 @@ class AppConfig {
         'Missing GOOGLE_MAPS_API_KEY. '
         'Please configure environment variables.',
       );
-    }
-  }
-
-  static String get _firebaseApiKeyFallback {
-    try {
-      return _normalizeApiKey(DefaultFirebaseOptions.currentPlatform.apiKey);
-    } on UnsupportedError {
-      return _normalizeApiKey(DefaultFirebaseOptions.web.apiKey);
     }
   }
 

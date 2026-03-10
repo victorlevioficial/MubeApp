@@ -114,14 +114,16 @@ prepare_flutter_ios_project() {
   log "Running flutter pub get --enforce-lockfile"
   flutter pub get --enforce-lockfile
 
+  if [[ -z "${GOOGLE_MAPS_API_KEY:-}" ]]; then
+    log "Missing GOOGLE_MAPS_API_KEY in the Xcode Cloud workflow environment."
+    exit 1
+  fi
+
   build_args=(build ios --config-only --release --no-codesign)
+  build_args+=(--dart-define="GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}")
 
   if [[ -n "${GOOGLE_VISION_API_KEY:-}" ]]; then
     build_args+=(--dart-define="GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}")
-  fi
-
-  if [[ -n "${GOOGLE_MAPS_API_KEY:-}" ]]; then
-    build_args+=(--dart-define="GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}")
   fi
 
   if [[ -n "${APP_CHECK_DEBUG_TOKEN:-}" ]]; then

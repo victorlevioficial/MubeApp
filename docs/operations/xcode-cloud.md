@@ -38,15 +38,18 @@ O script `ios/ci_scripts/ci_post_clone.sh` tambem aceita estes aliases:
 
 O valor deve ser o `base64` em linha unica de `ios/Runner/GoogleService-Info.plist`.
 
+Obrigatorias:
+
+- `GOOGLE_MAPS_API_KEY`
+
 Opcionais:
 
 - `GOOGLE_VISION_API_KEY`
-- `GOOGLE_MAPS_API_KEY`
 - `FLUTTER_VERSION`
 
 Observacao:
 
-- `GOOGLE_MAPS_API_KEY` nao e obrigatoria para build porque o app possui fallback para a chave do Firebase.
+- `GOOGLE_MAPS_API_KEY` e obrigatoria porque os fluxos de localizacao dependem de `--dart-define` em release.
 - `GOOGLE_VISION_API_KEY` nao impede o archive, mas alguns fluxos de moderacao ficam degradados sem ela.
 
 ## O que o script faz no clone limpo

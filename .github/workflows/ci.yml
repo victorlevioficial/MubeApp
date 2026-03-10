@@ -161,10 +161,27 @@ jobs:
           mv android/key.properties.tmp android/key.properties
 
       - name: Build APK
-        run: flutter build apk --release
         env:
           GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_MAPS_API_KEY" ]; then
+            echo "Missing repository secret: GOOGLE_MAPS_API_KEY"
+            exit 1
+          fi
+
+          build_args=(
+            build
+            apk
+            --release
+            "--dart-define=GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}"
+          )
+
+          if [ -n "$GOOGLE_VISION_API_KEY" ]; then
+            build_args+=("--dart-define=GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}")
+          fi
+
+          flutter "${build_args[@]}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -213,7 +230,28 @@ jobs:
           fi
 
       - name: Build iOS without code signing
-        run: flutter build ios --release --no-codesign
+        env:
+          GOOGLE_VISION_API_KEY: ${{ secrets.GOOGLE_VISION_API_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_MAPS_API_KEY" ]; then
+            echo "Missing repository secret: GOOGLE_MAPS_API_KEY"
+            exit 1
+          fi
+
+          build_args=(
+            build
+            ios
+            --release
+            --no-codesign
+            "--dart-define=GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}"
+          )
+
+          if [ -n "$GOOGLE_VISION_API_KEY" ]; then
+            build_args+=("--dart-define=GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}")
+          fi
+
+          flutter "${build_args[@]}"
 
   security-check:
     name: Security Audit

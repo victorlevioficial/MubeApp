@@ -8,8 +8,8 @@ void main() {
       expect(AppConfig.googleMapsApiKey, isEmpty);
     });
 
-    test('effectiveGoogleMapsApiKey should fallback to Firebase key', () {
-      expect(AppConfig.effectiveGoogleMapsApiKey, isNotEmpty);
+    test('effectiveGoogleMapsApiKey should stay empty when not configured', () {
+      expect(AppConfig.effectiveGoogleMapsApiKey, isEmpty);
     });
 
     test('hasRequiredKeys should return false when vision key is empty', () {
@@ -43,48 +43,56 @@ void main() {
         );
       });
 
-      test('buildPlacesUrl should use effective maps key', () {
-        final uri = Uri.parse(AppConfig.buildPlacesUrl('Rua Augusta, 1500'));
-
-        expect(uri.host, 'maps.googleapis.com');
-        expect(uri.queryParameters['input'], 'Rua Augusta, 1500');
-        expect(uri.queryParameters['components'], 'country:br');
-        expect(uri.queryParameters['language'], 'pt-BR');
-        expect(uri.queryParameters['types'], 'address');
-        expect(uri.queryParameters['key'], AppConfig.effectiveGoogleMapsApiKey);
-      });
-
-      test('buildPlaceDetailsUrl should use effective maps key', () {
-        final uri = Uri.parse(AppConfig.buildPlaceDetailsUrl('place-id-123'));
-
-        expect(uri.host, 'maps.googleapis.com');
-        expect(uri.queryParameters['place_id'], 'place-id-123');
+      test('buildPlacesUrl should throw when maps key is empty', () {
         expect(
-          uri.queryParameters['fields'],
-          'address_component,formatted_address,geometry,name',
+          () => AppConfig.buildPlacesUrl('Rua Augusta, 1500'),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('GOOGLE_MAPS_API_KEY'),
+            ),
+          ),
         );
-        expect(uri.queryParameters['language'], 'pt-BR');
-        expect(uri.queryParameters['key'], AppConfig.effectiveGoogleMapsApiKey);
       });
 
-      test('buildGeocodeUrl should use effective maps key', () {
-        final uri = Uri.parse(AppConfig.buildGeocodeUrl('Av Paulista, 1000'));
-
-        expect(uri.host, 'maps.googleapis.com');
-        expect(uri.queryParameters['address'], 'Av Paulista, 1000');
-        expect(uri.queryParameters['language'], 'pt-BR');
-        expect(uri.queryParameters['region'], 'BR');
-        expect(uri.queryParameters['key'], AppConfig.effectiveGoogleMapsApiKey);
+      test('buildPlaceDetailsUrl should throw when maps key is empty', () {
+        expect(
+          () => AppConfig.buildPlaceDetailsUrl('place-id-123'),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('GOOGLE_MAPS_API_KEY'),
+            ),
+          ),
+        );
       });
 
-      test('buildReverseGeocodeUrl should use effective maps key', () {
-        final uri = Uri.parse(AppConfig.buildReverseGeocodeUrl(-23.55, -46.63));
+      test('buildGeocodeUrl should throw when maps key is empty', () {
+        expect(
+          () => AppConfig.buildGeocodeUrl('Av Paulista, 1000'),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('GOOGLE_MAPS_API_KEY'),
+            ),
+          ),
+        );
+      });
 
-        expect(uri.host, 'maps.googleapis.com');
-        expect(uri.queryParameters['latlng'], '-23.55,-46.63');
-        expect(uri.queryParameters['language'], 'pt-BR');
-        expect(uri.queryParameters['region'], 'BR');
-        expect(uri.queryParameters['key'], AppConfig.effectiveGoogleMapsApiKey);
+      test('buildReverseGeocodeUrl should throw when maps key is empty', () {
+        expect(
+          () => AppConfig.buildReverseGeocodeUrl(-23.55, -46.63),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              contains('GOOGLE_MAPS_API_KEY'),
+            ),
+          ),
+        );
       });
     });
   });
