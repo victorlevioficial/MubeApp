@@ -70,6 +70,8 @@
 		<string>Precisamos acessar sua câmera para permitir que você tire fotos para seu perfil.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>Precisamos acessar seu microfone para permitir que você grave vídeos com áudio.</string>
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>
