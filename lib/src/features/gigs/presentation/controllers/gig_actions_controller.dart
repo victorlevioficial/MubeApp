@@ -19,15 +19,11 @@ class GigActionsController extends _$GigActionsController {
   FutureOr<void> build() {}
 
   Future<void> applyToGig(String gigId, String message) async {
-    await _runGigAction(
-      (repository) => repository.applyToGig(gigId, message),
-    );
+    await _runGigAction((repository) => repository.applyToGig(gigId, message));
   }
 
   Future<void> withdrawApplication(String gigId) async {
-    await _runGigAction(
-      (repository) => repository.withdrawApplication(gigId),
-    );
+    await _runGigAction((repository) => repository.withdrawApplication(gigId));
   }
 
   Future<void> closeGig(String gigId) async {

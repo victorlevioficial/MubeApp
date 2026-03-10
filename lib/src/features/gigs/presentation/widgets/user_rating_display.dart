@@ -20,19 +20,14 @@ class UserRatingDisplay extends StatelessWidget {
     if (averageRating == null || reviewCount <= 0) {
       return Text(
         'Sem avaliacoes ainda',
-        style: AppTypography.bodySmall.copyWith(
-          color: AppColors.textSecondary,
-        ),
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
       );
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        StarRatingWidget(
-          rating: averageRating!.round().clamp(0, 5),
-          size: 18,
-        ),
+        StarRatingWidget(rating: averageRating!.round().clamp(0, 5), size: 18),
         const SizedBox(width: AppSpacing.s8),
         Text(
           '${averageRating!.toStringAsFixed(1)} ($reviewCount)',

@@ -11,7 +11,8 @@ import 'gig_filters_controller.dart';
 
 part 'gig_streams.g.dart';
 
-final gigUsersByStableIdsProvider = FutureProvider.family<Map<String, AppUser>, String>((ref, idsKey) {
+final gigUsersByStableIdsProvider =
+    FutureProvider.family<Map<String, AppUser>, String>((ref, idsKey) {
       return ref
           .watch(gigRepositoryProvider)
           .getUsersByIds(_decodeGigUserIdsKey(idsKey));
