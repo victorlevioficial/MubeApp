@@ -607,7 +607,7 @@ class _ActionPanelSection extends ConsumerWidget {
       onOpenChat: () {
         if (myApplication == null) return;
         final otherUserId = isCreator
-            ? myApplication!.applicantId
+            ? myApplication.applicantId
             : gig.creatorId;
         ref
             .read(gigActionsControllerProvider.notifier)

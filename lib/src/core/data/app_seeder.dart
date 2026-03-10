@@ -1325,6 +1325,10 @@ class AppSeeder {
           ),
         )
         .toList();
+    final crewRoleLabels = <String>[
+      ...app_constants.productionRoles,
+      ...app_constants.stageTechRoles,
+    ];
 
     final config = AppConfig(
       version: 1,
@@ -1348,12 +1352,12 @@ class AppSeeder {
           .toList(),
       productionRoles: productionRoles,
       stageTechRoles: stageTechRoles,
-      crewRoles: app_constants.crewRoles
+      crewRoles: crewRoleLabels
           .map(
             (r) => ConfigItem(
               id: _toId(r),
               label: r,
-              order: app_constants.crewRoles.indexOf(r),
+              order: crewRoleLabels.indexOf(r),
             ),
           )
           .toList(),

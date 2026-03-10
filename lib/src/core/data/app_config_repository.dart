@@ -88,6 +88,10 @@ class AppConfigRepository {
           ),
         )
         .toList();
+    final crewRoleLabels = <String>[
+      ...fallback.productionRoles,
+      ...fallback.stageTechRoles,
+    ];
 
     return AppConfig(
       version: 0,
@@ -115,12 +119,12 @@ class AppConfigRepository {
           .toList(),
       productionRoles: productionRoles,
       stageTechRoles: stageTechRoles,
-      crewRoles: fallback.crewRoles
+      crewRoles: crewRoleLabels
           .map(
             (r) => ConfigItem(
               id: _toId(r),
               label: r,
-              order: fallback.crewRoles.indexOf(r),
+              order: crewRoleLabels.indexOf(r),
             ),
           )
           .toList(),

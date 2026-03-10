@@ -56,7 +56,7 @@ void main() {
   }) {
     final creatorIdsKey = encodeGigUserIdsKey([creatorId]);
     final creatorsById = <String, AppUser>{
-      creatorId: AppUser(
+      creatorId: const AppUser(
         uid: creatorId,
         email: 'creator@mube.com',
         cadastroStatus: 'concluido',
