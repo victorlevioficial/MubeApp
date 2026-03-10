@@ -117,6 +117,20 @@ jobs:
       - name: Get dependencies
         run: flutter pub get --enforce-lockfile
 
+      - name: Restore Android Firebase config
+        env:
+          ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+          ANDROID_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          elif [ -n "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          else
+            echo "Missing Android Firebase config secret. Set ANDROID_GOOGLE_SERVICES_JSON or ANDROID_GOOGLE_SERVICES_JSON_BASE64 in GitHub Actions secrets."
+            exit 1
+          fi
+
       - name: Build APK
         run: flutter build apk --release
         env:
@@ -148,6 +162,26 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get --enforce-lockfile
+
+      - name: Restore iOS Firebase config
+        env:
+          IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
+          IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          GOOGLE_SERVICE_INFO_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_BASE64 }}
+        run: |
+          if [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST" ]; then
+            printf '%s' "$IOS_GOOGLE_SERVICE_INFO_PLIST" > ios/Runner/GoogleService-Info.plist
+          elif [ -n "$IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+            printf '%s' "$IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > ios/Runner/GoogleService-Info.plist
+          elif [ -n "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+            printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > ios/Runner/GoogleService-Info.plist
+          elif [ -n "$GOOGLE_SERVICE_INFO_BASE64" ]; then
+            printf '%s' "$GOOGLE_SERVICE_INFO_BASE64" | base64 --decode > ios/Runner/GoogleService-Info.plist
+          else
+            echo "Missing iOS Firebase config secret. Set IOS_GOOGLE_SERVICE_INFO_PLIST or IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 in GitHub Actions secrets."
+            exit 1
+          fi
 
       - name: Build iOS without code signing
         run: flutter build ios --release --no-codesign
