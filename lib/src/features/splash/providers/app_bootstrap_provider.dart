@@ -99,10 +99,9 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
   try {
     if (kReleaseMode) {
       await appCheck.activate(
-        // ignore: deprecated_member_use
-        androidProvider: app_check.AndroidProvider.playIntegrity,
-        // ignore: deprecated_member_use
-        appleProvider: app_check.AppleProvider.appAttestWithDeviceCheckFallback,
+        providerAndroid: const app_check.AndroidPlayIntegrityProvider(),
+        providerApple:
+            const app_check.AppleAppAttestWithDeviceCheckFallbackProvider(),
       );
       return;
     }

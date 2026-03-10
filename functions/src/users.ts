@@ -315,7 +315,12 @@ export const backfillContractorDisplayNames = onRequest(
  * 5. Delete the user from Firebase Authentication.
  */
 export const deleteAccount = onCall(
-  {region: "southamerica-east1", memory: "256MiB", invoker: "public"},
+  {
+    region: "southamerica-east1",
+    memory: "256MiB",
+    enforceAppCheck: true,
+    invoker: "public",
+  },
   async (request) => {
     // 1. Ensure user is authenticated
     const uid = request.auth?.uid;

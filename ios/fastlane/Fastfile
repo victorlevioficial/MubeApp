@@ -35,6 +35,26 @@ platform :ios do
     )
   end
 
+  desc "Upload local dSYMs to Firebase Crashlytics"
+  lane :upload_dsyms do |options|
+    repo_root = File.expand_path("../..", __dir__)
+    archive_path = options[:archive] || File.join(repo_root, "build", "ios", "archive", "Runner.xcarchive")
+    dsym_path = options[:dsym] || File.join(archive_path, "dSYMs")
+    gsp_path = options[:gsp] || File.join(repo_root, "ios", "Runner", "GoogleService-Info.plist")
+    upload_symbols_bin = File.join(repo_root, "ios", "Pods", "FirebaseCrashlytics", "upload-symbols")
+
+    UI.user_error!("Crashlytics upload-symbols not found at #{upload_symbols_bin}") unless File.exist?(upload_symbols_bin)
+    UI.user_error!("GoogleService-Info.plist not found at #{gsp_path}") unless File.exist?(gsp_path)
+    UI.user_error!("dSYMs not found at #{dsym_path}") unless File.exist?(dsym_path)
+
+    sh(
+      "#{upload_symbols_bin.shellescape} " \
+      "-gsp #{gsp_path.shellescape} " \
+      "-p ios " \
+      "#{dsym_path.shellescape}"
+    )
+  end
+
   private_lane :load_asc_api_key do
     key_id = ENV["ASC_KEY_ID"]
     issuer_id = ENV["ASC_ISSUER_ID"]
