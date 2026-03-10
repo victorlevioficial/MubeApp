@@ -8,7 +8,7 @@ Guia rapido para deixar o Mube publicavel via Xcode Cloud.
 - Signing automatico com `DEVELOPMENT_TEAM = 454U7QW5Q5`
 - Scheme compartilhado: `Runner`
 - Build phase do Crashlytics presente no target iOS
-- Bootstrap Flutter no clone limpo via `ci_scripts/ci_post_clone.sh`
+- Bootstrap Flutter no clone limpo via `ios/ci_scripts/ci_post_clone.sh`
 
 ## O que o workflow do Xcode Cloud precisa
 
@@ -31,7 +31,7 @@ Obrigatoria:
 
 - `IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64`
 
-O script `ci_scripts/ci_post_clone.sh` tambem aceita estes aliases:
+O script `ios/ci_scripts/ci_post_clone.sh` tambem aceita estes aliases:
 
 - `GOOGLE_SERVICE_INFO_PLIST_BASE64`
 - `GOOGLE_SERVICE_INFO_BASE64`
@@ -51,12 +51,17 @@ Observacao:
 
 ## O que o script faz no clone limpo
 
-`ci_scripts/ci_post_clone.sh`:
+`ios/ci_scripts/ci_post_clone.sh`:
 
 1. instala o Flutter no ambiente do Xcode Cloud
 2. restaura `ios/Runner/GoogleService-Info.plist` a partir do secret
 3. roda `flutter pub get`
 4. roda `flutter build ios --config-only --release --no-codesign`
+
+Observacao importante:
+
+- para projeto Flutter com pasta iOS separada, o Xcode Cloud precisa encontrar o hook em `ios/ci_scripts/ci_post_clone.sh`
+- neste repositorio, esse arquivo apenas encaminha a execucao para o script central em `ci_scripts/ci_post_clone.sh`
 
 Isso gera os artefatos que nao ficam versionados no repo e que o Xcode Cloud precisa, como:
 
