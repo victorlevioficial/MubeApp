@@ -46,15 +46,12 @@ DateTime? _readReviewDateTime(dynamic value) {
 }
 
 ReviewType _parseReviewType(String? value) {
-  return ReviewType.values.firstWhere(
-    (item) {
-      switch (item) {
-        case ReviewType.creatorToParticipant:
-          return value == 'creator_to_participant';
-        case ReviewType.participantToCreator:
-          return value == 'participant_to_creator';
-      }
-    },
-    orElse: () => ReviewType.creatorToParticipant,
-  );
+  return ReviewType.values.firstWhere((item) {
+    switch (item) {
+      case ReviewType.creatorToParticipant:
+        return value == 'creator_to_participant';
+      case ReviewType.participantToCreator:
+        return value == 'participant_to_creator';
+    }
+  }, orElse: () => ReviewType.creatorToParticipant);
 }

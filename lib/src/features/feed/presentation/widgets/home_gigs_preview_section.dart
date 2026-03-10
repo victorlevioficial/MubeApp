@@ -116,10 +116,7 @@ class _SectionHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: AppRadius.circular(AppRadius.r20),
-                border: Border.all(
-                  color: AppColors.surfaceHighlight,
-                  width: 1,
-                ),
+                border: Border.all(color: AppColors.surfaceHighlight, width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -158,8 +155,8 @@ class HomeGigPreviewCard extends StatelessWidget {
     final accentColor = _accentColorForType(gig.gigType);
     final locationLabel =
         gig.location?['label']?.toString().trim().isNotEmpty == true
-            ? gig.location!['label'].toString().trim()
-            : gig.locationType.label;
+        ? gig.location!['label'].toString().trim()
+        : gig.locationType.label;
     final requirementLabel = _buildRequirementLabel(gig);
 
     return Container(
@@ -167,15 +164,10 @@ class HomeGigPreviewCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.surface2,
-            accentColor.withValues(alpha: 0.08),
-          ],
+          colors: [AppColors.surface2, accentColor.withValues(alpha: 0.08)],
         ),
         borderRadius: AppRadius.all20,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.8),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
       ),
       child: Material(
         color: Colors.transparent,

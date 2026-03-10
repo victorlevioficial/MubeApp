@@ -62,8 +62,12 @@ class _GoRouterRefreshNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
-typedef _ProfileRedirectState =
-    ({bool hasError, bool isLoading, String? cadastroStatus, String? uid});
+typedef _ProfileRedirectState = ({
+  bool hasError,
+  bool isLoading,
+  String? cadastroStatus,
+  String? uid,
+});
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 

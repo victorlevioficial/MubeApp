@@ -20,9 +20,7 @@ void main() {
       ).thenAnswer((_) => completer.future);
 
       final container = ProviderContainer(
-        overrides: [
-          gigRepositoryProvider.overrideWith((ref) => repository),
-        ],
+        overrides: [gigRepositoryProvider.overrideWith((ref) => repository)],
       );
       addTearDown(container.dispose);
 

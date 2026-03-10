@@ -479,7 +479,8 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     final payload = <String, dynamic>{};
     if (label.isNotEmpty) {
       payload['label'] = label;
-    } else if (primaryAddress != null && primaryAddress.shortDisplay.isNotEmpty) {
+    } else if (primaryAddress != null &&
+        primaryAddress.shortDisplay.isNotEmpty) {
       payload['label'] = primaryAddress.shortDisplay;
     }
 

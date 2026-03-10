@@ -50,10 +50,7 @@ void main() {
     test('gig helper routes build expected paths', () {
       expect(RoutePaths.gigCreate, '/gigs/create');
       expect(RoutePaths.gigDetailById('gig-1'), '/gigs/gig-1');
-      expect(
-        RoutePaths.gigApplicantsById('gig-1'),
-        '/gigs/gig-1/applicants',
-      );
+      expect(RoutePaths.gigApplicantsById('gig-1'), '/gigs/gig-1/applicants');
       expect(
         RoutePaths.gigReviewById('gig-1', 'user-1'),
         '/gigs/gig-1/review/user-1',

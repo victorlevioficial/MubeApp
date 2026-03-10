@@ -281,15 +281,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         AppLogger.debug(stack.toString());
       }
 
-      yield* docRef
-          .snapshots(includeMetadataChanges: true)
-          .map((doc) {
-            if (doc.exists && doc.data() != null) {
-              return AppUser.fromJson(doc.data()!);
-            }
-            return null;
-          })
-          .distinct();
+      yield* docRef.snapshots(includeMetadataChanges: true).map((doc) {
+        if (doc.exists && doc.data() != null) {
+          return AppUser.fromJson(doc.data()!);
+        }
+        return null;
+      }).distinct();
     })();
   }
 

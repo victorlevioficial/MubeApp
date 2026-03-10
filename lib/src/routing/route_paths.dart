@@ -65,7 +65,8 @@ abstract final class RoutePaths {
 
   static String publicProfileById(String uid) => '$publicProfile/$uid';
   static String gigDetailById(String gigId) => '$gigs/$gigId';
-  static String gigApplicantsById(String gigId) => '${gigDetailById(gigId)}/applicants';
+  static String gigApplicantsById(String gigId) =>
+      '${gigDetailById(gigId)}/applicants';
   static String gigReviewById(String gigId, String userId) =>
       '${gigDetailById(gigId)}/review/$userId';
 

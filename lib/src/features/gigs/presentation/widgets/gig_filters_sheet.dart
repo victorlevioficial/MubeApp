@@ -65,7 +65,9 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                     labelOf: (item) => item.label,
                     onToggle: (item) {
                       final next = _toggleMulti(_filters.statuses, item);
-                      setState(() => _filters = _filters.copyWith(statuses: next));
+                      setState(
+                        () => _filters = _filters.copyWith(statuses: next),
+                      );
                     },
                   ),
                   const SizedBox(height: AppSpacing.s16),
@@ -76,7 +78,9 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                     labelOf: (item) => item.label,
                     onToggle: (item) {
                       final next = _toggleMulti(_filters.gigTypes, item);
-                      setState(() => _filters = _filters.copyWith(gigTypes: next));
+                      setState(
+                        () => _filters = _filters.copyWith(gigTypes: next),
+                      );
                     },
                   ),
                   const SizedBox(height: AppSpacing.s16),
@@ -99,10 +103,14 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                     selected: _filters.compensationTypes.toSet(),
                     labelOf: (item) => item.label,
                     onToggle: (item) {
-                      final next = _toggleMulti(_filters.compensationTypes, item);
+                      final next = _toggleMulti(
+                        _filters.compensationTypes,
+                        item,
+                      );
                       setState(
-                        () =>
-                            _filters = _filters.copyWith(compensationTypes: next),
+                        () => _filters = _filters.copyWith(
+                          compensationTypes: next,
+                        ),
                       );
                     },
                   ),
@@ -113,7 +121,9 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                     items: widget.config.genres,
                     selectedIds: _filters.genres,
                     onChanged: (next) {
-                      setState(() => _filters = _filters.copyWith(genres: next));
+                      setState(
+                        () => _filters = _filters.copyWith(genres: next),
+                      );
                     },
                   ),
                   const SizedBox(height: AppSpacing.s16),
@@ -172,9 +182,8 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                     ),
                     onChanged: (value) {
                       setState(
-                        () => _filters = _filters.copyWith(
-                          onlyOpenSlots: value,
-                        ),
+                        () =>
+                            _filters = _filters.copyWith(onlyOpenSlots: value),
                       );
                     },
                   ),
@@ -237,13 +246,15 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
         Wrap(
           spacing: AppSpacing.s8,
           runSpacing: AppSpacing.s8,
-          children: values.map((item) {
-            return AppChip.filter(
-              label: labelOf(item),
-              isSelected: selected.contains(item),
-              onTap: () => onToggle(item),
-            );
-          }).toList(growable: false),
+          children: values
+              .map((item) {
+                return AppChip.filter(
+                  label: labelOf(item),
+                  isSelected: selected.contains(item),
+                  onTap: () => onToggle(item),
+                );
+              })
+              .toList(growable: false),
         ),
       ],
     );

@@ -65,19 +65,16 @@ DateTime? _readApplicationDateTime(dynamic value) {
 }
 
 ApplicationStatus _parseApplicationStatus(String? value) {
-  return ApplicationStatus.values.firstWhere(
-    (item) {
-      switch (item) {
-        case ApplicationStatus.pending:
-          return value == 'pending';
-        case ApplicationStatus.accepted:
-          return value == 'accepted';
-        case ApplicationStatus.rejected:
-          return value == 'rejected';
-        case ApplicationStatus.gigCancelled:
-          return value == 'gig_cancelled';
-      }
-    },
-    orElse: () => ApplicationStatus.pending,
-  );
+  return ApplicationStatus.values.firstWhere((item) {
+    switch (item) {
+      case ApplicationStatus.pending:
+        return value == 'pending';
+      case ApplicationStatus.accepted:
+        return value == 'accepted';
+      case ApplicationStatus.rejected:
+        return value == 'rejected';
+      case ApplicationStatus.gigCancelled:
+        return value == 'gig_cancelled';
+    }
+  }, orElse: () => ApplicationStatus.pending);
 }

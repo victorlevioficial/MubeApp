@@ -19,10 +19,7 @@ void main() {
     });
 
     test('clearFilters resets to the default state', () {
-      const filters = GigFilters(
-        term: 'rock',
-        onlyOpenSlots: false,
-      );
+      const filters = GigFilters(term: 'rock', onlyOpenSlots: false);
 
       expect(filters.clearFilters(), const GigFilters());
       expect(filters.clearFilters().hasActiveFilters, isFalse);
