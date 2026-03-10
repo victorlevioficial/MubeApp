@@ -38,7 +38,9 @@ void main() {
       expect(find.text('Contratante'), findsOneWidget);
       expect(find.text('Perfil Individual'), findsOneWidget);
       expect(
-        find.text('Cantor, instrumentista, DJ ou equipe técnica'),
+        find.text(
+          'Cantor, instrumentista, DJ, produção musical ou técnica de palco',
+        ),
         findsOneWidget,
       );
       expect(find.text('Estúdio'), findsOneWidget);

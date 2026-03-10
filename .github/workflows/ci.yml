@@ -176,8 +176,10 @@ jobs:
 
       - name: Check for API keys in code
         run: |
-          if grep -R "AIzaSy" lib/ --include="*.dart" 2>/dev/null; then
-            echo "Potential API keys found in code."
+          matches=$(rg -n "AIzaSy" lib scripts --glob "*.dart" --glob "!lib/firebase_options.dart" || true)
+          if [ -n "$matches" ]; then
+            echo "Potential API keys found in non-generated Dart code:"
+            echo "$matches"
             exit 1
           fi
-          echo "No API keys found in code."
+          echo "No hardcoded API keys found outside generated Firebase config."
