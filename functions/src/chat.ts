@@ -58,13 +58,15 @@ function hasVerifiedEmail(request: CallableRequest<unknown>): boolean {
  * - Opcionalmente envia mensagem inicial
  *
  * NOTA: Esta função é primariamente para contextos não-match.
- * Para matches, a conversa já é criada automaticamente por
- * submitMatchpointAction.
+ * Para matches, `submitMatchpointAction` apenas reserva o `conversationId`
+ * e a conversa passa a existir na primeira mensagem enviada.
  */
 export const initiateContact = onCall(
   {
     region: "southamerica-east1",
-    memory: "256MiB",
+    memory: "128MiB",
+    cpu: "gcf_gen1",
+    maxInstances: 1,
     timeoutSeconds: 10,
     enforceAppCheck: true,
     cors: true,
@@ -128,22 +130,28 @@ export const initiateContact = onCall(
         };
       }
 
+      const normalizedInitialMessage =
+        typeof initialMessage === "string" ? initialMessage.trim() : "";
+      if (!normalizedInitialMessage) {
+        return {
+          success: true,
+          conversationId: getConversationId(currentUserId, targetUserId),
+          message:
+            "Contato liberado. A conversa sera criada na primeira mensagem",
+        };
+      }
+
       const conversationResult = await createConversation(
         currentUserId,
         targetUserId,
         context,
-        initialMessage
+        normalizedInitialMessage
       );
-
-      let responseMessage = "Conversa criada";
-      if (initialMessage) {
-        responseMessage = "Conversa criada com mensagem inicial";
-      }
 
       return {
         success: true,
         conversationId: conversationResult.conversationId,
-        message: responseMessage,
+        message: "Conversa criada com mensagem inicial",
       };
     } catch (error) {
       console.error("Erro em initiateContact:", error);

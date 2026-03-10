@@ -24,7 +24,6 @@ import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/gigs/domain/gig_review_opportunity.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
-import 'features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'routing/app_router.dart';
 import 'routing/route_paths.dart';
 import 'shared/widgets/dismiss_keyboard_on_tap.dart';
@@ -87,24 +86,24 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     // Badge count now comes from Firestore stream automatically.
     // We only need to handle navigation when user taps a notification.
 
-    _onMessageOpenedSub = eventBus.onMessageOpened.listen((message) {
+    _onMessageOpenedSub = eventBus.onNavigation.listen((intent) {
       if (!mounted) return;
 
       final router = ref.read(goRouterProvider);
       final currentPath = router.routerDelegate.currentConfiguration.uri.path;
-      final route = message.data['route'];
-      if (route is String && route.isNotEmpty) {
+      final route = intent.route?.trim();
+      if (route != null && route.isNotEmpty) {
         if (currentPath != route) {
-          router.push(route);
+          router.push(route, extra: intent.extra);
         }
         return;
       }
 
-      final conversationId = message.data['conversation_id'];
-      if (conversationId != null) {
-        final targetPath = RoutePaths.conversationById('$conversationId');
+      final conversationId = intent.conversationId?.trim();
+      if (conversationId != null && conversationId.isNotEmpty) {
+        final targetPath = RoutePaths.conversationById(conversationId);
         if (currentPath != targetPath) {
-          router.push(targetPath);
+          router.push(targetPath, extra: intent.extra);
         }
       }
     });
@@ -163,7 +162,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     _hasBootstrappedPushForSession = true;
     _pushBootstrapTimer?.cancel();
     AppPerformanceTracker.mark('push.bootstrap_for_logged_user.scheduled');
-    _pushBootstrapTimer = Timer(const Duration(seconds: 2), () {
+    _pushBootstrapTimer = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       if (currentUser == null) {
@@ -254,25 +253,6 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       'push.bootstrap_for_logged_user',
     );
     try {
-      final hasShownPermission = await ref.read(
-        notificationPermissionPromptProvider.future,
-      );
-
-      if (!hasShownPermission) {
-        AppLogger.info(
-          'Push bootstrap skipped: notification onboarding not shown yet.',
-        );
-        AppPerformanceTracker.finishSpan(
-          'push.bootstrap_for_logged_user',
-          pushBootstrapStopwatch,
-          data: {
-            'status': 'skipped',
-            'reason': 'permission_onboarding_pending',
-          },
-        );
-        return;
-      }
-
       await ref
           .read(pushNotificationServiceProvider)
           .initIfPermissionAlreadyGranted();

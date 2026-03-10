@@ -261,25 +261,29 @@ class MatchProfilePreviewSheet extends StatelessWidget {
           Wrap(
             spacing: AppSpacing.s8,
             runSpacing: AppSpacing.s8,
-            children: hashtags.map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s12,
-                  vertical: AppSpacing.s4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  borderRadius: AppRadius.pill,
-                ),
-                child: Text(
-                  '#$tag',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            }).toList(),
+            children: hashtags
+                .map((tag) => tag.replaceFirst(RegExp(r'^#+'), ''))
+                .where((tag) => tag.isNotEmpty)
+                .map((tag) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s12,
+                      vertical: AppSpacing.s4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.15),
+                      borderRadius: AppRadius.pill,
+                    ),
+                    child: Text(
+                      '#$tag',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                })
+                .toList(),
           ),
         ],
       ),

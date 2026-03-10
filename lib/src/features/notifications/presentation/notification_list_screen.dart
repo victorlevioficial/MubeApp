@@ -107,7 +107,13 @@ class NotificationListScreen extends ConsumerWidget {
     }
 
     if ((notification.route ?? '').trim().isNotEmpty) {
-      context.push(notification.route!);
+      context.push(
+        notification.route!,
+        extra: _buildChatExtraFromNotification(
+          notification,
+          route: notification.route,
+        ),
+      );
       return;
     }
 
@@ -117,6 +123,7 @@ class NotificationListScreen extends ConsumerWidget {
         if (notification.conversationId != null) {
           context.push(
             RoutePaths.conversationById(notification.conversationId!),
+            extra: _buildChatExtraFromNotification(notification),
           );
         }
         break;
@@ -137,6 +144,31 @@ class NotificationListScreen extends ConsumerWidget {
         // No specific navigation for now
         break;
     }
+  }
+
+  Map<String, dynamic>? _buildChatExtraFromNotification(
+    AppNotification notification, {
+    String? route,
+  }) {
+    final targetRoute = (route ?? '').trim();
+    final isConversationRoute =
+        notification.conversationId != null ||
+        targetRoute.startsWith(RoutePaths.conversation);
+    if (!isConversationRoute) return null;
+
+    final extra = <String, dynamic>{};
+    if ((notification.senderId ?? '').trim().isNotEmpty) {
+      extra['otherUserId'] = notification.senderId!.trim();
+    }
+    if (notification.type == NotificationType.chatMessage &&
+        notification.title.trim().isNotEmpty) {
+      extra['otherUserName'] = notification.title.trim();
+    }
+    if (notification.id.startsWith('match_')) {
+      extra['conversationType'] = 'matchpoint';
+    }
+
+    return extra.isEmpty ? null : extra;
   }
 
   void _clearAllNotifications(

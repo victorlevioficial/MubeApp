@@ -51,6 +51,13 @@ class ChatRepository {
     return _readNonEmptyString(data?['type']) ?? fallback;
   }
 
+  String _normalizeConversationType(
+    String? type, {
+    String fallback = 'direct',
+  }) {
+    return _readNonEmptyString(type) ?? fallback;
+  }
+
   String? _buildShortPersonName(Object? rawName) {
     final normalized = _readNonEmptyString(rawName);
     if (normalized == null) return null;
@@ -126,6 +133,16 @@ class ChatRepository {
       );
       return const _UserPreviewInfo(displayName: 'Usuario', photoUrl: null);
     }
+  }
+
+  Future<ChatParticipantPreview> getConversationParticipantPreview(
+    String uid,
+  ) async {
+    final info = await _getUserPreviewInfoSafe(uid);
+    return ChatParticipantPreview(
+      displayName: info.displayName,
+      photoUrl: info.photoUrl,
+    );
   }
 
   /// Calcula conversationId deterministico (uidMenor_uidMaior).
@@ -259,6 +276,7 @@ class ChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String conversationType = 'direct',
   }) async {
     try {
       final normalizedText = text.trim();
@@ -276,7 +294,12 @@ class ChatRepository {
       final myInfo = await myInfoFuture;
       final otherInfo = await otherInfoFuture;
       final conversationData = _asMap(conversationSnapshot.data());
-      final conversationType = _conversationTypeFromData(conversationData);
+      final resolvedConversationType = conversationSnapshot.exists
+          ? _conversationTypeFromData(
+              conversationData,
+              fallback: _normalizeConversationType(conversationType),
+            )
+          : _normalizeConversationType(conversationType);
       final isNewConversation = !conversationSnapshot.exists;
 
       final messageRef = conversationRef.collection('messages').doc();
@@ -285,6 +308,8 @@ class ChatRepository {
         'text': normalizedText,
         'createdAt': FieldValue.serverTimestamp(),
         'type': 'text',
+        'sender_name': myInfo.displayName,
+        'sender_photo': myInfo.photoUrl,
       };
       if (clientMessageId != null) {
         messageData['clientMessageId'] = clientMessageId;
@@ -301,7 +326,7 @@ class ChatRepository {
           'lastMessageText': normalizedText,
           'lastMessageAt': FieldValue.serverTimestamp(),
           'lastSenderId': myUid,
-          'type': conversationType,
+          'type': resolvedConversationType,
         });
       } else {
         batch.set(conversationRef, {
@@ -327,7 +352,7 @@ class ChatRepository {
         'lastSenderId': myUid,
         'unreadCount': 0,
         'updatedAt': FieldValue.serverTimestamp(),
-        'type': conversationType,
+        'type': resolvedConversationType,
       }, SetOptions(merge: true));
 
       final otherPreviewRef = _firestore
@@ -345,7 +370,7 @@ class ChatRepository {
         'lastSenderId': myUid,
         'unreadCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-        'type': conversationType,
+        'type': resolvedConversationType,
       }, SetOptions(merge: true));
 
       await batch.commit();
@@ -356,7 +381,7 @@ class ChatRepository {
           parameters: {
             'conversation_id': conversationId,
             'other_user_id': otherUid,
-            'source': conversationType,
+            'source': resolvedConversationType,
           },
         );
       }
@@ -576,18 +601,35 @@ class ChatRepository {
 
   /// Stream de previews de conversas do usuario (ultimas 100).
   Stream<List<ConversationPreview>> getUserConversations(String userId) {
-    return _firestore
+    final query = _firestore
         .collection('users')
         .doc(userId)
         .collection('conversationPreviews')
         .orderBy('lastMessageAt', descending: true)
-        .limit(100)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ConversationPreview.fromFirestore(doc))
-              .toList(),
+        .limit(100);
+
+    return (() async* {
+      try {
+        final cachedSnapshot = await query.get(
+          const GetOptions(source: Source.cache),
         );
+        if (cachedSnapshot.docs.isNotEmpty) {
+          yield cachedSnapshot.docs
+              .map((doc) => ConversationPreview.fromFirestore(doc))
+              .toList(growable: false);
+        }
+      } catch (_) {
+        // Best effort only. Live snapshots below remain the source of truth.
+      }
+
+      yield* query
+          .snapshots(includeMetadataChanges: true)
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => ConversationPreview.fromFirestore(doc))
+                .toList(growable: false),
+          );
+    })();
   }
 
   /// Obtem document snapshot da conversa (para acessar readUntil).
@@ -703,6 +745,16 @@ class ChatRepository {
 
 class _UserPreviewInfo {
   const _UserPreviewInfo({required this.displayName, required this.photoUrl});
+
+  final String displayName;
+  final String? photoUrl;
+}
+
+class ChatParticipantPreview {
+  const ChatParticipantPreview({
+    required this.displayName,
+    required this.photoUrl,
+  });
 
   final String displayName;
   final String? photoUrl;

@@ -196,12 +196,14 @@ class AppButton extends StatelessWidget {
     if (isFullWidth) {
       return AppAnimatedPress(
         onPressed: isLoading ? null : onPressed,
+        capturesTap: false,
         child: SizedBox(height: height, width: double.infinity, child: button),
       );
     }
 
     return AppAnimatedPress(
       onPressed: isLoading ? null : onPressed,
+      capturesTap: false,
       child: resultWidget,
     );
   }

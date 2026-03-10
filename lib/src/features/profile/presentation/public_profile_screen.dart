@@ -42,6 +42,17 @@ part 'public_profile_body.dart';
 part 'public_profile_bottom_bar.dart';
 part 'public_profile_details.dart';
 
+typedef PublicProfileMetrics = ({double? averageRating, int reviewCount});
+
+final publicProfileMetricsProvider = FutureProvider.autoDispose
+    .family<PublicProfileMetrics, String>((ref, uid) async {
+      final averageRating = await ref.watch(
+        userAverageRatingProvider(uid).future,
+      );
+      final reviews = await ref.watch(userReviewsProvider(uid).future);
+      return (averageRating: averageRating, reviewCount: reviews.length);
+    });
+
 /// Public profile screen for the user-facing profile experience.
 class PublicProfileScreen extends ConsumerWidget {
   final String uid;
@@ -55,57 +66,55 @@ class PublicProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stateAsync = ref.watch(publicProfileControllerProvider(uid));
-    final user = stateAsync.value?.user;
-    final averageRatingAsync = ref.watch(userAverageRatingProvider(uid));
-    final reviewsAsync = ref.watch(userReviewsProvider(uid));
+    final state = stateAsync.asData?.value;
+    final metricsAsync = ref.watch(publicProfileMetricsProvider(uid));
+    final metrics = metricsAsync.asData?.value;
     final resolvedAvatarHeroTag = avatarHeroTag ?? 'avatar-$uid';
+    final isMetricsLoading =
+        state?.user != null && metrics == null && metricsAsync.isLoading;
+    final shouldShowLoading =
+        (state == null && stateAsync.isLoading) || (state?.isLoading ?? false);
+    final visibleUser = shouldShowLoading ? null : state?.user;
+
+    Widget body;
+    if (stateAsync.hasError) {
+      body = _ErrorBody(message: 'Erro: ${stateAsync.error}');
+    } else if (state?.error != null) {
+      body = _ErrorBody(message: state!.error!);
+    } else if (shouldShowLoading) {
+      body = _buildLoadingState(context);
+    } else if (state?.user == null) {
+      body = const _ErrorBody(message: 'Usuário não encontrado.');
+    } else {
+      body = _ProfileBody(
+        user: state!.user!,
+        galleryItems: state.galleryItems,
+        bandMembers: state.bandMembers,
+        averageRating: metrics?.averageRating,
+        reviewCount: metrics?.reviewCount ?? 0,
+        isMetricsLoading: isMetricsLoading,
+        avatarHeroTag: resolvedAvatarHeroTag,
+        onAvatarTap: () =>
+            _showAvatarViewer(context, state.user!, resolvedAvatarHeroTag),
+        onMediaTap: (index, items) => _showMediaViewer(context, items, index),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: stateAsync.when(
-              data: (state) {
-                if (state.isLoading) return _buildLoadingState(context);
-                if (state.error != null) {
-                  return _ErrorBody(message: state.error!);
-                }
-                if (state.user == null) {
-                  return const _ErrorBody(
-                    message: 'Usu\u00E1rio n\u00E3o encontrado.',
-                  );
-                }
-                return _ProfileBody(
-                  user: state.user!,
-                  galleryItems: state.galleryItems,
-                  bandMembers: state.bandMembers,
-                  averageRating: averageRatingAsync.asData?.value,
-                  reviewCount: reviewsAsync.asData?.value.length ?? 0,
-                  avatarHeroTag: resolvedAvatarHeroTag,
-                  onAvatarTap: () => _showAvatarViewer(
-                    context,
-                    state.user!,
-                    resolvedAvatarHeroTag,
-                  ),
-                  onMediaTap: (index, items) =>
-                      _showMediaViewer(context, items, index),
-                );
-              },
-              loading: () => _buildLoadingState(context),
-              error: (err, _) => _ErrorBody(message: 'Erro: $err'),
-            ),
-          ),
+          Positioned.fill(child: body),
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: _buildTopActions(context, ref, user),
+            child: _buildTopActions(context, ref, visibleUser),
           ),
         ],
       ),
-      bottomNavigationBar: stateAsync.value?.user != null
-          ? _buildBottomBar(context, ref, stateAsync.value!.user!)
+      bottomNavigationBar: visibleUser != null
+          ? _buildBottomBar(context, ref, visibleUser)
           : null,
     );
   }

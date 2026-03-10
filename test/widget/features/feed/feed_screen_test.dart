@@ -8,6 +8,8 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
+import 'package:mube/src/features/feed/domain/feed_item.dart';
+import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/feed/presentation/feed_screen.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
@@ -197,5 +199,48 @@ void main() {
       expect(find.text('Baterista para show pop'), findsOneWidget);
       expect(find.text('Ver todos'), findsOneWidget);
     });
+
+    testWidgets(
+      'keeps full screen skeleton until gigs preview resolves on first render',
+      (tester) async {
+        final gigsPreviewController = StreamController<List<Gig>>();
+        addTearDown(gigsPreviewController.close);
+
+        fakeFeedRepository.mainFeedResponse = const PaginatedFeedResponse(
+          items: [
+            FeedItem(
+              uid: 'artist-1',
+              nome: 'Artist One',
+              nomeArtistico: 'Artist One',
+              tipoPerfil: 'profissional',
+            ),
+          ],
+          hasMore: false,
+          lastDocument: null,
+        );
+
+        await mockNetworkImagesFor(() async {
+          await tester.pumpWidget(
+            createSubject(
+              additionalOverrides: [
+                homeGigsPreviewProvider.overrideWith(
+                  (ref) => gigsPreviewController.stream,
+                ),
+              ],
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+        });
+
+        expect(find.byType(FeedScreenSkeleton), findsOneWidget);
+
+        gigsPreviewController.add(const []);
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+
+        expect(find.byType(CustomScrollView), findsOneWidget);
+      },
+    );
   });
 }

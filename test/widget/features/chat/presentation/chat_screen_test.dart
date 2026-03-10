@@ -91,6 +91,7 @@ class _ReadyChatRepository extends FakeChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String conversationType = 'direct',
   }) async {
     sendCalls += 1;
     return const Right(unit);
@@ -147,6 +148,7 @@ class _DraftChatRepository extends FakeChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String conversationType = 'direct',
   }) async {
     sendCalls += 1;
     return const Right(unit);
@@ -299,7 +301,8 @@ void main() {
     await tester.pumpWidget(createSubject());
     await tester.pump();
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Other User'), findsOneWidget);
 
     profileController.add(user);
     await tester.pumpAndSettle();
@@ -386,6 +389,33 @@ void main() {
     );
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+    'keeps chat layout visible when auth exists before profile stream resolves',
+    (tester) async {
+      fakeAuthRepo = FakeAuthRepository(
+        initialUser: FakeFirebaseUser(uid: 'user-1'),
+      );
+      fakeChatRepo = _SlowConversationAccessRepository(
+        conversationDocCompleter: Completer<DocumentSnapshot?>(),
+      );
+      fakeChatRepo.setConversations([
+        TestData.conversationPreview(
+          id: 'user-1_user-2',
+          otherUserId: 'user-2',
+          otherUserName: 'Other User',
+          lastMessageText: 'Oi',
+        ),
+      ]);
+
+      await tester.pumpWidget(createSubject());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(EditableText), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
 
   testWidgets('renders conversation messages with larger text size', (
     tester,

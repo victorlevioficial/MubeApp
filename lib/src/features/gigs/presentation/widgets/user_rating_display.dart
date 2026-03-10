@@ -10,13 +10,22 @@ class UserRatingDisplay extends StatelessWidget {
     super.key,
     required this.averageRating,
     required this.reviewCount,
+    this.isLoading = false,
   });
 
   final double? averageRating;
   final int reviewCount;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Text(
+        'Carregando avaliações...',
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+      );
+    }
+
     if (averageRating == null || reviewCount <= 0) {
       return Text(
         'Sem avaliacoes ainda',

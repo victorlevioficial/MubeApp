@@ -521,6 +521,30 @@ class GigRepository {
         });
   }
 
+  Stream<GigApplication?> watchMyApplicationForGig(String gigId) {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value(null);
+    }
+
+    return _applications(gigId).doc(user.uid).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) {
+        return null;
+      }
+
+      return GigApplication(
+        id: snapshot.id,
+        gigId: gigId,
+        applicantId: (data[GigFields.applicantId] as String? ?? '').trim(),
+        message: (data[GigFields.message] as String? ?? '').trim(),
+        status: _applicationStatusFromString(data[GigFields.status] as String?),
+        appliedAt: _readGigApplicationDateTime(data[GigFields.appliedAt]),
+        respondedAt: _readGigApplicationDateTime(data[GigFields.respondedAt]),
+      );
+    });
+  }
+
   Future<Map<String, Gig>> _loadGigsByIds(List<String> gigIds) async {
     if (gigIds.isEmpty) return const {};
     final gigs = <String, Gig>{};
@@ -764,6 +788,12 @@ class GigRepository {
     }
     return chunks;
   }
+}
+
+DateTime? _readGigApplicationDateTime(dynamic value) {
+  if (value is Timestamp) return value.toDate();
+  if (value is DateTime) return value;
+  return null;
 }
 
 String _gigTypeValue(GigType value) {

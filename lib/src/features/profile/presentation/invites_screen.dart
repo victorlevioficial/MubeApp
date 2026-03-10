@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:timeago/timeago.dart' as timeago;
 
 import '../../../design_system/components/buttons/app_button.dart';
@@ -15,6 +16,26 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../bands/data/invites_repository.dart';
+
+typedef _InvitesInitialContent = ({
+  List<Map<String, dynamic>> invites,
+  List<Map<String, dynamic>> bands,
+});
+
+enum _InviteAction { accept, decline }
+
+final _invitesInitialContentProvider = FutureProvider.autoDispose
+    .family<_InvitesInitialContent, String>((ref, uid) async {
+      final invites = await ref.watch(invitesStreamProvider(uid).future);
+      final bands = await ref.watch(userBandsProvider(uid).future);
+      return (invites: invites, bands: bands);
+    });
+
+final _inviteActionProvider = StateProvider.autoDispose
+    .family<_InviteAction?, String>((ref, inviteId) => null);
+
+final _leaveBandLoadingProvider = StateProvider.autoDispose
+    .family<bool, String>((ref, bandId) => false);
 
 class InvitesScreen extends ConsumerWidget {
   const InvitesScreen({super.key});
@@ -37,73 +58,96 @@ class InvitesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProfileProvider).value;
+    final userAsync = ref.watch(currentUserProfileProvider);
+    final user = userAsync.value;
     if (user == null) {
+      if (!userAsync.isLoading) {
+        return const Scaffold(
+          body: Center(child: Text('Faça login novamente.')),
+        );
+      }
       return const Scaffold(
         body: SkeletonShimmer(child: UserListSkeleton(itemCount: 4)),
       );
     }
 
+    final initialContentAsync = ref.watch(
+      _invitesInitialContentProvider(user.uid),
+    );
+    final initialContent = initialContentAsync.value;
+    if (initialContentAsync.isLoading && initialContent == null) {
+      return const Scaffold(
+        appBar: AppAppBar(title: 'Minhas Bandas'),
+        backgroundColor: AppColors.background,
+        body: SkeletonShimmer(child: UserListSkeleton(itemCount: 4)),
+      );
+    }
+    if (initialContentAsync.hasError && initialContent == null) {
+      return Scaffold(
+        appBar: const AppAppBar(title: 'Minhas Bandas'),
+        backgroundColor: AppColors.background,
+        body: Center(child: Text('Erro: ${initialContentAsync.error}')),
+      );
+    }
+    final resolvedInitialContent = initialContent!;
+
     final invitesAsync = ref.watch(invitesStreamProvider(user.uid));
     final bandsAsync = ref.watch(userBandsProvider(user.uid));
+    final invites = invitesAsync.value ?? resolvedInitialContent.invites;
+    final bands = bandsAsync.value ?? resolvedInitialContent.bands;
 
     return Scaffold(
       appBar: const AppAppBar(title: 'Minhas Bandas'),
       backgroundColor: AppColors.background,
-      body: invitesAsync.when(
-        loading: () => const UserListSkeleton(itemCount: 4),
-        error: (err, _) => Center(child: Text('Erro: $err')),
-        data: (invites) {
-          return bandsAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (err, _) => Center(child: Text('Erro: $err')),
-            data: (bands) {
-              if (invites.isEmpty && bands.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.music_note_outlined,
-                        size: 64,
-                        color: AppColors.textTertiary,
-                      ),
-                      const SizedBox(height: AppSpacing.s16),
-                      Text(
-                        'Você ainda não participa de nenhuma banda.',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView(
-                padding: AppSpacing.all16,
+      body: Builder(
+        builder: (context) {
+          if (invitesAsync.hasError && invites.isEmpty) {
+            return Center(child: Text('Erro: ${invitesAsync.error}'));
+          }
+          if (bandsAsync.hasError && bands.isEmpty) {
+            return Center(child: Text('Erro: ${bandsAsync.error}'));
+          }
+          if (invites.isEmpty && bands.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (invites.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      'Convites Pendentes (${invites.length})',
+                  const Icon(
+                    Icons.music_note_outlined,
+                    size: 64,
+                    color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  Text(
+                    'Você ainda não participa de nenhuma banda.',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                    const SizedBox(height: AppSpacing.s12),
-                    ...invites.map(
-                      (invite) => _buildInviteCard(context, ref, invite),
-                    ),
-                    const SizedBox(height: AppSpacing.s24),
-                  ],
-
-                  if (bands.isNotEmpty) ...[
-                    _buildSectionHeader('Minhas Bandas (${bands.length})'),
-                    const SizedBox(height: AppSpacing.s12),
-                    ...bands.map(
-                      (band) => _buildBandCard(context, ref, band, user.uid),
-                    ),
-                  ],
+                  ),
                 ],
-              );
-            },
+              ),
+            );
+          }
+
+          return ListView(
+            padding: AppSpacing.all16,
+            children: [
+              if (invites.isNotEmpty) ...[
+                _buildSectionHeader('Convites Pendentes (${invites.length})'),
+                const SizedBox(height: AppSpacing.s12),
+                ...invites.map(
+                  (invite) => _buildInviteCard(context, ref, invite),
+                ),
+                const SizedBox(height: AppSpacing.s24),
+              ],
+              if (bands.isNotEmpty) ...[
+                _buildSectionHeader('Minhas Bandas (${bands.length})'),
+                const SizedBox(height: AppSpacing.s12),
+                ...bands.map(
+                  (band) => _buildBandCard(context, ref, band, user.uid),
+                ),
+              ],
+            ],
           );
         },
       ),
@@ -122,6 +166,8 @@ class InvitesScreen extends ConsumerWidget {
     WidgetRef ref,
     Map<String, dynamic> invite,
   ) {
+    final inviteId = invite['id'] as String;
+    final action = ref.watch(_inviteActionProvider(inviteId));
     final bandName = invite['band_name'] ?? 'Banda Desconhecida';
     final sentAt = invite['created_at'] != null
         ? (invite['created_at'] as dynamic).toDate()
@@ -180,8 +226,15 @@ class InvitesScreen extends ConsumerWidget {
                     height: 48,
                     child: AppButton.outline(
                       text: 'Recusar',
-                      onPressed: () =>
-                          _respond(context, ref, invite['id'], false),
+                      isLoading: action == _InviteAction.decline,
+                      onPressed: action == null
+                          ? () => _respond(
+                              context,
+                              ref,
+                              inviteId,
+                              _InviteAction.decline,
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -191,8 +244,15 @@ class InvitesScreen extends ConsumerWidget {
                     height: 48,
                     child: AppButton.primary(
                       text: 'Aceitar',
-                      onPressed: () =>
-                          _respond(context, ref, invite['id'], true),
+                      isLoading: action == _InviteAction.accept,
+                      onPressed: action == null
+                          ? () => _respond(
+                              context,
+                              ref,
+                              inviteId,
+                              _InviteAction.accept,
+                            )
+                          : null,
                     ),
                   ),
                 ),
@@ -210,6 +270,8 @@ class InvitesScreen extends ConsumerWidget {
     Map<String, dynamic> band,
     String uid,
   ) {
+    final bandId = band['id'] as String;
+    final isLeaving = ref.watch(_leaveBandLoadingProvider(bandId));
     final bandName = _bandDisplayName(band);
     final photoUrl = band['foto'] as String?;
     final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
@@ -267,8 +329,9 @@ class InvitesScreen extends ConsumerWidget {
               width: double.infinity,
               height: 48,
               child: OutlinedButton(
-                onPressed: () =>
-                    _confirmLeave(context, ref, band['id'], bandName),
+                onPressed: isLeaving
+                    ? null
+                    : () => _confirmLeave(context, ref, bandId, bandName),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
                   foregroundColor: AppColors.error,
@@ -280,10 +343,19 @@ class InvitesScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.exit_to_app, size: 18),
-                    const SizedBox(width: AppSpacing.s8),
+                    if (isLeaving) ...[
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: AppSpacing.s8),
+                    ] else ...[
+                      const Icon(Icons.exit_to_app, size: 18),
+                      const SizedBox(width: AppSpacing.s8),
+                    ],
                     Text(
-                      'Sair da banda',
+                      isLeaving ? 'Saindo...' : 'Sair da banda',
                       style: AppTypography.buttonSecondary.copyWith(
                         color: AppColors.error,
                         fontWeight: AppTypography.buttonPrimary.fontWeight,
@@ -303,12 +375,17 @@ class InvitesScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     String inviteId,
-    bool accept,
+    _InviteAction action,
   ) async {
+    final notifier = ref.read(_inviteActionProvider(inviteId).notifier);
+    notifier.state = action;
     try {
       final message = await ref
           .read(invitesRepositoryProvider)
-          .respondToInvite(inviteId: inviteId, accept: accept);
+          .respondToInvite(
+            inviteId: inviteId,
+            accept: action == _InviteAction.accept,
+          );
       if (context.mounted) {
         AppSnackBar.success(context, message);
       }
@@ -316,6 +393,8 @@ class InvitesScreen extends ConsumerWidget {
       if (context.mounted) {
         AppSnackBar.show(context, e.toString(), isError: true);
       }
+    } finally {
+      notifier.state = null;
     }
   }
 
@@ -337,6 +416,10 @@ class InvitesScreen extends ConsumerWidget {
     );
 
     if (confirm == true && context.mounted) {
+      final loadingNotifier = ref.read(
+        _leaveBandLoadingProvider(bandId).notifier,
+      );
+      loadingNotifier.state = true;
       try {
         final uid = ref.read(currentUserProfileProvider).value!.uid;
         final message = await ref
@@ -349,6 +432,8 @@ class InvitesScreen extends ConsumerWidget {
         if (context.mounted) {
           AppSnackBar.show(context, e.toString(), isError: true);
         }
+      } finally {
+        loadingNotifier.state = false;
       }
     }
   }

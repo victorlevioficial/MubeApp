@@ -17,6 +17,7 @@ import '../../foundations/tokens/app_motion.dart';
 class AppAnimatedPress extends StatefulWidget {
   final Widget child;
   final VoidCallback? onPressed;
+  final bool capturesTap;
   final double scaleFactor;
   final Duration duration;
 
@@ -24,6 +25,7 @@ class AppAnimatedPress extends StatefulWidget {
     super.key,
     required this.child,
     this.onPressed,
+    this.capturesTap = true,
     this.scaleFactor = 0.95,
     this.duration = AppMotion.short,
   });
@@ -86,6 +88,20 @@ class _AppAnimatedPressState extends State<AppAnimatedPress>
     // Se onPressed for nulo, apenas retorna o child sem animação/listener
     if (widget.onPressed == null) return widget.child;
 
+    final animatedChild = ScaleTransition(
+      scale: _scaleAnimation,
+      child: widget.child,
+    );
+
+    if (!widget.capturesTap) {
+      return Listener(
+        onPointerDown: _handleTapDown,
+        onPointerUp: _handleTapUp,
+        onPointerCancel: _handleTapCancel,
+        child: animatedChild,
+      );
+    }
+
     return Listener(
       onPointerDown: _handleTapDown,
       onPointerUp: _handleTapUp,
@@ -93,7 +109,7 @@ class _AppAnimatedPressState extends State<AppAnimatedPress>
       child: GestureDetector(
         onTap: widget.onPressed,
         behavior: HitTestBehavior.opaque,
-        child: ScaleTransition(scale: _scaleAnimation, child: widget.child),
+        child: animatedChild,
       ),
     );
   }

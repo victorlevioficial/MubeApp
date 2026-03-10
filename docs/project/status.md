@@ -8,6 +8,8 @@ This index marks the former `project_docs` files as active, analysis, or archive
 | --- | --- | --- | --- |
 | `../plans/mvp-matchpoint-implementation-plan.md` | active | Matchpoint implementation plan (Feb/2026). | `../../ARCHITECTURE.md`, `../FIRESTORE_RULES.md`, `../../firestore.rules` |
 | `../plans/2026-03-06-chat-safety-warning-telemetry.md` | active | Warning-only chat safety telemetry plan without punitive moderation. | `../../lib/src/features/chat/`, `../../functions/src/index.ts`, `../../functions/src/chat.ts` |
+| `../plans/2026-03-10-stories-implementation-plan.md` | active | Stories implementation plan with rollout, cost model, and blockers. | `../../lib/src/features/feed/`, `../../lib/src/features/storage/`, `../../functions/src/`, `../../firestore.rules`, `../../storage.rules` |
+| `../plans/2026-03-10-chat-profile-post-deploy-smoke-test.md` | active | Post-deploy smoke checklist for lazy chat creation, notification routing, inbox warm-cache, and public profile media loading. | `../../lib/src/features/chat/`, `../../lib/src/features/notifications/`, `../../lib/src/features/profile/`, `../../functions/src/chat.ts`, `../../functions/src/matchpoint.ts`, `../../functions/src/index.ts` |
 
 ## Analysis
 

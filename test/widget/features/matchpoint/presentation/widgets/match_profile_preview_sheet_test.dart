@@ -19,7 +19,7 @@ void main() {
         'generosMusicais': ['Rock', 'Blues', 'Pop'],
       },
       matchpointProfile: {
-        'hashtags': ['rock_brasil', 'guitar_hero'],
+        'hashtags': ['#rock_brasil', '#guitar_hero'],
         'musicalGenres': ['Rock', 'Blues'],
       },
     );

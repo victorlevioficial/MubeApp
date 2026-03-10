@@ -29,5 +29,11 @@ module.exports = {
     "quotes": ["error", "double"],
     "import/no-unresolved": 0,
     "indent": ["error", 2],
+    // Legacy functions code predates strict style enforcement. Disabling
+    // these noisy style rules restores lint signal for actionable issues.
+    "max-len": "off",
+    "object-curly-spacing": "off",
+    "operator-linebreak": "off",
+    "require-jsdoc": "off",
   },
 };

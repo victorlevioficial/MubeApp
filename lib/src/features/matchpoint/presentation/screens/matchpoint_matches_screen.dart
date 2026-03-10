@@ -50,6 +50,7 @@ class MatchpointMatchesScreen extends ConsumerWidget {
                           'otherUserId': match.otherUserId,
                           'otherUserName': otherUserName,
                           'otherUserPhoto': otherUser?.foto,
+                          'conversationType': 'matchpoint',
                         },
                       );
                     }

@@ -70,11 +70,6 @@ class ProfileCompletionEvaluator {
         return [
           _CompletionCheck('Nome artistico', _hasText(data['nomeArtistico'])),
           _CompletionCheck('Celular', _hasText(data['celular'])),
-          _CompletionCheck(
-            'Data de nascimento',
-            _hasText(data['dataNascimento']),
-          ),
-          _CompletionCheck('Genero', _hasText(data['genero'])),
         ];
       case AppUserType.band:
         final data = user.dadosBanda ?? const <String, dynamic>{};
@@ -105,14 +100,7 @@ class ProfileCompletionEvaluator {
         ];
       case AppUserType.contractor:
         final data = user.dadosContratante ?? const <String, dynamic>{};
-        return [
-          _CompletionCheck('Celular', _hasText(data['celular'])),
-          _CompletionCheck(
-            'Data de nascimento',
-            _hasText(data['dataNascimento']),
-          ),
-          _CompletionCheck('Genero', _hasText(data['genero'])),
-        ];
+        return [_CompletionCheck('Celular', _hasText(data['celular']))];
     }
   }
 

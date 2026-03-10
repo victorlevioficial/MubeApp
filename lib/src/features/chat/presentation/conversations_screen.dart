@@ -164,6 +164,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
                         'otherUserId': preview.otherUserId,
                         'otherUserName': preview.otherUserName,
                         'otherUserPhoto': preview.otherUserPhoto,
+                        'conversationType': preview.type,
                       },
                     ),
                   ),

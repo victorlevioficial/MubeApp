@@ -748,6 +748,13 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 
   @override
+  Future<ChatParticipantPreview> getConversationParticipantPreview(
+    String uid,
+  ) async {
+    return const ChatParticipantPreview(displayName: 'Usuario', photoUrl: null);
+  }
+
+  @override
   Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
     String conversationId, {
     int limit = 50,
@@ -798,6 +805,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String conversationType = 'direct',
   }) async {
     if (throwError) return const Left(ServerFailure(message: 'Failed'));
     return const Right(unit);

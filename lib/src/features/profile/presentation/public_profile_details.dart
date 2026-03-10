@@ -214,32 +214,7 @@ class _ContractorDetails extends StatelessWidget {
   const _ContractorDetails({required this.user});
 
   @override
-  Widget build(BuildContext context) {
-    final contratante = user.dadosContratante;
-    if (contratante == null) return const SizedBox.shrink();
-
-    final genero = contratante['genero'] as String?;
-    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
-
-    final hasGenero = genero != null && genero.isNotEmpty;
-
-    if (!hasGenero) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (hasGenero)
-          _InfoCard(
-            icon: Icons.person_outline_rounded,
-            title: 'Gênero',
-            accentColor: color,
-            child: _ChipWrap(items: [genero], accentColor: color),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 class _MusicLinksSection extends StatelessWidget {

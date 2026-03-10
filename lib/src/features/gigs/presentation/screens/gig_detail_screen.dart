@@ -32,139 +32,178 @@ import '../widgets/gig_creator_preview.dart';
 import '../widgets/gig_status_badge.dart';
 import '../widgets/gig_type_chip.dart';
 
-class GigDetailScreen extends ConsumerWidget {
+enum _GigDetailPendingAction {
+  apply,
+  withdraw,
+  closeGig,
+  cancelGig,
+  updateDescription,
+}
+
+class GigDetailScreen extends ConsumerStatefulWidget {
   const GigDetailScreen({super.key, required this.gigId});
 
   final String gigId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gigAsync = ref.watch(gigDetailProvider(gigId));
+  ConsumerState<GigDetailScreen> createState() => _GigDetailScreenState();
+}
+
+class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
+  _GigDetailPendingAction? _pendingAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final gigAsync = ref.watch(gigDetailProvider(widget.gigId));
     final appConfigAsync = ref.watch(appConfigProvider);
+    final gig = gigAsync.asData?.value;
+
+    final Widget body;
+    if (gig == null) {
+      body = gigAsync.when(
+        loading: () => const _GigDetailSkeleton(),
+        error: (error, _) => Center(child: Text('Erro: $error')),
+        data: (_) => const Center(child: Text('Gig nao encontrada.')),
+      );
+    } else {
+      final creatorIdsKey = encodeGigUserIdsKey([gig.creatorId]);
+      final creatorAsync = ref.watch(
+        gigUsersByStableIdsProvider(creatorIdsKey),
+      );
+      final creatorsById = creatorAsync.asData?.value;
+      final creator = creatorsById?[gig.creatorId];
+      final config = appConfigAsync.asData?.value;
+      final authUserAsync = ref.watch(authStateChangesProvider);
+      final currentUserId = authUserAsync.asData?.value?.uid;
+      final isCreator = currentUserId == gig.creatorId;
+      final myApplicationAsync = currentUserId == null || isCreator
+          ? const AsyncData<GigApplication?>(null)
+          : ref.watch(myGigApplicationProvider(gig.id));
+      final myApplication = myApplicationAsync.asData?.value;
+      final hasPendingDependencies =
+          (currentUserId == null && authUserAsync.isLoading) ||
+          (creatorsById == null && creatorAsync.isLoading) ||
+          (config == null && appConfigAsync.isLoading) ||
+          (!isCreator &&
+              currentUserId != null &&
+              myApplicationAsync.asData == null &&
+              myApplicationAsync.isLoading);
+
+      if (hasPendingDependencies) {
+        body = const _GigDetailSkeleton();
+      } else {
+        body = ListView(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          children: [
+            Text(
+              gig.title,
+              style: AppTypography.headlineMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s12),
+            Wrap(
+              spacing: AppSpacing.s8,
+              runSpacing: AppSpacing.s8,
+              children: [
+                GigStatusBadge(status: gig.status),
+                GigTypeChip(gigType: gig.gigType),
+                GigCompensationChip(gig: gig),
+              ],
+            ),
+            if (creator != null) ...[
+              const SizedBox(height: AppSpacing.s16),
+              GigCreatorPreview(creator: creator),
+            ],
+            const SizedBox(height: AppSpacing.s20),
+            _DetailCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Data',
+                    value: _dateLabel(gig),
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  _InfoRow(
+                    icon: gig.locationType == GigLocationType.remote
+                        ? Icons.wifi_tethering_rounded
+                        : Icons.location_on_outlined,
+                    label: 'Modalidade',
+                    value:
+                        '${gig.locationType.label} • ${gig.location?['label']?.toString() ?? 'Sem local informado'}',
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  _InfoRow(
+                    icon: Icons.groups_outlined,
+                    label: 'Vagas',
+                    value:
+                        '${gig.slotsTotal} totais • ${gig.availableSlots} disponiveis',
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  _InfoRow(
+                    icon: Icons.how_to_reg_outlined,
+                    label: 'Candidaturas',
+                    value: '${gig.applicantCount}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            _DetailCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Descricao',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s10),
+                  Text(
+                    gig.description,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (config != null) ...[
+              const SizedBox(height: AppSpacing.s16),
+              _DetailCard(
+                child: _RequirementsSection(gig: gig, config: config),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.s20),
+            _ActionPanelSection(
+              gig: gig,
+              isCreator: isCreator,
+              myApplication: myApplication,
+              pendingAction: _pendingAction,
+              onApply: () => _showApplyDialog(context, gig.id),
+              onWithdraw: () => _withdraw(context, gig.id),
+              onViewApplicants: () =>
+                  context.push(RoutePaths.gigApplicantsById(gig.id)),
+              onCloseGig: () => _confirmCloseGig(context, gig.id),
+              onCancelGig: () => _confirmCancelGig(context, gig.id),
+              onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
+              onEditDescriptionOnly: gig.canEditDescriptionOnly
+                  ? () => _showEditDescriptionDialog(context, gig)
+                  : null,
+            ),
+          ],
+        );
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Detalhes da gig'),
-      body: gigAsync.when(
-        loading: () => const _GigDetailSkeleton(),
-        error: (error, _) => Center(child: Text('Erro: $error')),
-        data: (gig) {
-          if (gig == null) {
-            return const Center(child: Text('Gig nao encontrada.'));
-          }
-
-          final creatorAsync = ref.watch(
-            gigUsersByStableIdsProvider(encodeGigUserIdsKey([gig.creatorId])),
-          );
-          final creator = creatorAsync.asData?.value[gig.creatorId];
-
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.s16),
-            children: [
-              Text(
-                gig.title,
-                style: AppTypography.headlineMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s12),
-              Wrap(
-                spacing: AppSpacing.s8,
-                runSpacing: AppSpacing.s8,
-                children: [
-                  GigStatusBadge(status: gig.status),
-                  GigTypeChip(gigType: gig.gigType),
-                  GigCompensationChip(gig: gig),
-                ],
-              ),
-              if (creator != null) ...[
-                const SizedBox(height: AppSpacing.s16),
-                GigCreatorPreview(creator: creator),
-              ],
-              const SizedBox(height: AppSpacing.s20),
-              _DetailCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _InfoRow(
-                      icon: Icons.calendar_today_outlined,
-                      label: 'Data',
-                      value: _dateLabel(gig),
-                    ),
-                    const SizedBox(height: AppSpacing.s12),
-                    _InfoRow(
-                      icon: gig.locationType == GigLocationType.remote
-                          ? Icons.wifi_tethering_rounded
-                          : Icons.location_on_outlined,
-                      label: 'Modalidade',
-                      value:
-                          '${gig.locationType.label} • ${gig.location?['label']?.toString() ?? 'Sem local informado'}',
-                    ),
-                    const SizedBox(height: AppSpacing.s12),
-                    _InfoRow(
-                      icon: Icons.groups_outlined,
-                      label: 'Vagas',
-                      value:
-                          '${gig.slotsTotal} totais • ${gig.availableSlots} disponiveis',
-                    ),
-                    const SizedBox(height: AppSpacing.s12),
-                    _InfoRow(
-                      icon: Icons.how_to_reg_outlined,
-                      label: 'Candidaturas',
-                      value: '${gig.applicantCount}',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              _DetailCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Descricao',
-                      style: AppTypography.titleSmall.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s10),
-                    Text(
-                      gig.description,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s16),
-              appConfigAsync.when(
-                loading: () =>
-                    const _DetailCard(child: _RequirementsSectionSkeleton()),
-                error: (_, _) => const SizedBox.shrink(),
-                data: (config) => _DetailCard(
-                  child: _RequirementsSection(gig: gig, config: config),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s20),
-              _ActionPanelSection(
-                gig: gig,
-                onApply: () => _showApplyDialog(context, ref, gig.id),
-                onWithdraw: () => _withdraw(context, ref, gig.id),
-                onViewApplicants: () =>
-                    context.push(RoutePaths.gigApplicantsById(gig.id)),
-                onCloseGig: () => _confirmCloseGig(context, ref, gig.id),
-                onCancelGig: () => _confirmCancelGig(context, ref, gig.id),
-                onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
-                onEditDescriptionOnly: gig.canEditDescriptionOnly
-                    ? () => _showEditDescriptionDialog(context, ref, gig)
-                    : null,
-              ),
-            ],
-          );
-        },
-      ),
+      body: body,
     );
   }
 
@@ -175,11 +214,7 @@ class GigDetailScreen extends ConsumerWidget {
     return gig.dateMode.label;
   }
 
-  Future<void> _showApplyDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String gigId,
-  ) async {
+  Future<void> _showApplyDialog(BuildContext context, String gigId) async {
     final controller = TextEditingController();
     final result = await AppOverlay.dialog<bool>(
       context: context,
@@ -208,61 +243,45 @@ class GigDetailScreen extends ConsumerWidget {
 
     if (result != true || !context.mounted) return;
 
-    try {
-      await ref
-          .read(gigActionsControllerProvider.notifier)
-          .applyToGig(gigId, controller.text);
-      await _refreshGigDetailState(ref, gigId);
-      if (!context.mounted) return;
-      AppSnackBar.success(
-        context,
-        'Candidatura enviada. A gig agora aparece em Minhas candidaturas.',
-      );
-    } catch (error) {
-      if (!context.mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
-    }
+    await _runPendingAction(_GigDetailPendingAction.apply, () async {
+      try {
+        await ref
+            .read(gigActionsControllerProvider.notifier)
+            .applyToGig(gigId, controller.text);
+        if (!context.mounted) return;
+        AppSnackBar.success(
+          context,
+          'Candidatura enviada. A gig agora aparece em Minhas candidaturas.',
+        );
+      } catch (error) {
+        if (!context.mounted) return;
+        AppSnackBar.error(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    });
   }
 
-  Future<void> _withdraw(
-    BuildContext context,
-    WidgetRef ref,
-    String gigId,
-  ) async {
-    try {
-      await ref
-          .read(gigActionsControllerProvider.notifier)
-          .withdrawApplication(gigId);
-      await _refreshGigDetailState(ref, gigId);
-      if (!context.mounted) return;
-      AppSnackBar.success(context, 'Candidatura retirada com sucesso.');
-    } catch (error) {
-      if (!context.mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
-    }
+  Future<void> _withdraw(BuildContext context, String gigId) async {
+    await _runPendingAction(_GigDetailPendingAction.withdraw, () async {
+      try {
+        await ref
+            .read(gigActionsControllerProvider.notifier)
+            .withdrawApplication(gigId);
+        if (!context.mounted) return;
+        AppSnackBar.success(context, 'Candidatura retirada com sucesso.');
+      } catch (error) {
+        if (!context.mounted) return;
+        AppSnackBar.error(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    });
   }
 
-  Future<void> _refreshGigDetailState(WidgetRef ref, String gigId) async {
-    ref.invalidate(myApplicationsProvider);
-    ref.invalidate(gigDetailProvider(gigId));
-
-    await Future.wait<Object?>([
-      ref.read(myApplicationsProvider.future),
-      ref.read(gigDetailProvider(gigId).future),
-    ]);
-  }
-
-  Future<void> _confirmCloseGig(
-    BuildContext context,
-    WidgetRef ref,
-    String gigId,
-  ) async {
+  Future<void> _confirmCloseGig(BuildContext context, String gigId) async {
     final confirmed = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
@@ -273,24 +292,22 @@ class GigDetailScreen extends ConsumerWidget {
     );
 
     if (confirmed != true) return;
-    try {
-      await ref.read(gigActionsControllerProvider.notifier).closeGig(gigId);
-      if (!context.mounted) return;
-      AppSnackBar.success(context, 'Gig encerrada.');
-    } catch (error) {
-      if (!context.mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
-    }
+    await _runPendingAction(_GigDetailPendingAction.closeGig, () async {
+      try {
+        await ref.read(gigActionsControllerProvider.notifier).closeGig(gigId);
+        if (!context.mounted) return;
+        AppSnackBar.success(context, 'Gig encerrada.');
+      } catch (error) {
+        if (!context.mounted) return;
+        AppSnackBar.error(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    });
   }
 
-  Future<void> _confirmCancelGig(
-    BuildContext context,
-    WidgetRef ref,
-    String gigId,
-  ) async {
+  Future<void> _confirmCancelGig(BuildContext context, String gigId) async {
     final confirmed = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => const AppConfirmationDialog(
@@ -303,24 +320,22 @@ class GigDetailScreen extends ConsumerWidget {
     );
 
     if (confirmed != true) return;
-    try {
-      await ref.read(gigActionsControllerProvider.notifier).cancelGig(gigId);
-      if (!context.mounted) return;
-      AppSnackBar.success(context, 'Gig cancelada.');
-    } catch (error) {
-      if (!context.mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
-    }
+    await _runPendingAction(_GigDetailPendingAction.cancelGig, () async {
+      try {
+        await ref.read(gigActionsControllerProvider.notifier).cancelGig(gigId);
+        if (!context.mounted) return;
+        AppSnackBar.success(context, 'Gig cancelada.');
+      } catch (error) {
+        if (!context.mounted) return;
+        AppSnackBar.error(
+          context,
+          error.toString().replaceFirst('Exception: ', ''),
+        );
+      }
+    });
   }
 
-  Future<void> _showEditDescriptionDialog(
-    BuildContext context,
-    WidgetRef ref,
-    Gig gig,
-  ) async {
+  Future<void> _showEditDescriptionDialog(BuildContext context, Gig gig) async {
     final controller = TextEditingController(text: gig.description);
     final result = await AppOverlay.dialog<bool>(
       context: context,
@@ -347,18 +362,44 @@ class GigDetailScreen extends ConsumerWidget {
     );
 
     if (result != true) return;
+    await _runPendingAction(
+      _GigDetailPendingAction.updateDescription,
+      () async {
+        try {
+          await ref
+              .read(gigActionsControllerProvider.notifier)
+              .updateGig(
+                gig.id,
+                GigUpdate(description: controller.text.trim()),
+              );
+          if (!context.mounted) return;
+          AppSnackBar.success(context, 'Descricao atualizada.');
+        } catch (error) {
+          if (!context.mounted) return;
+          AppSnackBar.error(
+            context,
+            error.toString().replaceFirst('Exception: ', ''),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _runPendingAction(
+    _GigDetailPendingAction action,
+    Future<void> Function() operation,
+  ) async {
+    if (_pendingAction != null) {
+      return;
+    }
+
+    setState(() => _pendingAction = action);
     try {
-      await ref
-          .read(gigActionsControllerProvider.notifier)
-          .updateGig(gig.id, GigUpdate(description: controller.text.trim()));
-      if (!context.mounted) return;
-      AppSnackBar.success(context, 'Descricao atualizada.');
-    } catch (error) {
-      if (!context.mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
+      await operation();
+    } finally {
+      if (mounted) {
+        setState(() => _pendingAction = null);
+      }
     }
   }
 }
@@ -549,6 +590,9 @@ class _RequirementsSectionSkeleton extends StatelessWidget {
 class _ActionPanelSection extends ConsumerWidget {
   const _ActionPanelSection({
     required this.gig,
+    required this.isCreator,
+    required this.myApplication,
+    required this.pendingAction,
     required this.onApply,
     required this.onWithdraw,
     required this.onViewApplicants,
@@ -559,6 +603,9 @@ class _ActionPanelSection extends ConsumerWidget {
   });
 
   final Gig gig;
+  final bool isCreator;
+  final GigApplication? myApplication;
+  final _GigDetailPendingAction? pendingAction;
   final VoidCallback onApply;
   final VoidCallback onWithdraw;
   final VoidCallback onViewApplicants;
@@ -569,34 +616,11 @@ class _ActionPanelSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authUserAsync = ref.watch(authStateChangesProvider);
-    if (authUserAsync.isLoading) {
-      return const _ActionPanelSkeleton();
-    }
-
-    final currentUserId = authUserAsync.asData?.value?.uid;
-    final isCreator = currentUserId == gig.creatorId;
-    GigApplication? myApplication;
-
-    if (!isCreator) {
-      final myApplicationsAsync = ref.watch(myApplicationsProvider);
-      if (myApplicationsAsync.isLoading) {
-        return const _ActionPanelSkeleton();
-      }
-
-      final applications = myApplicationsAsync.asData?.value ?? const [];
-      for (final application in applications) {
-        if (application.gigId == gig.id) {
-          myApplication = application;
-          break;
-        }
-      }
-    }
-
     return _ActionPanel(
       gig: gig,
       isCreator: isCreator,
       myApplication: myApplication,
+      pendingAction: pendingAction,
       onApply: onApply,
       onWithdraw: myApplication == null ? null : onWithdraw,
       onViewApplicants: onViewApplicants,
@@ -622,6 +646,7 @@ class _ActionPanel extends StatelessWidget {
     required this.gig,
     required this.isCreator,
     required this.myApplication,
+    required this.pendingAction,
     required this.onApply,
     required this.onWithdraw,
     required this.onViewApplicants,
@@ -635,6 +660,7 @@ class _ActionPanel extends StatelessWidget {
   final Gig gig;
   final bool isCreator;
   final GigApplication? myApplication;
+  final _GigDetailPendingAction? pendingAction;
   final VoidCallback onApply;
   final VoidCallback? onWithdraw;
   final VoidCallback onViewApplicants;
@@ -646,6 +672,8 @@ class _ActionPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBusy = pendingAction != null;
+
     if (isCreator) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,32 +690,40 @@ class _ActionPanel extends StatelessWidget {
           AppButton.primary(
             text: _creatorApplicantsLabel(gig.applicantCount),
             isFullWidth: true,
-            onPressed: onViewApplicants,
+            onPressed: isBusy ? null : onViewApplicants,
           ),
           const SizedBox(height: AppSpacing.s12),
           if (gig.canEditAllFields)
             AppButton.outline(
               text: 'Editar gig',
               isFullWidth: true,
-              onPressed: onEdit,
+              onPressed: isBusy ? null : onEdit,
             )
           else if (onEditDescriptionOnly != null)
             AppButton.outline(
               text: 'Editar descricao',
               isFullWidth: true,
-              onPressed: onEditDescriptionOnly,
+              isLoading:
+                  pendingAction == _GigDetailPendingAction.updateDescription,
+              onPressed: isBusy ? null : onEditDescriptionOnly,
             ),
           const SizedBox(height: AppSpacing.s12),
           AppButton.secondary(
             text: 'Encerrar gig',
             isFullWidth: true,
-            onPressed: gig.status == GigStatus.open ? onCloseGig : null,
+            isLoading: pendingAction == _GigDetailPendingAction.closeGig,
+            onPressed: isBusy
+                ? null
+                : (gig.status == GigStatus.open ? onCloseGig : null),
           ),
           const SizedBox(height: AppSpacing.s12),
           AppButton.ghost(
             text: 'Cancelar gig',
             isFullWidth: true,
-            onPressed: gig.status == GigStatus.cancelled ? null : onCancelGig,
+            isLoading: pendingAction == _GigDetailPendingAction.cancelGig,
+            onPressed: isBusy
+                ? null
+                : (gig.status == GigStatus.cancelled ? null : onCancelGig),
           ),
         ],
       );
@@ -700,13 +736,14 @@ class _ActionPanel extends StatelessWidget {
           AppButton.primary(
             text: 'Enviar mensagem',
             isFullWidth: true,
-            onPressed: onOpenChat,
+            onPressed: isBusy ? null : onOpenChat,
           ),
           const SizedBox(height: AppSpacing.s12),
           AppButton.outline(
             text: 'Desistir da gig',
             isFullWidth: true,
-            onPressed: onWithdraw,
+            isLoading: pendingAction == _GigDetailPendingAction.withdraw,
+            onPressed: isBusy ? null : onWithdraw,
           ),
         ],
       );
@@ -724,7 +761,8 @@ class _ActionPanel extends StatelessWidget {
           AppButton.outline(
             text: 'Retirar candidatura',
             isFullWidth: true,
-            onPressed: onWithdraw,
+            isLoading: pendingAction == _GigDetailPendingAction.withdraw,
+            onPressed: isBusy ? null : onWithdraw,
           ),
         ],
       );
@@ -760,7 +798,8 @@ class _ActionPanel extends StatelessWidget {
         AppButton.primary(
           text: canApply ? 'Candidatar-se' : 'Sem vagas disponiveis',
           isFullWidth: true,
-          onPressed: canApply ? onApply : null,
+          isLoading: pendingAction == _GigDetailPendingAction.apply,
+          onPressed: isBusy ? null : (canApply ? onApply : null),
         ),
       ],
     );

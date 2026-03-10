@@ -10,11 +10,15 @@ import 'chat_repository.dart';
 final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   ref,
 ) {
-  final user = ref.watch(currentUserProfileProvider).value;
-  if (user == null) return Stream.value([]);
+  final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
+  final authUid =
+      ref.watch(authStateChangesProvider).value?.uid ??
+      ref.read(authRepositoryProvider).currentUser?.uid;
+  final userId = profileUid ?? authUid;
+  if (userId == null || userId.isEmpty) return Stream.value([]);
 
   final repository = ref.watch(chatRepositoryProvider);
-  return repository.getUserConversations(user.uid);
+  return repository.getUserConversations(userId);
 });
 
 /// Conversas filtradas: Apenas MatchPoint

@@ -70,8 +70,6 @@ class GigActionsController extends _$GigActionsController {
         ApplicationStatus.accepted,
       );
       if (!ref.mounted) return;
-      await _ensureConversationExists(applicantId);
-      if (!ref.mounted) return;
       state = const AsyncData(null);
     } catch (error, stackTrace) {
       if (ref.mounted) {
@@ -107,30 +105,9 @@ class GigActionsController extends _$GigActionsController {
         .read(chatRepositoryProvider)
         .getConversationId(currentUser.uid, otherUserId);
     if (!context.mounted) return;
-    await context.push(RoutePaths.conversationById(conversationId));
-  }
-
-  Future<void> _ensureConversationExists(String otherUserId) async {
-    final currentUser = ref.read(currentUserProfileProvider).value;
-    final repository = ref.read(gigRepositoryProvider);
-    final chatRepository = ref.read(chatRepositoryProvider);
-    if (currentUser == null) return;
-
-    final users = await repository.getUsersByIds([otherUserId]);
-    if (!ref.mounted) return;
-    final otherUser = users[otherUserId];
-    if (otherUser == null) return;
-
-    final result = await chatRepository.getOrCreateConversation(
-      myUid: currentUser.uid,
-      otherUid: otherUser.uid,
-      otherUserName: otherUser.appDisplayName,
-      otherUserPhoto: otherUser.foto,
-      myName: currentUser.appDisplayName,
-      myPhoto: currentUser.foto,
-      type: 'gig',
+    await context.push(
+      RoutePaths.conversationById(conversationId),
+      extra: {'otherUserId': otherUserId, 'conversationType': 'gig'},
     );
-
-    result.fold((_) => null, (_) => null);
   }
 }

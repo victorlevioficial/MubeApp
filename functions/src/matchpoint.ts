@@ -3,7 +3,7 @@
  *
  * Funcionalidades:
  * - submitMatchpointAction: Processa ações de like/dislike
- * - Criação de match e conversa
+ * - Criação de match e reserva do conversationId do chat
  * - onInteractionCreated: Atualiza estatísticas
  * - getRemainingLikes: Retorna quota diária
  */
@@ -16,7 +16,6 @@ import {
   DocumentReference,
   FieldValue,
   Timestamp,
-  Transaction,
 } from "firebase-admin/firestore";
 
 const db = admin.firestore();
@@ -95,14 +94,6 @@ interface MatchNotificationInput {
   senderUserId: string;
   recipientUserId: string;
   conversationId: string;
-}
-
-interface MatchArtifactsInput {
-  transaction: Transaction;
-  userId1: string;
-  userId2: string;
-  conversationId: string;
-  now: Timestamp;
 }
 
 /**
@@ -216,79 +207,6 @@ function resolveMatchConversationId(
     matchData?.conversation_id,
     matchData?.conversationId,
   ], fallback);
-}
-
-/**
- * Garante conversa e previews mínimos para um match.
- *
- * @param {MatchArtifactsInput} input - Dependências da transação.
- * @return {Promise<void>} Promise concluída após garantir os artefatos.
- */
-async function ensureMatchArtifacts(input: MatchArtifactsInput): Promise<void> {
-  const {transaction, userId1, userId2, conversationId, now} = input;
-  const conversationRef = db.collection("conversations").doc(conversationId);
-  const existingConversation = await transaction.get(conversationRef);
-
-  const user1Ref = db.collection("users").doc(userId1);
-  const user2Ref = db.collection("users").doc(userId2);
-  const user1Doc = await transaction.get(user1Ref);
-  const user2Doc = await transaction.get(user2Ref);
-  const user1Data = user1Doc.data() || {};
-  const user2Data = user2Doc.data() || {};
-
-  if (!existingConversation.exists) {
-    transaction.set(conversationRef, {
-      participants: [userId1, userId2],
-      participantsMap: {[userId1]: true, [userId2]: true},
-      createdAt: now,
-      updatedAt: now,
-      readUntil: {
-        [userId1]: Timestamp.fromMillis(0),
-        [userId2]: Timestamp.fromMillis(0),
-      },
-      lastMessageText: null,
-      lastMessageAt: null,
-      lastSenderId: null,
-      type: "matchpoint",
-    });
-  }
-
-  const preview1Ref = user1Ref.collection("conversationPreviews").doc(
-    conversationId
-  );
-  const preview2Ref = user2Ref.collection("conversationPreviews").doc(
-    conversationId
-  );
-  const preview1Doc = await transaction.get(preview1Ref);
-  const preview2Doc = await transaction.get(preview2Ref);
-
-  if (!preview1Doc.exists) {
-    transaction.set(preview1Ref, {
-      otherUserId: userId2,
-      otherUserName: user2Data.nome || user2Data.nome_artistico || "Usuário",
-      otherUserPhoto: user2Data.foto || null,
-      lastMessageText: null,
-      lastMessageAt: null,
-      lastSenderId: null,
-      unreadCount: 0,
-      updatedAt: now,
-      type: "matchpoint",
-    });
-  }
-
-  if (!preview2Doc.exists) {
-    transaction.set(preview2Ref, {
-      otherUserId: userId1,
-      otherUserName: user1Data.nome || user1Data.nome_artistico || "Usuário",
-      otherUserPhoto: user1Data.foto || null,
-      lastMessageText: null,
-      lastMessageAt: null,
-      lastSenderId: null,
-      unreadCount: 0,
-      updatedAt: now,
-      type: "matchpoint",
-    });
-  }
 }
 
 /**
@@ -418,7 +336,11 @@ async function notifyMatchCreated(
       senderId: senderUserId,
       conversationId,
       route,
-      data: {conversation_id: conversationId},
+      data: {
+        conversation_id: conversationId,
+        conversation_type: "matchpoint",
+        sender_name: senderName,
+      },
     });
   } catch (error) {
     console.error(
@@ -434,7 +356,7 @@ async function notifyMatchCreated(
  * Processa ações de like/dislike com:
  * - Rate limit diário de swipes
  * - Verificação de match mútuo
- * - Criação de match e conversa
+ * - Criação de match e reserva do conversationId do chat
  */
 export const submitMatchpointAction = onCall(
   {
@@ -760,7 +682,7 @@ function readLastLikeDate(userData: DocumentData): Date | null {
 }
 
 /**
- * Cria um match e a conversa associada.
+ * Cria um match e reserva o conversationId do chat associado.
  *
  * @param {string} userId1 - UID do usuário atual
  * @param {string} userId2 - UID do usuário alvo
@@ -805,14 +727,6 @@ async function createMatch(
       existingMatch.data(),
       pairKey
     );
-
-    await ensureMatchArtifacts({
-      transaction,
-      userId1,
-      userId2,
-      conversationId,
-      now,
-    });
 
     transaction.set(sourceInteractionRef, {
       resulted_in_match: true,

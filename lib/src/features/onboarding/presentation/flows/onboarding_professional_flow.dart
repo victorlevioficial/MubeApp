@@ -235,7 +235,7 @@ class _OnboardingProfessionalFlowState
 
   bool _validateAge() {
     final dobText = _dataNascimentoController.text;
-    if (dobText.isEmpty) return false;
+    if (dobText.isEmpty) return true;
 
     try {
       final parts = dobText.split('/');
@@ -477,13 +477,12 @@ class _OnboardingProfessionalFlowState
         ),
         const SizedBox(height: AppSpacing.s16),
         AppDatePickerField(
-          label: 'Data de Nascimento',
+          label: 'Data de Nascimento (opcional)',
           controller: _dataNascimentoController,
-          validator: (v) => v!.isEmpty ? 'Data obrigatória' : null,
         ),
         const SizedBox(height: AppSpacing.s16),
         AppDropdownField<String>(
-          label: 'Gênero',
+          label: 'Gênero (opcional)',
           value: normalizeGenderValue(_generoController.text).isEmpty
               ? null
               : normalizeGenderValue(_generoController.text),
@@ -496,7 +495,6 @@ class _OnboardingProfessionalFlowState
           onChanged: (v) {
             setState(() => _generoController.text = normalizeGenderValue(v));
           },
-          validator: (v) => v == null ? 'Selecione uma opção' : null,
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(

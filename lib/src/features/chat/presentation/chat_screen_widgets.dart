@@ -1,6 +1,16 @@
 part of 'chat_screen.dart';
 
 extension _ChatScreenWidgets on _ChatScreenState {
+  Widget _buildInitialLoadingScaffold() {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppAppBar(title: _buildAppBarTitle(), showBackButton: true),
+      body: _hasKnownConversationContext
+          ? _buildLoadingShimmer()
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
+
   Widget _buildChatBody({
     required AsyncValue<QuerySnapshot<Map<String, dynamic>>>?
     messagesSnapshotAsync,

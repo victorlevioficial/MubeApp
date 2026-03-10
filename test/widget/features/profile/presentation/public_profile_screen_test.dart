@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -22,6 +24,9 @@ void main() {
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+        publicProfileMetricsProvider(
+          user.uid,
+        ).overrideWith((ref) async => (averageRating: null, reviewCount: 0)),
       ],
     );
 
@@ -29,24 +34,23 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
-  testWidgets(
-    'shows personal gender for contractor instead of musical genre label',
-    (tester) async {
-      const contractor = AppUser(
-        uid: 'contractor-uid',
-        email: 'contractor@example.com',
-        nome: 'Event Organizer',
-        tipoPerfil: AppUserType.contractor,
-        cadastroStatus: 'concluido',
-        dadosContratante: {'genero': 'Feminino'},
-      );
-      await pumpPublicProfile(tester, contractor);
+  testWidgets('hides contractor personal gender from public profile', (
+    tester,
+  ) async {
+    const contractor = AppUser(
+      uid: 'contractor-uid',
+      email: 'contractor@example.com',
+      nome: 'Event Organizer',
+      tipoPerfil: AppUserType.contractor,
+      cadastroStatus: 'concluido',
+      dadosContratante: {'genero': 'Feminino'},
+    );
+    await pumpPublicProfile(tester, contractor);
 
-      expect(find.text('Gênero'), findsOneWidget);
-      expect(find.text('Feminino'), findsOneWidget);
-      expect(find.text('Estilo Musical Preferido'), findsNothing);
-    },
-  );
+    expect(find.text('Gênero'), findsNothing);
+    expect(find.text('Feminino'), findsNothing);
+    expect(find.text('Estilo Musical Preferido'), findsNothing);
+  });
 
   testWidgets('does not show instagram for professional', (tester) async {
     const professional = AppUser(
@@ -203,5 +207,42 @@ void main() {
 
     expect(find.text('Ouça nas plataformas'), findsOneWidget);
     expect(find.byTooltip('Spotify'), findsOneWidget);
+  });
+
+  testWidgets('keeps skeleton until profile metrics resolve', (tester) async {
+    const professional = AppUser(
+      uid: 'professional-metrics-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+    );
+    final metricsCompleter = Completer<PublicProfileMetrics>();
+
+    fakeAuthRepository.appUser = professional;
+
+    await tester.pumpApp(
+      PublicProfileScreen(uid: professional.uid),
+      overrides: [
+        authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+        currentUserProfileProvider.overrideWith(
+          (ref) => Stream.value(professional),
+        ),
+        publicProfileMetricsProvider(
+          professional.uid,
+        ).overrideWith((ref) => metricsCompleter.future),
+      ],
+    );
+
+    await tester.pump();
+    expect(find.text('Sem avaliacoes ainda'), findsNothing);
+
+    metricsCompleter.complete((averageRating: 4.5, reviewCount: 3));
+    await tester.pumpAndSettle();
+
+    expect(find.text('4.5 (3)'), findsOneWidget);
   });
 }

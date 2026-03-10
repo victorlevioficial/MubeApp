@@ -63,32 +63,14 @@ class PublicProfileController extends _$PublicProfileController {
 
   Future<PublicProfileState> _loadProfile(String uid) async {
     try {
-      final result = await ref.read(authRepositoryProvider).getUsersByIds([
-        uid,
-      ]);
+      final user = await ref.read(authRepositoryProvider).watchUser(uid).first;
 
-      // Unpack Either without nesting async inside fold
-      String? failureMessage;
-      List<AppUser> fetchedUsers = [];
-
-      result.fold(
-        (failure) =>
-            failureMessage = 'Erro ao carregar perfil: ${failure.message}',
-        (users) => fetchedUsers = users,
-      );
-
-      if (failureMessage != null) {
-        return PublicProfileState(isLoading: false, error: failureMessage);
-      }
-
-      if (fetchedUsers.isEmpty) {
+      if (user == null) {
         return const PublicProfileState(
           isLoading: false,
           error: 'Perfil n\u00E3o encontrado',
         );
       }
-
-      final user = fetchedUsers.first;
 
       // Load gallery items based on user type
       List<dynamic> galleryData = [];
@@ -113,8 +95,6 @@ class PublicProfileController extends _$PublicProfileController {
 
       final gallery = _parseGalleryItems(galleryData);
 
-      // Load band members if applicable (async, outside fold)
-      List<AppUser> bandMembers = [];
       final memberIds = user.members
           .map((id) => id.trim())
           .where((id) => id.isNotEmpty)
@@ -122,34 +102,12 @@ class PublicProfileController extends _$PublicProfileController {
           .toList(growable: false);
 
       if (user.tipoPerfil == AppUserType.band && memberIds.isNotEmpty) {
-        final membersResult = await ref
-            .read(authRepositoryProvider)
-            .getUsersByIds(memberIds);
-
-        membersResult.fold(
-          (failure) {
-            AppLogger.warning(
-              'Falha ao carregar integrantes da banda: ${failure.message}',
-            );
-          },
-          (members) {
-            final memberOrder = {
-              for (int i = 0; i < memberIds.length; i++) memberIds[i]: i,
-            };
-            members.sort(
-              (a, b) => (memberOrder[a.uid] ?? memberIds.length).compareTo(
-                memberOrder[b.uid] ?? memberIds.length,
-              ),
-            );
-            bandMembers = members;
-          },
-        );
+        unawaited(_loadBandMembers(uid: user.uid, memberIds: memberIds));
       }
 
       return PublicProfileState(
         user: user,
         galleryItems: gallery,
-        bandMembers: bandMembers,
         isLoading: false,
       );
     } catch (e, stackTrace) {
@@ -188,6 +146,40 @@ class PublicProfileController extends _$PublicProfileController {
     return parsed;
   }
 
+  Future<void> _loadBandMembers({
+    required String uid,
+    required List<String> memberIds,
+  }) async {
+    final membersResult = await ref
+        .read(authRepositoryProvider)
+        .getUsersByIds(memberIds);
+    if (!ref.mounted) return;
+
+    final currentState = state.asData?.value;
+    if (currentState == null || currentState.user?.uid != uid) {
+      return;
+    }
+
+    membersResult.fold(
+      (failure) {
+        AppLogger.warning(
+          'Falha ao carregar integrantes da banda: ${failure.message}',
+        );
+      },
+      (members) {
+        final memberOrder = {
+          for (int i = 0; i < memberIds.length; i++) memberIds[i]: i,
+        };
+        members.sort(
+          (a, b) => (memberOrder[a.uid] ?? memberIds.length).compareTo(
+            memberOrder[b.uid] ?? memberIds.length,
+          ),
+        );
+        state = AsyncData(currentState.copyWith(bandMembers: members));
+      },
+    );
+  }
+
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _loadProfile(uid));
@@ -213,6 +205,7 @@ class PublicProfileController extends _$PublicProfileController {
             : (targetUser.nome ?? 'Usuario'),
         'otherUserPhoto': targetUser.foto,
         'otherUserId': targetUser.uid,
+        'conversationType': 'direct',
       };
 
       if (context.mounted) {

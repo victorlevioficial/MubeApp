@@ -98,7 +98,7 @@ void main() {
         await controller.saveMatchpointProfile(
           intent: 'dating',
           genres: ['rock', 'pop'],
-          hashtags: ['music'],
+          hashtags: ['Music', '#Rider Técnico', ' music '],
           isVisibleInHome: true,
         );
 
@@ -109,6 +109,10 @@ void main() {
         expect(
           fakeAnalyticsService.loggedEvents,
           contains('matchpoint_filter'),
+        );
+        expect(
+          fakeAuthRepository.lastUpdatedUser?.matchpointProfile?['hashtags'],
+          ['#music', '#ridertecnico'],
         );
         final state = container.read(matchpointControllerProvider);
         expect(state.hasError, false);

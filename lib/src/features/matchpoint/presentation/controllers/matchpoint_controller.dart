@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/domain/app_config.dart';
@@ -84,12 +85,13 @@ class MatchpointController extends _$MatchpointController {
       }
 
       final authRepo = ref.read(authRepositoryProvider);
+      final normalizedHashtags = _normalizeHashtagList(hashtags);
 
       final updatedMatchpointProfile = <String, dynamic>{
         ...appUser.matchpointProfile ?? {},
         FirestoreFields.intent: intent,
         FirestoreFields.musicalGenres: genres,
-        FirestoreFields.hashtags: hashtags,
+        FirestoreFields.hashtags: normalizedHashtags,
         FirestoreFields.isActive: true,
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -119,6 +121,31 @@ class MatchpointController extends _$MatchpointController {
         return null;
       });
     });
+  }
+
+  List<String> _normalizeHashtagList(Iterable<String> source) {
+    final normalizedTags = <String>[];
+    final seen = <String>{};
+
+    for (final raw in source) {
+      final token = _normalizeHashtagToken(raw);
+      if (token.isEmpty) continue;
+
+      final hashtag = '#$token';
+      if (seen.add(hashtag)) {
+        normalizedTags.add(hashtag);
+      }
+    }
+
+    return normalizedTags;
+  }
+
+  String _normalizeHashtagToken(String rawValue) {
+    final withoutHash = rawValue.replaceAll('#', '');
+    final withoutDiacritics = removeDiacritics(withoutHash);
+    final noSpaces = withoutDiacritics.replaceAll(RegExp(r'\s+'), '');
+    final normalized = noSpaces.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '');
+    return normalized.toLowerCase();
   }
 
   Future<SwipeActionResult> swipeRight(AppUser targetUser) async {

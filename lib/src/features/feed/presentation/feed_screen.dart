@@ -16,6 +16,8 @@ import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/domain/app_user.dart';
+import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -64,6 +66,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   int _criticalWarmupGeneration = 0;
   bool _criticalImagesReady = false;
   bool _hasRenderedFeedContent = false;
+  bool _hasReleasedInitialLayout = false;
 
   @override
   void initState() {
@@ -317,20 +320,42 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final stateAsync = ref.watch(feedControllerProvider);
     final state = stateAsync.value ?? const FeedState();
     final controller = ref.read(feedControllerProvider.notifier);
+    final currentUserAsync = ref.watch(currentUserProfileProvider);
+    final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
     final shouldHoldForCriticalImages =
         !_hasRenderedFeedContent &&
         state.items.isNotEmpty &&
         !_criticalImagesReady;
+    final shouldHoldForInitialDependencies =
+        !_hasReleasedInitialLayout &&
+        !stateAsync.hasError &&
+        state.status != PaginationStatus.error &&
+        ((currentUserAsync.asData == null && currentUserAsync.isLoading) ||
+            (gigsPreviewAsync.asData == null && gigsPreviewAsync.isLoading));
 
-    if (state.isInitialLoading || shouldHoldForCriticalImages) {
+    if (state.isInitialLoading ||
+        shouldHoldForCriticalImages ||
+        shouldHoldForInitialDependencies) {
       return const FeedScreenSkeleton();
     }
+
+    _releaseInitialLayout();
 
     return _buildFeedScaffold(
       context: context,
       stateAsync: stateAsync,
       state: state,
       controller: controller,
+      currentUser: currentUserAsync.asData?.value,
+      gigsPreviewAsync: gigsPreviewAsync,
     );
+  }
+
+  void _releaseInitialLayout() {
+    if (_hasReleasedInitialLayout) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasReleasedInitialLayout) return;
+      setState(() => _hasReleasedInitialLayout = true);
+    });
   }
 }

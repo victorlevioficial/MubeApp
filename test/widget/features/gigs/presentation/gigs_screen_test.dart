@@ -93,6 +93,7 @@ void main() {
     expect(find.text('Nova gig'), findsOneWidget);
     expect(find.text('Casa Aurora'), findsOneWidget);
     expect(find.text('Contratante'), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
   });
 
   testWidgets('renders perfil individual label for professional creators', (

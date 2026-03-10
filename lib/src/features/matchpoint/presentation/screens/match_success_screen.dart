@@ -158,6 +158,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                         'otherUserId': widget.matchUser.uid,
                         'otherUserName': matchUserName,
                         'otherUserPhoto': widget.matchUser.foto,
+                        'conversationType': 'matchpoint',
                       },
                     );
                   },

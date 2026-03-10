@@ -6,6 +6,7 @@ class _ProfileBody extends StatelessWidget {
   final List<AppUser> bandMembers;
   final double? averageRating;
   final int reviewCount;
+  final bool isMetricsLoading;
   final String avatarHeroTag;
   final VoidCallback onAvatarTap;
   final void Function(int index, List<MediaItem> items) onMediaTap;
@@ -16,6 +17,7 @@ class _ProfileBody extends StatelessWidget {
     required this.bandMembers,
     required this.averageRating,
     required this.reviewCount,
+    required this.isMetricsLoading,
     required this.avatarHeroTag,
     required this.onAvatarTap,
     required this.onMediaTap,
@@ -114,6 +116,7 @@ class _ProfileBody extends StatelessWidget {
           UserRatingDisplay(
             averageRating: averageRating,
             reviewCount: reviewCount,
+            isLoading: isMetricsLoading,
           ),
           const SizedBox(height: AppSpacing.s16),
           _buildDetails(),

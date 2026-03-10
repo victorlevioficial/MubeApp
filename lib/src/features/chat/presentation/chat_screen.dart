@@ -72,11 +72,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool? _cachedEmailSendAllowed;
   DateTime? _cachedEmailCheckAt;
   DocumentSnapshot<Map<String, dynamic>>? _oldestServerMessageDoc;
+  bool _isHydratingOtherUserPreview = false;
 
   // Dados do outro usuario (pode vir via extra ou cache local)
   late String _otherUserName;
   String? _otherUserPhoto;
   late String _otherUserId;
+  late String _conversationType;
 
   bool get _canReadConversation =>
       _accessState == _ConversationAccessState.ready;
@@ -125,11 +127,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 .firstOrNull;
             if (updated == null) return;
             if (updated.otherUserPhoto != _otherUserPhoto ||
-                updated.otherUserName != _otherUserName) {
+                updated.otherUserName != _otherUserName ||
+                updated.type != _conversationType) {
               if (mounted) {
                 setState(() {
                   _otherUserPhoto = updated.otherUserPhoto;
                   _otherUserName = updated.otherUserName;
+                  _conversationType = updated.type;
                   if (_otherUserId.isEmpty) {
                     _otherUserId = updated.otherUserId;
                   }
@@ -156,11 +160,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             updatedAt: Timestamp.now(),
           ),
         );
+    final currentUserId =
+        ref.read(currentUserProfileProvider).value?.uid ??
+        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(authRepositoryProvider).currentUser?.uid;
 
     _otherUserName =
         extra?['otherUserName'] ?? cachedPreview?.otherUserName ?? 'Usuario';
     _otherUserPhoto = extra?['otherUserPhoto'] ?? cachedPreview?.otherUserPhoto;
     _otherUserId = extra?['otherUserId'] ?? cachedPreview?.otherUserId ?? '';
+    _conversationType =
+        extra?['conversationType'] ?? cachedPreview?.type ?? 'direct';
+
+    if (_otherUserId.isEmpty && currentUserId != null) {
+      _otherUserId = _deriveOtherUidFromConversationId(currentUserId);
+    }
   }
 
   bool _hasCachedConversationPreview() {
@@ -169,6 +183,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             .value
             ?.any((preview) => preview.id == widget.conversationId) ??
         false;
+  }
+
+  String _deriveOtherUidFromConversationId(String myUid) {
+    final parts = widget.conversationId.split('_');
+    if (parts.length != 2) return '';
+    if (parts[0] == myUid) return parts[1];
+    if (parts[1] == myUid) return parts[0];
+    return '';
+  }
+
+  bool _needsOtherUserPreviewHydration() {
+    final normalizedName = _otherUserName.trim();
+    return normalizedName.isEmpty ||
+        normalizedName == 'Usuario' ||
+        (_otherUserPhoto == null || _otherUserPhoto!.trim().isEmpty);
+  }
+
+  Future<void> _maybeHydrateOtherUserPreview() async {
+    if (_isHydratingOtherUserPreview) return;
+    if (_otherUserId.isEmpty || !_needsOtherUserPreviewHydration()) return;
+
+    _isHydratingOtherUserPreview = true;
+    try {
+      final preview = await ref
+          .read(chatRepositoryProvider)
+          .getConversationParticipantPreview(_otherUserId);
+      if (!mounted) return;
+
+      setState(() {
+        if (_otherUserName.trim().isEmpty || _otherUserName == 'Usuario') {
+          _otherUserName = preview.displayName;
+        }
+        if ((_otherUserPhoto ?? '').trim().isEmpty &&
+            (preview.photoUrl ?? '').trim().isNotEmpty) {
+          _otherUserPhoto = preview.photoUrl;
+        }
+      });
+    } finally {
+      _isHydratingOtherUserPreview = false;
+    }
   }
 
   void _setConversationReady({
@@ -194,8 +248,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _prepareConversation() async {
     if (_isPreparingConversation) return;
     _isPreparingConversation = true;
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) {
+    final currentUserId =
+        ref.read(currentUserProfileProvider).value?.uid ??
+        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(authRepositoryProvider).currentUser?.uid;
+    if (currentUserId == null) {
       _isPreparingConversation = false;
       return;
     }
@@ -205,6 +262,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       'chat.prepare_conversation',
       data: {
         'conversation_id': widget.conversationId,
+        'current_user_id': currentUserId,
         'has_cached_preview': _hasCachedConversationPreview(),
         'has_other_user_hint': _otherUserId.isNotEmpty,
       },
@@ -212,13 +270,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     var outcome = 'unknown';
 
     try {
+      final resolvedOtherUid = _otherUserId.isNotEmpty
+          ? _otherUserId
+          : _deriveOtherUidFromConversationId(currentUserId);
+      if (resolvedOtherUid.isNotEmpty) {
+        if (mounted && resolvedOtherUid != _otherUserId) {
+          setState(() {
+            _otherUserId = resolvedOtherUid;
+          });
+        }
+
+        _setConversationReady(
+          myUid: currentUserId,
+          repository: repository,
+          markAsRead: false,
+        );
+        unawaited(_maybeHydrateOtherUserPreview());
+      }
+
       final existingDoc = await repository.getConversationDoc(
         widget.conversationId,
       );
       if (!mounted) return;
 
       if (existingDoc != null && existingDoc.exists) {
-        if (!_isUserParticipant(existingDoc, user.uid)) {
+        if (!_isUserParticipant(existingDoc, currentUserId)) {
           outcome = 'forbidden_not_participant';
           setState(() {
             _accessState = _ConversationAccessState.forbidden;
@@ -229,7 +305,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           return;
         }
 
-        final otherUid = _resolveConversationParticipant(existingDoc, user.uid);
+        final otherUid = _resolveConversationParticipant(
+          existingDoc,
+          currentUserId,
+        );
         if (otherUid.isEmpty) {
           outcome = 'unavailable_missing_participant';
           setState(() {
@@ -247,9 +326,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         setState(() {
           _otherUserId = otherUid;
         });
+        unawaited(_maybeHydrateOtherUserPreview());
 
         _setConversationReady(
-          myUid: user.uid,
+          myUid: currentUserId,
           repository: repository,
           markAsRead: true,
         );
@@ -258,7 +338,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           unawaited(
             _restoreConversationPreview(
               repository: repository,
-              myUid: user.uid,
+              myUid: currentUserId,
               otherUid: otherUid,
             ),
           );
@@ -282,7 +362,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
 
       _setConversationReady(
-        myUid: user.uid,
+        myUid: currentUserId,
         repository: repository,
         markAsRead: false,
       );
@@ -787,14 +867,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_otherUserId.isNotEmpty && _otherUserId != myUid) {
       return _otherUserId;
     }
-
-    final parts = widget.conversationId.split('_');
-    if (parts.length == 2) {
-      if (parts[0] == myUid) return parts[1];
-      if (parts[1] == myUid) return parts[0];
-    }
-
-    return '';
+    return _deriveOtherUidFromConversationId(myUid);
   }
 
   Future<void> _sendMessage() async {
@@ -835,10 +908,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
 
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) return;
+    final myUid =
+        ref.read(currentUserProfileProvider).value?.uid ??
+        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(authRepositoryProvider).currentUser?.uid;
+    if (myUid == null) return;
 
-    final otherUid = _resolveOtherUid(user.uid);
+    final otherUid = _resolveOtherUid(myUid);
     if (otherUid.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -863,7 +939,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _sendMessageInBackground(
         localMessageId: localMessageId,
         text: text,
-        myUid: user.uid,
+        myUid: myUid,
         otherUid: otherUid,
       ),
     );
@@ -884,6 +960,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           myUid: myUid,
           otherUid: otherUid,
           clientMessageId: localMessageId,
+          conversationType: _conversationType,
         );
         return result.fold((failure) => failure.message, (_) => null);
       }
@@ -955,14 +1032,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authAsync = ref.watch(authStateChangesProvider);
     final userAsync = ref.watch(currentUserProfileProvider);
     final user = userAsync.value;
+    final authUser =
+        authAsync.value ?? ref.read(authRepositoryProvider).currentUser;
+    final currentUserId = user?.uid ?? authUser?.uid;
 
-    if (userAsync.isLoading && user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (user == null) {
+    if (currentUserId == null) {
+      if (userAsync.isLoading || authAsync.isLoading) {
+        return _buildInitialLoadingScaffold();
+      }
       return const Scaffold(
         body: Center(child: Text('Usuario nao autenticado')),
       );
@@ -991,7 +1071,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     final otherUid = participants.firstWhere(
-      (uid) => uid != user.uid,
+      (uid) => uid != currentUserId,
       orElse: () => '',
     );
 
@@ -1005,7 +1085,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: AppAppBar(title: _buildAppBarTitle(), showBackButton: true),
       body: _buildChatBody(
         messagesSnapshotAsync: messagesSnapshotAsync,
-        currentUserId: user.uid,
+        currentUserId: currentUserId,
         otherUid: otherUid,
         readUntilMap: readUntilMap,
       ),

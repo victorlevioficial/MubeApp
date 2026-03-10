@@ -1,7 +1,7 @@
-import 'dart:async';
-
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
@@ -31,113 +31,176 @@ String _buildIdsKey(Iterable<String> ids) {
   return normalized.join(',');
 }
 
+typedef _BlockedUsersInitialContent = ({
+  firebase_auth.User? authUser,
+  List<String> legacyBlockedUsers,
+  List<String> blockedIds,
+  String idsKey,
+  List<AppUser> users,
+});
+
+final _blockedUsersInitialContentProvider =
+    FutureProvider.autoDispose<_BlockedUsersInitialContent>((ref) async {
+      final authUser = await ref.watch(authStateChangesProvider.future);
+      if (authUser == null) {
+        return (
+          authUser: null,
+          legacyBlockedUsers: const <String>[],
+          blockedIds: const <String>[],
+          idsKey: '',
+          users: const <AppUser>[],
+        );
+      }
+
+      final currentUser = await ref.watch(currentUserProfileProvider.future);
+      final blockedIds = await ref.watch(blockedUsersProvider.future);
+      final legacyBlockedUsers = currentUser?.blockedUsers ?? const <String>[];
+      final idsKey = _buildIdsKey({...legacyBlockedUsers, ...blockedIds});
+      final users = idsKey.isEmpty
+          ? const <AppUser>[]
+          : await ref.watch(blockedUsersDetailsByKeyProvider(idsKey).future);
+
+      return (
+        authUser: authUser,
+        legacyBlockedUsers: legacyBlockedUsers,
+        blockedIds: blockedIds,
+        idsKey: idsKey,
+        users: users,
+      );
+    });
+
+final _unblockLoadingProvider = StateProvider.autoDispose.family<bool, String>(
+  (ref, userId) => false,
+);
+
 class BlockedUsersScreen extends ConsumerWidget {
   const BlockedUsersScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Escuta o stream de IDs bloqueados do Firebase
+    final initialContentAsync = ref.watch(_blockedUsersInitialContentProvider);
+    final initialContent = initialContentAsync.value;
+
+    if (initialContentAsync.isLoading && initialContent == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppAppBar(title: 'Usuários Bloqueados'),
+        body: Center(child: AppLoadingIndicator()),
+      );
+    }
+
+    if (initialContentAsync.hasError && initialContent == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: const AppAppBar(title: 'Usuários Bloqueados'),
+        body: Center(child: Text('Erro: ${initialContentAsync.error}')),
+      );
+    }
+    final resolvedInitialContent = initialContent!;
+
+    final authAsync = ref.watch(authStateChangesProvider);
+    final profileAsync = ref.watch(currentUserProfileProvider);
     final blockedUsersAsync = ref.watch(blockedUsersProvider);
-    final authUser = ref.watch(authStateChangesProvider).value;
+    final authUser = authAsync.value ?? resolvedInitialContent.authUser;
     final legacyBlockedUsers =
-        ref.watch(currentUserProfileProvider).value?.blockedUsers ??
-        const <String>[];
+        profileAsync.value?.blockedUsers ??
+        resolvedInitialContent.legacyBlockedUsers;
+    final blockedIds =
+        blockedUsersAsync.value ?? resolvedInitialContent.blockedIds;
+    final idsKey = _buildIdsKey({...legacyBlockedUsers, ...blockedIds});
+    final usersDataAsync = idsKey.isEmpty
+        ? const AsyncData<List<AppUser>>(<AppUser>[])
+        : ref.watch(blockedUsersDetailsByKeyProvider(idsKey));
+    final fallbackUsers = idsKey == resolvedInitialContent.idsKey
+        ? resolvedInitialContent.users
+        : const <AppUser>[];
+    final users = usersDataAsync.value ?? fallbackUsers;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Usuários Bloqueados'),
-      body: authUser == null
-          ? const Center(child: Text('Faça login novamente.'))
-          : blockedUsersAsync.when(
-              data: (blockedIds) {
-                // Merge IDs bloqueados antigos (do doc principal) com os do subcollection
-                final combinedIds = {...legacyBlockedUsers, ...blockedIds};
+      body: Builder(
+        builder: (context) {
+          if (authUser == null) {
+            return const Center(child: Text('Faça login novamente.'));
+          }
 
-                final idsKey = _buildIdsKey(combinedIds);
+          if (blockedUsersAsync.hasError && idsKey.isEmpty) {
+            return Center(child: Text('Erro: ${blockedUsersAsync.error}'));
+          }
 
-                if (idsKey.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.block,
-                          size: 64,
-                          color: AppColors.surfaceHighlight,
-                        ),
-                        const SizedBox(height: AppSpacing.s16),
-                        Text(
-                          'Nenhum usuário bloqueado',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+          if (idsKey.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.block,
+                    size: 64,
+                    color: AppColors.surfaceHighlight,
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  Text(
+                    'Nenhum usuário bloqueado',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
                     ),
-                  );
-                }
+                  ),
+                ],
+              ),
+            );
+          }
 
-                // Busca os dados completos dos usuários baseado na lista de IDs
-                final usersDataAsync = ref.watch(
-                  blockedUsersDetailsByKeyProvider(idsKey),
-                );
+          if (usersDataAsync.isLoading && users.isEmpty) {
+            return const Center(child: AppLoadingIndicator());
+          }
 
-                return usersDataAsync.when(
-                  data: (users) {
-                    if (users.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'Os usuários bloqueados não foram encontrados.',
-                        ),
-                      );
-                    }
+          if (usersDataAsync.hasError && users.isEmpty) {
+            return Center(child: Text('Erro: ${usersDataAsync.error}'));
+          }
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.s8,
-                      ),
-                      itemCount: users.length,
-                      separatorBuilder: (context, index) => const Divider(
-                        color: AppColors.surfaceHighlight,
-                        height: 1,
-                      ),
-                      itemBuilder: (context, index) {
-                        final user = users[index];
-                        return ListTile(
-                          leading: UserAvatar(
-                            size: 40,
-                            photoUrl: user.foto,
-                            name: user.appDisplayName,
-                            showBorder: false,
-                          ),
-                          title: Text(
-                            user.appDisplayName,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          trailing: AppButton.outline(
-                            text: 'Desbloquear',
-                            size: AppButtonSize.small,
-                            onPressed: () => _unblockUser(
-                              context,
-                              ref,
-                              authUser.uid,
-                              user.uid,
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                  loading: () => const Center(child: AppLoadingIndicator()),
-                  error: (err, stack) => Center(child: Text('Erro: $err')),
-                );
-              },
-              loading: () => const Center(child: AppLoadingIndicator()),
-              error: (err, stack) => Center(child: Text('Erro: $err')),
-            ),
+          if (users.isEmpty) {
+            return const Center(
+              child: Text('Os usuários bloqueados não foram encontrados.'),
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+            itemCount: users.length,
+            separatorBuilder: (context, index) =>
+                const Divider(color: AppColors.surfaceHighlight, height: 1),
+            itemBuilder: (context, index) {
+              final user = users[index];
+              final isLoading = ref.watch(_unblockLoadingProvider(user.uid));
+              return ListTile(
+                leading: UserAvatar(
+                  size: 40,
+                  photoUrl: user.foto,
+                  name: user.appDisplayName,
+                  showBorder: false,
+                ),
+                title: Text(
+                  user.appDisplayName,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                trailing: AppButton.outline(
+                  text: 'Desbloquear',
+                  size: AppButtonSize.small,
+                  isLoading: isLoading,
+                  onPressed: isLoading
+                      ? null
+                      : () =>
+                            _unblockUser(context, ref, authUser.uid, user.uid),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -147,24 +210,32 @@ class BlockedUsersScreen extends ConsumerWidget {
     String currentUserId,
     String blockedUserId,
   ) async {
-    final result = await ref
-        .read(moderationRepositoryProvider)
-        .unblockUser(
-          currentUserId: currentUserId,
-          blockedUserId: blockedUserId,
-        );
-
-    result.fold(
-      (failure) {
-        if (context.mounted) {
-          AppSnackBar.error(context, failure.message);
-        }
-      },
-      (_) {
-        if (context.mounted) {
-          AppSnackBar.success(context, 'Usuário desbloqueado');
-        }
-      },
+    final loadingNotifier = ref.read(
+      _unblockLoadingProvider(blockedUserId).notifier,
     );
+    loadingNotifier.state = true;
+    try {
+      final result = await ref
+          .read(moderationRepositoryProvider)
+          .unblockUser(
+            currentUserId: currentUserId,
+            blockedUserId: blockedUserId,
+          );
+
+      result.fold(
+        (failure) {
+          if (context.mounted) {
+            AppSnackBar.error(context, failure.message);
+          }
+        },
+        (_) {
+          if (context.mounted) {
+            AppSnackBar.success(context, 'Usuário desbloqueado');
+          }
+        },
+      );
+    } finally {
+      loadingNotifier.state = false;
+    }
   }
 }

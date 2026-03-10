@@ -98,8 +98,8 @@ void main() {
 
       expect(result.percent, lessThan(100));
       expect(result.missingRequirements, contains('Celular'));
-      expect(result.missingRequirements, contains('Data de nascimento'));
-      expect(result.missingRequirements, contains('Genero'));
+      expect(result.missingRequirements, isNot(contains('Data de nascimento')));
+      expect(result.missingRequirements, isNot(contains('Genero')));
     });
 
     test('marks profile incomplete when registration is not concluded', () {

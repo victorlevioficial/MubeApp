@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,6 +16,8 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications;
   static Future<void>? _activeInitialization;
   static bool _isInitialized = false;
+  static bool _hasResolvedInitialRemoteMessage = false;
+  static bool _hasResolvedLaunchNotification = false;
 
   PushNotificationService({
     required FirebaseMessaging fcm,
@@ -88,9 +91,25 @@ class PushNotificationService {
       await _localNotifications.initialize(
         initSettings,
         onDidReceiveNotificationResponse: (details) {
-          // Handle tap
+          final intent = _navigationIntentFromPayload(details.payload);
+          if (intent != null) {
+            PushNotificationEventBus.instance.emitNavigation(intent);
+          }
         },
       );
+
+      final launchDetails = await _localNotifications
+          .getNotificationAppLaunchDetails();
+      if (!_hasResolvedLaunchNotification &&
+          launchDetails?.didNotificationLaunchApp == true) {
+        _hasResolvedLaunchNotification = true;
+        final intent = _navigationIntentFromPayload(
+          launchDetails?.notificationResponse?.payload,
+        );
+        if (intent != null) {
+          PushNotificationEventBus.instance.emitNavigation(intent);
+        }
+      }
 
       // Create High Importance Channel (Android 8+)
       const androidChannel = AndroidNotificationChannel(
@@ -149,7 +168,21 @@ class PushNotificationService {
         AppLogger.info('A new onMessageOpenedApp event was published!');
         // Emit to global event bus for navigation handling
         PushNotificationEventBus.instance.emitMessageOpened(message);
+        PushNotificationEventBus.instance.emitNavigation(
+          _buildNavigationIntentFromRemoteMessage(message),
+        );
       });
+      if (!_hasResolvedInitialRemoteMessage) {
+        _hasResolvedInitialRemoteMessage = true;
+        final initialMessage = await _fcm.getInitialMessage();
+        if (initialMessage != null) {
+          AppLogger.info('Initial notification message detected on app launch');
+          PushNotificationEventBus.instance.emitMessageOpened(initialMessage);
+          PushNotificationEventBus.instance.emitNavigation(
+            _buildNavigationIntentFromRemoteMessage(initialMessage),
+          );
+        }
+      }
       _isInitialized = true;
     } catch (e, stack) {
       AppLogger.error('Failed to init PushNotificationService', e, stack);
@@ -240,8 +273,87 @@ class PushNotificationService {
             threadIdentifier: conversationId ?? 'general',
           ),
         ),
+        payload: jsonEncode(_notificationPayloadData(message)),
       );
     }
+  }
+
+  PushNavigationIntent _buildNavigationIntentFromRemoteMessage(
+    RemoteMessage message,
+  ) {
+    final data = message.data;
+    final route = _readNonEmptyString(data['route']);
+    final conversationId = _readNonEmptyString(data['conversation_id']);
+    final senderId = _readNonEmptyString(data['sender_id']);
+    final senderName =
+        _readNonEmptyString(data['sender_name']) ??
+        _readNonEmptyString(message.notification?.title);
+    final senderPhoto = _readNonEmptyString(data['sender_photo']);
+    final conversationType = _readNonEmptyString(data['conversation_type']);
+
+    final extra = <String, dynamic>{};
+    if (senderId != null) extra['otherUserId'] = senderId;
+    if (senderName != null) extra['otherUserName'] = senderName;
+    if (senderPhoto != null) extra['otherUserPhoto'] = senderPhoto;
+    if (conversationType != null) extra['conversationType'] = conversationType;
+
+    return PushNavigationIntent(
+      route: route,
+      conversationId: conversationId,
+      extra: extra.isEmpty ? null : extra,
+    );
+  }
+
+  PushNavigationIntent? _navigationIntentFromPayload(String? payload) {
+    final rawPayload = payload?.trim();
+    if (rawPayload == null || rawPayload.isEmpty) return null;
+
+    try {
+      final decoded = jsonDecode(rawPayload);
+      if (decoded is! Map) return null;
+      final data = Map<String, dynamic>.from(decoded);
+      final route = _readNonEmptyString(data['route']);
+      final conversationId = _readNonEmptyString(data['conversation_id']);
+
+      final extra = <String, dynamic>{};
+      final senderId = _readNonEmptyString(data['sender_id']);
+      final senderName = _readNonEmptyString(data['sender_name']);
+      final senderPhoto = _readNonEmptyString(data['sender_photo']);
+      final conversationType = _readNonEmptyString(data['conversation_type']);
+
+      if (senderId != null) extra['otherUserId'] = senderId;
+      if (senderName != null) extra['otherUserName'] = senderName;
+      if (senderPhoto != null) extra['otherUserPhoto'] = senderPhoto;
+      if (conversationType != null) {
+        extra['conversationType'] = conversationType;
+      }
+
+      return PushNavigationIntent(
+        route: route,
+        conversationId: conversationId,
+        extra: extra.isEmpty ? null : extra,
+      );
+    } catch (error) {
+      AppLogger.warning('Failed to parse local notification payload: $error');
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _notificationPayloadData(RemoteMessage message) {
+    final data = Map<String, dynamic>.from(message.data);
+    final title = _readNonEmptyString(message.notification?.title);
+
+    if (title != null && _readNonEmptyString(data['sender_name']) == null) {
+      data['sender_name'] = title;
+    }
+
+    return data;
+  }
+
+  String? _readNonEmptyString(Object? value) {
+    if (value is! String) return null;
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
   }
 
   Future<void> _saveTokenToFirestore(String token) async {

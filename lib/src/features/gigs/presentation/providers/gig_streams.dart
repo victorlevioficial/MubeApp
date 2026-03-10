@@ -18,6 +18,11 @@ final gigUsersByStableIdsProvider =
           .getUsersByIds(_decodeGigUserIdsKey(idsKey));
     });
 
+final myGigApplicationProvider = StreamProvider.autoDispose
+    .family<GigApplication?, String>((ref, gigId) {
+      return ref.watch(gigRepositoryProvider).watchMyApplicationForGig(gigId);
+    });
+
 final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
   return ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
 });

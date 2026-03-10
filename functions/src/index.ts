@@ -274,6 +274,10 @@ export const onMessageCreated = onDocumentCreated(
 
       const conversationData = conversationDoc.data();
       const participants: string[] = conversationData?.participants || [];
+      const conversationType = typeof conversationData?.type === "string" &&
+          conversationData.type.trim().length > 0 ?
+        conversationData.type.trim() :
+        "direct";
 
       const recipientId = participants.find((uid) => uid !== senderId);
 
@@ -307,7 +311,16 @@ export const onMessageCreated = onDocumentCreated(
       // para garantir que a notificação sempre exiba o nome correto.
       const senderDoc = await db.collection("users").doc(senderId).get();
       const senderData = senderDoc.data() || {};
-      const senderName = resolveSenderDisplayName(senderData);
+      const senderName =
+        (typeof messageData.sender_name === "string" &&
+          messageData.sender_name.trim().length > 0) ?
+          messageData.sender_name.trim() :
+          resolveSenderDisplayName(senderData);
+      const senderPhoto =
+        typeof messageData.sender_photo === "string" &&
+          messageData.sender_photo.trim().length > 0 ?
+          messageData.sender_photo.trim() :
+          (typeof senderData.foto === "string" ? senderData.foto : "");
 
       if (existingNotification.exists) {
         const existingData = existingNotification.data() || {};
@@ -315,9 +328,12 @@ export const onMessageCreated = onDocumentCreated(
         const newCount = currentCount + 1;
 
         await notificationRef.update({
+          title: senderName,
           body: `${newCount} novas mensagens`,
           messageCount: newCount,
           lastMessageText: displayMessage,
+          senderPhoto: senderPhoto || null,
+          conversationType,
           isRead: false,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -332,6 +348,8 @@ export const onMessageCreated = onDocumentCreated(
           lastMessageText: displayMessage,
           conversationId: conversationId,
           senderId: senderId,
+          senderPhoto: senderPhoto || null,
+          conversationType,
           messageCount: 1,
           isRead: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -391,6 +409,9 @@ export const onMessageCreated = onDocumentCreated(
           click_action: "FLUTTER_NOTIFICATION_CLICK",
           conversation_id: conversationId,
           sender_id: senderId,
+          sender_name: senderName,
+          sender_photo: senderPhoto,
+          conversation_type: conversationType,
           type: "chat_message",
           message_count: String(messageCount),
         },

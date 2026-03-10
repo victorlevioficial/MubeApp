@@ -50,7 +50,7 @@ void main() {
 
   Widget createSubject({
     required Stream<Gig?> gigStream,
-    required Stream<List<GigApplication>> applicationsStream,
+    required Stream<GigApplication?> myApplicationStream,
     required Stream<firebase_auth.User?> authUserStream,
     Future<AppConfig> Function()? appConfigLoader,
   }) {
@@ -68,7 +68,9 @@ void main() {
     return ProviderScope(
       overrides: [
         gigDetailProvider(gigId).overrideWith((ref) => gigStream),
-        myApplicationsProvider.overrideWith((ref) => applicationsStream),
+        myGigApplicationProvider(
+          gigId,
+        ).overrideWith((ref) => myApplicationStream),
         gigUsersByStableIdsProvider(
           creatorIdsKey,
         ).overrideWith((ref) => Future.value(creatorsById)),
@@ -85,7 +87,7 @@ void main() {
     await tester.pumpWidget(
       createSubject(
         gigStream: Stream.value(sampleGig),
-        applicationsStream: Stream.value(const []),
+        myApplicationStream: Stream.value(null),
         authUserStream: Stream.value(candidateAuthUser),
       ),
     );
@@ -93,6 +95,7 @@ void main() {
 
     expect(find.text('Produtora Aurora'), findsOneWidget);
     expect(find.text('Contratante'), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     await tester.scrollUntilVisible(find.text('Candidatar-se'), 300);
     await tester.pumpAndSettle();
     expect(find.text('7 pessoas ja se candidataram.'), findsOneWidget);
@@ -103,7 +106,7 @@ void main() {
     await tester.pumpWidget(
       createSubject(
         gigStream: Stream.value(sampleGig),
-        applicationsStream: Stream.value(const []),
+        myApplicationStream: Stream.value(null),
         authUserStream: Stream.value(creatorAuthUser),
       ),
     );
@@ -118,12 +121,12 @@ void main() {
   testWidgets('shows skeleton while action dependencies are loading', (
     tester,
   ) async {
-    final pendingApplications = Completer<List<GigApplication>>();
+    final pendingApplication = Completer<GigApplication?>();
 
     await tester.pumpWidget(
       createSubject(
         gigStream: Stream.value(sampleGig),
-        applicationsStream: Stream.fromFuture(pendingApplications.future),
+        myApplicationStream: Stream.fromFuture(pendingApplication.future),
         authUserStream: Stream.value(candidateAuthUser),
       ),
     );
@@ -137,12 +140,12 @@ void main() {
   testWidgets(
     'shows creator actions without waiting for my applications stream',
     (tester) async {
-      final pendingApplications = Completer<List<GigApplication>>();
+      final pendingApplication = Completer<GigApplication?>();
 
       await tester.pumpWidget(
         createSubject(
           gigStream: Stream.value(sampleGig),
-          applicationsStream: Stream.fromFuture(pendingApplications.future),
+          myApplicationStream: Stream.fromFuture(pendingApplication.future),
           authUserStream: Stream.value(creatorAuthUser),
         ),
       );

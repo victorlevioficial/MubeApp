@@ -23,6 +23,8 @@ class PublicGalleryGrid extends StatefulWidget {
 
 class _PublicGalleryGridState extends State<PublicGalleryGrid> {
   final Set<String> _prefetchedUrls = <String>{};
+  static const int _warmupLimit = 9;
+  static const int _prefetchMaxDimension = 512;
 
   @override
   void initState() {
@@ -41,31 +43,38 @@ class _PublicGalleryGridState extends State<PublicGalleryGrid> {
   void _schedulePrefetch() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _prefetchVisibleThumbs();
+      unawaited(_prefetchVisibleThumbs());
     });
   }
 
-  void _prefetchVisibleThumbs() {
-    const warmupLimit = 18;
-    final previewUrls = widget.items
-        .map(
-          (item) => item.type == MediaType.video ? item.thumbnailUrl : item.url,
-        )
-        .whereType<String>()
-        .where((url) => url.isNotEmpty)
-        .take(warmupLimit);
+  Future<void> _prefetchVisibleThumbs() async {
+    final previewItems = widget.items
+        .where((item) {
+          final url = item.type == MediaType.video
+              ? item.thumbnailUrl
+              : item.url;
+          return url != null && url.isNotEmpty;
+        })
+        .take(_warmupLimit)
+        .toList(growable: false);
 
-    for (final url in previewUrls) {
+    for (final item in previewItems) {
+      if (!mounted) return;
+
+      final url = item.type == MediaType.video ? item.thumbnailUrl! : item.url;
       if (!_prefetchedUrls.add(url)) continue;
-      unawaited(
-        precacheImage(
-          CachedNetworkImageProvider(
-            url,
-            cacheManager: ImageCacheConfig.thumbnailCacheManager,
-          ),
-          context,
+
+      await precacheImage(
+        CachedNetworkImageProvider(
+          url,
+          cacheManager: ImageCacheConfig.thumbnailCacheManager,
+          maxWidth: _prefetchMaxDimension,
+          maxHeight: _prefetchMaxDimension,
         ),
-      );
+        context,
+      ).catchError((_) {
+        // Best effort only. Visible widget load will handle failures.
+      });
     }
   }
 

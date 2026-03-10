@@ -79,17 +79,6 @@ class GigsScreen extends ConsumerWidget {
           ),
         ),
         data: (gigs) {
-          final creatorIdsKey = encodeGigUserIdsKey(
-            gigs.map((gig) => gig.creatorId),
-          );
-          final creatorsById = creatorIdsKey.isEmpty
-              ? const <String, AppUser>{}
-              : ref
-                        .watch(gigUsersByStableIdsProvider(creatorIdsKey))
-                        .asData
-                        ?.value ??
-                    const <String, AppUser>{};
-
           if (gigs.isEmpty) {
             return EmptyStateWidget(
               icon: Icons.storefront_outlined,
@@ -105,6 +94,18 @@ class GigsScreen extends ConsumerWidget {
             );
           }
 
+          final creatorIdsKey = encodeGigUserIdsKey(
+            gigs.map((gig) => gig.creatorId),
+          );
+          final creatorsAsync = creatorIdsKey.isEmpty
+              ? const AsyncData(<String, AppUser>{})
+              : ref.watch(gigUsersByStableIdsProvider(creatorIdsKey));
+          final creatorsById = creatorsAsync.asData?.value;
+
+          if (creatorsById == null && creatorsAsync.isLoading) {
+            return const _GigsListSkeleton();
+          }
+
           return RefreshIndicator(
             color: AppColors.primary,
             onRefresh: () async {
@@ -115,7 +116,9 @@ class GigsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.s16),
               itemBuilder: (context, index) => GigCard(
                 gig: gigs[index],
-                creator: creatorsById[gigs[index].creatorId],
+                creator:
+                    (creatorsById ??
+                    const <String, AppUser>{})[gigs[index].creatorId],
                 onTap: () => context.push(
                   RoutePaths.gigDetailById(gigs[index].id),
                   extra: gigs[index],

@@ -38,6 +38,27 @@ void main() {
         expect(pressed, isTrue);
       });
 
+      testWidgets('invokes onPressed only once per tap', (
+        WidgetTester tester,
+      ) async {
+        var tapCount = 0;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AppButton.primary(
+                text: 'Click Me',
+                onPressed: () => tapCount++,
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byType(AppButton));
+        await tester.pumpAndSettle();
+
+        expect(tapCount, 1);
+      });
+
       testWidgets('shows loading indicator when isLoading is true', (
         WidgetTester tester,
       ) async {

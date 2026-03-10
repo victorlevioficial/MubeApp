@@ -6,6 +6,8 @@ extension _FeedScreenUi on _FeedScreenState {
     required AsyncValue<FeedState> stateAsync,
     required FeedState state,
     required FeedController controller,
+    required AppUser? currentUser,
+    required AsyncValue<List<Gig>> gigsPreviewAsync,
   }) {
     final hasError =
         stateAsync.hasError || state.status == PaginationStatus.error;
@@ -21,9 +23,7 @@ extension _FeedScreenUi on _FeedScreenState {
       return _buildErrorState(controller, errorMessage);
     }
 
-    final currentUser = ref.watch(currentUserProfileProvider).asData?.value;
     final spotlightItems = _getSpotlightItems(state);
-    final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
     final showGigsPreview =
         gigsPreviewAsync.isLoading ||
         gigsPreviewAsync.asData?.value.isNotEmpty == true;
