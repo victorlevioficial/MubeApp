@@ -629,9 +629,10 @@ class _ActionPanelSection extends ConsumerWidget {
       onEdit: onEdit,
       onEditDescriptionOnly: onEditDescriptionOnly,
       onOpenChat: () {
-        if (myApplication == null) return;
+        final application = myApplication;
+        if (application == null) return;
         final otherUserId = isCreator
-            ? myApplication.applicantId
+            ? application.applicantId
             : gig.creatorId;
         ref
             .read(gigActionsControllerProvider.notifier)
