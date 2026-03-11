@@ -346,6 +346,7 @@
 		};
 		A1B2C3D4E5F60718293A4B5C /* [firebase_crashlytics] Upload Symbols */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
