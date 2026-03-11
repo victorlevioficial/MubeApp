@@ -26,6 +26,7 @@ import '../../domain/gig_draft.dart';
 import '../../domain/gig_location_type.dart';
 import '../../domain/gig_type.dart';
 import '../controllers/create_gig_controller.dart';
+import '../gig_error_message.dart';
 
 class CreateGigScreen extends ConsumerStatefulWidget {
   const CreateGigScreen({super.key, this.initialGig});
@@ -109,8 +110,15 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
       appBar: AppAppBar(title: _isEditing ? 'Editar gig' : 'Nova gig'),
       body: configAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Center(child: Text('Erro ao carregar config: $error')),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Text(
+              resolveGigErrorMessage(error),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
         data: (config) => SafeArea(
           child: Form(
             key: _formKey,
@@ -458,10 +466,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
       context.pop();
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
+      AppSnackBar.error(context, resolveGigErrorMessage(error));
     }
   }
 

@@ -101,6 +101,34 @@ void main() {
     );
 
     test(
+      'loadReceivedFavorites includes migrated legacy interactions with receiverId schema',
+      () async {
+        await fakeFirestore.collection('interactions').doc('legacy-1').set({
+          'senderId': 'fan-older',
+          'receiverId': tUserId,
+          'type': 'like',
+          'timestamp': Timestamp.fromDate(DateTime(2026, 1, 1)),
+        });
+        await fakeFirestore.collection('interactions').doc('legacy-2').set({
+          'senderId': 'fan-newer',
+          'receiverId': tUserId,
+          'type': 'like',
+          'timestamp': Timestamp.fromDate(DateTime(2026, 2, 1)),
+        });
+        await fakeFirestore.collection('interactions').doc('legacy-3').set({
+          'senderId': 'fan-dislike',
+          'receiverId': tUserId,
+          'type': 'dislike',
+          'timestamp': Timestamp.fromDate(DateTime(2026, 3, 1)),
+        });
+
+        final result = await repository.loadReceivedFavorites();
+
+        expect(result, ['fan-newer', 'fan-older']);
+      },
+    );
+
+    test(
       'loadReceivedFavorites merges favorites and interactions without duplicates',
       () async {
         await fakeFirestore

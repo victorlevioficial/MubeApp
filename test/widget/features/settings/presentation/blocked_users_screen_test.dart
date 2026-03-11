@@ -33,11 +33,23 @@ void main() {
     required Stream<AppUser?> profileStream,
     required Stream<List<String>> blockedIdsStream,
   }) {
+    final broadcastAuthStream = authStream.isBroadcast
+        ? authStream
+        : authStream.asBroadcastStream();
+    final broadcastProfileStream = profileStream.isBroadcast
+        ? profileStream
+        : profileStream.asBroadcastStream();
+    final broadcastBlockedIdsStream = blockedIdsStream.isBroadcast
+        ? blockedIdsStream
+        : blockedIdsStream.asBroadcastStream();
+
     return ProviderScope(
       overrides: [
-        authStateChangesProvider.overrideWith((ref) => authStream),
-        currentUserProfileProvider.overrideWith((ref) => profileStream),
-        blockedUsersProvider.overrideWith((ref) => blockedIdsStream),
+        authStateChangesProvider.overrideWith((ref) => broadcastAuthStream),
+        currentUserProfileProvider.overrideWith(
+          (ref) => broadcastProfileStream,
+        ),
+        blockedUsersProvider.overrideWith((ref) => broadcastBlockedIdsStream),
         blockedUsersDetailsByKeyProvider(
           'blocked-user',
         ).overrideWith((ref) => Future.value([blockedUser])),

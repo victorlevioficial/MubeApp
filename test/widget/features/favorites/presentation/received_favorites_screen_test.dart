@@ -80,5 +80,18 @@ void main() {
       final firstTitle = firstTile.title as Text;
       expect(firstTitle.data, 'Fan 2');
     });
+
+    testWidgets('shows friendly error state when loading fails', (
+      tester,
+    ) async {
+      fakeFavoriteRepository.throwError = true;
+
+      await tester.pumpWidget(createSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Erro ao carregar favoritos recebidos'), findsOneWidget);
+      expect(find.text('Favorite loading failed'), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+    });
   });
 }

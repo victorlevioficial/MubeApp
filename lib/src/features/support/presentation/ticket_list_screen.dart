@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/errors/error_message_resolver.dart';
+import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -58,7 +61,20 @@ class TicketListScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: AppLoadingIndicator()),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: EmptyStateWidget(
+              icon: Icons.support_agent_outlined,
+              title: 'Não foi possível carregar seus chamados',
+              subtitle: resolveErrorMessage(err),
+              actionButton: AppButton.secondary(
+                text: 'Tentar novamente',
+                onPressed: () => ref.invalidate(userTicketsProvider),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

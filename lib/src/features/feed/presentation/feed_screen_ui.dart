@@ -14,10 +14,7 @@ extension _FeedScreenUi on _FeedScreenState {
     final hasVisibleSections = state.sectionItems.values.any(
       (items) => items.isNotEmpty,
     );
-    final errorMessage =
-        state.errorMessage ??
-        stateAsync.error?.toString() ??
-        'Erro desconhecido';
+    final errorMessage = _resolveFeedErrorMessage(stateAsync, state);
 
     if (hasError && !hasVisibleSections) {
       return _buildErrorState(controller, errorMessage);
@@ -141,22 +138,34 @@ extension _FeedScreenUi on _FeedScreenState {
           children: [
             SizedBox(
               height: MediaQuery.sizeOf(context).height * 0.72,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Erro ao carregar feed: $errorMessage'),
-                  const SizedBox(height: AppSpacing.s16),
-                  AppButton.primary(
-                    text: 'Tentar novamente',
-                    onPressed: controller.loadAllData,
-                  ),
-                ],
+              child: EmptyStateWidget(
+                icon: Icons.feed_outlined,
+                title: 'Nao foi possivel carregar o feed',
+                subtitle: errorMessage,
+                actionButton: AppButton.primary(
+                  text: 'Tentar novamente',
+                  onPressed: controller.loadAllData,
+                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _resolveFeedErrorMessage(
+    AsyncValue<FeedState> stateAsync,
+    FeedState state,
+  ) {
+    final stateMessage = state.errorMessage?.trim();
+    if (stateMessage != null && stateMessage.isNotEmpty) {
+      return resolveErrorMessage(stateMessage);
+    }
+    if (stateAsync.hasError && stateAsync.error != null) {
+      return resolveErrorMessage(stateAsync.error!);
+    }
+    return 'Algo deu errado. Tente novamente.';
   }
 }
 

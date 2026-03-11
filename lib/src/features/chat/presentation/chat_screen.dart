@@ -67,6 +67,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isPreparingConversation = false;
   bool _isLoadingOlderMessages = false;
   bool _hasMoreOlderMessages = false;
+  bool _conversationExists = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
   bool? _cachedEmailSendAllowed;
@@ -82,6 +83,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   bool get _canReadConversation =>
       _accessState == _ConversationAccessState.ready;
+
+  bool get _hasPersistedConversation => _conversationExists;
 
   static const Duration _verifiedEmailCacheTtl = Duration(minutes: 5);
   static const Duration _unverifiedEmailCacheTtl = Duration(seconds: 8);
@@ -229,6 +232,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required String myUid,
     required ChatRepository repository,
     bool markAsRead = false,
+    bool startReadReceiptListener = true,
   }) {
     if (mounted &&
         (_accessState != _ConversationAccessState.ready ||
@@ -239,10 +243,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
     }
 
-    _startRealtimeReadReceiptListener(myUid, repository);
+    if (startReadReceiptListener) {
+      _startRealtimeReadReceiptListener(myUid, repository);
+    } else {
+      _messagesReadReceiptSubscription?.close();
+      _messagesReadReceiptSubscription = null;
+    }
     if (markAsRead) {
       unawaited(_markConversationAsRead(repository, myUid));
     }
+  }
+
+  Future<bool> _maybeRedirectToCanonicalConversationId({
+    required String myUid,
+    required ChatRepository repository,
+  }) async {
+    final otherUid = _resolveOtherUid(myUid);
+    if (otherUid.isEmpty) return false;
+
+    final canonicalConversationId = repository.getConversationId(
+      myUid,
+      otherUid,
+    );
+    if (canonicalConversationId == widget.conversationId) {
+      return false;
+    }
+
+    if (!mounted) return true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.replace(
+        RoutePaths.conversationById(canonicalConversationId),
+        extra: {
+          'otherUserId': otherUid,
+          'otherUserName': _otherUserName,
+          'otherUserPhoto': _otherUserPhoto,
+          'conversationType': _conversationType,
+        },
+      );
+    });
+
+    return true;
   }
 
   Future<void> _prepareConversation() async {
@@ -280,10 +322,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           });
         }
 
+        if (await _maybeRedirectToCanonicalConversationId(
+          myUid: currentUserId,
+          repository: repository,
+        )) {
+          outcome = 'redirect_noncanonical_id';
+          return;
+        }
+
         _setConversationReady(
           myUid: currentUserId,
           repository: repository,
           markAsRead: false,
+          startReadReceiptListener: false,
         );
         unawaited(_maybeHydrateOtherUserPreview());
       }
@@ -325,6 +376,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
         setState(() {
           _otherUserId = otherUid;
+          _conversationExists = true;
         });
         unawaited(_maybeHydrateOtherUserPreview());
 
@@ -332,6 +384,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           myUid: currentUserId,
           repository: repository,
           markAsRead: true,
+          startReadReceiptListener: true,
         );
 
         if (!_hasCachedConversationPreview()) {
@@ -361,10 +414,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return;
       }
 
+      if (mounted && _conversationExists) {
+        setState(() {
+          _conversationExists = false;
+        });
+      }
+
       _setConversationReady(
         myUid: currentUserId,
         repository: repository,
         markAsRead: false,
+        startReadReceiptListener: false,
       );
       outcome = 'draft_conversation';
     } catch (e, stack) {
@@ -1053,13 +1113,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       unawaited(_prepareConversation());
     }
 
-    final messagesSnapshotAsync = _canReadConversation
-        ? ref.watch(conversationMessagesSnapshotProvider(widget.conversationId))
-        : null;
-
     final conversationAsync = _canReadConversation
         ? ref.watch(conversationStreamProvider(widget.conversationId))
         : null;
+    final conversationExistsFromStream =
+        conversationAsync?.value?.exists ?? false;
+    final conversationExists =
+        _hasPersistedConversation || conversationExistsFromStream;
+
+    final messagesSnapshotAsync = _canReadConversation && conversationExists
+        ? ref.watch(conversationMessagesSnapshotProvider(widget.conversationId))
+        : null;
+
+    if (conversationExists && !_conversationExists) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _conversationExists) return;
+        setState(() {
+          _conversationExists = true;
+        });
+        _startRealtimeReadReceiptListener(
+          currentUserId,
+          ref.read(chatRepositoryProvider),
+        );
+      });
+    }
 
     final conversationData = conversationAsync?.value?.data();
     final conversationMap = conversationData is Map<String, dynamic>
@@ -1072,7 +1149,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final otherUid = participants.firstWhere(
       (uid) => uid != currentUserId,
-      orElse: () => '',
+      orElse: () => _resolveOtherUid(currentUserId),
     );
 
     final readUntilRaw = conversationMap?['readUntil'];
@@ -1084,6 +1161,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       backgroundColor: AppColors.background,
       appBar: AppAppBar(title: _buildAppBarTitle(), showBackButton: true),
       body: _buildChatBody(
+        conversationExists: conversationExists,
         messagesSnapshotAsync: messagesSnapshotAsync,
         currentUserId: currentUserId,
         otherUid: otherUid,

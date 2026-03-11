@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -86,7 +88,12 @@ class InvitesScreen extends ConsumerWidget {
       return Scaffold(
         appBar: const AppAppBar(title: 'Minhas Bandas'),
         backgroundColor: AppColors.background,
-        body: Center(child: Text('Erro: ${initialContentAsync.error}')),
+        body: _buildErrorState(
+          ref,
+          user.uid,
+          initialContentAsync.error!,
+          title: 'Nao foi possivel carregar convites e bandas',
+        ),
       );
     }
     final resolvedInitialContent = initialContent!;
@@ -102,10 +109,20 @@ class InvitesScreen extends ConsumerWidget {
       body: Builder(
         builder: (context) {
           if (invitesAsync.hasError && invites.isEmpty) {
-            return Center(child: Text('Erro: ${invitesAsync.error}'));
+            return _buildErrorState(
+              ref,
+              user.uid,
+              invitesAsync.error!,
+              title: 'Nao foi possivel carregar seus convites',
+            );
           }
           if (bandsAsync.hasError && bands.isEmpty) {
-            return Center(child: Text('Erro: ${bandsAsync.error}'));
+            return _buildErrorState(
+              ref,
+              user.uid,
+              bandsAsync.error!,
+              title: 'Nao foi possivel carregar suas bandas',
+            );
           }
           if (invites.isEmpty && bands.isEmpty) {
             return Center(
@@ -150,6 +167,32 @@ class InvitesScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildErrorState(
+    WidgetRef ref,
+    String uid,
+    Object error, {
+    required String title,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s24),
+        child: EmptyStateWidget(
+          icon: Icons.cloud_off_rounded,
+          title: title,
+          subtitle: resolveErrorMessage(error),
+          actionButton: AppButton.secondary(
+            text: 'Tentar novamente',
+            onPressed: () {
+              ref.invalidate(_invitesInitialContentProvider(uid));
+              ref.invalidate(invitesStreamProvider(uid));
+              ref.invalidate(userBandsProvider(uid));
+            },
+          ),
+        ),
       ),
     );
   }
@@ -391,7 +434,7 @@ class InvitesScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        AppSnackBar.show(context, e.toString(), isError: true);
+        AppSnackBar.error(context, resolveErrorMessage(e));
       }
     } finally {
       notifier.state = null;
@@ -430,7 +473,7 @@ class InvitesScreen extends ConsumerWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          AppSnackBar.show(context, e.toString(), isError: true);
+          AppSnackBar.error(context, resolveErrorMessage(e));
         }
       } finally {
         loadingNotifier.state = false;

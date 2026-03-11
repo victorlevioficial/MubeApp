@@ -112,7 +112,8 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      expect(find.textContaining('Erro'), findsOneWidget);
+      expect(find.text('Nao foi possivel carregar o feed'), findsOneWidget);
+      expect(find.text('Connection failed'), findsOneWidget);
     });
 
     testWidgets('allows pull-to-refresh recovery from error state', (
@@ -126,7 +127,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      expect(find.textContaining('Erro'), findsOneWidget);
+      expect(find.text('Nao foi possivel carregar o feed'), findsOneWidget);
 
       fakeFeedRepository.throwError = false;
 
@@ -137,7 +138,7 @@ void main() {
       });
 
       expect(find.byType(CustomScrollView), findsOneWidget);
-      expect(find.textContaining('Erro'), findsNothing);
+      expect(find.text('Nao foi possivel carregar o feed'), findsNothing);
     });
 
     testWidgets('shows empty state when no users found', (tester) async {

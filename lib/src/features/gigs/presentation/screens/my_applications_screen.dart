@@ -14,6 +14,7 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../domain/application_status.dart';
 import '../controllers/gig_actions_controller.dart';
+import '../gig_error_message.dart';
 import '../providers/gig_streams.dart';
 
 class MyApplicationsScreen extends ConsumerWidget {
@@ -28,7 +29,20 @@ class MyApplicationsScreen extends ConsumerWidget {
       appBar: const AppAppBar(title: 'Minhas candidaturas'),
       body: applicationsAsync.when(
         loading: () => const _MyApplicationsListSkeleton(),
-        error: (error, _) => Center(child: Text('Erro: $error')),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: EmptyStateWidget(
+              icon: Icons.cloud_off_rounded,
+              title: 'Nao foi possivel carregar suas candidaturas',
+              subtitle: resolveGigErrorMessage(error),
+              actionButton: AppButton.secondary(
+                text: 'Tentar novamente',
+                onPressed: () => ref.invalidate(myApplicationsProvider),
+              ),
+            ),
+          ),
+        ),
         data: (applications) {
           if (applications.isEmpty) {
             return const EmptyStateWidget(
@@ -127,7 +141,7 @@ class MyApplicationsScreen extends ConsumerWidget {
                             if (!context.mounted) return;
                             AppSnackBar.error(
                               context,
-                              error.toString().replaceFirst('Exception: ', ''),
+                              resolveGigErrorMessage(error),
                             );
                           }
                         },

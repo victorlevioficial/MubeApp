@@ -80,17 +80,21 @@ class FavoriteRepository {
   /// Data may come from:
   /// - `users/{source}/favorites/{target}` (legacy/current favorites flow)
   /// - `interactions` with `{type: like, target_user_id: currentUser}` (MatchPoint)
+  /// - migrated legacy `interactions` with
+  ///   `{type: like, senderId, receiverId, timestamp}`
   ///
   /// When `expectedCount` is provided and there is a mismatch, a legacy
   /// backfill read scans users and checks `users/{source}/favorites/{me}` docs.
   Future<List<String>> loadReceivedFavorites({int? expectedCount}) async {
     final byUser = <String, int>{};
+    var completedSources = 0;
 
     try {
       final snapshot = await _firestore
           .collectionGroup('favorites')
           .where('target_user_id', isEqualTo: _uid)
           .get();
+      completedSources += 1;
 
       for (final doc in snapshot.docs) {
         final sourceUserId = doc.reference.parent.parent?.id;
@@ -119,27 +123,28 @@ class FavoriteRepository {
           .collection('interactions')
           .where('target_user_id', isEqualTo: _uid)
           .get();
+      completedSources += 1;
 
-      for (final doc in snapshot.docs) {
-        final data = doc.data();
-        if (data['type'] != 'like') continue;
-
-        final sourceUserId = data['source_user_id'];
-        if (sourceUserId is! String ||
-            sourceUserId.isEmpty ||
-            sourceUserId == _uid) {
-          continue;
-        }
-
-        final createdAt = _readMillis(data['created_at']);
-        final previous = byUser[sourceUserId];
-        if (previous == null || createdAt > previous) {
-          byUser[sourceUserId] = createdAt;
-        }
-      }
+      _mergeInteractionDocs(byUser: byUser, docs: snapshot.docs);
     } catch (e, stackTrace) {
       AppLogger.warning(
         'Erro ao carregar favoritos recebidos via interactions',
+        e,
+        stackTrace,
+      );
+    }
+
+    try {
+      final snapshot = await _firestore
+          .collection('interactions')
+          .where('receiverId', isEqualTo: _uid)
+          .get();
+      completedSources += 1;
+
+      _mergeInteractionDocs(byUser: byUser, docs: snapshot.docs);
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Erro ao carregar favoritos recebidos via interactions legado',
         e,
         stackTrace,
       );
@@ -152,6 +157,7 @@ class FavoriteRepository {
           byUser: byUser,
           desiredCount: desiredCount,
         );
+        completedSources += 1;
       } catch (e, stackTrace) {
         AppLogger.warning(
           'Erro ao carregar favoritos recebidos via fallback legado',
@@ -159,6 +165,10 @@ class FavoriteRepository {
           stackTrace,
         );
       }
+    }
+
+    if (completedSources == 0) {
+      throw Exception('Nao foi possivel carregar favoritos recebidos agora.');
     }
 
     final entries = byUser.entries.toList()
@@ -240,7 +250,47 @@ class FavoriteRepository {
   int _readMillis(dynamic raw) {
     if (raw is Timestamp) return raw.millisecondsSinceEpoch;
     if (raw is DateTime) return raw.millisecondsSinceEpoch;
+    if (raw is num) return raw.toInt();
     return 0;
+  }
+
+  void _mergeInteractionDocs({
+    required Map<String, int> byUser,
+    required Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  }) {
+    for (final doc in docs) {
+      final data = doc.data();
+      if (data['type'] != 'like') continue;
+
+      final targetUserId =
+          _readNonEmptyString(data['target_user_id']) ??
+          _readNonEmptyString(data['receiverId']);
+      if (targetUserId != null && targetUserId != _uid) {
+        continue;
+      }
+
+      final sourceUserId =
+          _readNonEmptyString(data['source_user_id']) ??
+          _readNonEmptyString(data['senderId']);
+      if (sourceUserId == null || sourceUserId == _uid) {
+        continue;
+      }
+
+      final createdAt = _readMillis(
+        data['created_at'] ?? data['updated_at'] ?? data['timestamp'],
+      );
+      final previous = byUser[sourceUserId];
+      if (previous == null || createdAt > previous) {
+        byUser[sourceUserId] = createdAt;
+      }
+    }
+  }
+
+  String? _readNonEmptyString(dynamic raw) {
+    if (raw is! String) return null;
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+    return value;
   }
 
   Future<void> _loadLegacyReceivedFavoritesViaUserScan({

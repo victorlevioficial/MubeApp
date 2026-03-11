@@ -290,17 +290,48 @@ class ChatRepository {
       final myInfoFuture = _getUserPreviewInfoSafe(myUid);
       final otherInfoFuture = _getUserPreviewInfoSafe(otherUid);
 
-      final conversationSnapshot = await conversationFuture;
+      var conversationSnapshot = await conversationFuture;
       final myInfo = await myInfoFuture;
       final otherInfo = await otherInfoFuture;
-      final conversationData = _asMap(conversationSnapshot.data());
-      final resolvedConversationType = conversationSnapshot.exists
-          ? _conversationTypeFromData(
-              conversationData,
-              fallback: _normalizeConversationType(conversationType),
-            )
-          : _normalizeConversationType(conversationType);
-      final isNewConversation = !conversationSnapshot.exists;
+      var conversationData = _asMap(conversationSnapshot.data());
+      final requestedConversationType = _normalizeConversationType(
+        conversationType,
+      );
+
+      if (!conversationSnapshot.exists) {
+        final ensureConversationResult = await getOrCreateConversation(
+          myUid: myUid,
+          otherUid: otherUid,
+          otherUserName: otherInfo.displayName,
+          otherUserPhoto: otherInfo.photoUrl,
+          myName: myInfo.displayName,
+          myPhoto: myInfo.photoUrl,
+          type: requestedConversationType,
+        );
+
+        if (ensureConversationResult.isLeft()) {
+          return ensureConversationResult.fold(
+            (failure) => Left(failure),
+            (_) => const Right(unit),
+          );
+        }
+
+        conversationSnapshot = await conversationRef.get();
+        if (!conversationSnapshot.exists) {
+          return const Left(
+            ServerFailure(
+              message: 'Nao foi possivel preparar a conversa para envio.',
+            ),
+          );
+        }
+
+        conversationData = _asMap(conversationSnapshot.data());
+      }
+
+      final resolvedConversationType = _conversationTypeFromData(
+        conversationData,
+        fallback: requestedConversationType,
+      );
 
       final messageRef = conversationRef.collection('messages').doc();
       final messageData = <String, dynamic>{
@@ -316,26 +347,12 @@ class ChatRepository {
       }
       batch.set(messageRef, messageData);
 
-      if (isNewConversation) {
-        batch.set(conversationRef, {
-          'participants': [myUid, otherUid],
-          'participantsMap': {myUid: true, otherUid: true},
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-          'readUntil': {myUid: Timestamp(0, 0), otherUid: Timestamp(0, 0)},
-          'lastMessageText': normalizedText,
-          'lastMessageAt': FieldValue.serverTimestamp(),
-          'lastSenderId': myUid,
-          'type': resolvedConversationType,
-        });
-      } else {
-        batch.set(conversationRef, {
-          'lastMessageText': normalizedText,
-          'lastMessageAt': FieldValue.serverTimestamp(),
-          'lastSenderId': myUid,
-          'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
+      batch.set(conversationRef, {
+        'lastMessageText': normalizedText,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'lastSenderId': myUid,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       final myPreviewRef = _firestore
           .collection('users')
@@ -374,17 +391,6 @@ class ChatRepository {
       }, SetOptions(merge: true));
 
       await batch.commit();
-
-      if (isNewConversation) {
-        await _analytics?.logEvent(
-          name: 'chat_initiated',
-          parameters: {
-            'conversation_id': conversationId,
-            'other_user_id': otherUid,
-            'source': resolvedConversationType,
-          },
-        );
-      }
 
       await _analytics?.logEvent(
         name: 'message_sent',

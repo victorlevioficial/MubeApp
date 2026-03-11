@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -93,7 +95,11 @@ class BlockedUsersScreen extends ConsumerWidget {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: const AppAppBar(title: 'Usuários Bloqueados'),
-        body: Center(child: Text('Erro: ${initialContentAsync.error}')),
+        body: _BlockedUsersErrorState(
+          title: 'Não foi possível carregar usuários bloqueados',
+          message: resolveErrorMessage(initialContentAsync.error!),
+          onRetry: () => _retryBlockedUsersLoad(ref),
+        ),
       );
     }
     final resolvedInitialContent = initialContent!;
@@ -126,7 +132,11 @@ class BlockedUsersScreen extends ConsumerWidget {
           }
 
           if (blockedUsersAsync.hasError && idsKey.isEmpty) {
-            return Center(child: Text('Erro: ${blockedUsersAsync.error}'));
+            return _BlockedUsersErrorState(
+              title: 'Não foi possível carregar usuários bloqueados',
+              message: resolveErrorMessage(blockedUsersAsync.error!),
+              onRetry: () => _retryBlockedUsersLoad(ref),
+            );
           }
 
           if (idsKey.isEmpty) {
@@ -156,7 +166,11 @@ class BlockedUsersScreen extends ConsumerWidget {
           }
 
           if (usersDataAsync.hasError && users.isEmpty) {
-            return Center(child: Text('Erro: ${usersDataAsync.error}'));
+            return _BlockedUsersErrorState(
+              title: 'Não foi possível carregar os detalhes dos bloqueios',
+              message: resolveErrorMessage(usersDataAsync.error!),
+              onRetry: () => _retryBlockedUsersLoad(ref, idsKey: idsKey),
+            );
           }
 
           if (users.isEmpty) {
@@ -237,5 +251,44 @@ class BlockedUsersScreen extends ConsumerWidget {
     } finally {
       loadingNotifier.state = false;
     }
+  }
+
+  void _retryBlockedUsersLoad(WidgetRef ref, {String? idsKey}) {
+    ref.invalidate(_blockedUsersInitialContentProvider);
+    ref.invalidate(blockedUsersProvider);
+    final normalizedIdsKey = idsKey?.trim();
+    if (normalizedIdsKey != null && normalizedIdsKey.isNotEmpty) {
+      ref.invalidate(blockedUsersDetailsByKeyProvider(normalizedIdsKey));
+    }
+  }
+}
+
+class _BlockedUsersErrorState extends StatelessWidget {
+  final String title;
+  final String message;
+  final VoidCallback onRetry;
+
+  const _BlockedUsersErrorState({
+    required this.title,
+    required this.message,
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s24),
+        child: EmptyStateWidget(
+          icon: Icons.block_flipped,
+          title: title,
+          subtitle: message,
+          actionButton: AppButton.secondary(
+            text: 'Tentar novamente',
+            onPressed: onRetry,
+          ),
+        ),
+      ),
+    );
   }
 }

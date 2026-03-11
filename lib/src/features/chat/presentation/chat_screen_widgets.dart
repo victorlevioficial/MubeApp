@@ -12,6 +12,7 @@ extension _ChatScreenWidgets on _ChatScreenState {
   }
 
   Widget _buildChatBody({
+    required bool conversationExists,
     required AsyncValue<QuerySnapshot<Map<String, dynamic>>>?
     messagesSnapshotAsync,
     required String currentUserId,
@@ -25,6 +26,8 @@ extension _ChatScreenWidgets on _ChatScreenState {
               ? _buildLoadingShimmer()
               : _accessState != _ConversationAccessState.ready
               ? _buildConversationUnavailableState()
+              : !conversationExists
+              ? _buildDraftConversationState(currentUserId: currentUserId)
               : messagesSnapshotAsync!.when(
                   data: (messagesSnapshot) {
                     final latestMessages = _messagesFromSnapshot(
@@ -165,6 +168,53 @@ extension _ChatScreenWidgets on _ChatScreenState {
         ),
         _buildInputField(),
       ],
+    );
+  }
+
+  Widget _buildDraftConversationState({required String currentUserId}) {
+    final pendingMessages = _pendingMessages
+        .map(
+          (pending) => Message(
+            id: pending.localId,
+            senderId: currentUserId,
+            text: pending.text,
+            createdAt: Timestamp.fromDate(pending.createdAt),
+            clientMessageId: pending.localId,
+          ),
+        )
+        .toList(growable: false);
+
+    _finishFirstMessagesFrameSpan(
+      renderedCount: pendingMessages.length,
+      status: pendingMessages.isEmpty ? 'draft_empty' : 'draft_pending',
+    );
+
+    if (pendingMessages.isEmpty) {
+      return Center(
+        child: Text(
+          'Nenhuma mensagem ainda\nEnvie a primeira!',
+          textAlign: TextAlign.center,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      reverse: true,
+      padding: AppSpacing.all16,
+      itemCount: pendingMessages.length,
+      itemBuilder: (context, index) {
+        final message = pendingMessages[index];
+        return _MessageBubble(
+          message: message,
+          isMe: true,
+          isPending: true,
+          isRead: false,
+        );
+      },
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/utils/rate_limiter.dart';
 import '../../../utils/app_logger.dart';
@@ -398,7 +399,7 @@ class SearchController extends Notifier<SearchPaginationState> {
       _updateState(
         state.copyWithSearch(
           status: PaginationStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: resolveErrorMessage(e),
         ),
       );
     }
@@ -636,7 +637,7 @@ class SearchController extends Notifier<SearchPaginationState> {
       _updateState(
         state.copyWithSearch(
           status: PaginationStatus.error,
-          errorMessage: e.toString(),
+          errorMessage: resolveErrorMessage(e),
         ),
       );
     }

@@ -4,16 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../domain/application_status.dart';
 import '../../domain/gig_application.dart';
 import '../controllers/gig_actions_controller.dart';
+import '../gig_error_message.dart';
 import '../providers/gig_streams.dart';
 
 enum _ApplicantCardAction { accept, reject }
@@ -25,16 +28,49 @@ class GigApplicantsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final applicationsAsync = ref.watch(gigApplicationsProvider(gigId));
+    final authAsync = ref.watch(authStateChangesProvider);
+    final gigAsync = ref.watch(gigDetailProvider(gigId));
+    final currentUserId = authAsync.asData?.value?.uid;
+    final gig = gigAsync.asData?.value;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Candidaturas'),
-      body: applicationsAsync.when(
+    final Widget body;
+    if (authAsync.isLoading || gigAsync.isLoading) {
+      body = const _ApplicantsListSkeleton();
+    } else if (authAsync.hasError) {
+      body = _GigApplicantsErrorState(
+        title: 'Nao foi possivel validar seu acesso',
+        message: resolveGigErrorMessage(authAsync.error!),
+      );
+    } else if (gigAsync.hasError) {
+      body = _GigApplicantsErrorState(
+        title: 'Nao foi possivel carregar a gig',
+        message: resolveGigErrorMessage(gigAsync.error!),
+      );
+    } else if (currentUserId == null) {
+      body = const _GigApplicantsErrorState(
+        title: 'Sessao encerrada',
+        message: 'Faca login novamente para ver as candidaturas.',
+      );
+    } else if (gig == null) {
+      body = const _GigApplicantsErrorState(
+        title: 'Gig nao encontrada',
+        message: 'Nao foi possivel localizar a gig solicitada.',
+      );
+    } else if (gig.creatorId != currentUserId) {
+      body = const _GigApplicantsErrorState(
+        title: 'Acesso indisponivel',
+        message: 'Apenas o criador da gig pode ver as candidaturas.',
+      );
+    } else {
+      final applicationsAsync = ref.watch(gigApplicationsProvider(gigId));
+      body = applicationsAsync.when(
         skipLoadingOnRefresh: false,
         skipLoadingOnReload: false,
         loading: () => const _ApplicantsListSkeleton(),
-        error: (error, _) => Center(child: Text('Erro: $error')),
+        error: (error, _) => _GigApplicantsErrorState(
+          title: 'Nao foi possivel carregar as candidaturas',
+          message: resolveGigErrorMessage(error),
+        ),
         data: (applications) {
           if (applications.isEmpty) {
             return Center(
@@ -58,7 +94,10 @@ class GigApplicantsScreen extends ConsumerWidget {
             skipLoadingOnRefresh: false,
             skipLoadingOnReload: false,
             loading: () => const _ApplicantsListSkeleton(),
-            error: (error, _) => Center(child: Text('Erro: $error')),
+            error: (error, _) => _GigApplicantsErrorState(
+              title: 'Nao foi possivel carregar os candidatos',
+              message: resolveGigErrorMessage(error),
+            ),
             data: (users) {
               return ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.s16),
@@ -78,6 +117,37 @@ class GigApplicantsScreen extends ConsumerWidget {
             },
           );
         },
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: const AppAppBar(title: 'Candidaturas'),
+      body: body,
+    );
+  }
+}
+
+class _GigApplicantsErrorState extends StatelessWidget {
+  final String title;
+  final String message;
+
+  const _GigApplicantsErrorState({required this.title, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s24),
+        child: EmptyStateWidget(
+          icon: Icons.assignment_late_outlined,
+          title: title,
+          subtitle: message,
+          actionButton: AppButton.secondary(
+            text: 'Voltar',
+            onPressed: () => Navigator.of(context).maybePop(),
+          ),
+        ),
       ),
     );
   }
@@ -226,10 +296,7 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
+      AppSnackBar.error(context, resolveGigErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _pendingAction = null);

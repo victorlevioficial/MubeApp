@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/errors/firestore_resilience.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
@@ -24,6 +25,9 @@ InvitesRepository invitesRepository(Ref ref) {
 class InvitesRepository {
   static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
   static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
+  static const FirestoreResilience _firestoreResilience = FirestoreResilience(
+    'InvitesRepository',
+  );
   final FirebaseFunctions _functions;
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
@@ -112,6 +116,25 @@ class InvitesRepository {
     return Exception(fallbackMessage);
   }
 
+  List<Map<String, dynamic>> _mapDocsWithId(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+  ) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+  }
+
+  Stream<List<Map<String, dynamic>>> _watchQuery(
+    Query<Map<String, dynamic>> query, {
+    required String operationLabel,
+  }) {
+    return _firestoreResilience
+        .watch(() => query.snapshots(), operationLabel: operationLabel)
+        .map(_mapDocsWithId);
+  }
+
   /// Sends an invite to a user to join a band.
   Future<String> sendInvite({
     required String bandId,
@@ -185,51 +208,34 @@ class InvitesRepository {
 
   /// Streams pending invites for a specific user.
   Stream<List<Map<String, dynamic>>> getIncomingInvites(String uid) {
-    return _firestore
-        .collection('invites')
-        .where('target_uid', isEqualTo: uid)
-        .where('status', isEqualTo: 'pendente')
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id; // Include doc ID
-            return data;
-          }).toList();
-        });
+    return _watchQuery(
+      _firestore
+          .collection('invites')
+          .where('target_uid', isEqualTo: uid)
+          .where('status', isEqualTo: 'pendente')
+          .orderBy('created_at', descending: true),
+      operationLabel: 'watch_incoming_invites',
+    );
   }
 
   /// Streams sent invites from a specific band (for admin view).
   Stream<List<Map<String, dynamic>>> getSentInvites(String bandId) {
-    return _firestore
-        .collection('invites')
-        .where('band_id', isEqualTo: bandId)
-        .where('status', isEqualTo: 'pendente')
-        .orderBy('created_at', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id; // Include doc ID
-            return data;
-          }).toList();
-        });
+    return _watchQuery(
+      _firestore
+          .collection('invites')
+          .where('band_id', isEqualTo: bandId)
+          .where('status', isEqualTo: 'pendente')
+          .orderBy('created_at', descending: true),
+      operationLabel: 'watch_sent_invites',
+    );
   }
 
   /// Streams bands where the user is a member.
   Stream<List<Map<String, dynamic>>> getUserBands(String uid) {
-    return _firestore
-        .collection('users')
-        .where('members', arrayContains: uid)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return data;
-          }).toList();
-        });
+    return _watchQuery(
+      _firestore.collection('users').where('members', arrayContains: uid),
+      operationLabel: 'watch_user_bands',
+    );
   }
 
   /// Removes the user from a band's member list.

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/firestore_resilience.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../domain/notification_model.dart';
 
@@ -13,17 +14,28 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 class NotificationRepository {
   NotificationRepository(this._firestore);
 
+  static const FirestoreResilience _firestoreResilience = FirestoreResilience(
+    'NotificationRepository',
+  );
+
   final FirebaseFirestore _firestore;
 
-  /// Returns a stream of notifications for a user, ordered by creation date.
-  Stream<List<AppNotification>> watchNotifications(String userId) {
+  CollectionReference<Map<String, dynamic>> _notifications(String userId) {
     return _firestore
         .collection('users')
         .doc(userId)
-        .collection('notifications')
-        .orderBy('createdAt', descending: true)
-        .limit(50) // Limit to prevent loading too many
-        .snapshots()
+        .collection('notifications');
+  }
+
+  /// Returns a stream of notifications for a user, ordered by creation date.
+  Stream<List<AppNotification>> watchNotifications(String userId) {
+    return _firestoreResilience
+        .watch(
+          () => _notifications(
+            userId,
+          ).orderBy('createdAt', descending: true).limit(50).snapshots(),
+          operationLabel: 'watch_notifications',
+        )
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => AppNotification.fromFirestore(doc))
@@ -33,54 +45,49 @@ class NotificationRepository {
 
   /// Marks a specific notification as read.
   Future<void> markAsRead(String userId, String notificationId) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
+    await _firestoreResilience.run(
+      () => _notifications(userId).doc(notificationId).update({'isRead': true}),
+      operationLabel: 'mark_notification_as_read',
+    );
   }
 
   /// Marks all notifications as read.
   Future<void> markAllAsRead(String userId) async {
-    final batch = _firestore.batch();
-    final notifications = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .where('isRead', isEqualTo: false)
-        .get();
+    await _firestoreResilience.run(() async {
+      final notifications = await _notifications(
+        userId,
+      ).where('isRead', isEqualTo: false).get();
+      if (notifications.docs.isEmpty) return;
 
-    for (final doc in notifications.docs) {
-      batch.update(doc.reference, {'isRead': true});
-    }
+      final batch = _firestore.batch();
+      for (final doc in notifications.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
 
-    await batch.commit();
+      await batch.commit();
+    }, operationLabel: 'mark_all_notifications_as_read');
   }
 
   /// Deletes a specific notification.
   Future<void> deleteNotification(String userId, String notificationId) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .doc(notificationId)
-        .delete();
+    await _firestoreResilience.run(
+      () => _notifications(userId).doc(notificationId).delete(),
+      operationLabel: 'delete_notification',
+    );
   }
 
   /// Deletes all notifications for a user.
   Future<void> deleteAllNotifications(String userId) async {
-    final batch = _firestore.batch();
-    final notifications = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .get();
+    await _firestoreResilience.run(() async {
+      final notifications = await _notifications(userId).get();
+      if (notifications.docs.isEmpty) return;
 
-    for (final doc in notifications.docs) {
-      batch.delete(doc.reference);
-    }
+      final batch = _firestore.batch();
+      for (final doc in notifications.docs) {
+        batch.delete(doc.reference);
+      }
 
-    await batch.commit();
+      await batch.commit();
+    }, operationLabel: 'delete_all_notifications');
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/buttons/app_button.dart';

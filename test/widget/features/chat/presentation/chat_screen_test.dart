@@ -155,6 +155,24 @@ class _DraftChatRepository extends FakeChatRepository {
   }
 }
 
+class _DraftChatRepositoryWithoutMessagesSubscription
+    extends _DraftChatRepository {
+  int getMessagesSnapshotCalls = 0;
+
+  _DraftChatRepositoryWithoutMessagesSubscription({
+    required super.conversationId,
+  });
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = 50,
+  }) {
+    getMessagesSnapshotCalls += 1;
+    return Stream.error(Exception('messages stream should stay idle'));
+  }
+}
+
 class _DelayedRestoreChatRepository extends _ReadyChatRepository {
   final Completer<void> restoreCompleter;
 
@@ -329,6 +347,30 @@ void main() {
     expect((fakeChatRepo as _DraftChatRepository).getOrCreateCalls, 0);
   });
 
+  testWidgets(
+    'does not subscribe to messages stream while draft conversation is not persisted',
+    (tester) async {
+      fakeAuthRepo = FakeAuthRepository(
+        initialUser: FakeFirebaseUser(uid: 'user-1'),
+      );
+      fakeAuthRepo.appUser = user;
+      final draftRepository = _DraftChatRepositoryWithoutMessagesSubscription(
+        conversationId: 'user-1_user-2',
+      );
+      fakeChatRepo = draftRepository;
+
+      profileController.add(user);
+      await tester.pumpWidget(createSubject());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Nenhuma mensagem ainda\nEnvie a primeira!'),
+        findsOneWidget,
+      );
+      expect(draftRepository.getMessagesSnapshotCalls, 0);
+    },
+  );
+
   testWidgets('does not block messages UI while restoring preview', (
     tester,
   ) async {
@@ -344,10 +386,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(
-      find.text('Nenhuma mensagem ainda\nEnvie a primeira!'),
-      findsOneWidget,
-    );
+    expect(find.byType(EditableText), findsOneWidget);
 
     restoreCompleter.complete();
     await tester.pumpAndSettle();

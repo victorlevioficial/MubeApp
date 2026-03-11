@@ -99,7 +99,7 @@ extension _SearchScreenUi on _SearchScreenState {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s32),
                 child: Text(
-                  error.toString(),
+                  resolveErrorMessage(error),
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),

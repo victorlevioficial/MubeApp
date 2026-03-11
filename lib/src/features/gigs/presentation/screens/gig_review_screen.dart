@@ -10,6 +10,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../domain/gig_draft.dart';
 import '../controllers/gig_review_controller.dart';
+import '../gig_error_message.dart';
 import '../providers/gig_streams.dart';
 import '../widgets/star_rating_widget.dart';
 
@@ -55,7 +56,15 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
       appBar: const AppAppBar(title: 'Avaliar participante'),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Erro: $error')),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Text(
+              resolveGigErrorMessage(error),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
         data: (users) {
           final user = users[widget.userId];
           final displayName =
@@ -139,10 +148,7 @@ class _GigReviewScreenState extends ConsumerState<GigReviewScreen> {
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(
-        context,
-        error.toString().replaceFirst('Exception: ', ''),
-      );
+      AppSnackBar.error(context, resolveGigErrorMessage(error));
     }
   }
 }

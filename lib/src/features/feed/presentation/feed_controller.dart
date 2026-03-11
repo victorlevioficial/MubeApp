@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/typedefs.dart';
 import '../../../utils/app_logger.dart';
@@ -253,7 +254,7 @@ class FeedController extends _$FeedController {
         latestState.copyWithFeed(
           isInitialLoading: false,
           status: PaginationStatus.error,
-          errorMessage: error.toString(),
+          errorMessage: resolveErrorMessage(error),
         ),
       );
     }

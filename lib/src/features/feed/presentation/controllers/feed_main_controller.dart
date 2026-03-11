@@ -1,3 +1,4 @@
+import '../../../../core/errors/error_message_resolver.dart';
 import '../../../../core/mixins/pagination_mixin.dart';
 import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/domain/app_user.dart';
@@ -136,7 +137,7 @@ class FeedMainController {
       );
       return currentState.copyWithFeed(
         status: PaginationStatus.error,
-        errorMessage: error.toString(),
+        errorMessage: resolveErrorMessage(error),
       );
     }
   }

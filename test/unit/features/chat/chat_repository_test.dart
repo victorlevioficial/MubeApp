@@ -3,11 +3,40 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 
 @GenerateNiceMocks([MockSpec<AnalyticsService>()])
 import 'chat_repository_test.mocks.dart';
+
+class _SpyChatRepository extends ChatRepository {
+  int getOrCreateConversationCalls = 0;
+
+  _SpyChatRepository(super.firestore, {super.analytics});
+
+  @override
+  FutureResult<String> getOrCreateConversation({
+    required String myUid,
+    required String otherUid,
+    required String otherUserName,
+    String? otherUserPhoto,
+    required String myName,
+    String? myPhoto,
+    String type = 'direct',
+  }) async {
+    getOrCreateConversationCalls += 1;
+    return super.getOrCreateConversation(
+      myUid: myUid,
+      otherUid: otherUid,
+      otherUserName: otherUserName,
+      otherUserPhoto: otherUserPhoto,
+      myName: myName,
+      myPhoto: myPhoto,
+      type: type,
+    );
+  }
+}
 
 void main() {
   late ChatRepository repository;
@@ -89,6 +118,10 @@ void main() {
       test(
         'should create conversation metadata on first message when conversation does not exist',
         () async {
+          final spyRepository = _SpyChatRepository(
+            fakeFirestore,
+            analytics: mockAnalytics,
+          );
           await fakeFirestore.collection('users').doc(myUid).set({
             'nome': myName,
           });
@@ -96,7 +129,7 @@ void main() {
             'nome': otherUserName,
           });
 
-          final result = await repository.sendMessage(
+          final result = await spyRepository.sendMessage(
             conversationId: conversationId,
             text: 'Primeira mensagem',
             myUid: myUid,
@@ -104,6 +137,7 @@ void main() {
           );
 
           expect(result.isRight(), true);
+          expect(spyRepository.getOrCreateConversationCalls, 1);
 
           final conversationDoc = await fakeFirestore
               .collection('conversations')

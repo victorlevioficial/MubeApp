@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
@@ -112,7 +113,7 @@ class _ReceivedFavoritesScreenState
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _error = error.toString();
+        _error = resolveErrorMessage(error);
         _items = const [];
       });
     }
@@ -157,7 +158,7 @@ class _ReceivedFavoritesScreenState
             child: EmptyStateWidget(
               icon: Icons.error_outline,
               title: 'Erro ao carregar favoritos recebidos',
-              subtitle: 'Puxe para atualizar ou tente novamente.',
+              subtitle: _error!,
               actionButton: TextButton(
                 onPressed: _loadReceivedFavorites,
                 child: const Text('Tentar novamente'),

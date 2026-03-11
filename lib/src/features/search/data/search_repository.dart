@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/core/errors/failure_mapper.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/errors/firestore_resilience.dart';
 import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
@@ -27,6 +29,10 @@ enum _SearchProfileScope { any, professional, band, studio, impossible }
 
 /// Repository for searching users with smart pagination and filtering.
 class SearchRepository {
+  static const FirestoreResilience _firestoreResilience = FirestoreResilience(
+    'SearchRepository',
+  );
+
   final FirebaseFirestore _firestore;
   final AnalyticsService? _analytics;
 
@@ -71,7 +77,11 @@ class SearchRepository {
 
         // Build and execute query
         final query = _buildBaseQuery(startAfter: lastDoc, scope: scope);
-        final snapshot = await query.get();
+        final snapshot = await _firestoreResilience.run(
+          () => query.get(),
+          operationLabel: 'search_users_page',
+          onFinalError: (error) => mapExceptionToFailure(error),
+        );
 
         if (snapshot.docs.isEmpty) {
           reachedEnd = true;
@@ -143,15 +153,16 @@ class SearchRepository {
         ),
       );
     } catch (e, stack) {
+      final failure = e is Failure ? e : mapExceptionToFailure(e, stack);
       AppLogger.error('Search repository failed', e, stack);
 
       // Log analytics event for search error
       await _analytics?.logEvent(
         name: 'search_error',
-        parameters: {'query': filters.term, 'error_message': e.toString()},
+        parameters: {'query': filters.term, 'error_message': failure.message},
       );
 
-      return Left(ServerFailure(message: e.toString()));
+      return Left(failure);
     }
   }
 

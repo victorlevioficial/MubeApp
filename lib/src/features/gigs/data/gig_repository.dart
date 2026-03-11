@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
+import '../../../core/errors/failure_mapper.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../utils/app_logger.dart';
 import '../../auth/domain/app_user.dart';
 import '../domain/application_status.dart';
 import '../domain/compensation_type.dart';
@@ -34,6 +36,8 @@ GigRepository gigRepository(Ref ref) {
 class GigRepository {
   GigRepository(this._firestore, this._auth);
 
+  static const int _maxFirestoreRetryAttempts = 3;
+
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
 
@@ -52,12 +56,186 @@ class GigRepository {
     return user.uid;
   }
 
+  bool _isTransientFirestoreError(FirebaseException error) {
+    final code = error.code.toLowerCase();
+    return code == 'unavailable' ||
+        code == 'deadline-exceeded' ||
+        code == 'aborted';
+  }
+
+  Duration _retryDelayForAttempt(int attempt) {
+    return Duration(milliseconds: 350 * attempt);
+  }
+
+  Exception _wrapFirestoreException(FirebaseException error) {
+    return Exception(mapExceptionToFailure(error).message);
+  }
+
+  Future<T> _runFirestoreRequest<T>(
+    Future<T> Function() request, {
+    required String operationLabel,
+  }) async {
+    for (var attempt = 1; attempt <= _maxFirestoreRetryAttempts; attempt++) {
+      try {
+        return await request();
+      } on FirebaseException catch (error, stackTrace) {
+        final shouldRetry =
+            _isTransientFirestoreError(error) &&
+            attempt < _maxFirestoreRetryAttempts;
+        if (!shouldRetry) {
+          AppLogger.error(
+            'GigRepository Firestore request failed: $operationLabel',
+            error,
+            stackTrace,
+          );
+          throw _wrapFirestoreException(error);
+        }
+
+        final delay = _retryDelayForAttempt(attempt);
+        AppLogger.warning(
+          'GigRepository Firestore request transient failure on '
+          '$operationLabel (${error.code}). Retrying in '
+          '${delay.inMilliseconds}ms.',
+          error,
+          stackTrace,
+          false,
+        );
+        await Future<void>.delayed(delay);
+      }
+    }
+
+    throw Exception('Nao foi possivel concluir a operacao agora.');
+  }
+
+  Stream<T> _streamWithFirestoreRetry<T>(
+    Stream<T> Function() createStream, {
+    required String operationLabel,
+  }) async* {
+    var attempt = 0;
+
+    while (true) {
+      try {
+        await for (final value in createStream()) {
+          yield value;
+        }
+        return;
+      } on FirebaseException catch (error, stackTrace) {
+        final shouldRetry =
+            _isTransientFirestoreError(error) &&
+            attempt < (_maxFirestoreRetryAttempts - 1);
+        if (!shouldRetry) {
+          AppLogger.error(
+            'GigRepository Firestore stream failed: $operationLabel',
+            error,
+            stackTrace,
+          );
+          throw _wrapFirestoreException(error);
+        }
+
+        attempt += 1;
+        final delay = _retryDelayForAttempt(attempt);
+        AppLogger.warning(
+          'GigRepository Firestore stream transient failure on '
+          '$operationLabel (${error.code}). Retrying in '
+          '${delay.inMilliseconds}ms.',
+          error,
+          stackTrace,
+          false,
+        );
+        await Future<void>.delayed(delay);
+      }
+    }
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getDocument(
+    DocumentReference<Map<String, dynamic>> reference, {
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => reference.get(),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _getQuerySnapshot(
+    Query<Map<String, dynamic>> query, {
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => query.get(),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Future<AggregateQuerySnapshot> _getAggregateSnapshot(
+    AggregateQuery query, {
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => query.get(),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Future<void> _setDocument(
+    DocumentReference<Map<String, dynamic>> reference,
+    Map<String, dynamic> data, {
+    SetOptions? options,
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => reference.set(data, options),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Future<void> _updateDocument(
+    DocumentReference<Map<String, dynamic>> reference,
+    Map<Object, Object?> data, {
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => reference.update(data),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Future<void> _deleteDocument(
+    DocumentReference<Map<String, dynamic>> reference, {
+    required String operationLabel,
+  }) {
+    return _runFirestoreRequest(
+      () => reference.delete(),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _watchQuery(
+    Query<Map<String, dynamic>> query, {
+    required String operationLabel,
+  }) {
+    return _streamWithFirestoreRetry(
+      () => query.snapshots(),
+      operationLabel: operationLabel,
+    );
+  }
+
+  Stream<DocumentSnapshot<Map<String, dynamic>>> _watchDocument(
+    DocumentReference<Map<String, dynamic>> reference, {
+    required String operationLabel,
+  }) {
+    return _streamWithFirestoreRetry(
+      () => reference.snapshots(),
+      operationLabel: operationLabel,
+    );
+  }
+
   Future<AppUser?> _loadCurrentProfile() async {
     final uid = _uid;
-    final doc = await _firestore
-        .collection(FirestoreCollections.users)
-        .doc(uid)
-        .get();
+    final doc = await _getDocument(
+      _firestore.collection(FirestoreCollections.users).doc(uid),
+      operationLabel: 'load_current_profile',
+    );
     if (!doc.exists || doc.data() == null) return null;
     return AppUser.fromJson(doc.data()!);
   }
@@ -101,7 +279,7 @@ class GigRepository {
       query = query.where(GigFields.creatorId, isEqualTo: _uid);
     }
 
-    return query.snapshots().map((snapshot) {
+    return _watchQuery(query, operationLabel: 'watch_gigs').map((snapshot) {
       final gigs = snapshot.docs.map(Gig.fromFirestore).toList(growable: false);
       return gigs
           .where((gig) => _matchesFilters(gig, filters))
@@ -110,15 +288,14 @@ class GigRepository {
   }
 
   Stream<List<Gig>> watchLatestOpenGigs({int limit = 3}) {
-    return _gigs
+    final query = _gigs
         .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.open))
         .orderBy(GigFields.createdAt, descending: true)
-        .limit(limit)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
-        );
+        .limit(limit);
+    return _watchQuery(query, operationLabel: 'watch_latest_open_gigs').map(
+      (snapshot) =>
+          snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
+    );
   }
 
   bool _matchesFilters(Gig gig, GigFilters filters) {
@@ -169,18 +346,20 @@ class GigRepository {
   }
 
   Stream<List<Gig>> watchMyGigs() {
-    return _gigs
+    final query = _gigs
         .where(GigFields.creatorId, isEqualTo: _uid)
-        .orderBy(GigFields.createdAt, descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
-        );
+        .orderBy(GigFields.createdAt, descending: true);
+    return _watchQuery(query, operationLabel: 'watch_my_gigs').map(
+      (snapshot) =>
+          snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
+    );
   }
 
   Stream<Gig?> watchGigById(String gigId) {
-    return _gigs.doc(gigId).snapshots().map((snapshot) {
+    return _watchDocument(
+      _gigs.doc(gigId),
+      operationLabel: 'watch_gig_by_id',
+    ).map((snapshot) {
       if (!snapshot.exists) return null;
       return Gig.fromFirestore(snapshot);
     });
@@ -189,11 +368,13 @@ class GigRepository {
   Future<String> createGig(GigDraft draft) async {
     await _ensureCanInteract();
 
-    final openCount = await _gigs
-        .where(GigFields.creatorId, isEqualTo: _uid)
-        .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.open))
-        .count()
-        .get();
+    final openCount = await _getAggregateSnapshot(
+      _gigs
+          .where(GigFields.creatorId, isEqualTo: _uid)
+          .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.open))
+          .count(),
+      operationLabel: 'create_gig_open_count',
+    );
 
     if ((openCount.count ?? 0) >= 5) {
       throw Exception('Voce ja atingiu o limite de 5 gigs abertas.');
@@ -204,7 +385,7 @@ class GigRepository {
     }
 
     final doc = _gigs.doc();
-    await doc.set({
+    await _setDocument(doc, {
       GigFields.title: draft.title.trim(),
       GigFields.description: draft.description.trim(),
       GigFields.gigType: _gigTypeValue(draft.gigType),
@@ -233,14 +414,17 @@ class GigRepository {
       GigFields.expiresAt: draft.gigDate == null
           ? null
           : Timestamp.fromDate(draft.gigDate!),
-    });
+    }, operationLabel: 'create_gig_set');
 
     return doc.id;
   }
 
   Future<void> updateGig(String gigId, GigUpdate update) async {
     await _ensureCanInteract();
-    final snapshot = await _gigs.doc(gigId).get();
+    final snapshot = await _getDocument(
+      _gigs.doc(gigId),
+      operationLabel: 'update_gig_get',
+    );
     if (!snapshot.exists || snapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
     }
@@ -337,7 +521,11 @@ class GigRepository {
       payload[GigFields.compensationValue] = update.compensationValue;
     }
 
-    await _gigs.doc(gigId).update(payload);
+    await _updateDocument(
+      _gigs.doc(gigId),
+      payload,
+      operationLabel: 'update_gig_write',
+    );
   }
 
   Future<void> closeGig(String gigId) async {
@@ -350,7 +538,10 @@ class GigRepository {
 
   Future<void> _updateGigStatus(String gigId, GigStatus status) async {
     await _ensureCanInteract();
-    final snapshot = await _gigs.doc(gigId).get();
+    final snapshot = await _getDocument(
+      _gigs.doc(gigId),
+      operationLabel: 'update_gig_status_get',
+    );
     if (!snapshot.exists || snapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
     }
@@ -360,16 +551,19 @@ class GigRepository {
       throw Exception('Apenas o criador pode alterar esta gig.');
     }
 
-    await _gigs.doc(gigId).update({
+    await _updateDocument(_gigs.doc(gigId), {
       GigFields.status: _gigStatusValue(status),
       GigFields.updatedAt: FieldValue.serverTimestamp(),
-    });
+    }, operationLabel: 'update_gig_status_write');
   }
 
   Future<void> applyToGig(String gigId, String message) async {
     await _ensureCanInteract();
 
-    final gigSnapshot = await _gigs.doc(gigId).get();
+    final gigSnapshot = await _getDocument(
+      _gigs.doc(gigId),
+      operationLabel: 'apply_to_gig_get_gig',
+    );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
     }
@@ -386,24 +580,30 @@ class GigRepository {
     }
 
     final applicationRef = _applications(gigId).doc(_uid);
-    final existing = await applicationRef.get();
+    final existing = await _getDocument(
+      applicationRef,
+      operationLabel: 'apply_to_gig_check_existing',
+    );
     if (existing.exists) {
       throw Exception('Voce ja tem uma candidatura ativa para esta gig.');
     }
 
-    await applicationRef.set({
+    await _setDocument(applicationRef, {
       GigFields.applicantId: _uid,
       GigFields.message: message.trim(),
       GigFields.status: _applicationStatusValue(ApplicationStatus.pending),
       GigFields.appliedAt: FieldValue.serverTimestamp(),
       GigFields.respondedAt: null,
-    });
+    }, operationLabel: 'apply_to_gig_set_application');
   }
 
   Future<void> withdrawApplication(String gigId) async {
     await _ensureCanInteract();
     final applicationRef = _applications(gigId).doc(_uid);
-    final snapshot = await applicationRef.get();
+    final snapshot = await _getDocument(
+      applicationRef,
+      operationLabel: 'withdraw_application_get',
+    );
     if (!snapshot.exists || snapshot.data() == null) {
       throw Exception('Candidatura nao encontrada.');
     }
@@ -414,18 +614,21 @@ class GigRepository {
       throw Exception('Esta candidatura nao pode mais ser retirada.');
     }
 
-    await applicationRef.delete();
+    await _deleteDocument(
+      applicationRef,
+      operationLabel: 'withdraw_application_delete',
+    );
   }
 
   Stream<List<GigApplication>> watchApplications(String gigId) {
-    return _applications(gigId)
-        .orderBy(GigFields.appliedAt, descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => GigApplication.fromFirestore(doc, gigId: gigId))
-              .toList(growable: false),
-        );
+    final query = _applications(
+      gigId,
+    ).orderBy(GigFields.appliedAt, descending: true);
+    return _watchQuery(query, operationLabel: 'watch_gig_applications').map(
+      (snapshot) => snapshot.docs
+          .map((doc) => GigApplication.fromFirestore(doc, gigId: gigId))
+          .toList(growable: false),
+    );
   }
 
   Future<void> updateApplicationStatus(
@@ -434,7 +637,10 @@ class GigRepository {
     ApplicationStatus status,
   ) async {
     await _ensureCanInteract();
-    final gigSnapshot = await _gigs.doc(gigId).get();
+    final gigSnapshot = await _getDocument(
+      _gigs.doc(gigId),
+      operationLabel: 'update_application_status_get_gig',
+    );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
     }
@@ -444,7 +650,10 @@ class GigRepository {
     }
 
     final applicationRef = _applications(gigId).doc(applicantId);
-    final applicationSnapshot = await applicationRef.get();
+    final applicationSnapshot = await _getDocument(
+      applicationRef,
+      operationLabel: 'update_application_status_get_application',
+    );
     if (!applicationSnapshot.exists || applicationSnapshot.data() == null) {
       throw Exception('Candidatura nao encontrada.');
     }
@@ -466,13 +675,15 @@ class GigRepository {
     if (current == status) return;
 
     if (status == ApplicationStatus.accepted) {
-      final aggregate = await _applications(gigId)
-          .where(
-            GigFields.status,
-            isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
-          )
-          .count()
-          .get();
+      final aggregate = await _getAggregateSnapshot(
+        _applications(gigId)
+            .where(
+              GigFields.status,
+              isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
+            )
+            .count(),
+        operationLabel: 'update_application_status_count_accepted',
+      );
       if ((aggregate.count ?? 0) >= gig.slotsTotal) {
         throw Exception('Nao ha vagas disponiveis para novo aceite.');
       }
@@ -483,42 +694,44 @@ class GigRepository {
       throw Exception('Esta candidatura nao pode mais ser alterada.');
     }
 
-    await applicationRef.update({
+    await _updateDocument(applicationRef, {
       GigFields.status: _applicationStatusValue(status),
       GigFields.respondedAt: FieldValue.serverTimestamp(),
-    });
+    }, operationLabel: 'update_application_status_write');
   }
 
   Stream<List<GigApplication>> watchMyApplications() {
-    return _firestore
+    final query = _firestore
         .collectionGroup(FirestoreCollections.gigApplications)
         .where(GigFields.applicantId, isEqualTo: _uid)
-        .orderBy(GigFields.appliedAt, descending: true)
-        .snapshots()
-        .asyncMap((snapshot) async {
-          final gigIds = snapshot.docs
-              .map((doc) => doc.reference.parent.parent?.id)
-              .whereType<String>()
-              .toSet()
-              .toList(growable: false);
+        .orderBy(GigFields.appliedAt, descending: true);
 
-          final gigsById = await _loadGigsByIds(gigIds);
+    return _watchQuery(query, operationLabel: 'watch_my_applications').asyncMap(
+      (snapshot) async {
+        final gigIds = snapshot.docs
+            .map((doc) => doc.reference.parent.parent?.id)
+            .whereType<String>()
+            .toSet()
+            .toList(growable: false);
 
-          return snapshot.docs
-              .map((doc) {
-                final gigId = doc.reference.parent.parent?.id ?? '';
-                final gig = gigsById[gigId];
-                return GigApplication.fromFirestore(
-                  doc,
-                  gigId: gigId,
-                  gigTitle: gig?.title,
-                  gigType: gig?.gigType,
-                  gigStatus: gig?.status,
-                  creatorId: gig?.creatorId,
-                );
-              })
-              .toList(growable: false);
-        });
+        final gigsById = await _loadGigsByIds(gigIds);
+
+        return snapshot.docs
+            .map((doc) {
+              final gigId = doc.reference.parent.parent?.id ?? '';
+              final gig = gigsById[gigId];
+              return GigApplication.fromFirestore(
+                doc,
+                gigId: gigId,
+                gigTitle: gig?.title,
+                gigType: gig?.gigType,
+                gigStatus: gig?.status,
+                creatorId: gig?.creatorId,
+              );
+            })
+            .toList(growable: false);
+      },
+    );
   }
 
   Stream<GigApplication?> watchMyApplicationForGig(String gigId) {
@@ -527,7 +740,10 @@ class GigRepository {
       return Stream.value(null);
     }
 
-    return _applications(gigId).doc(user.uid).snapshots().map((snapshot) {
+    return _watchDocument(
+      _applications(gigId).doc(user.uid),
+      operationLabel: 'watch_my_application_for_gig',
+    ).map((snapshot) {
       final data = snapshot.data();
       if (!snapshot.exists || data == null) {
         return null;
@@ -550,9 +766,10 @@ class GigRepository {
     final gigs = <String, Gig>{};
 
     for (final chunk in _chunk(gigIds, 10)) {
-      final snapshot = await _gigs
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
+      final snapshot = await _getQuerySnapshot(
+        _gigs.where(FieldPath.documentId, whereIn: chunk),
+        operationLabel: 'load_gigs_by_ids',
+      );
       for (final doc in snapshot.docs) {
         gigs[doc.id] = Gig.fromFirestore(doc);
       }
@@ -562,7 +779,10 @@ class GigRepository {
   }
 
   Future<bool> hasApplied(String gigId) async {
-    final snapshot = await _applications(gigId).doc(_uid).get();
+    final snapshot = await _getDocument(
+      _applications(gigId).doc(_uid),
+      operationLabel: 'has_applied',
+    );
     return snapshot.exists;
   }
 
@@ -573,7 +793,10 @@ class GigRepository {
       throw Exception('A nota deve estar entre 1 e 5.');
     }
 
-    final gigSnapshot = await _gigs.doc(review.gigId).get();
+    final gigSnapshot = await _getDocument(
+      _gigs.doc(review.gigId),
+      operationLabel: 'submit_review_get_gig',
+    );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
     }
@@ -591,12 +814,15 @@ class GigRepository {
     );
 
     final reviewId = '${review.gigId}_${_uid}_${review.reviewedUserId}';
-    final existing = await _reviews.doc(reviewId).get();
+    final existing = await _getDocument(
+      _reviews.doc(reviewId),
+      operationLabel: 'submit_review_check_existing',
+    );
     if (existing.exists) {
       throw Exception('Voce ja avaliou este usuario nesta gig.');
     }
 
-    await _reviews.doc(reviewId).set({
+    await _setDocument(_reviews.doc(reviewId), {
       GigFields.gigId: review.gigId,
       GigFields.reviewerId: _uid,
       GigFields.reviewedUserId: review.reviewedUserId,
@@ -604,7 +830,7 @@ class GigRepository {
       GigFields.comment: review.comment?.trim(),
       GigFields.reviewType: _reviewTypeValue(reviewType),
       GigFields.createdAt: FieldValue.serverTimestamp(),
-    });
+    }, operationLabel: 'submit_review_write');
   }
 
   Future<ReviewType> _resolveReviewType({
@@ -612,7 +838,10 @@ class GigRepository {
     required String reviewedUserId,
   }) async {
     if (_uid == gig.creatorId) {
-      final application = await _applications(gig.id).doc(reviewedUserId).get();
+      final application = await _getDocument(
+        _applications(gig.id).doc(reviewedUserId),
+        operationLabel: 'resolve_review_type_target_application',
+      );
       if (!application.exists || application.data() == null) {
         throw Exception('Participante nao encontrado nesta gig.');
       }
@@ -627,7 +856,10 @@ class GigRepository {
       return ReviewType.creatorToParticipant;
     }
 
-    final ownApplication = await _applications(gig.id).doc(_uid).get();
+    final ownApplication = await _getDocument(
+      _applications(gig.id).doc(_uid),
+      operationLabel: 'resolve_review_type_own_application',
+    );
     if (!ownApplication.exists || ownApplication.data() == null) {
       throw Exception('Voce nao participou desta gig.');
     }
@@ -644,21 +876,20 @@ class GigRepository {
   }
 
   Stream<List<GigReview>> watchReviewsForUser(String userId) {
-    return _reviews
+    final query = _reviews
         .where(GigFields.reviewedUserId, isEqualTo: userId)
-        .orderBy(GigFields.createdAt, descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map(GigReview.fromFirestore)
-              .toList(growable: false),
-        );
+        .orderBy(GigFields.createdAt, descending: true);
+    return _watchQuery(query, operationLabel: 'watch_reviews_for_user').map(
+      (snapshot) =>
+          snapshot.docs.map(GigReview.fromFirestore).toList(growable: false),
+    );
   }
 
   Future<double?> getAverageRating(String userId) async {
-    final snapshot = await _reviews
-        .where(GigFields.reviewedUserId, isEqualTo: userId)
-        .get();
+    final snapshot = await _getQuerySnapshot(
+      _reviews.where(GigFields.reviewedUserId, isEqualTo: userId),
+      operationLabel: 'get_average_rating',
+    );
     if (snapshot.docs.isEmpty) return null;
 
     final sum = snapshot.docs.fold<int>(0, (total, doc) {
@@ -673,25 +904,32 @@ class GigRepository {
     final opportunities = <GigReviewOpportunity>[];
     final userIds = <String>{};
 
-    final ownGigs = await _gigs
-        .where(GigFields.creatorId, isEqualTo: _uid)
-        .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.closed))
-        .get();
+    final ownGigs = await _getQuerySnapshot(
+      _gigs
+          .where(GigFields.creatorId, isEqualTo: _uid)
+          .where(
+            GigFields.status,
+            isEqualTo: _gigStatusValue(GigStatus.closed),
+          ),
+      operationLabel: 'pending_reviews_load_own_gigs',
+    );
 
     for (final doc in ownGigs.docs) {
       final gig = Gig.fromFirestore(doc);
-      final applications = await _applications(gig.id)
-          .where(
-            GigFields.status,
-            isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
-          )
-          .get();
+      final applications = await _getQuerySnapshot(
+        _applications(gig.id).where(
+          GigFields.status,
+          isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
+        ),
+        operationLabel: 'pending_reviews_load_accepted_applications',
+      );
 
       for (final applicationDoc in applications.docs) {
         final targetId = applicationDoc.id;
-        final alreadyReviewed = await _reviews
-            .doc('${gig.id}_${_uid}_$targetId')
-            .get();
+        final alreadyReviewed = await _getDocument(
+          _reviews.doc('${gig.id}_${_uid}_$targetId'),
+          operationLabel: 'pending_reviews_check_creator_review',
+        );
         if (alreadyReviewed.exists) continue;
         userIds.add(targetId);
         opportunities.add(
@@ -706,26 +944,34 @@ class GigRepository {
       }
     }
 
-    final acceptedApplications = await _firestore
-        .collectionGroup(FirestoreCollections.gigApplications)
-        .where(GigFields.applicantId, isEqualTo: _uid)
-        .where(
-          GigFields.status,
-          isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
-        )
-        .get();
+    final acceptedApplications = await _getQuerySnapshot(
+      _firestore
+          .collectionGroup(FirestoreCollections.gigApplications)
+          .where(GigFields.applicantId, isEqualTo: _uid)
+          .where(
+            GigFields.status,
+            isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
+          ),
+      operationLabel: 'pending_reviews_load_my_accepted_applications',
+    );
 
     for (final doc in acceptedApplications.docs) {
       final gigId = doc.reference.parent.parent?.id;
       if (gigId == null || gigId.isEmpty) continue;
-      final gigSnapshot = await _gigs.doc(gigId).get();
+      final gigSnapshot = await _getDocument(
+        _gigs.doc(gigId),
+        operationLabel: 'pending_reviews_get_gig',
+      );
       if (!gigSnapshot.exists || gigSnapshot.data() == null) continue;
 
       final gig = Gig.fromFirestore(gigSnapshot);
       if (gig.status != GigStatus.closed) continue;
 
       final reviewId = '${gig.id}_${_uid}_${gig.creatorId}';
-      final alreadyReviewed = await _reviews.doc(reviewId).get();
+      final alreadyReviewed = await _getDocument(
+        _reviews.doc(reviewId),
+        operationLabel: 'pending_reviews_check_participant_review',
+      );
       if (alreadyReviewed.exists) continue;
 
       userIds.add(gig.creatorId);
@@ -763,10 +1009,12 @@ class GigRepository {
     final users = <String, AppUser>{};
 
     for (final chunk in _chunk(ids, 10)) {
-      final snapshot = await _firestore
-          .collection(FirestoreCollections.users)
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
+      final snapshot = await _getQuerySnapshot(
+        _firestore
+            .collection(FirestoreCollections.users)
+            .where(FieldPath.documentId, whereIn: chunk),
+        operationLabel: 'load_users_by_ids',
+      );
 
       for (final doc in snapshot.docs) {
         users[doc.id] = AppUser.fromJson(doc.data());

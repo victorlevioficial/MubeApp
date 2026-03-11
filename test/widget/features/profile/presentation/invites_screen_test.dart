@@ -104,7 +104,8 @@ void main() {
         repository: repository,
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     await tester.tap(find.text('Aceitar'));
     await tester.pump();

@@ -26,6 +26,7 @@ import '../../domain/gig_draft.dart';
 import '../../domain/gig_location_type.dart';
 import '../../domain/gig_status.dart';
 import '../controllers/gig_actions_controller.dart';
+import '../gig_error_message.dart';
 import '../providers/gig_streams.dart';
 import '../widgets/gig_compensation_chip.dart';
 import '../widgets/gig_creator_preview.dart';
@@ -62,7 +63,18 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
     if (gig == null) {
       body = gigAsync.when(
         loading: () => const _GigDetailSkeleton(),
-        error: (error, _) => Center(child: Text('Erro: $error')),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: Text(
+              resolveGigErrorMessage(error),
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
         data: (_) => const Center(child: Text('Gig nao encontrada.')),
       );
     } else {
@@ -255,10 +267,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         );
       } catch (error) {
         if (!context.mounted) return;
-        AppSnackBar.error(
-          context,
-          error.toString().replaceFirst('Exception: ', ''),
-        );
+        AppSnackBar.error(context, resolveGigErrorMessage(error));
       }
     });
   }
@@ -273,10 +282,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         AppSnackBar.success(context, 'Candidatura retirada com sucesso.');
       } catch (error) {
         if (!context.mounted) return;
-        AppSnackBar.error(
-          context,
-          error.toString().replaceFirst('Exception: ', ''),
-        );
+        AppSnackBar.error(context, resolveGigErrorMessage(error));
       }
     });
   }
@@ -299,10 +305,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         AppSnackBar.success(context, 'Gig encerrada.');
       } catch (error) {
         if (!context.mounted) return;
-        AppSnackBar.error(
-          context,
-          error.toString().replaceFirst('Exception: ', ''),
-        );
+        AppSnackBar.error(context, resolveGigErrorMessage(error));
       }
     });
   }
@@ -327,10 +330,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         AppSnackBar.success(context, 'Gig cancelada.');
       } catch (error) {
         if (!context.mounted) return;
-        AppSnackBar.error(
-          context,
-          error.toString().replaceFirst('Exception: ', ''),
-        );
+        AppSnackBar.error(context, resolveGigErrorMessage(error));
       }
     });
   }
@@ -376,10 +376,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
           AppSnackBar.success(context, 'Descricao atualizada.');
         } catch (error) {
           if (!context.mounted) return;
-          AppSnackBar.error(
-            context,
-            error.toString().replaceFirst('Exception: ', ''),
-          );
+          AppSnackBar.error(context, resolveGigErrorMessage(error));
         }
       },
     );

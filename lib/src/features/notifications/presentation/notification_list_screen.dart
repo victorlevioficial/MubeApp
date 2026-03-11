@@ -1,9 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/errors/error_message_resolver.dart';
+import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -42,11 +48,17 @@ class NotificationListScreen extends ConsumerWidget {
       ),
       body: notificationsAsync.when(
         loading: () => const _NotificationListSkeleton(),
-        error: (err, _) => Center(
-          child: Text(
-            'Erro ao carregar notificações',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: EmptyStateWidget(
+              icon: Icons.notifications_off_outlined,
+              title: 'Nao foi possivel carregar notificacoes',
+              subtitle: resolveErrorMessage(error),
+              actionButton: AppButton.secondary(
+                text: 'Tentar novamente',
+                onPressed: () => ref.invalidate(notificationsStreamProvider),
+              ),
             ),
           ),
         ),
@@ -71,18 +83,25 @@ class NotificationListScreen extends ConsumerWidget {
                 ),
                 onDismissed: (_) {
                   if (user != null) {
-                    ref
-                        .read(notificationRepositoryProvider)
-                        .deleteNotification(user.uid, notification.id);
+                    unawaited(
+                      _deleteNotification(
+                        context,
+                        ref,
+                        user.uid,
+                        notification.id,
+                      ),
+                    );
                   }
                 },
                 child: _NotificationTile(
                   notification: notification,
-                  onTap: () => _handleNotificationTap(
-                    context,
-                    ref,
-                    notification,
-                    user?.uid,
+                  onTap: () => unawaited(
+                    _handleNotificationTap(
+                      context,
+                      ref,
+                      notification,
+                      user?.uid,
+                    ),
                   ),
                 ),
               );
@@ -93,25 +112,37 @@ class NotificationListScreen extends ConsumerWidget {
     );
   }
 
-  void _handleNotificationTap(
+  Future<void> _handleNotificationTap(
     BuildContext context,
     WidgetRef ref,
     AppNotification notification,
     String? userId,
-  ) {
+  ) async {
+    final router = GoRouter.of(context);
+
     // Mark as read
     if (userId != null && !notification.isRead) {
-      ref
-          .read(notificationRepositoryProvider)
-          .markAsRead(userId, notification.id);
+      try {
+        await ref
+            .read(notificationRepositoryProvider)
+            .markAsRead(userId, notification.id);
+      } catch (error) {
+        if (context.mounted) {
+          AppSnackBar.error(context, resolveErrorMessage(error));
+        }
+      }
     }
 
+    if (!context.mounted) return;
+
     if ((notification.route ?? '').trim().isNotEmpty) {
-      context.push(
-        notification.route!,
-        extra: _buildChatExtraFromNotification(
-          notification,
-          route: notification.route,
+      unawaited(
+        router.push(
+          notification.route!,
+          extra: _buildChatExtraFromNotification(
+            notification,
+            route: notification.route,
+          ),
         ),
       );
       return;
@@ -121,17 +152,19 @@ class NotificationListScreen extends ConsumerWidget {
     switch (notification.type) {
       case NotificationType.chatMessage:
         if (notification.conversationId != null) {
-          context.push(
-            RoutePaths.conversationById(notification.conversationId!),
-            extra: _buildChatExtraFromNotification(notification),
+          unawaited(
+            router.push(
+              RoutePaths.conversationById(notification.conversationId!),
+              extra: _buildChatExtraFromNotification(notification),
+            ),
           );
         }
         break;
       case NotificationType.bandInvite:
-        context.push(RoutePaths.invites);
+        unawaited(router.push(RoutePaths.invites));
         break;
       case NotificationType.bandInviteAccepted:
-        context.push(RoutePaths.manageMembers);
+        unawaited(router.push(RoutePaths.manageMembers));
         break;
       case NotificationType.gigApplication:
       case NotificationType.gigApplicationAccepted:
@@ -143,6 +176,23 @@ class NotificationListScreen extends ConsumerWidget {
       case NotificationType.system:
         // No specific navigation for now
         break;
+    }
+  }
+
+  Future<void> _deleteNotification(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+    String notificationId,
+  ) async {
+    try {
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteNotification(userId, notificationId);
+    } catch (error) {
+      if (context.mounted) {
+        AppSnackBar.error(context, resolveErrorMessage(error));
+      }
     }
   }
 
@@ -209,9 +259,7 @@ class NotificationListScreen extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref
-                  .read(notificationRepositoryProvider)
-                  .deleteAllNotifications(userId);
+              unawaited(_deleteAllNotifications(context, ref, userId));
             },
             child: Text(
               'Limpar',
@@ -221,6 +269,22 @@ class NotificationListScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteAllNotifications(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+  ) async {
+    try {
+      await ref
+          .read(notificationRepositoryProvider)
+          .deleteAllNotifications(userId);
+    } catch (error) {
+      if (context.mounted) {
+        AppSnackBar.error(context, resolveErrorMessage(error));
+      }
+    }
   }
 
   Widget _buildEmptyState() {

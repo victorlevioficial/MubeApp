@@ -324,6 +324,42 @@ void main() {
       expect(state.value?.status, PaginationStatus.error);
     });
 
+    test('maps thrown exceptions in loadAllData to friendly message', () async {
+      final failureRepository = _ThrowingMainFeedRepository();
+      final localContainer = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          feedRepositoryProvider.overrideWithValue(failureRepository),
+          favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepository),
+          feedImagePrecacheServiceProvider.overrideWithValue(
+            fakePrecacheService,
+          ),
+          currentUserProfileProvider.overrideWith(
+            (ref) => fakeAuthRepository.watchUser(''),
+          ),
+          blockedUsersProvider.overrideWith((ref) => Stream.value([])),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final user = TestData.user(uid: 'user-1');
+      fakeAuthRepository.appUser = user;
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+      );
+      await waitForUser(localContainer);
+
+      final controller = localContainer.read(feedControllerProvider.notifier);
+      await controller.loadAllData();
+
+      final state = localContainer.read(feedControllerProvider).value!;
+      expect(state.status, PaginationStatus.error);
+      expect(
+        state.errorMessage,
+        'Erro no servidor. Tente novamente mais tarde.',
+      );
+    });
+
     test(
       'loadAllData surfaces paginated feed failure on initial reset',
       () async {
@@ -376,6 +412,21 @@ class _MainFeedFailureFeedRepository extends FakeFeedRepository {
     DocumentSnapshot? startAfter,
   }) async {
     return Either.left(const ServerFailure(message: 'Main feed failed'));
+  }
+}
+
+class _ThrowingMainFeedRepository extends FakeFeedRepository {
+  @override
+  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
+    required String currentUserId,
+    String? filterType,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+    DocumentSnapshot? startAfter,
+  }) async {
+    throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
   }
 }
 

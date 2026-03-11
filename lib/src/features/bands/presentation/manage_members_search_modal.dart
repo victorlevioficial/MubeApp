@@ -24,17 +24,6 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
     super.dispose();
   }
 
-  String _inviteErrorMessage(Object error) {
-    const exceptionPrefix = 'Exception: ';
-    final message = error.toString().trim();
-    if (message.startsWith(exceptionPrefix)) {
-      return message.substring(exceptionPrefix.length).trim();
-    }
-    return message.isEmpty
-        ? 'Não foi possível enviar o convite agora.'
-        : message;
-  }
-
   Future<void> _search(String term) async {
     final normalizedTerm = term.trim();
     if (normalizedTerm.length < 3) {
@@ -105,7 +94,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
     } catch (e, stack) {
       AppLogger.error('Falha ao enviar convite para ${item.uid}', e, stack);
       if (mounted) {
-        AppSnackBar.show(context, _inviteErrorMessage(e), isError: true);
+        AppSnackBar.error(context, resolveErrorMessage(e));
       }
     } finally {
       if (mounted) {
