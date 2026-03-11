@@ -141,7 +141,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       AppLogger.debug(
         '[PushNavigation] Navigating to $latestTargetPath from $activePath',
       );
-      _goRouter.go(latestTargetPath, extra: latestIntent.extra);
+      unawaited(
+        _goRouter.push(latestTargetPath, extra: latestIntent.extra),
+      );
     });
 
     return true;

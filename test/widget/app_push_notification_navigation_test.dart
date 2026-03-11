@@ -44,6 +44,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Gig Placeholder: gig-123'), findsOneWidget);
+
+      harness.router.pop();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Feed Placeholder'), findsOneWidget);
     });
   });
 }
