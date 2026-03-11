@@ -2,6 +2,15 @@
 
 set -euo pipefail
 
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+local_env="${project_root}/.env.local"
+if [[ -f "${local_env}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${local_env}"
+  set +a
+fi
+
 lane="${1:-beta}"
 if [[ $# -gt 0 ]]; then
   shift
