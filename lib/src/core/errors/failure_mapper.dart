@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 
 import 'failures.dart';
 
@@ -28,6 +29,9 @@ Failure mapExceptionToFailure(Object error, [StackTrace? stackTrace]) {
   // Firebase errors
   if (error is FirebaseException) {
     return _mapFirebaseException(error);
+  }
+  if (error is PlatformException) {
+    return _mapPlatformException(error);
   }
 
   // Format/parsing errors
@@ -103,4 +107,66 @@ Failure _mapFirebaseException(FirebaseException e) {
       originalError: e,
     ),
   };
+}
+
+Failure _mapPlatformException(PlatformException error) {
+  final normalizedCode = _normalizedPlatformCode(error);
+  final normalizedMessage = _normalizedPlatformMessage(error);
+  final mentionsAppCheck = normalizedMessage.contains('app check');
+
+  if (mentionsAppCheck &&
+      (normalizedCode == 'unauthenticated' ||
+          normalizedCode == 'failed-precondition' ||
+          normalizedCode == 'permission-denied')) {
+    return const ServerFailure(
+      message:
+          'Falha na validacao de seguranca do app. Feche e abra o app e tente novamente.',
+      debugMessage: 'app-check-auth-context-failure',
+    );
+  }
+
+  return switch (normalizedCode) {
+    'unauthenticated' => AuthFailure.sessionExpired(),
+    'permission-denied' => PermissionFailure.firestore(),
+    'unavailable' => NetworkFailure.serverError(),
+    'deadline-exceeded' => NetworkFailure.timeout(),
+    _ => UnknownFailure(
+      debugMessage: '${error.code}: ${error.message ?? error.details}',
+      originalError: error,
+    ),
+  };
+}
+
+String _normalizedPlatformCode(PlatformException error) {
+  final message = _normalizedPlatformMessage(error);
+  if (message.contains('unauthenticated') ||
+      message.contains('valid authentication credentials')) {
+    return 'unauthenticated';
+  }
+  if (message.contains('permission-denied') ||
+      message.contains('permission denied')) {
+    return 'permission-denied';
+  }
+  if (message.contains('failed-precondition') ||
+      message.contains('failed precondition')) {
+    return 'failed-precondition';
+  }
+  if (message.contains('deadline-exceeded') ||
+      message.contains('deadline exceeded')) {
+    return 'deadline-exceeded';
+  }
+  if (message.contains('unavailable')) {
+    return 'unavailable';
+  }
+
+  return error.code.toLowerCase();
+}
+
+String _normalizedPlatformMessage(PlatformException error) {
+  return [
+    error.message ?? '',
+    error.details?.toString() ?? '',
+    error.code,
+    error.toString(),
+  ].join(' ').toLowerCase();
 }

@@ -1,8 +1,10 @@
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 
 import '../../utils/app_logger.dart';
+import 'failure_mapper.dart';
 import 'failures.dart';
 
 /// Centralized error handler that converts exceptions to user-friendly Failures.
@@ -30,6 +32,9 @@ class ErrorHandler {
     // Firebase Storage errors
     if (error is FirebaseException) {
       return _handleFirebaseError(error);
+    }
+    if (error is PlatformException) {
+      return mapExceptionToFailure(error);
     }
 
     // Socket/Network errors
