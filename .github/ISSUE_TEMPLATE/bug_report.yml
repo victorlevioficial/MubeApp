@@ -42,7 +42,7 @@ body:
     id: flutter_version
     attributes:
       label: Versão do Flutter
-      placeholder: "ex: 3.38.6"
+      placeholder: "ex: 3.41.3"
   - type: textarea
     id: steps
     attributes:

@@ -8,7 +8,7 @@ Este eh o fluxo oficial do projeto para evitar bagunca e retrabalho.
    - Windows (PowerShell): `dart pub global activate fvm`
    - macOS (Terminal): `dart pub global activate fvm`
 2. Na raiz do projeto, fixar versao do Flutter
-   - `fvm use 3.38.6`
+   - `fvm use 3.41.3`
 3. Instalar dependencias
    - `fvm flutter pub get`
 
