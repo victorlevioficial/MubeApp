@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../routing/notification_navigation_resolver.dart';
+
 part 'notification_model.freezed.dart';
 part 'notification_model.g.dart';
 
@@ -50,15 +52,17 @@ abstract class AppNotification with _$AppNotification {
 
   /// Creates an [AppNotification] from a Firestore document.
   factory AppNotification.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
     return AppNotification(
       id: doc.id,
       type: _parseType(data['type'] as String?),
       title: data['title'] as String? ?? 'Notificação',
       body: data['body'] as String? ?? '',
-      conversationId: data['conversationId'] as String?,
-      senderId: data['senderId'] as String?,
-      route: data['route'] as String?,
+      conversationId:
+          _readString(data['conversationId']) ??
+          _readString(data['conversation_id']),
+      senderId: _readString(data['senderId']) ?? _readString(data['sender_id']),
+      route: resolveNotificationRouteFromData(data),
       isRead: data['isRead'] as bool? ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -90,6 +94,12 @@ abstract class AppNotification with _$AppNotification {
       default:
         return NotificationType.system;
     }
+  }
+
+  static String? _readString(Object? value) {
+    if (value is! String) return null;
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
   }
 }
 

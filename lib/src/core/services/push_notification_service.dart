@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../../routing/notification_navigation_resolver.dart';
 import '../../utils/app_logger.dart';
 import 'push_notification_event_bus.dart';
 
@@ -282,7 +283,7 @@ class PushNotificationService {
     RemoteMessage message,
   ) {
     final data = message.data;
-    final route = _readNonEmptyString(data['route']);
+    final route = resolveNotificationRouteFromData(data);
     final conversationId = _readNonEmptyString(data['conversation_id']);
     final senderId = _readNonEmptyString(data['sender_id']);
     final senderName =
@@ -312,7 +313,7 @@ class PushNotificationService {
       final decoded = jsonDecode(rawPayload);
       if (decoded is! Map) return null;
       final data = Map<String, dynamic>.from(decoded);
-      final route = _readNonEmptyString(data['route']);
+      final route = resolveNotificationRouteFromData(data);
       final conversationId = _readNonEmptyString(data['conversation_id']);
 
       final extra = <String, dynamic>{};

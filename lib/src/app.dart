@@ -49,6 +49,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   ProviderSubscription<AsyncValue<User?>>? _authStateSubscription;
   ProviderSubscription<AsyncValue<AppUser?>>? _profileSubscription;
   late final GoRouter _goRouter;
+  PushNavigationIntent? _pendingPushNavigationIntent;
   bool _hasBootstrappedPushForSession = false;
   bool _hasPrefetchedFeedForSession = false;
   bool _hasReleasedInitialRoute = false;
@@ -63,6 +64,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasPendingGigReviewReminderEvaluation = false;
   bool _hasShownGigReviewReminderForSession = false;
   bool _isGigReviewReminderVisible = false;
+  bool _isPushNavigationDispatchScheduled = false;
   String? _gigReviewReminderUserId;
   String? _onboardingDraftOwnerUid;
   Timer? _pushBootstrapTimer;
@@ -88,25 +90,90 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
     _onMessageOpenedSub = eventBus.onNavigation.listen((intent) {
       if (!mounted) return;
+      _pendingPushNavigationIntent = intent;
+      _dispatchPendingPushNavigationIfPossible();
+    });
+  }
 
-      final router = ref.read(goRouterProvider);
-      final currentPath = router.routerDelegate.currentConfiguration.uri.path;
-      final route = intent.route?.trim();
-      if (route != null && route.isNotEmpty) {
-        if (currentPath != route) {
-          router.push(route, extra: intent.extra);
-        }
+  bool _dispatchPendingPushNavigationIfPossible() {
+    if (!mounted || _isPushNavigationDispatchScheduled) return false;
+
+    final pendingIntent = _pendingPushNavigationIntent;
+    final targetPath = _resolvePushNavigationTarget(pendingIntent);
+    if (pendingIntent == null || targetPath == null) {
+      _pendingPushNavigationIntent = null;
+      return false;
+    }
+
+    final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (_shouldDeferPushNavigation(currentPath)) {
+      return false;
+    }
+
+    if (currentPath == targetPath) {
+      _pendingPushNavigationIntent = null;
+      return false;
+    }
+
+    _isPushNavigationDispatchScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _isPushNavigationDispatchScheduled = false;
+      if (!mounted) return;
+
+      final latestIntent = _pendingPushNavigationIntent;
+      final latestTargetPath = _resolvePushNavigationTarget(latestIntent);
+      if (latestIntent == null || latestTargetPath == null) {
+        _pendingPushNavigationIntent = null;
         return;
       }
 
-      final conversationId = intent.conversationId?.trim();
-      if (conversationId != null && conversationId.isNotEmpty) {
-        final targetPath = RoutePaths.conversationById(conversationId);
-        if (currentPath != targetPath) {
-          router.push(targetPath, extra: intent.extra);
-        }
+      final activePath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+      if (_shouldDeferPushNavigation(activePath)) {
+        return;
       }
+
+      if (activePath == latestTargetPath) {
+        _pendingPushNavigationIntent = null;
+        return;
+      }
+
+      _pendingPushNavigationIntent = null;
+      AppLogger.debug(
+        '[PushNavigation] Navigating to $latestTargetPath from $activePath',
+      );
+      unawaited(_goRouter.push(latestTargetPath, extra: latestIntent.extra));
     });
+
+    return true;
+  }
+
+  String? _resolvePushNavigationTarget(PushNavigationIntent? intent) {
+    if (intent == null) return null;
+
+    final route = intent.route?.trim();
+    if (route != null && route.isNotEmpty) {
+      return route;
+    }
+
+    final conversationId = intent.conversationId?.trim();
+    if (conversationId != null && conversationId.isNotEmpty) {
+      return RoutePaths.conversationById(conversationId);
+    }
+
+    return null;
+  }
+
+  bool _shouldDeferPushNavigation(String currentPath) {
+    if (currentPath == RoutePaths.splash ||
+        currentPath == RoutePaths.login ||
+        currentPath == RoutePaths.register ||
+        currentPath == RoutePaths.forgotPassword ||
+        currentPath == RoutePaths.emailVerification ||
+        currentPath == RoutePaths.notificationPermission) {
+      return true;
+    }
+
+    return currentPath.startsWith(RoutePaths.onboarding);
   }
 
   void _setupAuthStateListener() {
@@ -281,6 +348,10 @@ class _MubeAppState extends ConsumerState<MubeApp> {
         if (!mounted) return;
         widget.onInitialRouteReady?.call();
       });
+    }
+
+    if (_dispatchPendingPushNavigationIfPossible()) {
+      return;
     }
 
     unawaited(_maybeShowAppUpdateNotice());

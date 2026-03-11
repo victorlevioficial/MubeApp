@@ -3,8 +3,8 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
+import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 
 @GenerateNiceMocks([MockSpec<AnalyticsService>()])
