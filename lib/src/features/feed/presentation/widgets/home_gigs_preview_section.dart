@@ -37,7 +37,7 @@ class HomeGigsPreviewSection extends StatelessWidget {
             _SectionHeader(onSeeAllTap: onSeeAllTap),
             const SizedBox(height: AppSpacing.s16),
             SizedBox(
-              height: 214,
+              height: 196,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
@@ -62,10 +62,10 @@ class HomeGigsPreviewSection extends StatelessWidget {
           _SectionHeader(),
           SizedBox(height: AppSpacing.s16),
           SizedBox(
-            height: 214,
+            height: 196,
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.s20),
-              child: _SectionSkeleton(),
+              child: SkeletonShimmer(child: _SectionSkeleton()),
             ),
           ),
         ],
@@ -182,6 +182,7 @@ class HomeGigPreviewCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: AppRadius.all20,
+          splashFactory: InkRipple.splashFactory,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -196,7 +197,7 @@ class HomeGigPreviewCard extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.s16),
+                  padding: const EdgeInsets.all(AppSpacing.s14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -226,7 +227,7 @@ class HomeGigPreviewCard extends StatelessWidget {
                               children: [
                                 Text(
                                   gig.title,
-                                  maxLines: 2,
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: AppTypography.titleMedium.copyWith(
                                     color: AppColors.textPrimary,
@@ -259,27 +260,9 @@ class HomeGigPreviewCard extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.s8),
-                          _PillTag(
-                            icon: Icons.groups_rounded,
-                            label: gig.availableSlots == 1
-                                ? '1 vaga'
-                                : '${gig.availableSlots} vagas',
-                            highlight: gig.availableSlots <= 2,
-                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.s12),
-                      Text(
-                        gig.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
-                      ),
-                      const Spacer(),
                       Wrap(
                         spacing: AppSpacing.s8,
                         runSpacing: AppSpacing.s8,
@@ -317,15 +300,10 @@ class HomeGigPreviewCard extends StatelessWidget {
 }
 
 class _PillTag extends StatelessWidget {
-  const _PillTag({
-    required this.icon,
-    required this.label,
-    this.highlight = false,
-  });
+  const _PillTag({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
-  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
@@ -335,12 +313,10 @@ class _PillTag extends StatelessWidget {
         vertical: AppSpacing.s8,
       ),
       decoration: BoxDecoration(
-        color: highlight ? AppColors.surface2 : AppColors.surfaceHighlight,
+        color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
         border: Border.all(
-          color: highlight
-              ? AppColors.primary.withValues(alpha: 0.2)
-              : AppColors.border.withValues(alpha: 0.55),
+          color: AppColors.border.withValues(alpha: 0.55),
         ),
       ),
       child: Row(
@@ -349,7 +325,7 @@ class _PillTag extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: highlight ? AppColors.primary : AppColors.textSecondary,
+            color: AppColors.textSecondary,
           ),
           const SizedBox(width: AppSpacing.s8),
           ConstrainedBox(
@@ -359,9 +335,7 @@ class _PillTag extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.labelSmall.copyWith(
-                color: highlight
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
+                color: AppColors.textSecondary,
               ),
             ),
           ),
@@ -381,10 +355,7 @@ class _SectionSkeleton extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 3,
       separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s12),
-      itemBuilder: (_, _) => const SizedBox(
-        width: 288,
-        child: SkeletonShimmer(child: _SkeletonCard()),
-      ),
+      itemBuilder: (_, _) => const SizedBox(width: 288, child: _SkeletonCard()),
     );
   }
 }
@@ -395,7 +366,7 @@ class _SkeletonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 214,
+      height: 196,
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all20,

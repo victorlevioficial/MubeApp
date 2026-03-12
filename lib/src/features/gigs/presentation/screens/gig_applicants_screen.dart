@@ -59,7 +59,7 @@ class GigApplicantsScreen extends ConsumerWidget {
       );
     } else if (gig.creatorId != currentUserId) {
       body = const _GigApplicantsErrorState(
-        title: 'Acesso indisponível',
+        title: 'Acesso indisponivel',
         message: 'Apenas o criador da gig pode ver as candidaturas.',
       );
     } else {

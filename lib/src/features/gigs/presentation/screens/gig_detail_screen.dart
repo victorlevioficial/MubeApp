@@ -894,7 +894,7 @@ class _ActionPanel extends StatelessWidget {
             )
           else if (onEditDescriptionOnly != null)
             AppButton.outline(
-              text: 'Editar descrição',
+              text: 'Editar descricao',
               isFullWidth: true,
               isLoading:
                   pendingAction == _GigDetailPendingAction.updateDescription,
@@ -1010,12 +1010,12 @@ class _ActionPanel extends StatelessWidget {
       return 'Seja a primeira pessoa a se candidatar.';
     }
     if (applicantCount == 1) {
-      return '1 pessoa já se candidatou.';
+      return '1 pessoa ja se candidatou.';
     }
     if (applicantCount <= 25) {
-      return '$applicantCount pessoas já se candidataram.';
+      return '$applicantCount pessoas ja se candidataram.';
     }
-    return 'Alta procura: mais de 25 pessoas já se candidataram.';
+    return 'Alta procura: mais de 25 pessoas ja se candidataram.';
   }
 }
 

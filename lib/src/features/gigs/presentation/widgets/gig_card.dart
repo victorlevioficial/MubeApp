@@ -9,6 +9,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/app_user.dart';
+import '../../../auth/domain/user_type.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_date_mode.dart';
 import '../../domain/gig_location_type.dart';
@@ -223,6 +224,8 @@ class _GigCardCreatorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final categoryLabel = _categoryLabel(creator);
+
     return Row(
       children: [
         UserAvatar(
@@ -233,17 +236,51 @@ class _GigCardCreatorRow extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.s8),
         Expanded(
-          child: Text(
-            creator.appDisplayName,
-            style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                creator.appDisplayName,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (categoryLabel.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  categoryLabel,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
           ),
         ),
       ],
     );
+  }
+
+  String _categoryLabel(AppUser user) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return 'Perfil Individual';
+      case AppUserType.band:
+        return 'Banda';
+      case AppUserType.studio:
+        return 'Estudio';
+      case AppUserType.contractor:
+        return 'Contratante';
+      case null:
+        return '';
+    }
   }
 }
 
