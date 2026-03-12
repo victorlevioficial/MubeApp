@@ -5,7 +5,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 IOS_GSP_PATH="$REPO_ROOT/ios/Runner/GoogleService-Info.plist"
-DEFAULT_FLUTTER_VERSION="3.41.3"
 
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
@@ -20,18 +19,13 @@ detect_flutter_version() {
     return 0
   fi
 
-  if [[ -f "$REPO_ROOT/.fvmrc" ]]; then
-    ruby -rjson -e '
-      path = ARGV.fetch(0)
-      config = JSON.parse(File.read(path))
-      version = config.fetch("flutter").to_s.strip
-      abort("Missing Flutter version in #{path}") if version.empty?
-      puts version
-    ' "$REPO_ROOT/.fvmrc"
+  if [[ -f "$REPO_ROOT/scripts/flutter_version.py" ]]; then
+    python3 "$REPO_ROOT/scripts/flutter_version.py" --repo-root "$REPO_ROOT"
     return 0
   fi
 
-  printf '%s' "$DEFAULT_FLUTTER_VERSION"
+  log "Missing Flutter version resolver at scripts/flutter_version.py"
+  exit 1
 }
 
 FLUTTER_VERSION="$(detect_flutter_version)"
@@ -79,6 +73,9 @@ ensure_flutter() {
 
   export PATH="$FLUTTER_ROOT_DIR/bin:$PATH"
   flutter --version
+  python3 "$REPO_ROOT/scripts/flutter_version.py" \
+    --repo-root "$REPO_ROOT" \
+    --check-current
   flutter precache --ios
 }
 

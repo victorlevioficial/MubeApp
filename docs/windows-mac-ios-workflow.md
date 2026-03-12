@@ -7,10 +7,16 @@ Este eh o fluxo oficial do projeto para evitar bagunca e retrabalho.
 1. Instalar FVM
    - Windows (PowerShell): `dart pub global activate fvm`
    - macOS (Terminal): `dart pub global activate fvm`
-2. Na raiz do projeto, fixar versao do Flutter
-   - `fvm use 3.41.3`
+2. Na raiz do projeto, sincronizar a maquina com a versao oficial do repo
+   - a fonte unica de verdade e `.fvmrc`
+   - sempre que a versao mudar no projeto, atualize seu ambiente para a mesma versao antes de rodar `pub get`, CI local ou release
 3. Instalar dependencias
    - `fvm flutter pub get`
+
+Observacao:
+
+- GitHub Actions e Xcode Cloud tambem leem a versao a partir de `.fvmrc`
+- nao hardcode a versao do Flutter em scripts, workflows ou passos manuais fora desse arquivo
 
 ## 2) Regras obrigatorias
 

@@ -4,7 +4,8 @@ description: Install Flutter from official releases without relying on external 
 inputs:
   flutter-version:
     description: Flutter version to install.
-    required: true
+    required: false
+    default: ""
   channel:
     description: Flutter release channel.
     required: false
@@ -22,6 +23,13 @@ runs:
         channel="${{ inputs.channel }}"
         os_name="$(echo "${RUNNER_OS}" | tr '[:upper:]' '[:lower:]')"
         machine_arch="$(uname -m)"
+
+        if [[ -z "$flutter_version" ]]; then
+          flutter_version="$(
+            python3 "$GITHUB_WORKSPACE/scripts/flutter_version.py" \
+              --repo-root "$GITHUB_WORKSPACE"
+          )"
+        fi
 
         case "$machine_arch" in
           arm64|aarch64)
@@ -90,6 +98,10 @@ runs:
 
         "$flutter_root/bin/flutter" config --no-analytics
         "$flutter_root/bin/flutter" --version
+        python3 "$GITHUB_WORKSPACE/scripts/flutter_version.py" \
+          --repo-root "$GITHUB_WORKSPACE" \
+          --check-current \
+          --current-version "$("$flutter_root/bin/flutter" --version | head -n1)"
 
         if [[ "$os_name" == "macos" ]]; then
           "$flutter_root/bin/flutter" precache --ios

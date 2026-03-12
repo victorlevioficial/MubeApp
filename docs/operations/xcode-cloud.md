@@ -45,12 +45,12 @@ Obrigatorias:
 Opcionais:
 
 - `GOOGLE_VISION_API_KEY`
-- `FLUTTER_VERSION`
 
 Observacao:
 
 - `GOOGLE_MAPS_API_KEY` e obrigatoria porque os fluxos de localizacao dependem de `--dart-define` em release.
 - `GOOGLE_VISION_API_KEY` nao impede o archive, mas alguns fluxos de moderacao ficam degradados sem ela.
+- a versao do Flutter nao deve ser configurada manualmente no workflow. O script do Xcode Cloud resolve a versao oficial a partir de `.fvmrc`, que e a fonte unica de verdade do repositorio.
 
 ## O que o script faz no clone limpo
 

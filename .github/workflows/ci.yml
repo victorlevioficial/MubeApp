@@ -19,9 +19,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FLUTTER_VERSION: "3.41.3"
-
 jobs:
   analyze:
     name: Static Analysis
@@ -33,7 +30,6 @@ jobs:
       - name: Setup Flutter
         uses: ./.github/actions/setup-flutter
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
       - name: Get dependencies
@@ -58,7 +54,6 @@ jobs:
       - name: Setup Flutter
         uses: ./.github/actions/setup-flutter
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
       - name: Get dependencies
@@ -118,7 +113,6 @@ jobs:
       - name: Setup Flutter
         uses: ./.github/actions/setup-flutter
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
       - name: Setup Java
@@ -215,7 +209,6 @@ jobs:
       - name: Setup Flutter
         uses: ./.github/actions/setup-flutter
         with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
       - name: Get dependencies
