@@ -84,7 +84,8 @@ class MyApplicationsScreen extends ConsumerWidget {
                   onViewGig: () => context.push(
                     RoutePaths.gigDetailById(applications[index].gigId),
                   ),
-                  onMessage: applications[index].status ==
+                  onMessage:
+                      applications[index].status ==
                               ApplicationStatus.accepted &&
                           applications[index].creatorId != null
                       ? () => ref
@@ -94,7 +95,8 @@ class MyApplicationsScreen extends ConsumerWidget {
                               otherUserId: applications[index].creatorId!,
                             )
                       : null,
-                  onWithdraw: (applications[index].status ==
+                  onWithdraw:
+                      (applications[index].status ==
                               ApplicationStatus.accepted ||
                           applications[index].status ==
                               ApplicationStatus.pending)
@@ -102,8 +104,7 @@ class MyApplicationsScreen extends ConsumerWidget {
                           try {
                             await ref
                                 .read(gigActionsControllerProvider.notifier)
-                                .withdrawApplication(
-                                    applications[index].gigId);
+                                .withdrawApplication(applications[index].gigId);
                             if (!context.mounted) return;
                             AppSnackBar.success(
                               context,
@@ -247,9 +248,7 @@ class _ApplicationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: ClipRRect(
         borderRadius: AppRadius.all16,

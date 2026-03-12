@@ -45,10 +45,13 @@ class MyGigsScreen extends ConsumerWidget {
           }
 
           // Summary
-          final openCount =
-              gigs.where((g) => g.status == GigStatus.open).length;
-          final totalApplicants =
-              gigs.fold<int>(0, (sum, g) => sum + g.applicantCount);
+          final openCount = gigs
+              .where((g) => g.status == GigStatus.open)
+              .length;
+          final totalApplicants = gigs.fold<int>(
+            0,
+            (sum, g) => sum + g.applicantCount,
+          );
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(

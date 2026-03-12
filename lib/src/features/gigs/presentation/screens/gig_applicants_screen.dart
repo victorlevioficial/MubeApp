@@ -77,8 +77,7 @@ class GigApplicantsScreen extends ConsumerWidget {
             return const EmptyStateWidget(
               icon: Icons.people_outline_rounded,
               title: 'Nenhuma candidatura ainda',
-              subtitle:
-                  'As candidaturas aparecerão aqui quando chegarem.',
+              subtitle: 'As candidaturas aparecerão aqui quando chegarem.',
             );
           }
 
@@ -299,9 +298,7 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: ClipRRect(
         borderRadius: AppRadius.all16,
@@ -412,8 +409,9 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
                                 _pendingAction == _ApplicantCardAction.accept,
                             onPressed: _isBusy
                                 ? null
-                                : () =>
-                                    _handleAction(_ApplicantCardAction.accept),
+                                : () => _handleAction(
+                                    _ApplicantCardAction.accept,
+                                  ),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.s12),
@@ -424,8 +422,9 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
                                 _pendingAction == _ApplicantCardAction.reject,
                             onPressed: _isBusy
                                 ? null
-                                : () =>
-                                    _handleAction(_ApplicantCardAction.reject),
+                                : () => _handleAction(
+                                    _ApplicantCardAction.reject,
+                                  ),
                           ),
                         ),
                       ],
@@ -441,8 +440,7 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
                                 .read(gigActionsControllerProvider.notifier)
                                 .openConversation(
                                   context,
-                                  otherUserId:
-                                      widget.application.applicantId,
+                                  otherUserId: widget.application.applicantId,
                                 ),
                     ),
                 ],
@@ -621,10 +619,7 @@ class _ApplicantCardSkeleton extends StatelessWidget {
                     ],
                   ),
                   SizedBox(height: AppSpacing.s12),
-                  SkeletonBox(
-                    height: 60,
-                    borderRadius: AppRadius.r12,
-                  ),
+                  SkeletonBox(height: 60, borderRadius: AppRadius.r12),
                   SizedBox(height: AppSpacing.s14),
                   Row(
                     children: [

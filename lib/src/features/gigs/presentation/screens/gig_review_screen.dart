@@ -194,9 +194,7 @@ class _GigReviewLoadingState extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
           ),
           child: const SkeletonShimmer(
             child: Column(
@@ -216,9 +214,7 @@ class _GigReviewLoadingState extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
           ),
           child: const SkeletonShimmer(
             child: Column(
@@ -274,9 +270,7 @@ class _UserHeroSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -320,22 +314,12 @@ class _UserHeroSection extends StatelessWidget {
 }
 
 class _RatingSection extends StatelessWidget {
-  const _RatingSection({
-    required this.rating,
-    required this.onRatingChanged,
-  });
+  const _RatingSection({required this.rating, required this.onRatingChanged});
 
   final int rating;
   final ValueChanged<int> onRatingChanged;
 
-  static const _labels = [
-    '',
-    'Péssimo',
-    'Ruim',
-    'Regular',
-    'Bom',
-    'Excelente',
-  ];
+  static const _labels = ['', 'Péssimo', 'Ruim', 'Regular', 'Bom', 'Excelente'];
 
   @override
   Widget build(BuildContext context) {

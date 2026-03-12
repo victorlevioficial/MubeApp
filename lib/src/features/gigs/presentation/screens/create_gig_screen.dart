@@ -273,9 +273,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                       controller: _slotsController,
                       label: 'Quantidade de vagas',
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       readOnly: !_canEditAllFields,
                       validator: (value) {
                         final parsed = int.tryParse(value ?? '');
@@ -413,8 +411,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                       selectedCount: _selectedServices.length,
                       isExpanded: _showServicesRequirements,
                       onToggle: () => setState(() {
-                        _showServicesRequirements =
-                            !_showServicesRequirements;
+                        _showServicesRequirements = !_showServicesRequirements;
                       }),
                       child: _ConfigMultiSelectField(
                         enabled: _canEditAllFields,
@@ -628,10 +625,7 @@ class _FormSection extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.s8),
-            Text(
-              label.toUpperCase(),
-              style: AppTypography.settingsGroupTitle,
-            ),
+            Text(label.toUpperCase(), style: AppTypography.settingsGroupTitle),
           ],
         ),
         const SizedBox(height: AppSpacing.s14),
@@ -640,9 +634,7 @@ class _FormSection extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.5),
-            ),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,9 +723,7 @@ class _LockedFieldsBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.08),
         borderRadius: AppRadius.all12,
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.35),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -772,9 +762,7 @@ class _RequirementsIntroCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.all12,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.45),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -943,10 +931,7 @@ class _RequirementCategoryCard extends StatelessWidget {
 }
 
 class _RequirementBadge extends StatelessWidget {
-  const _RequirementBadge({
-    required this.label,
-    required this.isHighlighted,
-  });
+  const _RequirementBadge({required this.label, required this.isHighlighted});
 
   final String label;
   final bool isHighlighted;
@@ -972,9 +957,7 @@ class _RequirementBadge extends StatelessWidget {
       child: Text(
         label,
         style: AppTypography.labelSmall.copyWith(
-          color: isHighlighted
-              ? AppColors.primary
-              : AppColors.textSecondary,
+          color: isHighlighted ? AppColors.primary : AppColors.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -1067,8 +1050,8 @@ class _ConfigMultiSelectField extends StatelessWidget {
                     style: AppTypography.bodyMedium.copyWith(
                       color: enabled
                           ? (selectedItems.isNotEmpty
-                              ? AppColors.textPrimary
-                              : AppColors.textTertiary)
+                                ? AppColors.textPrimary
+                                : AppColors.textTertiary)
                           : AppColors.textTertiary,
                     ),
                   ),

@@ -42,8 +42,9 @@ class GigCard extends StatelessWidget {
         gig.location?['label']?.toString().trim() ?? gig.locationType.label;
 
     final dateLabel = switch (gig.dateMode) {
-      _ when gig.gigDate != null =>
-        DateFormat('dd/MM/yyyy HH:mm').format(gig.gigDate!),
+      _ when gig.gigDate != null => DateFormat(
+        'dd/MM/yyyy HH:mm',
+      ).format(gig.gigDate!),
       GigDateMode.toBeArranged => 'A combinar',
       _ => 'Sem data',
     };
@@ -58,9 +59,7 @@ class GigCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.65),
-            ),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.65)),
             boxShadow: AppEffects.subtleShadow,
           ),
           child: InkWell(
@@ -126,8 +125,7 @@ class GigCard extends StatelessWidget {
                                 Wrap(
                                   spacing: AppSpacing.s8,
                                   runSpacing: AppSpacing.s4,
-                                  crossAxisAlignment:
-                                      WrapCrossAlignment.center,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Text(
                                       gig.gigType.label,
@@ -193,14 +191,16 @@ class GigCard extends StatelessWidget {
                             label: gig.availableSlots == 1
                                 ? '1 vaga'
                                 : '${gig.availableSlots} vagas',
-                            highlight: gig.availableSlots <= 2 &&
+                            highlight:
+                                gig.availableSlots <= 2 &&
                                 gig.availableSlots > 0 &&
                                 gig.status == GigStatus.open,
                           ),
                           if (gig.applicantCount > 0)
                             _MetaPill(
                               icon: Icons.how_to_reg_outlined,
-                              label: '${gig.applicantCount} candidatura${gig.applicantCount == 1 ? '' : 's'}',
+                              label:
+                                  '${gig.applicantCount} candidatura${gig.applicantCount == 1 ? '' : 's'}',
                             ),
                         ],
                       ),

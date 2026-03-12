@@ -269,37 +269,37 @@ class HomeGigPreviewCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                    const SizedBox(height: AppSpacing.s12),
-                    Text(
-                      gig.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                        height: 1.4,
+                      const SizedBox(height: AppSpacing.s12),
+                      Text(
+                        gig.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    Wrap(
-                      spacing: AppSpacing.s8,
-                      runSpacing: AppSpacing.s8,
-                      children: [
-                        _PillTag(
-                          icon: Icons.calendar_today_outlined,
-                          label: _dateLabel(gig),
-                        ),
-                        _PillTag(
-                          icon: gig.locationType == GigLocationType.remote
-                              ? Icons.wifi_tethering_rounded
-                              : Icons.location_on_outlined,
-                          label: locationLabel,
-                        ),
-                      ],
-                    ),
-                  ],
+                      const Spacer(),
+                      Wrap(
+                        spacing: AppSpacing.s8,
+                        runSpacing: AppSpacing.s8,
+                        children: [
+                          _PillTag(
+                            icon: Icons.calendar_today_outlined,
+                            label: _dateLabel(gig),
+                          ),
+                          _PillTag(
+                            icon: gig.locationType == GigLocationType.remote
+                                ? Icons.wifi_tethering_rounded
+                                : Icons.location_on_outlined,
+                            label: locationLabel,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
             ],
           ),
         ),
@@ -399,9 +399,7 @@ class _SkeletonCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all20,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.45),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.45)),
       ),
       padding: const EdgeInsets.all(AppSpacing.s16),
       child: const Column(

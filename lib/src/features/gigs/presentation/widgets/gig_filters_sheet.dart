@@ -285,8 +285,9 @@ class _GigFiltersSheetState extends State<GigFiltersSheet> {
                               ),
                               Switch.adaptive(
                                 value: _filters.onlyOpenSlots,
-                                activeTrackColor: AppColors.primary
-                                    .withValues(alpha: 0.3),
+                                activeTrackColor: AppColors.primary.withValues(
+                                  alpha: 0.3,
+                                ),
                                 activeThumbColor: AppColors.primary,
                                 inactiveThumbColor: AppColors.textTertiary,
                                 inactiveTrackColor: AppColors.surfaceHighlight,
@@ -381,10 +382,7 @@ class _FilterSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title.toUpperCase(),
-            style: AppTypography.settingsGroupTitle,
-          ),
+          Text(title.toUpperCase(), style: AppTypography.settingsGroupTitle),
           const SizedBox(height: AppSpacing.s10),
           child,
         ],
@@ -398,11 +396,7 @@ class _FilterDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
-      color: AppColors.border,
-      height: 1,
-      thickness: 1,
-    );
+    return const Divider(color: AppColors.border, height: 1, thickness: 1);
   }
 }
 

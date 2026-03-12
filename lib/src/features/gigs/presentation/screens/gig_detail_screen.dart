@@ -145,8 +145,8 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
                           label: 'Vagas',
                           value:
                               '${gig.slotsTotal} totais • ${gig.availableSlots} disponíveis',
-                          valueColor: gig.availableSlots <= 2 &&
-                                  gig.availableSlots > 0
+                          valueColor:
+                              gig.availableSlots <= 2 && gig.availableSlots > 0
                               ? AppColors.primary
                               : null,
                         ),
@@ -171,8 +171,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
                               width: 28,
                               height: 28,
                               decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.1),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: AppRadius.all8,
                               ),
                               child: const Icon(
@@ -359,10 +358,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
     });
   }
 
-  Future<void> _showEditDescriptionDialog(
-    BuildContext context,
-    Gig gig,
-  ) async {
+  Future<void> _showEditDescriptionDialog(BuildContext context, Gig gig) async {
     final controller = TextEditingController(text: gig.description);
     final result = await AppOverlay.dialog<bool>(
       context: context,
@@ -446,9 +442,7 @@ class _GigDetailHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.border.withValues(alpha: 0.5),
-          ),
+          bottom: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
         ),
       ),
       child: Column(
@@ -456,9 +450,7 @@ class _GigDetailHeader extends StatelessWidget {
         children: [
           Container(
             height: 2,
-            decoration: BoxDecoration(
-              color: accentBarColor,
-            ),
+            decoration: BoxDecoration(color: accentBarColor),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -551,9 +543,7 @@ class _DetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: child,
     );
@@ -605,8 +595,9 @@ class _InfoRow extends StatelessWidget {
                 value,
                 style: AppTypography.bodyMedium.copyWith(
                   color: valueColor ?? AppColors.textPrimary,
-                  fontWeight:
-                      valueColor != null ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: valueColor != null
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                 ),
               ),
             ],
@@ -624,11 +615,7 @@ class _InfoDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: AppSpacing.s12),
-      child: Divider(
-        color: AppColors.border,
-        height: 1,
-        thickness: 1,
-      ),
+      child: Divider(color: AppColors.border, height: 1, thickness: 1),
     );
   }
 }
@@ -873,9 +860,7 @@ class _ActionPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: _buildContent(isBusy),
     );
@@ -1111,17 +1096,9 @@ class _GigDetailSkeleton extends StatelessWidget {
                       SizedBox(height: AppSpacing.s14),
                       Row(
                         children: [
-                          SkeletonBox(
-                            width: 80,
-                            height: 26,
-                            borderRadius: 13,
-                          ),
+                          SkeletonBox(width: 80, height: 26, borderRadius: 13),
                           SizedBox(width: AppSpacing.s8),
-                          SkeletonBox(
-                            width: 110,
-                            height: 26,
-                            borderRadius: 13,
-                          ),
+                          SkeletonBox(width: 110, height: 26, borderRadius: 13),
                         ],
                       ),
                       SizedBox(height: AppSpacing.s16),

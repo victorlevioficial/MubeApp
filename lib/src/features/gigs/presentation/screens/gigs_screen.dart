@@ -621,9 +621,7 @@ class _GigCardSkeleton extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: [

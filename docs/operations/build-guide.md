@@ -18,6 +18,24 @@ Este guia contém instruções para gerar builds de release do aplicativo Mube.
 
 ## Configuração Android
 
+## Regra obrigatoria de versao
+
+Antes de qualquer commit de release para `main` e antes de qualquer build Android para Play Store, atualize a versao em `pubspec.yaml`.
+
+Padrao usado no projeto:
+
+```yaml
+version: MAJOR.MINOR.PATCH+BUILD_NUMBER
+```
+
+Exemplo:
+
+```yaml
+version: 1.3.8+33
+```
+
+Sem esse passo, o artefato pode sair com versao incorreta ou repetir `versionCode` ja publicado.
+
 ### 1. Keystore (Assinatura do App)
 
 O app precisa ser assinado com um keystore para ser publicado na Play Store.
@@ -262,7 +280,7 @@ Este foi o fluxo que funcionou de ponta a ponta no projeto para publicar no test
 
 Ordem recomendada:
 
-1. Atualizar a versao no `pubspec.yaml`
+1. Atualizar a versao no `pubspec.yaml` antes de qualquer commit de release em `main`
 
 Exemplo:
 

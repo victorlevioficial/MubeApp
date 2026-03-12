@@ -201,6 +201,16 @@ Regra operacional:
 - Se houver erro de resolucao de pacotes apos trocar de ambiente, rode `flutter pub get` no ambiente atual antes de continuar
 - Nao trate `.dart_tool/package_config.json` como fonte de verdade portavel entre sistemas
 
+## Release e Versionamento
+
+Regra obrigatoria:
+
+- Antes de fazer commit para `main`, atualize a versao em `pubspec.yaml` se o commit fizer parte de uma entrega/release do app
+- Antes de gerar build Android para Play Store (`apk`/`aab` de release), atualize a versao em `pubspec.yaml`
+- O padrao de versao do projeto e `MAJOR.MINOR.PATCH+BUILD_NUMBER`
+- Nao publicar artefato de Play Store com a mesma versao/build de release anterior
+- O commit publicado em `main` e o artefato gerado para release devem apontar para a mesma versao
+
 ## Fluxo Recomendado para Qualquer Tarefa
 
 1. Ler a feature alvo
@@ -229,4 +239,4 @@ Regra operacional:
 Este app e entendivel rapidamente, desde que a leitura inicial parta dos arquivos centrais e da feature alvo, nao de exemplos genericos.
 Use este `AGENTS.md` como indice curto; use o codigo real como autoridade final.
 
-Ultima revisao: 2026-03-04
+Ultima revisao: 2026-03-12
