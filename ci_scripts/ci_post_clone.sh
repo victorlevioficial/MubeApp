@@ -106,6 +106,27 @@ restore_google_service_info() {
   plutil -lint "$IOS_GSP_PATH"
 }
 
+ensure_cocoapods() {
+  if ! command -v pod >/dev/null 2>&1; then
+    log "CocoaPods is required in the Xcode Cloud environment."
+    exit 1
+  fi
+}
+
+prepare_cocoapods_workspace() {
+  if [[ ! -f "$REPO_ROOT/ios/Podfile" ]]; then
+    return 0
+  fi
+
+  ensure_cocoapods
+
+  cd "$REPO_ROOT/ios"
+  log "Running pod install --repo-update"
+  pod --version
+  pod install --repo-update
+  cd "$REPO_ROOT"
+}
+
 prepare_flutter_ios_project() {
   local -a build_args
 
@@ -113,13 +134,14 @@ prepare_flutter_ios_project() {
 
   log "Running flutter pub get --enforce-lockfile"
   flutter pub get --enforce-lockfile
+  prepare_cocoapods_workspace
 
   if [[ -z "${GOOGLE_MAPS_API_KEY:-}" ]]; then
     log "Missing GOOGLE_MAPS_API_KEY in the Xcode Cloud workflow environment."
     exit 1
   fi
 
-  build_args=(build ios --config-only --release --no-codesign)
+  build_args=(build ios --config-only --release --no-codesign --no-pub)
   build_args+=(--dart-define="GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}")
 
   if [[ -n "${GOOGLE_VISION_API_KEY:-}" ]]; then

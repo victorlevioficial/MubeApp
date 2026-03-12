@@ -59,7 +59,8 @@ Observacao:
 1. instala o Flutter no ambiente do Xcode Cloud
 2. restaura `ios/Runner/GoogleService-Info.plist` a partir do secret
 3. roda `flutter pub get`
-4. roda `flutter build ios --config-only --release --no-codesign`
+4. roda `pod install --repo-update`
+5. roda `flutter build ios --config-only --release --no-codesign --no-pub`
 
 Observacao importante:
 
