@@ -38,5 +38,23 @@ abstract class GigFilters with _$GigFilters {
       !onlyOpenSlots ||
       !(statuses.length == 1 && statuses.first == GigStatus.open);
 
+  int get activeFilterCount {
+    var count = 0;
+    if (term.trim().isNotEmpty) count++;
+    if (gigTypes.isNotEmpty) count++;
+    if (locationTypes.isNotEmpty) count++;
+    if (compensationTypes.isNotEmpty) count++;
+    if (genres.isNotEmpty) count++;
+    if (requiredInstruments.isNotEmpty) count++;
+    if (requiredCrewRoles.isNotEmpty) count++;
+    if (requiredStudioServices.isNotEmpty) count++;
+    if (onlyMine) count++;
+    if (!onlyOpenSlots) count++;
+    if (!(statuses.length == 1 && statuses.first == GigStatus.open)) {
+      count++;
+    }
+    return count;
+  }
+
   GigFilters clearFilters() => const GigFilters();
 }

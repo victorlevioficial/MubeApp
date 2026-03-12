@@ -90,6 +90,13 @@ service cloud.firestore {
     // ================================================================
     // CONFIG - Configurações do App (Gêneros, Instrumentos, etc)
     // ================================================================
+    match /config/app_data {
+      // Public app bootstrap config. It is consumed before authentication
+      // for update checks and option lists across the app.
+      allow read: if true;
+      allow write: if false; // Apenas via Admin SDK ou Cloud Functions
+    }
+
     match /config/{document=**} {
       allow read: if request.auth != null;
       allow write: if false; // Apenas via Admin SDK ou Cloud Functions
@@ -427,9 +434,15 @@ service cloud.firestore {
       allow delete: if false;
 
       match /gig_applications/{applicantId} {
-        allow read: if request.auth != null &&
+        allow get: if request.auth != null &&
           (
             applicantId == request.auth.uid ||
+            resource.data.applicant_id == request.auth.uid ||
+            isGigCreator(gigId)
+          );
+
+        allow list: if request.auth != null &&
+          (
             resource.data.applicant_id == request.auth.uid ||
             isGigCreator(gigId)
           );

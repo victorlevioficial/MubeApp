@@ -42,7 +42,13 @@ class AuthRepository {
       _logAnalyticsEvent(name: 'login', parameters: {'method': 'email'});
 
       return const Right(unit);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppLogger.warning(
+        'Email login failed: code=${e.code} message=${e.message ?? 'Unknown error'}',
+        e,
+        stackTrace,
+        false,
+      );
       // Log analytics event for login error
       _logAnalyticsEvent(
         name: 'login_error',
@@ -55,7 +61,13 @@ class AuthRepository {
       return Left(
         AuthFailure(message: AuthExceptionHandler.handleException(e)),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Email login failed with unexpected error',
+        e,
+        stackTrace,
+        false,
+      );
       _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
@@ -375,7 +387,13 @@ class AuthRepository {
       }
 
       return const Right(unit);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppLogger.warning(
+        'Social login failed ($method): code=${e.code} message=${e.message ?? 'Unknown error'}',
+        e,
+        stackTrace,
+        false,
+      );
       _logAnalyticsEvent(
         name: 'login_error',
         parameters: {
@@ -387,7 +405,13 @@ class AuthRepository {
       return Left(
         AuthFailure(message: AuthExceptionHandler.handleException(e)),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Social login failed with unexpected error ($method)',
+        e,
+        stackTrace,
+        false,
+      );
       _logAnalyticsEvent(
         name: 'login_error',
         parameters: {

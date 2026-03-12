@@ -67,33 +67,27 @@ class UserAvatar extends StatelessWidget {
     final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
     final cacheSize = (size * pixelRatio).round().clamp(64, 1024).toInt();
 
-    // If photo URL exists and is not empty, show image
     if (photoUrl != null && photoUrl!.isNotEmpty) {
-      final imageProvider = CachedNetworkImageProvider(
-        photoUrl!,
+      return CachedNetworkImage(
+        imageUrl: photoUrl!,
         cacheManager: ImageCacheConfig.profileCacheManager,
-        maxWidth: cacheSize,
-        maxHeight: cacheSize,
-      );
-
-      return Image(
-        image: imageProvider,
+        memCacheWidth: cacheSize,
+        memCacheHeight: cacheSize,
+        maxWidthDiskCache: cacheSize,
+        maxHeightDiskCache: cacheSize,
         width: size,
         height: size,
         fit: BoxFit.cover,
-        gaplessPlayback: true,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholderFadeInDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
         filterQuality: FilterQuality.medium,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded || frame != null) {
-            return child;
-          }
-          return _buildLoadingPlaceholder();
-        },
-        errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(),
+        placeholder: (context, url) => _buildLoadingPlaceholder(),
+        errorWidget: (context, url, error) => _buildInitialsAvatar(),
       );
     }
 
-    // Otherwise show initials
     return _buildInitialsAvatar();
   }
 

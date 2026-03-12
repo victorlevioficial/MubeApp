@@ -18,6 +18,7 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../auth/domain/app_user.dart';
 import '../../domain/application_status.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_application.dart';
@@ -31,7 +32,7 @@ import '../providers/gig_streams.dart';
 import '../widgets/gig_compensation_chip.dart';
 import '../widgets/gig_creator_preview.dart';
 import '../widgets/gig_status_badge.dart';
-import '../widgets/gig_type_chip.dart';
+import '../widgets/gig_visuals.dart';
 
 enum _GigDetailPendingAction {
   apply,
@@ -75,7 +76,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
             ),
           ),
         ),
-        data: (_) => const Center(child: Text('Gig nao encontrada.')),
+        data: (_) => const Center(child: Text('Gig não encontrada.')),
       );
     } else {
       final creatorIdsKey = encodeGigUserIdsKey([gig.creatorId]);
@@ -105,107 +106,130 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         body = const _GigDetailSkeleton();
       } else {
         body = ListView(
-          padding: const EdgeInsets.all(AppSpacing.s16),
+          padding: EdgeInsets.zero,
           children: [
-            Text(
-              gig.title,
-              style: AppTypography.headlineMedium.copyWith(
-                color: AppColors.textPrimary,
+            // ── Header section ─────────────────────────────────────────
+            _GigDetailHeader(gig: gig, creator: creator),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                AppSpacing.s20,
+                AppSpacing.s16,
+                0,
               ),
-            ),
-            const SizedBox(height: AppSpacing.s12),
-            Wrap(
-              spacing: AppSpacing.s8,
-              runSpacing: AppSpacing.s8,
-              children: [
-                GigStatusBadge(status: gig.status),
-                GigTypeChip(gigType: gig.gigType),
-                GigCompensationChip(gig: gig),
-              ],
-            ),
-            if (creator != null) ...[
-              const SizedBox(height: AppSpacing.s16),
-              GigCreatorPreview(creator: creator),
-            ],
-            const SizedBox(height: AppSpacing.s20),
-            _DetailCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _InfoRow(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Data',
-                    value: _dateLabel(gig),
-                  ),
-                  const SizedBox(height: AppSpacing.s12),
-                  _InfoRow(
-                    icon: gig.locationType == GigLocationType.remote
-                        ? Icons.wifi_tethering_rounded
-                        : Icons.location_on_outlined,
-                    label: 'Modalidade',
-                    value:
-                        '${gig.locationType.label} • ${gig.location?['label']?.toString() ?? 'Sem local informado'}',
-                  ),
-                  const SizedBox(height: AppSpacing.s12),
-                  _InfoRow(
-                    icon: Icons.groups_outlined,
-                    label: 'Vagas',
-                    value:
-                        '${gig.slotsTotal} totais • ${gig.availableSlots} disponiveis',
-                  ),
-                  const SizedBox(height: AppSpacing.s12),
-                  _InfoRow(
-                    icon: Icons.how_to_reg_outlined,
-                    label: 'Candidaturas',
-                    value: '${gig.applicantCount}',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppSpacing.s16),
-            _DetailCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Descricao',
-                    style: AppTypography.titleSmall.copyWith(
-                      color: AppColors.textPrimary,
+                  // ── Info card ────────────────────────────────────────
+                  _DetailCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _InfoRow(
+                          icon: Icons.calendar_today_outlined,
+                          label: 'Data',
+                          value: _dateLabel(gig),
+                        ),
+                        const _InfoDivider(),
+                        _InfoRow(
+                          icon: gig.locationType == GigLocationType.remote
+                              ? Icons.wifi_tethering_rounded
+                              : Icons.location_on_outlined,
+                          label: 'Modalidade',
+                          value:
+                              '${gig.locationType.label} • ${gig.location?['label']?.toString() ?? 'Sem local informado'}',
+                        ),
+                        const _InfoDivider(),
+                        _InfoRow(
+                          icon: Icons.groups_outlined,
+                          label: 'Vagas',
+                          value:
+                              '${gig.slotsTotal} totais • ${gig.availableSlots} disponíveis',
+                          valueColor: gig.availableSlots <= 2 &&
+                                  gig.availableSlots > 0
+                              ? AppColors.primary
+                              : null,
+                        ),
+                        const _InfoDivider(),
+                        _InfoRow(
+                          icon: Icons.how_to_reg_outlined,
+                          label: 'Candidaturas',
+                          value: '${gig.applicantCount}',
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.s10),
-                  Text(
-                    gig.description,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.5,
+                  const SizedBox(height: AppSpacing.s12),
+                  // ── Description card ─────────────────────────────────
+                  _DetailCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color:
+                                    AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: AppRadius.all8,
+                              ),
+                              child: const Icon(
+                                Icons.description_outlined,
+                                color: AppColors.primary,
+                                size: 14,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s10),
+                            Text(
+                              'Descrição',
+                              style: AppTypography.titleSmall.copyWith(
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.s12),
+                        Text(
+                          gig.description,
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  // ── Requirements card ─────────────────────────────────
+                  if (config != null) ...[
+                    const SizedBox(height: AppSpacing.s12),
+                    _DetailCard(
+                      child: _RequirementsSection(gig: gig, config: config),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.s20),
+                  // ── Action panel ──────────────────────────────────────
+                  _ActionPanelSection(
+                    gig: gig,
+                    isCreator: isCreator,
+                    myApplication: myApplication,
+                    pendingAction: _pendingAction,
+                    onApply: () => _showApplyDialog(context, gig.id),
+                    onWithdraw: () => _withdraw(context, gig.id),
+                    onViewApplicants: () =>
+                        context.push(RoutePaths.gigApplicantsById(gig.id)),
+                    onCloseGig: () => _confirmCloseGig(context, gig.id),
+                    onCancelGig: () => _confirmCancelGig(context, gig.id),
+                    onEdit: () =>
+                        context.push(RoutePaths.gigCreate, extra: gig),
+                    onEditDescriptionOnly: gig.canEditDescriptionOnly
+                        ? () => _showEditDescriptionDialog(context, gig)
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.s24),
                 ],
               ),
-            ),
-            if (config != null) ...[
-              const SizedBox(height: AppSpacing.s16),
-              _DetailCard(
-                child: _RequirementsSection(gig: gig, config: config),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.s20),
-            _ActionPanelSection(
-              gig: gig,
-              isCreator: isCreator,
-              myApplication: myApplication,
-              pendingAction: _pendingAction,
-              onApply: () => _showApplyDialog(context, gig.id),
-              onWithdraw: () => _withdraw(context, gig.id),
-              onViewApplicants: () =>
-                  context.push(RoutePaths.gigApplicantsById(gig.id)),
-              onCloseGig: () => _confirmCloseGig(context, gig.id),
-              onCancelGig: () => _confirmCancelGig(context, gig.id),
-              onEdit: () => context.push(RoutePaths.gigCreate, extra: gig),
-              onEditDescriptionOnly: gig.canEditDescriptionOnly
-                  ? () => _showEditDescriptionDialog(context, gig)
-                  : null,
             ),
           ],
         );
@@ -236,7 +260,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
         content: AppTextField(
           controller: controller,
           label: 'Mensagem',
-          hint: 'Apresente sua experiencia e disponibilidade.',
+          hint: 'Apresente sua experiência e disponibilidade.',
           maxLines: 4,
           minLines: 4,
         ),
@@ -292,7 +316,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
       context: context,
       builder: (context) => const AppConfirmationDialog(
         title: 'Encerrar gig?',
-        message: 'A gig deixara de aceitar novas acoes operacionais.',
+        message: 'A gig deixará de aceitar novas ações operacionais.',
         confirmText: 'Encerrar',
       ),
     );
@@ -316,7 +340,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
       builder: (context) => const AppConfirmationDialog(
         title: 'Cancelar gig?',
         message:
-            'As candidaturas serao congeladas e os envolvidos notificados.',
+            'As candidaturas serão congeladas e os envolvidos notificados.',
         confirmText: 'Cancelar gig',
         isDestructive: true,
       ),
@@ -335,18 +359,21 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
     });
   }
 
-  Future<void> _showEditDescriptionDialog(BuildContext context, Gig gig) async {
+  Future<void> _showEditDescriptionDialog(
+    BuildContext context,
+    Gig gig,
+  ) async {
     final controller = TextEditingController(text: gig.description);
     final result = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Editar descricao'),
+        title: const Text('Editar descrição'),
         content: AppTextField(
           controller: controller,
           maxLines: 5,
           minLines: 5,
-          label: 'Descricao',
+          label: 'Descrição',
         ),
         actions: [
           TextButton(
@@ -373,7 +400,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
                 GigUpdate(description: controller.text.trim()),
               );
           if (!context.mounted) return;
-          AppSnackBar.success(context, 'Descricao atualizada.');
+          AppSnackBar.success(context, 'Descrição atualizada.');
         } catch (error) {
           if (!context.mounted) return;
           AppSnackBar.error(context, resolveGigErrorMessage(error));
@@ -386,9 +413,7 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
     _GigDetailPendingAction action,
     Future<void> Function() operation,
   ) async {
-    if (_pendingAction != null) {
-      return;
-    }
+    if (_pendingAction != null) return;
 
     setState(() => _pendingAction = action);
     try {
@@ -401,6 +426,118 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
   }
 }
 
+// ── Header section ────────────────────────────────────────────────────────────
+
+class _GigDetailHeader extends StatelessWidget {
+  const _GigDetailHeader({required this.gig, this.creator});
+
+  final Gig gig;
+  final AppUser? creator;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = gigAccentColor(gig.gigType);
+    final accentBarColor = accent.withValues(
+      alpha: gig.status == GigStatus.open ? 0.7 : 0.42,
+    );
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.border.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 2,
+            decoration: BoxDecoration(
+              color: accentBarColor,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s16,
+              AppSpacing.s20,
+              AppSpacing.s16,
+              AppSpacing.s20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Type icon + title
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface2,
+                        borderRadius: AppRadius.all16,
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Icon(
+                        gigTypeIcon(gig.gigType),
+                        size: 24,
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            gig.title,
+                            style: AppTypography.headlineSmall.copyWith(
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s4),
+                          Text(
+                            gig.gigType.label,
+                            style: AppTypography.labelSmall.copyWith(
+                              color: accent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s14),
+                Wrap(
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  children: [
+                    GigStatusBadge(status: gig.status),
+                    GigCompensationChip(gig: gig),
+                  ],
+                ),
+                if (creator != null) ...[
+                  const SizedBox(height: AppSpacing.s16),
+                  GigCreatorPreview(creator: creator!),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Detail card ───────────────────────────────────────────────────────────────
+
 class _DetailCard extends StatelessWidget {
   const _DetailCard({required this.child});
 
@@ -409,34 +546,50 @@ class _DetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.5),
+        ),
       ),
       child: child,
     );
   }
 }
 
+// ── Info row ──────────────────────────────────────────────────────────────────
+
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.valueColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppColors.textSecondary, size: 18),
-        const SizedBox(width: AppSpacing.s10),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: AppRadius.all8,
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 16),
+        ),
+        const SizedBox(width: AppSpacing.s12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,7 +604,9 @@ class _InfoRow extends StatelessWidget {
               Text(
                 value,
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: valueColor ?? AppColors.textPrimary,
+                  fontWeight:
+                      valueColor != null ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             ],
@@ -461,6 +616,24 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+class _InfoDivider extends StatelessWidget {
+  const _InfoDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.s12),
+      child: Divider(
+        color: AppColors.border,
+        height: 1,
+        thickness: 1,
+      ),
+    );
+  }
+}
+
+// ── Requirements section ──────────────────────────────────────────────────────
 
 class _RequirementsSection extends StatelessWidget {
   const _RequirementsSection({required this.gig, required this.config});
@@ -484,17 +657,33 @@ class _RequirementsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Requisitos',
-          style: AppTypography.titleSmall.copyWith(
-            color: AppColors.textPrimary,
-          ),
+        Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.info.withValues(alpha: 0.1),
+                borderRadius: AppRadius.all8,
+              ),
+              child: const Icon(
+                Icons.checklist_rounded,
+                color: AppColors.info,
+                size: 14,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s10),
+            Text(
+              'Requisitos',
+              style: AppTypography.titleSmall.copyWith(letterSpacing: -0.1),
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.s12),
-        _RequirementWrap(title: 'Generos', items: genreLabels),
+        const SizedBox(height: AppSpacing.s14),
+        _RequirementWrap(title: 'Gêneros', items: genreLabels),
         _RequirementWrap(title: 'Instrumentos', items: instrumentLabels),
-        _RequirementWrap(title: 'Funcoes', items: roleLabels),
-        _RequirementWrap(title: 'Servicos', items: serviceLabels),
+        _RequirementWrap(title: 'Funções', items: roleLabels),
+        _RequirementWrap(title: 'Serviços', items: serviceLabels),
       ],
     );
   }
@@ -528,7 +717,8 @@ class _RequirementWrap extends StatelessWidget {
           Text(
             title,
             style: AppTypography.labelMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: AppColors.textTertiary,
+              letterSpacing: 0.5,
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
@@ -554,8 +744,14 @@ class _RequirementsSectionSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SkeletonText(width: 112, height: 16),
-          SizedBox(height: AppSpacing.s12),
+          Row(
+            children: [
+              SkeletonBox(width: 28, height: 28, borderRadius: AppRadius.r8),
+              SizedBox(width: AppSpacing.s10),
+              SkeletonText(width: 112, height: 16),
+            ],
+          ),
+          SizedBox(height: AppSpacing.s14),
           SkeletonText(width: 88, height: 12),
           SizedBox(height: AppSpacing.s8),
           Wrap(
@@ -583,6 +779,8 @@ class _RequirementsSectionSkeleton extends StatelessWidget {
     );
   }
 }
+
+// ── Action panel ──────────────────────────────────────────────────────────────
 
 class _ActionPanelSection extends ConsumerWidget {
   const _ActionPanelSection({
@@ -670,25 +868,39 @@ class _ActionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBusy = pendingAction != null;
 
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.5),
+        ),
+      ),
+      child: _buildContent(isBusy),
+    );
+  }
+
+  Widget _buildContent(bool isBusy) {
     if (isCreator) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            gig.applicantCount == 0
-                ? 'Nenhuma candidatura ainda.'
-                : _candidateSocialProof(gig.applicantCount),
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+          if (gig.applicantCount > 0) ...[
+            Text(
+              _candidateSocialProof(gig.applicantCount),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
+            const SizedBox(height: AppSpacing.s12),
+          ],
           AppButton.primary(
             text: _creatorApplicantsLabel(gig.applicantCount),
             isFullWidth: true,
             onPressed: isBusy ? null : onViewApplicants,
           ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
           if (gig.canEditAllFields)
             AppButton.outline(
               text: 'Editar gig',
@@ -697,13 +909,13 @@ class _ActionPanel extends StatelessWidget {
             )
           else if (onEditDescriptionOnly != null)
             AppButton.outline(
-              text: 'Editar descricao',
+              text: 'Editar descrição',
               isFullWidth: true,
               isLoading:
                   pendingAction == _GigDetailPendingAction.updateDescription,
               onPressed: isBusy ? null : onEditDescriptionOnly,
             ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
           AppButton.secondary(
             text: 'Encerrar gig',
             isFullWidth: true,
@@ -712,7 +924,7 @@ class _ActionPanel extends StatelessWidget {
                 ? null
                 : (gig.status == GigStatus.open ? onCloseGig : null),
           ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
           AppButton.ghost(
             text: 'Cancelar gig',
             isFullWidth: true,
@@ -726,6 +938,7 @@ class _ActionPanel extends StatelessWidget {
     }
 
     final applicationStatus = myApplication?.status;
+
     if (applicationStatus == ApplicationStatus.accepted) {
       return Column(
         children: [
@@ -734,7 +947,7 @@ class _ActionPanel extends StatelessWidget {
             isFullWidth: true,
             onPressed: isBusy ? null : onOpenChat,
           ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
           AppButton.outline(
             text: 'Desistir da gig',
             isFullWidth: true,
@@ -753,7 +966,7 @@ class _ActionPanel extends StatelessWidget {
             isFullWidth: true,
             onPressed: null,
           ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
           AppButton.outline(
             text: 'Retirar candidatura',
             isFullWidth: true,
@@ -792,7 +1005,7 @@ class _ActionPanel extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.s12),
         AppButton.primary(
-          text: canApply ? 'Candidatar-se' : 'Sem vagas disponiveis',
+          text: canApply ? 'Candidatar-se' : 'Sem vagas disponíveis',
           isFullWidth: true,
           isLoading: pendingAction == _GigDetailPendingAction.apply,
           onPressed: isBusy ? null : (canApply ? onApply : null),
@@ -802,6 +1015,7 @@ class _ActionPanel extends StatelessWidget {
   }
 
   String _creatorApplicantsLabel(int applicantCount) {
+    if (applicantCount == 0) return 'Ver candidaturas';
     if (applicantCount == 1) return 'Ver 1 candidatura';
     return 'Ver $applicantCount candidaturas';
   }
@@ -811,30 +1025,40 @@ class _ActionPanel extends StatelessWidget {
       return 'Seja a primeira pessoa a se candidatar.';
     }
     if (applicantCount == 1) {
-      return '1 pessoa ja se candidatou.';
+      return '1 pessoa já se candidatou.';
     }
     if (applicantCount <= 25) {
-      return '$applicantCount pessoas ja se candidataram.';
+      return '$applicantCount pessoas já se candidataram.';
     }
-    return 'Alta procura: mais de 25 pessoas ja se candidataram.';
+    return 'Alta procura: mais de 25 pessoas já se candidataram.';
   }
 }
+
+// ── Skeletons ─────────────────────────────────────────────────────────────────
 
 class _ActionPanelSkeleton extends StatelessWidget {
   const _ActionPanelSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return const SkeletonShimmer(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SkeletonText(width: 220, height: 12),
-          SizedBox(height: AppSpacing.s12),
-          SkeletonBox(width: double.infinity, height: 48, borderRadius: 14),
-          SizedBox(height: AppSpacing.s12),
-          SkeletonBox(width: double.infinity, height: 48, borderRadius: 14),
-        ],
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
+      ),
+      child: const SkeletonShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonText(width: 220, height: 12),
+            SizedBox(height: AppSpacing.s12),
+            SkeletonBox(width: double.infinity, height: 48, borderRadius: 24),
+            SizedBox(height: AppSpacing.s10),
+            SkeletonBox(width: double.infinity, height: 48, borderRadius: 24),
+          ],
+        ),
       ),
     );
   }
@@ -846,64 +1070,124 @@ class _GigDetailSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      children: const [
-        SkeletonShimmer(
+      padding: EdgeInsets.zero,
+      children: [
+        // Header skeleton with accent bar
+        Container(
+          decoration: const BoxDecoration(color: AppColors.surface),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonText(width: 240, height: 28),
-              SizedBox(height: AppSpacing.s12),
-              Wrap(
-                spacing: AppSpacing.s8,
-                runSpacing: AppSpacing.s8,
-                children: [
-                  SkeletonBox(width: 104, height: 28, borderRadius: 14),
-                  SkeletonBox(width: 92, height: 28, borderRadius: 14),
-                  SkeletonBox(width: 116, height: 28, borderRadius: 14),
-                ],
+              Container(
+                height: 3,
+                color: AppColors.border.withValues(alpha: 0.4),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.s16),
+                child: SkeletonShimmer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonBox(
+                            width: 48,
+                            height: 48,
+                            borderRadius: AppRadius.r16,
+                          ),
+                          SizedBox(width: AppSpacing.s14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SkeletonText(width: 240, height: 22),
+                                SizedBox(height: AppSpacing.s8),
+                                SkeletonText(width: 100, height: 12),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.s14),
+                      Row(
+                        children: [
+                          SkeletonBox(
+                            width: 80,
+                            height: 26,
+                            borderRadius: 13,
+                          ),
+                          SizedBox(width: AppSpacing.s8),
+                          SkeletonBox(
+                            width: 110,
+                            height: 26,
+                            borderRadius: 13,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.s16),
+                      SkeletonBox(height: 52, borderRadius: 12),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
-        SizedBox(height: AppSpacing.s20),
-        _DetailCard(
-          child: SkeletonShimmer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonText(height: 14),
-                SizedBox(height: AppSpacing.s12),
-                SkeletonText(height: 14),
-                SizedBox(height: AppSpacing.s12),
-                SkeletonText(height: 14),
-                SizedBox(height: AppSpacing.s12),
-                SkeletonText(width: 96, height: 14),
-              ],
-            ),
+        const SizedBox(height: AppSpacing.s20),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          child: Column(
+            children: [
+              _DetailCard(
+                child: SkeletonShimmer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SkeletonText(height: 14),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonText(height: 14),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonText(height: 14),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonText(width: 96, height: 14),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: AppSpacing.s12),
+              _DetailCard(
+                child: SkeletonShimmer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          SkeletonBox(
+                            width: 28,
+                            height: 28,
+                            borderRadius: AppRadius.r8,
+                          ),
+                          SizedBox(width: AppSpacing.s10),
+                          SkeletonText(width: 112, height: 16),
+                        ],
+                      ),
+                      SizedBox(height: AppSpacing.s12),
+                      SkeletonText(height: 14),
+                      SizedBox(height: AppSpacing.s8),
+                      SkeletonText(height: 14),
+                      SizedBox(height: AppSpacing.s8),
+                      SkeletonText(width: 220, height: 14),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: AppSpacing.s12),
+              _DetailCard(child: _RequirementsSectionSkeleton()),
+              SizedBox(height: AppSpacing.s20),
+              _ActionPanelSkeleton(),
+            ],
           ),
         ),
-        SizedBox(height: AppSpacing.s16),
-        _DetailCard(
-          child: SkeletonShimmer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonText(width: 112, height: 16),
-                SizedBox(height: AppSpacing.s10),
-                SkeletonText(height: 14),
-                SizedBox(height: AppSpacing.s8),
-                SkeletonText(height: 14),
-                SizedBox(height: AppSpacing.s8),
-                SkeletonText(width: 220, height: 14),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: AppSpacing.s16),
-        _DetailCard(child: _RequirementsSectionSkeleton()),
-        SizedBox(height: AppSpacing.s20),
-        _ActionPanelSkeleton(),
       ],
     );
   }
