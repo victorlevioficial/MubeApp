@@ -55,35 +55,7 @@ runs:
           releases_json="$RUNNER_TEMP/flutter-releases-${os_name}.json"
           curl -fsSL "$releases_json_url" -o "$releases_json"
 
-          archive_url="$(
-            python3 - "$releases_json" "$flutter_version" "$channel" "$arch_hint" <<'PY'
-import json
-import sys
-
-releases_path, version, channel, arch_hint = sys.argv[1:]
-with open(releases_path, encoding="utf-8") as fh:
-    data = json.load(fh)
-
-candidates = [
-    release for release in data["releases"]
-    if release.get("version") == version and release.get("channel") == channel
-]
-
-if arch_hint:
-    filtered = [
-        release for release in candidates
-        if arch_hint == release.get("dart_sdk_arch") or arch_hint in release.get("archive", "")
-    ]
-    if filtered:
-        candidates = filtered
-
-if not candidates:
-    raise SystemExit(f"Unable to find Flutter {version} ({channel}) for arch={arch_hint or 'auto'}")
-
-archive = candidates[0]["archive"]
-print(f"{data['base_url']}/{archive}")
-PY
-          )"
+          archive_url="$(python3 -c 'import json, sys; releases_path, version, channel, arch_hint = sys.argv[1:]; data = json.load(open(releases_path, encoding="utf-8")); candidates = [release for release in data["releases"] if release.get("version") == version and release.get("channel") == channel]; filtered = [release for release in candidates if arch_hint == release.get("dart_sdk_arch") or arch_hint in release.get("archive", "")] if arch_hint else []; candidates = filtered or candidates; if not candidates: raise SystemExit("Unable to find Flutter %s (%s) for arch=%s" % (version, channel, arch_hint or "auto")); print("%s/%s" % (data["base_url"], candidates[0]["archive"]))' "$releases_json" "$flutter_version" "$channel" "$arch_hint")"
 
           archive_name="$(basename "$archive_url")"
           archive_path="$RUNNER_TEMP/$archive_name"
