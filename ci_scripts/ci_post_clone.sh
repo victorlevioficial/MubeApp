@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 IOS_GSP_PATH="$REPO_ROOT/ios/Runner/GoogleService-Info.plist"
-DEFAULT_FLUTTER_VERSION="3.38.6"
+DEFAULT_FLUTTER_VERSION="3.41.3"
 
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
