@@ -315,18 +315,12 @@ class _PillTag extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
-        border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.55),
-        ),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.55)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 14,
-            color: AppColors.textSecondary,
-          ),
+          Icon(icon, size: 14, color: AppColors.textSecondary),
           const SizedBox(width: AppSpacing.s8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 122),
