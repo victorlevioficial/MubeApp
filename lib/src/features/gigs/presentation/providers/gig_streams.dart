@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/gig_repository.dart';
 import '../../domain/gig.dart';
@@ -50,6 +51,20 @@ Stream<List<GigApplication>> gigApplications(Ref ref, String gigId) {
 
 @riverpod
 Stream<List<GigApplication>> myApplications(Ref ref) {
+  final authAsync = ref.watch(authStateChangesProvider);
+  final fallbackUser = ref.read(authRepositoryProvider).currentUser;
+  final currentUser = authAsync.asData?.value ?? fallbackUser;
+
+  if (currentUser == null) {
+    if (authAsync.hasError) {
+      return Stream.error(authAsync.error!, authAsync.stackTrace);
+    }
+    if (authAsync.isLoading) {
+      return const Stream.empty();
+    }
+    return Stream.value(const <GigApplication>[]);
+  }
+
   return ref.watch(gigRepositoryProvider).watchMyApplications();
 }
 
