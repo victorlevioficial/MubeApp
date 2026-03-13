@@ -12,6 +12,7 @@ if [[ -f "${local_env}" ]]; then
 fi
 
 lane="${1:-internal}"
+shift || true
 
 case "$lane" in
   internal|beta|closed|production)
@@ -22,7 +23,12 @@ case "$lane" in
     ;;
 esac
 
+default_json_key="${project_root}/android/fastlane/play-store-service-account.json"
 json_key="${PLAY_STORE_JSON_KEY:-${SUPPLY_JSON_KEY:-}}"
+if [[ -z "${json_key}" && -f "${default_json_key}" ]]; then
+  json_key="${default_json_key}"
+  export PLAY_STORE_JSON_KEY="${json_key}"
+fi
 if [[ -z "${json_key}" ]]; then
   echo "Set PLAY_STORE_JSON_KEY or SUPPLY_JSON_KEY before running this script."
   exit 1
@@ -51,4 +57,7 @@ if [[ -f "android/key.properties" ]]; then
   fi
 fi
 
-bundle exec fastlane android "$lane"
+(
+  cd "${project_root}/android"
+  bundle exec fastlane "$lane" "$@"
+)
