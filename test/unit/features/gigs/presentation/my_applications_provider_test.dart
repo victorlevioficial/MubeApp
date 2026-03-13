@@ -44,7 +44,10 @@ void main() {
       );
       addTearDown(container.dispose);
       addTearDown(authRepository.dispose);
-      final subscription = container.listen(myApplicationsProvider, (_, __) {});
+      final subscription = container.listen(
+        myApplicationsProvider,
+        (previous, next) {},
+      );
       addTearDown(subscription.close);
 
       final applications = await container.read(myApplicationsProvider.future);
@@ -71,7 +74,10 @@ void main() {
       );
       addTearDown(container.dispose);
       addTearDown(authRepository.dispose);
-      final subscription = container.listen(myApplicationsProvider, (_, __) {});
+      final subscription = container.listen(
+        myApplicationsProvider,
+        (previous, next) {},
+      );
       addTearDown(subscription.close);
 
       final applications = await container.read(myApplicationsProvider.future);
