@@ -74,7 +74,7 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxScrolled) => [
           SliverAppBar(
-            expandedHeight: isCompactWidth ? 212 : 172,
+            expandedHeight: isCompactWidth ? 236 : 172,
             floating: false,
             pinned: true,
             backgroundColor: AppColors.background,
@@ -363,9 +363,9 @@ class _GigsHeroHeader extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.s20,
-        MediaQuery.of(context).padding.top + 48,
+        MediaQuery.of(context).padding.top + (isCompactLayout ? 40 : 48),
         AppSpacing.s20,
-        AppSpacing.s14,
+        isCompactLayout ? AppSpacing.s12 : AppSpacing.s14,
       ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -382,6 +382,7 @@ class _GigsHeroHeader extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             'Oportunidades em tempo real',

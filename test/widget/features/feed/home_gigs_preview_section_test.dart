@@ -85,6 +85,39 @@ void main() {
       expect(tappedGig, gig);
     });
 
+    testWidgets('does not overflow on narrow mobile width', (tester) async {
+      FlutterErrorDetails? flutterError;
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (details) {
+        flutterError = details;
+      };
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 320,
+                  child: SingleChildScrollView(
+                    child: HomeGigsPreviewSection(
+                      gigsAsync: const AsyncData<List<Gig>>([gig]),
+                      onSeeAllTap: () {},
+                      onGigTap: (_) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      FlutterError.onError = originalOnError;
+      expect(flutterError, isNull);
+    });
+
     testWidgets('hides itself when there are no gigs', (tester) async {
       await tester.pumpWidget(
         createSubject(gigsAsync: const AsyncData<List<Gig>>([])),

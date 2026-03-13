@@ -7,8 +7,9 @@
       "type": "dart",
       "program": "lib/main.dart",
       "args": [
-        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU",
-        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU"
+        "--dart-define=MUBE_VERBOSE_LOGS=true",
+        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyBus7wsTHFIj49-hHAB351cDqVj1iYq80E",
+        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyAmynPfqe82SGAkKuqPNT-ode90Jy6CdhY"
       ]
     },
     {
@@ -18,8 +19,8 @@
       "flutterMode": "profile",
       "program": "lib/main.dart",
       "args": [
-        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU",
-        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU"
+        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyBus7wsTHFIj49-hHAB351cDqVj1iYq80E",
+        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyAmynPfqe82SGAkKuqPNT-ode90Jy6CdhY"
       ]
     },
     {
@@ -29,8 +30,8 @@
       "flutterMode": "release",
       "program": "lib/main.dart",
       "args": [
-        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU",
-        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyDwaRJqkm5yuFCKbs5fMRTJyCMrYmbsRvU"
+        "--dart-define=GOOGLE_VISION_API_KEY=AIzaSyBus7wsTHFIj49-hHAB351cDqVj1iYq80E",
+        "--dart-define=GOOGLE_MAPS_API_KEY=AIzaSyAmynPfqe82SGAkKuqPNT-ode90Jy6CdhY"
       ]
     }
   ]

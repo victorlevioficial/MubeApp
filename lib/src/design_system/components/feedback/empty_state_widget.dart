@@ -65,61 +65,81 @@ class _EmptyStateWidgetState extends State<EmptyStateWidget>
       opacity: _fadeAnimation,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s32,
-              vertical: AppSpacing.s48,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon with subtle background
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    size: 40,
-                    color: AppColors.textTertiary,
-                  ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompactHeight =
+                constraints.maxHeight.isFinite && constraints.maxHeight < 320;
+            final iconContainerSize = isCompactHeight ? 64.0 : 80.0;
+            final iconSize = isCompactHeight ? 32.0 : 40.0;
+            final verticalPadding = isCompactHeight
+                ? AppSpacing.s24
+                : AppSpacing.s48;
+            final sectionSpacing = isCompactHeight
+                ? AppSpacing.s16
+                : AppSpacing.s24;
+
+            final content = Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s32,
+                  vertical: verticalPadding,
                 ),
-
-                const SizedBox(height: AppSpacing.s24),
-
-                // Title
-                Text(
-                  widget.title,
-                  style: AppTypography.titleLarge.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                // Subtitle
-                if (widget.subtitle != null) ...[
-                  const SizedBox(height: AppSpacing.s8),
-                  Text(
-                    widget.subtitle!,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Allow empty states to scale down on short heights,
+                    // such as when the keyboard is open.
+                    Container(
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        size: iconSize,
+                        color: AppColors.textTertiary,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                    SizedBox(height: sectionSpacing),
+                    Text(
+                      widget.title,
+                      style: AppTypography.titleLarge.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (widget.subtitle != null) ...[
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        widget.subtitle!,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    if (widget.actionButton != null) ...[
+                      SizedBox(height: sectionSpacing),
+                      widget.actionButton!,
+                    ],
+                  ],
+                ),
+              ),
+            );
 
-                // Action button
-                if (widget.actionButton != null) ...[
-                  const SizedBox(height: AppSpacing.s24),
-                  widget.actionButton!,
-                ],
-              ],
-            ),
-          ),
+            return SingleChildScrollView(
+              child: constraints.maxHeight.isFinite
+                  ? ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: content,
+                    )
+                  : content,
+            );
+          },
         ),
       ),
     );

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../design_system/components/buttons/app_button.dart';
-
+import '../../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../matchpoint_navigation.dart';
 
 class MatchpointIntroScreen extends StatelessWidget {
   const MatchpointIntroScreen({super.key});
@@ -15,6 +16,11 @@ class MatchpointIntroScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppAppBar(
+        title: 'Matchpoint',
+        showBackButton: true,
+        onBackPressed: () => handleMatchpointBack(context),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(

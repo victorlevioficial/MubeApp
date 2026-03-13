@@ -120,4 +120,23 @@ void main() {
     expect(find.text('Lia Vox'), findsOneWidget);
     expect(find.text('Perfil Individual'), findsOneWidget);
   });
+
+  testWidgets('does not overflow on narrow mobile width', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    FlutterErrorDetails? flutterError;
+    final originalOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      flutterError = details;
+    };
+    addTearDown(() => FlutterError.onError = originalOnError);
+
+    await tester.pumpWidget(createSubject(Stream.value(const [sampleGig])));
+    await tester.pumpAndSettle();
+
+    expect(flutterError, isNull);
+  });
 }

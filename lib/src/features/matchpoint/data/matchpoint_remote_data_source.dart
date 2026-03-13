@@ -111,7 +111,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       }
     }
 
-    await AppCheckRefreshCoordinator.ensureValidToken(
+    await AppCheckRefreshCoordinator.ensureValidTokenOrThrow(
       _firebaseAppCheck,
       operationLabel: 'retry de MatchPoint',
       forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
@@ -132,9 +132,59 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       AppLogger.warning(
         '$functionName returned ${e.code}. Refreshing auth context and retrying once.',
       );
-      await _refreshSecurityTokens();
+      try {
+        await _refreshSecurityTokens();
+      } on AppCheckRefreshException catch (error, stackTrace) {
+        AppLogger.warning(
+          'MatchPoint App Check refresh failed before retrying $functionName.',
+          error,
+          stackTrace,
+          false,
+        );
+        throw FirebaseFunctionsException(
+          code: 'failed-precondition',
+          message: 'App Check token unavailable for MatchPoint retry.',
+        );
+      }
       return await callable.call(data);
     }
+  }
+
+  Map<String, dynamic> _normalizeCloudFunctionMap(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value.map(
+        (key, nestedValue) =>
+            MapEntry(key, _normalizeCloudFunctionValue(nestedValue)),
+      );
+    }
+
+    if (value is Map) {
+      return value.map(
+        (key, nestedValue) =>
+            MapEntry(key.toString(), _normalizeCloudFunctionValue(nestedValue)),
+      );
+    }
+
+    throw StateError(
+      'Expected cloud function payload to be a map, got ${value.runtimeType}.',
+    );
+  }
+
+  List<Map<String, dynamic>> _normalizeCloudFunctionMapList(Object? value) {
+    if (value is! List) return const [];
+    return value
+        .map<Map<String, dynamic>>((item) => _normalizeCloudFunctionMap(item))
+        .toList(growable: false);
+  }
+
+  Object? _normalizeCloudFunctionValue(Object? value) {
+    if (value is Map) return _normalizeCloudFunctionMap(value);
+    if (value is List) {
+      return value
+          .map<Object?>((item) => _normalizeCloudFunctionValue(item))
+          .toList(growable: false);
+    }
+    return value;
   }
 
   @override
@@ -594,7 +644,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
 
       return MatchpointActionResult.fromJson(
-        result.data as Map<String, dynamic>,
+        _normalizeCloudFunctionMap(result.data),
       );
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
@@ -634,7 +684,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     try {
       final result = await _callWithRecovery('getRemainingLikes');
 
-      return LikesQuotaInfo.fromJson(result.data as Map<String, dynamic>);
+      return LikesQuotaInfo.fromJson(_normalizeCloudFunctionMap(result.data));
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
         'getRemainingLikes failed: code=${e.code}, message=${e.message}',
@@ -674,14 +724,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
       final result = await callable.call({'limit': limit, 'includeAll': false});
 
-      final data = result.data as Map<String, dynamic>;
-      final hashtags = data['hashtags'] as List<dynamic>? ?? [];
+      final data = _normalizeCloudFunctionMap(result.data);
+      final hashtags = _normalizeCloudFunctionMapList(data['hashtags']);
 
-      return hashtags
-          .map(
-            (h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>),
-          )
-          .toList();
+      return hashtags.map(HashtagRanking.fromCloudFunction).toList();
     } catch (e) {
       AppLogger.warning(
         'Failed to load trending hashtags from Function. Falling back to Firestore: $e',
@@ -707,14 +753,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
       final result = await callable.call({'query': query, 'limit': limit});
 
-      final data = result.data as Map<String, dynamic>;
-      final hashtags = data['hashtags'] as List<dynamic>? ?? [];
+      final data = _normalizeCloudFunctionMap(result.data);
+      final hashtags = _normalizeCloudFunctionMapList(data['hashtags']);
 
-      return hashtags
-          .map(
-            (h) => HashtagRanking.fromCloudFunction(h as Map<String, dynamic>),
-          )
-          .toList();
+      return hashtags.map(HashtagRanking.fromCloudFunction).toList();
     } catch (e) {
       AppLogger.warning(
         'Failed to search hashtags via Function. Falling back to Firestore: $e',

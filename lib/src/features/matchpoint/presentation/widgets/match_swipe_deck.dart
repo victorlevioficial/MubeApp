@@ -22,6 +22,7 @@ class MatchSwipeDeck extends StatefulWidget {
   final VoidCallback? onEnd;
   final VoidCallback? onUndoSwipe;
   final List<String>? currentUserGenres;
+  final bool canUndo;
 
   const MatchSwipeDeck({
     super.key,
@@ -32,6 +33,7 @@ class MatchSwipeDeck extends StatefulWidget {
     this.onEnd,
     this.onUndoSwipe,
     this.currentUserGenres,
+    this.canUndo = true,
   });
 
   @override
@@ -43,29 +45,30 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
   final Set<String> _processedInteractions = {};
   Timer? _swipeTransitionTimer;
   bool _isSwipeTransitioning = false;
-  int _pendingServerActions = 0;
+
+  bool get _isInteractionLocked => _isSwipeTransitioning;
 
   Future<void> _processSwipe(
     String interactionKey,
     Future<bool> Function() action,
   ) async {
-    _pendingServerActions++;
     try {
       final success = await action();
       if (success || !mounted) return;
 
       _processedInteractions.remove(interactionKey);
-
-      // Avoid undoing the wrong card when multiple swipes are pending.
-      if (_pendingServerActions == 1) {
+      widget.controller.undo();
+    } catch (error, stackTrace) {
+      _processedInteractions.remove(interactionKey);
+      AppLogger.warning(
+        'Swipe enqueue failed before leaving the deck.',
+        error,
+        stackTrace,
+        false,
+      );
+      if (mounted) {
         widget.controller.undo();
-      } else {
-        AppLogger.warning(
-          'Swipe failed with multiple pending actions; skip automatic undo.',
-        );
       }
-    } finally {
-      _pendingServerActions = max(0, _pendingServerActions - 1);
     }
   }
 
@@ -92,7 +95,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
   }
 
   void _triggerProgrammaticSwipe(CardSwiperDirection direction) {
-    if (_isSwipeTransitioning) return;
+    if (_isInteractionLocked) return;
     _lockSwipeTransition();
     widget.controller.swipe(direction);
   }
@@ -123,7 +126,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
           bottom: 100, // Leave space for buttons
           child: CardSwiper(
             controller: widget.controller,
-            isDisabled: _isSwipeTransitioning,
+            isDisabled: _isInteractionLocked,
             cardsCount: widget.candidates.length,
             isLoop:
                 false, // IMPORTANTE: Não fazer loop - cada perfil aparece só uma vez
@@ -257,7 +260,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                 color: AppColors.textSecondary, // Grey
                 backgroundColor: AppColors.surfaceHighlight,
                 size: 64,
-                enabled: !_isSwipeTransitioning,
+                enabled: !_isInteractionLocked,
                 onPressed: () =>
                     _triggerProgrammaticSwipe(CardSwiperDirection.left),
               ),
@@ -270,7 +273,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                 color: AppColors.textSecondary,
                 backgroundColor: AppColors.surface,
                 size: 48,
-                enabled: !_isSwipeTransitioning,
+                enabled: widget.canUndo && !_isInteractionLocked,
                 onPressed: () => widget.controller.undo(),
               ),
 
@@ -282,7 +285,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                 color: AppColors.primary,
                 backgroundColor: AppColors.surface,
                 size: 64,
-                enabled: !_isSwipeTransitioning,
+                enabled: !_isInteractionLocked,
                 onPressed: () =>
                     _triggerProgrammaticSwipe(CardSwiperDirection.right),
               ),

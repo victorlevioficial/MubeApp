@@ -71,6 +71,13 @@ class GigRepository {
     return Exception(mapExceptionToFailure(error).message);
   }
 
+  bool _isSecurityContextFailure(FirebaseException error) {
+    final code = error.code.toLowerCase();
+    return code == 'permission-denied' ||
+        code == 'unauthenticated' ||
+        code == 'failed-precondition';
+  }
+
   Future<T> _runFirestoreRequest<T>(
     Future<T> Function() request, {
     required String operationLabel,
@@ -944,45 +951,55 @@ class GigRepository {
       }
     }
 
-    final acceptedApplications = await _getQuerySnapshot(
-      _firestore
+    try {
+      final acceptedApplications = await _firestore
           .collectionGroup(FirestoreCollections.gigApplications)
           .where(GigFields.applicantId, isEqualTo: _uid)
           .where(
             GigFields.status,
             isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
+          )
+          .get();
+
+      for (final doc in acceptedApplications.docs) {
+        final gigId = doc.reference.parent.parent?.id;
+        if (gigId == null || gigId.isEmpty) continue;
+        final gigSnapshot = await _getDocument(
+          _gigs.doc(gigId),
+          operationLabel: 'pending_reviews_get_gig',
+        );
+        if (!gigSnapshot.exists || gigSnapshot.data() == null) continue;
+
+        final gig = Gig.fromFirestore(gigSnapshot);
+        if (gig.status != GigStatus.closed) continue;
+
+        final reviewId = '${gig.id}_${_uid}_${gig.creatorId}';
+        final alreadyReviewed = await _getDocument(
+          _reviews.doc(reviewId),
+          operationLabel: 'pending_reviews_check_participant_review',
+        );
+        if (alreadyReviewed.exists) continue;
+
+        userIds.add(gig.creatorId);
+        opportunities.add(
+          GigReviewOpportunity(
+            gigId: gig.id,
+            gigTitle: gig.title,
+            reviewedUserId: gig.creatorId,
+            reviewedUserName: '',
+            reviewType: ReviewType.participantToCreator,
           ),
-      operationLabel: 'pending_reviews_load_my_accepted_applications',
-    );
+        );
+      }
+    } on FirebaseException catch (error) {
+      if (!_isSecurityContextFailure(error)) {
+        rethrow;
+      }
 
-    for (final doc in acceptedApplications.docs) {
-      final gigId = doc.reference.parent.parent?.id;
-      if (gigId == null || gigId.isEmpty) continue;
-      final gigSnapshot = await _getDocument(
-        _gigs.doc(gigId),
-        operationLabel: 'pending_reviews_get_gig',
-      );
-      if (!gigSnapshot.exists || gigSnapshot.data() == null) continue;
-
-      final gig = Gig.fromFirestore(gigSnapshot);
-      if (gig.status != GigStatus.closed) continue;
-
-      final reviewId = '${gig.id}_${_uid}_${gig.creatorId}';
-      final alreadyReviewed = await _getDocument(
-        _reviews.doc(reviewId),
-        operationLabel: 'pending_reviews_check_participant_review',
-      );
-      if (alreadyReviewed.exists) continue;
-
-      userIds.add(gig.creatorId);
-      opportunities.add(
-        GigReviewOpportunity(
-          gigId: gig.id,
-          gigTitle: gig.title,
-          reviewedUserId: gig.creatorId,
-          reviewedUserName: '',
-          reviewType: ReviewType.participantToCreator,
-        ),
+      AppLogger.info(
+        'GigRepository skipped participant review opportunities due to '
+        'security context failure on collectionGroup query. '
+        'Participant review flow will remain hidden for this session.',
       );
     }
 

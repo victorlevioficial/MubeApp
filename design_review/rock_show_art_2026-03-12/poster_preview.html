@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mube Rock Show Art</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --pink: #e8466c;
+        --pink-2: #ff86bb;
+        --cream: #fff4ea;
+        --text: #ffffff;
+        --muted: rgba(255, 255, 255, 0.78);
+        --line: rgba(255, 255, 255, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(232, 70, 108, 0.22), transparent 24%),
+          linear-gradient(180deg, #090909 0%, #111111 100%);
+      }
+
+      main {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 32px 16px 72px;
+        display: grid;
+        gap: 28px;
+        justify-items: center;
+      }
+
+      .intro {
+        width: 100%;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .intro p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .poster {
+        position: relative;
+        width: 1080px;
+        height: 1350px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background-color: #0d0a12;
+        background-size: cover;
+        background-position: center;
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+      }
+
+      .poster::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, rgba(8, 6, 12, 0.18) 0%, rgba(8, 6, 12, 0.58) 48%, rgba(8, 6, 12, 0.96) 100%),
+          linear-gradient(90deg, rgba(8, 6, 12, 0.78) 0%, rgba(8, 6, 12, 0.18) 48%, rgba(8, 6, 12, 0.32) 100%);
+      }
+
+      .poster::after {
+        content: "";
+        position: absolute;
+        inset: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .poster-a {
+        background-image: url("./generated/20260312_011410_option_a_stage_hero.png");
+      }
+
+      .poster-b {
+        background-image: url("./generated/20260312_011410_option_b_stage_wide.png");
+      }
+
+      .content {
+        position: relative;
+        z-index: 2;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 54px;
+      }
+
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.28);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .badge::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--pink), var(--pink-2));
+        box-shadow: 0 0 18px rgba(232, 70, 108, 0.68);
+      }
+
+      .sticker {
+        align-self: flex-start;
+        padding: 16px 18px 12px;
+        border: 1px solid rgba(255, 134, 187, 0.42);
+        background: rgba(255, 134, 187, 0.14);
+        color: var(--cream);
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 34px;
+        letter-spacing: 0.08em;
+        transform: rotate(-6deg);
+      }
+
+      .headline-block {
+        max-width: 620px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 22px;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 42px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--pink), rgba(255, 255, 255, 0));
+      }
+
+      h1 {
+        margin: 0;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 150px;
+        line-height: 0.88;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+      }
+
+      .poster-b h1 {
+        font-size: 140px;
+      }
+
+      .headline-accent {
+        color: var(--pink-2);
+      }
+
+      .support {
+        margin: 22px 0 0;
+        max-width: 460px;
+        font-size: 26px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 24px;
+      }
+
+      .footer-copy {
+        max-width: 430px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .footer-copy p {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.82);
+      }
+
+      .footer-copy strong {
+        color: var(--cream);
+      }
+
+      .wordmark-wrap {
+        display: grid;
+        gap: 14px;
+        justify-items: end;
+      }
+
+      .wordmark {
+        width: 210px;
+        height: auto;
+        display: block;
+      }
+
+      .micro {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="intro">
+        <p>Arte criada a partir do mascote `study_11` como referência visual. O texto foi composto fora da IA para manter legibilidade e acabamento de campanha.</p>
+      </section>
+
+      <section class="poster poster-a" data-card="poster-main">
+        <div class="content">
+          <div class="top-row">
+            <div class="badge">Mascote Mube</div>
+            <div class="sticker">Rock Show</div>
+          </div>
+
+          <div class="headline-block">
+            <div class="eyebrow">Conexões que sobem no palco</div>
+            <h1>Seu som <span class="headline-accent">nasceu</span> pro palco.</h1>
+            <p class="support">No Mube, conexões viram banda, show e oportunidade.</p>
+          </div>
+
+          <div class="footer">
+            <div class="footer-copy">
+              <p><strong>Para músicos, bandas, estúdios e contratantes</strong> que querem fazer barulho de verdade.</p>
+            </div>
+            <div class="wordmark-wrap">
+              <img class="wordmark" src="./brand-wordmark-light.svg" alt="Mube">
+              <div class="micro">Arte conceitual para redes</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="poster poster-b" data-card="poster-alt">
+        <div class="content">
+          <div class="top-row">
+            <div class="badge">Mascote Mube</div>
+            <div class="sticker">Façam Barulho</div>
+          </div>
+
+          <div class="headline-block">
+            <div class="eyebrow">Energia de palco</div>
+            <h1>O palco chama pelo seu som.</h1>
+            <p class="support">Encontre banda, parceria e oportunidade para tocar com presença.</p>
+          </div>
+
+          <div class="footer">
+            <div class="footer-copy">
+              <p><strong>No Mube</strong>, o encontro certo pode virar ensaio, show e projeto real.</p>
+            </div>
+            <div class="wordmark-wrap">
+              <img class="wordmark" src="./brand-wordmark-light.svg" alt="Mube">
+              <div class="micro">Poster alternativo</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+  </html>

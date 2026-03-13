@@ -57,5 +57,21 @@ void main() {
         );
       },
     );
+
+    test('describeGoogleApiError maps authorization failures', () {
+      final message = LocationService.describeGoogleApiError(
+        fallback: 'Erro ao buscar endereços.',
+        data: const {
+          'status': 'REQUEST_DENIED',
+          'error_message':
+              'This IP, site or mobile application is not authorized to use this API key. Request received from IP address 186.205.4.141, with empty referer',
+        },
+      );
+
+      expect(
+        message,
+        'A chave da Google API deste app nao esta autorizada para busca de enderecos e geocodificacao. Verifique as restricoes da chave no Google Cloud.',
+      );
+    });
   });
 }

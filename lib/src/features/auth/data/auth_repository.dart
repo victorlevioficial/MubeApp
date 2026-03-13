@@ -10,6 +10,7 @@ import '../../../core/errors/failures.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
 import '../../../core/typedefs.dart';
+import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/auth_exception_handler.dart';
@@ -301,6 +302,14 @@ class AuthRepository {
     try {
       await _dataSource.refreshSecurityContext();
       return const Right(unit);
+    } on AppCheckRefreshException catch (e) {
+      return Left(
+        ServerFailure(
+          message: e.message,
+          debugMessage: e.debugMessage,
+          originalError: e,
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       if (_isTerminalSessionRefreshCode(e.code)) {
         return Left(

@@ -9,6 +9,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../matchpoint_navigation.dart';
 import '../controllers/matchpoint_controller.dart';
 import '../screens/matchpoint_matches_screen.dart';
 import 'hashtag_ranking_screen.dart';
@@ -47,20 +48,21 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
         backgroundColor: AppColors.background,
         appBar: AppAppBar(
           title: 'Matchpoint',
-          showBackButton: false,
-          leading: IconButton(
-            tooltip: 'Historico de swipes',
-            onPressed: () => context.push(RoutePaths.matchpointHistory),
-            icon: const Icon(
-              Icons.history_rounded,
-              color: AppColors.textSecondary,
-            ),
-          ),
+          showBackButton: true,
+          onBackPressed: () => handleMatchpointBack(context),
           actions: [
             IconButton(
               tooltip: 'Filtros avancados',
               onPressed: () => context.push(RoutePaths.matchpointWizard),
               icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+            ),
+            IconButton(
+              tooltip: 'Historico de swipes',
+              onPressed: () => context.push(RoutePaths.matchpointHistory),
+              icon: const Icon(
+                Icons.history_rounded,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),

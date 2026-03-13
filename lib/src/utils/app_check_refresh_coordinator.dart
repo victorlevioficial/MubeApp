@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
+import 'package:flutter/foundation.dart';
 
 import 'app_logger.dart';
 
@@ -10,6 +11,40 @@ enum AppCheckRefreshStatus {
   forcedRefreshSkippedByCooldown,
   throttled,
   failed,
+}
+
+extension AppCheckRefreshStatusX on AppCheckRefreshStatus {
+  bool get hasUsableToken =>
+      this == AppCheckRefreshStatus.cachedTokenAvailable ||
+      this == AppCheckRefreshStatus.forcedRefreshSucceeded;
+}
+
+class AppCheckRefreshException implements Exception {
+  final AppCheckRefreshStatus status;
+  final String operationLabel;
+
+  const AppCheckRefreshException({
+    required this.status,
+    required this.operationLabel,
+  });
+
+  String get message {
+    if (kDebugMode) {
+      return 'Falha na validacao de seguranca do app neste build de '
+          'desenvolvimento. Cadastre o token de debug do App Check no '
+          'Firebase Console e reabra o app.';
+    }
+
+    return 'Falha na validacao de seguranca do app. Feche e abra o app e '
+        'tente novamente.';
+  }
+
+  String get debugMessage => 'app-check-auth-context-failure:${status.name}';
+
+  @override
+  String toString() =>
+      'AppCheckRefreshException(operation: $operationLabel, '
+      'status: ${status.name})';
 }
 
 /// Coordinates App Check refresh attempts across features to avoid hot-looping.
@@ -44,6 +79,27 @@ class AppCheckRefreshCoordinator {
 
     _inFlightRefreshes[appCheckKey] = trackedFuture;
     return trackedFuture;
+  }
+
+  static Future<void> ensureValidTokenOrThrow(
+    app_check.FirebaseAppCheck appCheck, {
+    required String operationLabel,
+    Duration forcedRefreshCooldown = const Duration(minutes: 2),
+    Duration throttledBackoff = const Duration(minutes: 10),
+  }) async {
+    final status = await ensureValidToken(
+      appCheck,
+      operationLabel: operationLabel,
+      forcedRefreshCooldown: forcedRefreshCooldown,
+      throttledBackoff: throttledBackoff,
+    );
+
+    if (status.hasUsableToken) return;
+
+    throw AppCheckRefreshException(
+      status: status,
+      operationLabel: operationLabel,
+    );
   }
 
   static Future<AppCheckRefreshStatus> _ensureValidTokenInternal(

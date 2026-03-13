@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
+import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_remote_data_source.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
@@ -11,6 +15,10 @@ import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dar
 
 class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   Object? submitActionError;
+  MatchpointActionResult submitActionResult = MatchpointActionResult(
+    success: true,
+    isMatch: false,
+  );
 
   @override
   Future<MatchpointActionResult> submitAction({
@@ -19,7 +27,7 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }) async {
     final error = submitActionError;
     if (error != null) throw error;
-    return MatchpointActionResult(success: true, isMatch: false);
+    return submitActionResult;
   }
 
   @override
@@ -70,6 +78,56 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }) {
     throw UnimplementedError();
   }
+}
+
+class _CompletingAnalyticsService implements AnalyticsService {
+  _CompletingAnalyticsService(this._completer);
+
+  final Completer<void> _completer;
+  int logEventCalls = 0;
+
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) {
+    logEventCalls += 1;
+    return _completer.future;
+  }
+
+  @override
+  NavigatorObserver getObserver() => NavigatorObserver();
+
+  @override
+  Future<void> logAuthSignupComplete({required String method}) async {}
+
+  @override
+  Future<void> logFeedPostView({required String postId}) async {}
+
+  @override
+  Future<void> logMatchPointFilter({
+    required List<String> instruments,
+    required List<String> genres,
+    required double distance,
+  }) async {}
+
+  @override
+  Future<void> logProfileEdit({required String userId}) async {}
+
+  @override
+  Future<void> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async {}
+
+  @override
+  Future<void> setUserId(String? id) async {}
+
+  @override
+  Future<void> setUserProperty({
+    required String name,
+    required String? value,
+  }) async {}
 }
 
 void main() {
@@ -149,5 +207,25 @@ void main() {
         }, (_) => fail('Expected failure'));
       },
     );
+
+    test('does not await analytics before returning swipe success', () async {
+      final completer = Completer<void>();
+      final analytics = _CompletingAnalyticsService(completer);
+      final dataSource = _FakeMatchpointRemoteDataSource()
+        ..submitActionResult = MatchpointActionResult(
+          success: true,
+          isMatch: true,
+        );
+      final repository = MatchpointRepository(dataSource, analytics: analytics);
+
+      final result = await repository.submitAction(
+        targetUserId: 'target-1',
+        type: 'like',
+      );
+
+      expect(result.isRight(), true);
+      expect(analytics.logEventCalls, 2);
+      expect(completer.isCompleted, false);
+    });
   });
 }

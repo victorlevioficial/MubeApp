@@ -177,13 +177,22 @@ class LocationService {
 
     final data = json.decode(response.body) as Map<String, dynamic>;
     final status = (data['status'] ?? '').toString();
+    if (status == 'OVER_QUERY_LIMIT') {
+      throw const LocationServiceException(
+        LocationServiceErrorCode.quotaExceeded,
+        'Limite da API do Google atingido.',
+      );
+    }
+    if (status == 'REQUEST_DENIED') {
+      throw LocationServiceException(
+        LocationServiceErrorCode.requestFailed,
+        _googleErrorMessage(
+          fallback: 'Erro ao obter detalhes do endereco.',
+          data: data,
+        ),
+      );
+    }
     if (status != 'OK') {
-      if (status == 'OVER_QUERY_LIMIT') {
-        throw const LocationServiceException(
-          LocationServiceErrorCode.quotaExceeded,
-          'Limite da API do Google atingido.',
-        );
-      }
       return null;
     }
 
@@ -474,7 +483,26 @@ class LocationService {
     required Map<String, dynamic> data,
   }) {
     final message = (data['error_message'] ?? '').toString().trim();
-    return message.isNotEmpty ? message : fallback;
+    if (message.isEmpty) return fallback;
+
+    final normalized = message.toLowerCase();
+    if (normalized.contains('not authorized to use this api key') ||
+        normalized.contains('api project is not authorized')) {
+      return 'A chave da Google API deste app nao esta autorizada para busca de enderecos e geocodificacao. Verifique as restricoes da chave no Google Cloud.';
+    }
+    if (normalized.contains('provided api key is invalid') ||
+        normalized.contains('api key is invalid')) {
+      return 'A chave da Google API configurada no app e invalida.';
+    }
+    return message;
+  }
+
+  @visibleForTesting
+  static String describeGoogleApiError({
+    required String fallback,
+    required Map<String, dynamic> data,
+  }) {
+    return _googleErrorMessage(fallback: fallback, data: data);
   }
 }
 

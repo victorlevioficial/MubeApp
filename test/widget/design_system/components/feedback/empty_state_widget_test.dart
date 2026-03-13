@@ -242,5 +242,34 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('does not overflow on compact heights', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 180,
+              child: EmptyStateWidget(
+                icon: Icons.location_off,
+                title: 'Busca indisponível',
+                subtitle:
+                    'A chave da Google API deste app não está autorizada para busca de endereços e geocodificação.',
+                actionButton: ElevatedButton(
+                  onPressed: () {},
+                  child: const Text('Tentar novamente'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SingleChildScrollView), findsWidgets);
+    });
   });
 }

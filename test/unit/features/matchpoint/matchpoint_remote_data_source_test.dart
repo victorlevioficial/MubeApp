@@ -600,5 +600,117 @@ void main() {
       expect(appCheck.cachedTokenCalls, 1);
       expect(appCheck.forcedTokenCalls, 1);
     });
+
+    test(
+      'surfaces App Check refresh failure as functions precondition error',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final functions = _FakeFunctions(
+          handlers: {
+            'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+          },
+        );
+        final appCheck = _FakeAppCheck(
+          cachedToken: null,
+          forcedError: Exception('403 App attestation failed.'),
+        );
+        final dataSource = _buildDataSource(
+          firestore,
+          functions,
+          auth: _FakeFirebaseAuth(),
+          appCheck: appCheck,
+        );
+
+        await expectLater(
+          dataSource.getRemainingLikes(),
+          throwsA(
+            isA<FirebaseFunctionsException>()
+                .having((error) => error.code, 'code', 'failed-precondition')
+                .having(
+                  (error) => error.message,
+                  'message',
+                  contains('App Check'),
+                ),
+          ),
+        );
+
+        expect(appCheck.cachedTokenCalls, 1);
+        expect(appCheck.forcedTokenCalls, 1);
+      },
+    );
+  });
+
+  group('MatchpointRemoteDataSource hashtag call payloads', () {
+    test(
+      'normalizes cloud function hashtag payloads with non-string map keys',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final functions = _FakeFunctions(
+          handlers: {
+            'getTrendingHashtags': (_) async =>
+                _FakeHttpsCallableResult(<Object?, Object?>{
+                  'hashtags': <Object?>[
+                    <Object?, Object?>{
+                      'id': 'rank-1',
+                      'hashtag': '#rock',
+                      'display_name': '#rock',
+                      'use_count': 42,
+                      'current_position': 1,
+                      'previous_position': 2,
+                      'trend': 'up',
+                      'trend_delta': 1,
+                      'is_trending': true,
+                      'last_updated': '2026-03-13T00:00:00.000Z',
+                    },
+                  ],
+                }),
+          },
+        );
+        final dataSource = _buildDataSource(firestore, functions);
+
+        final result = await dataSource.fetchHashtagRanking(limit: 5);
+
+        expect(result, hasLength(1));
+        expect(result.first.id, 'rank-1');
+        expect(result.first.hashtag, '#rock');
+        expect(result.first.useCount, 42);
+      },
+    );
+
+    test(
+      'normalizes cloud function search payloads with non-string map keys',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final functions = _FakeFunctions(
+          handlers: {
+            'searchHashtags': (_) async =>
+                _FakeHttpsCallableResult(<Object?, Object?>{
+                  'hashtags': <Object?>[
+                    <Object?, Object?>{
+                      'id': 'rank-2',
+                      'hashtag': '#cover',
+                      'display_name': '#cover',
+                      'use_count': 7,
+                      'current_position': 5,
+                      'previous_position': 5,
+                      'trend': 'stable',
+                      'trend_delta': 0,
+                      'is_trending': false,
+                      'last_updated': '2026-03-13T00:00:00.000Z',
+                    },
+                  ],
+                }),
+          },
+        );
+        final dataSource = _buildDataSource(firestore, functions);
+
+        final result = await dataSource.searchHashtags('co', limit: 5);
+
+        expect(result, hasLength(1));
+        expect(result.first.id, 'rank-2');
+        expect(result.first.hashtag, '#cover');
+        expect(result.first.useCount, 7);
+      },
+    );
   });
 }

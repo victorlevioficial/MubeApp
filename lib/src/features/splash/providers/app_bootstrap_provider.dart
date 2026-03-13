@@ -114,6 +114,8 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
     );
     AppLogger.info(
       'App Check debug provider ativado em desenvolvimento. '
+      'No Android, copie o token emitido pelo DebugAppCheckProvider no logcat '
+      'e cadastre em Firebase Console > App Check > app Android > Manage debug tokens. '
       'Token iOS atual: $_appCheckDebugToken. '
       'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
     );

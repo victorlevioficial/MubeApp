@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1080, initial-scale=1.0">
+  <title>Mube Brand Outro</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-shift-x: 0px;
+      --bg-shift-y: 0px;
+      --glow-a-x: 14%;
+      --glow-a-y: 16%;
+      --glow-b-x: 84%;
+      --glow-b-y: 74%;
+      --glow-c-scale: 1;
+      --lockup-y: 0px;
+      --lockup-scale: 1;
+      --icon-scale: 0.84;
+      --icon-rotate: -8deg;
+      --icon-y: 24px;
+      --icon-opacity: 0;
+      --glyph-y: 32px;
+      --glyph-scale: 0.9;
+      --glyph-opacity: 0;
+      --ring-scale: 0.92;
+      --ring-rotate: -40deg;
+      --ring-opacity: 0;
+      --ring-sweep-opacity: 0;
+      --orb-opacity: 0;
+      --wordmark-clip: 0%;
+      --wordmark-opacity: 0;
+      --wordmark-y: 36px;
+      --wordmark-blur: 14px;
+      --wordmark-scale: 0.96;
+      --sheen-x: -180%;
+      --sheen-opacity: 0;
+      --frame-opacity: 1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: #070709;
+      font-family: sans-serif;
+    }
+
+    body {
+      position: relative;
+    }
+
+    .canvas {
+      position: relative;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at calc(50% + var(--bg-shift-x)) calc(42% + var(--bg-shift-y)), rgba(232, 70, 108, 0.16), rgba(232, 70, 108, 0) 23%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 38%),
+        linear-gradient(180deg, #050507 0%, #08080b 38%, #070709 100%);
+      opacity: var(--frame-opacity);
+    }
+
+    .canvas::before,
+    .canvas::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .canvas::before {
+      background:
+        linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.045) 6%, transparent 10%) 172px 0 / 2px 100% no-repeat,
+        linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.038) 6%, transparent 10%) 906px 0 / 2px 100% no-repeat;
+      opacity: 0.28;
+      filter: blur(0.7px);
+    }
+
+    .canvas::after {
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+      background-size: 8px 8px;
+      opacity: 0.035;
+      mix-blend-mode: screen;
+      mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(90px);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: screen;
+    }
+
+    .glow-a {
+      width: 360px;
+      height: 360px;
+      left: var(--glow-a-x);
+      top: var(--glow-a-y);
+      background: rgba(232, 70, 108, 0.18);
+    }
+
+    .glow-b {
+      width: 420px;
+      height: 420px;
+      left: var(--glow-b-x);
+      top: var(--glow-b-y);
+      background: rgba(232, 70, 108, 0.14);
+    }
+
+    .glow-c {
+      width: 280px;
+      height: 280px;
+      left: 50%;
+      top: 47%;
+      background: rgba(255, 255, 255, 0.08);
+      opacity: var(--orb-opacity);
+      transform: translate(-50%, -50%) scale(var(--glow-c-scale));
+      filter: blur(110px);
+    }
+
+    .vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 50%, rgba(0, 0, 0, 0.34) 86%, rgba(0, 0, 0, 0.62) 100%);
+    }
+
+    .stage {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 200px 120px;
+    }
+
+    .lockup {
+      position: relative;
+      width: 660px;
+      height: 820px;
+      transform: translateY(var(--lockup-y)) scale(var(--lockup-scale));
+      transform-origin: center center;
+    }
+
+    .orbital-ring,
+    .orbital-track {
+      position: absolute;
+      left: 50%;
+      top: 268px;
+      width: 392px;
+      height: 392px;
+      transform: translate(-50%, -50%) scale(var(--ring-scale)) rotate(var(--ring-rotate));
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .orbital-track {
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      opacity: calc(var(--ring-opacity) * 0.55);
+    }
+
+    .orbital-ring {
+      opacity: var(--ring-opacity);
+      background:
+        conic-gradient(
+          from 120deg,
+          transparent 0deg,
+          rgba(232, 70, 108, 0.0) 14deg,
+          rgba(232, 70, 108, 0.8) 118deg,
+          rgba(255, 255, 255, 0.95) 148deg,
+          rgba(232, 70, 108, 0.4) 170deg,
+          transparent 212deg
+        );
+      -webkit-mask: radial-gradient(circle, transparent 72%, black 74%, black 79%, transparent 81%);
+      mask: radial-gradient(circle, transparent 72%, black 74%, black 79%, transparent 81%);
+      filter: blur(1px);
+    }
+
+    .orbital-dot {
+      position: absolute;
+      left: 50%;
+      top: 268px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      box-shadow:
+        0 0 14px rgba(255, 255, 255, 0.95),
+        0 0 24px rgba(232, 70, 108, 0.8);
+      opacity: var(--ring-sweep-opacity);
+      transform:
+        translate(-50%, -50%)
+        rotate(var(--ring-rotate))
+        translateY(-176px);
+    }
+
+    .icon-shell {
+      position: absolute;
+      left: 50%;
+      top: 268px;
+      width: 332px;
+      height: 332px;
+      transform:
+        translate(-50%, -50%)
+        translateY(var(--icon-y))
+        scale(var(--icon-scale))
+        rotate(var(--icon-rotate));
+      transform-origin: center center;
+      opacity: var(--icon-opacity);
+      filter:
+        drop-shadow(0 16px 42px rgba(0, 0, 0, 0.45))
+        drop-shadow(0 0 64px rgba(232, 70, 108, 0.22));
+    }
+
+    .icon-backlight {
+      position: absolute;
+      left: 50%;
+      top: 268px;
+      width: 308px;
+      height: 308px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 70, 108, 0.32), rgba(232, 70, 108, 0) 68%);
+      transform: translate(-50%, -50%) scale(calc(0.92 + var(--icon-scale) * 0.18));
+      opacity: calc(var(--icon-opacity) * 0.8);
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    .icon-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .icon-circle {
+      fill: #e8466c;
+    }
+
+    .icon-stroke {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.24);
+      stroke-width: 12;
+    }
+
+    .icon-glyph {
+      fill: white;
+      transform-box: fill-box;
+      transform-origin: center center;
+      transform: translateY(var(--glyph-y)) scale(var(--glyph-scale));
+      opacity: var(--glyph-opacity);
+      filter: drop-shadow(0 10px 24px rgba(255, 255, 255, 0.12));
+    }
+
+    .icon-highlight {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 34%) top left / 78% 78% no-repeat,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 36%) top center / 100% 62% no-repeat;
+      mix-blend-mode: screen;
+      opacity: calc(var(--icon-opacity) * 0.72);
+      pointer-events: none;
+    }
+
+    .wordmark-wrap {
+      position: absolute;
+      left: 50%;
+      top: 516px;
+      width: 520px;
+      height: 164px;
+      transform:
+        translateX(-50%)
+        translateY(var(--wordmark-y))
+        scale(var(--wordmark-scale));
+      opacity: var(--wordmark-opacity);
+      filter: blur(var(--wordmark-blur));
+      clip-path: inset(0 calc(100% - var(--wordmark-clip)) 0 0);
+    }
+
+    .wordmark-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.34));
+    }
+
+    .wordmark-svg path {
+      fill: white;
+    }
+
+    .sheen {
+      position: absolute;
+      left: 50%;
+      top: 448px;
+      width: 560px;
+      height: 320px;
+      transform: translateX(-50%);
+      overflow: hidden;
+      pointer-events: none;
+      opacity: var(--sheen-opacity);
+      mix-blend-mode: screen;
+      filter: blur(4px);
+      mask-image: linear-gradient(180deg, transparent 0%, black 20%, black 80%, transparent 100%);
+    }
+
+    .sheen::before {
+      content: "";
+      position: absolute;
+      inset: -12% -30%;
+      background: linear-gradient(
+        108deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.0) 34%,
+        rgba(255, 255, 255, 0.86) 48%,
+        rgba(255, 255, 255, 0.0) 60%,
+        transparent 78%
+      );
+      transform: translateX(var(--sheen-x));
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+    <div class="glow glow-c"></div>
+    <div class="vignette"></div>
+
+    <div class="stage">
+      <div class="lockup">
+        <div class="icon-backlight"></div>
+        <div class="orbital-track"></div>
+        <div class="orbital-ring"></div>
+        <div class="orbital-dot"></div>
+
+        <div class="icon-shell">
+          <svg class="icon-svg" viewBox="0 0 750 750" aria-hidden="true">
+            <circle class="icon-circle" cx="375" cy="375" r="375"></circle>
+            <circle class="icon-stroke" cx="375" cy="375" r="369"></circle>
+            <path
+              class="icon-glyph"
+              d="M586.09,443.47c0,37.28-30.22,67.5-67.5,67.5-9.54,0-18.61-1.98-26.84-5.55-23.92-10.37-40.66-34.21-40.66-61.95v-241.87c0-4.81-1.97-9.19-5.14-12.36-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,.47-.01.94-.04,1.41v6.23c-.08,37.22-30.27,67.36-67.5,67.36-6.04,0-11.89-.79-17.45-2.28-28.09-7.49-48.96-32.65-50-62.85v-194.24c0-.43-.02-.86-.05-1.28-.31-4.3-2.2-8.19-5.09-11.08-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,13.75-11.25,25-25,25s-25-11.25-25-25v-284.37c.08-37.22,30.27-67.36,67.5-67.36,6.03,0,11.88.79,17.45,2.29,28.09,7.48,48.96,32.64,50,62.84v194.24c0,.43.02.86.05,1.28.31,4.3,2.2,8.19,5.09,11.08,3.17,3.17,7.55,5.14,12.36,5.14,9.62,0,17.5-7.87,17.5-17.5V209.24c0-.47,0-.94.04-1.41v-6.23c.08-37.22,30.27-67.36,67.5-67.36s67.42,30.14,67.5,67.36v176.66c5.58-1.49,11.45-2.29,17.5-2.29,37.28,0,67.5,30.22,67.5,67.5Z"
+            ></path>
+            <foreignObject x="0" y="0" width="750" height="750">
+              <div class="icon-highlight"></div>
+            </foreignObject>
+          </svg>
+        </div>
+
+        <div class="wordmark-wrap">
+          <svg class="wordmark-svg" viewBox="0 0 1145.75 358.33" aria-hidden="true">
+            <path d="M564.74,253.29c0,14.87-2.79,28.11-8.37,39.73-5.57,11.62-13.55,20.68-23.93,27.19-10.38,6.5-22.7,9.76-36.95,9.76-13.01,0-24.71-2.78-35.09-8.37-10.38-5.57-18.59-13.54-24.63-23.93-6.04-10.38-9.07-22.85-9.07-37.42V105.03h-27.88v157.54c0,19.52,4.18,36.33,12.55,50.43,8.37,14.11,19.59,25.02,33.69,32.76,14.1,7.74,29.51,11.62,46.24,11.62,19.52,0,36.4-4.87,50.66-14.64,9.62-6.59,17.1-14.76,22.77-24.24v33.31h27.88V105.03h-27.88v148.25Z"></path>
+            <path d="M826.82,116.18c-18.28-11.15-39.04-16.72-62.27-16.72s-42.69,5.34-60.18,16.03c-14.88,9.08-26.61,20.96-35.55,35.31V0h-27.88v351.81h27.88v-47.62c8.52,15.08,20.08,27.43,35.09,36.7,17.81,10.99,38.03,16.49,60.65,16.49s43.99-5.65,62.27-16.96c18.27-11.3,32.68-26.72,43.22-46.24,10.53-19.51,15.8-41.51,15.8-65.99s-5.27-46.47-15.8-66c-10.54-19.51-24.95-34.85-43.22-46.01ZM844.01,280.01c-8.06,15.33-19.05,27.42-32.99,36.24-13.94,8.84-29.75,13.25-47.4,13.25s-33.62-4.41-47.87-13.25c-14.25-8.83-25.56-20.91-33.92-36.24-8.37-15.34-12.55-32.61-12.55-51.82s4.18-36.4,12.55-51.59c8.37-15.17,19.67-27.19,33.92-36.01,14.25-8.84,30.21-13.25,47.87-13.25s33.46,4.41,47.4,13.25c13.94,8.83,24.94,20.84,32.99,36.01,8.06,15.18,12.08,32.38,12.08,51.59s-4.03,36.48-12.08,51.82Z"></path>
+            <path d="M305.37,114.76c-13.79-7.75-28.89-11.62-45.31-11.62-1.32,0-2.57.23-3.88.28-1.44-.06-2.83-.28-4.29-.28-19.2,0-36.72,5.5-52.52,16.49-9.73,6.78-17.51,15.03-23.56,24.59-6.06-9.56-13.83-17.82-23.56-24.59-15.8-10.99-33.31-16.49-52.52-16.49-1.46,0-2.85.22-4.29.28-1.31-.05-2.55-.28-3.88-.28-16.42,0-31.52,3.87-45.31,11.62-13.78,7.75-24.94,18.51-33.46,32.29-8.52,13.79-12.78,29.51-12.78,47.17v161.26h27.88v-153.36c0-14.88,3.02-27.66,9.06-38.35,6.04-10.69,14.02-18.9,23.94-24.63,9.92-5.73,21.07-8.6,33.46-8.6,13.33,0,25.02,3.25,35.09,9.76,10.07,6.5,17.97,15.5,23.7,26.95,5.74,11.47,8.6,24.64,8.6,39.51v148.71h28.15v-148.71c0-14.87,2.86-28.04,8.6-39.51,5.73-11.45,13.63-20.44,23.7-26.95,10.07-6.5,21.76-9.76,35.09-9.76,12.39,0,23.54,2.87,33.46,8.6,9.91,5.73,17.89,13.94,23.94,24.63,6.04,10.69,9.06,23.47,9.06,38.35v153.36h27.88v-161.26c0-17.66-4.26-33.38-12.78-47.17-8.53-13.78-19.68-24.54-33.46-32.29Z"></path>
+            <path d="M1114.82,138.65c-9.93-10.84-21.69-19.31-35.28-25.43-13.59-6.11-28.79-9.16-45.58-9.16-21.99,0-41.85,5.5-59.56,16.49-17.72,11-31.77,26.04-42.15,45.13-10.39,19.09-15.58,40.7-15.58,64.83s5.34,45.89,16.04,65.28c10.69,19.4,25.2,34.67,43.52,45.81,18.32,11.15,38.94,16.72,61.85,16.72,15.58,0,30.01-2.6,43.29-7.79,13.29-5.19,24.97-12.29,35.05-21.3,10.08-9,17.87-19.16,23.36-30.46l-23.36-12.37c-8.25,14.05-18.94,25.28-32.07,33.67-13.13,8.4-28.56,12.6-46.27,12.6s-33.29-4.35-47.65-13.06c-14.36-8.71-25.66-20.69-33.9-35.96-7.02-13-10.82-27.66-11.42-43.98h198.8c.61-3.66,1.07-7.17,1.37-10.54.3-3.36.46-6.56.46-9.62,0-15.27-2.68-29.85-8.02-43.75-5.35-13.89-12.99-26.27-22.91-37.11ZM956.08,178.51c7.94-15.12,18.78-27.03,32.53-35.73,13.74-8.7,28.86-13.06,45.35-13.06s31.23,4.2,44.21,12.6c12.98,8.4,22.98,19.7,30.01,33.9,5.73,11.58,8.51,24.34,8.35,38.25h-170.9c1.31-13.19,4.79-25.18,10.46-35.96Z"></path>
+          </svg>
+        </div>
+
+        <div class="sheen"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+
+    function clamp(value, min = 0, max = 1) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function mix(start, end, progress) {
+      return start + (end - start) * progress;
+    }
+
+    function easeOutCubic(x) {
+      return 1 - Math.pow(1 - x, 3);
+    }
+
+    function easeInOutCubic(x) {
+      return x < 0.5
+        ? 4 * x * x * x
+        : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
+    function easeOutBack(x) {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+    }
+
+    function segment(t, start, end, easing = easeInOutCubic) {
+      const raw = clamp((t - start) / (end - start));
+      return easing(raw);
+    }
+
+    function setVar(name, value) {
+      root.style.setProperty(name, value);
+    }
+
+    function renderAt(t) {
+      const iconIn = segment(t, 0.06, 0.84, easeOutBack);
+      const glyphIn = segment(t, 0.16, 0.94, easeOutCubic);
+      const ringIn = segment(t, 0.0, 0.78, easeOutCubic);
+      const wordIn = segment(t, 0.86, 1.6, easeOutCubic);
+      const sheenIn = segment(t, 1.52, 2.18, easeInOutCubic);
+      const settle = segment(t, 0.46, 1.52, easeInOutCubic);
+      const holdPulse = Math.sin(clamp((t - 1.7) / 1.8, 0, 1) * Math.PI * 2);
+
+      const iconScale = mix(0.72, 1.0, iconIn) + Math.sin(settle * Math.PI) * 0.018;
+      const iconRotate = mix(-10, 0, segment(t, 0.0, 0.96, easeOutBack));
+      const iconY = mix(62, 0, segment(t, 0.02, 0.92, easeOutCubic));
+      const iconOpacity = segment(t, 0.0, 0.32, easeOutCubic);
+
+      const glyphY = mix(44, 0, glyphIn);
+      const glyphScale = mix(0.86, 1.0, glyphIn);
+      const glyphOpacity = segment(t, 0.14, 0.54, easeOutCubic);
+
+      const ringScale = mix(0.84, 1.0, ringIn);
+      const ringRotate = mix(-68, 22, segment(t, 0.0, 2.5, easeOutCubic));
+      const ringOpacity = segment(t, 0.06, 0.42, easeOutCubic) * 0.95;
+      const ringSweepOpacity =
+        segment(t, 0.18, 0.48, easeOutCubic) *
+        (1 - segment(t, 1.12, 1.46, easeOutCubic));
+
+      const lockupY = mix(42, 0, segment(t, 0.0, 1.0, easeOutCubic));
+      const lockupScale = mix(0.97, 1.0, segment(t, 0.0, 1.0, easeOutCubic));
+
+      const wordClip = mix(0, 100, wordIn);
+      const wordOpacity = segment(t, 0.9, 1.26, easeOutCubic);
+      const wordY = mix(38, 0, wordIn);
+      const wordBlur = mix(16, 0, segment(t, 0.9, 1.42, easeOutCubic));
+      const wordScale = mix(0.94, 1.0, wordIn);
+
+      const sheenOpacity = Math.sin(Math.PI * sheenIn) * 0.82;
+      const sheenX = mix(-170, 160, sheenIn);
+
+      const orbOpacity = segment(t, 0.0, 0.45, easeOutCubic) * 0.92 + Math.max(holdPulse, 0) * 0.06;
+      const glowScale = mix(0.82, 1.12, segment(t, 0.0, 1.1, easeOutCubic));
+
+      setVar("--icon-scale", iconScale.toFixed(4));
+      setVar("--icon-rotate", `${iconRotate.toFixed(3)}deg`);
+      setVar("--icon-y", `${iconY.toFixed(2)}px`);
+      setVar("--icon-opacity", iconOpacity.toFixed(4));
+
+      setVar("--glyph-y", `${glyphY.toFixed(2)}px`);
+      setVar("--glyph-scale", glyphScale.toFixed(4));
+      setVar("--glyph-opacity", glyphOpacity.toFixed(4));
+
+      setVar("--ring-scale", ringScale.toFixed(4));
+      setVar("--ring-rotate", `${ringRotate.toFixed(3)}deg`);
+      setVar("--ring-opacity", ringOpacity.toFixed(4));
+      setVar("--ring-sweep-opacity", ringSweepOpacity.toFixed(4));
+
+      setVar("--lockup-y", `${lockupY.toFixed(2)}px`);
+      setVar("--lockup-scale", lockupScale.toFixed(4));
+
+      setVar("--wordmark-clip", `${wordClip.toFixed(3)}%`);
+      setVar("--wordmark-opacity", wordOpacity.toFixed(4));
+      setVar("--wordmark-y", `${wordY.toFixed(2)}px`);
+      setVar("--wordmark-blur", `${wordBlur.toFixed(2)}px`);
+      setVar("--wordmark-scale", wordScale.toFixed(4));
+
+      setVar("--sheen-opacity", sheenOpacity.toFixed(4));
+      setVar("--sheen-x", `${sheenX.toFixed(2)}%`);
+
+      setVar("--orb-opacity", orbOpacity.toFixed(4));
+      setVar("--glow-c-scale", glowScale.toFixed(4));
+
+      setVar("--glow-a-x", `${mix(14, 18, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}%`);
+      setVar("--glow-a-y", `${mix(15, 18.5, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}%`);
+      setVar("--glow-b-x", `${mix(84, 80, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}%`);
+      setVar("--glow-b-y", `${mix(76, 70, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}%`);
+      setVar("--bg-shift-x", `${mix(-22, 18, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}px`);
+      setVar("--bg-shift-y", `${mix(-12, 16, segment(t, 0.0, 4.0, easeInOutCubic)).toFixed(2)}px`);
+    }
+
+    function getTimeFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const explicit = params.get("t");
+      if (explicit !== null) {
+        return Number(explicit);
+      }
+      return null;
+    }
+
+    function boot() {
+      const explicitTime = getTimeFromQuery();
+      if (explicitTime !== null && !Number.isNaN(explicitTime)) {
+        renderAt(explicitTime);
+        return;
+      }
+
+      const duration = 4;
+      const start = performance.now();
+      function tick(now) {
+        const elapsed = ((now - start) / 1000) % duration;
+        renderAt(elapsed);
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    boot();
+    window.__renderAt = renderAt;
+  </script>
+</body>
+</html>

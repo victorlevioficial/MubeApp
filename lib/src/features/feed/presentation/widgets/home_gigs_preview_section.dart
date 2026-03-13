@@ -130,36 +130,42 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: AppRadius.circular(AppRadius.r12),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.18),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: AppRadius.circular(AppRadius.r12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.work_outline_rounded,
+                    size: 18,
+                    color: AppColors.primary,
                   ),
                 ),
-                child: const Icon(
-                  Icons.work_outline_rounded,
-                  size: 18,
-                  color: AppColors.primary,
+                const SizedBox(width: AppSpacing.s10),
+                Flexible(
+                  child: Text(
+                    'Gigs em aberto',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.titleLarge.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.s10),
-              Text(
-                'Gigs em aberto',
-                style: AppTypography.titleLarge.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: AppSpacing.s12),
           GestureDetector(
             onTap: onSeeAllTap,
             child: Container(

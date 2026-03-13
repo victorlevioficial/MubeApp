@@ -256,6 +256,8 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         return error.message;
       case LocationServiceErrorCode.quotaExceeded:
         return 'Limite da Google API atingido. Tente novamente mais tarde.';
+      case LocationServiceErrorCode.requestFailed:
+        return error.message;
       default:
         return 'Erro ao buscar endereços. Tente novamente.';
     }
@@ -267,6 +269,8 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         return error.message;
       case LocationServiceErrorCode.quotaExceeded:
         return 'Limite da Google API atingido. Tente novamente mais tarde.';
+      case LocationServiceErrorCode.requestFailed:
+        return error.message;
       default:
         return 'Não foi possível obter detalhes desse endereço.';
     }

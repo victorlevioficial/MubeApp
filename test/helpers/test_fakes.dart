@@ -330,6 +330,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   final List<String> paginatedTypeCallHistory = [];
   final List<DocumentSnapshot?> paginatedTypeStartAfterHistory = [];
   final List<DocumentSnapshot?> mainFeedStartAfterHistory = [];
+  final List<FeedDiscoveryFilter> discoverFeedPoolCallHistory = [];
 
   void enqueueMainFeedResponses(List<PaginatedFeedResponse> responses) {
     mainFeedResponses = List<PaginatedFeedResponse>.from(responses);
@@ -445,6 +446,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
+    discoverFeedPoolCallHistory.add(filter);
     final source = discoverFeedPool.isNotEmpty
         ? discoverFeedPool
         : [

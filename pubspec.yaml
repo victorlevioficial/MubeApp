@@ -1,7 +1,7 @@
 name: mube
 description: "Mube - Conectando Músicos"
 publish_to: 'none'
-version: 1.3.9+34
+version: 1.3.9+35
 
 # Scripts úteis para build
 # Para gerar um build de release Android:
@@ -137,10 +137,17 @@ flutter:
   generate: true  # Enable localization code generation
   
   assets:
-    - assets/images/logos_png/
-    - assets/images/logos_svg/
-    - assets/images/icons/
-    - assets/images/app_icon/
+    - assets/images/logos_svg/logo_horizontal.svg
+    - assets/images/logos_png/logo_vertical.png
+    - assets/images/logos_png/logo_vertical_splash_small.png
+    - assets/images/icons/apple.svg
+    - assets/images/icons/applemusic.svg
+    - assets/images/icons/deezer.svg
+    - assets/images/icons/google.svg
+    - assets/images/icons/search_prefilter_keyboard.svg
+    - assets/images/icons/spotify.svg
+    - assets/images/icons/youtubemusic.svg
+    - assets/images/app_icon/playstore.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

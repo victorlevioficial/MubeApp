@@ -1,0 +1,17 @@
+{
+  "name": "mube-store-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:store-screenshots": "node scripts/generate_store_screenshots.mjs",
+    "generate:playstore-feature-graphic": "node scripts/generate_playstore_feature_graphic.mjs",
+    "generate:instagram-post": "node scripts/generate_instagram_post.mjs",
+    "generate:instagram-feed-series": "node scripts/generate_instagram_feed_series.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/poppins": "^5.2.7",
+    "playwright": "^1.58.2",
+    "sharp": "^0.34.5"
+  }
+}

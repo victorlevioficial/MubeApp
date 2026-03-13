@@ -9,6 +9,7 @@ import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/test_fakes.dart';
 
@@ -41,6 +42,8 @@ class FakeMatchpointRepository extends Fake implements MatchpointRepository {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late ProviderContainer container;
   late FakeAuthRepository fakeAuthRepository;
   late FakeMatchpointRepository fakeMatchpointRepository;
@@ -49,6 +52,7 @@ void main() {
   late AppUser testAppUser;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     fakeAuthRepository = FakeAuthRepository();
     fakeMatchpointRepository = FakeMatchpointRepository();
     fakeAnalyticsService = FakeAnalyticsService();

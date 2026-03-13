@@ -63,7 +63,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
 
     if (oldWidget.videoUrl != widget.videoUrl) {
       _hideControlsTimer?.cancel();
-      _disposeController();
+      unawaited(_disposeController());
       _isInitialized = false;
       _hasError = false;
       _resumeAfterInterruption = widget.isActive;
@@ -93,7 +93,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
 
     if (!isForeground) {
       _resumeAfterInterruption = controller.value.isPlaying;
-      controller.pause();
+      unawaited(_pauseController(controller, reason: 'app_backgrounded'));
       _hideControlsTimer?.cancel();
       if (mounted && !_showControls) {
         setState(() => _showControls = true);
@@ -104,8 +104,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     if (widget.isActive &&
         _resumeAfterInterruption &&
         !controller.value.isPlaying) {
-      controller.play();
-      _showControlsWithTimer();
+      unawaited(_resumeControllerIfNeeded(controller, reason: 'app_resumed'));
     }
   }
 
@@ -124,7 +123,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
       'Falha ao iniciar vídeo sem formatHint; tentando fallback com formatHint=other.',
     );
 
-    _disposeController();
+    await _disposeController();
     final fallbackInitialized = await _tryInitializeController(
       videoUrl: sourceUrl,
       formatHint: VideoFormat.other,
@@ -142,7 +141,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
         'source=$sourceUrl transcoded=$transcodedUrl',
       );
 
-      _disposeController();
+      await _disposeController();
       final transcodedInitialized = await _tryInitializeController(
         videoUrl: transcodedUrl,
         initializationToken: initializationToken,
@@ -150,7 +149,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
       if (!_isInitializationValid(initializationToken)) return;
       if (transcodedInitialized || !mounted) return;
 
-      _disposeController();
+      await _disposeController();
       final transcodedFallbackInitialized = await _tryInitializeController(
         videoUrl: transcodedUrl,
         formatHint: VideoFormat.other,
@@ -161,6 +160,10 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     }
 
     if (!fallbackInitialized && mounted) {
+      await _recordPlaybackDiagnostics(
+        sourceUrl: sourceUrl,
+        transcodedUrl: transcodedUrl,
+      );
       AppLogger.error(
         'GalleryVideoPlaybackFailed | os=${Platform.operatingSystem} '
         '${Platform.operatingSystemVersion} | source=$sourceUrl '
@@ -179,7 +182,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
 
     if (!widget.isActive) {
       _resumeAfterInterruption = controller.value.isPlaying;
-      controller.pause();
+      unawaited(_pauseController(controller, reason: 'widget_inactive'));
       _hideControlsTimer?.cancel();
       if (mounted && !_showControls) {
         setState(() => _showControls = true);
@@ -190,8 +193,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     if (_isAppInForeground &&
         _resumeAfterInterruption &&
         !controller.value.isPlaying) {
-      controller.play();
-      _showControlsWithTimer();
+      unawaited(_resumeControllerIfNeeded(controller, reason: 'widget_active'));
     }
   }
 
@@ -299,8 +301,13 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
       });
 
       if (widget.isActive && _isAppInForeground && _resumeAfterInterruption) {
-        await controller.play();
-        _showControlsWithTimer();
+        final didStartPlayback = await _playController(
+          controller,
+          reason: 'initial_playback',
+        );
+        if (didStartPlayback) {
+          _showControlsWithTimer();
+        }
       } else if (mounted && !_showControls) {
         setState(() => _showControls = true);
       }
@@ -419,12 +426,135 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     return _StorageVideoSourceIds(userId: userId, mediaId: mediaId);
   }
 
-  void _disposeController() {
+  Future<void> _disposeController() async {
     final controller = _controller;
     _controller = null;
     if (controller != null) {
-      controller.dispose();
+      try {
+        await controller.dispose();
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Falha ao liberar controller de vídeo da galeria',
+          error,
+          stackTrace,
+          false,
+        );
+      }
     }
+  }
+
+  Future<bool> _playController(
+    VideoPlayerController controller, {
+    required String reason,
+  }) async {
+    try {
+      await controller.play();
+      return true;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao reproduzir vídeo da galeria | reason=$reason',
+        error,
+        stackTrace,
+        false,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> _pauseController(
+    VideoPlayerController controller, {
+    required String reason,
+  }) async {
+    try {
+      await controller.pause();
+      return true;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao pausar vídeo da galeria | reason=$reason',
+        error,
+        stackTrace,
+        false,
+      );
+      return false;
+    }
+  }
+
+  Future<void> _resumeControllerIfNeeded(
+    VideoPlayerController controller, {
+    required String reason,
+  }) async {
+    final didStartPlayback = await _playController(controller, reason: reason);
+    if (didStartPlayback) {
+      _showControlsWithTimer();
+    }
+  }
+
+  Future<void> _recordPlaybackDiagnostics({
+    required String sourceUrl,
+    required String? transcodedUrl,
+  }) async {
+    final sourceProbe = await _probeVideoUrl(sourceUrl);
+    final transcodedProbe = transcodedUrl == null
+        ? 'not_available'
+        : await _probeVideoUrl(transcodedUrl);
+    final sourceUri = Uri.tryParse(sourceUrl);
+
+    AppLogger.setCustomKey('gallery_video_platform', Platform.operatingSystem);
+    AppLogger.setCustomKey(
+      'gallery_video_platform_version',
+      Platform.operatingSystemVersion,
+    );
+    AppLogger.setCustomKey(
+      'gallery_video_source_host',
+      sourceUri?.host ?? 'unknown',
+    );
+    AppLogger.setCustomKey('gallery_video_source_probe', sourceProbe);
+    AppLogger.setCustomKey(
+      'gallery_video_transcoded_available',
+      transcodedUrl != null,
+    );
+    AppLogger.setCustomKey('gallery_video_transcoded_probe', transcodedProbe);
+  }
+
+  Future<String> _probeVideoUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return 'unsupported_uri';
+    }
+
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
+    try {
+      var response = await _sendProbeRequest(client, uri, useHead: true);
+      if (response.statusCode == HttpStatus.methodNotAllowed) {
+        await response.drain<void>();
+        response = await _sendProbeRequest(client, uri, useHead: false);
+      }
+
+      final statusCode = response.statusCode;
+      await response.drain<void>();
+      return 'http_$statusCode';
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao inspecionar URL do vídeo da galeria',
+        error,
+        stackTrace,
+        false,
+      );
+      return 'probe_failed_${error.runtimeType}';
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<HttpClientResponse> _sendProbeRequest(
+    HttpClient client,
+    Uri uri, {
+    required bool useHead,
+  }) async {
+    final request = useHead
+        ? await client.headUrl(uri)
+        : await client.getUrl(uri);
+    return request.close().timeout(const Duration(seconds: 4));
   }
 
   @override
@@ -432,7 +562,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     WidgetsBinding.instance.removeObserver(this);
     _initializationToken++;
     _hideControlsTimer?.cancel();
-    _disposeController();
+    unawaited(_disposeController());
     super.dispose();
   }
 
@@ -450,25 +580,32 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     });
   }
 
-  void _togglePlayPause() {
+  Future<void> _togglePlayPause() async {
     final controller = _controller;
     if (controller == null) return;
 
-    setState(() {
-      if (controller.value.isPlaying) {
-        _resumeAfterInterruption = false;
-        controller.pause();
-      } else {
-        _resumeAfterInterruption = true;
-        controller.play();
-      }
-    });
+    final shouldPlay = !controller.value.isPlaying;
+    if (mounted) {
+      setState(() {
+        _resumeAfterInterruption = shouldPlay;
+        _showControls = true;
+      });
+    } else {
+      _resumeAfterInterruption = shouldPlay;
+    }
+
+    if (shouldPlay) {
+      await _resumeControllerIfNeeded(controller, reason: 'toggle_play_pause');
+      return;
+    }
+
+    await _pauseController(controller, reason: 'toggle_play_pause');
     _showControlsWithTimer();
   }
 
   void _retryInitialization() {
     _hideControlsTimer?.cancel();
-    _disposeController();
+    unawaited(_disposeController());
     setState(() {
       _isInitialized = false;
       _hasError = false;

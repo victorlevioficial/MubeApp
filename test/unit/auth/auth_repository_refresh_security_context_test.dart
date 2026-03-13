@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/utils/app_check_refresh_coordinator.dart';
 
 void main() {
   group('AuthRepository.refreshSecurityContext', () {
@@ -51,6 +52,28 @@ void main() {
         expect(failure, isA<AuthFailure>());
         expect(failure.message, 'Sua sessão expirou. Faça login novamente.');
         expect(failure.debugMessage, 'user-token-expired');
+      }, (_) => fail('Expected Left'));
+      expect(dataSource.refreshCalls, 1);
+    });
+
+    test('maps App Check refresh errors to server failure', () async {
+      dataSource.currentUserValue = _TestUser(uid: 'user-1');
+      dataSource.refreshError = const AppCheckRefreshException(
+        status: AppCheckRefreshStatus.failed,
+        operationLabel: 'refresh de sessao',
+      );
+
+      final result = await repository.refreshSecurityContext();
+
+      expect(result.isLeft(), true);
+      result.fold((failure) {
+        expect(failure, isA<ServerFailure>());
+        expect(
+          failure.message,
+          'Falha na validacao de seguranca do app neste build de desenvolvimento. '
+          'Cadastre o token de debug do App Check no Firebase Console e reabra o app.',
+        );
+        expect(failure.debugMessage, 'app-check-auth-context-failure:failed');
       }, (_) => fail('Expected Left'));
       expect(dataSource.refreshCalls, 1);
     });

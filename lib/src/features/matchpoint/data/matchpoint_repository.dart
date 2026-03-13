@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fpdart/fpdart.dart';
@@ -40,10 +42,7 @@ class MatchpointRepository {
     if (code == 'resource-exhausted') {
       return QuotaExceededFailure.dailyLikes();
     }
-    if (mentionsAppCheck &&
-        (code == 'unauthenticated' ||
-            code == 'failed-precondition' ||
-            code == 'permission-denied')) {
+    if (mentionsAppCheck) {
       return const ServerFailure(
         message:
             'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
@@ -155,21 +154,10 @@ class MatchpointRepository {
       }
 
       // Se foi um match, logar analytics
-      if (result.isMatch == true) {
-        await _analytics?.logEvent(
-          name: 'match_created',
-          parameters: {'matched_user_id': targetUserId, 'source': 'matchpoint'},
-        );
-      }
-
-      // Logar interação
-      await _analytics?.logEvent(
-        name: 'match_interaction',
-        parameters: {
-          'target_user_id': targetUserId,
-          'action': type,
-          'is_match': result.isMatch,
-        },
+      _trackSubmitActionSuccess(
+        targetUserId: targetUserId,
+        type: type,
+        result: result,
       );
 
       return Right(result);
@@ -178,16 +166,67 @@ class MatchpointRepository {
         _mapFunctionsFailure(e, fallbackMessage: _submitActionFallbackMessage),
       );
     } catch (e) {
-      await _analytics?.logEvent(
-        name: 'match_interaction_error',
-        parameters: {
-          'target_user_id': targetUserId,
-          'action': type,
-          'error': e.toString(),
-        },
-      );
+      _trackSubmitActionError(targetUserId: targetUserId, type: type, error: e);
       return Left(ServerFailure(message: e.toString()));
     }
+  }
+
+  void _trackSubmitActionSuccess({
+    required String targetUserId,
+    required String type,
+    required MatchpointActionResult result,
+  }) {
+    final analytics = _analytics;
+    if (analytics == null) return;
+
+    if (result.isMatch == true) {
+      unawaited(
+        analytics
+            .logEvent(
+              name: 'match_created',
+              parameters: {
+                'matched_user_id': targetUserId,
+                'source': 'matchpoint',
+              },
+            )
+            .catchError((_) {}),
+      );
+    }
+
+    unawaited(
+      analytics
+          .logEvent(
+            name: 'match_interaction',
+            parameters: {
+              'target_user_id': targetUserId,
+              'action': type,
+              'is_match': result.isMatch,
+            },
+          )
+          .catchError((_) {}),
+    );
+  }
+
+  void _trackSubmitActionError({
+    required String targetUserId,
+    required String type,
+    required Object error,
+  }) {
+    final analytics = _analytics;
+    if (analytics == null) return;
+
+    unawaited(
+      analytics
+          .logEvent(
+            name: 'match_interaction_error',
+            parameters: {
+              'target_user_id': targetUserId,
+              'action': type,
+              'error': error.toString(),
+            },
+          )
+          .catchError((_) {}),
+    );
   }
 
   /// Obtém quantidade de likes restantes

@@ -60,7 +60,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byType(FeedCardCompact));
+      await tester.tap(find.text('João Rock'));
       await tester.pump();
 
       expect(tapped, isTrue);
@@ -151,17 +151,13 @@ void main() {
         ),
       );
 
-      // Find the Container with width 110 - it should be in the tree
-      final containers = tester.widgetList<Container>(
+      final sizedBoxes = tester.widgetList<SizedBox>(
         find.byWidgetPredicate(
-          (widget) =>
-              widget is Container &&
-              widget.constraints != null &&
-              widget.constraints!.maxWidth == 110,
+          (widget) => widget is SizedBox && widget.width == 110,
         ),
       );
 
-      expect(containers.isNotEmpty, isTrue);
+      expect(sizedBoxes.isNotEmpty, isTrue);
     });
 
     testWidgets('name is centered', (WidgetTester tester) async {
@@ -220,6 +216,34 @@ void main() {
       );
 
       expect(find.byIcon(Icons.location_on), findsNothing);
+    });
+
+    testWidgets('does not overflow inside compact section height', (
+      WidgetTester tester,
+    ) async {
+      FlutterErrorDetails? flutterError;
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (details) {
+        flutterError = details;
+      };
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 110,
+                height: 160,
+                child: FeedCardCompact(item: testItem, onTap: () {}),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      FlutterError.onError = originalOnError;
+      expect(flutterError, isNull);
     });
   });
 }

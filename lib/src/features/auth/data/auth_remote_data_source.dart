@@ -46,6 +46,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
   final app_check.FirebaseAppCheck _appCheck;
+  Future<void>? _inFlightSecurityContextRefresh;
   bool _googleSignInInitialized = false;
   static const String _functionsRegion = 'southamerica-east1';
   static const Set<String> _blockedClientUpdateKeys = {
@@ -482,6 +483,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> refreshSecurityContext() async {
+    final inFlightRefresh = _inFlightSecurityContextRefresh;
+    if (inFlightRefresh != null) {
+      return inFlightRefresh;
+    }
+
+    final refreshFuture = _performSecurityContextRefresh().whenComplete(() {
+      _inFlightSecurityContextRefresh = null;
+    });
+    _inFlightSecurityContextRefresh = refreshFuture;
+    return refreshFuture;
+  }
+
+  Future<void> _performSecurityContextRefresh() async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw FirebaseAuthException(
@@ -492,7 +506,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     await currentUser.getIdToken(true);
     await currentUser.reload();
-    await AppCheckRefreshCoordinator.ensureValidToken(
+    await AppCheckRefreshCoordinator.ensureValidTokenOrThrow(
       _appCheck,
       operationLabel: 'refresh de sessao',
       forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,

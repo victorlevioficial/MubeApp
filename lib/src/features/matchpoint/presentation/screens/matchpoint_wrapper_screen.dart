@@ -34,7 +34,7 @@ class MatchpointWrapperScreen extends ConsumerWidget {
 
   Widget _buildResolvedState(AppUser user) {
     if (!isMatchpointAvailableForType(user.tipoPerfil)) {
-      return const MatchpointUnavailableScreen();
+      return const MatchpointUnavailableScreen(showBackButton: true);
     }
 
     final profile = user.matchpointProfile;

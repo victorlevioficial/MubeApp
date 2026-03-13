@@ -89,6 +89,7 @@ void main() {
 
     expect(find.byType(MatchpointIntroScreen), findsOneWidget);
     expect(find.byType(MatchpointTabsScreen), findsNothing);
+    expect(find.byTooltip('Voltar'), findsOneWidget);
   });
 
   testWidgets('renders MatchpointIntroScreen when matchpointProfile is null', (
@@ -122,6 +123,9 @@ void main() {
 
     expect(find.byType(MatchpointTabsScreen), findsOneWidget);
     expect(find.byType(MatchpointIntroScreen), findsNothing);
+    expect(find.byTooltip('Voltar'), findsOneWidget);
+    expect(find.byTooltip('Filtros avancados'), findsOneWidget);
+    expect(find.byTooltip('Historico de swipes'), findsOneWidget);
   });
 
   testWidgets('renders Error message when profile loading fails', (
@@ -151,6 +155,7 @@ void main() {
     expect(find.byType(MatchpointUnavailableScreen), findsOneWidget);
     expect(find.byType(MatchpointTabsScreen), findsNothing);
     expect(find.byType(MatchpointIntroScreen), findsNothing);
+    expect(find.byTooltip('Voltar'), findsOneWidget);
   });
 
   testWidgets('renders unavailable screen for studio profile', (tester) async {
@@ -167,5 +172,6 @@ void main() {
     expect(find.byType(MatchpointUnavailableScreen), findsOneWidget);
     expect(find.byType(MatchpointTabsScreen), findsNothing);
     expect(find.byType(MatchpointIntroScreen), findsNothing);
+    expect(find.byTooltip('Voltar'), findsOneWidget);
   });
 }

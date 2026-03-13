@@ -19,6 +19,16 @@ class AppLogger {
   );
 
   static bool _isCrashlyticsEnabled = false;
+  static const List<String> _nonFatalFlutterErrorPatterns = <String>[
+    'a renderflex overflowed',
+    'a renderviewport overflowed',
+    'was given an infinite size during layout',
+    'renderbox was not laid out',
+    'cannot hit test a render box that has never been laid out',
+    'vertical viewport was given unbounded',
+    'horizontal viewport was given unbounded',
+    'viewport was given unbounded',
+  ];
 
   static bool get verboseLoggingEnabled =>
       kDebugMode && _enableVerboseDebugLogs;
@@ -138,6 +148,23 @@ class AppLogger {
   }
 
   /// Log de erro do framework Flutter
+  static bool shouldTreatFlutterErrorAsFatal(FlutterErrorDetails details) {
+    final normalized = [
+      details.exceptionAsString(),
+      details.context?.toDescription() ?? '',
+      details.library ?? '',
+    ].join(' ').toLowerCase();
+
+    for (final pattern in _nonFatalFlutterErrorPatterns) {
+      if (normalized.contains(pattern)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /// Log de erro do framework Flutter
   static void recordFlutterError(
     FlutterErrorDetails details, {
     bool fatal = false,
@@ -159,6 +186,15 @@ class AppLogger {
     }
 
     if (_isCrashlyticsEnabled) {
+      _crashlytics.setCustomKey(
+        'flutter_error_type',
+        details.exception.runtimeType.toString(),
+      );
+      _crashlytics.setCustomKey('flutter_error_fatal', fatal);
+      _crashlytics.setCustomKey(
+        'flutter_error_context',
+        details.context?.toDescription() ?? 'unknown',
+      );
       if (fatal) {
         _crashlytics.recordFlutterFatalError(details);
       } else {

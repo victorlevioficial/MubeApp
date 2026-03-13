@@ -6,7 +6,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
@@ -28,10 +27,15 @@ void main() {
 
       FlutterError.onError = (FlutterErrorDetails details) {
         FlutterError.presentError(details);
-        AppLogger.recordFlutterError(details, fatal: true);
+        final isFatal = AppLogger.shouldTreatFlutterErrorAsFatal(details);
+        AppLogger.recordFlutterError(details, fatal: isFatal);
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
+        AppLogger.setCustomKey(
+          'platform_dispatcher_error_type',
+          error.runtimeType.toString(),
+        );
         AppLogger.fatal('Platform Dispatcher Error', error, stack);
         return true;
       };
@@ -43,6 +47,8 @@ void main() {
       runApp(const _BootstrapHost());
     },
     (error, stack) {
+      AppLogger.setCustomKey('zone_error_type', error.runtimeType.toString());
+      AppLogger.setCustomKey('zone_error_message', error.toString());
       AppLogger.error('Erro nao tratado no Zone Guarded', error, stack);
     },
   );
@@ -189,10 +195,13 @@ Future<void> _initializeDeferredServices() async {
     final fontWarmupStopwatch = AppPerformanceTracker.startSpan(
       'bootstrap.font_preload',
     );
-    await _preloadFonts();
     AppPerformanceTracker.finishSpan(
       'bootstrap.font_preload',
       fontWarmupStopwatch,
+      data: {
+        'status': 'skipped',
+        'reason': 'avoid_runtime_google_fonts_warmup',
+      },
     );
     AppLogger.info('Services initialized');
     AppPerformanceTracker.finishSpan(
@@ -206,21 +215,5 @@ Future<void> _initializeDeferredServices() async {
       deferredServicesStopwatch,
       data: {'status': 'error', 'error_type': e.runtimeType.toString()},
     );
-  }
-}
-
-Future<void> _preloadFonts() async {
-  try {
-    await GoogleFonts.pendingFonts([
-      GoogleFonts.poppins(fontWeight: FontWeight.w500),
-      GoogleFonts.poppins(fontWeight: FontWeight.w600),
-      GoogleFonts.poppins(fontWeight: FontWeight.w700),
-      GoogleFonts.inter(fontWeight: FontWeight.w400),
-      GoogleFonts.inter(fontWeight: FontWeight.w500),
-      GoogleFonts.inter(fontWeight: FontWeight.w600),
-      GoogleFonts.inter(fontWeight: FontWeight.w700),
-    ]);
-  } catch (e) {
-    AppLogger.warning('Erro ao carregar fontes: $e');
   }
 }

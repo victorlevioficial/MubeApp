@@ -427,9 +427,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         startReadReceiptListener: false,
       );
       outcome = 'draft_conversation';
+    } on FirebaseException catch (e, stack) {
+      outcome = 'firebase_${e.code}';
+      AppLogger.error(
+        'Erro ao preparar conversa | conversationId=${widget.conversationId} | '
+        'currentUserId=$currentUserId | otherUserId=$_otherUserId | '
+        'hasCachedPreview=${_hasCachedConversationPreview()}',
+        e,
+        stack,
+      );
+      if (mounted) {
+        setState(() {
+          if (e.code == 'permission-denied') {
+            _accessState = _ConversationAccessState.forbidden;
+            _conversationAccessMessage =
+                'Você não tem permissão para acessar esta conversa.';
+          } else {
+            _accessState = _ConversationAccessState.unavailable;
+            _conversationAccessMessage =
+                'Erro ao abrir conversa. Tente novamente.';
+          }
+        });
+      }
+      _finishFirstMessagesFrameSpan(
+        status: 'prepare_firebase_error',
+        renderedCount: 0,
+      );
     } catch (e, stack) {
       outcome = 'error';
-      AppLogger.error('Erro ao preparar conversa', e, stack);
+      AppLogger.error(
+        'Erro ao preparar conversa | conversationId=${widget.conversationId} | '
+        'currentUserId=$currentUserId | otherUserId=$_otherUserId | '
+        'hasCachedPreview=${_hasCachedConversationPreview()}',
+        e,
+        stack,
+      );
       if (mounted) {
         setState(() {
           _accessState = _ConversationAccessState.unavailable;

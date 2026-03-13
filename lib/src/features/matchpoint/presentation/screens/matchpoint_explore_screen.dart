@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +36,7 @@ class _MatchpointExploreScreenState
   bool _showTutorial = false;
   bool _allCandidatesViewed = false;
   String _lastCandidatesSignature = '';
+  int _lastHandledSwipeFeedbackId = -1;
 
   @override
   void initState() {
@@ -74,6 +77,16 @@ class _MatchpointExploreScreenState
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<MatchpointSwipeFeedbackEvent?>(matchpointSwipeFeedbackProvider, (
+      previous,
+      next,
+    ) {
+      if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
+      _lastHandledSwipeFeedbackId = next.id;
+      ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
+      unawaited(_handleSwipeFeedback(next));
+    });
+
     final candidatesAsync = ref.watch(matchpointCandidatesProvider);
 
     return Stack(
@@ -145,16 +158,22 @@ class _MatchpointExploreScreenState
   }
 
   Widget _buildSwipeDeck(List<AppUser> candidates) {
+    final canUndo = !ref.watch(
+      matchpointSwipeQueueStateProvider.select(
+        (state) => state.hasPendingActions,
+      ),
+    );
+
     return MatchSwipeDeck(
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
-        final swipeResult = await ref
+        final queued = await ref
             .read(matchpointControllerProvider.notifier)
-            .swipeRight(user);
+            .queueSwipeRight(user);
 
-        if (!swipeResult.success) {
-          AppLogger.warning('Swipe blocked: backend returned failure.');
+        if (!queued) {
+          AppLogger.warning('Swipe blocked before entering MatchPoint queue.');
           final message =
               ref
                   .read(matchpointControllerProvider)
@@ -165,52 +184,15 @@ class _MatchpointExploreScreenState
           return false;
         }
 
-        AppLogger.debug('Liked ${user.nome}');
-        final match = swipeResult.matchedUser;
-
-        if (match != null && context.mounted) {
-          final currentUserProfile = ref
-              .read(authRepositoryProvider)
-              .currentUser;
-
-          if (currentUserProfile == null) return true;
-
-          final minimalUser = AppUser(
-            uid: currentUserProfile.uid,
-            email: currentUserProfile.email ?? '',
-            foto: currentUserProfile.photoURL,
-          );
-
-          final fullProfile = ref.read(currentUserProfileProvider).value;
-          final bestUser = fullProfile ?? minimalUser;
-
-          if (!context.mounted) return true;
-          // ignore: use_build_context_synchronously
-          final navigator = Navigator.of(context);
-
-          await navigator.push(
-            PageRouteBuilder(
-              opaque: false,
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  MatchSuccessScreen(
-                    currentUser: bestUser,
-                    matchUser: match,
-                    conversationId: swipeResult.conversationId,
-                  ),
-            ),
-          );
-        }
-
+        AppLogger.debug('Queued like for ${user.nome}');
         return true;
       },
       onSwipeLeft: (user) async {
-        final success = await ref
+        final queued = await ref
             .read(matchpointControllerProvider.notifier)
-            .swipeLeft(user);
+            .queueSwipeLeft(user);
 
-        if (success) {
-          AppLogger.debug('Disliked ${user.nome}');
-        } else {
+        if (!queued) {
           final message =
               ref
                   .read(matchpointControllerProvider)
@@ -218,9 +200,11 @@ class _MatchpointExploreScreenState
               'Não foi possível registrar seu dislike agora. Tente novamente.';
           if (!mounted) return false;
           AppSnackBar.error(context, message);
+          return false;
         }
 
-        return success;
+        AppLogger.debug('Queued dislike for ${user.nome}');
+        return true;
       },
       onEnd: () {
         if (mounted) {
@@ -233,6 +217,46 @@ class _MatchpointExploreScreenState
         ref.read(swipeHistoryProvider.notifier).undoLast();
       },
       currentUserGenres: _getCurrentUserGenres(),
+      canUndo: canUndo,
+    );
+  }
+
+  Future<void> _handleSwipeFeedback(MatchpointSwipeFeedbackEvent event) async {
+    if (!mounted) return;
+
+    if (event.isFailure) {
+      final message =
+          event.message ?? 'Não foi possível registrar sua ação agora.';
+      AppSnackBar.error(context, message);
+      return;
+    }
+
+    if (!event.isMatch) return;
+
+    final currentUserProfile = ref.read(authRepositoryProvider).currentUser;
+    if (currentUserProfile == null) return;
+
+    final minimalUser = AppUser(
+      uid: currentUserProfile.uid,
+      email: currentUserProfile.email ?? '',
+      foto: currentUserProfile.photoURL,
+    );
+
+    final fullProfile = ref.read(currentUserProfileProvider).value;
+    final bestUser = fullProfile ?? minimalUser;
+    if (!mounted) return;
+
+    final navigator = Navigator.of(context);
+    await navigator.push(
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            MatchSuccessScreen(
+              currentUser: bestUser,
+              matchUser: event.targetUser,
+              conversationId: event.conversationId,
+            ),
+      ),
     );
   }
 

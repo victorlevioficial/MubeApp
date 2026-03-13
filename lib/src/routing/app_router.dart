@@ -109,6 +109,22 @@ _ProfileRedirectState _profileRedirectStateForRouting(
   );
 }
 
+Map<String, dynamic>? _stringMapExtra(Object? extra) {
+  if (extra == null) return null;
+  if (extra is Map<String, dynamic>) return extra;
+  if (extra is! Map) return null;
+
+  final normalized = <String, dynamic>{};
+  for (final entry in extra.entries) {
+    final key = entry.key;
+    if (key is String) {
+      normalized[key] = entry.value;
+    }
+  }
+
+  return normalized.isEmpty ? null : normalized;
+}
+
 /// Builds the route tree. Separated for readability.
 List<RouteBase> _buildRoutes(Ref ref) {
   return [
@@ -426,8 +442,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       path: '${RoutePaths.conversation}/:conversationId',
       pageBuilder: (context, state) {
         final conversationId = state.pathParameters['conversationId']!;
-        // Pass extra data if available
-        final extra = state.extra as Map<String, dynamic>?;
+        final extra = _stringMapExtra(state.extra);
         return NoTransitionPage(
           key: state.pageKey,
           child: ChatScreen(

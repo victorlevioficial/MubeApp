@@ -361,9 +361,9 @@ async function notifyMatchCreated(
 export const submitMatchpointAction = onCall(
   {
     region: "southamerica-east1",
-    memory: "128MiB",
-    cpu: "gcf_gen1",
-    maxInstances: 1,
+    memory: "256MiB",
+    concurrency: 1,
+    maxInstances: 10,
     timeoutSeconds: 10,
     enforceAppCheck: true,
     invoker: "public",
@@ -388,7 +388,28 @@ export const submitMatchpointAction = onCall(
 
     try {
       const userRef = db.collection("users").doc(currentUserId);
-      const userDoc = await userRef.get();
+      const interactionsRef = db.collection("interactions");
+      const existingInteractionPromise = interactionsRef
+        .where("source_user_id", "==", currentUserId)
+        .where("target_user_id", "==", targetUserId)
+        .where("type", "in", ["like", "dislike"])
+        .limit(1)
+        .get();
+      const mutualLikePromise = action === "like" ?
+        interactionsRef
+          .where("source_user_id", "==", targetUserId)
+          .where("target_user_id", "==", currentUserId)
+          .where("type", "==", "like")
+          .limit(1)
+          .get() :
+        Promise.resolve(null);
+
+      const [userDoc, existingInteractionQuery, mutualLikeQuery] =
+        await Promise.all([
+          userRef.get(),
+          existingInteractionPromise,
+          mutualLikePromise,
+        ]);
 
       if (!userDoc.exists) {
         throw new HttpsError("not-found", "Usuário não encontrado");
@@ -396,15 +417,6 @@ export const submitMatchpointAction = onCall(
 
       const userData = userDoc.data() || {};
       const remainingLikesSnapshot = getRemainingLikesSnapshot(userData);
-
-      stage = "load_existing_interaction";
-      const existingInteractionQuery = await db
-        .collection("interactions")
-        .where("source_user_id", "==", currentUserId)
-        .where("target_user_id", "==", targetUserId)
-        .where("type", "in", ["like", "dislike"])
-        .limit(1)
-        .get();
 
       const existingInteraction = existingInteractionQuery.empty ?
         null :
@@ -488,7 +500,7 @@ export const submitMatchpointAction = onCall(
         interactionRef = existingInteraction.ref;
       } else {
         stage = "persist_like_new";
-        interactionRef = db.collection("interactions").doc();
+        interactionRef = interactionsRef.doc();
         await interactionRef.set({
           source_user_id: currentUserId,
           target_user_id: targetUserId,
@@ -498,16 +510,7 @@ export const submitMatchpointAction = onCall(
         });
       }
 
-      stage = "load_mutual_like";
-      const mutualLikeQuery = await db
-        .collection("interactions")
-        .where("source_user_id", "==", targetUserId)
-        .where("target_user_id", "==", currentUserId)
-        .where("type", "==", "like")
-        .limit(1)
-        .get();
-
-      const isMatch = !mutualLikeQuery.empty;
+      const isMatch = mutualLikeQuery !== null && !mutualLikeQuery.empty;
 
       if (!isMatch) {
         return {
@@ -534,13 +537,6 @@ export const submitMatchpointAction = onCall(
           message: "Like registrado",
         };
       }
-
-      stage = "notify_match";
-      await notifyMatchCreated({
-        senderUserId: currentUserId,
-        recipientUserId: targetUserId,
-        conversationId: matchResult.conversationId,
-      });
 
       return {
         success: true,
@@ -751,6 +747,8 @@ async function createMatch(
       user_ids: [userId1, userId2],
       pair_key: pairKey,
       conversation_id: conversationId,
+      matched_by_user_id: userId1,
+      notification_recipient_user_id: userId2,
       created_at: now,
       updated_at: now,
     });
@@ -758,6 +756,46 @@ async function createMatch(
     return {matchId, conversationId};
   });
 }
+
+/**
+ * Trigger: Quando um match e criado.
+ *
+ * Move notificacao para fora do callable para reduzir latencia do swipe.
+ */
+export const onMatchCreated = onDocumentCreated(
+  {
+    document: "matches/{matchId}",
+    region: "southamerica-east1",
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const data = snapshot.data() || {};
+    const senderUserId = firstNonEmptyString([data.matched_by_user_id]);
+    const userIds = Array.isArray(data.user_ids) ?
+      data.user_ids.filter((value): value is string => typeof value === "string") :
+      [];
+    const recipientUserId = firstNonEmptyString([
+      data.notification_recipient_user_id,
+      userIds.find((userId) => userId !== senderUserId),
+    ]);
+    const conversationId = resolveMatchConversationId(
+      data,
+      snapshot.id.startsWith("match_") ? snapshot.id.slice(6) : snapshot.id
+    );
+
+    if (!senderUserId || !recipientUserId || senderUserId === recipientUserId) {
+      return;
+    }
+
+    await notifyMatchCreated({
+      senderUserId,
+      recipientUserId,
+      conversationId,
+    });
+  }
+);
 
 /**
  * Remove apenas o match entre dois usuários.

@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:diacritic/diacritic.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/domain/app_config.dart';
 import 'package:mube/src/core/errors/failures.dart';
@@ -66,8 +68,135 @@ class SwipeActionResult {
   });
 }
 
+enum MatchpointSwipeFeedbackKind { failure, match }
+
+class MatchpointSwipeFeedbackEvent {
+  final int id;
+  final MatchpointSwipeFeedbackKind kind;
+  final AppUser targetUser;
+  final String action;
+  final String? message;
+  final String? conversationId;
+
+  const MatchpointSwipeFeedbackEvent._({
+    required this.id,
+    required this.kind,
+    required this.targetUser,
+    required this.action,
+    this.message,
+    this.conversationId,
+  });
+
+  const MatchpointSwipeFeedbackEvent.failure({
+    required int id,
+    required AppUser targetUser,
+    required String action,
+    required String message,
+  }) : this._(
+         id: id,
+         kind: MatchpointSwipeFeedbackKind.failure,
+         targetUser: targetUser,
+         action: action,
+         message: message,
+       );
+
+  const MatchpointSwipeFeedbackEvent.match({
+    required int id,
+    required AppUser targetUser,
+    required String action,
+    String? conversationId,
+  }) : this._(
+         id: id,
+         kind: MatchpointSwipeFeedbackKind.match,
+         targetUser: targetUser,
+         action: action,
+         conversationId: conversationId,
+       );
+
+  bool get isFailure => kind == MatchpointSwipeFeedbackKind.failure;
+  bool get isMatch => kind == MatchpointSwipeFeedbackKind.match;
+}
+
+class MatchpointSwipeQueueState {
+  final int pendingActions;
+
+  const MatchpointSwipeQueueState({this.pendingActions = 0});
+
+  bool get hasPendingActions => pendingActions > 0;
+
+  MatchpointSwipeQueueState copyWith({int? pendingActions}) {
+    return MatchpointSwipeQueueState(
+      pendingActions: pendingActions ?? this.pendingActions,
+    );
+  }
+}
+
+class MatchpointSwipeQueueStateController
+    extends Notifier<MatchpointSwipeQueueState> {
+  @override
+  MatchpointSwipeQueueState build() {
+    return const MatchpointSwipeQueueState();
+  }
+
+  void setPendingActions(int nextValue) {
+    final normalizedValue = nextValue < 0 ? 0 : nextValue;
+    if (state.pendingActions == normalizedValue) return;
+    state = state.copyWith(pendingActions: normalizedValue);
+  }
+}
+
+final matchpointSwipeQueueStateProvider =
+    NotifierProvider<
+      MatchpointSwipeQueueStateController,
+      MatchpointSwipeQueueState
+    >(MatchpointSwipeQueueStateController.new);
+
+class MatchpointSwipeFeedbackController
+    extends Notifier<MatchpointSwipeFeedbackEvent?> {
+  @override
+  MatchpointSwipeFeedbackEvent? build() {
+    return null;
+  }
+
+  void emit(MatchpointSwipeFeedbackEvent event) {
+    state = event;
+  }
+
+  void clear() {
+    if (state == null) return;
+    state = null;
+  }
+}
+
+final matchpointSwipeFeedbackProvider =
+    NotifierProvider<
+      MatchpointSwipeFeedbackController,
+      MatchpointSwipeFeedbackEvent?
+    >(MatchpointSwipeFeedbackController.new);
+
+class _QueuedSwipeAction {
+  final AppUser targetUser;
+  final String type;
+  final bool reservedLikeQuota;
+
+  const _QueuedSwipeAction({
+    required this.targetUser,
+    required this.type,
+    this.reservedLikeQuota = false,
+  });
+}
+
 @Riverpod(keepAlive: true)
 class MatchpointController extends _$MatchpointController {
+  static const Duration _swipeSecurityValidationTtl = Duration(seconds: 30);
+
+  final Queue<_QueuedSwipeAction> _queuedSwipes = Queue<_QueuedSwipeAction>();
+  bool _isProcessingQueuedSwipes = false;
+  bool _shouldRefreshCandidatesAfterFailure = false;
+  int _nextSwipeFeedbackId = 0;
+  String? _lastValidatedSwipeUserId;
+  DateTime? _lastSwipeSecurityValidationAt;
+
   @override
   FutureOr<void> build() {}
 
@@ -152,9 +281,61 @@ class MatchpointController extends _$MatchpointController {
     return _handleSwipe(targetUser, 'like');
   }
 
+  Future<bool> queueSwipeRight(AppUser targetUser) async {
+    return _enqueueSwipe(targetUser, 'like');
+  }
+
   Future<bool> swipeLeft(AppUser targetUser) async {
     final result = await _handleSwipe(targetUser, 'dislike');
     return result.success;
+  }
+
+  Future<bool> queueSwipeLeft(AppUser targetUser) async {
+    return _enqueueSwipe(targetUser, 'dislike');
+  }
+
+  Future<bool> _enqueueSwipe(AppUser targetUser, String type) async {
+    final authRepo = ref.read(authRepositoryProvider);
+    if (authRepo.currentUser == null) {
+      state = const AsyncError(
+        'Sua sessão expirou. Faça login novamente.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+
+    var reservedLikeQuota = false;
+    if (type == 'like' && ref.read(likesQuotaProvider).hasReachedLimit) {
+      state = const AsyncError(
+        'Limite diário de 50 swipes atingido. Tente novamente amanhã.',
+        StackTrace.empty,
+      );
+      return false;
+    }
+
+    if (type == 'like') {
+      ref.read(likesQuotaProvider.notifier).decrementOptimistically();
+      reservedLikeQuota = true;
+    }
+
+    _queuedSwipes.add(
+      _QueuedSwipeAction(
+        targetUser: targetUser,
+        type: type,
+        reservedLikeQuota: reservedLikeQuota,
+      ),
+    );
+    _syncQueuedSwipeState();
+    AppLogger.info(
+      'MatchPoint swipe queued: action=$type target=${targetUser.uid} '
+      'pending=${_queuedSwipes.length}',
+    );
+
+    if (!_isProcessingQueuedSwipes) {
+      unawaited(_drainQueuedSwipes());
+    }
+
+    return true;
   }
 
   Future<SwipeActionResult> _handleSwipe(
@@ -239,9 +420,108 @@ class MatchpointController extends _$MatchpointController {
     );
   }
 
+  Future<void> _drainQueuedSwipes() async {
+    if (_isProcessingQueuedSwipes) return;
+
+    _isProcessingQueuedSwipes = true;
+    _syncQueuedSwipeState();
+
+    try {
+      while (_queuedSwipes.isNotEmpty) {
+        final nextAction = _queuedSwipes.removeFirst();
+        _syncQueuedSwipeState();
+
+        final result = await _handleSwipe(
+          nextAction.targetUser,
+          nextAction.type,
+        );
+        if (!result.success) {
+          if (nextAction.reservedLikeQuota) {
+            ref.read(likesQuotaProvider.notifier).incrementOptimistically();
+          }
+          final message =
+              state.whenOrNull(error: (error, _) => error.toString()) ??
+              _fallbackSwipeFailureMessage(nextAction.type);
+          _shouldRefreshCandidatesAfterFailure = true;
+          _emitSwipeFeedback(
+            MatchpointSwipeFeedbackEvent.failure(
+              id: _nextSwipeFeedbackId++,
+              targetUser: nextAction.targetUser,
+              action: nextAction.type,
+              message: message,
+            ),
+          );
+          continue;
+        }
+
+        if (result.matchedUser != null) {
+          _emitSwipeFeedback(
+            MatchpointSwipeFeedbackEvent.match(
+              id: _nextSwipeFeedbackId++,
+              targetUser: result.matchedUser!,
+              action: nextAction.type,
+              conversationId: result.conversationId,
+            ),
+          );
+        }
+      }
+    } finally {
+      _isProcessingQueuedSwipes = false;
+      _syncQueuedSwipeState();
+    }
+
+    if (_shouldRefreshCandidatesAfterFailure && ref.mounted) {
+      _shouldRefreshCandidatesAfterFailure = false;
+      await _refreshCandidatesAfterQueueFailure();
+    }
+  }
+
+  void _emitSwipeFeedback(MatchpointSwipeFeedbackEvent event) {
+    if (!ref.mounted) return;
+    ref.read(matchpointSwipeFeedbackProvider.notifier).emit(event);
+  }
+
+  void _syncQueuedSwipeState() {
+    if (!ref.mounted) return;
+    final outstandingActions =
+        _queuedSwipes.length + (_isProcessingQueuedSwipes ? 1 : 0);
+    ref
+        .read(matchpointSwipeQueueStateProvider.notifier)
+        .setPendingActions(outstandingActions);
+  }
+
+  Future<void> _refreshCandidatesAfterQueueFailure() async {
+    if (!ref.mounted) return;
+    try {
+      await ref.read(matchpointCandidatesProvider.notifier).refresh();
+    } catch (error, stackTrace) {
+      final isDisposedDuringRefresh =
+          !ref.mounted ||
+          (error is StateError &&
+              error.message.toString().contains(
+                'matchpointCandidatesProvider was disposed during loading state',
+              ));
+      if (isDisposedDuringRefresh) return;
+      AppLogger.warning(
+        'Failed to refresh MatchPoint candidates after queued swipe failure.',
+        error,
+        stackTrace,
+        false,
+      );
+    }
+  }
+
+  String _fallbackSwipeFailureMessage(String type) {
+    if (type == 'like') {
+      return 'Não foi possível registrar seu like agora. Tente novamente.';
+    }
+    return 'Não foi possível registrar seu dislike agora. Tente novamente.';
+  }
+
   Future<bool> _ensureSwipeSecurityContext(AuthRepository authRepo) async {
     final currentUser = authRepo.currentUser;
     if (currentUser == null) {
+      _clearSwipeSecurityValidationCache();
       AppLogger.warning(
         'Swipe precheck: no FirebaseAuth user. Attempting security refresh.',
       );
@@ -253,9 +533,14 @@ class MatchpointController extends _$MatchpointController {
       return _validateCurrentUserToken(authRepo);
     }
 
+    if (_hasFreshSwipeSecurityValidation(currentUser.uid)) {
+      return true;
+    }
+
     try {
       final idToken = await currentUser.getIdToken();
       if (idToken != null && idToken.isNotEmpty) {
+        _markSwipeSecurityContextValidated(currentUser.uid);
         return true;
       }
 
@@ -269,6 +554,7 @@ class MatchpointController extends _$MatchpointController {
       if (!refreshed) return false;
       return _validateCurrentUserToken(authRepo);
     } catch (error, stack) {
+      _clearSwipeSecurityValidationCache();
       AppLogger.warning(
         'Swipe precheck: failed to read FirebaseAuth token. '
         'Attempting security refresh.',
@@ -287,6 +573,7 @@ class MatchpointController extends _$MatchpointController {
   Future<bool> _validateCurrentUserToken(AuthRepository authRepo) async {
     final refreshedUser = authRepo.currentUser;
     if (refreshedUser == null) {
+      _clearSwipeSecurityValidationCache();
       state = const AsyncError(
         'Sua sessão expirou. Faça login novamente.',
         StackTrace.empty,
@@ -297,14 +584,17 @@ class MatchpointController extends _$MatchpointController {
     try {
       final refreshedToken = await refreshedUser.getIdToken();
       if (refreshedToken != null && refreshedToken.isNotEmpty) {
+        _markSwipeSecurityContextValidated(refreshedUser.uid);
         return true;
       }
+      _clearSwipeSecurityValidationCache();
       state = const AsyncError(
         'Não foi possível validar sua sessão. Faça login novamente.',
         StackTrace.empty,
       );
       return false;
     } catch (error, stack) {
+      _clearSwipeSecurityValidationCache();
       AppLogger.warning('Swipe validation failed after refresh.', error, stack);
       state = const AsyncError(
         'Não foi possível validar sua sessão. Faça login novamente.',
@@ -318,6 +608,7 @@ class MatchpointController extends _$MatchpointController {
     AuthRepository authRepo, {
     required String reason,
   }) async {
+    _clearSwipeSecurityValidationCache();
     _trackSwipeSessionRecovery(stage: reason, outcome: 'attempt');
     final refreshResult = await authRepo.refreshSecurityContext();
     return refreshResult.fold(
@@ -340,6 +631,25 @@ class MatchpointController extends _$MatchpointController {
         return true;
       },
     );
+  }
+
+  bool _hasFreshSwipeSecurityValidation(String userId) {
+    final validatedAt = _lastSwipeSecurityValidationAt;
+    if (_lastValidatedSwipeUserId != userId || validatedAt == null) {
+      return false;
+    }
+
+    return DateTime.now().difference(validatedAt) < _swipeSecurityValidationTtl;
+  }
+
+  void _markSwipeSecurityContextValidated(String userId) {
+    _lastValidatedSwipeUserId = userId;
+    _lastSwipeSecurityValidationAt = DateTime.now();
+  }
+
+  void _clearSwipeSecurityValidationCache() {
+    _lastValidatedSwipeUserId = null;
+    _lastSwipeSecurityValidationAt = null;
   }
 
   void _trackSwipeSessionRecovery({
@@ -391,6 +701,11 @@ class MatchpointController extends _$MatchpointController {
     }
 
     ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
+    AppLogger.info(
+      'MatchPoint swipe committed: action=$type target=${targetUser.uid} '
+      'match=${actionResult.isMatch} '
+      'remainingLikes=${actionResult.remainingLikes ?? 'unknown'}',
+    );
 
     if (actionResult.isMatch == true) {
       AppLogger.info("IT'S A MATCH!");
@@ -477,6 +792,11 @@ class LikesQuota extends _$LikesQuota {
     if (state.remaining > 0) {
       state = state.copyWith(remaining: state.remaining - 1);
     }
+  }
+
+  void incrementOptimistically() {
+    if (state.remaining >= state.limit) return;
+    state = state.copyWith(remaining: state.remaining + 1);
   }
 
   void setLoading(bool loading) {
@@ -710,6 +1030,7 @@ class SwipeHistory extends _$SwipeHistory {
   Future<void> _loadFromStorage(String userId) async {
     try {
       final prefs = await ref.read(sharedPreferencesLoaderProvider)();
+      if (!ref.mounted) return;
       final jsonStr =
           prefs.getString(_storageKeyForUser(userId)) ??
           prefs.getString(_legacyStorageKey);
@@ -724,6 +1045,7 @@ class SwipeHistory extends _$SwipeHistory {
           .where((item) => seenTargets.add(item.targetUserId))
           .toList();
 
+      if (!ref.mounted) return;
       final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
       if (currentUserId != null && currentUserId != userId) return;
 
@@ -737,6 +1059,7 @@ class SwipeHistory extends _$SwipeHistory {
     try {
       final userId = ref.read(authRepositoryProvider).currentUser?.uid;
       final prefs = await ref.read(sharedPreferencesLoaderProvider)();
+      if (!ref.mounted) return;
       final jsonStr = jsonEncode(state.map((e) => e.toJson()).toList());
 
       if (userId != null) {

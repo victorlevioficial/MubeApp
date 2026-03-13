@@ -14,6 +14,7 @@ export {
   submitMatchpointAction,
   recordMatchpointRankingAudit,
   getRemainingLikes,
+  onMatchCreated,
   onInteractionCreated,
 } from "./matchpoint";
 

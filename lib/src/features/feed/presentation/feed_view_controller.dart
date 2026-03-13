@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
@@ -19,31 +18,25 @@ class FeedListState {
   final List<FeedItem> items;
   final bool hasMore;
   final bool isLoadingMore;
-  final DocumentSnapshot? _lastDocument;
   final int _currentPage;
 
   const FeedListState({
     required this.items,
     this.hasMore = true,
     this.isLoadingMore = false,
-    DocumentSnapshot? lastDocument,
     int currentPage = 0,
-  }) : _lastDocument = lastDocument,
-       _currentPage = currentPage;
+  }) : _currentPage = currentPage;
 
   FeedListState copyWith({
     List<FeedItem>? items,
     bool? hasMore,
     bool? isLoadingMore,
-    DocumentSnapshot? lastDocument,
     int? currentPage,
-    bool clearLastDocument = false,
   }) {
     return FeedListState(
       items: items ?? this.items,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-      lastDocument: clearLastDocument ? null : (lastDocument ?? _lastDocument),
       currentPage: currentPage ?? _currentPage,
     );
   }
@@ -52,10 +45,10 @@ class FeedListState {
 @riverpod
 class FeedListController extends _$FeedListController {
   static const int _pageSize = 20;
-  static const int _maxTechnicianPageScans = 4;
   FeedRepository? _feedRepository;
   AuthRepository? _authRepository;
   AppUser? _currentUser;
+  final Map<FeedSectionType, List<FeedItem>> _sortedSectionPools = {};
 
   @override
   Future<FeedListState> build(FeedSectionType sectionType) async {
@@ -78,13 +71,12 @@ class FeedListController extends _$FeedListController {
       blockedIds: blockedIds,
       userLat: (user.location?['lat'] as num?)?.toDouble(),
       userLong: (user.location?['lng'] as num?)?.toDouble(),
-      startAfter: null,
+      pageIndex: 0,
     );
 
     return FeedListState(
       items: page.items,
       hasMore: page.hasMore,
-      lastDocument: page.lastDocument,
       currentPage: page.items.isEmpty ? 0 : 1,
     );
   }
@@ -103,11 +95,7 @@ class FeedListController extends _$FeedListController {
       final user = await _resolveCurrentUserProfile();
       if (user == null) {
         state = AsyncData(
-          currentState.copyWith(
-            isLoadingMore: false,
-            hasMore: false,
-            clearLastDocument: true,
-          ),
+          currentState.copyWith(isLoadingMore: false, hasMore: false),
         );
         return;
       }
@@ -119,14 +107,13 @@ class FeedListController extends _$FeedListController {
         blockedIds: blockedIds,
         userLat: (user.location?['lat'] as num?)?.toDouble(),
         userLong: (user.location?['lng'] as num?)?.toDouble(),
-        startAfter: currentState._lastDocument,
+        pageIndex: currentState._currentPage,
       );
 
       state = AsyncData(
         currentState.copyWith(
           items: _mergeUniqueItems(currentState.items, page.items),
           currentPage: currentState._currentPage + 1,
-          lastDocument: page.lastDocument,
           hasMore: page.hasMore,
           isLoadingMore: false,
         ),
@@ -142,40 +129,40 @@ class FeedListController extends _$FeedListController {
     required List<String> blockedIds,
     required double? userLat,
     required double? userLong,
-    required DocumentSnapshot? startAfter,
+    required int pageIndex,
   }) async {
     final feedRepo = _feedRepository!;
 
     switch (sectionType) {
       case FeedSectionType.bands:
-        final result = await feedRepo.getUsersByTypePaginated(
-          type: ProfileType.band,
+        return _fetchSortedPoolPage(
+          sectionType: sectionType,
+          filter: FeedDiscoveryFilter.bands,
           currentUserId: currentUserId,
-          excludedIds: blockedIds,
           userLat: userLat,
           userLong: userLong,
-          limit: _pageSize,
-          startAfter: startAfter,
-        );
-        return result.fold((failure) => throw failure, (response) => response);
-      case FeedSectionType.studios:
-        final result = await feedRepo.getUsersByTypePaginated(
-          type: ProfileType.studio,
-          currentUserId: currentUserId,
-          excludedIds: blockedIds,
-          userLat: userLat,
-          userLong: userLong,
-          limit: _pageSize,
-          startAfter: startAfter,
-        );
-        return result.fold((failure) => throw failure, (response) => response);
-      case FeedSectionType.technicians:
-        return _fetchTechniciansPage(
-          currentUserId: currentUserId,
           blockedIds: blockedIds,
+          pageIndex: pageIndex,
+        );
+      case FeedSectionType.studios:
+        return _fetchSortedPoolPage(
+          sectionType: sectionType,
+          filter: FeedDiscoveryFilter.studios,
+          currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
-          startAfter: startAfter,
+          blockedIds: blockedIds,
+          pageIndex: pageIndex,
+        );
+      case FeedSectionType.technicians:
+        return _fetchSortedPoolPage(
+          sectionType: sectionType,
+          filter: FeedDiscoveryFilter.technicians,
+          currentUserId: currentUserId,
+          userLat: userLat,
+          userLong: userLong,
+          blockedIds: blockedIds,
+          pageIndex: pageIndex,
         );
       case FeedSectionType.artists:
         final result = await feedRepo.getArtists(
@@ -213,53 +200,54 @@ class FeedListController extends _$FeedListController {
     }
   }
 
-  Future<PaginatedFeedResponse> _fetchTechniciansPage({
+  Future<PaginatedFeedResponse> _fetchSortedPoolPage({
+    required FeedSectionType sectionType,
+    required FeedDiscoveryFilter filter,
     required String currentUserId,
     required List<String> blockedIds,
     required double? userLat,
     required double? userLong,
-    required DocumentSnapshot? startAfter,
+    required int pageIndex,
   }) async {
-    final feedRepo = _feedRepository!;
-    final technicians = <FeedItem>[];
-    final seenIds = <String>{};
-    var cursor = startAfter;
-    var hasMore = true;
-    var scanCount = 0;
+    _sortedSectionPools[sectionType] ??= await _loadSectionPool(
+      currentUserId: currentUserId,
+      blockedIds: blockedIds,
+      userLat: userLat,
+      userLong: userLong,
+      filter: filter,
+    );
 
-    while (technicians.length < _pageSize &&
-        hasMore &&
-        scanCount < _maxTechnicianPageScans) {
-      scanCount++;
-      final result = await feedRepo.getUsersByTypePaginated(
-        type: ProfileType.professional,
-        currentUserId: currentUserId,
-        excludedIds: blockedIds,
-        userLat: userLat,
-        userLong: userLong,
-        limit: _pageSize,
-        startAfter: cursor,
-      );
-      final response = result.fold((failure) => throw failure, (data) => data);
-      cursor = response.lastDocument;
-      hasMore = response.hasMore;
-
-      for (final item in response.items) {
-        if (!FeedDiscovery.isPureTechnician(item)) continue;
-        if (seenIds.add(item.uid)) {
-          technicians.add(item);
-          if (technicians.length >= _pageSize) {
-            break;
-          }
-        }
-      }
+    final sortedItems = _sortedSectionPools[sectionType]!;
+    final startIndex = pageIndex * _pageSize;
+    if (startIndex >= sortedItems.length) {
+      return const PaginatedFeedResponse.empty();
     }
 
+    final endIndex = (startIndex + _pageSize).clamp(0, sortedItems.length);
+    final items = sortedItems.sublist(startIndex, endIndex);
+
     return PaginatedFeedResponse(
-      items: technicians,
-      lastDocument: cursor,
-      hasMore: hasMore,
+      items: items,
+      hasMore: endIndex < sortedItems.length,
     );
+  }
+
+  Future<List<FeedItem>> _loadSectionPool({
+    required String currentUserId,
+    required List<String> blockedIds,
+    required double? userLat,
+    required double? userLong,
+    required FeedDiscoveryFilter filter,
+  }) async {
+    final result = await _feedRepository!.getDiscoverFeedPoolSorted(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      excludedIds: blockedIds,
+      filter: filter,
+    );
+
+    return result.fold((failure) => throw failure, (items) => items);
   }
 
   List<FeedItem> _mergeUniqueItems(

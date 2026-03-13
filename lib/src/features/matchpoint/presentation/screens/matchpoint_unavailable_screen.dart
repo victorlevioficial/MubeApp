@@ -8,18 +8,29 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../matchpoint_navigation.dart';
 
 class MatchpointUnavailableScreen extends StatelessWidget {
   final bool showBackButton;
+  final VoidCallback? onBackPressed;
 
-  const MatchpointUnavailableScreen({super.key, this.showBackButton = false});
+  const MatchpointUnavailableScreen({
+    super.key,
+    this.showBackButton = false,
+    this.onBackPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: showBackButton
-          ? const AppAppBar(title: 'Matchpoint', showBackButton: true)
+          ? AppAppBar(
+              title: 'Matchpoint',
+              showBackButton: true,
+              onBackPressed:
+                  onBackPressed ?? () => handleMatchpointBack(context),
+            )
           : null,
       body: Center(
         child: SingleChildScrollView(
