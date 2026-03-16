@@ -21,6 +21,32 @@ final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   return repository.getUserConversations(userId);
 });
 
+final userAcceptedConversationsProvider =
+    StreamProvider<List<ConversationPreview>>((ref) {
+      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
+      final authUid =
+          ref.watch(authStateChangesProvider).value?.uid ??
+          ref.read(authRepositoryProvider).currentUser?.uid;
+      final userId = profileUid ?? authUid;
+      if (userId == null || userId.isEmpty) return Stream.value([]);
+
+      final repository = ref.watch(chatRepositoryProvider);
+      return repository.getUserAcceptedConversations(userId);
+    });
+
+final userPendingConversationsProvider =
+    StreamProvider<List<ConversationPreview>>((ref) {
+      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
+      final authUid =
+          ref.watch(authStateChangesProvider).value?.uid ??
+          ref.read(authRepositoryProvider).currentUser?.uid;
+      final userId = profileUid ?? authUid;
+      if (userId == null || userId.isEmpty) return Stream.value([]);
+
+      final repository = ref.watch(chatRepositoryProvider);
+      return repository.getUserPendingConversations(userId);
+    });
+
 /// Conversas filtradas: Apenas MatchPoint
 final matchConversationsProvider =
     Provider<AsyncValue<List<ConversationPreview>>>((ref) {

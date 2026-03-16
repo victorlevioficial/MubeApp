@@ -10,6 +10,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.util.Properties
 import java.io.FileInputStream
 
@@ -18,6 +19,13 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+
+val crashlyticsMappingUploadEnabled =
+    providers.gradleProperty("mube.crashlytics.mappingUploadEnabled")
+        .orElse(
+            providers.environmentVariable("MUBE_CRASHLYTICS_MAPPING_UPLOAD_ENABLED"),
+        ).map { value -> value.equals("true", ignoreCase = true) }
+        .orElse(true)
 
 android {
     namespace = "com.mube.mubeoficial"
@@ -67,6 +75,11 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isShrinkResources = true
             isMinifyEnabled = true
+            configure<CrashlyticsExtension> {
+                // Allow local release builds to skip mapping upload when the
+                // Firebase symbols endpoint is temporarily unreachable.
+                mappingFileUploadEnabled = crashlyticsMappingUploadEnabled.get()
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

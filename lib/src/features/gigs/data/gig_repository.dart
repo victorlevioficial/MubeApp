@@ -710,7 +710,8 @@ class GigRepository {
   Stream<List<GigApplication>> watchMyApplications() {
     final query = _firestore
         .collectionGroup(FirestoreCollections.gigApplications)
-        .where(GigFields.applicantId, isEqualTo: _uid);
+        .where(GigFields.applicantId, isEqualTo: _uid)
+        .orderBy(GigFields.appliedAt, descending: true);
 
     return _watchQuery(query, operationLabel: 'watch_my_applications').asyncMap(
       (snapshot) async {
@@ -722,7 +723,7 @@ class GigRepository {
 
         final gigsById = await _loadGigsByIds(gigIds);
 
-        final applications = snapshot.docs
+        return snapshot.docs
             .map((doc) {
               final gigId = doc.reference.parent.parent?.id ?? '';
               final gig = gigsById[gigId];
@@ -735,10 +736,7 @@ class GigRepository {
                 creatorId: gig?.creatorId,
               );
             })
-            .toList(growable: true);
-
-        applications.sort(_compareGigApplicationsByAppliedAtDesc);
-        return applications;
+            .toList(growable: false);
       },
     );
   }
@@ -1061,19 +1059,6 @@ DateTime? _readGigApplicationDateTime(dynamic value) {
   if (value is Timestamp) return value.toDate();
   if (value is DateTime) return value;
   return null;
-}
-
-int _compareGigApplicationsByAppliedAtDesc(
-  GigApplication left,
-  GigApplication right,
-) {
-  final leftDate = left.appliedAt;
-  final rightDate = right.appliedAt;
-
-  if (leftDate == null && rightDate == null) return 0;
-  if (leftDate == null) return 1;
-  if (rightDate == null) return -1;
-  return rightDate.compareTo(leftDate);
 }
 
 String _gigTypeValue(GigType value) {

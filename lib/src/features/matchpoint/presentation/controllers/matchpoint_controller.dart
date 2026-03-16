@@ -13,6 +13,7 @@ import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
@@ -710,6 +711,34 @@ class MatchpointController extends _$MatchpointController {
     if (actionResult.isMatch == true) {
       AppLogger.info("IT'S A MATCH!");
       ref.invalidate(matchesProvider);
+      final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+      if (currentUserId != null && currentUserId.isNotEmpty) {
+        try {
+          final chatRepository = ref.read(chatRepositoryProvider);
+          unawaited(
+            chatRepository
+                .reevaluateConversationAccessByUsers(
+                  userAId: currentUserId,
+                  userBId: targetUser.uid,
+                  trigger: 'matchpoint_match',
+                )
+                .then(
+                  (result) => result.fold(
+                    (failure) => AppLogger.warning(
+                      'Falha ao promover conversa apos match',
+                      failure.message,
+                    ),
+                    (_) {},
+                  ),
+                ),
+          );
+        } catch (e, stackTrace) {
+          AppLogger.warning(
+            'Promocao de conversa apos match indisponivel neste contexto',
+            '$e\n$stackTrace',
+          );
+        }
+      }
 
       return SwipeActionResult(
         success: true,

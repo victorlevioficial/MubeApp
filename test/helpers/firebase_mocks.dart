@@ -199,13 +199,16 @@ class MockQuery<T> extends Mock implements Query<T> {
 
 class MockQuerySnapshot<T> extends Mock implements QuerySnapshot<T> {
   final T? _data;
+  final String _docId;
 
-  MockQuerySnapshot({T? data}) : _data = data;
+  MockQuerySnapshot({T? data, String docId = 'test-doc-id'})
+    : _data = data,
+      _docId = docId;
 
   @override
   List<QueryDocumentSnapshot<T>> get docs {
     if (_data == null) return [];
-    return [MockQueryDocumentSnapshot<T>(id: 'test-doc-id', data: _data)];
+    return [MockQueryDocumentSnapshot<T>(id: _docId, data: _data)];
   }
 
   @override

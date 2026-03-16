@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +11,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/push_notification_service.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
+import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/loading/app_shimmer.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -46,19 +49,31 @@ class _PendingMessage {
   final String localId;
   final String text;
   final DateTime createdAt;
+  final String? replyToMessageId;
+  final String? replyToSenderId;
+  final String? replyToText;
+  final String? replyToType;
 
   const _PendingMessage({
     required this.localId,
     required this.text,
     required this.createdAt,
+    this.replyToMessageId,
+    this.replyToSenderId,
+    this.replyToText,
+    this.replyToType,
   });
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
+  static const String _requestStatusAccepted = 'accepted';
+  static const String _requestStatusPending = 'pending';
+  static const String _requestStatusRejected = 'rejected';
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_PendingMessage> _pendingMessages = [];
   final List<Message> _olderServerMessages = <Message>[];
+  Message? _replyingToMessage;
   ProviderSubscription<AsyncValue<QuerySnapshot<Map<String, dynamic>>>>?
   _messagesReadReceiptSubscription;
   ProviderSubscription<AsyncValue<List<ConversationPreview>>>?
@@ -66,10 +81,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isNavigatingToEmailVerification = false;
   bool _isPreparingConversation = false;
   bool _isLoadingOlderMessages = false;
+  bool _isAcceptingConversationRequest = false;
   bool _hasMoreOlderMessages = false;
   bool _conversationExists = false;
+  bool _hasOptimisticAcceptedRequest = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
+  String _currentRequestStatus = _requestStatusAccepted;
+  int _currentRequestCycle = 0;
+  String? _currentRequestSenderId;
+  String? _currentRequestRecipientId;
   bool? _cachedEmailSendAllowed;
   DateTime? _cachedEmailCheckAt;
   DocumentSnapshot<Map<String, dynamic>>? _oldestServerMessageDoc;
@@ -345,6 +366,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (!mounted) return;
 
       if (existingDoc != null && existingDoc.exists) {
+        unawaited(
+          repository.reevaluateConversationAccess(
+            conversationId: widget.conversationId,
+            trigger: 'open_chat',
+          ),
+        );
+
         if (!_isUserParticipant(existingDoc, currentUserId)) {
           outcome = 'forbidden_not_participant';
           setState(() {
@@ -714,12 +742,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _isLoadingOlderMessages = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erro ao carregar mensagens antigas.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppSnackBar.error(context, 'Erro ao carregar mensagens antigas.');
     }
   }
 
@@ -794,13 +817,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       AppLogger.error('Erro ao validar verificacao de email no chat', e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Não foi possível validar seu email agora. Tente novamente.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.error(
+          context,
+          'Nao foi possivel validar seu email agora. Tente novamente.',
         );
       }
       return false;
@@ -860,7 +879,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return false;
   }
 
-  String _addPendingMessage(String text) {
+  String _addPendingMessage(String text, {Message? replyToMessage}) {
     final localId = 'local_${DateTime.now().microsecondsSinceEpoch}';
     setState(() {
       _pendingMessages.insert(
@@ -869,6 +888,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           localId: localId,
           text: text,
           createdAt: DateTime.now(),
+          replyToMessageId: replyToMessage?.id,
+          replyToSenderId: replyToMessage?.senderId,
+          replyToText: replyToMessage?.text,
+          replyToType: replyToMessage?.type,
         ),
       );
     });
@@ -882,12 +905,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  void _restoreDraftIfInputEmpty(String text) {
+  void _restoreDraftIfInputEmpty(String text, {Message? replyToMessage}) {
     if (_textController.text.trim().isNotEmpty) return;
+    if (mounted) {
+      setState(() {
+        _replyingToMessage = replyToMessage;
+      });
+    } else {
+      _replyingToMessage = replyToMessage;
+    }
     _textController.text = text;
     _textController.selection = TextSelection.collapsed(
       offset: _textController.text.length,
     );
+  }
+
+  void _setReplyTarget(Message message) {
+    if (!mounted) return;
+    setState(() {
+      _replyingToMessage = message;
+    });
+  }
+
+  void _clearReplyTarget() {
+    if (!mounted) return;
+    setState(() {
+      _replyingToMessage = null;
+    });
   }
 
   void _scrollToLatestMessage() {
@@ -905,53 +949,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (!mounted) return;
 
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    AppSnackBar.action(
+      context,
+      'Verifique seu email para enviar mensagens.',
+      type: SnackBarType.warning,
+      actionLabel: 'Verificar',
+      duration: const Duration(seconds: 5),
+      onAction: () {
+        if (!mounted || _isNavigatingToEmailVerification) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Verifique seu email para enviar mensagens.'),
-        duration: const Duration(seconds: 5),
-        action: SnackBarAction(
-          label: 'Verificar',
-          onPressed: () {
-            if (!mounted || _isNavigatingToEmailVerification) return;
+        final router = GoRouter.of(context);
+        final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+        if (currentPath == RoutePaths.emailVerification) {
+          return;
+        }
 
-            final router = GoRouter.of(context);
-            final currentPath =
-                router.routerDelegate.currentConfiguration.uri.path;
-            if (currentPath == RoutePaths.emailVerification) {
-              return;
-            }
+        setState(() {
+          _isNavigatingToEmailVerification = true;
+        });
 
-            setState(() {
-              _isNavigatingToEmailVerification = true;
-            });
+        context.push(RoutePaths.emailVerification).whenComplete(() {
+          if (!mounted) return;
 
-            context.push(RoutePaths.emailVerification).whenComplete(() {
-              if (!mounted) return;
-
-              _clearEmailSendCache();
-              setState(() {
-                _isNavigatingToEmailVerification = false;
-              });
-            });
-          },
-        ),
-      ),
+          _clearEmailSendCache();
+          setState(() {
+            _isNavigatingToEmailVerification = false;
+          });
+        });
+      },
     );
   }
 
   void _showEmailSyncPendingSnackbar() {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Email verificado. Aguarde alguns segundos para sincronizar e tente novamente.',
-        ),
-        duration: Duration(seconds: 4),
-      ),
+    AppSnackBar.info(
+      context,
+      'Email verificado. Aguarde alguns segundos para sincronizar e tente novamente.',
     );
   }
 
@@ -962,16 +996,163 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return _deriveOtherUidFromConversationId(myUid);
   }
 
+  String _readRequestStatus(Map<String, dynamic>? conversationMap) {
+    final value = conversationMap?['requestStatus'];
+    if (value is String &&
+        (value == _requestStatusAccepted ||
+            value == _requestStatusPending ||
+            value == _requestStatusRejected)) {
+      return value;
+    }
+    return _requestStatusAccepted;
+  }
+
+  int _readRequestCycle(Map<String, dynamic>? conversationMap) {
+    final value = conversationMap?['requestCycle'];
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  String? _readOptionalString(dynamic value) {
+    if (value is! String) return null;
+    final normalized = value.trim();
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  void _syncConversationRequestState(Map<String, dynamic>? conversationMap) {
+    final backendStatus = _readRequestStatus(conversationMap);
+    final backendCycle = _readRequestCycle(conversationMap);
+    final backendSenderId = _readOptionalString(
+      conversationMap?['requestSenderId'],
+    );
+    final backendRecipientId = _readOptionalString(
+      conversationMap?['requestRecipientId'],
+    );
+
+    if (_hasOptimisticAcceptedRequest) {
+      _currentRequestStatus = _requestStatusAccepted;
+      _currentRequestCycle = backendCycle;
+      _currentRequestSenderId = null;
+      _currentRequestRecipientId = null;
+
+      if (backendStatus == _requestStatusAccepted) {
+        _hasOptimisticAcceptedRequest = false;
+      }
+      return;
+    }
+
+    _currentRequestStatus = backendStatus;
+    _currentRequestCycle = backendCycle;
+    _currentRequestSenderId = backendSenderId;
+    _currentRequestRecipientId = backendRecipientId;
+  }
+
+  bool _isPendingRecipient(String currentUserId) {
+    return _currentRequestStatus == _requestStatusPending &&
+        _currentRequestRecipientId == currentUserId;
+  }
+
+  void _invalidateConversationProviders() {
+    ref.invalidate(userConversationsProvider);
+    ref.invalidate(userAcceptedConversationsProvider);
+    ref.invalidate(userPendingConversationsProvider);
+  }
+
+  Future<void> _maybeShowPendingRequestSnackbarAfterSend({
+    required ChatRepository repository,
+    required String myUid,
+    required String previousRequestStatus,
+    required int previousRequestCycle,
+    required String? previousRequestSenderId,
+  }) async {
+    final alreadyPendingOutgoing =
+        previousRequestStatus == _requestStatusPending &&
+        previousRequestSenderId == myUid;
+    if (alreadyPendingOutgoing) return;
+
+    try {
+      final snapshot = await repository.getConversationDoc(
+        widget.conversationId,
+      );
+      final data = snapshot?.data();
+      final conversationMap = data is Map<String, dynamic> ? data : null;
+      final requestStatus = _readRequestStatus(conversationMap);
+      final requestCycle = _readRequestCycle(conversationMap);
+      final requestSenderId = _readOptionalString(
+        conversationMap?['requestSenderId'],
+      );
+
+      if (!mounted) return;
+      if (requestStatus == _requestStatusPending &&
+          requestSenderId == myUid &&
+          requestCycle != previousRequestCycle) {
+        AppSnackBar.info(context, 'Mensagem enviada para Solicitacoes.');
+      }
+    } catch (e, stack) {
+      AppLogger.warning(
+        'Falha ao verificar status pendente apos envio da mensagem',
+        '$e\n$stack',
+      );
+    }
+  }
+
+  Future<void> _acceptConversationRequest({
+    required String myUid,
+    required String otherUid,
+  }) async {
+    if (_isAcceptingConversationRequest) return;
+
+    setState(() {
+      _isAcceptingConversationRequest = true;
+    });
+
+    final result = await ref
+        .read(chatRepositoryProvider)
+        .acceptConversationRequest(
+          conversationId: widget.conversationId,
+          myUid: myUid,
+          otherUid: otherUid,
+        );
+
+    if (!mounted) return;
+
+    var accepted = false;
+    result.fold(
+      (failure) => AppSnackBar.error(
+        context,
+        'Erro ao aceitar solicitacao: ${failure.message}',
+      ),
+      (_) {
+        accepted = true;
+        AppSnackBar.success(
+          context,
+          'Solicitacao aceita. Voce ja pode responder.',
+        );
+      },
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _isAcceptingConversationRequest = false;
+      if (accepted) {
+        _hasOptimisticAcceptedRequest = true;
+        _currentRequestStatus = _requestStatusAccepted;
+        _currentRequestSenderId = null;
+        _currentRequestRecipientId = null;
+      }
+    });
+
+    if (accepted) {
+      _invalidateConversationProviders();
+    }
+  }
+
   Future<void> _sendMessage() async {
     if (!_canReadConversation) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _conversationAccessMessage ?? 'Conversa indisponivel no momento.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        AppSnackBar.error(
+          context,
+          _conversationAccessMessage ?? 'Conversa indisponivel no momento.',
         );
       }
       return;
@@ -1006,25 +1187,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ref.read(authRepositoryProvider).currentUser?.uid;
     if (myUid == null) return;
 
+    if (_isPendingRecipient(myUid)) {
+      if (mounted) {
+        AppSnackBar.warning(
+          context,
+          'Aceite a solicitacao para responder esta conversa.',
+        );
+      }
+      return;
+    }
+
     final otherUid = _resolveOtherUid(myUid);
     if (otherUid.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Participantes da conversa invalidos.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppSnackBar.error(context, 'Participantes da conversa invalidos.');
       }
       return;
     }
 
     if (!await _canSendMessageWithVerifiedEmail()) return;
 
-    final localMessageId = _addPendingMessage(text);
+    final previousRequestStatus = _currentRequestStatus;
+    final previousRequestCycle = _currentRequestCycle;
+    final previousRequestSenderId = _currentRequestSenderId;
+    final replyToMessage = _replyingToMessage;
+    final localMessageId = _addPendingMessage(
+      text,
+      replyToMessage: replyToMessage,
+    );
 
     // Optimistic UX: clear instantly and send in background.
     _textController.clear();
+    if (mounted) {
+      setState(() {
+        _replyingToMessage = null;
+      });
+    } else {
+      _replyingToMessage = null;
+    }
     _scrollToLatestMessage();
 
     unawaited(
@@ -1033,6 +1233,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         text: text,
         myUid: myUid,
         otherUid: otherUid,
+        previousRequestStatus: previousRequestStatus,
+        previousRequestCycle: previousRequestCycle,
+        previousRequestSenderId: previousRequestSenderId,
+        replyToMessage: replyToMessage,
       ),
     );
   }
@@ -1042,6 +1246,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required String text,
     required String myUid,
     required String otherUid,
+    required String previousRequestStatus,
+    required int previousRequestCycle,
+    required String? previousRequestSenderId,
+    required Message? replyToMessage,
   }) async {
     try {
       final repository = ref.read(chatRepositoryProvider);
@@ -1052,6 +1260,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           myUid: myUid,
           otherUid: otherUid,
           clientMessageId: localMessageId,
+          replyToMessageId: replyToMessage?.id,
+          replyToSenderId: replyToMessage?.senderId,
+          replyToText: replyToMessage?.text,
+          replyToType: replyToMessage?.type,
           conversationType: _conversationType,
         );
         return result.fold((failure) => failure.message, (_) => null);
@@ -1068,29 +1280,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
       if (failureMessage == null) {
         _removePendingMessage(localMessageId);
+        await _maybeShowPendingRequestSnackbarAfterSend(
+          repository: repository,
+          myUid: myUid,
+          previousRequestStatus: previousRequestStatus,
+          previousRequestCycle: previousRequestCycle,
+          previousRequestSenderId: previousRequestSenderId,
+        );
         return;
       }
 
       _removePendingMessage(localMessageId);
-      _restoreDraftIfInputEmpty(text);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao enviar mensagem: $failureMessage'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _restoreDraftIfInputEmpty(text, replyToMessage: replyToMessage);
+      AppSnackBar.error(context, 'Erro ao enviar mensagem: $failureMessage');
     } catch (e) {
       if (!mounted) return;
 
       _removePendingMessage(localMessageId);
-      _restoreDraftIfInputEmpty(text);
+      _restoreDraftIfInputEmpty(text, replyToMessage: replyToMessage);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao enviar mensagem: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppSnackBar.error(context, 'Erro ao enviar mensagem: $e');
     }
   }
 
@@ -1174,6 +1383,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final conversationMap = conversationData is Map<String, dynamic>
         ? conversationData
         : null;
+    _syncConversationRequestState(conversationMap);
+    final isPendingRecipient = _isPendingRecipient(currentUserId);
 
     final participants = List<String>.from(
       conversationMap?['participants'] ?? const <String>[],
@@ -1198,6 +1409,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         currentUserId: currentUserId,
         otherUid: otherUid,
         readUntilMap: readUntilMap,
+        isPendingRecipient: isPendingRecipient,
       ),
     );
   }

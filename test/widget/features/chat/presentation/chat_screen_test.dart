@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/design_system/components/feedback/app_confirmation_dialog.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
@@ -23,6 +24,10 @@ class _ReadyChatRepository extends FakeChatRepository {
   final DocumentSnapshot<Map<String, dynamic>> _conversationDoc;
   final Message? _message;
   int sendCalls = 0;
+  String? lastReplyToMessageId;
+  String? lastReplyToSenderId;
+  String? lastReplyToText;
+  String? lastReplyToType;
 
   _ReadyChatRepository({
     required String conversationId,
@@ -56,7 +61,10 @@ class _ReadyChatRepository extends FakeChatRepository {
     int limit = 50,
   }) {
     return Stream.value(
-      MockQuerySnapshot<Map<String, dynamic>>(data: _message?.toFirestore()),
+      MockQuerySnapshot<Map<String, dynamic>>(
+        data: _message?.toFirestore(),
+        docId: _message?.id ?? 'test-doc-id',
+      ),
     );
   }
 
@@ -91,9 +99,17 @@ class _ReadyChatRepository extends FakeChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
     String conversationType = 'direct',
   }) async {
     sendCalls += 1;
+    lastReplyToMessageId = replyToMessageId;
+    lastReplyToSenderId = replyToSenderId;
+    lastReplyToText = replyToText;
+    lastReplyToType = replyToType;
     return const Right(unit);
   }
 }
@@ -148,6 +164,10 @@ class _DraftChatRepository extends FakeChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
     String conversationType = 'direct',
   }) async {
     sendCalls += 1;
@@ -191,6 +211,110 @@ class _DelayedRestoreChatRepository extends _ReadyChatRepository {
     String? fallbackOtherUserPhoto,
   }) async {
     await restoreCompleter.future;
+    return const Right(unit);
+  }
+}
+
+class _PendingRecipientChatRepository extends FakeChatRepository {
+  final DocumentSnapshot<Map<String, dynamic>> _conversationDoc;
+  final Message? _message;
+  int sendCalls = 0;
+  int acceptCalls = 0;
+
+  _PendingRecipientChatRepository({
+    required String conversationId,
+    required List<String> participants,
+    Message? message,
+  }) : _conversationDoc = MockDocumentSnapshot<Map<String, dynamic>>(
+         id: conversationId,
+         data: {
+           'participants': participants,
+           'readUntil': <String, dynamic>{},
+           'requestStatus': 'pending',
+           'requestSenderId': 'user-2',
+           'requestRecipientId': 'user-1',
+           'requestCycle': 1,
+         },
+         exists: true,
+       ),
+       _message = message;
+
+  @override
+  Future<DocumentSnapshot?> getConversationDoc(String conversationId) async {
+    return _conversationDoc;
+  }
+
+  @override
+  Stream<DocumentSnapshot> getConversationStream(String conversationId) {
+    return Stream.value(_conversationDoc);
+  }
+
+  @override
+  Stream<List<Message>> getMessages(String conversationId) {
+    return Stream.value(_message == null ? const [] : [_message]);
+  }
+
+  @override
+  Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
+    String conversationId, {
+    int limit = 50,
+  }) {
+    return Stream.value(
+      MockQuerySnapshot<Map<String, dynamic>>(
+        data: _message?.toFirestore(),
+        docId: _message?.id ?? 'test-doc-id',
+      ),
+    );
+  }
+
+  @override
+  Future<MessagesPage> getMessagesPage({
+    required String conversationId,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDoc,
+    int limit = 50,
+  }) async {
+    return const MessagesPage(
+      messages: [],
+      lastVisibleDoc: null,
+      hasMore: false,
+    );
+  }
+
+  @override
+  FutureResult<Unit> restoreConversationPreview({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+    String? fallbackOtherUserName,
+    String? fallbackOtherUserPhoto,
+  }) async {
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> sendMessage({
+    required String conversationId,
+    required String text,
+    required String myUid,
+    required String otherUid,
+    String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
+    String conversationType = 'direct',
+  }) async {
+    sendCalls += 1;
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> acceptConversationRequest({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    acceptCalls += 1;
     return const Right(unit);
   }
 }
@@ -289,8 +413,9 @@ void main() {
         chatRepositoryProvider.overrideWithValue(fakeChatRepo),
         chatSafetyRepositoryProvider.overrideWithValue(fakeChatSafetyRepo),
       ],
-      child: const MaterialApp(
-        home: ChatScreen(
+      child: MaterialApp(
+        scaffoldMessengerKey: scaffoldMessengerKey,
+        home: const ChatScreen(
           conversationId: 'user-1_user-2',
           extra: {'otherUserId': 'user-2', 'otherUserName': 'Other User'},
         ),
@@ -478,6 +603,196 @@ void main() {
     final textWidget = tester.widget<Text>(find.text('Mensagem de teste'));
 
     expect(textWidget.style?.fontSize, AppTypography.bodyLarge.fontSize);
+  });
+
+  testWidgets('enters reply mode on swipe and sends reply payload', (
+    tester,
+  ) async {
+    fakeAuthRepo = FakeAuthRepository(
+      initialUser: FakeFirebaseUser(uid: 'user-1', emailVerified: true),
+    );
+    fakeAuthRepo.appUser = user;
+    final replyRepository = _ReadyChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      message: Message(
+        id: 'message-1',
+        senderId: 'user-2',
+        text: 'Mensagem de teste',
+        createdAt: Timestamp.now(),
+      ),
+    );
+    fakeChatRepo = replyRepository;
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.text('Mensagem de teste').first,
+      const Offset(96, 0),
+    );
+    await tester.pump();
+
+    expect(find.text('Respondendo a Other User'), findsOneWidget);
+
+    await tester.enterText(find.byType(EditableText), 'Resposta citada');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect(replyRepository.sendCalls, 1);
+    expect(replyRepository.lastReplyToMessageId, 'message-1');
+    expect(replyRepository.lastReplyToSenderId, 'user-2');
+    expect(replyRepository.lastReplyToText, 'Mensagem de teste');
+    expect(replyRepository.lastReplyToType, 'text');
+    expect(find.text('Respondendo a Other User'), findsNothing);
+  });
+
+  testWidgets('renders stored reply preview inside message bubble', (
+    tester,
+  ) async {
+    fakeChatRepo = _ReadyChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      message: Message(
+        id: 'message-2',
+        senderId: 'user-1',
+        text: 'Resposta citada',
+        createdAt: Timestamp.now(),
+        replyToMessageId: 'message-1',
+        replyToSenderId: 'user-2',
+        replyToText: 'Mensagem original',
+        replyToType: 'text',
+      ),
+    );
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mensagem original'), findsOneWidget);
+    expect(find.text('Resposta citada'), findsOneWidget);
+  });
+
+  testWidgets('enters reply mode on right swipe for my own messages', (
+    tester,
+  ) async {
+    fakeAuthRepo = FakeAuthRepository(
+      initialUser: FakeFirebaseUser(uid: 'user-1', emailVerified: true),
+    );
+    fakeAuthRepo.appUser = user;
+    final replyRepository = _ReadyChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      message: Message(
+        id: 'message-own',
+        senderId: 'user-1',
+        text: 'Minha mensagem',
+        createdAt: Timestamp.now(),
+      ),
+    );
+    fakeChatRepo = replyRepository;
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.text('Minha mensagem').first, const Offset(96, 0));
+    await tester.pump();
+
+    expect(find.text('Respondendo a Voce'), findsOneWidget);
+  });
+
+  testWidgets('enters reply mode on slow incremental swipe', (tester) async {
+    final replyRepository = _ReadyChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      message: Message(
+        id: 'message-slow-swipe',
+        senderId: 'user-2',
+        text: 'Mensagem lenta',
+        createdAt: Timestamp.now(),
+      ),
+    );
+    fakeChatRepo = replyRepository;
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Mensagem lenta').first),
+    );
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump(const Duration(milliseconds: 120));
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump(const Duration(milliseconds: 120));
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump(const Duration(milliseconds: 120));
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump();
+
+    expect(find.text('Respondendo a Other User'), findsNothing);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Respondendo a Other User'), findsOneWidget);
+  });
+
+  testWidgets('shows accept CTA and blocks reply for pending recipient', (
+    tester,
+  ) async {
+    fakeChatRepo = _PendingRecipientChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+      message: Message(
+        id: 'message-1',
+        senderId: 'user-2',
+        text: 'Oi, tudo bem?',
+        createdAt: Timestamp.now(),
+      ),
+    );
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aceitar solicitacao'), findsOneWidget);
+    expect(find.text('Oi, tudo bem?'), findsOneWidget);
+    expect(find.text('Aceite para responder'), findsOneWidget);
+
+    await tester.enterText(find.byType(EditableText), 'Resposta');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+
+    expect((fakeChatRepo as _PendingRecipientChatRepository).sendCalls, 0);
+  });
+
+  testWidgets('accepts pending request from conversation screen', (
+    tester,
+  ) async {
+    fakeChatRepo = _PendingRecipientChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+    );
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Aceitar solicitacao'));
+    await tester.pumpAndSettle();
+
+    expect((fakeChatRepo as _PendingRecipientChatRepository).acceptCalls, 1);
+    expect(
+      find.text('Solicitacao aceita. Voce ja pode responder.'),
+      findsOneWidget,
+    );
+    expect(find.text('Aceite para responder'), findsNothing);
+    expect(find.text('Mensagem...'), findsOneWidget);
   });
 
   testWidgets('shows warning dialog and keeps draft for suspicious content', (

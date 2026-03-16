@@ -28,9 +28,72 @@ class ConversationsScreen extends ConsumerStatefulWidget {
       _ConversationsScreenState();
 }
 
-class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
+class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
+    with SingleTickerProviderStateMixin {
   final Set<String> _deletingConversationIds = <String>{};
   final Set<String> _hiddenConversationIds = <String>{};
+  final Set<String> _acceptingConversationIds = <String>{};
+  final Set<String> _rejectingConversationIds = <String>{};
+  final Map<String, ConversationPreview> _optimisticallyAcceptedConversations =
+      <String, ConversationPreview>{};
+  final Map<String, int?> _hiddenPendingConversationCycles = <String, int?>{};
+
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _invalidateConversationStreams() {
+    ref.invalidate(userConversationsProvider);
+    ref.invalidate(userAcceptedConversationsProvider);
+    ref.invalidate(userPendingConversationsProvider);
+  }
+
+  ConversationPreview _buildAcceptedPreview(ConversationPreview preview) {
+    return ConversationPreview(
+      id: preview.id,
+      otherUserId: preview.otherUserId,
+      otherUserName: preview.otherUserName,
+      otherUserPhoto: preview.otherUserPhoto,
+      lastMessageText: preview.lastMessageText,
+      lastMessageAt: preview.lastMessageAt,
+      lastSenderId: preview.lastSenderId,
+      unreadCount: preview.unreadCount,
+      updatedAt: preview.updatedAt,
+      type: preview.type,
+      isPending: false,
+      requestCycle: null,
+    );
+  }
+
+  int _compareConversationOrder(ConversationPreview a, ConversationPreview b) {
+    final aTimestamp = a.lastMessageAt ?? a.updatedAt;
+    final bTimestamp = b.lastMessageAt ?? b.updatedAt;
+    return bTimestamp.compareTo(aTimestamp);
+  }
+
+  List<ConversationPreview> _mergeAcceptedConversations(
+    List<ConversationPreview> conversations,
+  ) {
+    final byId = <String, ConversationPreview>{
+      for (final preview in _optimisticallyAcceptedConversations.values)
+        preview.id: preview,
+      for (final preview in conversations) preview.id: preview,
+    };
+
+    final merged = byId.values.toList(growable: false);
+    merged.sort(_compareConversationOrder);
+    return merged;
+  }
 
   Future<bool> _confirmDeleteConversation(ConversationPreview preview) async {
     if (_deletingConversationIds.contains(preview.id)) return false;
@@ -85,13 +148,138 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
       }
     });
 
+    if (deleted) {
+      _invalidateConversationStreams();
+    }
+
     return deleted;
+  }
+
+  Future<bool> _acceptConversationRequest(ConversationPreview preview) async {
+    if (_acceptingConversationIds.contains(preview.id) ||
+        _rejectingConversationIds.contains(preview.id)) {
+      return false;
+    }
+
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null) {
+      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      return false;
+    }
+
+    setState(() {
+      _acceptingConversationIds.add(preview.id);
+    });
+
+    final repository = ref.read(chatRepositoryProvider);
+    final result = await repository.acceptConversationRequest(
+      conversationId: preview.id,
+      myUid: currentUser.uid,
+      otherUid: preview.otherUserId,
+    );
+
+    if (!mounted) return false;
+
+    var accepted = false;
+    result.fold(
+      (failure) => AppSnackBar.error(
+        context,
+        'Erro ao aceitar solicitacao: ${failure.message}',
+      ),
+      (_) {
+        accepted = true;
+        AppSnackBar.success(context, 'Solicitacao aceita.');
+      },
+    );
+
+    setState(() {
+      _acceptingConversationIds.remove(preview.id);
+      if (accepted) {
+        _optimisticallyAcceptedConversations[preview.id] =
+            _buildAcceptedPreview(preview);
+        _hiddenPendingConversationCycles.remove(preview.id);
+      }
+    });
+
+    if (accepted) {
+      _tabController.animateTo(0);
+      _invalidateConversationStreams();
+    }
+
+    return accepted;
+  }
+
+  Future<bool> _rejectConversationRequest(ConversationPreview preview) async {
+    if (_acceptingConversationIds.contains(preview.id) ||
+        _rejectingConversationIds.contains(preview.id)) {
+      return false;
+    }
+
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null) {
+      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      return false;
+    }
+
+    final confirmed = await AppOverlay.dialog<bool>(
+      context: context,
+      builder: (dialogContext) => const AppConfirmationDialog(
+        title: 'Recusar solicitacao?',
+        message:
+            'A conversa saira de Solicitacoes, mas podera reaparecer se a pessoa enviar uma nova mensagem.',
+        confirmText: 'Recusar',
+        isDestructive: true,
+      ),
+    );
+
+    if (confirmed != true || !mounted) return false;
+
+    setState(() {
+      _rejectingConversationIds.add(preview.id);
+    });
+
+    final repository = ref.read(chatRepositoryProvider);
+    final result = await repository.rejectConversationRequest(
+      conversationId: preview.id,
+      myUid: currentUser.uid,
+      otherUid: preview.otherUserId,
+    );
+
+    if (!mounted) return false;
+
+    var rejected = false;
+    result.fold(
+      (failure) => AppSnackBar.error(
+        context,
+        'Erro ao recusar solicitacao: ${failure.message}',
+      ),
+      (_) {
+        rejected = true;
+        AppSnackBar.success(context, 'Solicitacao recusada.');
+      },
+    );
+
+    setState(() {
+      _rejectingConversationIds.remove(preview.id);
+      if (rejected) {
+        _hiddenPendingConversationCycles[preview.id] = preview.requestCycle;
+      }
+    });
+
+    if (rejected) {
+      _invalidateConversationStreams();
+    }
+
+    return rejected;
   }
 
   Future<void> _refreshConversations() async {
     try {
-      final refreshFuture = ref.refresh(userConversationsProvider.future);
-      await refreshFuture;
+      await Future.wait([
+        ref.refresh(userConversationsProvider.future),
+        ref.refresh(userAcceptedConversationsProvider.future),
+        ref.refresh(userPendingConversationsProvider.future),
+      ]);
     } catch (_) {
       // Keep pull-to-refresh silent when stream emits error.
     }
@@ -103,140 +291,330 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
         (lastMessageText != null && lastMessageText.isNotEmpty);
   }
 
+  bool _isHiddenPendingConversation(ConversationPreview preview) {
+    return _hiddenPendingConversationCycles[preview.id] == preview.requestCycle;
+  }
+
+  Future<bool> _handlePendingDismiss(
+    ConversationPreview preview,
+    DismissDirection direction,
+  ) {
+    if (direction == DismissDirection.startToEnd) {
+      return _acceptConversationRequest(preview);
+    }
+    if (direction == DismissDirection.endToStart) {
+      return _rejectConversationRequest(preview);
+    }
+    return Future.value(false);
+  }
+
+  void _openConversation(BuildContext context, ConversationPreview preview) {
+    context.push(
+      RoutePaths.conversationById(preview.id),
+      extra: {
+        'otherUserId': preview.otherUserId,
+        'otherUserName': preview.otherUserName,
+        'otherUserPhoto': preview.otherUserPhoto,
+        'conversationType': preview.type,
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final conversationsAsync = ref.watch(directConversationsProvider);
+    final acceptedAsync = ref.watch(userAcceptedConversationsProvider);
+    final pendingAsync = ref.watch(userPendingConversationsProvider);
     final currentUserId =
         ref.watch(currentUserProfileProvider).value?.uid ?? '';
+    final pendingCount =
+        pendingAsync.value
+            ?.where(
+              (preview) =>
+                  preview.type != 'matchpoint' &&
+                  !_optimisticallyAcceptedConversations.containsKey(
+                    preview.id,
+                  ) &&
+                  !_isHiddenPendingConversation(preview) &&
+                  _hasConversationActivity(preview),
+            )
+            .length ??
+        0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Conversas'),
-      body: conversationsAsync.when(
-        data: (conversations) {
-          final visibleConversations = conversations
-              .where(
-                (conversation) =>
-                    _hasConversationActivity(conversation) &&
-                    !_hiddenConversationIds.contains(conversation.id),
-              )
-              .toList(growable: false);
-          if (visibleConversations.isEmpty) {
-            return AppRefreshIndicator(
-              onRefresh: _refreshConversations,
-              child: ListView(
-                physics: AppRefreshIndicator.defaultScrollPhysics,
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.72,
-                    child: _buildEmptyState(),
-                  ),
-                ],
-              ),
-            );
-          }
-          return AppRefreshIndicator(
-            onRefresh: _refreshConversations,
-            child: ListView.builder(
-              physics: AppRefreshIndicator.defaultScrollPhysics,
-              padding: AppSpacing.v8,
-              itemCount: visibleConversations.length,
-              itemBuilder: (context, index) {
-                final preview = visibleConversations[index];
-                final isDeleting = _deletingConversationIds.contains(
-                  preview.id,
-                );
-                return Dismissible(
-                  key: ValueKey('dismiss_${preview.id}'),
-                  direction: isDeleting
-                      ? DismissDirection.none
-                      : DismissDirection.endToStart,
-                  confirmDismiss: (_) => _confirmDeleteConversation(preview),
-                  background: const _ConversationDismissBackground(),
-                  child: _ConversationTile(
-                    key: ValueKey(preview.id),
-                    preview: preview,
-                    currentUserId: currentUserId,
-                    isDeleting: isDeleting,
-                    onTap: () => context.push(
-                      RoutePaths.conversationById(preview.id),
-                      extra: {
-                        'otherUserId': preview.otherUserId,
-                        'otherUserName': preview.otherUserName,
-                        'otherUserPhoto': preview.otherUserPhoto,
-                        'conversationType': preview.type,
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-        loading: () =>
-            const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
-        error: (error, stack) => AppRefreshIndicator(
-          onRefresh: _refreshConversations,
-          child: ListView(
-            physics: AppRefreshIndicator.defaultScrollPhysics,
-            padding: AppSpacing.all24,
-            children: [
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.72,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: AppColors.textSecondary.withValues(alpha: 0.9),
-                        size: 42,
-                      ),
-                      const SizedBox(height: AppSpacing.s12),
-                      Text(
-                        'Erro ao carregar conversas',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.s8),
-                      Text(
-                        'Puxe para atualizar ou tente novamente.',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.s16),
-                      OutlinedButton.icon(
-                        onPressed: _refreshConversations,
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: const Text('Tentar novamente'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      appBar: AppAppBar(
+        title: 'Conversas',
+        bottom: TabBar(
+          controller: _tabController,
+          dividerColor: AppColors.surfaceHighlight.withValues(alpha: 0.6),
+          indicatorColor: AppColors.primary,
+          indicatorWeight: 2,
+          labelColor: AppColors.textPrimary,
+          unselectedLabelColor: AppColors.textSecondary,
+          labelStyle: AppTypography.titleSmall.copyWith(
+            fontWeight: AppTypography.buttonPrimary.fontWeight,
           ),
+          unselectedLabelStyle: AppTypography.titleSmall,
+          tabs: [
+            const Tab(text: 'Conversas'),
+            Tab(
+              child: _TabLabel(text: 'Solicitacoes', count: pendingCount),
+            ),
+          ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildAcceptedTab(
+            context: context,
+            conversationsAsync: acceptedAsync,
+            currentUserId: currentUserId,
+          ),
+          _buildPendingTab(
+            context: context,
+            conversationsAsync: pendingAsync,
+            currentUserId: currentUserId,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildAcceptedTab({
+    required BuildContext context,
+    required AsyncValue<List<ConversationPreview>> conversationsAsync,
+    required String currentUserId,
+  }) {
+    return conversationsAsync.when(
+      data: (conversations) {
+        final visibleConversations = _mergeAcceptedConversations(conversations)
+            .where(
+              (conversation) =>
+                  _hasConversationActivity(conversation) &&
+                  !_hiddenConversationIds.contains(conversation.id),
+            )
+            .toList(growable: false);
+        if (visibleConversations.isEmpty) {
+          return AppRefreshIndicator(
+            onRefresh: _refreshConversations,
+            child: ListView(
+              physics: AppRefreshIndicator.defaultScrollPhysics,
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.72,
+                  child: _buildEmptyState(
+                    icon: Icons.chat_bubble_outline,
+                    title: 'Nenhuma conversa ainda',
+                    message: 'Suas conexoes e amigos aparecerao aqui.',
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return AppRefreshIndicator(
+          onRefresh: _refreshConversations,
+          child: ListView.builder(
+            physics: AppRefreshIndicator.defaultScrollPhysics,
+            padding: AppSpacing.v8,
+            itemCount: visibleConversations.length,
+            itemBuilder: (context, index) {
+              final preview = visibleConversations[index];
+              final isDeleting = _deletingConversationIds.contains(preview.id);
+              return Dismissible(
+                key: ValueKey('accepted_${preview.id}'),
+                direction: isDeleting
+                    ? DismissDirection.none
+                    : DismissDirection.endToStart,
+                confirmDismiss: (_) => _confirmDeleteConversation(preview),
+                background: const _ConversationSwipeBackground(
+                  color: AppColors.error,
+                  icon: Icons.visibility_off_outlined,
+                  label: 'Ocultar',
+                  alignment: Alignment.centerRight,
+                ),
+                child: _ConversationTile(
+                  key: ValueKey(preview.id),
+                  preview: preview,
+                  currentUserId: currentUserId,
+                  isProcessing: isDeleting,
+                  semanticHint:
+                      'Toque para abrir. Deslize para ocultar conversa.',
+                  onTap: () => _openConversation(context, preview),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () =>
+          const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
+      error: (error, stack) => _buildErrorState(
+        context: context,
+        title: 'Erro ao carregar conversas',
+      ),
+    );
+  }
+
+  Widget _buildPendingTab({
+    required BuildContext context,
+    required AsyncValue<List<ConversationPreview>> conversationsAsync,
+    required String currentUserId,
+  }) {
+    return conversationsAsync.when(
+      data: (conversations) {
+        final visibleConversations = conversations
+            .where(
+              (conversation) =>
+                  conversation.type != 'matchpoint' &&
+                  !_optimisticallyAcceptedConversations.containsKey(
+                    conversation.id,
+                  ) &&
+                  _hasConversationActivity(conversation) &&
+                  !_isHiddenPendingConversation(conversation),
+            )
+            .toList(growable: false);
+        if (visibleConversations.isEmpty) {
+          return AppRefreshIndicator(
+            onRefresh: _refreshConversations,
+            child: ListView(
+              physics: AppRefreshIndicator.defaultScrollPhysics,
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.72,
+                  child: _buildEmptyState(
+                    icon: Icons.inbox_outlined,
+                    title: 'Nenhuma solicitacao',
+                    message:
+                        'Novas mensagens recebidas em chat privado aparecerao aqui.',
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return AppRefreshIndicator(
+          onRefresh: _refreshConversations,
+          child: ListView.builder(
+            physics: AppRefreshIndicator.defaultScrollPhysics,
+            padding: AppSpacing.v8,
+            itemCount: visibleConversations.length,
+            itemBuilder: (context, index) {
+              final preview = visibleConversations[index];
+              final isProcessing =
+                  _acceptingConversationIds.contains(preview.id) ||
+                  _rejectingConversationIds.contains(preview.id);
+              return Dismissible(
+                key: ValueKey('pending_${preview.id}_${preview.requestCycle}'),
+                direction: isProcessing
+                    ? DismissDirection.none
+                    : DismissDirection.horizontal,
+                confirmDismiss: (direction) =>
+                    _handlePendingDismiss(preview, direction),
+                background: const _ConversationSwipeBackground(
+                  color: AppColors.primary,
+                  icon: Icons.check_rounded,
+                  label: 'Aceitar',
+                  alignment: Alignment.centerLeft,
+                ),
+                secondaryBackground: const _ConversationSwipeBackground(
+                  color: AppColors.error,
+                  icon: Icons.close_rounded,
+                  label: 'Recusar',
+                  alignment: Alignment.centerRight,
+                ),
+                child: _ConversationTile(
+                  key: ValueKey('${preview.id}_${preview.requestCycle}'),
+                  preview: preview,
+                  currentUserId: currentUserId,
+                  isProcessing: isProcessing,
+                  semanticHint:
+                      'Toque para abrir. Deslize para aceitar ou recusar solicitacao.',
+                  onTap: () => _openConversation(context, preview),
+                ),
+              );
+            },
+          ),
+        );
+      },
+      loading: () =>
+          const SkeletonShimmer(child: UserListSkeleton(itemCount: 4)),
+      error: (error, stack) => _buildErrorState(
+        context: context,
+        title: 'Erro ao carregar solicitacoes',
+      ),
+    );
+  }
+
+  Widget _buildErrorState({
+    required BuildContext context,
+    required String title,
+  }) {
+    return AppRefreshIndicator(
+      onRefresh: _refreshConversations,
+      child: ListView(
+        physics: AppRefreshIndicator.defaultScrollPhysics,
+        padding: AppSpacing.all24,
+        children: [
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.72,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    size: 42,
+                  ),
+                  const SizedBox(height: AppSpacing.s12),
+                  Text(
+                    title,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s8),
+                  Text(
+                    'Puxe para atualizar ou tente novamente.',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                  OutlinedButton.icon(
+                    onPressed: _refreshConversations,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Tentar novamente'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.chat_bubble_outline,
+            icon,
             size: 80,
             color: AppColors.textSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: AppSpacing.s24),
           Text(
-            'Nenhuma conversa ainda',
+            title,
             style: AppTypography.headlineMedium.copyWith(
               color: AppColors.textPrimary,
             ),
@@ -245,7 +623,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s48),
             child: Text(
-              'Suas conexoes e amigos aparecerao aqui.',
+              message,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -258,18 +636,57 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   }
 }
 
+class _TabLabel extends StatelessWidget {
+  final String text;
+  final int count;
+
+  const _TabLabel({required this.text, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(text),
+        if (count > 0) ...[
+          const SizedBox(width: AppSpacing.s8),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s8,
+              vertical: AppSpacing.s2,
+            ),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: AppRadius.all12,
+            ),
+            child: Text(
+              count > 99 ? '99+' : '$count',
+              style: AppTypography.chipLabel.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _ConversationTile extends StatelessWidget {
   final ConversationPreview preview;
   final String currentUserId;
   final VoidCallback onTap;
-  final bool isDeleting;
+  final bool isProcessing;
+  final String semanticHint;
 
   const _ConversationTile({
     super.key,
     required this.preview,
     required this.currentUserId,
     required this.onTap,
-    this.isDeleting = false,
+    required this.semanticHint,
+    this.isProcessing = false,
   });
 
   @override
@@ -284,12 +701,12 @@ class _ConversationTile extends StatelessWidget {
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 160),
-      opacity: isDeleting ? 0.6 : 1,
+      opacity: isProcessing ? 0.6 : 1,
       child: Semantics(
         button: true,
         label:
             'Conversa com ${preview.otherUserName}$semanticUnread$semanticTime. Ultima mensagem: $lastMessagePreview',
-        hint: 'Toque para abrir. Deslize para ocultar conversa.',
+        hint: semanticHint,
         child: Container(
           margin: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s16,
@@ -304,7 +721,7 @@ class _ConversationTile extends StatelessWidget {
             ),
           ),
           child: InkWell(
-            onTap: isDeleting ? null : onTap,
+            onTap: isProcessing ? null : onTap,
             borderRadius: AppRadius.all16,
             child: Padding(
               padding: AppSpacing.all16,
@@ -365,7 +782,7 @@ class _ConversationTile extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (isDeleting) ...[
+                            if (isProcessing) ...[
                               const SizedBox(width: AppSpacing.s8),
                               const SizedBox(
                                 width: 18,
@@ -434,36 +851,51 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
-class _ConversationDismissBackground extends StatelessWidget {
-  const _ConversationDismissBackground();
+class _ConversationSwipeBackground extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final String label;
+  final Alignment alignment;
+
+  const _ConversationSwipeBackground({
+    required this.color,
+    required this.icon,
+    required this.label,
+    required this.alignment,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isStartAligned = alignment == Alignment.centerLeft;
+
     return Container(
+      alignment: alignment,
       margin: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s16,
         vertical: AppSpacing.s4,
       ),
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
-      decoration: const BoxDecoration(
-        color: AppColors.error,
-        borderRadius: AppRadius.all16,
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: AppRadius.all16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: isStartAligned
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.end,
         children: [
-          Icon(
-            Icons.visibility_off_outlined,
-            color: AppColors.textPrimary.withValues(alpha: 0.95),
-          ),
-          const SizedBox(width: AppSpacing.s8),
+          if (!isStartAligned) ...[
+            Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.95)),
+            const SizedBox(width: AppSpacing.s8),
+          ],
           Text(
-            'Ocultar',
+            label,
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textPrimary,
               fontWeight: AppTypography.titleSmall.fontWeight,
             ),
           ),
+          if (isStartAligned) ...[
+            const SizedBox(width: AppSpacing.s8),
+            Icon(icon, color: AppColors.textPrimary.withValues(alpha: 0.95)),
+          ],
         ],
       ),
     );
