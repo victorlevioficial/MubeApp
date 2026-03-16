@@ -72,6 +72,10 @@ class OnboardingController extends _$OnboardingController {
         foto: foto ?? currentUser.foto,
         location: location,
         addresses: _buildOnboardingAddresses(location),
+        privacySettings: {
+          ...currentUser.privacySettings,
+          'chat_open': _defaultChatOpenForType(currentUser.tipoPerfil),
+        },
         cadastroStatus: 'concluido',
         status: currentUser.tipoPerfil == AppUserType.band
             ? profileDraftStatus
@@ -89,6 +93,16 @@ class OnboardingController extends _$OnboardingController {
       result.fold((l) => throw l, (r) => null);
       await ref.read(onboardingFormProvider.notifier).clearState();
     });
+  }
+
+  bool _defaultChatOpenForType(AppUserType? userType) {
+    return switch (userType) {
+      AppUserType.contractor => false,
+      AppUserType.professional ||
+      AppUserType.band ||
+      AppUserType.studio => true,
+      null => true,
+    };
   }
 
   List<SavedAddress> _buildOnboardingAddresses(Map<String, dynamic> location) {

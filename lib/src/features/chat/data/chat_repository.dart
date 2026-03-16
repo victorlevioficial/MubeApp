@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
@@ -13,22 +14,30 @@ import 'package:mube/src/utils/app_performance_tracker.dart';
 
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
+import 'chat_access_resolver.dart';
 
 /// Repository para gerenciar conversas e mensagens no Firestore.
 class ChatRepository {
   final FirebaseFirestore _firestore;
   final AnalyticsService? _analytics;
   final AuthRepository? _authRepository;
+  final ChatAccessResolver _chatAccessResolver;
   static const int _defaultMessagesPageSize = 50;
   static const Duration _securityContextRefreshCooldown = Duration(seconds: 4);
+  static const String _requestStatusAccepted = 'accepted';
+  static const String _requestStatusPending = 'pending';
+  static const String _requestStatusRejected = 'rejected';
   DateTime? _lastSecurityContextRefreshAt;
 
   ChatRepository(
     this._firestore, {
     AnalyticsService? analytics,
     AuthRepository? authRepository,
+    ChatAccessResolver? chatAccessResolver,
   }) : _analytics = analytics,
-       _authRepository = authRepository;
+       _authRepository = authRepository,
+       _chatAccessResolver =
+           chatAccessResolver ?? ChatAccessResolver(_firestore);
 
   Map<String, dynamic>? _asMap(Object? data) {
     if (data is Map<String, dynamic>) return data;
@@ -65,6 +74,33 @@ class ChatRepository {
     String fallback = 'direct',
   }) {
     return _readNonEmptyString(type) ?? fallback;
+  }
+
+  String _requestStatusFromData(
+    Map<String, dynamic>? data, {
+    String fallback = _requestStatusAccepted,
+  }) {
+    final normalized = _readNonEmptyString(data?['requestStatus']);
+    if (normalized == _requestStatusPending ||
+        normalized == _requestStatusRejected ||
+        normalized == _requestStatusAccepted) {
+      return normalized!;
+    }
+    return fallback;
+  }
+
+  int _requestCycleFromData(Map<String, dynamic>? data) {
+    final value = data?['requestCycle'];
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  String? _requestSenderIdFromData(Map<String, dynamic>? data) {
+    return _readNonEmptyString(data?['requestSenderId']);
+  }
+
+  String? _requestRecipientIdFromData(Map<String, dynamic>? data) {
+    return _readNonEmptyString(data?['requestRecipientId']);
   }
 
   String? _buildShortPersonName(Object? rawName) {
@@ -232,6 +268,18 @@ class ChatRepository {
     }
   }
 
+  Future<void> _commitBatchWithSecurityContextRecovery(
+    void Function(WriteBatch batch) buildBatch, {
+    required String operationLabel,
+  }) {
+    // Firestore batches are single-use. Recreate them on each retry attempt.
+    return _runWithSecurityContextRecovery(() async {
+      final batch = _firestore.batch();
+      buildBatch(batch);
+      await batch.commit();
+    }, operationLabel: operationLabel);
+  }
+
   Stream<T> _watchWithSecurityContextRecovery<T>(
     Stream<T> Function() createStream, {
     required String operationLabel,
@@ -286,6 +334,104 @@ class ChatRepository {
     }
   }
 
+  bool _isPendingForUser(
+    Map<String, dynamic>? conversationData,
+    String userId,
+  ) {
+    return _requestStatusFromData(conversationData) == _requestStatusPending &&
+        _requestRecipientIdFromData(conversationData) == userId;
+  }
+
+  int _resolvePendingRequestCycle({
+    required Map<String, dynamic>? conversationData,
+    required String senderId,
+    required String recipientId,
+  }) {
+    final currentStatus = _requestStatusFromData(conversationData);
+    final currentCycle = _requestCycleFromData(conversationData);
+    final currentSenderId = _requestSenderIdFromData(conversationData);
+    final currentRecipientId = _requestRecipientIdFromData(conversationData);
+
+    if (currentStatus == _requestStatusPending &&
+        currentSenderId == senderId &&
+        currentRecipientId == recipientId) {
+      return currentCycle > 0 ? currentCycle : 1;
+    }
+
+    return currentCycle > 0 ? currentCycle + 1 : 1;
+  }
+
+  Map<String, dynamic> _buildAcceptedRequestFields({
+    required Map<String, dynamic>? conversationData,
+  }) {
+    return {
+      'requestStatus': _requestStatusAccepted,
+      'requestRecipientId': null,
+      'requestSenderId': null,
+      'requestCycle': _requestCycleFromData(conversationData),
+      'requestUpdatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> _buildPendingRequestFields({
+    required Map<String, dynamic>? conversationData,
+    required String senderId,
+    required String recipientId,
+  }) {
+    return {
+      'requestStatus': _requestStatusPending,
+      'requestRecipientId': recipientId,
+      'requestSenderId': senderId,
+      'requestCycle': _resolvePendingRequestCycle(
+        conversationData: conversationData,
+        senderId: senderId,
+        recipientId: recipientId,
+      ),
+      'requestUpdatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> _buildRejectedRequestFields({
+    required Map<String, dynamic>? conversationData,
+    required String senderId,
+    required String recipientId,
+  }) {
+    return {
+      'requestStatus': _requestStatusRejected,
+      'requestRecipientId': recipientId,
+      'requestSenderId': senderId,
+      'requestCycle': _requestCycleFromData(conversationData),
+      'requestUpdatedAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> _buildPreviewPayload({
+    required String otherUserId,
+    required String otherUserName,
+    required String? otherUserPhoto,
+    required String? lastMessageText,
+    required Object? lastMessageAt,
+    required String? lastSenderId,
+    required Object unreadCount,
+    required String type,
+    required bool isPending,
+    int? requestCycle,
+  }) {
+    return {
+      'otherUserId': otherUserId,
+      'otherUserName': otherUserName,
+      'otherUserPhoto': otherUserPhoto,
+      'lastMessageText': lastMessageText,
+      'lastMessageAt': lastMessageAt,
+      'lastSenderId': lastSenderId,
+      'unreadCount': unreadCount,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'type': type,
+      'isPending': isPending,
+      'requestCycle': requestCycle,
+    };
+  }
+
   Future<ChatParticipantPreview> getConversationParticipantPreview(
     String uid,
   ) async {
@@ -294,6 +440,101 @@ class ChatRepository {
       displayName: info.displayName,
       photoUrl: info.photoUrl,
     );
+  }
+
+  Future<bool> _ensureConversationExistsForSend({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+    required _UserPreviewInfo myInfo,
+    required _UserPreviewInfo otherInfo,
+    required String conversationType,
+    required Map<String, dynamic> requestFields,
+  }) async {
+    final conversationRef = _firestore
+        .collection('conversations')
+        .doc(conversationId);
+    final myPreviewRef = _firestore
+        .collection('users')
+        .doc(myUid)
+        .collection('conversationPreviews')
+        .doc(conversationId);
+    final otherPreviewRef = _firestore
+        .collection('users')
+        .doc(otherUid)
+        .collection('conversationPreviews')
+        .doc(conversationId);
+
+    final requestStatus =
+        requestFields['requestStatus'] as String? ?? _requestStatusAccepted;
+    final pendingCycle = requestFields['requestCycle'] is int
+        ? requestFields['requestCycle'] as int
+        : null;
+    final senderPreviewCycle = requestStatus == _requestStatusPending
+        ? pendingCycle
+        : null;
+    final recipientPreviewCycle = requestStatus == _requestStatusPending
+        ? pendingCycle
+        : null;
+    final isRecipientPending = requestStatus == _requestStatusPending;
+
+    var created = false;
+
+    await _runWithSecurityContextRecovery(() {
+      return _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(conversationRef);
+        if (snapshot.exists) return;
+
+        created = true;
+
+        transaction.set(conversationRef, {
+          'participants': [myUid, otherUid],
+          'participantsMap': {myUid: true, otherUid: true},
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'readUntil': {myUid: Timestamp(0, 0), otherUid: Timestamp(0, 0)},
+          'lastMessageText': null,
+          'lastMessageAt': null,
+          'lastSenderId': null,
+          'type': conversationType,
+          ...requestFields,
+        });
+
+        transaction.set(
+          myPreviewRef,
+          _buildPreviewPayload(
+            otherUserId: otherUid,
+            otherUserName: otherInfo.displayName,
+            otherUserPhoto: otherInfo.photoUrl,
+            lastMessageText: null,
+            lastMessageAt: null,
+            lastSenderId: null,
+            unreadCount: 0,
+            type: conversationType,
+            isPending: false,
+            requestCycle: senderPreviewCycle,
+          ),
+        );
+
+        transaction.set(
+          otherPreviewRef,
+          _buildPreviewPayload(
+            otherUserId: myUid,
+            otherUserName: myInfo.displayName,
+            otherUserPhoto: myInfo.photoUrl,
+            lastMessageText: null,
+            lastMessageAt: null,
+            lastSenderId: null,
+            unreadCount: 0,
+            type: conversationType,
+            isPending: isRecipientPending,
+            requestCycle: recipientPreviewCycle,
+          ),
+        );
+      });
+    }, operationLabel: 'send_message_prepare_conversation');
+
+    return created;
   }
 
   /// Calcula conversationId deterministico (uidMenor_uidMaior).
@@ -354,6 +595,11 @@ class ChatRepository {
               'lastMessageAt': null,
               'lastSenderId': null,
               'type': type,
+              'requestStatus': _requestStatusAccepted,
+              'requestRecipientId': null,
+              'requestSenderId': null,
+              'requestCycle': 0,
+              'requestUpdatedAt': FieldValue.serverTimestamp(),
             });
 
             transaction.set(myPreviewRef, {
@@ -366,6 +612,8 @@ class ChatRepository {
               'unreadCount': 0,
               'updatedAt': FieldValue.serverTimestamp(),
               'type': type,
+              'isPending': false,
+              'requestCycle': null,
             });
 
             transaction.set(otherPreviewRef, {
@@ -378,6 +626,8 @@ class ChatRepository {
               'unreadCount': 0,
               'updatedAt': FieldValue.serverTimestamp(),
               'type': type,
+              'isPending': false,
+              'requestCycle': null,
             });
           } else {
             transaction.set(myPreviewRef, {
@@ -389,6 +639,10 @@ class ChatRepository {
               'lastSenderId': conversationData?['lastSenderId'],
               'updatedAt': FieldValue.serverTimestamp(),
               'type': conversationType,
+              'isPending': _isPendingForUser(conversationData, myUid),
+              'requestCycle': _isPendingForUser(conversationData, myUid)
+                  ? _requestCycleFromData(conversationData)
+                  : null,
             }, SetOptions(merge: true));
             transaction.set(otherPreviewRef, {
               'otherUserId': myUid,
@@ -399,6 +653,10 @@ class ChatRepository {
               'lastSenderId': conversationData?['lastSenderId'],
               'updatedAt': FieldValue.serverTimestamp(),
               'type': conversationType,
+              'isPending': _isPendingForUser(conversationData, otherUid),
+              'requestCycle': _isPendingForUser(conversationData, otherUid)
+                  ? _requestCycleFromData(conversationData)
+                  : null,
             }, SetOptions(merge: true));
           }
         });
@@ -429,66 +687,114 @@ class ChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
     String conversationType = 'direct',
   }) async {
     try {
       final normalizedText = text.trim();
-      final batch = _firestore.batch();
 
       final conversationRef = _firestore
           .collection('conversations')
           .doc(conversationId);
       final myInfoFuture = _getUserPreviewInfoSafe(myUid);
       final otherInfoFuture = _getUserPreviewInfoSafe(otherUid);
+      var hasCreatedConversation = false;
 
-      var conversationSnapshot = await _runWithSecurityContextRecovery(
+      final conversationSnapshot = await _runWithSecurityContextRecovery(
         () => conversationRef.get(),
         operationLabel: 'send_message_load_conversation',
       );
       final myInfo = await myInfoFuture;
       final otherInfo = await otherInfoFuture;
-      var conversationData = _asMap(conversationSnapshot.data());
+      final conversationData = _asMap(conversationSnapshot.data());
       final requestedConversationType = _normalizeConversationType(
         conversationType,
       );
 
       if (!conversationSnapshot.exists) {
-        final ensureConversationResult = await getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherInfo.displayName,
-          otherUserPhoto: otherInfo.photoUrl,
-          myName: myInfo.displayName,
-          myPhoto: myInfo.photoUrl,
-          type: requestedConversationType,
-        );
-
-        if (ensureConversationResult.isLeft()) {
-          return ensureConversationResult.fold(
-            (failure) => Left(failure),
-            (_) => const Right(unit),
-          );
-        }
-
-        conversationSnapshot = await _runWithSecurityContextRecovery(
-          () => conversationRef.get(),
-          operationLabel: 'send_message_reload_conversation',
-        );
-        if (!conversationSnapshot.exists) {
-          return const Left(
-            ServerFailure(
-              message: 'Nao foi possivel preparar a conversa para envio.',
-            ),
-          );
-        }
-
-        conversationData = _asMap(conversationSnapshot.data());
+        hasCreatedConversation = true;
       }
 
       final resolvedConversationType = _conversationTypeFromData(
         conversationData,
         fallback: requestedConversationType,
       );
+      final currentRequestStatus = _requestStatusFromData(conversationData);
+      final pendingSenderId = _requestSenderIdFromData(conversationData);
+      final pendingRecipientId = _requestRecipientIdFromData(conversationData);
+
+      late Map<String, dynamic> requestFields;
+      if (!conversationSnapshot.exists ||
+          currentRequestStatus == _requestStatusRejected) {
+        final deliveryDecision = await _chatAccessResolver.resolveDelivery(
+          senderId: myUid,
+          recipientId: otherUid,
+        );
+        requestFields = deliveryDecision.isAccepted
+            ? _buildAcceptedRequestFields(conversationData: conversationData)
+            : _buildPendingRequestFields(
+                conversationData: conversationData,
+                senderId: myUid,
+                recipientId: otherUid,
+              );
+      } else if (currentRequestStatus == _requestStatusPending &&
+          pendingSenderId != null &&
+          pendingRecipientId != null) {
+        final pendingDecision = await _chatAccessResolver.resolveDelivery(
+          senderId: pendingSenderId,
+          recipientId: pendingRecipientId,
+        );
+
+        if (myUid == pendingRecipientId && pendingDecision.isPending) {
+          return const Left(
+            PermissionFailure(
+              message:
+                  'Aceite a solicitação antes de responder para continuar nesta conversa.',
+              debugMessage: 'chat-request-awaiting-accept',
+            ),
+          );
+        }
+
+        requestFields = pendingDecision.isAccepted
+            ? _buildAcceptedRequestFields(conversationData: conversationData)
+            : _buildPendingRequestFields(
+                conversationData: conversationData,
+                senderId: pendingSenderId,
+                recipientId: pendingRecipientId,
+              );
+      } else {
+        requestFields = _buildAcceptedRequestFields(
+          conversationData: conversationData,
+        );
+      }
+
+      final requestStatus =
+          requestFields['requestStatus'] as String? ?? _requestStatusAccepted;
+      final pendingCycle = requestFields['requestCycle'] is int
+          ? requestFields['requestCycle'] as int
+          : null;
+      final senderPreviewCycle = requestStatus == _requestStatusPending
+          ? pendingCycle
+          : null;
+      final recipientPreviewCycle = requestStatus == _requestStatusPending
+          ? pendingCycle
+          : null;
+      final isRecipientPending = requestStatus == _requestStatusPending;
+
+      if (!conversationSnapshot.exists) {
+        hasCreatedConversation = await _ensureConversationExistsForSend(
+          conversationId: conversationId,
+          myUid: myUid,
+          otherUid: otherUid,
+          myInfo: myInfo,
+          otherInfo: otherInfo,
+          conversationType: resolvedConversationType,
+          requestFields: requestFields,
+        );
+      }
 
       final messageRef = conversationRef.collection('messages').doc();
       final messageData = <String, dynamic>{
@@ -502,14 +808,18 @@ class ChatRepository {
       if (clientMessageId != null) {
         messageData['clientMessageId'] = clientMessageId;
       }
-      batch.set(messageRef, messageData);
-
-      batch.set(conversationRef, {
-        'lastMessageText': normalizedText,
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'lastSenderId': myUid,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (replyToMessageId != null) {
+        messageData['replyToMessageId'] = replyToMessageId;
+      }
+      if (replyToSenderId != null) {
+        messageData['replyToSenderId'] = replyToSenderId;
+      }
+      if (replyToText != null) {
+        messageData['replyToText'] = replyToText;
+      }
+      if (replyToType != null) {
+        messageData['replyToType'] = replyToType;
+      }
 
       final myPreviewRef = _firestore
           .collection('users')
@@ -517,40 +827,69 @@ class ChatRepository {
           .collection('conversationPreviews')
           .doc(conversationId);
 
-      batch.set(myPreviewRef, {
-        'otherUserId': otherUid,
-        'otherUserName': otherInfo.displayName,
-        'otherUserPhoto': otherInfo.photoUrl,
-        'lastMessageText': normalizedText,
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'lastSenderId': myUid,
-        'unreadCount': 0,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'type': resolvedConversationType,
-      }, SetOptions(merge: true));
-
       final otherPreviewRef = _firestore
           .collection('users')
           .doc(otherUid)
           .collection('conversationPreviews')
           .doc(conversationId);
 
-      batch.set(otherPreviewRef, {
-        'otherUserId': myUid,
-        'otherUserName': myInfo.displayName,
-        'otherUserPhoto': myInfo.photoUrl,
-        'lastMessageText': normalizedText,
-        'lastMessageAt': FieldValue.serverTimestamp(),
-        'lastSenderId': myUid,
-        'unreadCount': FieldValue.increment(1),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'type': resolvedConversationType,
-      }, SetOptions(merge: true));
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.set(messageRef, messageData);
 
-      await _runWithSecurityContextRecovery(
-        () => batch.commit(),
-        operationLabel: 'send_message_commit',
-      );
+        batch.set(conversationRef, {
+          'lastMessageText': normalizedText,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'lastSenderId': myUid,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'type': resolvedConversationType,
+          ...requestFields,
+        }, SetOptions(merge: true));
+
+        batch.set(
+          myPreviewRef,
+          _buildPreviewPayload(
+            otherUserId: otherUid,
+            otherUserName: otherInfo.displayName,
+            otherUserPhoto: otherInfo.photoUrl,
+            lastMessageText: normalizedText,
+            lastMessageAt: FieldValue.serverTimestamp(),
+            lastSenderId: myUid,
+            unreadCount: 0,
+            type: resolvedConversationType,
+            isPending: false,
+            requestCycle: senderPreviewCycle,
+          ),
+          SetOptions(merge: true),
+        );
+
+        batch.set(
+          otherPreviewRef,
+          _buildPreviewPayload(
+            otherUserId: myUid,
+            otherUserName: myInfo.displayName,
+            otherUserPhoto: myInfo.photoUrl,
+            lastMessageText: normalizedText,
+            lastMessageAt: FieldValue.serverTimestamp(),
+            lastSenderId: myUid,
+            unreadCount: FieldValue.increment(1),
+            type: resolvedConversationType,
+            isPending: isRecipientPending,
+            requestCycle: recipientPreviewCycle,
+          ),
+          SetOptions(merge: true),
+        );
+      }, operationLabel: 'send_message_commit');
+
+      if (hasCreatedConversation) {
+        await _analytics?.logEvent(
+          name: 'chat_initiated',
+          parameters: {
+            'conversation_id': conversationId,
+            'other_user_id': otherUid,
+            'source': resolvedConversationType,
+          },
+        );
+      }
 
       await _analytics?.logEvent(
         name: 'message_sent',
@@ -579,28 +918,21 @@ class ChatRepository {
     required String myUid,
   }) async {
     try {
-      final batch = _firestore.batch();
-
       final conversationRef = _firestore
           .collection('conversations')
           .doc(conversationId);
-
-      batch.update(conversationRef, {
-        'readUntil.$myUid': FieldValue.serverTimestamp(),
-      });
 
       final myPreviewRef = _firestore
           .collection('users')
           .doc(myUid)
           .collection('conversationPreviews')
           .doc(conversationId);
-
-      batch.set(myPreviewRef, {'unreadCount': 0}, SetOptions(merge: true));
-
-      await _runWithSecurityContextRecovery(
-        () => batch.commit(),
-        operationLabel: 'mark_as_read',
-      );
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.update(conversationRef, {
+          'readUntil.$myUid': FieldValue.serverTimestamp(),
+        });
+        batch.set(myPreviewRef, {'unreadCount': 0}, SetOptions(merge: true));
+      }, operationLabel: 'mark_as_read');
       return const Right(unit);
     } catch (e, stackTrace) {
       AppLogger.error(
@@ -806,6 +1138,20 @@ class ChatRepository {
     })();
   }
 
+  Stream<List<ConversationPreview>> getUserAcceptedConversations(
+    String userId,
+  ) {
+    return getUserConversations(
+      userId,
+    ).map((items) => items.where((item) => !item.isPending).toList());
+  }
+
+  Stream<List<ConversationPreview>> getUserPendingConversations(String userId) {
+    return getUserConversations(
+      userId,
+    ).map((items) => items.where((item) => item.isPending).toList());
+  }
+
   /// Obtem document snapshot da conversa (para acessar readUntil).
   Future<DocumentSnapshot?> getConversationDoc(String conversationId) async {
     final doc = await _runWithSecurityContextRecovery(
@@ -872,6 +1218,10 @@ class ChatRepository {
           'unreadCount': 0,
           'updatedAt': FieldValue.serverTimestamp(),
           'type': conversationType,
+          'isPending': _isPendingForUser(conversationData, myUid),
+          'requestCycle': _isPendingForUser(conversationData, myUid)
+              ? _requestCycleFromData(conversationData)
+              : null,
         }, SetOptions(merge: true));
       }, operationLabel: 'restore_conversation_preview_commit');
 
@@ -894,19 +1244,14 @@ class ChatRepository {
     required String otherUid,
   }) async {
     try {
-      final batch = _firestore.batch();
-
       final myPreviewRef = _firestore
           .collection('users')
           .doc(myUid)
           .collection('conversationPreviews')
           .doc(conversationId);
-      batch.delete(myPreviewRef);
-
-      await _runWithSecurityContextRecovery(
-        () => batch.commit(),
-        operationLabel: 'delete_conversation_preview',
-      );
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.delete(myPreviewRef);
+      }, operationLabel: 'delete_conversation_preview');
 
       await _analytics?.logEvent(
         name: 'conversation_deleted',
@@ -920,6 +1265,244 @@ class ChatRepository {
     } catch (e, stackTrace) {
       AppLogger.error(
         'Chat: failed to delete conversation preview',
+        e,
+        stackTrace,
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> acceptConversationRequest({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    try {
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+      final myPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      final otherPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(otherUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+
+      final conversationSnapshot = await _runWithSecurityContextRecovery(
+        () => conversationRef.get(),
+        operationLabel: 'accept_conversation_request_load_conversation',
+      );
+      final conversationData = _asMap(conversationSnapshot.data());
+
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.set(
+          conversationRef,
+          _buildAcceptedRequestFields(conversationData: conversationData),
+          SetOptions(merge: true),
+        );
+        batch.set(myPreviewRef, {
+          'isPending': false,
+          'requestCycle': null,
+        }, SetOptions(merge: true));
+        batch.set(otherPreviewRef, {
+          'isPending': false,
+          'requestCycle': null,
+        }, SetOptions(merge: true));
+      }, operationLabel: 'accept_conversation_request_commit');
+      return const Right(unit);
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Chat: failed to accept conversation request',
+        e,
+        stackTrace,
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> rejectConversationRequest({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    try {
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+      final senderPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(otherUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      final recipientPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(myUid)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+
+      final conversationSnapshot = await _runWithSecurityContextRecovery(
+        () => conversationRef.get(),
+        operationLabel: 'reject_conversation_request_load_conversation',
+      );
+      final conversationData = _asMap(conversationSnapshot.data());
+      final requestSenderId =
+          _requestSenderIdFromData(conversationData) ?? otherUid;
+      final requestRecipientId =
+          _requestRecipientIdFromData(conversationData) ?? myUid;
+
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.set(
+          conversationRef,
+          _buildRejectedRequestFields(
+            conversationData: conversationData,
+            senderId: requestSenderId,
+            recipientId: requestRecipientId,
+          ),
+          SetOptions(merge: true),
+        );
+        batch.set(senderPreviewRef, {
+          'isPending': false,
+          'requestCycle': null,
+        }, SetOptions(merge: true));
+        batch.delete(recipientPreviewRef);
+      }, operationLabel: 'reject_conversation_request_commit');
+      return const Right(unit);
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Chat: failed to reject conversation request',
+        e,
+        stackTrace,
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> reevaluateConversationAccess({
+    required String conversationId,
+    String trigger = 'manual',
+  }) async {
+    try {
+      final conversationRef = _firestore
+          .collection('conversations')
+          .doc(conversationId);
+      final snapshot = await _runWithSecurityContextRecovery(
+        () => conversationRef.get(),
+        operationLabel: 'reevaluate_conversation_access_load_conversation',
+      );
+      if (!snapshot.exists) return const Right(unit);
+
+      final conversationData = _asMap(snapshot.data());
+      if (_requestStatusFromData(conversationData) != _requestStatusPending) {
+        return const Right(unit);
+      }
+
+      final requestSenderId = _requestSenderIdFromData(conversationData);
+      final requestRecipientId = _requestRecipientIdFromData(conversationData);
+      if (requestSenderId == null || requestRecipientId == null) {
+        return const Right(unit);
+      }
+
+      final decision = await _chatAccessResolver.resolveDelivery(
+        senderId: requestSenderId,
+        recipientId: requestRecipientId,
+      );
+      if (decision.isPending) return const Right(unit);
+
+      final senderPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(requestSenderId)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+      final recipientPreviewRef = _firestore
+          .collection(FirestoreCollections.users)
+          .doc(requestRecipientId)
+          .collection('conversationPreviews')
+          .doc(conversationId);
+
+      await _commitBatchWithSecurityContextRecovery((batch) {
+        batch.set(
+          conversationRef,
+          _buildAcceptedRequestFields(conversationData: conversationData),
+          SetOptions(merge: true),
+        );
+        batch.set(senderPreviewRef, {
+          'isPending': false,
+          'requestCycle': null,
+        }, SetOptions(merge: true));
+        batch.set(recipientPreviewRef, {
+          'isPending': false,
+          'requestCycle': null,
+        }, SetOptions(merge: true));
+      }, operationLabel: 'reevaluate_conversation_access_commit');
+
+      await _analytics?.logEvent(
+        name: 'chat_request_promoted',
+        parameters: {
+          'conversation_id': conversationId,
+          'trigger': trigger,
+          'reason': decision.reason.name,
+        },
+      );
+
+      return const Right(unit);
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Chat: failed to reevaluate conversation access',
+        e,
+        stackTrace,
+      );
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<Unit> reevaluateConversationAccessByUsers({
+    required String userAId,
+    required String userBId,
+    String trigger = 'manual',
+  }) {
+    return reevaluateConversationAccess(
+      conversationId: getConversationId(userAId, userBId),
+      trigger: trigger,
+    );
+  }
+
+  FutureResult<Unit> reevaluatePendingConversationsForRecipient({
+    required String recipientId,
+    String trigger = 'manual',
+  }) async {
+    try {
+      final snapshot = await _runWithSecurityContextRecovery(
+        () => _firestore
+            .collection(FirestoreCollections.users)
+            .doc(recipientId)
+            .collection('conversationPreviews')
+            .where('isPending', isEqualTo: true)
+            .get(),
+        operationLabel: 'reevaluate_pending_conversations_for_recipient',
+      );
+
+      for (final previewDoc in snapshot.docs) {
+        final result = await reevaluateConversationAccess(
+          conversationId: previewDoc.id,
+          trigger: trigger,
+        );
+        result.fold(
+          (failure) => AppLogger.warning(
+            'Falha ao reavaliar conversa pendente ${previewDoc.id}',
+            failure.message,
+          ),
+          (_) {},
+        );
+      }
+
+      return const Right(unit);
+    } catch (e, stackTrace) {
+      AppLogger.error(
+        'Chat: failed to reevaluate pending conversations for recipient',
         e,
         stackTrace,
       );
@@ -964,5 +1547,6 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
     ref.read(firebaseFirestoreProvider),
     analytics: analytics,
     authRepository: ref.read(authRepositoryProvider),
+    chatAccessResolver: ref.read(chatAccessResolverProvider),
   );
 });

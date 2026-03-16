@@ -12,6 +12,7 @@ const String _appCheckDebugToken = String.fromEnvironment(
   'APP_CHECK_DEBUG_TOKEN',
   defaultValue: '11111111-2222-4333-8444-555555555555',
 );
+const String _debugBuildMarker = 'chat-batch-retry-fix-20260314-privacy';
 
 enum AppBootstrapState { idle, running, ready }
 
@@ -107,17 +108,19 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
     }
 
     await appCheck.activate(
-      providerAndroid: const app_check.AndroidDebugProvider(),
+      providerAndroid: const app_check.AndroidDebugProvider(
+        debugToken: _appCheckDebugToken,
+      ),
       providerApple: const app_check.AppleDebugProvider(
         debugToken: _appCheckDebugToken,
       ),
     );
     AppLogger.info(
       'App Check debug provider ativado em desenvolvimento. '
-      'No Android, copie o token emitido pelo DebugAppCheckProvider no logcat '
-      'e cadastre em Firebase Console > App Check > app Android > Manage debug tokens. '
-      'Token iOS atual: $_appCheckDebugToken. '
-      'Cadastre este token em Firebase Console > App Check > app iOS > Manage debug tokens.',
+      'Build marker: $_debugBuildMarker. '
+      'Token configurado para Android/iOS: $_appCheckDebugToken. '
+      'Cadastre este token em Firebase Console > App Check > '
+      'app Android/iOS > Manage debug tokens.',
     );
   } catch (error, stack) {
     AppLogger.warning(

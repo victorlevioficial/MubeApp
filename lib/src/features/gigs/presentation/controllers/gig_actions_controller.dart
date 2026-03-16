@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/app_logger.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../chat/data/chat_repository.dart';
 import '../../data/gig_repository.dart';
@@ -88,6 +89,31 @@ class GigActionsController extends _$GigActionsController {
         ApplicationStatus.accepted,
       ),
     );
+
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null || applicantId.isEmpty) return;
+
+    try {
+      final reevaluateResult = await ref
+          .read(chatRepositoryProvider)
+          .reevaluateConversationAccessByUsers(
+            userAId: currentUser.uid,
+            userBId: applicantId,
+            trigger: 'gig_application_accepted',
+          );
+      reevaluateResult.fold(
+        (failure) => AppLogger.warning(
+          'Falha ao promover conversa apos aceite de candidatura',
+          failure.message,
+        ),
+        (_) {},
+      );
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Promocao de conversa apos aceite de candidatura indisponivel neste contexto',
+        '$e\n$stackTrace',
+      );
+    }
   }
 
   Future<void> rejectApplication({

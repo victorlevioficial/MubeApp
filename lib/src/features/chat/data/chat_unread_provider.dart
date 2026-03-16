@@ -10,7 +10,7 @@ final unreadMessagesCountProvider = Provider<int>((ref) {
   final previews = ref.watch(userConversationsProvider).value ?? const [];
   var count = 0;
   for (final preview in previews) {
-    if (preview.unreadCount > 0) {
+    if (preview.unreadCount > 0 || preview.isPending) {
       count++;
     }
   }

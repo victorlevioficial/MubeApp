@@ -34,7 +34,7 @@ final class GigReviewControllerProvider
 }
 
 String _$gigReviewControllerHash() =>
-    r'a8d906c67eaf412e855623a8c51986c0eea8e86b';
+    r'59e78d8cbc0d002b856bf5256526df55c08419c0';
 
 abstract class _$GigReviewController extends $AsyncNotifier<void> {
   FutureOr<void> build();

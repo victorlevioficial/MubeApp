@@ -35,6 +35,24 @@ class AppSnackBar {
     _show(context, message, SnackBarType.warning);
   }
 
+  static void action(
+    BuildContext context,
+    String message, {
+    SnackBarType type = SnackBarType.info,
+    required String actionLabel,
+    required VoidCallback onAction,
+    Duration? duration,
+  }) {
+    _show(
+      context,
+      message,
+      type,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: duration,
+    );
+  }
+
   static void show(
     BuildContext context,
     String message, {
@@ -47,7 +65,14 @@ class AppSnackBar {
     );
   }
 
-  static void _show(BuildContext _, String message, SnackBarType type) {
+  static void _show(
+    BuildContext _,
+    String message,
+    SnackBarType type, {
+    String? actionLabel,
+    VoidCallback? onAction,
+    Duration? duration,
+  }) {
     final messenger = scaffoldMessengerKey.currentState;
     if (messenger == null) return;
 
@@ -78,7 +103,14 @@ class AppSnackBar {
           side: BorderSide(color: color.withValues(alpha: 0.5), width: 1),
         ),
         elevation: 4,
-        duration: _getDuration(type),
+        duration: duration ?? _getDuration(type),
+        action: actionLabel != null && onAction != null
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: color,
+                onPressed: onAction,
+              )
+            : null,
       ),
     );
   }

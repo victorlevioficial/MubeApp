@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -10,6 +11,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../chat/data/chat_repository.dart';
 import '../../moderation/data/blocked_users_provider.dart';
 
 class PrivacySettingsScreen extends ConsumerWidget {
@@ -32,6 +34,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
               user.matchpointProfile?['is_active'] == true;
           final isVisibleHome =
               (user.privacySettings['visible_in_home'] as bool?) ?? true;
+          final isChatOpen =
+              (user.privacySettings['chat_open'] as bool?) ?? true;
 
           final totalBlockedCount = {
             ...user.blockedUsers,
@@ -71,6 +75,62 @@ class PrivacySettingsScreen extends ConsumerWidget {
                   };
                   await notifier.updateUser(
                     user.copyWith(matchpointProfile: updatedMatchpoint),
+                  );
+                },
+              ),
+              _buildSwitchTile(
+                title: 'Chat público',
+                subtitle:
+                    'Se desativado, novas mensagens de quem ainda não tem vínculo com você irão para Solicitacoes.',
+                value: isChatOpen,
+                onChanged: (val) async {
+                  final notifier = ref.read(authRepositoryProvider);
+                  final updatedPrivacy = {
+                    ...user.privacySettings,
+                    'chat_open': val,
+                  };
+                  final result = await notifier.updateUser(
+                    user.copyWith(privacySettings: updatedPrivacy),
+                  );
+
+                  if (!context.mounted) return;
+
+                  if (result.isLeft()) {
+                    final failure = result.fold(
+                      (failure) => failure,
+                      (_) => throw StateError('Expected update failure'),
+                    );
+                    AppSnackBar.error(
+                      context,
+                      'Erro ao atualizar privacidade do chat: ${failure.message}',
+                    );
+                    return;
+                  }
+
+                  if (val) {
+                    final reevaluateResult = await ref
+                        .read(chatRepositoryProvider)
+                        .reevaluatePendingConversationsForRecipient(
+                          recipientId: user.uid,
+                          trigger: 'privacy_settings_public',
+                        );
+                    if (!context.mounted) return;
+                    reevaluateResult.fold(
+                      (failure) => AppSnackBar.error(
+                        context,
+                        'Chat atualizado, mas houve falha ao promover solicitacoes: ${failure.message}',
+                      ),
+                      (_) => AppSnackBar.success(
+                        context,
+                        'Privacidade do chat atualizada.',
+                      ),
+                    );
+                    return;
+                  }
+
+                  AppSnackBar.success(
+                    context,
+                    'Privacidade do chat atualizada.',
                   );
                 },
               ),

@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../chat/data/chat_repository.dart';
 import '../../feed/presentation/feed_controller.dart';
 import '../data/favorite_repository.dart';
 import 'favorite_state.dart';
@@ -143,6 +144,36 @@ class FavoriteController extends _$FavoriteController {
           }
 
           _setServerFavorite(targetId, desiredStatus);
+
+          if (desiredStatus) {
+            final currentUserId = ref
+                .read(authRepositoryProvider)
+                .currentUser
+                ?.uid;
+            if (currentUserId != null && currentUserId.isNotEmpty) {
+              try {
+                final reevaluateResult = await ref
+                    .read(chatRepositoryProvider)
+                    .reevaluateConversationAccessByUsers(
+                      userAId: currentUserId,
+                      userBId: targetId,
+                      trigger: 'favorite_added',
+                    );
+                reevaluateResult.fold(
+                  (failure) => AppLogger.warning(
+                    'Falha ao promover conversa apos favorito',
+                    failure.message,
+                  ),
+                  (_) {},
+                );
+              } catch (e, stackTrace) {
+                AppLogger.warning(
+                  'Promocao de conversa apos favorito indisponivel neste contexto',
+                  '$e\n$stackTrace',
+                );
+              }
+            }
+          }
 
           if (_pendingDesiredStatus[targetId] == desiredStatus) {
             _pendingDesiredStatus.remove(targetId);

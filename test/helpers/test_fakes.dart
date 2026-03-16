@@ -461,6 +461,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
         .where((item) => !excludedIds.contains(item.uid))
         .where((item) => FeedDiscovery.matchesFilter(item, filter))
         .toList(growable: false);
+    filtered.sort(FeedDiscovery.compareByDistance);
     return Either.right(filtered);
   }
 
@@ -726,10 +727,32 @@ class FakeSupportRepository extends Fake implements SupportRepository {
 /// Fake implementation of ChatRepository
 class FakeChatRepository extends Fake implements ChatRepository {
   List<ConversationPreview> _conversations = [];
+  List<ConversationPreview> _acceptedConversations = [];
+  List<ConversationPreview> _pendingConversations = [];
   bool throwError = false;
+  int deleteConversationCalls = 0;
+  int acceptConversationRequestCalls = 0;
+  int rejectConversationRequestCalls = 0;
+  int reevaluateConversationAccessCalls = 0;
+  int reevaluateConversationAccessByUsersCalls = 0;
+  int reevaluatePendingConversationsForRecipientCalls = 0;
 
   void setConversations(List<ConversationPreview> items) {
     _conversations = items;
+    _acceptedConversations = items
+        .where((conversation) => !conversation.isPending)
+        .toList(growable: false);
+    _pendingConversations = items
+        .where((conversation) => conversation.isPending)
+        .toList(growable: false);
+  }
+
+  void setAcceptedConversations(List<ConversationPreview> items) {
+    _acceptedConversations = items;
+  }
+
+  void setPendingConversations(List<ConversationPreview> items) {
+    _pendingConversations = items;
   }
 
   @override
@@ -742,6 +765,20 @@ class FakeChatRepository extends Fake implements ChatRepository {
   Stream<List<ConversationPreview>> getUserConversations(String userId) {
     if (throwError) return Stream.error(Exception('Failed'));
     return Stream.value(_conversations);
+  }
+
+  @override
+  Stream<List<ConversationPreview>> getUserAcceptedConversations(
+    String userId,
+  ) {
+    if (throwError) return Stream.error(Exception('Failed'));
+    return Stream.value(_acceptedConversations);
+  }
+
+  @override
+  Stream<List<ConversationPreview>> getUserPendingConversations(String userId) {
+    if (throwError) return Stream.error(Exception('Failed'));
+    return Stream.value(_pendingConversations);
   }
 
   @override
@@ -807,8 +844,76 @@ class FakeChatRepository extends Fake implements ChatRepository {
     required String myUid,
     required String otherUid,
     String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
     String conversationType = 'direct',
   }) async {
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> deleteConversation({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    deleteConversationCalls++;
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> acceptConversationRequest({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    acceptConversationRequestCalls++;
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> rejectConversationRequest({
+    required String conversationId,
+    required String myUid,
+    required String otherUid,
+  }) async {
+    rejectConversationRequestCalls++;
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> reevaluateConversationAccess({
+    required String conversationId,
+    String trigger = 'manual',
+  }) async {
+    reevaluateConversationAccessCalls++;
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> reevaluateConversationAccessByUsers({
+    required String userAId,
+    required String userBId,
+    String trigger = 'manual',
+  }) async {
+    reevaluateConversationAccessByUsersCalls++;
+    if (throwError) return const Left(ServerFailure(message: 'Failed'));
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> reevaluatePendingConversationsForRecipient({
+    required String recipientId,
+    String trigger = 'manual',
+  }) async {
+    reevaluatePendingConversationsForRecipientCalls++;
     if (throwError) return const Left(ServerFailure(message: 'Failed'));
     return const Right(unit);
   }

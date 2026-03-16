@@ -10,6 +10,10 @@ class Message {
   final Timestamp createdAt;
   final String type;
   final String? clientMessageId;
+  final String? replyToMessageId;
+  final String? replyToSenderId;
+  final String? replyToText;
+  final String? replyToType;
 
   const Message({
     required this.id,
@@ -18,6 +22,10 @@ class Message {
     required this.createdAt,
     this.type = 'text',
     this.clientMessageId,
+    this.replyToMessageId,
+    this.replyToSenderId,
+    this.replyToText,
+    this.replyToType,
   });
 
   /// Cria Message a partir de DocumentSnapshot do Firestore
@@ -32,6 +40,10 @@ class Message {
       createdAt: data['createdAt'] as Timestamp? ?? Timestamp.now(),
       type: data['type'] as String? ?? 'text',
       clientMessageId: data['clientMessageId'] as String?,
+      replyToMessageId: data['replyToMessageId'] as String?,
+      replyToSenderId: data['replyToSenderId'] as String?,
+      replyToText: data['replyToText'] as String?,
+      replyToType: data['replyToType'] as String?,
     );
   }
 
@@ -43,6 +55,10 @@ class Message {
       'createdAt': createdAt,
       'type': type,
       if (clientMessageId != null) 'clientMessageId': clientMessageId,
+      if (replyToMessageId != null) 'replyToMessageId': replyToMessageId,
+      if (replyToSenderId != null) 'replyToSenderId': replyToSenderId,
+      if (replyToText != null) 'replyToText': replyToText,
+      if (replyToType != null) 'replyToType': replyToType,
     };
   }
 }

@@ -12,6 +12,8 @@ class ConversationPreview {
   final int unreadCount;
   final Timestamp updatedAt;
   final String type;
+  final bool isPending;
+  final int? requestCycle;
 
   const ConversationPreview({
     required this.id,
@@ -24,6 +26,8 @@ class ConversationPreview {
     this.unreadCount = 0,
     required this.updatedAt,
     this.type = 'direct',
+    this.isPending = false,
+    this.requestCycle,
   });
 
   /// Cria ConversationPreview a partir de DocumentSnapshot
@@ -33,6 +37,7 @@ class ConversationPreview {
     final otherUserName = data['otherUserName'];
     final otherUserPhoto = data['otherUserPhoto'];
     final type = data['type'];
+    final requestCycle = data['requestCycle'];
 
     return ConversationPreview(
       id: doc.id,
@@ -47,6 +52,8 @@ class ConversationPreview {
       unreadCount: data['unreadCount'] as int? ?? 0,
       updatedAt: data['updatedAt'] as Timestamp? ?? Timestamp.now(),
       type: type is String && type.trim().isNotEmpty ? type.trim() : 'direct',
+      isPending: data['isPending'] as bool? ?? false,
+      requestCycle: requestCycle is num ? requestCycle.toInt() : null,
     );
   }
 }

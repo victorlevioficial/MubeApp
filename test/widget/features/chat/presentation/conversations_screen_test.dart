@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/chat/data/chat_providers.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
@@ -23,7 +24,8 @@ void main() {
 
   Widget createSubject({
     List<ConversationPreview> conversations = const [],
-    AsyncValue<List<ConversationPreview>>? directConversationsAsync,
+    AsyncValue<List<ConversationPreview>>? acceptedConversationsAsync,
+    AsyncValue<List<ConversationPreview>>? pendingConversationsAsync,
   }) {
     final user = TestData.user(uid: 'user-1');
     fakeAuthRepo.appUser = user;
@@ -49,12 +51,19 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
         chatRepositoryProvider.overrideWithValue(fakeChatRepo),
-        if (directConversationsAsync != null)
-          directConversationsProvider.overrideWithValue(
-            directConversationsAsync,
+        if (acceptedConversationsAsync != null)
+          userAcceptedConversationsProvider.overrideWithValue(
+            acceptedConversationsAsync,
+          ),
+        if (pendingConversationsAsync != null)
+          userPendingConversationsProvider.overrideWithValue(
+            pendingConversationsAsync,
           ),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        scaffoldMessengerKey: scaffoldMessengerKey,
+        routerConfig: router,
+      ),
     );
   }
 
@@ -63,7 +72,8 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      expect(find.text('Conversas'), findsOneWidget);
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.text('Conversas'), findsWidgets);
     });
 
     testWidgets('shows empty state when no conversations', (tester) async {
@@ -138,6 +148,27 @@ void main() {
       expect(find.text('5'), findsOneWidget);
     });
 
+    testWidgets('shows pending requests badge on requests tab', (tester) async {
+      final conversations = [
+        ConversationPreview(
+          id: 'pending-1',
+          otherUserId: 'user-2',
+          otherUserName: 'John Doe',
+          lastMessageText: 'Oi',
+          unreadCount: 1,
+          updatedAt: Timestamp.fromDate(DateTime(2025, 1, 1)),
+          isPending: true,
+          requestCycle: 1,
+        ),
+      ];
+
+      await tester.pumpWidget(createSubject(conversations: conversations));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Solicitacoes'), findsOneWidget);
+      expect(find.text('1'), findsWidgets);
+    });
+
     testWidgets('hides previews without any message activity', (tester) async {
       final conversations = [
         ConversationPreview(
@@ -183,7 +214,7 @@ void main() {
     testWidgets('shows retry action when loading fails', (tester) async {
       await tester.pumpWidget(
         createSubject(
-          directConversationsAsync: AsyncValue.error(
+          acceptedConversationsAsync: AsyncValue.error(
             Exception('failed'),
             StackTrace.current,
           ),
@@ -194,5 +225,42 @@ void main() {
       expect(find.text('Erro ao carregar conversas'), findsOneWidget);
       expect(find.text('Tentar novamente'), findsOneWidget);
     });
+
+    testWidgets(
+      'moves an accepted request to Conversas immediately after swipe',
+      (tester) async {
+        final pendingPreview = ConversationPreview(
+          id: 'pending-1',
+          otherUserId: 'user-2',
+          otherUserName: 'John Doe',
+          lastMessageText: 'Oi',
+          unreadCount: 1,
+          updatedAt: Timestamp.fromDate(DateTime(2025, 1, 1)),
+          isPending: true,
+          requestCycle: 1,
+        );
+
+        await tester.pumpWidget(
+          createSubject(
+            acceptedConversationsAsync: const AsyncValue.data([]),
+            pendingConversationsAsync: AsyncValue.data([pendingPreview]),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Solicitacoes'));
+        await tester.pumpAndSettle();
+
+        await tester.drag(
+          find.byKey(const ValueKey('pending_pending-1_1')),
+          const Offset(400, 0),
+        );
+        await tester.pumpAndSettle();
+
+        expect(fakeChatRepo.acceptConversationRequestCalls, 1);
+        expect(find.text('Solicitacao aceita.'), findsOneWidget);
+        expect(find.text('John Doe'), findsOneWidget);
+      },
+    );
   });
 }
