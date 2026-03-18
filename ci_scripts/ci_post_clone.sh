@@ -5,12 +5,36 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 IOS_GSP_PATH="$REPO_ROOT/ios/Runner/GoogleService-Info.plist"
+IOS_GSP_TEMPLATE_PATH="$REPO_ROOT/ios/Runner/GoogleService-Info.ci.plist"
+DEFAULT_FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
+DEFAULT_PUB_HOSTED_URL="https://pub.flutter-io.cn"
 
 export LANG="${LANG:-en_US.UTF-8}"
 export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
 log() {
   echo "[ci_post_clone] $*"
+}
+
+configure_flutter_network_fallback() {
+  export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-$DEFAULT_FLUTTER_STORAGE_BASE_URL}"
+  export PUB_HOSTED_URL="${PUB_HOSTED_URL:-$DEFAULT_PUB_HOSTED_URL}"
+  log "Using Flutter mirror FLUTTER_STORAGE_BASE_URL=$FLUTTER_STORAGE_BASE_URL"
+  log "Using Dart package host PUB_HOSTED_URL=$PUB_HOSTED_URL"
+}
+
+run_flutter_command() {
+  if flutter "$@"; then
+    return 0
+  fi
+
+  if [[ -n "${FLUTTER_STORAGE_BASE_URL:-}" ]]; then
+    return 1
+  fi
+
+  log "Flutter command failed with the default storage host. Retrying with mirror."
+  configure_flutter_network_fallback
+  flutter "$@"
 }
 
 detect_flutter_version() {
@@ -72,11 +96,11 @@ ensure_flutter() {
   fi
 
   export PATH="$FLUTTER_ROOT_DIR/bin:$PATH"
-  flutter --version
+  run_flutter_command --version
   python3 "$REPO_ROOT/scripts/flutter_version.py" \
     --repo-root "$REPO_ROOT" \
     --check-current
-  flutter precache --ios
+  run_flutter_command precache --ios
 }
 
 restore_google_service_info() {
@@ -92,11 +116,14 @@ restore_google_service_info() {
   if [[ -n "$encoded" ]]; then
     log "Restoring ios/Runner/GoogleService-Info.plist from Xcode Cloud secret"
     decode_base64_to_file "$encoded" "$IOS_GSP_PATH"
+  elif [[ ! -f "$IOS_GSP_PATH" && -f "$IOS_GSP_TEMPLATE_PATH" ]]; then
+    log "Using versioned CI fallback for ios/Runner/GoogleService-Info.plist"
+    cp "$IOS_GSP_TEMPLATE_PATH" "$IOS_GSP_PATH"
   fi
 
   if [[ ! -f "$IOS_GSP_PATH" ]]; then
     log "Missing ios/Runner/GoogleService-Info.plist"
-    log "Set IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 in the Xcode Cloud workflow environment."
+    log "Commit ios/Runner/GoogleService-Info.ci.plist or set IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64 in the Xcode Cloud workflow environment."
     exit 1
   fi
 
@@ -130,16 +157,17 @@ prepare_flutter_ios_project() {
   cd "$REPO_ROOT"
 
   log "Running flutter pub get --enforce-lockfile"
-  flutter pub get --enforce-lockfile
+  run_flutter_command pub get --enforce-lockfile
   prepare_cocoapods_workspace
 
-  if [[ -z "${GOOGLE_MAPS_API_KEY:-}" ]]; then
-    log "Missing GOOGLE_MAPS_API_KEY in the Xcode Cloud workflow environment."
-    exit 1
-  fi
-
   build_args=(build ios --config-only --release --no-codesign --no-pub)
-  build_args+=(--dart-define="GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}")
+
+  if [[ -n "${GOOGLE_MAPS_API_KEY:-}" ]]; then
+    build_args+=(--dart-define="GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}")
+  else
+    log "Warning: GOOGLE_MAPS_API_KEY is missing in the Xcode Cloud workflow environment."
+    log "Continuing without the dart-define; location and geocoding flows will be degraded in this archive."
+  fi
 
   if [[ -n "${GOOGLE_VISION_API_KEY:-}" ]]; then
     build_args+=(--dart-define="GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}")
@@ -150,7 +178,7 @@ prepare_flutter_ios_project() {
   fi
 
   log "Preparing iOS project with flutter build ios --config-only"
-  flutter "${build_args[@]}"
+  run_flutter_command "${build_args[@]}"
 }
 
 main() {

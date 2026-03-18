@@ -27,7 +27,7 @@ Importante:
 
 ## Variaveis de ambiente do workflow
 
-Obrigatoria:
+Opcional:
 
 - `IOS_GOOGLE_SERVICE_INFO_PLIST_BASE64`
 
@@ -37,20 +37,25 @@ O script `ios/ci_scripts/ci_post_clone.sh` tambem aceita estes aliases:
 - `GOOGLE_SERVICE_INFO_BASE64`
 
 O valor deve ser o `base64` em linha unica de `ios/Runner/GoogleService-Info.plist`.
+Se o secret nao existir, o bootstrap usa o fallback versionado em `ios/Runner/GoogleService-Info.ci.plist`.
 
-Obrigatorias:
+Recomendada para paridade com producao:
 
 - `GOOGLE_MAPS_API_KEY`
 
 Opcionais:
 
 - `GOOGLE_VISION_API_KEY`
+- `FLUTTER_STORAGE_BASE_URL`
+- `PUB_HOSTED_URL`
 
 Observacao:
 
-- `GOOGLE_MAPS_API_KEY` e obrigatoria porque os fluxos de localizacao dependem de `--dart-define` em release.
+- `GOOGLE_MAPS_API_KEY` deve ser configurada para que a build publicada tenha localizacao, geocoding e autocomplete funcionando normalmente.
+- sem `GOOGLE_MAPS_API_KEY`, o archive continua, mas esses fluxos ficam degradados nesse build.
 - `GOOGLE_VISION_API_KEY` nao impede o archive, mas alguns fluxos de moderacao ficam degradados sem ela.
 - a versao do Flutter nao deve ser configurada manualmente no workflow. O script do Xcode Cloud resolve a versao oficial a partir de `.fvmrc`, que e a fonte unica de verdade do repositorio.
+- se `storage.googleapis.com` falhar no ambiente da Apple, o bootstrap faz retry automatico usando `https://storage.flutter-io.cn` e `https://pub.flutter-io.cn`, a menos que o workflow ja defina `FLUTTER_STORAGE_BASE_URL` ou `PUB_HOSTED_URL`.
 
 ## O que o script faz no clone limpo
 
