@@ -7,6 +7,7 @@ import 'dart:async' as _i4;
 
 import 'package:firebase_auth/firebase_auth.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart'
     as _i3;
 import 'package:mube/src/features/auth/domain/app_user.dart' as _i5;
@@ -127,9 +128,37 @@ class MockAuthRemoteDataSource extends _i1.Mock
           as _i4.Future<void>);
 
   @override
+  _i4.Future<String> updatePublicUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePublicUsername, [username]),
+            returnValue: _i4.Future<String>.value(
+              _i6.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<String>.value(
+              _i6.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+          )
+          as _i4.Future<String>);
+
+  @override
   _i4.Future<_i5.AppUser?> fetchUserProfile(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#fetchUserProfile, [uid]),
+            returnValue: _i4.Future<_i5.AppUser?>.value(),
+            returnValueForMissingStub: _i4.Future<_i5.AppUser?>.value(),
+          )
+          as _i4.Future<_i5.AppUser?>);
+
+  @override
+  _i4.Future<_i5.AppUser?> fetchUserProfileByUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchUserProfileByUsername, [username]),
             returnValue: _i4.Future<_i5.AppUser?>.value(),
             returnValueForMissingStub: _i4.Future<_i5.AppUser?>.value(),
           )

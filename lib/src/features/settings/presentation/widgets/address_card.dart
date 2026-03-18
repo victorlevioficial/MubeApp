@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../l10n/generated/app_localizations.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -23,14 +24,17 @@ class AddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isPrimary = address.isPrimary;
     final accentColor = isPrimary ? AppColors.primary : AppColors.info;
     final title = address.nome.trim().isNotEmpty
         ? address.nome.trim()
-        : (isPrimary ? 'Endereço principal' : 'Endereço salvo');
+        : (isPrimary
+              ? l10n.settings_address_card_primary_fallback_title
+              : l10n.settings_address_card_saved_fallback_title);
     final summary = isPrimary
-        ? 'Em uso como referência principal.'
-        : 'Disponível para virar endereço principal.';
+        ? l10n.settings_address_card_primary_summary
+        : l10n.settings_address_card_saved_summary;
     final metadata = <Widget>[
       _MetaPill(
         icon: Icons.location_city_rounded,
@@ -46,13 +50,13 @@ class AddressCard extends StatelessWidget {
       if (address.cep.trim().isNotEmpty)
         _MetaPill(
           icon: Icons.local_post_office_outlined,
-          label: 'CEP ${address.cep.trim()}',
+          label: l10n.settings_address_card_zip_code(address.cep.trim()),
           color: AppColors.textSecondary,
         ),
       if (address.lat != null && address.lng != null)
-        const _MetaPill(
+        _MetaPill(
           icon: Icons.gps_fixed_rounded,
-          label: 'GPS ok',
+          label: l10n.settings_address_card_gps_ok,
           color: AppColors.success,
         ),
     ];
@@ -111,7 +115,9 @@ class AddressCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.s8),
                 _StatusPill(
-                  label: isPrimary ? 'Principal' : 'Salvo',
+                  label: isPrimary
+                      ? l10n.settings_address_card_status_primary
+                      : l10n.settings_address_card_status_saved,
                   color: accentColor,
                 ),
               ],
@@ -166,7 +172,7 @@ class AddressCard extends StatelessWidget {
                       ? const _PrimaryStateBanner()
                       : _InlineActionButton(
                           icon: Icons.star_outline_rounded,
-                          label: 'Definir principal',
+                          label: l10n.settings_address_card_set_primary,
                           color: AppColors.primary,
                           onTap: onSetPrimary,
                         ),
@@ -176,8 +182,8 @@ class AddressCard extends StatelessWidget {
                   icon: Icons.delete_outline_rounded,
                   color: AppColors.error,
                   tooltip: canDelete
-                      ? 'Excluir endereço'
-                      : 'Pelo menos 1 endereço deve permanecer salvo',
+                      ? l10n.settings_address_card_delete
+                      : l10n.settings_address_card_delete_disabled_tooltip,
                   onTap: canDelete ? onDelete : null,
                 ),
               ],
@@ -296,6 +302,7 @@ class _PrimaryStateBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -313,7 +320,7 @@ class _PrimaryStateBanner extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.s8),
           Text(
-            'Endereço ativo',
+            l10n.settings_address_card_active,
             style: AppTypography.titleSmall.copyWith(
               color: AppColors.textPrimary,
             ),

@@ -11,6 +11,27 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $wrapperPath = Join-Path $repoRoot "deploy-firebase.ps1"
+$forwardedArgs = New-Object System.Collections.Generic.List[string]
+
+foreach ($arg in $Args) {
+  switch ($arg) {
+    "--rules" {
+      $Rules = $true
+      continue
+    }
+    "--indexes" {
+      $Indexes = $true
+      continue
+    }
+    "--help" {
+      $Help = $true
+      continue
+    }
+    default {
+      $forwardedArgs.Add($arg)
+    }
+  }
+}
 
 if ($Help) {
   @"
@@ -42,8 +63,8 @@ if ($targets.Count -eq 0) {
 }
 
 $forwardArgs = @("--only", ($targets -join ","))
-if ($Args.Count -gt 0) {
-  $forwardArgs += $Args
+if ($forwardedArgs.Count -gt 0) {
+  $forwardArgs += $forwardedArgs
 }
 
 & $wrapperPath @forwardArgs

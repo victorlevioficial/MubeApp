@@ -20,10 +20,14 @@ void main() {
       expect(RoutePaths.isPublic('/register'), true);
       expect(RoutePaths.isPublic('/gallery'), true);
       expect(RoutePaths.isPublic('/legal/termsOfUse'), true);
+      expect(RoutePaths.isPublic('/@mubeoficial'), true);
+      expect(RoutePaths.isPublic('/profile/user-1'), true);
+      expect(RoutePaths.isPublic('/user/user-1'), true);
     });
 
     test('isPublic returns false for protected routes', () {
       expect(RoutePaths.isPublic('/feed'), false);
+      expect(RoutePaths.isPublic('/@'), false);
       expect(RoutePaths.isPublic('/profile'), false);
       expect(RoutePaths.isPublic('/profile/edit'), false);
       expect(RoutePaths.isPublic('/onboarding'), false);
@@ -54,6 +58,35 @@ void main() {
       expect(
         RoutePaths.gigReviewById('gig-1', 'user-1'),
         '/gigs/gig-1/review/user-1',
+      );
+    });
+
+    test('public profile share helpers build expected paths', () {
+      expect(
+        RoutePaths.publicProfileSharePathById('user-1'),
+        '/profile/user-1',
+      );
+      expect(
+        RoutePaths.publicProfileByUsername('Mube.Oficial'),
+        '/@mube.oficial',
+      );
+      expect(
+        RoutePaths.publicProfileSharePath(
+          uid: 'user-1',
+          username: 'Mube.Oficial',
+        ),
+        '/@mube.oficial',
+      );
+      expect(
+        RoutePaths.publicProfileShareUrl(
+          uid: 'user-1',
+          username: 'Mube.Oficial',
+        ),
+        'https://mubeapp.com.br/@mube.oficial',
+      );
+      expect(
+        RoutePaths.publicProfileShareUrlById('user-1'),
+        'https://mubeapp.com.br/profile/user-1',
       );
     });
   });

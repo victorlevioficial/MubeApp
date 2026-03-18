@@ -11,6 +11,7 @@ import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/geohash_helper.dart';
+import '../../../utils/public_username.dart';
 import '../domain/app_user.dart';
 
 /// Interface for raw data access
@@ -23,7 +24,9 @@ abstract class AuthRemoteDataSource {
   Future<UserCredential> signInWithApple();
   Future<void> saveUserProfile(AppUser user);
   Future<void> updateUserProfile(AppUser user);
+  Future<String> updatePublicUsername(String username);
   Future<AppUser?> fetchUserProfile(String uid);
+  Future<AppUser?> fetchUserProfileByUsername(String username);
   Stream<AppUser?> watchUserProfile(String uid);
   Future<void> signOut();
   Future<void> deleteAccount(String uid);
@@ -45,10 +48,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
+  final FirebaseFunctions _publicUsernameFunctions;
   final app_check.FirebaseAppCheck _appCheck;
   Future<void>? _inFlightSecurityContextRefresh;
   bool _googleSignInInitialized = false;
   static const String _functionsRegion = 'southamerica-east1';
+  static const String _publicUsernameFunctionsRegion = 'us-central1';
   static const Set<String> _blockedClientUpdateKeys = {
     'status',
     'report_count',
@@ -66,14 +71,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     'members',
     'private_stats',
     'plan',
+    'username',
   };
 
   AuthRemoteDataSourceImpl(
     this._auth,
     this._firestore, {
     required FirebaseFunctions functions,
+    FirebaseFunctions? publicUsernameFunctions,
     required app_check.FirebaseAppCheck appCheck,
   }) : _functions = functions,
+       _publicUsernameFunctions =
+           publicUsernameFunctions ??
+           FirebaseFunctions.instanceFor(
+             region: _publicUsernameFunctionsRegion,
+           ),
        _appCheck = appCheck;
 
   @override
@@ -217,6 +229,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         .set(data, SetOptions(merge: true));
   }
 
+  @override
+  Future<String> updatePublicUsername(String username) async {
+    final normalizedUsername = normalizedPublicUsernameOrNull(username);
+    if (normalizedUsername == null) {
+      throw Exception('Escolha um @usuario.');
+    }
+
+    try {
+      final result = await _callFunctionWithRecovery(
+        'setPublicUsername',
+        data: {'username': normalizedUsername},
+        functions: _publicUsernameFunctions,
+      );
+
+      final payload = result.data;
+      if (payload is Map<Object?, Object?>) {
+        final returnedUsername = normalizedPublicUsernameOrNull(
+          payload['username']?.toString(),
+        );
+        if (returnedUsername != null) {
+          return returnedUsername;
+        }
+      }
+
+      return normalizedUsername;
+    } on FirebaseFunctionsException catch (error, stack) {
+      AppLogger.error(
+        'Error calling setPublicUsername function in $_functionsRegion:',
+        error,
+        stack,
+      );
+      throw _mapPublicUsernameFunctionError(error);
+    }
+  }
+
   /// Prepara os dados do usuário adicionando geohash automaticamente
   Map<String, dynamic> _prepareUserData(
     AppUser user, {
@@ -261,6 +308,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return AppUser.fromJson(doc.data()!);
     }
     return null;
+  }
+
+  @override
+  Future<AppUser?> fetchUserProfileByUsername(String username) async {
+    final normalizedUsername = normalizedPublicUsernameOrNull(username);
+    if (normalizedUsername == null) {
+      return null;
+    }
+
+    final query = await _firestore
+        .collection(FirestoreCollections.users)
+        .where('username', isEqualTo: normalizedUsername)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) {
+      return null;
+    }
+
+    return AppUser.fromJson(query.docs.first.data());
   }
 
   @override
@@ -357,8 +424,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
     String functionName, {
     Object? data,
+    FirebaseFunctions? functions,
   }) async {
-    final callable = _functions.httpsCallable(functionName);
+    final callable = (functions ?? _functions).httpsCallable(functionName);
 
     try {
       return await callable.call(data);
@@ -402,6 +470,41 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           error.message?.trim().isNotEmpty == true
               ? error.message!.trim()
               : 'Erro inesperado ao excluir a conta.',
+        );
+    }
+  }
+
+  Exception _mapPublicUsernameFunctionError(FirebaseFunctionsException error) {
+    final message = error.message?.trim();
+
+    switch (error.code.toLowerCase()) {
+      case 'invalid-argument':
+      case 'already-exists':
+      case 'not-found':
+        return Exception(
+          message?.isNotEmpty == true
+              ? message
+              : 'Nao foi possivel atualizar o @usuario.',
+        );
+      case 'unauthenticated':
+        return Exception(
+          'Sua sessao expirou. Entre novamente antes de alterar o @usuario.',
+        );
+      case 'permission-denied':
+      case 'failed-precondition':
+        if ((error.message ?? '').toLowerCase().contains('app check')) {
+          return Exception(
+            'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+          );
+        }
+        return Exception(
+          'A alteracao do @usuario foi bloqueada pelo servidor. Tente novamente em instantes.',
+        );
+      default:
+        return Exception(
+          message?.isNotEmpty == true
+              ? message
+              : 'Erro inesperado ao atualizar o @usuario.',
         );
     }
   }

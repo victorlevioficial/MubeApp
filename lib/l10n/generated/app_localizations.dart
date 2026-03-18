@@ -584,6 +584,714 @@ abstract class AppLocalizations {
   /// **'Excluir conta'**
   String get settings_delete_account;
 
+  /// No description provided for @settings_other.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros'**
+  String get settings_other;
+
+  /// No description provided for @settings_my_gigs.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meus Gigs'**
+  String get settings_my_gigs;
+
+  /// No description provided for @settings_my_gigs_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Publicações, status e vagas'**
+  String get settings_my_gigs_subtitle;
+
+  /// No description provided for @settings_my_applications.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas Candidaturas'**
+  String get settings_my_applications;
+
+  /// No description provided for @settings_my_applications_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhar respostas e mensagens'**
+  String get settings_my_applications_subtitle;
+
+  /// No description provided for @settings_matchpoint_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descoberta e histórico'**
+  String get settings_matchpoint_subtitle;
+
+  /// No description provided for @settings_addresses_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerenciar entregas'**
+  String get settings_addresses_subtitle;
+
+  /// No description provided for @settings_band_management_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Integrantes e convites'**
+  String get settings_band_management_subtitle;
+
+  /// No description provided for @settings_my_bands_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convites e parcerias'**
+  String get settings_my_bands_subtitle;
+
+  /// No description provided for @settings_change_password.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar Senha'**
+  String get settings_change_password;
+
+  /// No description provided for @settings_privacy_visibility.
+  ///
+  /// In pt, this message translates to:
+  /// **'Privacidade e Visibilidade'**
+  String get settings_privacy_visibility;
+
+  /// No description provided for @settings_privacy_visibility_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'MatchPoint, Busca, Bloqueios'**
+  String get settings_privacy_visibility_subtitle;
+
+  /// No description provided for @settings_terms_of_use.
+  ///
+  /// In pt, this message translates to:
+  /// **'Termos de Uso'**
+  String get settings_terms_of_use;
+
+  /// No description provided for @settings_privacy_policy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Política de Privacidade'**
+  String get settings_privacy_policy;
+
+  /// No description provided for @settings_logout_account.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair da Conta'**
+  String get settings_logout_account;
+
+  /// No description provided for @settings_logout_confirm_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair da conta?'**
+  String get settings_logout_confirm_title;
+
+  /// No description provided for @settings_logout_confirm_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você precisará fazer login novamente.'**
+  String get settings_logout_confirm_message;
+
+  /// No description provided for @settings_change_password_email_missing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível encontrar seu email.'**
+  String get settings_change_password_email_missing;
+
+  /// No description provided for @settings_change_password_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviaremos um link de redefinição para:\n\n{email}\n\nDeseja continuar?'**
+  String settings_change_password_message(Object email);
+
+  /// No description provided for @settings_change_password_send.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviar'**
+  String get settings_change_password_send;
+
+  /// No description provided for @settings_change_password_sending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enviando email...'**
+  String get settings_change_password_sending;
+
+  /// No description provided for @settings_change_password_email_sent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Email enviado! Verifique sua caixa de entrada.'**
+  String get settings_change_password_email_sent;
+
+  /// No description provided for @settings_delete_confirm_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir conta?'**
+  String get settings_delete_confirm_title;
+
+  /// No description provided for @settings_delete_confirm_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua conta e todos os dados associados a ela serão excluídos permanentemente. Esta ação não pode ser desfeita.'**
+  String get settings_delete_confirm_message;
+
+  /// No description provided for @settings_delete_in_progress.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluindo conta...'**
+  String get settings_delete_in_progress;
+
+  /// No description provided for @settings_delete_success.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta excluída com sucesso.'**
+  String get settings_delete_success;
+
+  /// No description provided for @settings_delete_requires_recent_login.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por segurança, faça login novamente antes de excluir sua conta.'**
+  String get settings_delete_requires_recent_login;
+
+  /// No description provided for @settings_error_with_details.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro: {error}'**
+  String settings_error_with_details(Object error);
+
+  /// No description provided for @settings_profile_guest_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bem-vindo'**
+  String get settings_profile_guest_name;
+
+  /// No description provided for @settings_profile_guest_email.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visitante'**
+  String get settings_profile_guest_email;
+
+  /// No description provided for @settings_profile_apple_private_email.
+  ///
+  /// In pt, this message translates to:
+  /// **'Email protegido pela Apple'**
+  String get settings_profile_apple_private_email;
+
+  /// No description provided for @settings_profile_favorites_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Favoritos'**
+  String get settings_profile_favorites_label;
+
+  /// No description provided for @settings_profile_type_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de Perfil'**
+  String get settings_profile_type_label;
+
+  /// No description provided for @settings_profile_type_professional.
+  ///
+  /// In pt, this message translates to:
+  /// **'Profissional'**
+  String get settings_profile_type_professional;
+
+  /// No description provided for @settings_profile_type_band.
+  ///
+  /// In pt, this message translates to:
+  /// **'Banda'**
+  String get settings_profile_type_band;
+
+  /// No description provided for @settings_profile_type_studio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estúdio'**
+  String get settings_profile_type_studio;
+
+  /// No description provided for @settings_profile_type_contractor.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contratante'**
+  String get settings_profile_type_contractor;
+
+  /// No description provided for @settings_user_not_found.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usuário não encontrado'**
+  String get settings_user_not_found;
+
+  /// No description provided for @settings_login_again.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faça login novamente.'**
+  String get settings_login_again;
+
+  /// No description provided for @settings_section_visibility.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visibilidade'**
+  String get settings_section_visibility;
+
+  /// No description provided for @settings_section_security.
+  ///
+  /// In pt, this message translates to:
+  /// **'Segurança'**
+  String get settings_section_security;
+
+  /// No description provided for @settings_privacy_home_visibility_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparecer na Home e Busca'**
+  String get settings_privacy_home_visibility_title;
+
+  /// No description provided for @settings_privacy_home_visibility_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se desativado, seu perfil não aparecerá nas buscas gerais nem no feed.'**
+  String get settings_privacy_home_visibility_subtitle;
+
+  /// No description provided for @settings_privacy_matchpoint_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ativar MatchPoint'**
+  String get settings_privacy_matchpoint_title;
+
+  /// No description provided for @settings_privacy_matchpoint_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.'**
+  String get settings_privacy_matchpoint_subtitle;
+
+  /// No description provided for @settings_privacy_public_chat_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chat público'**
+  String get settings_privacy_public_chat_title;
+
+  /// No description provided for @settings_privacy_public_chat_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se desativado, novas mensagens de quem ainda não tem vínculo com você irão para Solicitações.'**
+  String get settings_privacy_public_chat_subtitle;
+
+  /// No description provided for @settings_privacy_chat_update_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar privacidade do chat: {error}'**
+  String settings_privacy_chat_update_error(Object error);
+
+  /// No description provided for @settings_privacy_chat_promote_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Chat atualizado, mas houve falha ao promover solicitações: {error}'**
+  String settings_privacy_chat_promote_error(Object error);
+
+  /// No description provided for @settings_privacy_chat_updated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Privacidade do chat atualizada.'**
+  String get settings_privacy_chat_updated;
+
+  /// No description provided for @settings_blocked_users_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usuários Bloqueados'**
+  String get settings_blocked_users_title;
+
+  /// No description provided for @settings_blocked_users_load_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar usuários bloqueados'**
+  String get settings_blocked_users_load_error;
+
+  /// No description provided for @settings_blocked_users_details_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os detalhes dos bloqueios'**
+  String get settings_blocked_users_details_error;
+
+  /// No description provided for @settings_blocked_users_empty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum usuário bloqueado'**
+  String get settings_blocked_users_empty;
+
+  /// No description provided for @settings_blocked_users_details_not_found.
+  ///
+  /// In pt, this message translates to:
+  /// **'Os usuários bloqueados não foram encontrados.'**
+  String get settings_blocked_users_details_not_found;
+
+  /// No description provided for @settings_blocked_users_count.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} usuários'**
+  String settings_blocked_users_count(Object count);
+
+  /// No description provided for @settings_unblock.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desbloquear'**
+  String get settings_unblock;
+
+  /// No description provided for @settings_user_unblocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usuário desbloqueado'**
+  String get settings_user_unblocked;
+
+  /// No description provided for @settings_addresses_loading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Carregando endereços...'**
+  String get settings_addresses_loading;
+
+  /// No description provided for @settings_addresses_load_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar seus endereços'**
+  String get settings_addresses_load_error_title;
+
+  /// No description provided for @settings_addresses_load_error_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tente novamente para recuperar seus locais salvos.'**
+  String get settings_addresses_load_error_subtitle;
+
+  /// No description provided for @settings_addresses_session_expired_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sessão expirada'**
+  String get settings_addresses_session_expired_title;
+
+  /// No description provided for @settings_addresses_session_expired_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre novamente para gerenciar seus endereços.'**
+  String get settings_addresses_session_expired_subtitle;
+
+  /// No description provided for @settings_addresses_saved_group.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereços salvos'**
+  String get settings_addresses_saved_group;
+
+  /// No description provided for @settings_addresses_empty_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum endereço salvo'**
+  String get settings_addresses_empty_title;
+
+  /// No description provided for @settings_addresses_empty_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione um endereço para definir sua localização principal no app.'**
+  String get settings_addresses_empty_subtitle;
+
+  /// No description provided for @settings_addresses_empty_action.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar primeiro endereço'**
+  String get settings_addresses_empty_action;
+
+  /// No description provided for @settings_addresses_overview_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerenciar endereços'**
+  String get settings_addresses_overview_title;
+
+  /// No description provided for @settings_addresses_overview_count.
+  ///
+  /// In pt, this message translates to:
+  /// **'{savedCount} de {maxCount} endereços salvos'**
+  String settings_addresses_overview_count(Object maxCount, Object savedCount);
+
+  /// No description provided for @settings_addresses_primary_label.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço principal'**
+  String get settings_addresses_primary_label;
+
+  /// No description provided for @settings_addresses_search_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Busca automática indisponível no momento.'**
+  String get settings_addresses_search_unavailable;
+
+  /// No description provided for @settings_addresses_add_new.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar novo endereço'**
+  String get settings_addresses_add_new;
+
+  /// No description provided for @settings_addresses_limit_reached.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite de {maxCount} endereços'**
+  String settings_addresses_limit_reached(Object maxCount);
+
+  /// No description provided for @settings_addresses_use_current_location.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar minha localização atual'**
+  String get settings_addresses_use_current_location;
+
+  /// No description provided for @settings_addresses_limit_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite de {maxCount} endereços atingido.'**
+  String settings_addresses_limit_warning(Object maxCount);
+
+  /// No description provided for @settings_addresses_search_service_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Serviço de busca indisponível. Configure a chave da Google API.'**
+  String get settings_addresses_search_service_unavailable;
+
+  /// No description provided for @settings_addresses_invalid_selection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha um endereço válido para salvar.'**
+  String get settings_addresses_invalid_selection;
+
+  /// No description provided for @settings_addresses_add_success.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço adicionado e definido como principal.'**
+  String get settings_addresses_add_success;
+
+  /// No description provided for @settings_addresses_save_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao salvar endereço: {error}'**
+  String settings_addresses_save_error(Object error);
+
+  /// No description provided for @settings_addresses_current_location_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível determinar o endereço da localização atual.'**
+  String get settings_addresses_current_location_unavailable;
+
+  /// No description provided for @settings_addresses_confirm_current_location.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar endereço'**
+  String get settings_addresses_confirm_current_location;
+
+  /// No description provided for @settings_addresses_current_location_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível obter sua localização atual: {error}'**
+  String settings_addresses_current_location_error(Object error);
+
+  /// No description provided for @settings_addresses_permission_denied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permissão de localização negada.'**
+  String get settings_addresses_permission_denied;
+
+  /// No description provided for @settings_addresses_permission_denied_forever.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permissão de localização negada permanentemente.'**
+  String get settings_addresses_permission_denied_forever;
+
+  /// No description provided for @settings_addresses_service_disabled.
+  ///
+  /// In pt, this message translates to:
+  /// **'GPS desativado. Ative o serviço de localização.'**
+  String get settings_addresses_service_disabled;
+
+  /// No description provided for @settings_addresses_api_quota_exceeded.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite da Google API atingido. Tente novamente mais tarde.'**
+  String get settings_addresses_api_quota_exceeded;
+
+  /// No description provided for @settings_addresses_primary_updated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço principal atualizado.'**
+  String get settings_addresses_primary_updated;
+
+  /// No description provided for @settings_addresses_update_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar endereço: {error}'**
+  String settings_addresses_update_error(Object error);
+
+  /// No description provided for @settings_addresses_minimum_one_warning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pelo menos 1 endereço deve permanecer salvo.'**
+  String get settings_addresses_minimum_one_warning;
+
+  /// No description provided for @settings_addresses_delete_confirm_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir endereço?'**
+  String get settings_addresses_delete_confirm_title;
+
+  /// No description provided for @settings_addresses_delete_confirm_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deseja excluir este endereço salvo?'**
+  String get settings_addresses_delete_confirm_message;
+
+  /// No description provided for @settings_addresses_delete_success.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço excluído.'**
+  String get settings_addresses_delete_success;
+
+  /// No description provided for @settings_addresses_delete_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao excluir endereço: {error}'**
+  String settings_addresses_delete_error(Object error);
+
+  /// No description provided for @settings_addresses_session_expired_exception.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sessão expirada. Entre novamente.'**
+  String get settings_addresses_session_expired_exception;
+
+  /// No description provided for @settings_addresses_primary_missing_coordinates.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço principal sem coordenadas válidas.'**
+  String get settings_addresses_primary_missing_coordinates;
+
+  /// No description provided for @settings_addresses_primary_missing_city_state.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço principal sem cidade e estado válidos.'**
+  String get settings_addresses_primary_missing_city_state;
+
+  /// No description provided for @settings_address_card_primary_fallback_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço principal'**
+  String get settings_address_card_primary_fallback_title;
+
+  /// No description provided for @settings_address_card_saved_fallback_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço salvo'**
+  String get settings_address_card_saved_fallback_title;
+
+  /// No description provided for @settings_address_card_primary_summary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em uso como referência principal.'**
+  String get settings_address_card_primary_summary;
+
+  /// No description provided for @settings_address_card_saved_summary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível para virar endereço principal.'**
+  String get settings_address_card_saved_summary;
+
+  /// No description provided for @settings_address_card_zip_code.
+  ///
+  /// In pt, this message translates to:
+  /// **'CEP {postalCode}'**
+  String settings_address_card_zip_code(Object postalCode);
+
+  /// No description provided for @settings_address_card_gps_ok.
+  ///
+  /// In pt, this message translates to:
+  /// **'GPS ok'**
+  String get settings_address_card_gps_ok;
+
+  /// No description provided for @settings_address_card_status_primary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Principal'**
+  String get settings_address_card_status_primary;
+
+  /// No description provided for @settings_address_card_status_saved.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo'**
+  String get settings_address_card_status_saved;
+
+  /// No description provided for @settings_address_card_set_primary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Definir principal'**
+  String get settings_address_card_set_primary;
+
+  /// No description provided for @settings_address_card_delete.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir endereço'**
+  String get settings_address_card_delete;
+
+  /// No description provided for @settings_address_card_delete_disabled_tooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pelo menos 1 endereço deve permanecer salvo'**
+  String get settings_address_card_delete_disabled_tooltip;
+
+  /// No description provided for @settings_address_card_active.
+  ///
+  /// In pt, this message translates to:
+  /// **'Endereço ativo'**
+  String get settings_address_card_active;
+
+  /// No description provided for @settings_app_language.
+  ///
+  /// In pt, this message translates to:
+  /// **'Idioma do app'**
+  String get settings_app_language;
+
+  /// No description provided for @settings_app_theme.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema do app'**
+  String get settings_app_theme;
+
+  /// No description provided for @settings_language_device.
+  ///
+  /// In pt, this message translates to:
+  /// **'Usar idioma do dispositivo'**
+  String get settings_language_device;
+
+  /// No description provided for @settings_language_portuguese_brazil.
+  ///
+  /// In pt, this message translates to:
+  /// **'Português (Brasil)'**
+  String get settings_language_portuguese_brazil;
+
+  /// No description provided for @settings_language_english.
+  ///
+  /// In pt, this message translates to:
+  /// **'English'**
+  String get settings_language_english;
+
+  /// No description provided for @settings_theme_follow_system.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seguir sistema'**
+  String get settings_theme_follow_system;
+
+  /// No description provided for @settings_theme_always_dark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sempre escuro'**
+  String get settings_theme_always_dark;
+
+  /// No description provided for @settings_apply_preference.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicar'**
+  String get settings_apply_preference;
+
+  /// Mensagem exibida ao atualizar o idioma do app
+  ///
+  /// In pt, this message translates to:
+  /// **'Idioma atualizado para {language}.'**
+  String settings_language_updated(String language);
+
+  /// Mensagem exibida ao atualizar o tema do app
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema atualizado para {theme}.'**
+  String settings_theme_updated(String theme);
+
   /// No description provided for @onboarding_type_title.
   ///
   /// In pt, this message translates to:

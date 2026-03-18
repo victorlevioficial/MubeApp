@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/l10n/generated/app_localizations.dart';
 
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -92,7 +93,12 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        locale: const Locale('pt'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     );
   }
 
@@ -258,7 +264,7 @@ void main() {
       await tester.drag(scrollable, const Offset(0, -2000));
       await tester.pumpAndSettle();
 
-      final deleteTile = find.text('Excluir Conta');
+      final deleteTile = find.text('Excluir conta');
       expect(deleteTile, findsOneWidget);
 
       await tester.tap(deleteTile);
@@ -309,7 +315,7 @@ void main() {
       await tester.drag(scrollable, const Offset(0, -2000));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Excluir Conta'));
+      await tester.tap(find.text('Excluir conta'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Excluir'));
@@ -333,7 +339,7 @@ void main() {
       await tester.drag(scrollable, const Offset(0, -2000));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Excluir Conta'));
+      await tester.tap(find.text('Excluir conta'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Excluir'));

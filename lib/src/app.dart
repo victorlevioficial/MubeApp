@@ -2,16 +2,17 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import 'core/providers/app_display_preferences_provider.dart';
 import 'core/providers/app_update_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'core/services/push_notification_provider.dart';
-import 'design_system/components/feedback/app_overlay.dart';
+import 'core/services/session_prompt_coordinator.dart';
+import 'core/widgets/app_update_notice_dialog.dart';
 import 'design_system/components/feedback/app_snackbar.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
 import 'design_system/foundations/theme/app_theme.dart';
@@ -22,6 +23,7 @@ import 'features/auth/presentation/account_deletion_provider.dart';
 import 'features/bands/domain/band_activation_rules.dart';
 import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/gigs/domain/gig_review_opportunity.dart';
+import 'features/gigs/presentation/gig_review_reminder_dialog.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'routing/app_router.dart';
@@ -53,21 +55,15 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasBootstrappedPushForSession = false;
   bool _hasPrefetchedFeedForSession = false;
   bool _hasReleasedInitialRoute = false;
-  bool _hasPendingAppUpdateNoticeEvaluation = true;
-  bool _hasShownAppUpdateNoticeForSession = false;
-  bool _isEvaluatingAppUpdateNotice = false;
-  bool _isAppUpdateNoticeVisible = false;
-  bool _hasPendingBandMembersReminderEvaluation = false;
-  bool _hasShownBandMembersReminderForSession = false;
-  bool _isBandMembersReminderVisible = false;
-  String? _bandMembersReminderUserId;
-  bool _hasPendingGigReviewReminderEvaluation = false;
-  bool _hasShownGigReviewReminderForSession = false;
-  bool _isGigReviewReminderVisible = false;
   bool _isPushNavigationDispatchScheduled = false;
-  String? _gigReviewReminderUserId;
   String? _onboardingDraftOwnerUid;
   Timer? _pushBootstrapTimer;
+  final SessionPromptCoordinator _appUpdateNoticeCoordinator =
+      SessionPromptCoordinator(pendingInitially: true);
+  final UserScopedSessionPromptCoordinator _bandMembersReminderCoordinator =
+      UserScopedSessionPromptCoordinator(logLabel: 'BandFormationReminder');
+  final UserScopedSessionPromptCoordinator _gigReviewReminderCoordinator =
+      UserScopedSessionPromptCoordinator(logLabel: 'GigReviewReminder');
 
   @override
   void initState() {
@@ -87,7 +83,6 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
     // Badge count now comes from Firestore stream automatically.
     // We only need to handle navigation when user taps a notification.
-
     _onMessageOpenedSub = eventBus.onNavigation.listen((intent) {
       if (!mounted) return;
       _pendingPushNavigationIntent = intent;
@@ -262,43 +257,21 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   }
 
   void _handleBandMembersReminderSession(User? user) {
-    if (user == null) {
-      _hasPendingBandMembersReminderEvaluation = false;
-      _hasShownBandMembersReminderForSession = false;
-      _isBandMembersReminderVisible = false;
-      _bandMembersReminderUserId = null;
-      return;
+    if (_bandMembersReminderCoordinator.handleAuthUser(user?.uid)) {
+      unawaited(
+        _maybeShowBandMembersReminder(
+          ref.read(currentUserProfileProvider).value,
+        ),
+      );
     }
-
-    if (_bandMembersReminderUserId == user.uid) return;
-
-    _bandMembersReminderUserId = user.uid;
-    _hasPendingBandMembersReminderEvaluation = true;
-    _hasShownBandMembersReminderForSession = false;
-    _isBandMembersReminderVisible = false;
-    unawaited(
-      _maybeShowBandMembersReminder(ref.read(currentUserProfileProvider).value),
-    );
   }
 
   void _handleGigReviewReminderSession(User? user) {
-    if (user == null) {
-      _hasPendingGigReviewReminderEvaluation = false;
-      _hasShownGigReviewReminderForSession = false;
-      _isGigReviewReminderVisible = false;
-      _gigReviewReminderUserId = null;
-      return;
+    if (_gigReviewReminderCoordinator.handleAuthUser(user?.uid)) {
+      unawaited(
+        _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
+      );
     }
-
-    if (_gigReviewReminderUserId == user.uid) return;
-
-    _gigReviewReminderUserId = user.uid;
-    _hasPendingGigReviewReminderEvaluation = true;
-    _hasShownGigReviewReminderForSession = false;
-    _isGigReviewReminderVisible = false;
-    unawaited(
-      _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
-    );
   }
 
   void _maybePrefetchFeed(AppUser? profile) {
@@ -364,11 +337,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   }
 
   Future<void> _maybeShowAppUpdateNotice() async {
-    if (!mounted ||
-        !_hasPendingAppUpdateNoticeEvaluation ||
-        _hasShownAppUpdateNoticeForSession ||
-        _isEvaluatingAppUpdateNotice ||
-        _isAppUpdateNoticeVisible) {
+    if (!mounted || !_appUpdateNoticeCoordinator.canEvaluate) {
       return;
     }
 
@@ -377,7 +346,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       return;
     }
 
-    _isEvaluatingAppUpdateNotice = true;
+    _appUpdateNoticeCoordinator.startEvaluation();
     final notice = await (() async {
       try {
         return await ref.read(appUpdateNoticeProvider.future);
@@ -390,55 +359,35 @@ class _MubeAppState extends ConsumerState<MubeApp> {
         return null;
       }
     })();
-    _isEvaluatingAppUpdateNotice = false;
-    _hasPendingAppUpdateNoticeEvaluation = false;
 
-    if (!mounted || notice == null) {
+    if (!mounted) {
+      _appUpdateNoticeCoordinator.finishEvaluation(keepPending: false);
+      return;
+    }
+
+    if (notice == null) {
+      _appUpdateNoticeCoordinator.finishEvaluation(keepPending: false);
       _resumeDeferredSessionDialogs();
       return;
     }
 
-    _hasShownAppUpdateNoticeForSession = true;
-    _isAppUpdateNoticeVisible = true;
-
     final dialogContext = rootNavigatorKey.currentContext;
-    if (dialogContext == null) {
-      _isAppUpdateNoticeVisible = false;
+    if (dialogContext == null || !dialogContext.mounted) {
+      _appUpdateNoticeCoordinator.finishEvaluation(keepPending: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         unawaited(_maybeShowAppUpdateNotice());
       });
       return;
     }
-    if (!dialogContext.mounted) {
-      _isAppUpdateNoticeVisible = false;
-      return;
-    }
 
-    final shouldOpenStore = await AppOverlay.dialog<bool>(
-      context: dialogContext,
-      barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        title: const Text('Atualizacao disponivel'),
-        content: Text(
-          'Voce esta usando a versao ${notice.installedVersion}. '
-          'Existe uma versao mais recente do Mube com correcoes e melhorias.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Depois'),
-          ),
-          if (notice.storeUri != null)
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Atualizar'),
-            ),
-        ],
-      ),
+    _appUpdateNoticeCoordinator.finishEvaluation(keepPending: false);
+    _appUpdateNoticeCoordinator.beginDisplay();
+    final shouldOpenStore = await AppUpdateNoticeDialog.show(
+      dialogContext,
+      notice: notice,
     );
-
-    _isAppUpdateNoticeVisible = false;
+    _appUpdateNoticeCoordinator.endDisplay();
 
     if (!mounted) return;
 
@@ -469,12 +418,8 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   Future<void> _maybeShowBandMembersReminder(AppUser? profile) async {
     if (!mounted ||
-        _hasPendingAppUpdateNoticeEvaluation ||
-        _isEvaluatingAppUpdateNotice ||
-        _isAppUpdateNoticeVisible ||
-        !_hasPendingBandMembersReminderEvaluation ||
-        _hasShownBandMembersReminderForSession ||
-        _isBandMembersReminderVisible) {
+        _appUpdateNoticeCoordinator.blocksOtherPrompts ||
+        !_bandMembersReminderCoordinator.canPresent) {
       return;
     }
 
@@ -488,7 +433,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     }
 
     if (!profile.isCadastroConcluido) {
-      _skipBandMembersReminderForSession(
+      _bandMembersReminderCoordinator.skipForSession(
         reason: 'registration_incomplete',
         currentPath: currentPath,
       );
@@ -496,7 +441,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     }
 
     if (profile.tipoPerfil != AppUserType.band) {
-      _skipBandMembersReminderForSession(
+      _bandMembersReminderCoordinator.skipForSession(
         reason: 'not_a_band',
         currentPath: currentPath,
       );
@@ -504,7 +449,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     }
 
     if (isBandEligibleForActivation(profile.members.length)) {
-      _skipBandMembersReminderForSession(
+      _bandMembersReminderCoordinator.skipForSession(
         reason: 'minimum_members_met',
         currentPath: currentPath,
       );
@@ -512,7 +457,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     }
 
     if (!_canShowBandMembersReminderOnPath(currentPath)) {
-      _skipBandMembersReminderForSession(
+      _bandMembersReminderCoordinator.skipForSession(
         reason: 'path_not_supported',
         currentPath: currentPath,
       );
@@ -532,9 +477,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       return;
     }
 
-    _hasPendingBandMembersReminderEvaluation = false;
-    _hasShownBandMembersReminderForSession = true;
-    _isBandMembersReminderVisible = true;
+    _bandMembersReminderCoordinator.beginDisplay();
 
     final shouldOpenManageMembers = await BandFormationReminderDialog.show(
       context: dialogContext,
@@ -542,7 +485,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       acceptedMembers: profile.members.length,
     );
 
-    _isBandMembersReminderVisible = false;
+    _bandMembersReminderCoordinator.endDisplay();
     if (!mounted || !shouldOpenManageMembers) return;
 
     final activePath = _goRouter.routerDelegate.currentConfiguration.uri.path;
@@ -553,12 +496,8 @@ class _MubeAppState extends ConsumerState<MubeApp> {
 
   Future<void> _maybeShowGigReviewReminder(AppUser? profile) async {
     if (!mounted ||
-        _hasPendingAppUpdateNoticeEvaluation ||
-        _isEvaluatingAppUpdateNotice ||
-        _isAppUpdateNoticeVisible ||
-        !_hasPendingGigReviewReminderEvaluation ||
-        _hasShownGigReviewReminderForSession ||
-        _isGigReviewReminderVisible) {
+        _appUpdateNoticeCoordinator.blocksOtherPrompts ||
+        !_gigReviewReminderCoordinator.canPresent) {
       return;
     }
 
@@ -598,41 +537,26 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       }
     })();
 
-    _hasPendingGigReviewReminderEvaluation = false;
-    _hasShownGigReviewReminderForSession = true;
+    _gigReviewReminderCoordinator.beginDisplay();
 
     if (!mounted || opportunities.isEmpty) {
+      _gigReviewReminderCoordinator.endDisplay();
       return;
     }
 
     final activeDialogContext = rootNavigatorKey.currentContext;
-    if (activeDialogContext == null || !activeDialogContext.mounted) return;
+    if (activeDialogContext == null || !activeDialogContext.mounted) {
+      _gigReviewReminderCoordinator.endDisplay();
+      return;
+    }
 
     final opportunity = opportunities.first;
-    _isGigReviewReminderVisible = true;
-
-    final shouldOpenReview = await showDialog<bool>(
-      context: activeDialogContext,
-      builder: (context) => AlertDialog(
-        title: const Text('Avaliação pendente'),
-        content: Text(
-          'Voce ainda precisa avaliar ${opportunity.reviewedUserName} '
-          'pela gig "${opportunity.gigTitle}".',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Agora nao'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Avaliar'),
-          ),
-        ],
-      ),
+    final shouldOpenReview = await GigReviewReminderDialog.show(
+      activeDialogContext,
+      opportunity: opportunity,
     );
 
-    _isGigReviewReminderVisible = false;
+    _gigReviewReminderCoordinator.endDisplay();
     if (!mounted || shouldOpenReview != true) return;
 
     final route = RoutePaths.gigReviewById(
@@ -670,16 +594,6 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     return !RoutePaths.isPublic(currentPath);
   }
 
-  void _skipBandMembersReminderForSession({
-    required String reason,
-    required String currentPath,
-  }) {
-    _hasPendingBandMembersReminderEvaluation = false;
-    AppLogger.debug(
-      '[BandFormationReminder] Skipped for session: $reason ($currentPath)',
-    );
-  }
-
   @override
   void dispose() {
     _pushBootstrapTimer?.cancel();
@@ -693,6 +607,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   @override
   Widget build(BuildContext context) {
     final goRouter = ref.watch(goRouterProvider);
+    final displayPreferences = ref.watch(appDisplayPreferencesProvider);
 
     return MaterialApp.router(
       scaffoldMessengerKey: scaffoldMessengerKey,
@@ -700,26 +615,34 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       title: 'Mube',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      highContrastTheme: AppTheme.highContrastDarkTheme,
+      highContrastDarkTheme: AppTheme.highContrastDarkTheme,
+      themeMode: displayPreferences.themeMode,
       routerConfig: goRouter,
 
-      // Wrap all screens with offline indicator banner
+      // Wrap all screens with offline indicator banner.
       builder: (context, child) {
         return DismissKeyboardOnTap(
           child: OfflineIndicator(child: child ?? const SizedBox.shrink()),
         );
       },
 
-      // Localization configuration
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('pt'), // Portuguese (Brazil) - default
-      ],
-      locale: const Locale('pt'),
+      // Localization configuration.
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: displayPreferences.locale,
+      localeResolutionCallback: (locale, supportedLocales) {
+        if (locale == null) return const Locale('pt');
+
+        for (final supportedLocale in supportedLocales) {
+          if (supportedLocale.languageCode == locale.languageCode) {
+            return supportedLocale;
+          }
+        }
+
+        return const Locale('pt');
+      },
     );
   }
 }

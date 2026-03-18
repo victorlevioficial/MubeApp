@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/l10n/generated/app_localizations.dart';
 import 'package:mube/src/design_system/components/loading/app_loading_indicator.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -54,7 +55,12 @@ void main() {
           'blocked-user',
         ).overrideWith((ref) => Future.value([blockedUser])),
       ],
-      child: const MaterialApp(home: BlockedUsersScreen()),
+      child: const MaterialApp(
+        locale: Locale('pt'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: BlockedUsersScreen(),
+      ),
     );
   }
 

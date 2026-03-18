@@ -13,7 +13,9 @@ class AppSelectionModal extends StatefulWidget {
   final List<String> items;
   final List<String> selectedItems;
   final bool allowMultiple;
+  final bool showSearch;
   final String? searchHint;
+  final String? confirmButtonText;
   final String Function(String)? itemLabelBuilder;
 
   const AppSelectionModal({
@@ -22,7 +24,9 @@ class AppSelectionModal extends StatefulWidget {
     required this.items,
     this.selectedItems = const [],
     this.allowMultiple = true,
+    this.showSearch = true,
     this.searchHint,
+    this.confirmButtonText,
     this.itemLabelBuilder,
   });
 
@@ -39,9 +43,11 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
   void initState() {
     super.initState();
     _filteredItems = widget.items;
-    _tempSelectedItems = List.from(widget.selectedItems);
+    _tempSelectedItems = List<String>.from(widget.selectedItems);
 
-    _searchController.addListener(_filterItems);
+    if (widget.showSearch) {
+      _searchController.addListener(_filterItems);
+    }
   }
 
   @override
@@ -53,12 +59,14 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
   void _filterItems() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredItems = widget.items.where((item) {
-        final label = widget.itemLabelBuilder != null
-            ? widget.itemLabelBuilder!(item)
-            : item;
-        return label.toLowerCase().contains(query);
-      }).toList();
+      _filteredItems = widget.items
+          .where((item) {
+            final label = widget.itemLabelBuilder != null
+                ? widget.itemLabelBuilder!(item)
+                : item;
+            return label.toLowerCase().contains(query);
+          })
+          .toList(growable: false);
     });
   }
 
@@ -71,9 +79,22 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
           _tempSelectedItems.add(item);
         }
       } else {
-        _tempSelectedItems = [item];
+        _tempSelectedItems = <String>[item];
       }
     });
+  }
+
+  String get _resolvedConfirmButtonText {
+    if (widget.confirmButtonText != null &&
+        widget.confirmButtonText!.trim().isNotEmpty) {
+      return widget.confirmButtonText!;
+    }
+
+    if (!widget.allowMultiple) {
+      return 'Aplicar';
+    }
+
+    return 'Confirmar selecao (${_tempSelectedItems.length})';
   }
 
   @override
@@ -86,7 +107,6 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
       ),
       child: Column(
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.all(AppSpacing.s24),
             child: Row(
@@ -108,46 +128,44 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
               ],
             ),
           ),
-
-          // Search
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
-            child: AppTextField(
-              controller: _searchController,
-              label: 'Pesquisar',
-              hint: widget.searchHint ?? 'Digite para buscar...',
-              prefixIcon: const Icon(
-                Icons.search,
-                color: AppColors.textSecondary,
+          if (widget.showSearch) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
+              child: AppTextField(
+                controller: _searchController,
+                label: 'Pesquisar',
+                hint: widget.searchHint ?? 'Digite para buscar...',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.s16),
-
-          // List
+            const SizedBox(height: AppSpacing.s16),
+          ],
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
               child: Wrap(
                 spacing: AppSpacing.s8,
                 runSpacing: AppSpacing.s8,
-                children: _filteredItems.map((item) {
-                  final isSelected = _tempSelectedItems.contains(item);
-                  final label = widget.itemLabelBuilder != null
-                      ? widget.itemLabelBuilder!(item)
-                      : item;
+                children: _filteredItems
+                    .map((item) {
+                      final isSelected = _tempSelectedItems.contains(item);
+                      final label = widget.itemLabelBuilder != null
+                          ? widget.itemLabelBuilder!(item)
+                          : item;
 
-                  return AppChip.filter(
-                    label: label,
-                    isSelected: isSelected,
-                    onTap: () => _toggleItem(item),
-                  );
-                }).toList(),
+                      return AppChip.filter(
+                        label: label,
+                        isSelected: isSelected,
+                        onTap: () => _toggleItem(item),
+                      );
+                    })
+                    .toList(growable: false),
               ),
             ),
           ),
-
-          // Confirm Button
           Container(
             padding: const EdgeInsets.all(AppSpacing.s24),
             decoration: const BoxDecoration(
@@ -158,7 +176,7 @@ class _AppSelectionModalState extends State<AppSelectionModal> {
             ),
             child: SafeArea(
               child: AppButton.primary(
-                text: 'Confirmar seleção (${_tempSelectedItems.length})',
+                text: _resolvedConfirmButtonText,
                 onPressed: () => Navigator.pop(context, _tempSelectedItems),
                 isFullWidth: true,
               ),

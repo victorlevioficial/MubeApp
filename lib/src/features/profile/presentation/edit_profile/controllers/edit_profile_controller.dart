@@ -8,6 +8,7 @@ import '../../../../../core/providers/firebase_providers.dart';
 import '../../../../../utils/app_logger.dart';
 import '../../../../../utils/category_normalizer.dart';
 import '../../../../../utils/professional_profile_utils.dart';
+import '../../../../../utils/public_username.dart';
 import '../../../../auth/data/auth_repository.dart';
 import '../../../../auth/domain/app_user.dart';
 import '../../../../auth/domain/user_type.dart';
@@ -706,6 +707,7 @@ class EditProfileController extends _$EditProfileController {
     required AppUser user,
     required String nome,
     required String bio,
+    required String username,
     required String nomeArtistico,
     required String celular,
     required String dataNascimento,
@@ -724,6 +726,39 @@ class EditProfileController extends _$EditProfileController {
     try {
       final Map<String, dynamic> updates = {'nome': nome, 'bio': bio};
       final gallery = await _galleryToJson(userId: user.uid);
+      final normalizedUsername = normalizedPublicUsernameOrNull(username);
+      final currentUsername = user.publicUsername;
+      final usernameError = validatePublicUsername(username);
+      var usernameUpdated = false;
+
+      if (usernameError != null) {
+        throw usernameError;
+      }
+
+      if (normalizedUsername != null && normalizedUsername != currentUsername) {
+        final usernameAvailabilityResult = await ref
+            .read(authRepositoryProvider)
+            .isPublicUsernameAvailable(
+              normalizedUsername,
+              excludingUid: user.uid,
+            );
+
+        final isUsernameAvailable = usernameAvailabilityResult.fold((failure) {
+          throw failure.message;
+        }, (isAvailable) => isAvailable);
+
+        if (!isUsernameAvailable) {
+          throw 'Esse @usuario ja esta em uso. Escolha outro.';
+        }
+
+        final usernameUpdateResult = await ref
+            .read(authRepositoryProvider)
+            .updatePublicUsername(normalizedUsername);
+
+        usernameUpdateResult.fold((failure) => throw failure.message, (_) {
+          usernameUpdated = true;
+        });
+      }
 
       switch (user.tipoPerfil) {
         case AppUserType.professional:
@@ -793,6 +828,17 @@ class EditProfileController extends _$EditProfileController {
       await ref
           .read(profileControllerProvider.notifier)
           .updateProfile(currentUser: user, updates: updates);
+
+      final profileUpdateState = ref.read(profileControllerProvider);
+      if (profileUpdateState.hasError) {
+        final errorMessage =
+            profileUpdateState.error?.toString() ??
+            'Nao foi possivel salvar o perfil.';
+        if (usernameUpdated) {
+          throw 'O @usuario foi atualizado, mas nao foi possivel salvar o restante do perfil. $errorMessage';
+        }
+        throw errorMessage;
+      }
 
       state = state.copyWith(isSaving: false, hasChanges: false);
     } catch (e) {

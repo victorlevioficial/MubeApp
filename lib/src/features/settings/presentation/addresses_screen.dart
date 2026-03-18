@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../common_widgets/location_service.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
@@ -50,9 +51,10 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     List<SavedAddress> addresses, {
     required String successMessage,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final user = _readCurrentUser();
     if (user == null) {
-      throw StateError('Sessao expirada. Entre novamente.');
+      throw StateError(l10n.settings_addresses_session_expired_exception);
     }
 
     SavedAddressBook.validateLimit(addresses);
@@ -61,10 +63,10 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     if (normalized.isNotEmpty) {
       final primary = normalized.first;
       if (primary.lat == null || primary.lng == null) {
-        throw StateError('Endereco principal sem coordenadas validas.');
+        throw StateError(l10n.settings_addresses_primary_missing_coordinates);
       }
       if (primary.cidade.trim().isEmpty || primary.estado.trim().isEmpty) {
-        throw StateError('Endereco principal sem cidade e estado validos.');
+        throw StateError(l10n.settings_addresses_primary_missing_city_state);
       }
     }
 
@@ -81,18 +83,21 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   }
 
   Future<void> _addAddress() async {
+    final l10n = AppLocalizations.of(context)!;
     final addresses = _readAddresses();
     if (addresses.length >= SavedAddressBook.maxAddresses) {
       AppSnackBar.warning(
         context,
-        'Limite de ${SavedAddressBook.maxAddresses} enderecos atingido.',
+        l10n.settings_addresses_limit_warning(
+          SavedAddressBook.maxAddresses.toString(),
+        ),
       );
       return;
     }
     if (!LocationService.isConfigured) {
       AppSnackBar.warning(
         context,
-        'Servico de busca indisponivel. Configure a chave da Google API.',
+        l10n.settings_addresses_search_service_unavailable,
       );
       return;
     }
@@ -104,11 +109,12 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   }
 
   Future<void> _persistNewAddress(ResolvedAddress selectedAddress) async {
+    final l10n = AppLocalizations.of(context)!;
     if (!selectedAddress.canConfirm) {
       AppSnackBar.warning(
         context,
         selectedAddress.confirmBlockingReason ??
-            'Escolha um endereco valido para salvar.',
+            l10n.settings_addresses_invalid_selection,
       );
       return;
     }
@@ -121,29 +127,35 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     try {
       await _saveAddresses(
         updatedAddresses,
-        successMessage: 'Endereco adicionado e definido como principal.',
+        successMessage: l10n.settings_addresses_add_success,
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao salvar endereco: $error');
+      AppSnackBar.error(
+        context,
+        l10n.settings_addresses_save_error(error.toString()),
+      );
     }
   }
 
   Future<void> _useCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_isUsingCurrentLocation) return;
 
     final addresses = _readAddresses();
     if (addresses.length >= SavedAddressBook.maxAddresses) {
       AppSnackBar.warning(
         context,
-        'Limite de ${SavedAddressBook.maxAddresses} enderecos atingido.',
+        l10n.settings_addresses_limit_warning(
+          SavedAddressBook.maxAddresses.toString(),
+        ),
       );
       return;
     }
     if (!LocationService.isConfigured) {
       AppSnackBar.warning(
         context,
-        'Servico de localizacao indisponivel sem a chave da Google API.',
+        l10n.settings_addresses_search_service_unavailable,
       );
       return;
     }
@@ -160,7 +172,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       if (resolved == null) {
         AppSnackBar.warning(
           context,
-          'Nao foi possivel determinar o endereco da localizacao atual.',
+          l10n.settings_addresses_current_location_unavailable,
         );
         return;
       }
@@ -168,7 +180,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       final confirmed = await showAddressConfirmScreen(
         context,
         resolved,
-        confirmButtonText: 'Salvar endereco',
+        confirmButtonText: l10n.settings_addresses_confirm_current_location,
       );
       if (!mounted || confirmed == null) return;
 
@@ -180,7 +192,7 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
       if (!mounted) return;
       AppSnackBar.error(
         context,
-        'Nao foi possivel obter sua localizacao atual: $error',
+        l10n.settings_addresses_current_location_error(error.toString()),
       );
     } finally {
       if (mounted) {
@@ -190,49 +202,52 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
   }
 
   String _messageForLocationError(LocationServiceException error) {
+    final l10n = AppLocalizations.of(context)!;
     switch (error.code) {
       case LocationServiceErrorCode.permissionDenied:
-        return 'Permissao de localizacao negada.';
+        return l10n.settings_addresses_permission_denied;
       case LocationServiceErrorCode.permissionDeniedForever:
-        return 'Permissao de localizacao negada permanentemente.';
+        return l10n.settings_addresses_permission_denied_forever;
       case LocationServiceErrorCode.serviceDisabled:
-        return 'GPS desativado. Ative o servico de localizacao.';
+        return l10n.settings_addresses_service_disabled;
       case LocationServiceErrorCode.apiKeyMissing:
         return error.message;
       case LocationServiceErrorCode.quotaExceeded:
-        return 'Limite da Google API atingido. Tente novamente mais tarde.';
+        return l10n.settings_addresses_api_quota_exceeded;
       case LocationServiceErrorCode.requestFailed:
         return error.message;
     }
   }
 
   Future<void> _setAsPrimary(SavedAddress address) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await _saveAddresses(
         SavedAddressBook.setPrimary(_readAddresses(), address),
-        successMessage: 'Endereco principal atualizado.',
+        successMessage: l10n.settings_addresses_primary_updated,
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao atualizar endereco: $error');
+      AppSnackBar.error(
+        context,
+        l10n.settings_addresses_update_error(error.toString()),
+      );
     }
   }
 
   Future<void> _deleteAddress(SavedAddress address) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_readAddresses().length <= 1) {
-      AppSnackBar.warning(
-        context,
-        'Pelo menos 1 endereco deve permanecer salvo.',
-      );
+      AppSnackBar.warning(context, l10n.settings_addresses_minimum_one_warning);
       return;
     }
 
     final confirmed = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (dialogContext) => const AppConfirmationDialog(
-        title: 'Excluir endereco?',
-        message: 'Deseja excluir este endereco salvo?',
-        confirmText: 'Excluir',
+      builder: (dialogContext) => AppConfirmationDialog(
+        title: l10n.settings_addresses_delete_confirm_title,
+        message: l10n.settings_addresses_delete_confirm_message,
+        confirmText: l10n.common_delete,
         isDestructive: true,
       ),
     );
@@ -242,21 +257,25 @@ class _AddressesScreenState extends ConsumerState<AddressesScreen> {
     try {
       await _saveAddresses(
         SavedAddressBook.delete(_readAddresses(), address),
-        successMessage: 'Endereco excluido.',
+        successMessage: l10n.settings_addresses_delete_success,
       );
     } catch (error) {
       if (!mounted) return;
-      AppSnackBar.error(context, 'Erro ao excluir endereco: $error');
+      AppSnackBar.error(
+        context,
+        l10n.settings_addresses_delete_error(error.toString()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Meus Enderecos'),
+      appBar: AppAppBar(title: l10n.settings_addresses),
       body: userAsync.when(
         loading: _buildLoadingState,
         error: (_, _) => _buildLoadErrorState(),

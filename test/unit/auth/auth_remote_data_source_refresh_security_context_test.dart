@@ -70,6 +70,7 @@ void main() {
         mockAuth,
         FakeFirebaseFirestore(),
         functions: _FakeFirebaseFunctions(),
+        publicUsernameFunctions: _FakeFirebaseFunctions(),
         appCheck: fakeAppCheck,
       );
     });

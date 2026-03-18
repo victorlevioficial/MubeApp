@@ -35,8 +35,6 @@ class SettingsGroup extends StatelessWidget {
                 title.toUpperCase(),
                 style: AppTypography.settingsGroupTitle.copyWith(
                   color: AppColors.textSecondary.withValues(alpha: 0.6),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
                   letterSpacing: 1.8,
                 ),
               ),

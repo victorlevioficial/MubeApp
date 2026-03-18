@@ -165,6 +165,86 @@ class MockAuthRepository extends _i1.Mock implements _i4.AuthRepository {
           as _i5.Stream<_i10.AppUser?>);
 
   @override
+  _i5.Future<_i7.Either<_i8.Failure, _i10.AppUser?>> getUserByPublicUsername(
+    String? username,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getUserByPublicUsername, [username]),
+            returnValue:
+                _i5.Future<_i7.Either<_i8.Failure, _i10.AppUser?>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i10.AppUser?>>(
+                    this,
+                    Invocation.method(#getUserByPublicUsername, [username]),
+                  ),
+                ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, _i10.AppUser?>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, _i10.AppUser?>>(
+                    this,
+                    Invocation.method(#getUserByPublicUsername, [username]),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, _i10.AppUser?>>);
+
+  @override
+  _i5.Future<_i7.Either<_i8.Failure, bool>> isPublicUsernameAvailable(
+    String? username, {
+    String? excludingUid,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #isPublicUsernameAvailable,
+              [username],
+              {#excludingUid: excludingUid},
+            ),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, bool>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, bool>>(
+                this,
+                Invocation.method(
+                  #isPublicUsernameAvailable,
+                  [username],
+                  {#excludingUid: excludingUid},
+                ),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, bool>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, bool>>(
+                    this,
+                    Invocation.method(
+                      #isPublicUsernameAvailable,
+                      [username],
+                      {#excludingUid: excludingUid},
+                    ),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, bool>>);
+
+  @override
+  _i5.Future<_i7.Either<_i8.Failure, String>> updatePublicUsername(
+    String? username,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePublicUsername, [username]),
+            returnValue: _i5.Future<_i7.Either<_i8.Failure, String>>.value(
+              _i9.dummyValue<_i7.Either<_i8.Failure, String>>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i5.Future<_i7.Either<_i8.Failure, String>>.value(
+                  _i9.dummyValue<_i7.Either<_i8.Failure, String>>(
+                    this,
+                    Invocation.method(#updatePublicUsername, [username]),
+                  ),
+                ),
+          )
+          as _i5.Future<_i7.Either<_i8.Failure, String>>);
+
+  @override
   _i5.Future<_i7.Either<_i8.Failure, _i7.Unit>> updateUser(
     _i10.AppUser? user,
   ) =>

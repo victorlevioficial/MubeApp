@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
+import 'package:mube/src/core/errors/failure_mapper.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
@@ -38,6 +39,9 @@ class ChatRepository {
        _authRepository = authRepository,
        _chatAccessResolver =
            chatAccessResolver ?? ChatAccessResolver(_firestore);
+
+  Failure _mapFailure(Object error, StackTrace stackTrace) =>
+      mapExceptionToFailure(error, stackTrace);
 
   Map<String, dynamic>? _asMap(Object? data) {
     if (data is Map<String, dynamic>) return data;
@@ -676,7 +680,7 @@ class ChatRepository {
       return Right(conversationId);
     } catch (e, stackTrace) {
       AppLogger.error('Chat: failed to create conversation', e, stackTrace);
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -899,16 +903,18 @@ class ChatRepository {
       return const Right(unit);
     } catch (e, stackTrace) {
       AppLogger.error('Chat: failed to send message', e, stackTrace);
+      final failure = _mapFailure(e, stackTrace);
 
       await _analytics?.logEvent(
         name: 'message_sent_error',
         parameters: {
           'conversation_id': conversationId,
-          'error_message': e.toString(),
+          'error_type': failure.runtimeType.toString(),
+          'error_code': failure.debugMessage ?? 'unknown',
         },
       );
 
-      return Left(ServerFailure(message: e.toString()));
+      return Left(failure);
     }
   }
 
@@ -940,7 +946,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1232,7 +1238,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1268,7 +1274,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1320,7 +1326,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1377,7 +1383,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1455,7 +1461,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 
@@ -1506,7 +1512,7 @@ class ChatRepository {
         e,
         stackTrace,
       );
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_mapFailure(e, stackTrace));
     }
   }
 }

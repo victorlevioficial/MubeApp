@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
@@ -19,15 +20,16 @@ class PrivacySettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Privacidade e Visibilidade'),
+      appBar: AppAppBar(title: l10n.settings_privacy_visibility),
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Usuário não encontrado'));
+            return Center(child: Text(l10n.settings_user_not_found));
           }
 
           final isActiveMatchpoint =
@@ -45,11 +47,10 @@ class PrivacySettingsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
-              _buildSectionHeader('Visibilidade'),
+              _buildSectionHeader(l10n.settings_section_visibility),
               _buildSwitchTile(
-                title: 'Aparecer na Home e Busca',
-                subtitle:
-                    'Se desativado, seu perfil não aparecerá nas buscas gerais nem no feed.',
+                title: l10n.settings_privacy_home_visibility_title,
+                subtitle: l10n.settings_privacy_home_visibility_subtitle,
                 value: isVisibleHome,
                 onChanged: (val) async {
                   final notifier = ref.read(authRepositoryProvider);
@@ -63,9 +64,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 },
               ),
               _buildSwitchTile(
-                title: 'Ativar MatchPoint',
-                subtitle:
-                    'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.',
+                title: l10n.settings_privacy_matchpoint_title,
+                subtitle: l10n.settings_privacy_matchpoint_subtitle,
                 value: isActiveMatchpoint,
                 onChanged: (val) async {
                   final notifier = ref.read(authRepositoryProvider);
@@ -79,9 +79,8 @@ class PrivacySettingsScreen extends ConsumerWidget {
                 },
               ),
               _buildSwitchTile(
-                title: 'Chat público',
-                subtitle:
-                    'Se desativado, novas mensagens de quem ainda não tem vínculo com você irão para Solicitacoes.',
+                title: l10n.settings_privacy_public_chat_title,
+                subtitle: l10n.settings_privacy_public_chat_subtitle,
                 value: isChatOpen,
                 onChanged: (val) async {
                   final notifier = ref.read(authRepositoryProvider);
@@ -102,7 +101,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
                     );
                     AppSnackBar.error(
                       context,
-                      'Erro ao atualizar privacidade do chat: ${failure.message}',
+                      l10n.settings_privacy_chat_update_error(failure.message),
                     );
                     return;
                   }
@@ -118,11 +117,13 @@ class PrivacySettingsScreen extends ConsumerWidget {
                     reevaluateResult.fold(
                       (failure) => AppSnackBar.error(
                         context,
-                        'Chat atualizado, mas houve falha ao promover solicitacoes: ${failure.message}',
+                        l10n.settings_privacy_chat_promote_error(
+                          failure.message,
+                        ),
                       ),
                       (_) => AppSnackBar.success(
                         context,
-                        'Privacidade do chat atualizada.',
+                        l10n.settings_privacy_chat_updated,
                       ),
                     );
                     return;
@@ -130,21 +131,23 @@ class PrivacySettingsScreen extends ConsumerWidget {
 
                   AppSnackBar.success(
                     context,
-                    'Privacidade do chat atualizada.',
+                    l10n.settings_privacy_chat_updated,
                   );
                 },
               ),
               const Divider(color: AppColors.surfaceHighlight, height: 32),
-              _buildSectionHeader('Segurança'),
+              _buildSectionHeader(l10n.settings_section_security),
               ListTile(
                 title: Text(
-                  'Usuários Bloqueados',
+                  l10n.settings_blocked_users_title,
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textPrimary,
                   ),
                 ),
                 subtitle: Text(
-                  '$totalBlockedCount usuários',
+                  l10n.settings_blocked_users_count(
+                    totalBlockedCount.toString(),
+                  ),
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -161,7 +164,9 @@ class PrivacySettingsScreen extends ConsumerWidget {
           );
         },
         loading: () => const _PrivacySettingsSkeleton(),
-        error: (err, stack) => Center(child: Text('Erro: $err')),
+        error: (err, stack) => Center(
+          child: Text(l10n.settings_error_with_details(err.toString())),
+        ),
       ),
     );
   }

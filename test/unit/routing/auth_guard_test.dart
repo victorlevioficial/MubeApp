@@ -122,6 +122,47 @@ void main() {
       },
     );
 
+    test('allows unauthenticated public profile links', () async {
+      final fakeAuthRepository = FakeAuthRepository();
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          authStateChangesProvider.overrideWithValue(
+            const AsyncValue.data(null),
+          ),
+          currentUserProfileProvider.overrideWithValue(
+            const AsyncValue.data(null),
+          ),
+        ],
+      );
+
+      addTearDown(() {
+        fakeAuthRepository.dispose();
+        container.dispose();
+      });
+
+      container.read(splashFinishedProvider.notifier).finish();
+      final guard = container.read(_authGuardProvider);
+      final context = _FakeBuildContext();
+
+      final shareRedirect = await guard.redirect(
+        context,
+        _stateForPath(RoutePaths.publicProfileSharePathById('user-1')),
+      );
+      final legacyRedirect = await guard.redirect(
+        context,
+        _stateForPath(RoutePaths.publicProfileById('user-1')),
+      );
+      final handleRedirect = await guard.redirect(
+        context,
+        _stateForPath(RoutePaths.publicProfileByUsername('mubeoficial')),
+      );
+
+      expect(shareRedirect, isNull);
+      expect(legacyRedirect, isNull);
+      expect(handleRedirect, isNull);
+    });
+
     test(
       'refreshes security context instead of signing out on permission-related profile stream error',
       () async {

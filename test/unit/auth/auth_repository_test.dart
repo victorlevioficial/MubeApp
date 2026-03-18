@@ -401,6 +401,36 @@ void main() {
       });
     });
 
+    group('updatePublicUsername', () {
+      test('should return Right(String) on successful update', () async {
+        when(
+          mockDataSource.updatePublicUsername('mube.oficial'),
+        ).thenAnswer((_) async => 'mube.oficial');
+
+        final result = await repository.updatePublicUsername('mube.oficial');
+
+        expect(result.isRight(), true);
+        result.fold((_) => fail('Expected Right'), (username) {
+          expect(username, 'mube.oficial');
+        });
+        verify(mockDataSource.updatePublicUsername('mube.oficial')).called(1);
+      });
+
+      test('should return Left(ServerFailure) on exception', () async {
+        when(
+          mockDataSource.updatePublicUsername('mube.oficial'),
+        ).thenThrow(Exception('Username update failed'));
+
+        final result = await repository.updatePublicUsername('mube.oficial');
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(failure.message, contains('Username update failed'));
+        }, (_) => fail('Expected Left'));
+      });
+    });
+
     group('getUsersByIds', () {
       final testUids = ['uid1', 'uid2'];
       final testUsers = [

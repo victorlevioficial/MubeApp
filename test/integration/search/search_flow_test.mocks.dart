@@ -5,20 +5,20 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
 
-import 'package:cloud_firestore/cloud_firestore.dart' as _i11;
+import 'package:cloud_firestore/cloud_firestore.dart' as _i12;
 import 'package:firebase_auth/firebase_auth.dart' as _i2;
-import 'package:flutter/foundation.dart' as _i12;
-import 'package:fpdart/fpdart.dart' as _i7;
+import 'package:flutter/foundation.dart' as _i13;
+import 'package:fpdart/fpdart.dart' as _i8;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i13;
-import 'package:mube/src/core/errors/failures.dart' as _i8;
+import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:mube/src/core/errors/failures.dart' as _i9;
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart'
     as _i3;
 import 'package:mube/src/features/auth/domain/app_user.dart' as _i5;
-import 'package:mube/src/features/search/data/search_repository.dart' as _i6;
+import 'package:mube/src/features/search/data/search_repository.dart' as _i7;
 import 'package:mube/src/features/search/domain/paginated_search_response.dart'
-    as _i9;
-import 'package:mube/src/features/search/domain/search_filters.dart' as _i10;
+    as _i10;
+import 'package:mube/src/features/search/domain/search_filters.dart' as _i11;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -136,9 +136,37 @@ class MockAuthRemoteDataSource extends _i1.Mock
           as _i4.Future<void>);
 
   @override
+  _i4.Future<String> updatePublicUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePublicUsername, [username]),
+            returnValue: _i4.Future<String>.value(
+              _i6.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<String>.value(
+              _i6.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+          )
+          as _i4.Future<String>);
+
+  @override
   _i4.Future<_i5.AppUser?> fetchUserProfile(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#fetchUserProfile, [uid]),
+            returnValue: _i4.Future<_i5.AppUser?>.value(),
+            returnValueForMissingStub: _i4.Future<_i5.AppUser?>.value(),
+          )
+          as _i4.Future<_i5.AppUser?>);
+
+  @override
+  _i4.Future<_i5.AppUser?> fetchUserProfileByUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchUserProfileByUsername, [username]),
             returnValue: _i4.Future<_i5.AppUser?>.value(),
             returnValueForMissingStub: _i4.Future<_i5.AppUser?>.value(),
           )
@@ -231,13 +259,14 @@ class MockAuthRemoteDataSource extends _i1.Mock
 /// A class which mocks [SearchRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
+class MockSearchRepository extends _i1.Mock implements _i7.SearchRepository {
   @override
-  _i4.Future<_i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>> searchUsers({
-    required _i10.SearchFilters? filters,
-    _i11.DocumentSnapshot<Object?>? startAfter,
+  _i4.Future<_i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>>
+  searchUsers({
+    required _i11.SearchFilters? filters,
+    _i12.DocumentSnapshot<Object?>? startAfter,
     required int? requestId,
-    required _i12.ValueGetter<int>? getCurrentRequestId,
+    required _i13.ValueGetter<int>? getCurrentRequestId,
     List<String>? blockedUsers = const [],
   }) =>
       (super.noSuchMethod(
@@ -250,10 +279,10 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
             }),
             returnValue:
                 _i4.Future<
-                  _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  _i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>
                 >.value(
-                  _i13.dummyValue<
-                    _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  _i6.dummyValue<
+                    _i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>
                   >(
                     this,
                     Invocation.method(#searchUsers, [], {
@@ -267,10 +296,10 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
                 ),
             returnValueForMissingStub:
                 _i4.Future<
-                  _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  _i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>
                 >.value(
-                  _i13.dummyValue<
-                    _i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>
+                  _i6.dummyValue<
+                    _i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>
                   >(
                     this,
                     Invocation.method(#searchUsers, [], {
@@ -283,5 +312,5 @@ class MockSearchRepository extends _i1.Mock implements _i6.SearchRepository {
                   ),
                 ),
           )
-          as _i4.Future<_i7.Either<_i8.Failure, _i9.PaginatedSearchResponse>>);
+          as _i4.Future<_i8.Either<_i9.Failure, _i10.PaginatedSearchResponse>>);
 }

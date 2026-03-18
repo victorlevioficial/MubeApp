@@ -22,14 +22,12 @@ abstract class FeedRemoteDataSource {
     DocumentSnapshot? startAfter,
   });
 
-  Future<DocumentSnapshot<Map<String, dynamic>>> getUser(String uid);
-
-  Future<QuerySnapshot<Map<String, dynamic>>> getGeohashNeighbors({
-    required List<String> neighbors,
-    String? filterType,
-    String? category,
-    int? limit,
+  Future<QuerySnapshot<Map<String, dynamic>>> getTechnicianCandidates({
+    required int limit,
+    DocumentSnapshot? startAfter,
   });
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUser(String uid);
 
   Future<QuerySnapshot<Map<String, dynamic>>> getMainFeed({
     String? filterType,
@@ -48,6 +46,7 @@ abstract class FeedRemoteDataSource {
   Future<QuerySnapshot<Map<String, dynamic>>> getUsersByGeohash({
     required String geohash,
     String? filterType,
+    String? category,
     required int limit,
   });
 }
@@ -130,16 +129,9 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
   }
 
   @override
-  Future<DocumentSnapshot<Map<String, dynamic>>> getUser(String uid) {
-    return _firestore.collection(FirestoreCollections.users).doc(uid).get();
-  }
-
-  @override
-  Future<QuerySnapshot<Map<String, dynamic>>> getGeohashNeighbors({
-    required List<String> neighbors,
-    String? filterType,
-    String? category,
-    int? limit,
+  Future<QuerySnapshot<Map<String, dynamic>>> getTechnicianCandidates({
+    required int limit,
+    DocumentSnapshot? startAfter,
   }) {
     var query = _firestore
         .collection(FirestoreCollections.users)
@@ -147,33 +139,24 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
           FirestoreFields.registrationStatus,
           isEqualTo: RegistrationStatus.complete,
         )
-        .where(FirestoreFields.geohash, whereIn: neighbors);
+        .where(FirestoreFields.profileType, isEqualTo: ProfileType.professional)
+        .where(
+          '${FirestoreFields.professional}.categorias',
+          arrayContainsAny: const ['stage_tech', 'crew'],
+        )
+        .orderBy(FieldPath.documentId)
+        .limit(limit);
 
-    if (filterType != null && filterType.isNotEmpty) {
-      query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
-    } else {
-      query = query.where(
-        FirestoreFields.profileType,
-        whereIn: [
-          ProfileType.professional,
-          ProfileType.band,
-          ProfileType.studio,
-        ],
-      );
-    }
-
-    if (category != null && category.isNotEmpty) {
-      query = query.where(
-        '${FirestoreFields.professional}.${FirestoreFields.category}',
-        isEqualTo: category,
-      );
-    }
-
-    if (limit != null && limit > 0) {
-      query = query.limit(limit);
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
     }
 
     return query.get();
+  }
+
+  @override
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUser(String uid) {
+    return _firestore.collection(FirestoreCollections.users).doc(uid).get();
   }
 
   @override
@@ -272,8 +255,18 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
   Future<QuerySnapshot<Map<String, dynamic>>> getUsersByGeohash({
     required String geohash,
     String? filterType,
+    String? category,
     required int limit,
   }) {
+    final hasCategoryFilter = category != null && category.isNotEmpty;
+    final effectiveFilterType =
+        hasCategoryFilter &&
+            (filterType == null ||
+                filterType.isEmpty ||
+                filterType == 'Perto de mim')
+        ? ProfileType.professional
+        : filterType;
+
     var query = _firestore
         .collection(FirestoreCollections.users)
         .where(
@@ -282,10 +275,13 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
         )
         .where(FirestoreFields.geohash, isEqualTo: geohash);
 
-    if (filterType != null &&
-        filterType.isNotEmpty &&
-        filterType != 'Perto de mim') {
-      query = query.where(FirestoreFields.profileType, isEqualTo: filterType);
+    if (effectiveFilterType != null &&
+        effectiveFilterType.isNotEmpty &&
+        effectiveFilterType != 'Perto de mim') {
+      query = query.where(
+        FirestoreFields.profileType,
+        isEqualTo: effectiveFilterType,
+      );
     } else {
       query = query.where(
         FirestoreFields.profileType,
@@ -294,6 +290,13 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
           ProfileType.band,
           ProfileType.studio,
         ],
+      );
+    }
+
+    if (hasCategoryFilter) {
+      query = query.where(
+        '${FirestoreFields.professional}.${FirestoreFields.category}',
+        isEqualTo: category,
       );
     }
 

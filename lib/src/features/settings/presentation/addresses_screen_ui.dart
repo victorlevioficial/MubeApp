@@ -2,19 +2,21 @@ part of 'addresses_screen.dart';
 
 extension _AddressesScreenUi on _AddressesScreenState {
   Widget _buildLoadingState() {
-    return const Center(
-      child: AppLoadingIndicator.withMessage('Carregando enderecos...'),
+    final l10n = AppLocalizations.of(context)!;
+    return Center(
+      child: AppLoadingIndicator.withMessage(l10n.settings_addresses_loading),
     );
   }
 
   Widget _buildLoadErrorState() {
+    final l10n = AppLocalizations.of(context)!;
     return _buildBodySurface(
       child: EmptyStateWidget(
         icon: Icons.cloud_off_rounded,
-        title: 'Nao foi possivel carregar seus enderecos',
-        subtitle: 'Tente novamente para recuperar seus locais salvos.',
+        title: l10n.settings_addresses_load_error_title,
+        subtitle: l10n.settings_addresses_load_error_subtitle,
         actionButton: AppButton.secondary(
-          text: 'Tentar novamente',
+          text: l10n.common_retry,
           onPressed: () => ref.invalidate(currentUserProfileProvider),
           isFullWidth: true,
         ),
@@ -23,12 +25,13 @@ extension _AddressesScreenUi on _AddressesScreenState {
   }
 
   Widget _buildUserContent(AppUser? user) {
+    final l10n = AppLocalizations.of(context)!;
     if (user == null) {
       return _buildBodySurface(
-        child: const EmptyStateWidget(
+        child: EmptyStateWidget(
           icon: Icons.lock_outline_rounded,
-          title: 'Sessao expirada',
-          subtitle: 'Entre novamente para gerenciar seus enderecos.',
+          title: l10n.settings_addresses_session_expired_title,
+          subtitle: l10n.settings_addresses_session_expired_subtitle,
         ),
       );
     }
@@ -64,7 +67,7 @@ extension _AddressesScreenUi on _AddressesScreenState {
             ),
             const SizedBox(height: AppSpacing.s20),
             SettingsGroup(
-              title: 'Enderecos salvos',
+              title: l10n.settings_addresses_saved_group,
               children: addresses.isEmpty
                   ? [_buildEmptyStateCard()]
                   : _buildAddressCards(addresses),
@@ -98,14 +101,14 @@ extension _AddressesScreenUi on _AddressesScreenState {
   }
 
   Widget _buildEmptyStateCard() {
+    final l10n = AppLocalizations.of(context)!;
     return _StateSurface(
       child: EmptyStateWidget(
         icon: Icons.location_off_outlined,
-        title: 'Nenhum endereco salvo',
-        subtitle:
-            'Adicione um endereco para definir sua localizacao principal no app.',
+        title: l10n.settings_addresses_empty_title,
+        subtitle: l10n.settings_addresses_empty_subtitle,
         actionButton: AppButton.secondary(
-          text: 'Adicionar primeiro endereco',
+          text: l10n.settings_addresses_empty_action,
           onPressed: _addAddress,
           icon: const Icon(Icons.add_location_alt_outlined),
           isFullWidth: true,
@@ -145,6 +148,7 @@ class _AddressesOverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final canUseCurrentLocation = canAddMore && isSearchAvailable;
 
     return Container(
@@ -181,14 +185,17 @@ class _AddressesOverviewCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Gerenciar enderecos',
+                      l10n.settings_addresses_overview_title,
                       style: AppTypography.titleMedium.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.s2),
                     Text(
-                      '$savedCount de ${SavedAddressBook.maxAddresses} enderecos salvos',
+                      l10n.settings_addresses_overview_count(
+                        SavedAddressBook.maxAddresses.toString(),
+                        savedCount.toString(),
+                      ),
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -211,7 +218,7 @@ class _AddressesOverviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Endereco principal',
+                    l10n.settings_addresses_primary_label,
                     style: AppTypography.labelSmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -243,15 +250,17 @@ class _AddressesOverviewCard extends StatelessWidget {
           if (!isSearchAvailable) ...[
             const SizedBox(height: AppSpacing.s12),
             Text(
-              'Busca automatica indisponivel no momento.',
+              l10n.settings_addresses_search_unavailable,
               style: AppTypography.bodySmall.copyWith(color: AppColors.warning),
             ),
           ],
           const SizedBox(height: AppSpacing.s16),
           AppButton.primary(
             text: canAddMore
-                ? 'Adicionar novo endereco'
-                : 'Limite de ${SavedAddressBook.maxAddresses} enderecos',
+                ? l10n.settings_addresses_add_new
+                : l10n.settings_addresses_limit_reached(
+                    SavedAddressBook.maxAddresses.toString(),
+                  ),
             onPressed: canAddMore ? onAddAddress : null,
             icon: const Icon(Icons.add_location_alt_outlined),
             size: AppButtonSize.medium,
@@ -259,7 +268,7 @@ class _AddressesOverviewCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.s10),
           AppButton.outline(
-            text: 'Usar minha localizacao atual',
+            text: l10n.settings_addresses_use_current_location,
             onPressed: canUseCurrentLocation ? onUseCurrentLocation : null,
             isLoading: isUsingCurrentLocation,
             icon: const Icon(Icons.my_location_outlined, size: 18),

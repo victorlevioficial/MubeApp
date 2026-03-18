@@ -89,6 +89,7 @@ export {
 // Export Users functions
 export {
   deleteAccount,
+  setPublicUsername,
   syncContractorDisplayName,
   backfillContractorDisplayNames,
 } from "./users";

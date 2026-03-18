@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0A0A0A" />
+  <meta
+    name="description"
+    content="Abra perfis do Mube direto no app ou continue no site."
+  />
+  <base href="/" />
+  <title>Abrir Perfil no Mube</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      background:
+        radial-gradient(circle at top, rgba(232, 70, 108, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 28%),
+        var(--bg-deep);
+    }
+
+    .profile-link-shell {
+      width: min(100%, 1080px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 420px);
+      gap: 32px;
+      align-items: stretch;
+    }
+
+    .profile-link-card,
+    .profile-link-preview {
+      background: rgba(20, 20, 20, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .profile-link-card {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .profile-link-brand {
+      width: 120px;
+      height: auto;
+    }
+
+    .profile-link-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(232, 70, 108, 0.12);
+      border: 1px solid rgba(232, 70, 108, 0.2);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      width: fit-content;
+    }
+
+    .profile-link-title {
+      font-family: var(--font-display);
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    .profile-link-title span {
+      display: block;
+      color: var(--text-secondary);
+      font-size: clamp(20px, 2vw, 26px);
+      letter-spacing: -0.02em;
+      margin-top: 10px;
+    }
+
+    .profile-link-copy {
+      max-width: 560px;
+      font-size: 17px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .profile-link-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .profile-link-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .profile-link-pill {
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .profile-link-pill strong {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .profile-link-pill span {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .profile-link-preview {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-link-preview::before {
+      content: "";
+      position: absolute;
+      inset: auto -70px -70px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(232, 70, 108, 0.16);
+      filter: blur(16px);
+    }
+
+    .profile-link-phone {
+      position: relative;
+      z-index: 1;
+      max-width: 280px;
+      margin: 0 auto;
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(34, 34, 34, 0.95), rgba(10, 10, 10, 0.98));
+      border-radius: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
+    }
+
+    .profile-link-phone-screen {
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(232, 70, 108, 0.22), transparent 24%),
+        linear-gradient(180deg, #181818 0%, #0f0f0f 100%);
+      padding: 22px 18px 20px;
+    }
+
+    .profile-link-phone-badge {
+      display: inline-flex;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-bottom: 18px;
+    }
+
+    .profile-link-avatar {
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(232, 70, 108, 0.9), rgba(244, 114, 182, 0.84));
+      margin-bottom: 16px;
+    }
+
+    .profile-link-name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      line-height: 1.05;
+      margin-bottom: 8px;
+    }
+
+    .profile-link-subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+
+    .profile-link-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .profile-link-tag {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(232, 70, 108, 0.12);
+      border: 1px solid rgba(232, 70, 108, 0.24);
+      color: #ff8ba7;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .profile-link-path {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .profile-link-path strong {
+      display: block;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .profile-link-path code {
+      display: block;
+      color: var(--text-primary);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .profile-link-note {
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .profile-link-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-link-card {
+        padding: 28px;
+      }
+
+      .profile-link-meta {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 540px) {
+      .profile-link-title {
+        font-size: 30px;
+      }
+
+      .profile-link-copy {
+        font-size: 15px;
+      }
+
+      .profile-link-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="profile-link-shell">
+    <section class="profile-link-card">
+      <img class="profile-link-brand" src="/assets/logo.svg" alt="Mube" />
+      <div class="profile-link-kicker">Perfil compartilhado do Mube</div>
+      <div>
+        <h1 class="profile-link-title">
+          Abra este perfil direto no app.
+          <span>Se o app não estiver instalado, continue pelo site e baixe o Mube.</span>
+        </h1>
+      </div>
+      <p class="profile-link-copy">
+        Os links de perfil do Mube funcionam como App Link e Universal Link.
+        Em celulares compatíveis, tocar no link abre o perfil no app. Se você caiu no navegador,
+        use os atalhos abaixo para tentar novamente.
+      </p>
+      <div class="profile-link-actions">
+        <a class="btn btn--primary btn--lg" id="openInAppButton" href="/">
+          Abrir no app
+        </a>
+        <a
+          class="btn btn--outline btn--lg"
+          href="https://play.google.com/store/apps/details?id=com.mube.mubeoficial"
+        >
+          Baixar no Google Play
+        </a>
+        <a class="btn btn--outline btn--lg" href="/">
+          Ir para o site do Mube
+        </a>
+      </div>
+      <div class="profile-link-meta">
+        <div class="profile-link-pill">
+          <strong>Android</strong>
+          <span>App Links com verificação de domínio para `mubeapp.com.br`.</span>
+        </div>
+        <div class="profile-link-pill">
+          <strong>iPhone</strong>
+          <span>Universal Links configurados pelo domínio associado.</span>
+        </div>
+        <div class="profile-link-pill">
+          <strong>Fallback web</strong>
+          <span>O perfil compartilhado continua acessível mesmo fora do app.</span>
+        </div>
+      </div>
+      <p class="profile-link-note">
+        Em alguns cenários, o sistema operacional precisa terminar a verificação do domínio
+        ou o app precisa já ter sido aberto ao menos uma vez após a instalação.
+      </p>
+    </section>
+
+    <aside class="profile-link-preview">
+      <div class="profile-link-phone">
+        <div class="profile-link-phone-screen">
+          <div class="profile-link-phone-badge">Perfil do Mube</div>
+          <div class="profile-link-avatar" id="profileAvatar">MU</div>
+          <h2 class="profile-link-name" id="profileName">Perfil compartilhado</h2>
+          <p class="profile-link-subtitle">Conexões musicais, portfólio e disponibilidade em um só lugar.</p>
+          <div class="profile-link-tags">
+            <span class="profile-link-tag">Músico</span>
+            <span class="profile-link-tag">Banda</span>
+            <span class="profile-link-tag">Estúdio</span>
+          </div>
+          <div class="profile-link-path">
+            <strong>Link detectado</strong>
+            <code id="profilePath">/@perfil</code>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      var path = window.location.pathname || '/@perfil';
+      var segments = path.split('/').filter(Boolean);
+      var identifier = '';
+      var canonicalPath = path;
+
+      if (segments.length === 1 && segments[0].charAt(0) === '@') {
+        identifier = segments[0];
+      } else if (segments.length >= 2 && (segments[0] === 'profile' || segments[0] === 'user')) {
+        identifier = segments[1];
+        canonicalPath = '/' + segments[0] + '/' + encodeURIComponent(identifier);
+      }
+
+      var canonicalUrl = window.location.origin + canonicalPath;
+      var uid = identifier.replace('@', '');
+      var openButton = document.getElementById('openInAppButton');
+      var profilePath = document.getElementById('profilePath');
+      var profileName = document.getElementById('profileName');
+      var profileAvatar = document.getElementById('profileAvatar');
+
+      if (profilePath) {
+        profilePath.textContent = path;
+      }
+
+      if (identifier) {
+        var shortUid = uid.length > 18 ? uid.slice(0, 18) + '…' : uid;
+        profileName.textContent = 'Perfil ' + shortUid;
+        profileAvatar.textContent = uid.slice(0, 2).toUpperCase();
+      }
+
+      if (!openButton) {
+        return;
+      }
+
+      var isAndroid = /android/i.test(window.navigator.userAgent);
+      if (isAndroid && identifier) {
+        openButton.href =
+          'intent://mubeapp.com.br' +
+          canonicalPath +
+          '#Intent;scheme=https;package=com.mube.mubeoficial;S.browser_fallback_url=' +
+          encodeURIComponent(canonicalUrl) +
+          ';end';
+        return;
+      }
+
+      openButton.href = canonicalUrl;
+    })();
+  </script>
+</body>
+</html>

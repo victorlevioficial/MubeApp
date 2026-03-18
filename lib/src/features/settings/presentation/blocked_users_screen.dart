@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateProvider;
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../core/errors/error_message_resolver.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
@@ -80,23 +83,24 @@ class BlockedUsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final initialContentAsync = ref.watch(_blockedUsersInitialContentProvider);
     final initialContent = initialContentAsync.value;
 
     if (initialContentAsync.isLoading && initialContent == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppAppBar(title: 'Usuários Bloqueados'),
-        body: Center(child: AppLoadingIndicator()),
+        appBar: AppAppBar(title: l10n.settings_blocked_users_title),
+        body: const Center(child: AppLoadingIndicator()),
       );
     }
 
     if (initialContentAsync.hasError && initialContent == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: const AppAppBar(title: 'Usuários Bloqueados'),
+        appBar: AppAppBar(title: l10n.settings_blocked_users_title),
         body: _BlockedUsersErrorState(
-          title: 'Não foi possível carregar usuários bloqueados',
+          title: l10n.settings_blocked_users_load_error,
           message: resolveErrorMessage(initialContentAsync.error!),
           onRetry: () => _retryBlockedUsersLoad(ref),
         ),
@@ -124,16 +128,16 @@ class BlockedUsersScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Usuários Bloqueados'),
+      appBar: AppAppBar(title: l10n.settings_blocked_users_title),
       body: Builder(
         builder: (context) {
           if (authUser == null) {
-            return const Center(child: Text('Faça login novamente.'));
+            return Center(child: Text(l10n.settings_login_again));
           }
 
           if (blockedUsersAsync.hasError && idsKey.isEmpty) {
             return _BlockedUsersErrorState(
-              title: 'Não foi possível carregar usuários bloqueados',
+              title: l10n.settings_blocked_users_load_error,
               message: resolveErrorMessage(blockedUsersAsync.error!),
               onRetry: () => _retryBlockedUsersLoad(ref),
             );
@@ -151,7 +155,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.s16),
                   Text(
-                    'Nenhum usuário bloqueado',
+                    l10n.settings_blocked_users_empty,
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -167,15 +171,15 @@ class BlockedUsersScreen extends ConsumerWidget {
 
           if (usersDataAsync.hasError && users.isEmpty) {
             return _BlockedUsersErrorState(
-              title: 'Não foi possível carregar os detalhes dos bloqueios',
+              title: l10n.settings_blocked_users_details_error,
               message: resolveErrorMessage(usersDataAsync.error!),
               onRetry: () => _retryBlockedUsersLoad(ref, idsKey: idsKey),
             );
           }
 
           if (users.isEmpty) {
-            return const Center(
-              child: Text('Os usuários bloqueados não foram encontrados.'),
+            return Center(
+              child: Text(l10n.settings_blocked_users_details_not_found),
             );
           }
 
@@ -202,7 +206,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                   ),
                 ),
                 trailing: AppButton.outline(
-                  text: 'Desbloquear',
+                  text: l10n.settings_unblock,
                   size: AppButtonSize.small,
                   isLoading: isLoading,
                   onPressed: isLoading
@@ -224,6 +228,7 @@ class BlockedUsersScreen extends ConsumerWidget {
     String currentUserId,
     String blockedUserId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final loadingNotifier = ref.read(
       _unblockLoadingProvider(blockedUserId).notifier,
     );
@@ -244,7 +249,7 @@ class BlockedUsersScreen extends ConsumerWidget {
         },
         (_) {
           if (context.mounted) {
-            AppSnackBar.success(context, 'Usuário desbloqueado');
+            AppSnackBar.success(context, l10n.settings_user_unblocked);
           }
         },
       );
@@ -276,6 +281,7 @@ class _BlockedUsersErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.s24),
@@ -284,7 +290,7 @@ class _BlockedUsersErrorState extends StatelessWidget {
           title: title,
           subtitle: message,
           actionButton: AppButton.secondary(
-            text: 'Tentar novamente',
+            text: l10n.common_retry,
             onPressed: onRetry,
           ),
         ),

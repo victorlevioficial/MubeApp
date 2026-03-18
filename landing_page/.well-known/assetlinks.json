@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mube.mubeoficial",
+      "sha256_cert_fingerprints": [
+        "E6:09:2B:1F:60:87:3C:0F:E1:FD:C2:FE:EB:22:1A:6F:2E:20:8E:BC:56:BA:53:34:B8:49:7D:59:CA:CF:04:B9",
+        "B6:21:DC:70:85:0A:61:8B:1C:55:2E:3E:16:82:5D:A3:A2:C2:5E:60:E1:D0:85:FB:A7:69:F8:0C:F7:B6:D5:6A"
+      ]
+    }
+  }
+]

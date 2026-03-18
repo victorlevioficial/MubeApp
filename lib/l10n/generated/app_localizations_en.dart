@@ -254,6 +254,425 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_delete_account => 'Delete account';
 
   @override
+  String get settings_other => 'Other';
+
+  @override
+  String get settings_my_gigs => 'My gigs';
+
+  @override
+  String get settings_my_gigs_subtitle => 'Posts, status and openings';
+
+  @override
+  String get settings_my_applications => 'My applications';
+
+  @override
+  String get settings_my_applications_subtitle => 'Track replies and messages';
+
+  @override
+  String get settings_matchpoint_subtitle => 'Discovery and history';
+
+  @override
+  String get settings_addresses_subtitle => 'Manage deliveries';
+
+  @override
+  String get settings_band_management_subtitle => 'Members and invites';
+
+  @override
+  String get settings_my_bands_subtitle => 'Invites and collaborations';
+
+  @override
+  String get settings_change_password => 'Change password';
+
+  @override
+  String get settings_privacy_visibility => 'Privacy & visibility';
+
+  @override
+  String get settings_privacy_visibility_subtitle =>
+      'MatchPoint, search, blocks';
+
+  @override
+  String get settings_terms_of_use => 'Terms of Use';
+
+  @override
+  String get settings_privacy_policy => 'Privacy Policy';
+
+  @override
+  String get settings_logout_account => 'Log out';
+
+  @override
+  String get settings_logout_confirm_title => 'Log out of your account?';
+
+  @override
+  String get settings_logout_confirm_message =>
+      'You\'ll need to sign in again.';
+
+  @override
+  String get settings_change_password_email_missing =>
+      'We couldn\'t find your email.';
+
+  @override
+  String settings_change_password_message(Object email) {
+    return 'We\'ll send a reset link to:\n\n$email\n\nDo you want to continue?';
+  }
+
+  @override
+  String get settings_change_password_send => 'Send';
+
+  @override
+  String get settings_change_password_sending => 'Sending email...';
+
+  @override
+  String get settings_change_password_email_sent =>
+      'Email sent! Check your inbox.';
+
+  @override
+  String get settings_delete_confirm_title => 'Delete account?';
+
+  @override
+  String get settings_delete_confirm_message =>
+      'Your account and all associated data will be permanently deleted. This action cannot be undone.';
+
+  @override
+  String get settings_delete_in_progress => 'Deleting account...';
+
+  @override
+  String get settings_delete_success => 'Account deleted successfully.';
+
+  @override
+  String get settings_delete_requires_recent_login =>
+      'For security, sign in again before deleting your account.';
+
+  @override
+  String settings_error_with_details(Object error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get settings_profile_guest_name => 'Welcome';
+
+  @override
+  String get settings_profile_guest_email => 'Guest';
+
+  @override
+  String get settings_profile_apple_private_email => 'Apple private email';
+
+  @override
+  String get settings_profile_favorites_label => 'Favorites';
+
+  @override
+  String get settings_profile_type_label => 'Profile type';
+
+  @override
+  String get settings_profile_type_professional => 'Professional';
+
+  @override
+  String get settings_profile_type_band => 'Band';
+
+  @override
+  String get settings_profile_type_studio => 'Studio';
+
+  @override
+  String get settings_profile_type_contractor => 'Contractor';
+
+  @override
+  String get settings_user_not_found => 'User not found';
+
+  @override
+  String get settings_login_again => 'Please sign in again.';
+
+  @override
+  String get settings_section_visibility => 'Visibility';
+
+  @override
+  String get settings_section_security => 'Security';
+
+  @override
+  String get settings_privacy_home_visibility_title =>
+      'Show in Home and Search';
+
+  @override
+  String get settings_privacy_home_visibility_subtitle =>
+      'If disabled, your profile won\'t appear in general search results or in the feed.';
+
+  @override
+  String get settings_privacy_matchpoint_title => 'Enable MatchPoint';
+
+  @override
+  String get settings_privacy_matchpoint_subtitle =>
+      'If disabled, nobody will see you in MatchPoint and you won\'t receive new matches.';
+
+  @override
+  String get settings_privacy_public_chat_title => 'Public chat';
+
+  @override
+  String get settings_privacy_public_chat_subtitle =>
+      'If disabled, new messages from people with no prior connection to you will go to Requests.';
+
+  @override
+  String settings_privacy_chat_update_error(Object error) {
+    return 'Error updating chat privacy: $error';
+  }
+
+  @override
+  String settings_privacy_chat_promote_error(Object error) {
+    return 'Chat updated, but failed to promote requests: $error';
+  }
+
+  @override
+  String get settings_privacy_chat_updated => 'Chat privacy updated.';
+
+  @override
+  String get settings_blocked_users_title => 'Blocked users';
+
+  @override
+  String get settings_blocked_users_load_error =>
+      'We couldn\'t load blocked users';
+
+  @override
+  String get settings_blocked_users_details_error =>
+      'We couldn\'t load blocked user details';
+
+  @override
+  String get settings_blocked_users_empty => 'No blocked users';
+
+  @override
+  String get settings_blocked_users_details_not_found =>
+      'Blocked users were not found.';
+
+  @override
+  String settings_blocked_users_count(Object count) {
+    return '$count users';
+  }
+
+  @override
+  String get settings_unblock => 'Unblock';
+
+  @override
+  String get settings_user_unblocked => 'User unblocked';
+
+  @override
+  String get settings_addresses_loading => 'Loading addresses...';
+
+  @override
+  String get settings_addresses_load_error_title =>
+      'We couldn\'t load your addresses';
+
+  @override
+  String get settings_addresses_load_error_subtitle =>
+      'Try again to recover your saved places.';
+
+  @override
+  String get settings_addresses_session_expired_title => 'Session expired';
+
+  @override
+  String get settings_addresses_session_expired_subtitle =>
+      'Sign in again to manage your addresses.';
+
+  @override
+  String get settings_addresses_saved_group => 'Saved addresses';
+
+  @override
+  String get settings_addresses_empty_title => 'No saved addresses';
+
+  @override
+  String get settings_addresses_empty_subtitle =>
+      'Add an address to define your primary location in the app.';
+
+  @override
+  String get settings_addresses_empty_action => 'Add first address';
+
+  @override
+  String get settings_addresses_overview_title => 'Manage addresses';
+
+  @override
+  String settings_addresses_overview_count(Object maxCount, Object savedCount) {
+    return '$savedCount of $maxCount saved addresses';
+  }
+
+  @override
+  String get settings_addresses_primary_label => 'Primary address';
+
+  @override
+  String get settings_addresses_search_unavailable =>
+      'Automatic search is currently unavailable.';
+
+  @override
+  String get settings_addresses_add_new => 'Add new address';
+
+  @override
+  String settings_addresses_limit_reached(Object maxCount) {
+    return '$maxCount address limit';
+  }
+
+  @override
+  String get settings_addresses_use_current_location =>
+      'Use my current location';
+
+  @override
+  String settings_addresses_limit_warning(Object maxCount) {
+    return '$maxCount address limit reached.';
+  }
+
+  @override
+  String get settings_addresses_search_service_unavailable =>
+      'Search service unavailable. Configure the Google API key.';
+
+  @override
+  String get settings_addresses_invalid_selection =>
+      'Choose a valid address to save.';
+
+  @override
+  String get settings_addresses_add_success =>
+      'Address added and set as primary.';
+
+  @override
+  String settings_addresses_save_error(Object error) {
+    return 'Error saving address: $error';
+  }
+
+  @override
+  String get settings_addresses_current_location_unavailable =>
+      'We couldn\'t determine the address for your current location.';
+
+  @override
+  String get settings_addresses_confirm_current_location => 'Save address';
+
+  @override
+  String settings_addresses_current_location_error(Object error) {
+    return 'We couldn\'t get your current location: $error';
+  }
+
+  @override
+  String get settings_addresses_permission_denied =>
+      'Location permission denied.';
+
+  @override
+  String get settings_addresses_permission_denied_forever =>
+      'Location permission denied permanently.';
+
+  @override
+  String get settings_addresses_service_disabled =>
+      'GPS is disabled. Turn location services on.';
+
+  @override
+  String get settings_addresses_api_quota_exceeded =>
+      'Google API limit reached. Try again later.';
+
+  @override
+  String get settings_addresses_primary_updated => 'Primary address updated.';
+
+  @override
+  String settings_addresses_update_error(Object error) {
+    return 'Error updating address: $error';
+  }
+
+  @override
+  String get settings_addresses_minimum_one_warning =>
+      'At least 1 address must remain saved.';
+
+  @override
+  String get settings_addresses_delete_confirm_title => 'Delete address?';
+
+  @override
+  String get settings_addresses_delete_confirm_message =>
+      'Do you want to delete this saved address?';
+
+  @override
+  String get settings_addresses_delete_success => 'Address deleted.';
+
+  @override
+  String settings_addresses_delete_error(Object error) {
+    return 'Error deleting address: $error';
+  }
+
+  @override
+  String get settings_addresses_session_expired_exception =>
+      'Session expired. Sign in again.';
+
+  @override
+  String get settings_addresses_primary_missing_coordinates =>
+      'Primary address is missing valid coordinates.';
+
+  @override
+  String get settings_addresses_primary_missing_city_state =>
+      'Primary address is missing a valid city and state.';
+
+  @override
+  String get settings_address_card_primary_fallback_title => 'Primary address';
+
+  @override
+  String get settings_address_card_saved_fallback_title => 'Saved address';
+
+  @override
+  String get settings_address_card_primary_summary =>
+      'Used as your primary reference.';
+
+  @override
+  String get settings_address_card_saved_summary =>
+      'Available to become your primary address.';
+
+  @override
+  String settings_address_card_zip_code(Object postalCode) {
+    return 'ZIP $postalCode';
+  }
+
+  @override
+  String get settings_address_card_gps_ok => 'GPS ok';
+
+  @override
+  String get settings_address_card_status_primary => 'Primary';
+
+  @override
+  String get settings_address_card_status_saved => 'Saved';
+
+  @override
+  String get settings_address_card_set_primary => 'Set as primary';
+
+  @override
+  String get settings_address_card_delete => 'Delete address';
+
+  @override
+  String get settings_address_card_delete_disabled_tooltip =>
+      'At least 1 address must remain saved';
+
+  @override
+  String get settings_address_card_active => 'Active address';
+
+  @override
+  String get settings_app_language => 'App language';
+
+  @override
+  String get settings_app_theme => 'App theme';
+
+  @override
+  String get settings_language_device => 'Use device language';
+
+  @override
+  String get settings_language_portuguese_brazil => 'Português (Brasil)';
+
+  @override
+  String get settings_language_english => 'English';
+
+  @override
+  String get settings_theme_follow_system => 'Follow system';
+
+  @override
+  String get settings_theme_always_dark => 'Always dark';
+
+  @override
+  String get settings_apply_preference => 'Apply';
+
+  @override
+  String settings_language_updated(String language) {
+    return 'Language updated to $language.';
+  }
+
+  @override
+  String settings_theme_updated(String theme) {
+    return 'Theme updated to $theme.';
+  }
+
+  @override
   String get onboarding_type_title => 'Choose your profile type';
 
   @override

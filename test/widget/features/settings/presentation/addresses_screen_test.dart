@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/l10n/generated/app_localizations.dart';
 
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/settings/domain/saved_address.dart';
@@ -47,7 +48,12 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
       ],
-      child: const MaterialApp(home: AddressesScreen()),
+      child: const MaterialApp(
+        locale: Locale('pt'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: AddressesScreen(),
+      ),
     );
   }
 
@@ -63,12 +69,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Gerenciar enderecos'), findsOneWidget);
-      expect(find.text('2 de 5 enderecos salvos'), findsOneWidget);
+      expect(find.text('Gerenciar endereços'), findsOneWidget);
+      expect(find.text('2 de 5 endereços salvos'), findsOneWidget);
       expect(find.text('Casa'), findsOneWidget);
       expect(find.text('Estudio'), findsOneWidget);
-      expect(find.text('Endereco principal'), findsOneWidget);
-      expect(find.text('Usar minha localizacao atual'), findsOneWidget);
+      expect(find.text('Endereço principal'), findsOneWidget);
+      expect(find.text('Usar minha localização atual'), findsOneWidget);
     });
 
     testWidgets('renders empty state when user has no saved addresses', (
@@ -77,8 +83,8 @@ void main() {
       await tester.pumpWidget(createSubject(addresses: const []));
       await tester.pumpAndSettle();
 
-      expect(find.text('Nenhum endereco salvo'), findsOneWidget);
-      expect(find.text('Adicionar primeiro endereco'), findsOneWidget);
+      expect(find.text('Nenhum endereço salvo'), findsOneWidget);
+      expect(find.text('Adicionar primeiro endereço'), findsOneWidget);
     });
 
     testWidgets('disables add button when max number of addresses is reached', (
@@ -96,7 +102,7 @@ void main() {
       await tester.pumpWidget(createSubject(addresses: addresses));
       await tester.pumpAndSettle();
 
-      const label = 'Limite de ${SavedAddressBook.maxAddresses} enderecos';
+      const label = 'Limite de ${SavedAddressBook.maxAddresses} endereços';
       expect(find.text(label), findsOneWidget);
 
       final button = tester.widget<ElevatedButton>(

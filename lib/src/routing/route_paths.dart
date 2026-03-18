@@ -1,3 +1,5 @@
+import '../utils/public_username.dart';
+
 /// Centralized route path constants to avoid magic strings.
 abstract final class RoutePaths {
   // Auth routes
@@ -51,11 +53,17 @@ abstract final class RoutePaths {
   };
 
   static const List<String> _publicRoutePrefixes = <String>['$legal/'];
+  static const Set<String> _reservedProfileRouteSegments = <String>{
+    'edit',
+    'invites',
+    'manage-members',
+  };
 
   /// Check if a path is a public route.
   // Profile routes
   static const String profile = '/profile';
   static const String publicProfile = '/user';
+  static const String publicProfileHandleRoute = '/@:username';
   static const String profileEdit = '/profile/edit';
   static const String invites = '/profile/invites';
   static const String manageMembers = '/profile/manage-members';
@@ -64,6 +72,27 @@ abstract final class RoutePaths {
   static const String gigCreate = '/gigs/create';
 
   static String publicProfileById(String uid) => '$publicProfile/$uid';
+  static String publicProfileByUsername(String username) =>
+      '/${publicUsernameHandle(username)}';
+  static String publicProfileSharePathById(String uid) => '$profile/$uid';
+  static String publicProfileSharePath({
+    required String uid,
+    String? username,
+  }) {
+    final normalizedUsername = normalizedPublicUsernameOrNull(username);
+    if (normalizedUsername != null && isValidPublicUsername(normalizedUsername)) {
+      return publicProfileByUsername(normalizedUsername);
+    }
+    return publicProfileSharePathById(uid);
+  }
+
+  static String publicProfileShareUrlById(String uid) => Uri(
+    scheme: 'https',
+    host: 'mubeapp.com.br',
+    path: publicProfileSharePathById(uid),
+  ).toString();
+  static String publicProfileShareUrl({required String uid, String? username}) =>
+      'https://mubeapp.com.br${publicProfileSharePath(uid: uid, username: username)}';
   static String gigDetailById(String gigId) => '$gigs/$gigId';
   static String gigApplicantsById(String gigId) =>
       '${gigDetailById(gigId)}/applicants';
@@ -87,5 +116,48 @@ abstract final class RoutePaths {
 
   static bool isPublic(String path) =>
       publicRoutes.contains(path) ||
+      _isPublicHandlePath(path) ||
+      _isPublicProfilePath(path) ||
       _publicRoutePrefixes.any((prefix) => path.startsWith(prefix));
+
+  static bool _isPublicHandlePath(String path) {
+    final segments = Uri.parse(path).pathSegments;
+    if (segments.length != 1) {
+      return false;
+    }
+
+    final segment = segments.first;
+    if (!segment.startsWith('@') || segment.length <= 1) {
+      return false;
+    }
+
+    return validatePublicUsername(
+          segment.substring(1),
+          allowEmpty: false,
+        ) ==
+        null;
+  }
+
+  static bool _isPublicProfilePath(String path) {
+    final segments = Uri.parse(path).pathSegments;
+    if (segments.length != 2) {
+      return false;
+    }
+
+    final root = segments.first;
+    final identifier = segments.last;
+    if (identifier.isEmpty) {
+      return false;
+    }
+
+    if (root == publicProfile.replaceFirst('/', '')) {
+      return true;
+    }
+
+    if (root != profile.replaceFirst('/', '')) {
+      return false;
+    }
+
+    return !_reservedProfileRouteSegments.contains(identifier);
+  }
 }

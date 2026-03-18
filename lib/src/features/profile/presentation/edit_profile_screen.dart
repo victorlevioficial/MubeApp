@@ -12,6 +12,7 @@ import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -19,7 +20,9 @@ import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../routing/route_paths.dart';
 import '../../../utils/instagram_utils.dart';
+import '../../../utils/public_username.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -57,6 +60,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   late TextEditingController _generoController;
   late TextEditingController _instagramController;
   late TextEditingController _bioController;
+  late TextEditingController _usernameController;
   late TextEditingController _spotifyController;
   late TextEditingController _deezerController;
   late TextEditingController _youtubeMusicController;
@@ -90,6 +94,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       _generoController.dispose();
       _instagramController.dispose();
       _bioController.dispose();
+      _usernameController.dispose();
       _spotifyController.dispose();
       _deezerController.dispose();
       _youtubeMusicController.dispose();
@@ -177,6 +182,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _instagramController = TextEditingController(
       text: normalizeInstagramHandle(insta),
     );
+    _usernameController = TextEditingController(text: user.publicUsername ?? '');
     _spotifyController = TextEditingController(
       text: user.musicLinks[MusicLinkValidator.spotifyKey] ?? '',
     );
@@ -203,6 +209,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _generoController.addListener(markChanged);
     _instagramController.addListener(markChanged);
     _spotifyController.addListener(markChanged);
+    _usernameController.addListener(markChanged);
     _deezerController.addListener(markChanged);
     _youtubeMusicController.addListener(markChanged);
     _appleMusicController.addListener(markChanged);
@@ -327,6 +334,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         user: user,
         nome: _nomeController.text.trim(),
         bio: _normalizeBio(_bioController.text.trim()),
+        username: _usernameController.text.trim(),
         nomeArtistico: _nomeArtisticoController.text.trim(),
         celular: _celularController.text.trim(),
         dataNascimento: _dataNascimentoController.text.trim(),
@@ -561,6 +569,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
               const SizedBox(height: AppSpacing.s16),
             ],
             EditProfileHeader(user: user, nomeController: _nomeController),
+            const SizedBox(height: AppSpacing.s16),
+            _buildPublicLinkSection(user),
             const SizedBox(height: AppSpacing.s24),
             _buildTypeSpecificFields(user),
             // Bottom spacing
@@ -637,6 +647,70 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       default:
         return const SizedBox();
     }
+  }
+
+  Widget _buildPublicLinkSection(AppUser user) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Link publico do perfil',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            'Escolha um @usuario para compartilhar seu perfil com um link curto.',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          AppTextField(
+            controller: _usernameController,
+            label: '@usuario',
+            hint: 'ex.: mubeoficial',
+            prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
+            autocorrect: false,
+            enableSuggestions: false,
+            validator: validatePublicUsername,
+          ),
+          const SizedBox(height: AppSpacing.s10),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _usernameController,
+            builder: (context, value, _) {
+              final normalizedUsername = normalizedPublicUsernameOrNull(
+                value.text,
+              );
+              final hasValidUsername =
+                  normalizedUsername != null &&
+                  validatePublicUsername(normalizedUsername) == null;
+              final previewUrl = RoutePaths.publicProfileShareUrl(
+                uid: user.uid,
+                username: hasValidUsername
+                    ? normalizedUsername
+                    : user.publicUsername,
+              );
+
+              return Text(
+                'Preview: $previewUrl',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 

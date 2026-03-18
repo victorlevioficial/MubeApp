@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/public_username.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -56,14 +57,14 @@ class PublicProfileState {
 @riverpod
 class PublicProfileController extends _$PublicProfileController {
   @override
-  FutureOr<PublicProfileState> build(String uid) async {
+  FutureOr<PublicProfileState> build(String profileRef) async {
     // Initial load
-    return _loadProfile(uid);
+    return _loadProfile(profileRef);
   }
 
-  Future<PublicProfileState> _loadProfile(String uid) async {
+  Future<PublicProfileState> _loadProfile(String profileRef) async {
     try {
-      final user = await ref.read(authRepositoryProvider).watchUser(uid).first;
+      final user = await _resolveProfileUser(profileRef);
 
       if (user == null) {
         return const PublicProfileState(
@@ -111,12 +112,35 @@ class PublicProfileController extends _$PublicProfileController {
         isLoading: false,
       );
     } catch (e, stackTrace) {
-      AppLogger.error('Erro ao carregar perfil publico ($uid)', e, stackTrace);
+      AppLogger.error(
+        'Erro ao carregar perfil publico ($profileRef)',
+        e,
+        stackTrace,
+      );
       return PublicProfileState(
         isLoading: false,
         error: 'Erro ao carregar perfil: $e',
       );
     }
+  }
+
+  Future<AppUser?> _resolveProfileUser(String profileRef) async {
+    if (profileRef.startsWith('@')) {
+      final normalizedUsername = normalizedPublicUsernameOrNull(profileRef);
+      if (normalizedUsername == null) {
+        return null;
+      }
+
+      final result = await ref
+          .read(authRepositoryProvider)
+          .getUserByPublicUsername(normalizedUsername);
+
+      return result.fold((failure) => throw Exception(failure.message), (user) {
+        return user;
+      });
+    }
+
+    return ref.read(authRepositoryProvider).watchUser(profileRef).first;
   }
 
   List<MediaItem> _parseGalleryItems(List<dynamic> galleryData) {
@@ -182,7 +206,7 @@ class PublicProfileController extends _$PublicProfileController {
 
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _loadProfile(uid));
+    state = await AsyncValue.guard(() => _loadProfile(profileRef));
   }
 
   Future<void> openChat(BuildContext context) async {

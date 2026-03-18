@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../../l10n/generated/app_localizations.dart';
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -24,27 +25,24 @@ class BentoHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final userAsync = ref.watch(currentUserProfileProvider);
     final user = userAsync.value;
-    final profileSummary = _ProfileSummary.fromUserType(user?.tipoPerfil);
+    final profileSummary = _ProfileSummary.fromUserType(l10n, user?.tipoPerfil);
 
     return Column(
       children: [
-        // ENHANCED PROFILE CARD
         _ProfileCard(
-          name: user?.appDisplayName ?? 'Bem-vindo',
+          name: user?.appDisplayName ?? l10n.settings_profile_guest_name,
           email: user == null
-              ? 'Visitante'
+              ? l10n.settings_profile_guest_email
               : user.hasApplePrivateRelayEmail
-              ? 'Email protegido pela Apple'
+              ? l10n.settings_profile_apple_private_email
               : user.email,
           photoUrl: user?.foto,
           onEditTap: () => context.push(RoutePaths.profileEdit),
         ),
-
         const SizedBox(height: AppSpacing.s16),
-
-        // STATS GRID
         _StatsGrid(
           favoritesCount: user?.favoritesCount ?? 0,
           profileSummary: profileSummary,
@@ -66,35 +64,38 @@ class _ProfileSummary {
     required this.iconColor,
   });
 
-  factory _ProfileSummary.fromUserType(AppUserType? userType) {
+  factory _ProfileSummary.fromUserType(
+    AppLocalizations l10n,
+    AppUserType? userType,
+  ) {
     switch (userType) {
       case AppUserType.professional:
-        return const _ProfileSummary(
-          value: 'Profissional',
+        return _ProfileSummary(
+          value: l10n.settings_profile_type_professional,
           icon: Icons.music_note_rounded,
           iconColor: AppColors.primary,
         );
       case AppUserType.band:
-        return const _ProfileSummary(
-          value: 'Banda',
+        return _ProfileSummary(
+          value: l10n.settings_profile_type_band,
           icon: Icons.groups_rounded,
           iconColor: AppColors.warning,
         );
       case AppUserType.studio:
-        return const _ProfileSummary(
-          value: 'Estudio',
+        return _ProfileSummary(
+          value: l10n.settings_profile_type_studio,
           icon: Icons.graphic_eq_rounded,
           iconColor: AppColors.info,
         );
       case AppUserType.contractor:
-        return const _ProfileSummary(
-          value: 'Contratante',
+        return _ProfileSummary(
+          value: l10n.settings_profile_type_contractor,
           icon: Icons.event_available_rounded,
           iconColor: AppColors.success,
         );
       default:
-        return const _ProfileSummary(
-          value: 'Perfil',
+        return _ProfileSummary(
+          value: l10n.profile_title,
           icon: Icons.person_outline_rounded,
           iconColor: AppColors.textSecondary,
         );
@@ -122,7 +123,6 @@ class _ProfileCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.s20),
       decoration: BoxDecoration(
-        // Refined gradient background
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -176,18 +176,14 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ),
           ),
-
           const SizedBox(width: AppSpacing.s16),
-
-          // User Info with enhanced typography
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   name,
-                  style: AppTypography.headlineMedium.copyWith(
-                    fontSize: 18,
+                  style: AppTypography.headlineSmall.copyWith(
                     letterSpacing: -0.3,
                   ),
                   maxLines: 1,
@@ -196,9 +192,8 @@ class _ProfileCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.s4),
                 Text(
                   email,
-                  style: AppTypography.bodySmall.copyWith(
+                  style: AppTypography.labelMedium.copyWith(
                     color: AppColors.textSecondary.withValues(alpha: 0.8),
-                    fontSize: 13,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -206,10 +201,7 @@ class _ProfileCard extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(width: AppSpacing.s8),
-
-          // Enhanced Edit Button
           _EditButton(onTap: onEditTap),
         ],
       ),
@@ -229,14 +221,14 @@ class _EditButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.all12,
         splashColor: AppColors.primary.withValues(alpha: 0.1),
         highlightColor: AppColors.primary.withValues(alpha: 0.05),
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.s10),
           decoration: BoxDecoration(
             color: AppColors.textPrimary.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.all12,
             border: Border.all(
               color: AppColors.textPrimary.withValues(alpha: 0.08),
               width: 1,
@@ -267,28 +259,25 @@ class _StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        // Favorites Stat
         Expanded(
           child: _StatCard(
             icon: Icons.favorite,
             iconColor: AppColors.primary,
             value: favoritesCount.toString(),
-            label: 'Favoritos',
+            label: l10n.settings_profile_favorites_label,
             onTap: onFavoritesTap,
           ),
         ),
-
         const SizedBox(width: AppSpacing.s12),
-
-        // Profile Stat
         Expanded(
           child: _StatCard(
             icon: profileSummary.icon,
             iconColor: profileSummary.iconColor,
             value: profileSummary.value,
-            label: 'Tipo de Perfil',
+            label: l10n.settings_profile_type_label,
           ),
         ),
       ],
@@ -333,7 +322,6 @@ class _StatCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon container with accent background
           Container(
             padding: const EdgeInsets.all(AppSpacing.s8),
             decoration: BoxDecoration(
@@ -342,10 +330,7 @@ class _StatCard extends StatelessWidget {
             ),
             child: Icon(icon, color: iconColor, size: 16),
           ),
-
           const SizedBox(width: AppSpacing.s12),
-
-          // Value and Label
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -355,7 +340,6 @@ class _StatCard extends StatelessWidget {
                   value,
                   style: AppTypography.titleMedium.copyWith(
                     fontWeight: FontWeight.w700,
-                    fontSize: 15,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -363,9 +347,8 @@ class _StatCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.s2),
                 Text(
                   label,
-                  style: AppTypography.labelSmall.copyWith(
+                  style: AppTypography.chipLabel.copyWith(
                     color: AppColors.textSecondary.withValues(alpha: 0.7),
-                    fontSize: 10,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,13 +1,15 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
-import 'package:mube/src/features/feed/domain/feed_discovery.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/feed_section.dart';
+import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_view_controller.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 
@@ -90,21 +92,14 @@ void main() {
       expect(state.hasMore, isFalse);
     });
 
-    test('loads technicians section from the full discovery pool', () async {
-      fakeFeedRepo.discoverFeedPool = const [
+    test('loads technicians section from paginated technician query', () async {
+      fakeFeedRepo.technicians = const [
         FeedItem(
           uid: 'tech-1',
           nome: 'Tech 1',
           tipoPerfil: ProfileType.professional,
           subCategories: ['stage_tech'],
           distanceKm: 1,
-        ),
-        FeedItem(
-          uid: 'artist-1',
-          nome: 'Artist 1',
-          tipoPerfil: ProfileType.professional,
-          subCategories: ['singer'],
-          distanceKm: 2,
         ),
         FeedItem(
           uid: 'tech-2',
@@ -122,10 +117,9 @@ void main() {
 
       expect(state.items.map((item) => item.uid), ['tech-1', 'tech-2']);
       expect(state.hasMore, isFalse);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.technicians,
-      ]);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
       expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
+      expect(fakeFeedRepo.techniciansPaginatedStartAfterHistory, [isNull]);
     });
 
     test('loads nearby section with empty results', () async {
@@ -140,8 +134,8 @@ void main() {
       expect(state.hasMore, isFalse);
     });
 
-    test('loads bands section from the full discovery pool', () async {
-      fakeFeedRepo.discoverFeedPool = List.generate(
+    test('loads bands section from paginated type query', () async {
+      fakeFeedRepo.bands = List.generate(
         3,
         (i) => createBandItem('band-$i').copyWith(distanceKm: i.toDouble()),
       );
@@ -153,14 +147,12 @@ void main() {
 
       expect(state.items.length, 3);
       expect(state.hasMore, isFalse);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.bands,
-      ]);
-      expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
+      expect(fakeFeedRepo.paginatedTypeCallHistory, [ProfileType.band]);
     });
 
-    test('loads studios section from the full discovery pool', () async {
-      fakeFeedRepo.discoverFeedPool = List.generate(
+    test('loads studios section from paginated type query', () async {
+      fakeFeedRepo.studios = List.generate(
         2,
         (i) => createStudioItem('studio-$i').copyWith(distanceKm: i.toDouble()),
       );
@@ -172,10 +164,8 @@ void main() {
 
       expect(state.items.map((item) => item.uid), ['studio-0', 'studio-1']);
       expect(state.hasMore, isFalse);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.studios,
-      ]);
-      expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
+      expect(fakeFeedRepo.paginatedTypeCallHistory, [ProfileType.studio]);
     });
 
     test('loads artists without scanning the full discovery pool', () async {
@@ -195,10 +185,7 @@ void main() {
 
     test('loads with fallback when user has no location', () async {
       fakeAuthRepo.appUser = TestData.user(uid: 'u1', location: {});
-      fakeFeedRepo.discoverFeedPool = [
-        createBandItem('b1'),
-        createBandItem('b2'),
-      ];
+      fakeFeedRepo.bands = [createBandItem('b1'), createBandItem('b2')];
 
       final noLocContainer = ProviderContainer(
         overrides: [
@@ -215,9 +202,8 @@ void main() {
       final state = noLocContainer.read(provider).value!;
 
       expect(state.items.length, 2);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.bands,
-      ]);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
+      expect(fakeFeedRepo.paginatedTypeCallHistory, [ProfileType.band]);
     });
 
     test('nearby without location returns empty', () async {
@@ -242,11 +228,29 @@ void main() {
     });
 
     test('loadMore appends the next distance-sorted slice', () async {
-      fakeFeedRepo.discoverFeedPool = List.generate(
-        25,
-        (i) =>
-            createTechnicianItem('item-$i').copyWith(distanceKm: i.toDouble()),
-      );
+      final page1Cursor = await _createCursor('page-1');
+      fakeFeedRepo.technicianPaginatedResponses = [
+        PaginatedFeedResponse(
+          items: List.generate(
+            20,
+            (i) => createTechnicianItem(
+              'item-$i',
+            ).copyWith(distanceKm: i.toDouble()),
+          ),
+          hasMore: true,
+          lastDocument: page1Cursor,
+        ),
+        PaginatedFeedResponse(
+          items: List.generate(
+            5,
+            (i) => createTechnicianItem(
+              'item-${20 + i}',
+            ).copyWith(distanceKm: (20 + i).toDouble()),
+          ),
+          hasMore: false,
+          lastDocument: null,
+        ),
+      ];
       await waitForUser(container);
 
       final provider = feedListControllerProvider(FeedSectionType.technicians);
@@ -257,9 +261,7 @@ void main() {
       var state = container.read(provider).value!;
       expect(state.items.length, 20);
       expect(state.hasMore, isTrue);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.technicians,
-      ]);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
       expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
       final notifier = container.read(provider.notifier);
       expect(notifier.state.value?.hasMore, isTrue);
@@ -269,18 +271,38 @@ void main() {
       state = container.read(provider).value!;
       expect(state.items.length, 25);
       expect(state.hasMore, isFalse);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.technicians,
-      ]);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
       expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
+      expect(fakeFeedRepo.techniciansPaginatedStartAfterHistory, [
+        isNull,
+        isNotNull,
+      ]);
     });
 
     test('ignores concurrent loadMore while a page is pending', () async {
-      fakeFeedRepo.discoverFeedPool = List.generate(
-        25,
-        (i) =>
-            createTechnicianItem('item-$i').copyWith(distanceKm: i.toDouble()),
-      );
+      final page1Cursor = await _createCursor('page-1');
+      fakeFeedRepo.technicianPaginatedResponses = [
+        PaginatedFeedResponse(
+          items: List.generate(
+            20,
+            (i) => createTechnicianItem(
+              'item-$i',
+            ).copyWith(distanceKm: i.toDouble()),
+          ),
+          hasMore: true,
+          lastDocument: page1Cursor,
+        ),
+        PaginatedFeedResponse(
+          items: List.generate(
+            5,
+            (i) => createTechnicianItem(
+              'item-${20 + i}',
+            ).copyWith(distanceKm: (20 + i).toDouble()),
+          ),
+          hasMore: false,
+          lastDocument: null,
+        ),
+      ];
       await waitForUser(container);
 
       final provider = feedListControllerProvider(FeedSectionType.technicians);
@@ -296,14 +318,12 @@ void main() {
       final state = container.read(provider).value!;
       expect(state.items.length, 25);
       expect(state.hasMore, isFalse);
-      expect(fakeFeedRepo.discoverFeedPoolCallHistory, [
-        FeedDiscoveryFilter.technicians,
-      ]);
+      expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
       expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
     });
 
     test('does nothing when hasMore is false', () async {
-      fakeFeedRepo.discoverFeedPool = List.generate(
+      fakeFeedRepo.technicians = List.generate(
         5,
         (i) =>
             createTechnicianItem('item-$i').copyWith(distanceKm: i.toDouble()),
@@ -325,4 +345,10 @@ void main() {
       expect(state.items.length, 5);
     });
   });
+}
+
+Future<DocumentSnapshot<Map<String, dynamic>>> _createCursor(String id) async {
+  final firestore = FakeFirebaseFirestore();
+  await firestore.collection('feed_test_pages').doc(id).set({'id': id});
+  return firestore.collection('feed_test_pages').doc(id).get();
 }

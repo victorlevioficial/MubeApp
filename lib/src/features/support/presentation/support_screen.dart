@@ -30,7 +30,7 @@ class SupportScreen extends StatefulWidget {
 }
 
 class _SupportScreenState extends State<SupportScreen> {
-  static const String _supportEmail = 'suporte@mube.app';
+  static const String _supportEmail = 'suporte@mubeapp.com.br';
   static const String _allCategoriesLabel = 'Todas';
 
   final TextEditingController _searchController = TextEditingController();

@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
+import '../../../core/providers/app_display_preferences_provider.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_effects.dart';
@@ -35,14 +38,18 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final authUser =
         ref.watch(authStateChangesProvider).value ??
         ref.read(authRepositoryProvider).currentUser;
     final canChangePassword = _supportsPasswordReset(authUser);
+    final displayPreferences = ref.watch(appDisplayPreferencesProvider);
+    final selectedLanguageId = _languageOptionIdFor(displayPreferences.locale);
+    final selectedThemeId = _themeOptionIdFor(displayPreferences.themeMode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Conta', showBackButton: false),
+      appBar: AppAppBar(title: l10n.settings_title, showBackButton: false),
       extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -53,57 +60,54 @@ class SettingsScreen extends ConsumerWidget {
         child: Column(
           children: [
             const SizedBox(height: AppSpacing.s4),
-
             const BentoHeader(),
-
             const SizedBox(height: AppSpacing.s40),
-
             SettingsGroup(
-              title: 'CONTA',
+              title: l10n.settings_account,
               children: [
                 NeonSettingsTile(
                   icon: Icons.person_outline,
-                  title: 'Editar Perfil',
+                  title: l10n.profile_edit_title,
                   onTap: () => context.push(RoutePaths.profileEdit),
                   customAccentColor: AppColors.primary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.work_outline_rounded,
-                  title: 'Meus Gigs',
-                  subtitle: 'Publicações, status e vagas',
+                  title: l10n.settings_my_gigs,
+                  subtitle: l10n.settings_my_gigs_subtitle,
                   onTap: () => context.push(RoutePaths.settingsMyGigs),
                   customAccentColor: AppColors.warning,
                 ),
                 NeonSettingsTile(
                   icon: Icons.assignment_outlined,
-                  title: 'Minhas Candidaturas',
-                  subtitle: 'Acompanhar respostas e mensagens',
+                  title: l10n.settings_my_applications,
+                  subtitle: l10n.settings_my_applications_subtitle,
                   onTap: () => context.push(RoutePaths.settingsMyApplications),
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.favorite_outline,
-                  title: 'Meus Favoritos',
+                  title: l10n.settings_favorites,
                   onTap: () => context.push(RoutePaths.favorites),
                   customAccentColor: AppColors.primary,
                 ),
                 NeonSettingsTile(
                   icon: Icons.notifications_none_rounded,
-                  title: 'Notificações',
+                  title: l10n.settings_notifications,
                   onTap: () => context.push(RoutePaths.notifications),
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.bolt_outlined,
-                  title: 'MatchPoint',
-                  subtitle: 'Descoberta e histórico',
+                  title: l10n.matchpoint_title,
+                  subtitle: l10n.settings_matchpoint_subtitle,
                   onTap: () => context.push(RoutePaths.matchpoint),
                   customAccentColor: AppColors.warning,
                 ),
                 NeonSettingsTile(
                   icon: Icons.location_on_outlined,
-                  title: 'Meus Endereços',
-                  subtitle: 'Gerenciar entregas',
+                  title: l10n.settings_addresses,
+                  subtitle: l10n.settings_addresses_subtitle,
                   onTap: () => context.push(RoutePaths.addresses),
                   customAccentColor: AppColors.info,
                 ),
@@ -115,48 +119,69 @@ class SettingsScreen extends ConsumerWidget {
                     AppUserType.band)
                   NeonSettingsTile(
                     icon: Icons.groups_outlined,
-                    title: 'Gerenciar Banda',
-                    subtitle: 'Integrantes e convites',
+                    title: l10n.settings_band_management,
+                    subtitle: l10n.settings_band_management_subtitle,
                     onTap: () => context.push(RoutePaths.invites),
                     customAccentColor: AppColors.warning,
                   )
                 else
                   NeonSettingsTile(
                     icon: Icons.mail_outline,
-                    title: 'Minhas Bandas',
-                    subtitle: 'Convites e parcerias',
+                    title: l10n.settings_my_bands,
+                    subtitle: l10n.settings_my_bands_subtitle,
                     onTap: () => context.push(RoutePaths.invites),
                     customAccentColor: AppColors.warning,
                   ),
                 if (canChangePassword)
                   NeonSettingsTile(
                     icon: Icons.lock_outline,
-                    title: 'Alterar Senha',
+                    title: l10n.settings_change_password,
                     onTap: () => _changePassword(context, ref),
                     customAccentColor: AppColors.info,
                   ),
                 NeonSettingsTile(
                   icon: Icons.public,
-                  title: 'Privacidade e Visibilidade',
-                  subtitle: 'MatchPoint, Busca, Bloqueios',
+                  title: l10n.settings_privacy_visibility,
+                  subtitle: l10n.settings_privacy_visibility_subtitle,
                   onTap: () => context.push(RoutePaths.privacySettings),
                   customAccentColor: AppColors.primary,
                 ),
               ],
             ),
-
             SettingsGroup(
-              title: 'OUTROS',
+              title: l10n.settings_other,
               children: [
                 NeonSettingsTile(
+                  icon: Icons.language_rounded,
+                  title: l10n.settings_app_language,
+                  subtitle: _labelForLanguageOptionId(l10n, selectedLanguageId),
+                  onTap: () => _selectLanguage(
+                    context,
+                    ref,
+                    selectedLanguageId: selectedLanguageId,
+                  ),
+                  customAccentColor: AppColors.info,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.dark_mode_outlined,
+                  title: l10n.settings_app_theme,
+                  subtitle: _labelForThemeOptionId(l10n, selectedThemeId),
+                  onTap: () => _selectTheme(
+                    context,
+                    ref,
+                    selectedThemeId: selectedThemeId,
+                  ),
+                  customAccentColor: AppColors.warning,
+                ),
+                NeonSettingsTile(
                   icon: Icons.help_outline_rounded,
-                  title: 'Ajuda e Suporte',
+                  title: l10n.settings_help,
                   onTap: () => context.push(RoutePaths.support),
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
                   icon: Icons.description_outlined,
-                  title: 'Termos de Uso',
+                  title: l10n.settings_terms_of_use,
                   onTap: () =>
                       context.push(RoutePaths.legalDetail('termsOfUse')),
                   customAccentColor: AppColors.textSecondary.withValues(
@@ -165,7 +190,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 NeonSettingsTile(
                   icon: Icons.privacy_tip_outlined,
-                  title: 'Política de Privacidade',
+                  title: l10n.settings_privacy_policy,
                   onTap: () =>
                       context.push(RoutePaths.legalDetail('privacyPolicy')),
                   customAccentColor: AppColors.textSecondary.withValues(
@@ -174,14 +199,11 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: AppSpacing.s8),
-
             _LogoutSection(
               onLogout: () => _confirmLogout(context, ref),
               onDelete: () => _confirmDelete(context, ref),
             ),
-
             const SizedBox(height: AppSpacing.s48),
           ],
         ),
@@ -190,12 +212,13 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (context) => const AppConfirmationDialog(
-        title: 'Sair da conta?',
-        message: 'Você precisará fazer login novamente.',
-        confirmText: 'Sair',
+      builder: (context) => AppConfirmationDialog(
+        title: l10n.settings_logout_confirm_title,
+        message: l10n.settings_logout_confirm_message,
+        confirmText: l10n.settings_logout,
         isDestructive: true,
       ),
     );
@@ -208,28 +231,139 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _selectLanguage(
+    BuildContext context,
+    WidgetRef ref, {
+    required String selectedLanguageId,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await _openPreferenceSelectionSheet(
+      context,
+      title: l10n.settings_app_language,
+      items: _languageOptionIds,
+      selectedItem: selectedLanguageId,
+      itemLabelBuilder: (id) => _labelForLanguageOptionId(l10n, id),
+    );
+
+    if (!context.mounted ||
+        selected == null ||
+        selected == selectedLanguageId) {
+      return;
+    }
+
+    final notifier = ref.read(appDisplayPreferencesProvider.notifier);
+    switch (selected) {
+      case _languageOptionSystem:
+        await notifier.setLocaleOverride(null);
+        break;
+      case _languageOptionPortuguese:
+        await notifier.setLocaleOverride(const Locale('pt'));
+        break;
+      case _languageOptionEnglish:
+        await notifier.setLocaleOverride(const Locale('en'));
+        break;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+    if (!context.mounted) return;
+    final updatedL10n = AppLocalizations.of(context)!;
+    AppSnackBar.success(
+      context,
+      updatedL10n.settings_language_updated(
+        _labelForLanguageOptionId(updatedL10n, selected),
+      ),
+    );
+  }
+
+  Future<void> _selectTheme(
+    BuildContext context,
+    WidgetRef ref, {
+    required String selectedThemeId,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await _openPreferenceSelectionSheet(
+      context,
+      title: l10n.settings_app_theme,
+      items: _themeOptionIds,
+      selectedItem: selectedThemeId,
+      itemLabelBuilder: (id) => _labelForThemeOptionId(l10n, id),
+    );
+
+    if (!context.mounted || selected == null || selected == selectedThemeId) {
+      return;
+    }
+
+    final notifier = ref.read(appDisplayPreferencesProvider.notifier);
+    switch (selected) {
+      case _themeOptionSystem:
+        await notifier.setThemeMode(ThemeMode.system);
+        break;
+      case _themeOptionDark:
+        await notifier.setThemeMode(ThemeMode.dark);
+        break;
+    }
+
+    await WidgetsBinding.instance.endOfFrame;
+    if (!context.mounted) return;
+    final updatedL10n = AppLocalizations.of(context)!;
+    AppSnackBar.success(
+      context,
+      updatedL10n.settings_theme_updated(
+        _labelForThemeOptionId(updatedL10n, selected),
+      ),
+    );
+  }
+
+  Future<String?> _openPreferenceSelectionSheet(
+    BuildContext context, {
+    required String title,
+    required List<String> items,
+    required String selectedItem,
+    required String Function(String) itemLabelBuilder,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final selected = await AppOverlay.bottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.transparent,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
+      builder: (context) => AppSelectionModal(
+        title: title,
+        items: items,
+        selectedItems: [selectedItem],
+        allowMultiple: false,
+        showSearch: false,
+        confirmButtonText: l10n.settings_apply_preference,
+        itemLabelBuilder: itemLabelBuilder,
+      ),
+    );
+
+    if (selected == null || selected.isEmpty) return null;
+    return selected.first;
+  }
+
   void _changePassword(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.read(authRepositoryProvider).currentUser;
     final email = user?.email;
 
     if (email == null || email.isEmpty) {
-      AppSnackBar.error(context, 'Não foi possível encontrar seu email.');
+      AppSnackBar.error(context, l10n.settings_change_password_email_missing);
       return;
     }
 
     final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
-        title: 'Alterar Senha',
-        message:
-            'Enviaremos um link de redefinição para:\n\n$email\n\nDeseja continuar?',
-        confirmText: 'Enviar',
+        title: l10n.settings_change_password,
+        message: l10n.settings_change_password_message(email),
+        confirmText: l10n.settings_change_password_send,
         isDestructive: false,
       ),
     );
 
     if (confirm == true && context.mounted) {
-      AppSnackBar.info(context, 'Enviando email...');
+      AppSnackBar.info(context, l10n.settings_change_password_sending);
 
       final result = await ref
           .read(authRepositoryProvider)
@@ -241,21 +375,20 @@ class SettingsScreen extends ConsumerWidget {
         (failure) => AppSnackBar.error(context, failure.message),
         (_) => AppSnackBar.success(
           context,
-          'Email enviado! Verifique sua caixa de entrada.',
+          l10n.settings_change_password_email_sent,
         ),
       );
     }
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (context) => const AppConfirmationDialog(
-        title: 'Excluir conta?',
-        message:
-            'Sua conta e todos os dados associados a ela serão excluídos permanentemente. '
-            'Esta ação não pode ser desfeita.',
-        confirmText: 'Excluir',
+      builder: (context) => AppConfirmationDialog(
+        title: l10n.settings_delete_confirm_title,
+        message: l10n.settings_delete_confirm_message,
+        confirmText: l10n.common_delete,
         isDestructive: true,
       ),
     );
@@ -264,7 +397,7 @@ class SettingsScreen extends ConsumerWidget {
 
     if (!context.mounted) return;
     ref.read(accountDeletionInProgressProvider.notifier).start();
-    AppSnackBar.info(context, 'Excluindo conta...');
+    AppSnackBar.info(context, l10n.settings_delete_in_progress);
 
     try {
       final result = await ref.read(authRepositoryProvider).deleteAccount();
@@ -273,24 +406,30 @@ class SettingsScreen extends ConsumerWidget {
       result.fold(
         (failure) {
           ref.read(accountDeletionInProgressProvider.notifier).clear();
-          AppSnackBar.error(context, _messageForDeleteFailure(failure.message));
+          AppSnackBar.error(
+            context,
+            _messageForDeleteFailure(l10n, failure.message),
+          );
         },
         (_) {
           ref.invalidate(authStateChangesProvider);
           ref.invalidate(currentUserProfileProvider);
-          AppSnackBar.success(context, 'Conta excluída com sucesso.');
+          AppSnackBar.success(context, l10n.settings_delete_success);
         },
       );
     } catch (error) {
       ref.read(accountDeletionInProgressProvider.notifier).clear();
       if (!context.mounted) return;
-      AppSnackBar.error(context, 'Erro: $error');
+      AppSnackBar.error(
+        context,
+        l10n.settings_error_with_details(error.toString()),
+      );
     }
   }
 
-  String _messageForDeleteFailure(String message) {
+  String _messageForDeleteFailure(AppLocalizations l10n, String message) {
     if (message == 'requires-recent-login') {
-      return 'Por segurança, faça login novamente antes de excluir sua conta.';
+      return l10n.settings_delete_requires_recent_login;
     }
     const exceptionPrefix = 'Exception: ';
     if (message.startsWith(exceptionPrefix)) {
@@ -322,6 +461,7 @@ class _LogoutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         _LogoutButton(onTap: onLogout),
@@ -335,12 +475,11 @@ class _LogoutSection extends StatelessWidget {
             ),
           ),
           child: Text(
-            'Excluir Conta',
-            style: AppTypography.bodySmall.copyWith(
+            l10n.settings_delete_account,
+            style: AppTypography.labelMedium.copyWith(
               color: AppColors.error.withValues(alpha: 0.9),
               decoration: TextDecoration.underline,
               decorationColor: AppColors.error.withValues(alpha: 0.5),
-              fontSize: 13,
             ),
           ),
         ),
@@ -363,6 +502,7 @@ class _LogoutButtonState extends State<_LogoutButton> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AnimatedContainer(
       duration: AppEffects.fast,
       curve: Curves.easeOut,
@@ -423,9 +563,8 @@ class _LogoutButtonState extends State<_LogoutButton> {
               ),
               const SizedBox(width: AppSpacing.s12),
               Text(
-                'Sair da Conta',
+                l10n.settings_logout_account,
                 style: AppTypography.titleMedium.copyWith(
-                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.1,
                 ),
@@ -435,5 +574,65 @@ class _LogoutButtonState extends State<_LogoutButton> {
         ),
       ),
     );
+  }
+}
+
+const String _languageOptionSystem = 'system';
+const String _languageOptionPortuguese = 'pt';
+const String _languageOptionEnglish = 'en';
+const List<String> _languageOptionIds = <String>[
+  _languageOptionSystem,
+  _languageOptionPortuguese,
+  _languageOptionEnglish,
+];
+
+const String _themeOptionSystem = 'system';
+const String _themeOptionDark = 'dark';
+const List<String> _themeOptionIds = <String>[
+  _themeOptionSystem,
+  _themeOptionDark,
+];
+
+String _languageOptionIdFor(Locale? localeOverride) {
+  if (localeOverride == null) return _languageOptionSystem;
+  switch (localeOverride.languageCode) {
+    case 'en':
+      return _languageOptionEnglish;
+    case 'pt':
+      return _languageOptionPortuguese;
+    default:
+      return _languageOptionSystem;
+  }
+}
+
+String _labelForLanguageOptionId(AppLocalizations l10n, String id) {
+  switch (id) {
+    case _languageOptionPortuguese:
+      return l10n.settings_language_portuguese_brazil;
+    case _languageOptionEnglish:
+      return l10n.settings_language_english;
+    case _languageOptionSystem:
+    default:
+      return l10n.settings_language_device;
+  }
+}
+
+String _themeOptionIdFor(ThemeMode themeMode) {
+  switch (themeMode) {
+    case ThemeMode.dark:
+      return _themeOptionDark;
+    case ThemeMode.system:
+    case ThemeMode.light:
+      return _themeOptionSystem;
+  }
+}
+
+String _labelForThemeOptionId(AppLocalizations l10n, String id) {
+  switch (id) {
+    case _themeOptionDark:
+      return l10n.settings_theme_always_dark;
+    case _themeOptionSystem:
+    default:
+      return l10n.settings_theme_follow_system;
   }
 }

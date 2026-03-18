@@ -112,8 +112,11 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   // Mutable state for testing
   AppUser? _appUser;
   AppUser? lastUpdatedUser;
+  String? lastUpdatedPublicUsername;
   bool shouldThrow = false;
   bool shouldFailDeleteAccount = false;
+  bool shouldFailPublicUsernameUpdate = false;
+  bool publicUsernameAvailable = true;
   int signOutCalls = 0;
   int refreshSecurityContextCalls = 0;
   int ensureCurrentUserProfileExistsCalls = 0;
@@ -160,6 +163,28 @@ class FakeAuthRepository extends Fake implements AuthRepository {
     _appUser = user;
     lastUpdatedUser = user;
     return const Right(unit);
+  }
+
+  @override
+  FutureResult<String> updatePublicUsername(String username) async {
+    if (shouldFailPublicUsernameUpdate) {
+      return const Left(
+        ServerFailure(message: 'Esse @usuario ja esta em uso. Escolha outro.'),
+      );
+    }
+    lastUpdatedPublicUsername = username;
+    if (_appUser != null) {
+      _appUser = _appUser!.copyWith(username: username);
+    }
+    return Right(username);
+  }
+
+  @override
+  FutureResult<bool> isPublicUsernameAvailable(
+    String username, {
+    String? excludingUid,
+  }) async {
+    return Right(publicUsernameAvailable);
   }
 
   @override
@@ -326,9 +351,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   List<FeedItem> discoverFeedPool = [];
   PaginatedFeedResponse? mainFeedResponse;
   List<PaginatedFeedResponse> mainFeedResponses = [];
+  List<PaginatedFeedResponse> technicianPaginatedResponses = [];
   final Map<String, List<PaginatedFeedResponse>> typePaginatedResponses = {};
   final List<String> paginatedTypeCallHistory = [];
   final List<DocumentSnapshot?> paginatedTypeStartAfterHistory = [];
+  final List<DocumentSnapshot?> techniciansPaginatedStartAfterHistory = [];
   final List<DocumentSnapshot?> mainFeedStartAfterHistory = [];
   final List<FeedDiscoveryFilter> discoverFeedPoolCallHistory = [];
 
@@ -352,6 +379,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     final queue = typePaginatedResponses[type];
     if (queue == null || queue.isEmpty) return null;
     return queue.removeAt(0);
+  }
+
+  PaginatedFeedResponse? _dequeueTechnicianPaginatedResponse() {
+    if (technicianPaginatedResponses.isEmpty) return null;
+    return technicianPaginatedResponses.removeAt(0);
   }
 
   Future<void> _maybeWait() async {
@@ -603,6 +635,37 @@ class FakeFeedRepository extends Fake implements FeedRepository {
         .take(limit)
         .toList(growable: false);
     return Either.right(filtered);
+  }
+
+  @override
+  FutureResult<PaginatedFeedResponse> getTechniciansPaginated({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    techniciansPaginatedStartAfterHistory.add(startAfter);
+    final queuedResponse = _dequeueTechnicianPaginatedResponse();
+    if (queuedResponse != null) {
+      return Either.right(
+        _filterPaginatedResponse(queuedResponse, excludedIds),
+      );
+    }
+    return Either.right(
+      _filterPaginatedResponse(
+        mainFeedResponse ??
+            PaginatedFeedResponse(
+              items: technicians.take(limit).toList(growable: false),
+              hasMore: false,
+              lastDocument: null,
+            ),
+        excludedIds,
+      ),
+    );
   }
 
   PaginatedFeedResponse _filterPaginatedResponse(

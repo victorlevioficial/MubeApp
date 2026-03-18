@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -693,6 +694,41 @@ void main() {
               parameters: anyNamed('parameters'),
             ),
           ).called(1);
+        },
+      );
+
+      test(
+        'should map permission denied to a typed failure when send fails',
+        () async {
+          final failingFirestore = _RetryingFirebaseFirestore(
+            documents: {
+              'conversations/$conversationId': {
+                'participants': [myUid, otherUid],
+                'type': 'direct',
+                'requestStatus': 'accepted',
+                'requestCycle': 0,
+              },
+              'users/$myUid': {'nome': myName},
+              'users/$otherUid': {'nome': otherUserName},
+            },
+          );
+          final failingRepository = ChatRepository(
+            failingFirestore,
+            analytics: mockAnalytics,
+          );
+
+          final result = await failingRepository.sendMessage(
+            conversationId: conversationId,
+            text: 'Falha de permissao',
+            myUid: myUid,
+            otherUid: otherUid,
+          );
+
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<PermissionFailure>());
+            expect(failure.message, PermissionFailure.firestore().message);
+          }, (_) => fail('Expected Left'));
         },
       );
 

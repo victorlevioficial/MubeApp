@@ -7,6 +7,10 @@ import type {Request, Response} from "express";
 const db = admin.firestore();
 const CONTRACTOR_PROFILE_TYPE = "contratante";
 const NAME_CONNECTORS = new Set(["de", "da", "do", "dos", "das", "e"]);
+const PUBLIC_USERNAMES_COLLECTION = "publicUsernames";
+const PUBLIC_USERNAME_MIN_LENGTH = 3;
+const PUBLIC_USERNAME_MAX_LENGTH = 24;
+const PUBLIC_USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]{1,22}[a-z0-9])$/;
 const migrationToken = defineSecret("MIGRATION_TOKEN");
 const BACKFILL_PAGE_SIZE = 400;
 const BACKFILL_BATCH_SIZE = 400;
@@ -121,6 +125,61 @@ function parseDryRun(req: Request): boolean {
   const body = req.body as Record<string, unknown> | null;
   const bodyValue = String(body?.dryRun ?? "").trim().toLowerCase();
   return queryValue === "true" || bodyValue === "true";
+}
+
+/**
+ * Normalizes a public username to its canonical lowercase form.
+ *
+ * @param {string} raw Raw handle provided by the client.
+ * @return {string} Canonical username without leading "@".
+ */
+function normalizePublicUsername(raw: string): string {
+  let normalized = raw.trim().toLowerCase();
+  if (normalized.startsWith("@")) {
+    normalized = normalized.slice(1);
+  }
+
+  normalized = normalized
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9._]/g, "");
+
+  return normalized;
+}
+
+/**
+ * Normalizes an unknown value into a canonical public username when possible.
+ *
+ * @param {unknown} value Raw unknown field value.
+ * @return {string} Canonical username or empty string.
+ */
+function normalizedPublicUsername(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return normalizePublicUsername(value);
+}
+
+/**
+ * Validates a canonical public username.
+ *
+ * @param {string} username Canonical username.
+ * @return {void}
+ */
+function assertValidPublicUsername(username: string): void {
+  if (username.length < PUBLIC_USERNAME_MIN_LENGTH) {
+    throw new HttpsError("invalid-argument", "Use pelo menos 3 caracteres.");
+  }
+
+  if (username.length > PUBLIC_USERNAME_MAX_LENGTH) {
+    throw new HttpsError("invalid-argument", "Use no maximo 24 caracteres.");
+  }
+
+  if (!PUBLIC_USERNAME_PATTERN.test(username)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Use apenas letras, numeros, \".\" ou \"_\" e evite simbolos no inicio ou fim."
+    );
+  }
 }
 
 /**
@@ -305,6 +364,112 @@ export const backfillContractorDisplayNames = onRequest(
 );
 
 /**
+ * Claims or updates a user's public username with server-side uniqueness.
+ *
+ * This is the canonical path for `@usuario` updates. It keeps the
+ * `publicUsernames/{username}` reservation document and `users/{uid}.username`
+ * in sync within one transaction.
+ */
+export const setPublicUsername = onCall(
+  {
+    region: "us-central1",
+    memory: "256MiB",
+    maxInstances: 1,
+    cpu: "gcf_gen1",
+    enforceAppCheck: true,
+    invoker: "public",
+  },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "A funcao precisa ser chamada por um usuario autenticado."
+      );
+    }
+
+    const payload = asRecord(request.data);
+    const normalizedUsername = normalizePublicUsername(
+      firstNonEmptyString([payload.username])
+    );
+    assertValidPublicUsername(normalizedUsername);
+
+    const userRef = db.collection("users").doc(uid);
+    const targetUsernameRef = db
+      .collection(PUBLIC_USERNAMES_COLLECTION)
+      .doc(normalizedUsername);
+
+    const transactionResult = await db.runTransaction(async (transaction) => {
+      const userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists) {
+        throw new HttpsError("not-found", "Perfil do usuario nao encontrado.");
+      }
+
+      const userData = asRecord(userSnapshot.data());
+      const currentUsername = normalizedPublicUsername(userData.username);
+      const targetUsernameSnapshot = await transaction.get(targetUsernameRef);
+      const targetUsernameData = asRecord(targetUsernameSnapshot.data());
+      const targetOwnerUid = firstNonEmptyString([targetUsernameData.uid]);
+
+      if (targetOwnerUid && targetOwnerUid !== uid) {
+        throw new HttpsError(
+          "already-exists",
+          "Esse @usuario ja esta em uso. Escolha outro."
+        );
+      }
+
+      const needsReservationUpdate =
+        !targetUsernameSnapshot.exists || targetOwnerUid !== uid;
+      const needsUserUpdate = currentUsername !== normalizedUsername;
+
+      if (needsReservationUpdate) {
+        transaction.set(targetUsernameRef, {
+          uid,
+          username: normalizedUsername,
+          createdAt: targetUsernameSnapshot.exists ?
+            targetUsernameData.createdAt ??
+              admin.firestore.FieldValue.serverTimestamp() :
+            admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, {merge: true});
+      }
+
+      if (needsUserUpdate) {
+        transaction.set(userRef, {
+          username: normalizedUsername,
+        }, {merge: true});
+      }
+
+      if (currentUsername && currentUsername !== normalizedUsername) {
+        const previousUsernameRef = db
+          .collection(PUBLIC_USERNAMES_COLLECTION)
+          .doc(currentUsername);
+        const previousUsernameSnapshot =
+          await transaction.get(previousUsernameRef);
+        const previousUsernameData = asRecord(previousUsernameSnapshot.data());
+        const previousOwnerUid = firstNonEmptyString([previousUsernameData.uid]);
+
+        if (!previousOwnerUid || previousOwnerUid === uid) {
+          transaction.delete(previousUsernameRef);
+        }
+      }
+
+      return {
+        username: normalizedUsername,
+        previousUsername: currentUsername || null,
+        changed: needsReservationUpdate || needsUserUpdate,
+      };
+    });
+
+    console.log(
+      `[users] public username synced for ${uid}: ${transactionResult.username}`
+    );
+
+    return transactionResult;
+  }
+);
+
+/**
  * Callable function to securely delete a user's account and data.
  *
  * Flow:
@@ -318,6 +483,8 @@ export const deleteAccount = onCall(
   {
     region: "southamerica-east1",
     memory: "256MiB",
+    maxInstances: 1,
+    cpu: "gcf_gen1",
     enforceAppCheck: true,
     invoker: "public",
   },
@@ -338,12 +505,26 @@ export const deleteAccount = onCall(
       // If user profile exists, back it up
       if (userDoc.exists) {
         const userData = userDoc.data() || {};
+        const normalizedUsername = normalizedPublicUsername(userData.username);
 
         // Add exact deletion timestamp metadata to the backup
         userData.deleted_at = admin.firestore.FieldValue.serverTimestamp();
 
         // 3. Keep a backup in "deletedUsers"
         await db.collection("deletedUsers").doc(uid).set(userData);
+
+        if (normalizedUsername) {
+          const usernameRef = db
+            .collection(PUBLIC_USERNAMES_COLLECTION)
+            .doc(normalizedUsername);
+          const usernameDoc = await usernameRef.get();
+          const usernameData = asRecord(usernameDoc.data());
+          const usernameOwnerUid = firstNonEmptyString([usernameData.uid]);
+
+          if (!usernameOwnerUid || usernameOwnerUid === uid) {
+            await usernameRef.delete();
+          }
+        }
 
         // 4. Delete from Main Users collection
         await userRef.delete();

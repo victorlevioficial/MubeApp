@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "454U7QW5Q5.com.mube.mubeoficial",
+        "paths": [
+          "/@*",
+          "/profile/*",
+          "/user/*"
+        ]
+      }
+    ]
+  }
+}

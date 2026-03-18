@@ -125,6 +125,28 @@ Map<String, dynamic>? _stringMapExtra(Object? extra) {
   return normalized.isEmpty ? null : normalized;
 }
 
+Page<void> _buildPublicProfilePage(BuildContext context, GoRouterState state) {
+  final uid = state.pathParameters['uid'];
+  final username = state.pathParameters['username'];
+  final profileRef = username != null ? '@$username' : uid!;
+  String? avatarHeroTag;
+  final extra = state.extra;
+  if (extra is Map<Object?, Object?>) {
+    final rawTag = extra[RoutePaths.avatarHeroTagExtraKey];
+    if (rawTag is String && rawTag.isNotEmpty) {
+      avatarHeroTag = rawTag;
+    }
+  }
+
+  return NoTransitionPage(
+    key: state.pageKey,
+    child: PublicProfileScreen(
+      profileRef: profileRef,
+      avatarHeroTag: avatarHeroTag,
+    ),
+  );
+}
+
 /// Builds the route tree. Separated for readability.
 List<RouteBase> _buildRoutes(Ref ref) {
   return [
@@ -419,22 +441,12 @@ List<RouteBase> _buildRoutes(Ref ref) {
 
     // Public profile view
     GoRoute(
+      path: RoutePaths.publicProfileHandleRoute,
+      pageBuilder: _buildPublicProfilePage,
+    ),
+    GoRoute(
       path: '${RoutePaths.publicProfile}/:uid',
-      pageBuilder: (context, state) {
-        final uid = state.pathParameters['uid']!;
-        String? avatarHeroTag;
-        final extra = state.extra;
-        if (extra is Map<Object?, Object?>) {
-          final rawTag = extra[RoutePaths.avatarHeroTagExtraKey];
-          if (rawTag is String && rawTag.isNotEmpty) {
-            avatarHeroTag = rawTag;
-          }
-        }
-        return NoTransitionPage(
-          key: state.pageKey,
-          child: PublicProfileScreen(uid: uid, avatarHeroTag: avatarHeroTag),
-        );
-      },
+      pageBuilder: _buildPublicProfilePage,
     ),
 
     // Chat Conversation Screen (Top-level to hide bottom bar)
@@ -486,6 +498,12 @@ List<RouteBase> _buildRoutes(Ref ref) {
         key: state.pageKey,
         child: const ManageMembersScreen(),
       ),
+    ),
+
+    // Shared public profile alias used by mubeapp.com.br/profile/:uid links.
+    GoRoute(
+      path: '${RoutePaths.profile}/:uid',
+      pageBuilder: _buildPublicProfilePage,
     ),
 
     // Favorites Screen

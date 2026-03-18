@@ -53,7 +53,7 @@ final class PublicProfileControllerProvider
 }
 
 String _$publicProfileControllerHash() =>
-    r'47baecabbe7134060b05c21966660ee853bde103';
+    r'2757263bc45c5c08a1e3b45ee66e312a741ff94a';
 
 final class PublicProfileControllerFamily extends $Family
     with
@@ -73,8 +73,8 @@ final class PublicProfileControllerFamily extends $Family
         isAutoDispose: true,
       );
 
-  PublicProfileControllerProvider call(String uid) =>
-      PublicProfileControllerProvider._(argument: uid, from: this);
+  PublicProfileControllerProvider call(String profileRef) =>
+      PublicProfileControllerProvider._(argument: profileRef, from: this);
 
   @override
   String toString() => r'publicProfileControllerProvider';
@@ -83,9 +83,9 @@ final class PublicProfileControllerFamily extends $Family
 abstract class _$PublicProfileController
     extends $AsyncNotifier<PublicProfileState> {
   late final _$args = ref.$arg as String;
-  String get uid => _$args;
+  String get profileRef => _$args;
 
-  FutureOr<PublicProfileState> build(String uid);
+  FutureOr<PublicProfileState> build(String profileRef);
   @$mustCallSuper
   @override
   void runBuild() {

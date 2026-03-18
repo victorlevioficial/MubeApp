@@ -28,7 +28,6 @@
     "public": "landing_page",
     "ignore": [
       "firebase.json",
-      "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
@@ -47,9 +46,68 @@
       {
         "source": "/admin/**",
         "destination": "/admin/index.html"
+      },
+      {
+        "source": "/suporte",
+        "destination": "/suporte/index.html"
+      },
+      {
+        "source": "/profile",
+        "destination": "/profile/index.html"
+      },
+      {
+        "source": "/profile/**",
+        "destination": "/profile/index.html"
+      },
+      {
+        "source": "/@**",
+        "destination": "/profile/index.html"
+      },
+      {
+        "source": "/user",
+        "destination": "/profile/index.html"
+      },
+      {
+        "source": "/user/**",
+        "destination": "/profile/index.html"
       }
     ],
     "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/apple-app-site-association",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json; charset=utf-8"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
       {
         "source": "**/*.html",
         "headers": [

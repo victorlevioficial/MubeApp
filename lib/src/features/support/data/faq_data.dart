@@ -177,7 +177,7 @@ const List<FAQItem> kAppFAQs = [
     category: FAQCategories.privacyLgpd,
     question: 'Como exerço meus direitos da LGPD?',
     answer:
-        'Você pode solicitar acesso, correção, exclusão e outros direitos do titular entrando em contato pelo e-mail suporte@mube.app.',
+        'Você pode solicitar acesso, correção, exclusão e outros direitos do titular entrando em contato pelo e-mail suporte@mubeapp.com.br.',
     tags: ['lgpd', 'direitos', 'acesso', 'exclusão'],
   ),
   FAQItem(

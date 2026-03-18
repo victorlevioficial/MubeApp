@@ -55,21 +55,29 @@ final publicProfileMetricsProvider = FutureProvider.autoDispose
 
 /// Public profile screen for the user-facing profile experience.
 class PublicProfileScreen extends ConsumerWidget {
-  final String uid;
+  final String profileRef;
   final String? avatarHeroTag;
   static const double _topActionSize = AppSpacing.s48;
 
-  const PublicProfileScreen({super.key, required this.uid, this.avatarHeroTag});
+  const PublicProfileScreen({
+    super.key,
+    required this.profileRef,
+    this.avatarHeroTag,
+  });
 
   String _displayName(AppUser user) => user.appDisplayName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stateAsync = ref.watch(publicProfileControllerProvider(uid));
+    final stateAsync = ref.watch(publicProfileControllerProvider(profileRef));
     final state = stateAsync.asData?.value;
-    final metricsAsync = ref.watch(publicProfileMetricsProvider(uid));
+    final resolvedUid = state?.user?.uid;
+    final AsyncValue<PublicProfileMetrics> metricsAsync = resolvedUid == null
+        ? const AsyncValue.loading()
+        : ref.watch(publicProfileMetricsProvider(resolvedUid));
     final metrics = metricsAsync.asData?.value;
-    final resolvedAvatarHeroTag = avatarHeroTag ?? 'avatar-$uid';
+    final resolvedAvatarHeroTag =
+        avatarHeroTag ?? 'avatar-${resolvedUid ?? profileRef}';
     final isMetricsLoading =
         state?.user != null && metrics == null && metricsAsync.isLoading;
     final shouldShowLoading =
@@ -221,22 +229,26 @@ class PublicProfileScreen extends ConsumerWidget {
     AppUser? user,
   ) async {
     if (user == null) return;
-    final controller = ref.read(publicProfileControllerProvider(uid).notifier);
+    final controller = ref.read(
+      publicProfileControllerProvider(profileRef).notifier,
+    );
+    final publicProfileUrl = RoutePaths.publicProfileShareUrl(
+      uid: user.uid,
+      username: user.publicUsername,
+    );
 
     switch (action) {
       case 'share':
         await SharePlus.instance.share(
           ShareParams(
-            text: 'Confira meu perfil no Mube: https://mube.app/profile/$uid',
+            text: 'Confira meu perfil no Mube: $publicProfileUrl',
             subject: 'Perfil de ${_displayName(user)} no Mube',
           ),
         );
         break;
 
       case 'copy':
-        await Clipboard.setData(
-          ClipboardData(text: 'https://mube.app/profile/$uid'),
-        );
+        await Clipboard.setData(ClipboardData(text: publicProfileUrl));
         if (context.mounted) {
           AppSnackBar.success(
             context,
@@ -365,7 +377,7 @@ class PublicProfileScreen extends ConsumerWidget {
 
   Widget _buildBottomBar(BuildContext context, WidgetRef ref, AppUser user) {
     final currentUser = ref.watch(currentUserProfileProvider).value;
-    final isMe = currentUser?.uid == uid;
+    final isMe = currentUser?.uid == user.uid;
 
     return Container(
       padding: EdgeInsets.only(
@@ -382,7 +394,7 @@ class PublicProfileScreen extends ConsumerWidget {
           ? _MeBottomBar(user: user)
           : _OtherBottomBar(
               onChat: () => ref
-                  .read(publicProfileControllerProvider(uid).notifier)
+                  .read(publicProfileControllerProvider(profileRef).notifier)
                   .openChat(context),
             ),
     );

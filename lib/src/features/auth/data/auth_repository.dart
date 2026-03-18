@@ -14,6 +14,7 @@ import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../utils/public_username.dart';
 import '../domain/app_user.dart';
 import 'auth_remote_data_source.dart';
 
@@ -162,6 +163,48 @@ class AuthRepository {
   }
 
   Stream<AppUser?> watchUser(String uid) => _dataSource.watchUserProfile(uid);
+
+  FutureResult<AppUser?> getUserByPublicUsername(String username) async {
+    try {
+      final user = await _dataSource.fetchUserProfileByUsername(username);
+      return Right(user);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<bool> isPublicUsernameAvailable(
+    String username, {
+    String? excludingUid,
+  }) async {
+    try {
+      final normalizedUsername = normalizedPublicUsernameOrNull(username);
+      if (normalizedUsername == null) {
+        return const Right(false);
+      }
+
+      final existingUser = await _dataSource.fetchUserProfileByUsername(
+        normalizedUsername,
+      );
+      final isAvailable =
+          existingUser == null ||
+          (excludingUid != null && existingUser.uid == excludingUid);
+      return Right(isAvailable);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  FutureResult<String> updatePublicUsername(String username) async {
+    try {
+      final normalizedUsername = await _dataSource.updatePublicUsername(
+        username,
+      );
+      return Right(normalizedUsername);
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
 
   FutureResult<Unit> updateUser(AppUser user) async {
     try {

@@ -139,7 +139,7 @@ class _IconContainer extends StatelessWidget {
             color.withValues(alpha: isPressed ? 0.12 : 0.08),
           ],
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.all16,
         border: Border.all(
           color: color.withValues(alpha: isPressed ? 0.25 : 0.15),
           width: 1,
@@ -179,10 +179,9 @@ class _TextContent extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppTypography.bodyLarge.copyWith(
+          style: AppTypography.titleMedium.copyWith(
             color: isDestructive ? AppColors.error : AppColors.textPrimary,
             fontWeight: FontWeight.w600,
-            fontSize: 15,
             letterSpacing: -0.2,
           ),
           maxLines: 1,
@@ -194,7 +193,6 @@ class _TextContent extends StatelessWidget {
             subtitle!,
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textSecondary.withValues(alpha: 0.75),
-              fontSize: 12,
               height: 1.3,
             ),
             maxLines: 1,

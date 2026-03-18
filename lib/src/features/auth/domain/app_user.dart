@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../utils/public_username.dart';
 import '../../settings/domain/saved_address.dart';
 import 'user_type.dart';
 
@@ -55,6 +56,9 @@ abstract class AppUser with _$AppUser {
 
     /// Short biography.
     String? bio,
+
+    /// Public profile handle used in shareable URLs like `mubeapp.com.br/@user`.
+    String? username,
 
     /// Location data: cidade, estado, lat, lng. (Legacy - kept for backward compatibility)
     Map<String, dynamic>? location,
@@ -184,6 +188,18 @@ abstract class AppUser with _$AppUser {
       default:
         return _firstNonEmptyText([bio]);
     }
+  }
+
+  /// Public username normalized to the canonical lowercase form.
+  String? get publicUsername => normalizedPublicUsernameOrNull(username);
+
+  /// Public handle shown in shareable contexts.
+  String? get publicHandle {
+    final normalized = publicUsername;
+    if (normalized == null || !isValidPublicUsername(normalized)) {
+      return null;
+    }
+    return publicUsernameHandle(normalized);
   }
 
   String _firstNonEmptyName(List<dynamic> candidates, [String fallback = '']) {

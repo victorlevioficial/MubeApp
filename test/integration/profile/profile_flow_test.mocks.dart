@@ -4,11 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:io' as _i7;
+import 'dart:io' as _i8;
 
 import 'package:firebase_auth/firebase_auth.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i8;
+import 'package:mockito/src/dummies.dart' as _i7;
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart'
     as _i4;
 import 'package:mube/src/features/auth/domain/app_user.dart' as _i6;
@@ -141,9 +141,37 @@ class MockAuthRemoteDataSource extends _i1.Mock
           as _i5.Future<void>);
 
   @override
+  _i5.Future<String> updatePublicUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePublicUsername, [username]),
+            returnValue: _i5.Future<String>.value(
+              _i7.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<String>.value(
+              _i7.dummyValue<String>(
+                this,
+                Invocation.method(#updatePublicUsername, [username]),
+              ),
+            ),
+          )
+          as _i5.Future<String>);
+
+  @override
   _i5.Future<_i6.AppUser?> fetchUserProfile(String? uid) =>
       (super.noSuchMethod(
             Invocation.method(#fetchUserProfile, [uid]),
+            returnValue: _i5.Future<_i6.AppUser?>.value(),
+            returnValueForMissingStub: _i5.Future<_i6.AppUser?>.value(),
+          )
+          as _i5.Future<_i6.AppUser?>);
+
+  @override
+  _i5.Future<_i6.AppUser?> fetchUserProfileByUsername(String? username) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchUserProfileByUsername, [username]),
             returnValue: _i5.Future<_i6.AppUser?>.value(),
             returnValueForMissingStub: _i5.Future<_i6.AppUser?>.value(),
           )
@@ -240,7 +268,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
   _i5.Future<_i3.ImageUrls> uploadProfileImageWithSizes({
     required String? userId,
-    required _i7.File? file,
+    required _i8.File? file,
     bool? generateMultipleSizes = true,
   }) =>
       (super.noSuchMethod(
@@ -275,7 +303,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
   _i5.Future<String> uploadProfileImage({
     required String? userId,
-    required _i7.File? file,
+    required _i8.File? file,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#uploadProfileImage, [], {
@@ -283,7 +311,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               #file: file,
             }),
             returnValue: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadProfileImage, [], {
                   #userId: userId,
@@ -292,7 +320,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadProfileImage, [], {
                   #userId: userId,
@@ -306,7 +334,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
   _i5.Future<_i3.GalleryMediaUrls> uploadGalleryMediaWithSizes({
     required String? userId,
-    required _i7.File? file,
+    required _i8.File? file,
     required String? mediaId,
     required bool? isVideo,
     void Function(double)? onProgress,
@@ -349,7 +377,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
   _i5.Future<String> uploadGalleryMedia({
     required String? userId,
-    required _i7.File? file,
+    required _i8.File? file,
     required String? mediaId,
     required bool? isVideo,
     void Function(double)? onProgress,
@@ -363,7 +391,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               #onProgress: onProgress,
             }),
             returnValue: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadGalleryMedia, [], {
                   #userId: userId,
@@ -375,7 +403,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadGalleryMedia, [], {
                   #userId: userId,
@@ -393,7 +421,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   _i5.Future<String> uploadVideoThumbnail({
     required String? userId,
     required String? mediaId,
-    required _i7.File? thumbnail,
+    required _i8.File? thumbnail,
     void Function(double)? onProgress,
   }) =>
       (super.noSuchMethod(
@@ -404,7 +432,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               #onProgress: onProgress,
             }),
             returnValue: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadVideoThumbnail, [], {
                   #userId: userId,
@@ -415,7 +443,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadVideoThumbnail, [], {
                   #userId: userId,
@@ -481,7 +509,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
   @override
   _i5.Future<String> uploadSupportAttachment({
     required String? ticketId,
-    required _i7.File? file,
+    required _i8.File? file,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#uploadSupportAttachment, [], {
@@ -489,7 +517,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               #file: file,
             }),
             returnValue: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadSupportAttachment, [], {
                   #ticketId: ticketId,
@@ -498,7 +526,7 @@ class MockStorageRepository extends _i1.Mock implements _i3.StorageRepository {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i8.dummyValue<String>(
+              _i7.dummyValue<String>(
                 this,
                 Invocation.method(#uploadSupportAttachment, [], {
                   #ticketId: ticketId,

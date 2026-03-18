@@ -15,6 +15,7 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   nome: json['nome'] as String?,
   foto: json['foto'] as String?,
   bio: json['bio'] as String?,
+  username: json['username'] as String?,
   location: json['location'] as Map<String, dynamic>?,
   geohash: json['geohash'] as String?,
   addresses:
@@ -55,6 +56,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'nome': instance.nome,
   'foto': instance.foto,
   'bio': instance.bio,
+  'username': instance.username,
   'location': instance.location,
   'geohash': instance.geohash,
   'addresses': instance.addresses,
