@@ -696,8 +696,9 @@ class FeedRepository {
     int? limit,
     double? radiusKm,
   }) async {
-    final geohashes = <String>{...GeohashHelper.neighbors(userGeohash)}
-        .toList(growable: false);
+    final geohashes = <String>{
+      ...GeohashHelper.neighbors(userGeohash),
+    }.toList(growable: false);
     final effectiveFilterType = _resolveGeohashFilterType(
       filterType: filterType,
       category: category,
@@ -706,8 +707,7 @@ class FeedRepository {
       geohashCount: geohashes.length,
       requestedLimit: limit,
       hasCategoryFilter: category != null && category.isNotEmpty,
-      hasExcludeCategory:
-          excludeCategory != null && excludeCategory.isNotEmpty,
+      hasExcludeCategory: excludeCategory != null && excludeCategory.isNotEmpty,
     );
 
     final snapshots = await Future.wait(
@@ -780,8 +780,7 @@ class FeedRepository {
     required bool hasCategoryFilter,
     required bool hasExcludeCategory,
   }) {
-    final baseLimit =
-        requestedLimit != null && requestedLimit > 0
+    final baseLimit = requestedLimit != null && requestedLimit > 0
         ? (requestedLimit / geohashCount).ceil()
         : 8;
     final multiplier = hasCategoryFilter || hasExcludeCategory ? 3 : 2;

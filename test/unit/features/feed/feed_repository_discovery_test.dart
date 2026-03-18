@@ -100,37 +100,49 @@ void main() {
       const userLat = 0.0;
       const userLong = 0.0;
 
-      await firestore.collection(FirestoreCollections.users).doc(currentUserId).set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.name: 'Current User',
-        FirestoreFields.location: {'lat': userLat, 'lng': userLong},
-        FirestoreFields.geohash: 's0000',
-      });
+      await firestore
+          .collection(FirestoreCollections.users)
+          .doc(currentUserId)
+          .set({
+            FirestoreFields.registrationStatus: RegistrationStatus.complete,
+            FirestoreFields.name: 'Current User',
+            FirestoreFields.location: {'lat': userLat, 'lng': userLong},
+            FirestoreFields.geohash: 's0000',
+          });
 
-      await firestore.collection(FirestoreCollections.users).doc('artist-1').set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.professional,
-        FirestoreFields.name: 'Artist 1',
-        FirestoreFields.location: {'lat': 0.02, 'lng': 0.02},
-        'status': 'ativo',
-      });
+      await firestore
+          .collection(FirestoreCollections.users)
+          .doc('artist-1')
+          .set({
+            FirestoreFields.registrationStatus: RegistrationStatus.complete,
+            FirestoreFields.profileType: ProfileType.professional,
+            FirestoreFields.name: 'Artist 1',
+            FirestoreFields.location: {'lat': 0.02, 'lng': 0.02},
+            'status': 'ativo',
+          });
 
-      await firestore.collection(FirestoreCollections.users).doc('hidden-1').set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.studio,
-        FirestoreFields.name: 'Hidden 1',
-        FirestoreFields.location: {'lat': 0.01, 'lng': 0.01},
-        'status': 'ativo',
-        'privacy_settings': {'visible_in_home': false},
-      });
+      await firestore
+          .collection(FirestoreCollections.users)
+          .doc('hidden-1')
+          .set({
+            FirestoreFields.registrationStatus: RegistrationStatus.complete,
+            FirestoreFields.profileType: ProfileType.studio,
+            FirestoreFields.name: 'Hidden 1',
+            FirestoreFields.location: {'lat': 0.01, 'lng': 0.01},
+            'status': 'ativo',
+            'privacy_settings': {'visible_in_home': false},
+          });
 
-      await firestore.collection(FirestoreCollections.users).doc('inactive-1').set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.band,
-        FirestoreFields.name: 'Inactive 1',
-        FirestoreFields.location: {'lat': 0.03, 'lng': 0.03},
-        'status': 'suspenso',
-      });
+      await firestore
+          .collection(FirestoreCollections.users)
+          .doc('inactive-1')
+          .set({
+            FirestoreFields.registrationStatus: RegistrationStatus.complete,
+            FirestoreFields.profileType: ProfileType.band,
+            FirestoreFields.name: 'Inactive 1',
+            FirestoreFields.location: {'lat': 0.03, 'lng': 0.03},
+            'status': 'suspenso',
+          });
 
       final result = await repository.getDiscoverFeedPoolSorted(
         currentUserId: currentUserId,
@@ -145,63 +157,81 @@ void main() {
       );
     });
 
-    test('loads center and neighbor geohashes without compound whereIn', () async {
-      final firestore = FakeFirebaseFirestore();
-      final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
-      const currentUserId = 'current-user';
-      const userLat = -23.5505;
-      const userLong = -46.6333;
-      final centerGeohash = GeohashHelper.encode(
-        userLat,
-        userLong,
-        precision: 5,
-      );
-      final neighborGeohash = GeohashHelper.neighbors(centerGeohash)[1];
+    test(
+      'loads center and neighbor geohashes without compound whereIn',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
+        const currentUserId = 'current-user';
+        const userLat = -23.5505;
+        const userLong = -46.6333;
+        final centerGeohash = GeohashHelper.encode(
+          userLat,
+          userLong,
+          precision: 5,
+        );
+        final neighborGeohash = GeohashHelper.neighbors(centerGeohash)[1];
 
-      await firestore.collection(FirestoreCollections.users).doc(currentUserId).set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.professional,
-        FirestoreFields.name: 'Current User',
-        FirestoreFields.geohash: centerGeohash,
-        FirestoreFields.location: {'lat': userLat, 'lng': userLong},
-        'status': 'ativo',
-      });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc(currentUserId)
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.professional,
+              FirestoreFields.name: 'Current User',
+              FirestoreFields.geohash: centerGeohash,
+              FirestoreFields.location: {'lat': userLat, 'lng': userLong},
+              'status': 'ativo',
+            });
 
-      await firestore.collection(FirestoreCollections.users).doc('band-center').set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.band,
-        FirestoreFields.name: 'Band Center',
-        FirestoreFields.geohash: centerGeohash,
-        FirestoreFields.location: {'lat': userLat + 0.002, 'lng': userLong},
-        'status': 'ativo',
-      });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('band-center')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.band,
+              FirestoreFields.name: 'Band Center',
+              FirestoreFields.geohash: centerGeohash,
+              FirestoreFields.location: {
+                'lat': userLat + 0.002,
+                'lng': userLong,
+              },
+              'status': 'ativo',
+            });
 
-      await firestore.collection(FirestoreCollections.users).doc('studio-neighbor').set({
-        FirestoreFields.registrationStatus: RegistrationStatus.complete,
-        FirestoreFields.profileType: ProfileType.studio,
-        FirestoreFields.name: 'Studio Neighbor',
-        FirestoreFields.geohash: neighborGeohash,
-        FirestoreFields.location: {'lat': userLat, 'lng': userLong + 0.01},
-        'status': 'ativo',
-      });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('studio-neighbor')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.studio,
+              FirestoreFields.name: 'Studio Neighbor',
+              FirestoreFields.geohash: neighborGeohash,
+              FirestoreFields.location: {
+                'lat': userLat,
+                'lng': userLong + 0.01,
+              },
+              'status': 'ativo',
+            });
 
-      final result = await repository.getAllUsersSortedByDistance(
-        currentUserId: currentUserId,
-        userLat: userLat,
-        userLong: userLong,
-        userGeohash: centerGeohash,
-        limit: 10,
-      );
+        final result = await repository.getAllUsersSortedByDistance(
+          currentUserId: currentUserId,
+          userLat: userLat,
+          userLong: userLong,
+          userGeohash: centerGeohash,
+          limit: 10,
+        );
 
-      expect(result.isRight(), true);
-      result.fold(
-        (_) => fail('Expected geohash items'),
-        (items) => expect(
-          items.map((item) => item.uid),
-          containsAll(['band-center', 'studio-neighbor']),
-        ),
-      );
-    });
+        expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected geohash items'),
+          (items) => expect(
+            items.map((item) => item.uid),
+            containsAll(['band-center', 'studio-neighbor']),
+          ),
+        );
+      },
+    );
 
     test('filters technician candidates to pure technicians only', () async {
       final firestore = FakeFirebaseFirestore();

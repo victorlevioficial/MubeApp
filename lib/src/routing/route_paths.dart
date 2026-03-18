@@ -80,7 +80,8 @@ abstract final class RoutePaths {
     String? username,
   }) {
     final normalizedUsername = normalizedPublicUsernameOrNull(username);
-    if (normalizedUsername != null && isValidPublicUsername(normalizedUsername)) {
+    if (normalizedUsername != null &&
+        isValidPublicUsername(normalizedUsername)) {
       return publicProfileByUsername(normalizedUsername);
     }
     return publicProfileSharePathById(uid);
@@ -91,7 +92,10 @@ abstract final class RoutePaths {
     host: 'mubeapp.com.br',
     path: publicProfileSharePathById(uid),
   ).toString();
-  static String publicProfileShareUrl({required String uid, String? username}) =>
+  static String publicProfileShareUrl({
+    required String uid,
+    String? username,
+  }) =>
       'https://mubeapp.com.br${publicProfileSharePath(uid: uid, username: username)}';
   static String gigDetailById(String gigId) => '$gigs/$gigId';
   static String gigApplicantsById(String gigId) =>
@@ -131,10 +135,7 @@ abstract final class RoutePaths {
       return false;
     }
 
-    return validatePublicUsername(
-          segment.substring(1),
-          allowEmpty: false,
-        ) ==
+    return validatePublicUsername(segment.substring(1), allowEmpty: false) ==
         null;
   }
 

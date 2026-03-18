@@ -182,7 +182,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _instagramController = TextEditingController(
       text: normalizeInstagramHandle(insta),
     );
-    _usernameController = TextEditingController(text: user.publicUsername ?? '');
+    _usernameController = TextEditingController(
+      text: user.publicUsername ?? '',
+    );
     _spotifyController = TextEditingController(
       text: user.musicLinks[MusicLinkValidator.spotifyKey] ?? '',
     );

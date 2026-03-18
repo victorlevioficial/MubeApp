@@ -20,7 +20,7 @@ void main() {
     fakeAuthRepository.appUser = user;
 
     await tester.pumpApp(
-      PublicProfileScreen(uid: user.uid),
+      PublicProfileScreen(profileRef: user.uid),
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
@@ -225,7 +225,7 @@ void main() {
     fakeAuthRepository.appUser = professional;
 
     await tester.pumpApp(
-      PublicProfileScreen(uid: professional.uid),
+      PublicProfileScreen(profileRef: professional.uid),
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         currentUserProfileProvider.overrideWith(
