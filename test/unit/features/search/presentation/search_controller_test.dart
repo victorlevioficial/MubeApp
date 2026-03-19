@@ -335,6 +335,40 @@ void main() {
       },
     );
 
+    test(
+      'setProfessionalSubcategory clears remote recording when leaving production',
+      () async {
+        final controller = container.read(searchControllerProvider.notifier);
+
+        controller.setProfessionalSubcategory(
+          ProfessionalSubcategory.production,
+        );
+        await Future.delayed(Duration.zero);
+        controller.setOffersRemoteRecording(true);
+        await Future.delayed(Duration.zero);
+
+        expect(
+          container
+              .read(searchControllerProvider)
+              .filters
+              .offersRemoteRecording,
+          true,
+        );
+
+        controller.setProfessionalSubcategory(
+          ProfessionalSubcategory.stageTech,
+        );
+        await Future.delayed(Duration.zero);
+
+        final state = container.read(searchControllerProvider);
+        expect(
+          state.filters.professionalSubcategory,
+          ProfessionalSubcategory.stageTech,
+        );
+        expect(state.filters.offersRemoteRecording, isNull);
+      },
+    );
+
     test('clearFilters should reset all filters except category', () async {
       // Arrange
       final controller = container.read(searchControllerProvider.notifier);
@@ -654,6 +688,10 @@ void main() {
       );
       expect(
         const SearchFilters(canDoBackingVocal: true).hasActiveFilters,
+        true,
+      );
+      expect(
+        const SearchFilters(offersRemoteRecording: true).hasActiveFilters,
         true,
       );
       expect(const SearchFilters(studioType: 'home').hasActiveFilters, true);

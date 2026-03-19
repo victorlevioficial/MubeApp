@@ -20,7 +20,8 @@ mixin _$SearchFilters {
  ProfessionalSubcategory? get professionalSubcategory;/// Selected genres filter
  List<String> get genres;/// Selected instruments filter (for instrumentalists)
  List<String> get instruments;/// Selected professional role filters (production/stage tech)
- List<String> get roles;/// Selected studio services filter (for studios)
+ List<String> get roles;/// Only include production profiles that offer remote recording
+ bool? get offersRemoteRecording;/// Selected studio services filter (for studios)
  List<String> get services;/// Filter for backing vocal capability
 /// null = don't filter, true = must do backing, false = solo only
  bool? get canDoBackingVocal;/// Studio type filter (home_studio, commercial)
@@ -35,16 +36,16 @@ $SearchFiltersCopyWith<SearchFilters> get copyWith => _$SearchFiltersCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other.genres, genres)&&const DeepCollectionEquality().equals(other.instruments, instruments)&&const DeepCollectionEquality().equals(other.roles, roles)&&const DeepCollectionEquality().equals(other.services, services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other.genres, genres)&&const DeepCollectionEquality().equals(other.instruments, instruments)&&const DeepCollectionEquality().equals(other.roles, roles)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&const DeepCollectionEquality().equals(other.services, services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(genres),const DeepCollectionEquality().hash(instruments),const DeepCollectionEquality().hash(roles),const DeepCollectionEquality().hash(services),canDoBackingVocal,studioType);
+int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(genres),const DeepCollectionEquality().hash(instruments),const DeepCollectionEquality().hash(roles),offersRemoteRecording,const DeepCollectionEquality().hash(services),canDoBackingVocal,studioType);
 
 @override
 String toString() {
-  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
+  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, offersRemoteRecording: $offersRemoteRecording, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
 }
 
 
@@ -55,7 +56,7 @@ abstract mixin class $SearchFiltersCopyWith<$Res>  {
   factory $SearchFiltersCopyWith(SearchFilters value, $Res Function(SearchFilters) _then) = _$SearchFiltersCopyWithImpl;
 @useResult
 $Res call({
- String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, List<String> services, bool? canDoBackingVocal, String? studioType
+ String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, bool? offersRemoteRecording, List<String> services, bool? canDoBackingVocal, String? studioType
 });
 
 
@@ -72,7 +73,7 @@ class _$SearchFiltersCopyWithImpl<$Res>
 
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? offersRemoteRecording = freezed,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
   return _then(_self.copyWith(
 term: null == term ? _self.term : term // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
@@ -80,7 +81,8 @@ as SearchCategory,professionalSubcategory: freezed == professionalSubcategory ? 
 as ProfessionalSubcategory?,genres: null == genres ? _self.genres : genres // ignore: cast_nullable_to_non_nullable
 as List<String>,instruments: null == instruments ? _self.instruments : instruments // ignore: cast_nullable_to_non_nullable
 as List<String>,roles: null == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
-as List<String>,services: null == services ? _self.services : services // ignore: cast_nullable_to_non_nullable
+as List<String>,offersRemoteRecording: freezed == offersRemoteRecording ? _self.offersRemoteRecording : offersRemoteRecording // ignore: cast_nullable_to_non_nullable
+as bool?,services: null == services ? _self.services : services // ignore: cast_nullable_to_non_nullable
 as List<String>,canDoBackingVocal: freezed == canDoBackingVocal ? _self.canDoBackingVocal : canDoBackingVocal // ignore: cast_nullable_to_non_nullable
 as bool?,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -168,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  bool? offersRemoteRecording,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchFilters() when $default != null:
-return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.offersRemoteRecording,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   return orElse();
 
 }
@@ -189,10 +191,10 @@ return $default(_that.term,_that.category,_that.professionalSubcategory,_that.ge
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  bool? offersRemoteRecording,  List<String> services,  bool? canDoBackingVocal,  String? studioType)  $default,) {final _that = this;
 switch (_that) {
 case _SearchFilters():
-return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.offersRemoteRecording,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +211,10 @@ return $default(_that.term,_that.category,_that.professionalSubcategory,_that.ge
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String term,  SearchCategory category,  ProfessionalSubcategory? professionalSubcategory,  List<String> genres,  List<String> instruments,  List<String> roles,  bool? offersRemoteRecording,  List<String> services,  bool? canDoBackingVocal,  String? studioType)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchFilters() when $default != null:
-return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
+return $default(_that.term,_that.category,_that.professionalSubcategory,_that.genres,_that.instruments,_that.roles,_that.offersRemoteRecording,_that.services,_that.canDoBackingVocal,_that.studioType);case _:
   return null;
 
 }
@@ -224,7 +226,7 @@ return $default(_that.term,_that.category,_that.professionalSubcategory,_that.ge
 
 
 class _SearchFilters extends SearchFilters {
-  const _SearchFilters({this.term = '', this.category = SearchCategory.all, this.professionalSubcategory, final  List<String> genres = const [], final  List<String> instruments = const [], final  List<String> roles = const [], final  List<String> services = const [], this.canDoBackingVocal, this.studioType}): _genres = genres,_instruments = instruments,_roles = roles,_services = services,super._();
+  const _SearchFilters({this.term = '', this.category = SearchCategory.all, this.professionalSubcategory, final  List<String> genres = const [], final  List<String> instruments = const [], final  List<String> roles = const [], this.offersRemoteRecording, final  List<String> services = const [], this.canDoBackingVocal, this.studioType}): _genres = genres,_instruments = instruments,_roles = roles,_services = services,super._();
   
 
 /// Text search term (normalized)
@@ -260,6 +262,8 @@ class _SearchFilters extends SearchFilters {
   return EqualUnmodifiableListView(_roles);
 }
 
+/// Only include production profiles that offer remote recording
+@override final  bool? offersRemoteRecording;
 /// Selected studio services filter (for studios)
  final  List<String> _services;
 /// Selected studio services filter (for studios)
@@ -285,16 +289,16 @@ _$SearchFiltersCopyWith<_SearchFilters> get copyWith => __$SearchFiltersCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other._genres, _genres)&&const DeepCollectionEquality().equals(other._instruments, _instruments)&&const DeepCollectionEquality().equals(other._roles, _roles)&&const DeepCollectionEquality().equals(other._services, _services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchFilters&&(identical(other.term, term) || other.term == term)&&(identical(other.category, category) || other.category == category)&&(identical(other.professionalSubcategory, professionalSubcategory) || other.professionalSubcategory == professionalSubcategory)&&const DeepCollectionEquality().equals(other._genres, _genres)&&const DeepCollectionEquality().equals(other._instruments, _instruments)&&const DeepCollectionEquality().equals(other._roles, _roles)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&const DeepCollectionEquality().equals(other._services, _services)&&(identical(other.canDoBackingVocal, canDoBackingVocal) || other.canDoBackingVocal == canDoBackingVocal)&&(identical(other.studioType, studioType) || other.studioType == studioType));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(_genres),const DeepCollectionEquality().hash(_instruments),const DeepCollectionEquality().hash(_roles),const DeepCollectionEquality().hash(_services),canDoBackingVocal,studioType);
+int get hashCode => Object.hash(runtimeType,term,category,professionalSubcategory,const DeepCollectionEquality().hash(_genres),const DeepCollectionEquality().hash(_instruments),const DeepCollectionEquality().hash(_roles),offersRemoteRecording,const DeepCollectionEquality().hash(_services),canDoBackingVocal,studioType);
 
 @override
 String toString() {
-  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
+  return 'SearchFilters(term: $term, category: $category, professionalSubcategory: $professionalSubcategory, genres: $genres, instruments: $instruments, roles: $roles, offersRemoteRecording: $offersRemoteRecording, services: $services, canDoBackingVocal: $canDoBackingVocal, studioType: $studioType)';
 }
 
 
@@ -305,7 +309,7 @@ abstract mixin class _$SearchFiltersCopyWith<$Res> implements $SearchFiltersCopy
   factory _$SearchFiltersCopyWith(_SearchFilters value, $Res Function(_SearchFilters) _then) = __$SearchFiltersCopyWithImpl;
 @override @useResult
 $Res call({
- String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, List<String> services, bool? canDoBackingVocal, String? studioType
+ String term, SearchCategory category, ProfessionalSubcategory? professionalSubcategory, List<String> genres, List<String> instruments, List<String> roles, bool? offersRemoteRecording, List<String> services, bool? canDoBackingVocal, String? studioType
 });
 
 
@@ -322,7 +326,7 @@ class __$SearchFiltersCopyWithImpl<$Res>
 
 /// Create a copy of SearchFilters
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? term = null,Object? category = null,Object? professionalSubcategory = freezed,Object? genres = null,Object? instruments = null,Object? roles = null,Object? offersRemoteRecording = freezed,Object? services = null,Object? canDoBackingVocal = freezed,Object? studioType = freezed,}) {
   return _then(_SearchFilters(
 term: null == term ? _self.term : term // ignore: cast_nullable_to_non_nullable
 as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
@@ -330,7 +334,8 @@ as SearchCategory,professionalSubcategory: freezed == professionalSubcategory ? 
 as ProfessionalSubcategory?,genres: null == genres ? _self._genres : genres // ignore: cast_nullable_to_non_nullable
 as List<String>,instruments: null == instruments ? _self._instruments : instruments // ignore: cast_nullable_to_non_nullable
 as List<String>,roles: null == roles ? _self._roles : roles // ignore: cast_nullable_to_non_nullable
-as List<String>,services: null == services ? _self._services : services // ignore: cast_nullable_to_non_nullable
+as List<String>,offersRemoteRecording: freezed == offersRemoteRecording ? _self.offersRemoteRecording : offersRemoteRecording // ignore: cast_nullable_to_non_nullable
+as bool?,services: null == services ? _self._services : services // ignore: cast_nullable_to_non_nullable
 as List<String>,canDoBackingVocal: freezed == canDoBackingVocal ? _self.canDoBackingVocal : canDoBackingVocal // ignore: cast_nullable_to_non_nullable
 as bool?,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
 as String?,

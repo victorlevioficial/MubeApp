@@ -32,6 +32,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   late List<String> _selectedServices;
   late String? _studioType;
   late bool? _canDoBackingVocal;
+  late bool? _offersRemoteRecording;
 
   @override
   void initState() {
@@ -43,6 +44,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     _selectedServices = List<String>.from(widget.filters.services);
     _studioType = widget.filters.studioType;
     _canDoBackingVocal = widget.filters.canDoBackingVocal;
+    _offersRemoteRecording = widget.filters.offersRemoteRecording;
   }
 
   int get _activeFilterCount {
@@ -54,6 +56,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     if (_selectedServices.isNotEmpty) count++;
     if (_studioType != null) count++;
     if (_canDoBackingVocal != null) count++;
+    if (_offersRemoteRecording == true) count++;
     return count;
   }
 
@@ -69,35 +72,35 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       case ProfessionalSubcategory.instrumentalist:
       case ProfessionalSubcategory.dj:
       case null:
-        return ref.read(crewRoleLabelsProvider);
+        return const [];
     }
   }
 
   String get _roleSectionTitle {
     switch (_professionalSubcategory) {
       case ProfessionalSubcategory.production:
-        return 'Funcoes de producao';
+        return 'Funções de produção';
       case ProfessionalSubcategory.stageTech:
-        return 'Funcoes tecnicas';
+        return 'Funções de palco';
       case ProfessionalSubcategory.singer:
       case ProfessionalSubcategory.instrumentalist:
       case ProfessionalSubcategory.dj:
       case null:
-        return 'Funcoes profissionais';
+        return '';
     }
   }
 
   String get _roleSectionSubtitle {
     switch (_professionalSubcategory) {
       case ProfessionalSubcategory.production:
-        return 'Selecione funcoes de producao musical.';
+        return 'Selecione apenas funções de produção musical.';
       case ProfessionalSubcategory.stageTech:
-        return 'Selecione funcoes tecnicas de palco.';
+        return 'Selecione apenas funções de técnica de palco.';
       case ProfessionalSubcategory.singer:
       case ProfessionalSubcategory.instrumentalist:
       case ProfessionalSubcategory.dj:
       case null:
-        return 'Selecione funcoes de palco, audio ou producao.';
+        return '';
     }
   }
 
@@ -196,9 +199,19 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                             ? () => setState(() => _selectedInstruments.clear())
                             : null,
                       ),
+                    ],
+                    if (isProfessional &&
+                        (_professionalSubcategory ==
+                                ProfessionalSubcategory.production ||
+                            _professionalSubcategory ==
+                                ProfessionalSubcategory.stageTech)) ...[
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
-                        icon: FontAwesomeIcons.toolbox,
+                        icon:
+                            _professionalSubcategory ==
+                                ProfessionalSubcategory.production
+                            ? FontAwesomeIcons.sliders
+                            : FontAwesomeIcons.toolbox,
                         title: _roleSectionTitle,
                         description: _roleSectionSubtitle,
                         selectedItems: _selectedRoles,
@@ -216,6 +229,18 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                             ? () => setState(() => _selectedRoles.clear())
                             : null,
                       ),
+                      if (_professionalSubcategory ==
+                          ProfessionalSubcategory.production) ...[
+                        const SizedBox(height: AppSpacing.s12),
+                        _FilterSection(
+                          title: 'Gravação remota',
+                          subtitle:
+                              'Mostre apenas perfis de produção musical que gravam à distância.',
+                          child: _FilterPanel(
+                            child: _buildRemoteRecordingChips(),
+                          ),
+                        ),
+                      ],
                     ],
                     if (isStudio) ...[
                       const SizedBox(height: AppSpacing.s12),
@@ -303,6 +328,9 @@ class _FilterModalState extends ConsumerState<FilterModal> {
               final next = isSelected ? null : item.$1;
               if (_professionalSubcategory != next) {
                 _selectedRoles.clear();
+                if (next != ProfessionalSubcategory.production) {
+                  _offersRemoteRecording = null;
+                }
               }
               _professionalSubcategory = next;
             });
@@ -370,6 +398,32 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     );
   }
 
+  Widget _buildRemoteRecordingChips() {
+    return Wrap(
+      spacing: AppSpacing.s8,
+      runSpacing: AppSpacing.s8,
+      children: [
+        AppFilterChip(
+          label: 'Qualquer',
+          isSelected: _offersRemoteRecording == null,
+          onSelected: (_) => setState(() => _offersRemoteRecording = null),
+        ),
+        AppFilterChip(
+          label: 'Somente com gravação remota',
+          icon: Icons.cloud_done_outlined,
+          isSelected: _offersRemoteRecording == true,
+          onSelected: (_) {
+            setState(() {
+              _offersRemoteRecording = _offersRemoteRecording == true
+                  ? null
+                  : true;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   Future<void> _openMultiSelect({
     required String title,
     required String subtitle,
@@ -400,6 +454,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       _selectedServices.clear();
       _studioType = null;
       _canDoBackingVocal = null;
+      _offersRemoteRecording = null;
     });
   }
 
@@ -412,6 +467,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       services: _selectedServices,
       studioType: _studioType,
       canDoBackingVocal: _canDoBackingVocal,
+      offersRemoteRecording: _offersRemoteRecording,
     );
 
     widget.onApply(newFilters);

@@ -12,7 +12,9 @@ import 'package:mube/src/features/feed/presentation/feed_image_precache_service.
 import 'package:mube/src/features/search/domain/search_filters.dart';
 import 'package:mube/src/features/search/presentation/search_controller.dart';
 import 'package:mube/src/features/search/presentation/search_screen.dart';
+import 'package:mube/src/features/search/presentation/widgets/active_filters_bar.dart';
 import 'package:mube/src/features/search/presentation/widgets/smart_prefilter_grid.dart';
+import 'package:mube/src/utils/professional_profile_utils.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -199,6 +201,45 @@ void main() {
       await tester.pump();
 
       expect(find.byIcon(Icons.tune_rounded), findsWidgets);
+    });
+
+    testWidgets('renders remote recording active filter chip', (tester) async {
+      const feedItems = [
+        FeedItem(
+          uid: 'producer-1',
+          nome: 'Produtor 1',
+          nomeArtistico: 'Produtor 1',
+          tipoPerfil: 'profissional',
+          offersRemoteRecording: true,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createSubject(
+          searchState: const SearchPaginationState(
+            filters: SearchFilters(
+              term: 'producao',
+              category: SearchCategory.professionals,
+              professionalSubcategory: ProfessionalSubcategory.production,
+              offersRemoteRecording: true,
+            ),
+            items: feedItems,
+            status: PaginationStatus.loaded,
+            hasMore: false,
+          ),
+          asyncValue: const AsyncValue.data(feedItems),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.descendant(
+          of: find.byType(ActiveFiltersBar),
+          matching: find.text(professionalRemoteRecordingLabel),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('navigates to profile when result tapped', (tester) async {

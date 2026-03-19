@@ -4,6 +4,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/professional_profile_utils.dart';
 import '../../domain/search_filters.dart';
 
 /// Displays active search filters as removable chips with a "Limpar" button.
@@ -19,6 +20,7 @@ class ActiveFiltersBar extends StatelessWidget {
   final VoidCallback? onClearSubcategory;
   final VoidCallback? onClearStudioType;
   final VoidCallback? onClearBackingVocal;
+  final VoidCallback? onClearRemoteRecording;
 
   const ActiveFiltersBar({
     super.key,
@@ -33,6 +35,7 @@ class ActiveFiltersBar extends StatelessWidget {
     this.onClearSubcategory,
     this.onClearStudioType,
     this.onClearBackingVocal,
+    this.onClearRemoteRecording,
   });
 
   @override
@@ -151,6 +154,18 @@ class ActiveFiltersBar extends StatelessWidget {
           maxWidth: maxChipWidth,
           icon: Icons.record_voice_over_rounded,
           onRemove: onClearBackingVocal,
+        ),
+      );
+    }
+
+    if (filters.offersRemoteRecording == true) {
+      chips.add(
+        _buildChip(
+          professionalRemoteRecordingLabel,
+          AppColors.primary,
+          maxWidth: maxChipWidth,
+          icon: Icons.cloud_done_outlined,
+          onRemove: onClearRemoteRecording,
         ),
       );
     }

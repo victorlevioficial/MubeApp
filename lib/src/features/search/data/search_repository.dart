@@ -13,6 +13,7 @@ import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/category_normalizer.dart';
+import 'package:mube/src/utils/professional_profile_utils.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/paginated_search_response.dart';
@@ -244,6 +245,7 @@ class SearchRepository {
       genres: const [],
       studioType: null,
       canDoBackingVocal: null,
+      offersRemoteRecording: null,
     );
   }
 
@@ -342,6 +344,17 @@ class SearchRepository {
           .map(CategoryNormalizer.normalizeRoleId)
           .toList();
       if (!listContainsAny(itemRoles, filterRoles)) {
+        return false;
+      }
+    }
+
+    // Remote recording filter (production profiles only)
+    if (filters.offersRemoteRecording == true) {
+      if (item.tipoPerfil != 'profissional') {
+        return false;
+      }
+      final offersRemoteRecording = professionalOffersRemoteRecording(profData);
+      if (!offersRemoteRecording) {
         return false;
       }
     }

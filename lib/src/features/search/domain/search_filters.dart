@@ -52,6 +52,9 @@ abstract class SearchFilters with _$SearchFilters {
     /// Selected professional role filters (production/stage tech)
     @Default([]) List<String> roles,
 
+    /// Only include production profiles that offer remote recording
+    bool? offersRemoteRecording,
+
     /// Selected studio services filter (for studios)
     @Default([]) List<String> services,
 
@@ -70,7 +73,8 @@ abstract class SearchFilters with _$SearchFilters {
       professionalSubcategory != null ||
       instruments.isNotEmpty ||
       roles.isNotEmpty ||
-      canDoBackingVocal != null;
+      canDoBackingVocal != null ||
+      offersRemoteRecording == true;
 
   /// Whether the current filters require studio profiles.
   bool get hasStudioOnlyFilters => services.isNotEmpty || studioType != null;
@@ -105,7 +109,21 @@ abstract class SearchFilters with _$SearchFilters {
         instruments: const [],
         roles: const [],
         canDoBackingVocal: null,
+        offersRemoteRecording: null,
       );
+    }
+
+    return next;
+  }
+
+  /// Removes production-only filters when the professional subcategory changes.
+  SearchFilters sanitizeForProfessionalSubcategory(
+    ProfessionalSubcategory? nextSubcategory,
+  ) {
+    var next = copyWith(professionalSubcategory: nextSubcategory);
+
+    if (nextSubcategory != ProfessionalSubcategory.production) {
+      next = next.copyWith(offersRemoteRecording: null);
     }
 
     return next;
@@ -132,6 +150,7 @@ abstract class SearchFilters with _$SearchFilters {
       roles.isNotEmpty ||
       services.isNotEmpty ||
       canDoBackingVocal != null ||
+      offersRemoteRecording == true ||
       studioType != null;
 
   /// Clears all filters except category

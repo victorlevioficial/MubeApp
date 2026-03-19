@@ -246,7 +246,7 @@ class SearchController extends Notifier<SearchPaginationState> {
     final baseFilters = subcategory == null
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(professionalSubcategory: subcategory));
+    _setFilters(baseFilters.sanitizeForProfessionalSubcategory(subcategory));
   }
 
   void setGenres(List<String> genres) {
@@ -265,6 +265,15 @@ class SearchController extends Notifier<SearchPaginationState> {
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
     _setFilters(baseFilters.copyWith(roles: roles));
+  }
+
+  void setOffersRemoteRecording(bool? offersRemoteRecording) {
+    final baseFilters = offersRemoteRecording == null
+        ? state.filters
+        : _ensureProfessionalCompatibleFilters(state.filters);
+    _setFilters(
+      baseFilters.copyWith(offersRemoteRecording: offersRemoteRecording),
+    );
   }
 
   void setServices(List<String> services) {

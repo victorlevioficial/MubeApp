@@ -5,6 +5,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/search/data/search_repository.dart';
 import 'package:mube/src/features/search/domain/search_filters.dart';
+import 'package:mube/src/utils/professional_profile_utils.dart';
 
 import 'search_repository_test.mocks.dart';
 
@@ -223,6 +224,77 @@ void main() {
 
         result.fold((l) => fail('Should not fail'), (r) {
           expect(r.items.map((item) => item.uid), contains('tech-1'));
+        });
+      },
+    );
+
+    test(
+      'should filter only production profiles with remote recording',
+      () async {
+        await fakeFirestore.collection('users').doc('producer-remote').set({
+          'nome': 'Produtora Remota',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Produtora Remota',
+            'categorias': ['production'],
+            professionalRemoteRecordingFieldKey: true,
+            'funcoes': ['Diretor Musical'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        await fakeFirestore.collection('users').doc('producer-local').set({
+          'nome': 'Produtora Local',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Produtora Local',
+            'categorias': ['production'],
+            professionalRemoteRecordingFieldKey: false,
+            'funcoes': ['Diretor Musical'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        await fakeFirestore.collection('users').doc('stage-tech-remote').set({
+          'nome': 'Tecnico Remoto',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Tecnico Remoto',
+            'categorias': ['stage_tech'],
+            professionalRemoteRecordingFieldKey: true,
+            'funcoes': ['Backline Tech'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        const filters = SearchFilters(
+          category: SearchCategory.professionals,
+          professionalSubcategory: ProfessionalSubcategory.production,
+          offersRemoteRecording: true,
+        );
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 8,
+          getCurrentRequestId: () => 8,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('producer-remote'));
+          expect(
+            r.items.map((item) => item.uid),
+            isNot(contains('producer-local')),
+          );
+          expect(
+            r.items.map((item) => item.uid),
+            isNot(contains('stage-tech-remote')),
+          );
         });
       },
     );

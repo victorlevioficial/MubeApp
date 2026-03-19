@@ -225,6 +225,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     onClearStudioType: () => controller.setStudioType(null),
                     onClearBackingVocal: () =>
                         controller.setBackingVocalFilter(null),
+                    onClearRemoteRecording: () =>
+                        controller.setOffersRemoteRecording(null),
                   ),
                 ),
               ),
@@ -284,6 +286,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (filters.services.isNotEmpty) count++;
     if (filters.studioType != null) count++;
     if (filters.canDoBackingVocal != null) count++;
+    if (filters.offersRemoteRecording == true) count++;
     return count;
   }
 
@@ -311,6 +314,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (requested.canDoBackingVocal != null &&
         effective.canDoBackingVocal == null) {
       labels.add('backing vocal');
+    }
+    if (requested.offersRemoteRecording == true &&
+        effective.offersRemoteRecording != true) {
+      labels.add('gravação remota');
     }
 
     return labels;

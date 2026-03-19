@@ -56,26 +56,16 @@ class FeedRepository {
       final diagnostics = _FeedPoolDiagnostics();
       final targetResults = _targetResultsFor(filter);
       final maxScannedDocs = _maxScannedDocsFor(filter);
-      final discoverPool = (userLat != null && userLong != null)
-          ? await _loadDiscoverPoolFromNearby(
-              currentUserId: currentUserId,
-              userLat: userLat,
-              userLong: userLong,
-              excludedIds: excludedIds,
-              filter: filter,
-              targetResults: targetResults,
-              diagnostics: diagnostics,
-            )
-          : await _loadDiscoverPoolFromBoundedScan(
-              currentUserId: currentUserId,
-              userLat: userLat,
-              userLong: userLong,
-              excludedIds: excludedIds,
-              filter: filter,
-              targetResults: targetResults,
-              maxScannedDocs: maxScannedDocs,
-              diagnostics: diagnostics,
-            );
+      final discoverPool = await _loadDiscoverPool(
+        currentUserId: currentUserId,
+        userLat: userLat,
+        userLong: userLong,
+        excludedIds: excludedIds,
+        filter: filter,
+        targetResults: targetResults,
+        maxScannedDocs: maxScannedDocs,
+        diagnostics: diagnostics,
+      );
       final items = discoverPool.items;
 
       items.sort(FeedDiscovery.compareByDistance);
@@ -100,6 +90,68 @@ class FeedRepository {
       if (e is Failure) return Left(e);
       return Left(mapExceptionToFailure(e));
     }
+  }
+
+  Future<_DiscoverPoolLoadResult> _loadDiscoverPool({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    required List<String> excludedIds,
+    required FeedDiscoveryFilter filter,
+    required int targetResults,
+    required int maxScannedDocs,
+    required _FeedPoolDiagnostics diagnostics,
+  }) async {
+    if (userLat == null || userLong == null) {
+      return _loadDiscoverPoolFromBoundedScan(
+        currentUserId: currentUserId,
+        userLat: userLat,
+        userLong: userLong,
+        excludedIds: excludedIds,
+        filter: filter,
+        targetResults: targetResults,
+        maxScannedDocs: maxScannedDocs,
+        diagnostics: diagnostics,
+      );
+    }
+
+    final nearbyPool = await _loadDiscoverPoolFromNearby(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      excludedIds: excludedIds,
+      filter: filter,
+      targetResults: targetResults,
+      diagnostics: diagnostics,
+    );
+
+    if (nearbyPool.items.length >= targetResults) {
+      return nearbyPool;
+    }
+
+    final backfillExcludedIds = <String>{
+      ...excludedIds,
+      ...nearbyPool.items.map((item) => item.uid),
+    }.toList(growable: false);
+    final remainingTarget = targetResults - nearbyPool.items.length;
+    final backfillPool = await _loadDiscoverPoolFromBoundedScan(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      excludedIds: backfillExcludedIds,
+      filter: filter,
+      targetResults: remainingTarget,
+      maxScannedDocs: maxScannedDocs,
+      diagnostics: diagnostics,
+    );
+
+    return _DiscoverPoolLoadResult(
+      items: _mergeUniqueItems(nearbyPool.items, backfillPool.items),
+      scannedDocs: nearbyPool.scannedDocs + backfillPool.scannedDocs,
+      source: backfillPool.items.isEmpty
+          ? nearbyPool.source
+          : 'nearby_plus_scan',
+    );
   }
 
   int _targetResultsFor(FeedDiscoveryFilter filter) {
@@ -638,6 +690,20 @@ class FeedRepository {
 
   bool _isPureTechnician(FeedItem item) {
     return FeedDiscovery.isPureTechnician(item);
+  }
+
+  List<FeedItem> _mergeUniqueItems(
+    List<FeedItem> primaryItems,
+    List<FeedItem> secondaryItems,
+  ) {
+    final uniqueItems = <String, FeedItem>{};
+    for (final item in primaryItems) {
+      uniqueItems[item.uid] = item;
+    }
+    for (final item in secondaryItems) {
+      uniqueItems[item.uid] = item;
+    }
+    return uniqueItems.values.toList(growable: false);
   }
 
   FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
