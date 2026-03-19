@@ -45,6 +45,7 @@ void main() {
     fakeAuthRepository = FakeAuthRepository()
       ..emitUser(FakeFirebaseUser(uid: 'user-1'));
     repository = _MockGigRepository();
+    when(() => repository.getCurrentUserGigCount()).thenAnswer((_) async => 2);
   });
 
   tearDown(() {
@@ -75,14 +76,16 @@ void main() {
 
       container = buildContainer();
 
-      final gigId = await container!
+      final submissionResult = await container!
           .read(createGigControllerProvider.notifier)
           .submitDraft(draft);
 
-      expect(gigId, 'gig-1');
+      expect(submissionResult.gigId, 'gig-1');
+      expect(submissionResult.isFirstGigForCurrentUser, isFalse);
       expect(fakeAuthRepository.refreshSecurityContextCalls, 1);
       expect(fakeAuthRepository.signOutCalls, 0);
       verify(() => repository.createGig(draft)).called(2);
+      verify(() => repository.getCurrentUserGigCount()).called(1);
       expect(container!.read(createGigControllerProvider).hasError, isFalse);
     },
   );
