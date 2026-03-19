@@ -245,6 +245,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_help => 'Help & Support';
 
   @override
+  String get settings_rate_app => 'Rate the app';
+
+  @override
+  String get settings_rate_app_subtitle => 'Leave a review in the stores';
+
+  @override
+  String get settings_rate_app_unavailable =>
+      'Rating is not available right now.';
+
+  @override
+  String get settings_rate_app_store_open_error =>
+      'We couldn\'t open the store.';
+
+  @override
   String get settings_about => 'About';
 
   @override

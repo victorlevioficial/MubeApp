@@ -362,6 +362,30 @@ class GigRepository {
     );
   }
 
+  Stream<List<Gig>> watchPublicOpenGigsByCreator(
+    String creatorId, {
+    int limit = 3,
+  }) {
+    final normalizedCreatorId = creatorId.trim();
+    if (normalizedCreatorId.isEmpty) {
+      return Stream.value(const <Gig>[]);
+    }
+
+    final query = _gigs
+        .where(GigFields.creatorId, isEqualTo: normalizedCreatorId)
+        .orderBy(GigFields.createdAt, descending: true);
+    return _watchQuery(
+      query,
+      operationLabel: 'watch_public_open_gigs_by_creator',
+    ).map((snapshot) {
+      return snapshot.docs
+          .map(Gig.fromFirestore)
+          .where((gig) => gig.status == GigStatus.open && !gig.isExpiredByDate)
+          .take(limit)
+          .toList(growable: false);
+    });
+  }
+
   Stream<Gig?> watchGigById(String gigId) {
     return _watchDocument(
       _gigs.doc(gigId),
@@ -424,6 +448,15 @@ class GigRepository {
     }, operationLabel: 'create_gig_set');
 
     return doc.id;
+  }
+
+  Future<int> getCurrentUserGigCount() async {
+    await _ensureCanInteract();
+    final aggregate = await _getAggregateSnapshot(
+      _gigs.where(GigFields.creatorId, isEqualTo: _uid).count(),
+      operationLabel: 'get_current_user_gig_count',
+    );
+    return aggregate.count ?? 0;
   }
 
   Future<void> updateGig(String gigId, GigUpdate update) async {

@@ -540,12 +540,12 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
               ? int.tryParse(_compensationValueController.text)
               : null,
         );
-        final gigId = await ref
+        final submission = await ref
             .read(createGigControllerProvider.notifier)
             .submitDraft(draft);
         if (!mounted) return;
         AppSnackBar.success(context, 'Gig publicada com sucesso.');
-        context.go(RoutePaths.gigDetailById(gigId));
+        context.go(RoutePaths.gigDetailById(submission.gigId));
         return;
       }
 

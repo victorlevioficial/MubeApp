@@ -85,6 +85,7 @@ class _PublicGalleryGridState extends State<PublicGalleryGrid> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         mainAxisSpacing: AppSpacing.s4,

@@ -151,7 +151,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppAppBar(
         title: 'Busca',
         showBackButton: false,
-        centerTitle: false,
         actions: [
           _FilterIconButton(
             hasActiveFilters: state.filters.hasActiveFilters,

@@ -566,6 +566,30 @@ abstract class AppLocalizations {
   /// **'Ajuda e Suporte'**
   String get settings_help;
 
+  /// No description provided for @settings_rate_app.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avaliar o app'**
+  String get settings_rate_app;
+
+  /// No description provided for @settings_rate_app_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deixar uma avaliação nas lojas'**
+  String get settings_rate_app_subtitle;
+
+  /// No description provided for @settings_rate_app_unavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'A avaliação não está disponível agora.'**
+  String get settings_rate_app_unavailable;
+
+  /// No description provided for @settings_rate_app_store_open_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível abrir a loja.'**
+  String get settings_rate_app_store_open_error;
+
   /// No description provided for @settings_about.
   ///
   /// In pt, this message translates to:

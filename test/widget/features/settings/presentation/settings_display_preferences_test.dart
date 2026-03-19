@@ -75,7 +75,7 @@ void main() {
   }
 
   group('SettingsScreen display preferences', () {
-    testWidgets('renders current language and theme preferences', (
+    testWidgets('renders current language preference and hides theme option', (
       tester,
     ) async {
       final prefs = await SharedPreferences.getInstance();
@@ -90,8 +90,8 @@ void main() {
 
       expect(find.text('App language'), findsOneWidget);
       expect(find.text('English'), findsOneWidget);
-      expect(find.text('App theme'), findsOneWidget);
-      expect(find.text('Always dark'), findsOneWidget);
+      expect(find.text('App theme'), findsNothing);
+      expect(find.text('Always dark'), findsNothing);
       expect(find.text('Edit Profile'), findsOneWidget);
       expect(find.text('Profile type'), findsOneWidget);
       expect(find.text('Log out'), findsOneWidget);
@@ -124,28 +124,15 @@ void main() {
       expect(find.text('Log out'), findsOneWidget);
     });
 
-    testWidgets('updates theme preference from settings', (tester) async {
+    testWidgets('does not render theme preference in settings', (tester) async {
       await tester.pumpWidget(createSubject());
       await tester.pump();
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Tema do app'));
-      await tester.tap(find.text('Tema do app'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Sempre escuro'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Aplicar'));
-      await tester.pumpAndSettle();
-
-      expect(
-        container.read(appDisplayPreferencesProvider).themeMode,
-        ThemeMode.dark,
-      );
-
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString(appThemeModePreferenceKey), ThemeMode.dark.name);
-      expect(find.text('Sempre escuro'), findsOneWidget);
+      expect(find.text('Tema do app'), findsNothing);
+      expect(find.text('Sempre escuro'), findsNothing);
+      expect(find.text('App theme'), findsNothing);
+      expect(find.text('Always dark'), findsNothing);
     });
   });
 }

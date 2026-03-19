@@ -27,34 +27,94 @@ class ProfileGalleryTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final photos = items.where((i) => i.type == MediaType.photo).toList();
     final videos = items.where((i) => i.type == MediaType.video).toList();
+    final totalItems = photos.length + videos.length;
+    final showDivider = photos.isNotEmpty && videos.isNotEmpty;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Galeria', style: AppTypography.titleMedium),
-        const SizedBox(height: AppSpacing.s12),
-        _GallerySection(
-          title: 'Fotos',
-          count: photos.length,
-          icon: Icons.photo_outlined,
-          accentColor: accentColor,
-          items: photos,
-          emptyTitle: 'Sem fotos',
-          emptyMessage: 'Este perfil ainda n\u00E3o publicou fotos.',
-          onItemTap: onItemTap,
-        ),
-        const SizedBox(height: AppSpacing.s20),
-        _GallerySection(
-          title: 'V\u00EDdeos',
-          count: videos.length,
-          icon: Icons.videocam_outlined,
-          accentColor: accentColor,
-          items: videos,
-          emptyTitle: 'Sem v\u00EDdeos',
-          emptyMessage: 'Este perfil ainda n\u00E3o publicou v\u00EDdeos.',
-          onItemTap: onItemTap,
-        ),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.s8),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.perm_media_rounded,
+                  size: 15,
+                  color: accentColor,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Expanded(
+                child: Text('Fotos e vídeos', style: AppTypography.titleSmall),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s8,
+                  vertical: AppSpacing.s2,
+                ),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.pill,
+                ),
+                child: Text(
+                  '$totalItems',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s8),
+          Text(
+            'Portfólio visual do perfil',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s16),
+          _GallerySection(
+            title: 'Fotos',
+            count: photos.length,
+            icon: Icons.photo_outlined,
+            accentColor: accentColor,
+            items: photos,
+            emptyTitle: 'Sem fotos',
+            emptyMessage: 'Este perfil ainda n\u00E3o publicou fotos.',
+            onItemTap: onItemTap,
+          ),
+          SizedBox(height: showDivider ? AppSpacing.s12 : AppSpacing.s14),
+          if (showDivider)
+            Container(
+              height: 1,
+              color: AppColors.surfaceHighlight,
+              margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+            ),
+          _GallerySection(
+            title: 'V\u00EDdeos',
+            count: videos.length,
+            icon: Icons.videocam_outlined,
+            accentColor: accentColor,
+            items: videos,
+            emptyTitle: 'Sem v\u00EDdeos',
+            emptyMessage: 'Este perfil ainda n\u00E3o publicou v\u00EDdeos.',
+            onItemTap: onItemTap,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -110,7 +170,7 @@ class _GallerySection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.s10),
+        const SizedBox(height: AppSpacing.s8),
         if (items.isEmpty)
           _EmptyGalleryState(
             title: emptyTitle,
@@ -144,7 +204,7 @@ class _EmptyGalleryState extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.background,
         borderRadius: AppRadius.all12,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),

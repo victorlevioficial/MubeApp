@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -12,7 +13,6 @@ import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../design_system/components/inputs/app_text_field.dart';
 import '../../../design_system/components/loading/app_skeleton.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -44,6 +44,15 @@ class EditProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
+enum _UsernameAvailabilityState {
+  idle,
+  checking,
+  available,
+  unavailable,
+  current,
+  error,
+}
+
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     with SingleTickerProviderStateMixin {
   final _bioFormatter = SentenceStartUppercaseTextInputFormatter();
@@ -51,6 +60,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   final _profileFormKey = GlobalKey<FormState>();
   final _musicLinksFormKey = GlobalKey<FormState>();
   final Set<int> _visitedTabs = {0};
+  Timer? _usernameValidationDebounce;
+  final ValueNotifier<int> _usernameUiVersion = ValueNotifier<int>(0);
+  _UsernameAvailabilityState _usernameAvailabilityState =
+      _UsernameAvailabilityState.idle;
+  String? _usernameAvailabilityMessage;
+  int _usernameValidationRequestId = 0;
 
   // Controllers for text fields managed in UI state
   late TextEditingController _nomeController;
@@ -84,6 +99,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
   @override
   void dispose() {
+    _usernameValidationDebounce?.cancel();
+    _usernameUiVersion.dispose();
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     if (_isControllersInitialized) {
@@ -211,11 +228,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _generoController.addListener(markChanged);
     _instagramController.addListener(markChanged);
     _spotifyController.addListener(markChanged);
-    _usernameController.addListener(markChanged);
     _deezerController.addListener(markChanged);
     _youtubeMusicController.addListener(markChanged);
     _appleMusicController.addListener(markChanged);
 
+    _primeUsernameValidationState(user);
     _isControllersInitialized = true;
   }
 
@@ -225,6 +242,260 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     MusicLinkValidator.youtubeMusicKey: _youtubeMusicController,
     MusicLinkValidator.appleMusicKey: _appleMusicController,
   };
+
+  void _primeUsernameValidationState(AppUser user) {
+    final rawUsername = _usernameController.text.trim();
+    final normalizedUsername = normalizedPublicUsernameOrNull(rawUsername);
+    final currentUsername = normalizedPublicUsernameOrNull(user.publicUsername);
+    final formatError = validatePublicUsername(rawUsername);
+
+    if (normalizedUsername == null || formatError != null) {
+      _usernameAvailabilityState = _UsernameAvailabilityState.idle;
+      _usernameAvailabilityMessage = null;
+      return;
+    }
+
+    if (normalizedUsername == currentUsername) {
+      _usernameAvailabilityState = _UsernameAvailabilityState.current;
+      _usernameAvailabilityMessage = 'Esse e o seu @usuario atual.';
+      return;
+    }
+
+    _usernameAvailabilityState = _UsernameAvailabilityState.idle;
+    _usernameAvailabilityMessage = null;
+  }
+
+  void _setUsernameAvailabilityState(
+    _UsernameAvailabilityState nextState, {
+    String? message,
+  }) {
+    if (_usernameAvailabilityState == nextState &&
+        _usernameAvailabilityMessage == message) {
+      return;
+    }
+    _usernameAvailabilityState = nextState;
+    _usernameAvailabilityMessage = message;
+    _usernameUiVersion.value++;
+  }
+
+  void _scheduleUsernameValidation(AppUser user) {
+    _usernameValidationDebounce?.cancel();
+    final rawUsername = _usernameController.text.trim();
+    final normalizedUsername = normalizedPublicUsernameOrNull(rawUsername);
+    final currentUsername = normalizedPublicUsernameOrNull(user.publicUsername);
+    final formatError = validatePublicUsername(rawUsername);
+    final requestId = ++_usernameValidationRequestId;
+
+    if (normalizedUsername == null) {
+      _setUsernameAvailabilityState(_UsernameAvailabilityState.idle);
+      return;
+    }
+
+    if (formatError != null) {
+      _setUsernameAvailabilityState(_UsernameAvailabilityState.idle);
+      return;
+    }
+
+    if (normalizedUsername == currentUsername) {
+      _setUsernameAvailabilityState(
+        _UsernameAvailabilityState.current,
+        message: 'Esse e o seu @usuario atual.',
+      );
+      return;
+    }
+
+    _setUsernameAvailabilityState(
+      _UsernameAvailabilityState.checking,
+      message: 'Verificando disponibilidade...',
+    );
+
+    _usernameValidationDebounce = Timer(const Duration(milliseconds: 450), () {
+      unawaited(
+        _checkUsernameAvailability(
+          user: user,
+          normalizedUsername: normalizedUsername,
+          requestId: requestId,
+        ),
+      );
+    });
+  }
+
+  void _handleUsernameChanged(AppUser user, String _) {
+    ref.read(editProfileControllerProvider(user.uid).notifier).markChanged();
+    _scheduleUsernameValidation(user);
+  }
+
+  Future<void> _checkUsernameAvailability({
+    required AppUser user,
+    required String normalizedUsername,
+    required int requestId,
+  }) async {
+    final result = await ref
+        .read(authRepositoryProvider)
+        .isPublicUsernameAvailable(normalizedUsername, excludingUid: user.uid);
+
+    if (!mounted) return;
+
+    final latestUsername = normalizedPublicUsernameOrNull(
+      _usernameController.text.trim(),
+    );
+    if (requestId != _usernameValidationRequestId ||
+        latestUsername != normalizedUsername) {
+      return;
+    }
+
+    result.fold(
+      (_) => _setUsernameAvailabilityState(
+        _UsernameAvailabilityState.error,
+        message: 'Nao foi possivel verificar esse @usuario agora.',
+      ),
+      (isAvailable) => _setUsernameAvailabilityState(
+        isAvailable
+            ? _UsernameAvailabilityState.available
+            : _UsernameAvailabilityState.unavailable,
+        message: isAvailable
+            ? '@$normalizedUsername disponivel.'
+            : 'Esse @usuario ja esta em uso. Escolha outro.',
+      ),
+    );
+  }
+
+  String? _usernameValidator(AppUser user, String? value) {
+    final formatError = validatePublicUsername(value);
+    if (formatError != null) {
+      return formatError;
+    }
+
+    final normalizedUsername = normalizedPublicUsernameOrNull(value);
+    final currentUsername = normalizedPublicUsernameOrNull(user.publicUsername);
+    if (normalizedUsername == null || normalizedUsername == currentUsername) {
+      return null;
+    }
+
+    switch (_usernameAvailabilityState) {
+      case _UsernameAvailabilityState.available:
+        return null;
+      case _UsernameAvailabilityState.checking:
+        return 'Aguarde a verificacao do @usuario.';
+      case _UsernameAvailabilityState.unavailable:
+      case _UsernameAvailabilityState.error:
+        return _usernameAvailabilityMessage;
+      case _UsernameAvailabilityState.idle:
+        return 'Verifique a disponibilidade do @usuario.';
+      case _UsernameAvailabilityState.current:
+        return null;
+    }
+  }
+
+  bool _canSaveWithUsername(AppUser user) {
+    final rawUsername = _usernameController.text.trim();
+    final formatError = validatePublicUsername(rawUsername);
+    if (formatError != null) {
+      return false;
+    }
+
+    final normalizedUsername = normalizedPublicUsernameOrNull(rawUsername);
+    final currentUsername = normalizedPublicUsernameOrNull(user.publicUsername);
+    if (normalizedUsername == null || normalizedUsername == currentUsername) {
+      return true;
+    }
+
+    return _usernameAvailabilityState == _UsernameAvailabilityState.available;
+  }
+
+  Widget? _buildUsernameStatus(AppUser user) {
+    final rawUsername = _usernameController.text.trim();
+    if (rawUsername.isEmpty) return null;
+
+    final formatError = validatePublicUsername(rawUsername);
+    if (formatError != null) {
+      return _buildUsernameStatusMessage(
+        icon: Icons.error_outline_rounded,
+        color: AppColors.error,
+        message: formatError,
+      );
+    }
+
+    final normalizedUsername = normalizedPublicUsernameOrNull(
+      rawUsername,
+    );
+    if (normalizedUsername == null) {
+      return null;
+    }
+
+    IconData icon;
+    Color color;
+    String? message;
+
+    switch (_usernameAvailabilityState) {
+      case _UsernameAvailabilityState.checking:
+        icon = Icons.hourglass_top_rounded;
+        color = AppColors.textSecondary;
+        message =
+            _usernameAvailabilityMessage ?? 'Verificando disponibilidade...';
+        break;
+      case _UsernameAvailabilityState.available:
+        icon = Icons.check_circle_rounded;
+        color = AppColors.success;
+        message = _usernameAvailabilityMessage;
+        break;
+      case _UsernameAvailabilityState.unavailable:
+        icon = Icons.highlight_off_rounded;
+        color = AppColors.error;
+        message = _usernameAvailabilityMessage;
+        break;
+      case _UsernameAvailabilityState.current:
+        icon = Icons.verified_rounded;
+        color = AppColors.success;
+        message = _usernameAvailabilityMessage;
+        break;
+      case _UsernameAvailabilityState.error:
+        icon = Icons.error_outline_rounded;
+        color = AppColors.error;
+        message =
+            _usernameAvailabilityMessage ??
+            'Nao foi possivel verificar esse @usuario agora.';
+        break;
+      case _UsernameAvailabilityState.idle:
+        return null;
+    }
+
+    if (message == null || message.isEmpty) {
+      return null;
+    }
+
+    return _buildUsernameStatusMessage(
+      icon: icon,
+      color: color,
+      message: message,
+    );
+  }
+
+  Widget _buildUsernameStatusMessage({
+    required IconData icon,
+    required Color color,
+    required String message,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.s10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: AppSpacing.s8),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTypography.bodySmall.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   bool _shouldBuildTab(int index) =>
       _visitedTabs.contains(index) || _tabController.index == index;
@@ -311,6 +582,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           editState.uploadStatus.isNotEmpty
               ? editState.uploadStatus
               : 'Aguarde o envio da mídia terminar para salvar o perfil.',
+        );
+      }
+      return;
+    }
+
+    if (!_canSaveWithUsername(user)) {
+      if (mounted) {
+        AppSnackBar.warning(
+          context,
+          _usernameValidator(user, _usernameController.text.trim()) ??
+              'Revise o @usuario antes de salvar.',
         );
       }
       return;
@@ -538,17 +820,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                     ),
                   ],
                 ),
-                child: AppButton.primary(
-                  text: 'Salvar Alterações',
-                  onPressed:
-                      editUiState.hasChanges &&
-                          !editUiState.isSaving &&
-                          !editUiState.isUploadingMedia
-                      ? () => _handleSave(user)
-                      : null,
-                  isLoading: editUiState.isSaving,
-                  isFullWidth: true,
-                  size: AppButtonSize.large,
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _usernameController,
+                  builder: (context, value, child) =>
+                      ValueListenableBuilder<int>(
+                        valueListenable: _usernameUiVersion,
+                        builder: (context, version, innerChild) =>
+                            AppButton.primary(
+                              text: 'Salvar Alterações',
+                              onPressed:
+                                  editUiState.hasChanges &&
+                                      !editUiState.isSaving &&
+                                      !editUiState.isUploadingMedia &&
+                                      _canSaveWithUsername(user)
+                                  ? () => _handleSave(user)
+                                  : null,
+                              isLoading: editUiState.isSaving,
+                              isFullWidth: true,
+                              size: AppButtonSize.large,
+                            ),
+                      ),
                 ),
               ),
             ),
@@ -676,42 +967,111 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
-          AppTextField(
-            controller: _usernameController,
-            label: '@usuario',
-            hint: 'ex.: mubeoficial',
-            prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
-            autocorrect: false,
-            enableSuggestions: false,
-            validator: validatePublicUsername,
-          ),
-          const SizedBox(height: AppSpacing.s10),
+          _buildUsernameField(user),
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: _usernameController,
             builder: (context, value, _) {
-              final normalizedUsername = normalizedPublicUsernameOrNull(
-                value.text,
-              );
-              final hasValidUsername =
-                  normalizedUsername != null &&
-                  validatePublicUsername(normalizedUsername) == null;
-              final previewUrl = RoutePaths.publicProfileShareUrl(
-                uid: user.uid,
-                username: hasValidUsername
-                    ? normalizedUsername
-                    : user.publicUsername,
-              );
+              return ValueListenableBuilder<int>(
+                valueListenable: _usernameUiVersion,
+                builder: (context, version, child) {
+                  final usernameStatus = _buildUsernameStatus(user);
+                  final normalizedUsername = normalizedPublicUsernameOrNull(
+                    value.text,
+                  );
+                  final hasValidUsername =
+                      normalizedUsername != null &&
+                      validatePublicUsername(normalizedUsername) == null;
+                  final previewUrl = RoutePaths.publicProfileShareUrl(
+                    uid: user.uid,
+                    username: hasValidUsername
+                        ? normalizedUsername
+                        : user.publicUsername,
+                  );
 
-              return Text(
-                'Preview: $previewUrl',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ...(usernameStatus == null
+                          ? const <Widget>[]
+                          : <Widget>[usernameStatus]),
+                      const SizedBox(height: AppSpacing.s10),
+                      Text(
+                        'Preview: $previewUrl',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               );
             },
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildUsernameField(AppUser user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '@usuario',
+          style: AppTypography.labelLarge.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        TextFormField(
+          controller: _usernameController,
+          autocorrect: false,
+          enableSuggestions: false,
+          keyboardType: TextInputType.text,
+          textInputAction: TextInputAction.done,
+          style: AppTypography.input.copyWith(color: AppColors.textPrimary),
+          validator: (fieldValue) => _usernameValidator(user, fieldValue),
+          onChanged: (value) => _handleUsernameChanged(user, value),
+          inputFormatters: <TextInputFormatter>[
+            LengthLimitingTextInputFormatter(maxPublicUsernameLength + 1),
+          ],
+          cursorColor: AppColors.primary,
+          decoration: InputDecoration(
+            hintText: 'mubeoficial',
+            hintStyle: AppTypography.inputHint,
+            prefixText: '@',
+            prefixStyle: AppTypography.input.copyWith(
+              color: AppColors.textPlaceholder,
+            ),
+            filled: true,
+            fillColor: AppColors.surface,
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: AppSpacing.s16,
+            ),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.all12,
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.all12,
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.all12,
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+            errorBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.all12,
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            focusedErrorBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.all12,
+              borderSide: BorderSide(color: AppColors.error, width: 1.5),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,10 +1,23 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/gigs/domain/compensation_type.dart';
+import 'package:mube/src/features/gigs/domain/gig.dart';
+import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
+import 'package:mube/src/features/gigs/domain/gig_location_type.dart';
+import 'package:mube/src/features/gigs/domain/gig_review.dart';
+import 'package:mube/src/features/gigs/domain/gig_status.dart';
+import 'package:mube/src/features/gigs/domain/gig_type.dart';
+import 'package:mube/src/features/gigs/domain/review_type.dart';
+import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/profile/presentation/public_profile_screen.dart';
+import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -16,22 +29,46 @@ void main() {
     fakeAuthRepository = FakeAuthRepository();
   });
 
-  Future<void> pumpPublicProfile(WidgetTester tester, AppUser user) async {
+  Future<void> pumpPublicProfile(
+    WidgetTester tester,
+    AppUser user, {
+    AppUser? currentUser,
+    PublicProfileMetrics? metrics,
+    List<GigReview> reviews = const <GigReview>[],
+    List<Gig> openGigs = const <Gig>[],
+    Map<String, AppUser> reviewAuthors = const <String, AppUser>{},
+  }) async {
     fakeAuthRepository.appUser = user;
+    final reviewerIdsKey = encodeGigUserIdsKey(
+      reviews.map((review) => review.reviewerId),
+    );
 
     await tester.pumpApp(
       PublicProfileScreen(profileRef: user.uid),
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
-        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
-        publicProfileMetricsProvider(
+        currentUserProfileProvider.overrideWith(
+          (ref) => Stream.value(currentUser ?? user),
+        ),
+        publicProfileMetricsProvider(user.uid).overrideWith(
+          (ref) async => metrics ?? (averageRating: null, reviewCount: 0),
+        ),
+        userReviewsProvider(
           user.uid,
-        ).overrideWith((ref) async => (averageRating: null, reviewCount: 0)),
+        ).overrideWith((ref) => Stream.value(reviews)),
+        publicCreatorOpenGigsProvider(
+          user.uid,
+        ).overrideWith((ref) => Stream.value(openGigs)),
+        if (reviewerIdsKey.isNotEmpty)
+          gigUsersByStableIdsProvider(
+            reviewerIdsKey,
+          ).overrideWith((ref) async => reviewAuthors),
       ],
     );
 
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump();
   }
 
   testWidgets('hides contractor personal gender from public profile', (
@@ -234,15 +271,284 @@ void main() {
         publicProfileMetricsProvider(
           professional.uid,
         ).overrideWith((ref) => metricsCompleter.future),
+        userReviewsProvider(
+          professional.uid,
+        ).overrideWith((ref) => Stream.value(const <GigReview>[])),
+        publicCreatorOpenGigsProvider(
+          professional.uid,
+        ).overrideWith((ref) => Stream.value(const <Gig>[])),
       ],
     );
 
     await tester.pump();
-    expect(find.text('Sem avaliacoes ainda'), findsNothing);
+    expect(find.text('Ainda sem avaliações públicas.'), findsNothing);
 
     metricsCompleter.complete((averageRating: 4.5, reviewCount: 3));
     await tester.pumpAndSettle();
 
-    expect(find.text('4.5 (3)'), findsOneWidget);
+    expect(find.text('4.5'), findsOneWidget);
+    expect(find.text('3 avaliações recebidas'), findsOneWidget);
+  });
+
+  testWidgets('shows written review comments inside reputation card', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-reviews-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+    );
+    const reviewer = AppUser(
+      uid: 'reviewer-1',
+      email: 'reviewer@example.com',
+      nome: 'Ana Sessions',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {'nomeArtistico': 'Ana Sessions'},
+    );
+    const reviews = <GigReview>[
+      GigReview(
+        id: 'review-1',
+        gigId: 'gig-1',
+        reviewerId: 'reviewer-1',
+        reviewedUserId: 'professional-reviews-uid',
+        rating: 5,
+        comment: 'Muito profissional e pontual.',
+        reviewType: ReviewType.creatorToParticipant,
+      ),
+    ];
+
+    await pumpPublicProfile(
+      tester,
+      professional,
+      metrics: (averageRating: 5.0, reviewCount: 1),
+      reviews: reviews,
+      reviewAuthors: const {'reviewer-1': reviewer},
+    );
+
+    expect(find.text('Avaliações'), findsOneWidget);
+    expect(find.text('Muito profissional e pontual.'), findsOneWidget);
+    expect(find.text('Ana Sessions'), findsOneWidget);
+  });
+
+  testWidgets('shows public handle and shareable link in hero', (tester) async {
+    const professional = AppUser(
+      uid: 'professional-handle-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      username: 'victorlevi',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('@victorlevi'), findsOneWidget);
+    expect(find.text('mubeapp.com.br/@victorlevi'), findsNothing);
+  });
+
+  testWidgets('shows share action next to message button on public profile', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-no-handle-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      username: 'sessionplayer',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+    );
+    const viewer = AppUser(
+      uid: 'viewer-uid',
+      email: 'viewer@example.com',
+      nome: 'Viewer',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['Baixo'],
+      },
+    );
+
+    await pumpPublicProfile(tester, professional, currentUser: viewer);
+
+    expect(find.byIcon(Icons.share_outlined), findsOneWidget);
+    expect(find.text('Iniciar Conversa'), findsOneWidget);
+  });
+
+  testWidgets('shows open gigs preview when profile has active gigs', (
+    tester,
+  ) async {
+    const contractor = AppUser(
+      uid: 'contractor-gigs-uid',
+      email: 'contractor@example.com',
+      nome: 'Event Organizer',
+      tipoPerfil: AppUserType.contractor,
+      cadastroStatus: 'concluido',
+    );
+    final openGig = Gig(
+      id: 'gig-1',
+      title: 'Show na Casa Azul',
+      description: 'Trio pop para sexta-feira',
+      gigType: GigType.liveShow,
+      status: GigStatus.open,
+      dateMode: GigDateMode.fixedDate,
+      gigDate: DateTime(2026, 4, 18),
+      locationType: GigLocationType.onsite,
+      slotsTotal: 3,
+      slotsFilled: 1,
+      compensationType: CompensationType.fixed,
+      compensationValue: 500,
+      creatorId: contractor.uid,
+    );
+
+    await pumpPublicProfile(tester, contractor, openGigs: <Gig>[openGig]);
+
+    expect(find.text('Gigs em andamento'), findsOneWidget);
+    expect(find.text('Show na Casa Azul'), findsOneWidget);
+    expect(find.textContaining('R\$ 500'), findsOneWidget);
+  });
+
+  testWidgets('opens all reviews sheet from reputation section', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-sheet-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['Guitarra'],
+      },
+    );
+    const reviewer = AppUser(
+      uid: 'reviewer-1',
+      email: 'reviewer@example.com',
+      nome: 'Ana Sessions',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {'nomeArtistico': 'Ana Sessions'},
+    );
+    const reviews = <GigReview>[
+      GigReview(
+        id: 'review-1',
+        gigId: 'gig-1',
+        reviewerId: 'reviewer-1',
+        reviewedUserId: 'professional-sheet-uid',
+        rating: 5,
+        comment: 'Muito profissional e pontual.',
+        reviewType: ReviewType.creatorToParticipant,
+      ),
+      GigReview(
+        id: 'review-2',
+        gigId: 'gig-2',
+        reviewerId: 'reviewer-1',
+        reviewedUserId: 'professional-sheet-uid',
+        rating: 4,
+        reviewType: ReviewType.creatorToParticipant,
+      ),
+    ];
+
+    await pumpPublicProfile(
+      tester,
+      professional,
+      metrics: (averageRating: 4.5, reviewCount: 2),
+      reviews: reviews,
+      reviewAuthors: const {'reviewer-1': reviewer},
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Ver todas'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Ver todas'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Todas as avaliações'), findsOneWidget);
+    expect(find.text('Sem comentário escrito.'), findsOneWidget);
+  });
+
+  testWidgets('opens gig detail when tapping an active gig preview', (
+    tester,
+  ) async {
+    const contractor = AppUser(
+      uid: 'contractor-router-uid',
+      email: 'contractor@example.com',
+      nome: 'Event Organizer',
+      tipoPerfil: AppUserType.contractor,
+      cadastroStatus: 'concluido',
+    );
+    final openGig = Gig(
+      id: 'gig-1',
+      title: 'Show na Casa Azul',
+      description: 'Trio pop para sexta-feira',
+      gigType: GigType.liveShow,
+      status: GigStatus.open,
+      dateMode: GigDateMode.fixedDate,
+      gigDate: DateTime(2026, 4, 18),
+      locationType: GigLocationType.onsite,
+      slotsTotal: 3,
+      slotsFilled: 1,
+      compensationType: CompensationType.fixed,
+      compensationValue: 500,
+      creatorId: contractor.uid,
+    );
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) =>
+              PublicProfileScreen(profileRef: contractor.uid),
+        ),
+        GoRoute(
+          path: '${RoutePaths.gigs}/:gigId',
+          builder: (context, state) => Scaffold(
+            body: Text('Gig detail: ${state.pathParameters['gigId']}'),
+          ),
+        ),
+      ],
+    );
+
+    fakeAuthRepository.appUser = contractor;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(contractor),
+          ),
+          publicProfileMetricsProvider(
+            contractor.uid,
+          ).overrideWith((ref) async => (averageRating: null, reviewCount: 0)),
+          userReviewsProvider(
+            contractor.uid,
+          ).overrideWith((ref) => Stream.value(const <GigReview>[])),
+          publicCreatorOpenGigsProvider(
+            contractor.uid,
+          ).overrideWith((ref) => Stream.value(<Gig>[openGig])),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Show na Casa Azul'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Gig detail: gig-1'), findsOneWidget);
   });
 }

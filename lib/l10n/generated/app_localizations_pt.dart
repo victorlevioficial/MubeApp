@@ -245,6 +245,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_help => 'Ajuda e Suporte';
 
   @override
+  String get settings_rate_app => 'Avaliar o app';
+
+  @override
+  String get settings_rate_app_subtitle => 'Deixar uma avaliação nas lojas';
+
+  @override
+  String get settings_rate_app_unavailable =>
+      'A avaliação não está disponível agora.';
+
+  @override
+  String get settings_rate_app_store_open_error =>
+      'Não foi possível abrir a loja.';
+
+  @override
   String get settings_about => 'Sobre';
 
   @override

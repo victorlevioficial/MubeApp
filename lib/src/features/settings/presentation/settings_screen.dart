@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../core/providers/app_display_preferences_provider.dart';
+import '../../../core/services/store_review_service.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
@@ -45,7 +46,6 @@ class SettingsScreen extends ConsumerWidget {
     final canChangePassword = _supportsPasswordReset(authUser);
     final displayPreferences = ref.watch(appDisplayPreferencesProvider);
     final selectedLanguageId = _languageOptionIdFor(displayPreferences.locale);
-    final selectedThemeId = _themeOptionIdFor(displayPreferences.themeMode);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -163,21 +163,17 @@ class SettingsScreen extends ConsumerWidget {
                   customAccentColor: AppColors.info,
                 ),
                 NeonSettingsTile(
-                  icon: Icons.dark_mode_outlined,
-                  title: l10n.settings_app_theme,
-                  subtitle: _labelForThemeOptionId(l10n, selectedThemeId),
-                  onTap: () => _selectTheme(
-                    context,
-                    ref,
-                    selectedThemeId: selectedThemeId,
-                  ),
-                  customAccentColor: AppColors.warning,
-                ),
-                NeonSettingsTile(
                   icon: Icons.help_outline_rounded,
                   title: l10n.settings_help,
                   onTap: () => context.push(RoutePaths.support),
                   customAccentColor: AppColors.info,
+                ),
+                NeonSettingsTile(
+                  icon: Icons.star_outline_rounded,
+                  title: l10n.settings_rate_app,
+                  subtitle: l10n.settings_rate_app_subtitle,
+                  onTap: () => _requestStoreReview(context, ref),
+                  customAccentColor: AppColors.warning,
                 ),
                 NeonSettingsTile(
                   icon: Icons.description_outlined,
@@ -275,45 +271,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _selectTheme(
-    BuildContext context,
-    WidgetRef ref, {
-    required String selectedThemeId,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final selected = await _openPreferenceSelectionSheet(
-      context,
-      title: l10n.settings_app_theme,
-      items: _themeOptionIds,
-      selectedItem: selectedThemeId,
-      itemLabelBuilder: (id) => _labelForThemeOptionId(l10n, id),
-    );
-
-    if (!context.mounted || selected == null || selected == selectedThemeId) {
-      return;
-    }
-
-    final notifier = ref.read(appDisplayPreferencesProvider.notifier);
-    switch (selected) {
-      case _themeOptionSystem:
-        await notifier.setThemeMode(ThemeMode.system);
-        break;
-      case _themeOptionDark:
-        await notifier.setThemeMode(ThemeMode.dark);
-        break;
-    }
-
-    await WidgetsBinding.instance.endOfFrame;
-    if (!context.mounted) return;
-    final updatedL10n = AppLocalizations.of(context)!;
-    AppSnackBar.success(
-      context,
-      updatedL10n.settings_theme_updated(
-        _labelForThemeOptionId(updatedL10n, selected),
-      ),
-    );
-  }
-
   Future<String?> _openPreferenceSelectionSheet(
     BuildContext context, {
     required String title,
@@ -340,6 +297,26 @@ class SettingsScreen extends ConsumerWidget {
 
     if (selected == null || selected.isEmpty) return null;
     return selected.first;
+  }
+
+  Future<void> _requestStoreReview(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await ref
+        .read(storeReviewServiceProvider)
+        .requestManualReview();
+    if (!context.mounted) return;
+
+    switch (result) {
+      case StoreReviewManualRequestResult.promptRequested:
+      case StoreReviewManualRequestResult.fallbackOpened:
+        return;
+      case StoreReviewManualRequestResult.unavailable:
+        AppSnackBar.info(context, l10n.settings_rate_app_unavailable);
+        return;
+      case StoreReviewManualRequestResult.launchFailed:
+        AppSnackBar.error(context, l10n.settings_rate_app_store_open_error);
+        return;
+    }
   }
 
   void _changePassword(BuildContext context, WidgetRef ref) async {
@@ -586,13 +563,6 @@ const List<String> _languageOptionIds = <String>[
   _languageOptionEnglish,
 ];
 
-const String _themeOptionSystem = 'system';
-const String _themeOptionDark = 'dark';
-const List<String> _themeOptionIds = <String>[
-  _themeOptionSystem,
-  _themeOptionDark,
-];
-
 String _languageOptionIdFor(Locale? localeOverride) {
   if (localeOverride == null) return _languageOptionSystem;
   switch (localeOverride.languageCode) {
@@ -614,25 +584,5 @@ String _labelForLanguageOptionId(AppLocalizations l10n, String id) {
     case _languageOptionSystem:
     default:
       return l10n.settings_language_device;
-  }
-}
-
-String _themeOptionIdFor(ThemeMode themeMode) {
-  switch (themeMode) {
-    case ThemeMode.dark:
-      return _themeOptionDark;
-    case ThemeMode.system:
-    case ThemeMode.light:
-      return _themeOptionSystem;
-  }
-}
-
-String _labelForThemeOptionId(AppLocalizations l10n, String id) {
-  switch (id) {
-    case _themeOptionDark:
-      return l10n.settings_theme_always_dark;
-    case _themeOptionSystem:
-    default:
-      return l10n.settings_theme_follow_system;
   }
 }

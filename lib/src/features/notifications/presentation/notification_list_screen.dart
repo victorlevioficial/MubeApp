@@ -136,13 +136,12 @@ class NotificationListScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if ((notification.route ?? '').trim().isNotEmpty) {
-      unawaited(
-        router.push(
-          notification.route!,
-          extra: _buildChatExtraFromNotification(
-            notification,
-            route: notification.route,
-          ),
+      _navigateToTarget(
+        router,
+        notification.route!,
+        extra: _buildChatExtraFromNotification(
+          notification,
+          route: notification.route,
         ),
       );
       return;
@@ -152,19 +151,18 @@ class NotificationListScreen extends ConsumerWidget {
     switch (notification.type) {
       case NotificationType.chatMessage:
         if (notification.conversationId != null) {
-          unawaited(
-            router.push(
-              RoutePaths.conversationById(notification.conversationId!),
-              extra: _buildChatExtraFromNotification(notification),
-            ),
+          _navigateToTarget(
+            router,
+            RoutePaths.conversationById(notification.conversationId!),
+            extra: _buildChatExtraFromNotification(notification),
           );
         }
         break;
       case NotificationType.bandInvite:
-        unawaited(router.push(RoutePaths.invites));
+        _navigateToTarget(router, RoutePaths.invites);
         break;
       case NotificationType.bandInviteAccepted:
-        unawaited(router.push(RoutePaths.manageMembers));
+        _navigateToTarget(router, RoutePaths.manageMembers);
         break;
       case NotificationType.gigApplication:
       case NotificationType.gigApplicationAccepted:
@@ -177,6 +175,19 @@ class NotificationListScreen extends ConsumerWidget {
         // No specific navigation for now
         break;
     }
+  }
+
+  void _navigateToTarget(
+    GoRouter router,
+    String route, {
+    Map<String, dynamic>? extra,
+  }) {
+    if (RoutePaths.isShellBranchPath(route)) {
+      router.go(route, extra: extra);
+      return;
+    }
+
+    unawaited(router.push(route, extra: extra));
   }
 
   Future<void> _deleteNotification(

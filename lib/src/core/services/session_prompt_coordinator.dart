@@ -53,6 +53,8 @@ class UserScopedSessionPromptCoordinator {
   bool get canPresent =>
       _hasPendingEvaluation && !_hasShownForSession && !_isVisible;
 
+  bool get blocksOtherPrompts => _hasPendingEvaluation || _isVisible;
+
   bool handleAuthUser(String? userId) {
     if (userId == null) {
       _userId = null;

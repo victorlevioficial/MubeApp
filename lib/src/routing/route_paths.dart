@@ -38,6 +38,13 @@ abstract final class RoutePaths {
       'dropdown-compare'; // relative to support
   static const String supportTicketDetail =
       'ticket/:ticketId'; // relative to supportTickets
+  static const List<String> _shellRouteRoots = <String>[
+    feed,
+    search,
+    gigs,
+    chat,
+    settings,
+  ];
 
   static const String gallery = '/gallery';
   static const String feedList = '/feed/list';
@@ -114,6 +121,14 @@ abstract final class RoutePaths {
       '${supportTicketsPath()}/ticket/$ticketId';
 
   static String legalDetail(String type) => '$legal/$type';
+
+  static bool isShellBranchPath(String path) {
+    final normalizedPath = Uri.parse(path).path;
+    return _shellRouteRoots.any(
+      (root) =>
+          normalizedPath == root || normalizedPath.startsWith('$root/'),
+    );
+  }
 
   /// Extra key used to pass avatar Hero tags across profile navigations.
   static const String avatarHeroTagExtraKey = 'avatarHeroTag';

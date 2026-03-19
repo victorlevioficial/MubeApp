@@ -7,6 +7,7 @@ import 'package:mube/src/features/notifications/data/notification_providers.dart
 import 'package:mube/src/features/notifications/data/notification_repository.dart';
 import 'package:mube/src/features/notifications/domain/notification_model.dart';
 import 'package:mube/src/features/notifications/presentation/notification_list_screen.dart';
+import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -52,6 +53,72 @@ void main() {
           path: '/gigs/:id',
           builder: (context, state) =>
               Scaffold(body: Text('Gig: ${state.pathParameters['id']}')),
+        ),
+      ],
+    );
+
+    return ProviderScope(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+        notificationRepositoryProvider.overrideWithValue(fakeNotificationRepo),
+      ],
+      child: MaterialApp.router(routerConfig: router),
+    );
+  }
+
+  Widget createShellNavigationSubject({
+    List<AppNotification> notifications = const [],
+  }) {
+    final user = TestData.user(uid: 'user-1');
+    fakeAuthRepo.appUser = user;
+    fakeNotificationRepo.setNotifications(notifications);
+
+    final router = GoRouter(
+      initialLocation: RoutePaths.feed,
+      routes: [
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) => Scaffold(
+            body: navigationShell,
+          ),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.feed,
+                  builder: (context, state) => Scaffold(
+                    body: Center(
+                      child: TextButton(
+                        onPressed: () => context.push(RoutePaths.notifications),
+                        child: const Text('Open Notifications'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: RoutePaths.gigs,
+                  builder: (context, state) =>
+                      const Scaffold(body: Text('Gigs Root')),
+                  routes: [
+                    GoRoute(
+                      path: ':id',
+                      builder: (context, state) => Scaffold(
+                        body: Text('Gig: ${state.pathParameters['id']}'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+        GoRoute(
+          path: RoutePaths.notifications,
+          builder: (context, state) => const NotificationListScreen(),
         ),
       ],
     );
@@ -196,6 +263,34 @@ void main() {
 
       expect(find.text('Gig: gig-123'), findsOneWidget);
     });
+
+    testWidgets(
+      'replaces notifications with shell gig route without navigator key collision',
+      (tester) async {
+        final notifications = [
+          TestData.notification(
+            id: 'notif-1',
+            type: NotificationType.gigApplicationAccepted,
+            route: RoutePaths.gigDetailById('gig-123'),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          createShellNavigationSubject(notifications: notifications),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Notifications'));
+        await tester.pumpAndSettle();
+        expect(find.byType(NotificationListScreen), findsOneWidget);
+
+        await tester.tap(find.byType(InkWell).first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Gig: gig-123'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'navigates to manage members for accepted band invite notifications',

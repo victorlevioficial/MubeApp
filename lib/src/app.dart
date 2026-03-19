@@ -12,6 +12,7 @@ import 'core/providers/connectivity_provider.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'core/services/push_notification_provider.dart';
 import 'core/services/session_prompt_coordinator.dart';
+import 'core/services/store_review_service.dart';
 import 'core/widgets/app_update_notice_dialog.dart';
 import 'design_system/components/feedback/app_snackbar.dart';
 import 'design_system/foundations/theme/app_scroll_behavior.dart';
@@ -56,7 +57,9 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   bool _hasPrefetchedFeedForSession = false;
   bool _hasReleasedInitialRoute = false;
   bool _isPushNavigationDispatchScheduled = false;
+  bool _isStoreReviewEvaluationInProgress = false;
   String? _onboardingDraftOwnerUid;
+  String? _storeReviewSessionOwnerUid;
   Timer? _pushBootstrapTimer;
   final SessionPromptCoordinator _appUpdateNoticeCoordinator =
       SessionPromptCoordinator(pendingInitially: true);
@@ -191,6 +194,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
           _handleOnboardingDraftSession(user);
           _handleBandMembersReminderSession(user);
           _handleGigReviewReminderSession(user);
+          _handleStoreReviewSession(user);
           _handlePushBootstrapForAuthState(user);
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
             ref.read(accountDeletionInProgressProvider.notifier).clear();
@@ -233,6 +237,21 @@ class _MubeAppState extends ConsumerState<MubeApp> {
       }
       unawaited(_bootstrapPushForLoggedInUser());
     });
+  }
+
+  void _handleStoreReviewSession(User? user) {
+    final nextUid = user?.uid;
+    if (nextUid == null) {
+      _storeReviewSessionOwnerUid = null;
+      return;
+    }
+
+    if (_storeReviewSessionOwnerUid == nextUid) {
+      return;
+    }
+
+    _storeReviewSessionOwnerUid = nextUid;
+    unawaited(ref.read(storeReviewServiceProvider).registerCurrentSession());
   }
 
   void _setupProfileBootstrapListener() {
@@ -334,6 +353,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     unawaited(
       _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
     );
+    unawaited(_maybeShowStoreReviewPrompt());
   }
 
   Future<void> _maybeShowAppUpdateNotice() async {
@@ -414,6 +434,7 @@ class _MubeAppState extends ConsumerState<MubeApp> {
     unawaited(
       _maybeShowGigReviewReminder(ref.read(currentUserProfileProvider).value),
     );
+    unawaited(_maybeShowStoreReviewPrompt());
   }
 
   Future<void> _maybeShowBandMembersReminder(AppUser? profile) async {
@@ -574,6 +595,33 @@ class _MubeAppState extends ConsumerState<MubeApp> {
           },
         ),
       );
+    }
+  }
+
+  Future<void> _maybeShowStoreReviewPrompt() async {
+    if (!mounted ||
+        _isStoreReviewEvaluationInProgress ||
+        _appUpdateNoticeCoordinator.blocksOtherPrompts ||
+        _bandMembersReminderCoordinator.blocksOtherPrompts ||
+        _gigReviewReminderCoordinator.blocksOtherPrompts) {
+      return;
+    }
+
+    final currentPath = _goRouter.routerDelegate.currentConfiguration.uri.path;
+    if (_shouldWaitForBandMembersReminderRoute(currentPath) ||
+        !_canShowBandMembersReminderOnPath(currentPath)) {
+      return;
+    }
+
+    if (ref.read(authRepositoryProvider).currentUser == null) {
+      return;
+    }
+
+    _isStoreReviewEvaluationInProgress = true;
+    try {
+      await ref.read(storeReviewServiceProvider).requestIfEligible();
+    } finally {
+      _isStoreReviewEvaluationInProgress = false;
     }
   }
 

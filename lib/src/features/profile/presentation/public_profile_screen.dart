@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,8 +28,10 @@ import '../../../utils/professional_profile_utils.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../gigs/domain/gig.dart';
+import '../../gigs/domain/gig_review.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
-import '../../gigs/presentation/widgets/user_rating_display.dart';
+import '../../gigs/presentation/widgets/star_rating_widget.dart';
 import '../domain/media_item.dart';
 import '../domain/music_link_validator.dart';
 import 'music_platform_catalog.dart';
@@ -76,10 +80,31 @@ class PublicProfileScreen extends ConsumerWidget {
         ? const AsyncValue.loading()
         : ref.watch(publicProfileMetricsProvider(resolvedUid));
     final metrics = metricsAsync.asData?.value;
+    final AsyncValue<List<GigReview>> reviewsAsync = resolvedUid == null
+        ? const AsyncValue.loading()
+        : ref.watch(userReviewsProvider(resolvedUid));
+    final reviews = reviewsAsync.asData?.value ?? const <GigReview>[];
+    final reviewAuthorIdsKey = encodeGigUserIdsKey(
+      reviews.map((review) => review.reviewerId),
+    );
+    final AsyncValue<Map<String, AppUser>> reviewAuthorsAsync =
+        reviewAuthorIdsKey.isEmpty
+        ? const AsyncValue.data(<String, AppUser>{})
+        : ref.watch(gigUsersByStableIdsProvider(reviewAuthorIdsKey));
+    final reviewAuthors =
+        reviewAuthorsAsync.asData?.value ?? const <String, AppUser>{};
+    final AsyncValue<List<Gig>> openGigsAsync = resolvedUid == null
+        ? const AsyncValue.loading()
+        : ref.watch(publicCreatorOpenGigsProvider(resolvedUid));
+    final openGigs = openGigsAsync.asData?.value ?? const <Gig>[];
     final resolvedAvatarHeroTag =
         avatarHeroTag ?? 'avatar-${resolvedUid ?? profileRef}';
     final isMetricsLoading =
         state?.user != null && metrics == null && metricsAsync.isLoading;
+    final isReviewsLoading =
+        state?.user != null && reviewsAsync.isLoading && reviews.isEmpty;
+    final isOpenGigsLoading =
+        state?.user != null && openGigsAsync.isLoading && openGigs.isEmpty;
     final shouldShowLoading =
         (state == null && stateAsync.isLoading) || (state?.isLoading ?? false);
     final visibleUser = shouldShowLoading ? null : state?.user;
@@ -101,6 +126,11 @@ class PublicProfileScreen extends ConsumerWidget {
         averageRating: metrics?.averageRating,
         reviewCount: metrics?.reviewCount ?? 0,
         isMetricsLoading: isMetricsLoading,
+        reviews: reviews,
+        reviewAuthors: reviewAuthors,
+        isReviewsLoading: isReviewsLoading,
+        openGigs: openGigs,
+        isOpenGigsLoading: isOpenGigsLoading,
         avatarHeroTag: resolvedAvatarHeroTag,
         onAvatarTap: () =>
             _showAvatarViewer(context, state.user!, resolvedAvatarHeroTag),
@@ -239,22 +269,11 @@ class PublicProfileScreen extends ConsumerWidget {
 
     switch (action) {
       case 'share':
-        await SharePlus.instance.share(
-          ShareParams(
-            text: 'Confira meu perfil no Mube: $publicProfileUrl',
-            subject: 'Perfil de ${_displayName(user)} no Mube',
-          ),
-        );
+        await _shareProfile(context, user, shareUrl: publicProfileUrl);
         break;
 
       case 'copy':
-        await Clipboard.setData(ClipboardData(text: publicProfileUrl));
-        if (context.mounted) {
-          AppSnackBar.success(
-            context,
-            'Link copiado para a \u00E1rea de transfer\u00EAncia!',
-          );
-        }
+        await _copyProfileLink(context, user, shareUrl: publicProfileUrl);
         break;
 
       case 'block':
@@ -304,6 +323,37 @@ class PublicProfileScreen extends ConsumerWidget {
         }
         break;
     }
+  }
+
+  String _publicProfileUrl(AppUser user) => RoutePaths.publicProfileShareUrl(
+    uid: user.uid,
+    username: user.publicUsername,
+  );
+
+  Future<void> _shareProfile(
+    BuildContext context,
+    AppUser user, {
+    String? shareUrl,
+  }) async {
+    final publicProfileUrl = shareUrl ?? _publicProfileUrl(user);
+    await SharePlus.instance.share(
+      ShareParams(
+        text: 'Confira meu perfil no Mube: $publicProfileUrl',
+        subject: 'Perfil de ${_displayName(user)} no Mube',
+      ),
+    );
+  }
+
+  Future<void> _copyProfileLink(
+    BuildContext context,
+    AppUser user, {
+    String? shareUrl,
+  }) async {
+    final publicProfileUrl = shareUrl ?? _publicProfileUrl(user);
+    await Clipboard.setData(ClipboardData(text: publicProfileUrl));
+    if (!context.mounted) return;
+
+    AppSnackBar.success(context, 'Link copiado para a área de transferência!');
   }
 
   void _showMediaViewer(
@@ -379,24 +429,48 @@ class PublicProfileScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProfileProvider).value;
     final isMe = currentUser?.uid == user.uid;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: AppSpacing.s16,
-        right: AppSpacing.s16,
-        top: AppSpacing.s12,
-        bottom: MediaQuery.of(context).viewPadding.bottom + AppSpacing.s12,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.surfaceHighlight)),
-      ),
-      child: isMe
-          ? _MeBottomBar(user: user)
-          : _OtherBottomBar(
-              onChat: () => ref
-                  .read(publicProfileControllerProvider(profileRef).notifier)
-                  .openChat(context),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s12,
+          AppSpacing.s8,
+          AppSpacing.s12,
+          AppSpacing.s12,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.s12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.surface2.withValues(alpha: 0.98),
+                AppColors.surface,
+              ],
             ),
+            borderRadius: AppRadius.all24,
+            border: Border.all(color: AppColors.surfaceHighlight),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.background.withValues(alpha: 0.42),
+                blurRadius: 28,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: isMe
+              ? _MeBottomBar(user: user)
+              : _OtherBottomBar(
+                  onShare: () => unawaited(_shareProfile(context, user)),
+                  onChat: () => ref
+                      .read(
+                        publicProfileControllerProvider(profileRef).notifier,
+                      )
+                      .openChat(context),
+                ),
+        ),
+      ),
     );
   }
 }

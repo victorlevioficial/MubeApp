@@ -31,6 +31,50 @@ abstract class AnalyticsService {
   Future<void> logProfileEdit({required String userId});
 }
 
+class NoopAnalyticsService implements AnalyticsService {
+  const NoopAnalyticsService();
+
+  @override
+  Future<void> logEvent({
+    required String name,
+    Map<String, Object>? parameters,
+  }) async {}
+
+  @override
+  Future<void> logScreenView({
+    required String screenName,
+    String? screenClass,
+  }) async {}
+
+  @override
+  Future<void> setUserProperty({
+    required String name,
+    required String? value,
+  }) async {}
+
+  @override
+  Future<void> setUserId(String? id) async {}
+
+  @override
+  NavigatorObserver getObserver() => _NoopNavigatorObserver();
+
+  @override
+  Future<void> logAuthSignupComplete({required String method}) async {}
+
+  @override
+  Future<void> logMatchPointFilter({
+    required List<String> instruments,
+    required List<String> genres,
+    required double distance,
+  }) async {}
+
+  @override
+  Future<void> logFeedPostView({required String postId}) async {}
+
+  @override
+  Future<void> logProfileEdit({required String userId}) async {}
+}
+
 class FirebaseAnalyticsService implements AnalyticsService {
   final FirebaseAnalytics _analytics;
   final bool _isEnabled;

@@ -324,6 +324,7 @@ class _InfoCard extends StatelessWidget {
   final Color accentColor;
   final Widget child;
   final int? count;
+  final Widget? trailing;
 
   const _InfoCard({
     required this.icon,
@@ -331,6 +332,7 @@ class _InfoCard extends StatelessWidget {
     required this.accentColor,
     required this.child,
     this.count,
+    this.trailing,
   });
 
   @override
@@ -377,6 +379,10 @@ class _InfoCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (trailing != null) ...[
+                const SizedBox(width: AppSpacing.s8),
+                trailing!,
+              ],
             ],
           ),
           const SizedBox(height: AppSpacing.s14),
