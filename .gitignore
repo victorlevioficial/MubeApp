@@ -1,8 +1,13 @@
+# =========================
 # Miscellaneous
+# =========================
 *.class
 *.log
 *.pyc
 *.swp
+*.tmp
+*.temp
+*.bak
 .DS_Store
 .atom/
 .build/
@@ -12,22 +17,43 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# Archives
+*.zip
+
+# =========================
+# IDE / Editor
+# =========================
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Manter .vscode no repositório, mas ignorar configs sensíveis/locais
+.vscode/settings.json
 
-# Flutter/Dart/Pub related
+# =========================
+# Local AI / agent / tooling
+# =========================
+.agent/
+.agents/
+.kombai/
+.claude/
+.playwright-cli/
+.tmp/
+tmp/
+.xcodelogs/
+.bundle/
+.ruby-lsp/
+
+# =========================
+# Flutter / Dart / Pub
+# =========================
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
@@ -39,48 +65,20 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# =========================
+# Android / Gradle
+# =========================
 /android/app/debug
 /android/app/profile
 /android/app/release
 **/android/local.properties
+**/.gradle/
+android/.gradle/
+android/app/build/
 
-# Archives
-*.zip
-
-# Sensitive Credential Files
-lib/firebase_options.dart
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
-AuthKey_*.p8
-
-# Environment files
-.env
-.env.local
-.env.production
-
-# VS Code settings with sensitive data
-.vscode/settings.json
-
-# Analysis and temporary files
-analysis*.txt
-analyze*.txt
-analysis*.json
-analysis*.log
-all_issues.txt
-flutter_reload.txt
-*.bak
-
-# Node.js (não necessário para Flutter)
-node_modules/
-package-lock.json
-.bundle/
-vendor/
-
-# FVM
-.fvm/
-
-# iOS/Xcode generated files
+# =========================
+# iOS / Xcode / CocoaPods / Ruby
+# =========================
 ios/Pods/
 ios/.symlinks/
 ios/Flutter/ephemeral/
@@ -88,17 +86,51 @@ ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 ios/Runner.xcodeproj/xcuserdata/
 ios/Runner.xcworkspace/xcuserdata/
+vendor/
 
+# =========================
+# Node.js
+# =========================
+node_modules/
+package-lock.json
+
+# =========================
+# FVM
+# =========================
+.fvm/
+
+# =========================
 # Firebase local cache
+# =========================
 .firebase/
 
-# Local debug / test artifacts
-device_screen*.png
-device_view*.xml
+# =========================
+# Sensitive credential files
+# =========================
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+AuthKey_*.p8
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Analysis / logs / debug artifacts
+# =========================
+analysis*.txt
+analyze*.txt
+analysis*.json
+analysis*.log
+all_issues.txt
+flutter_reload.txt
 result.json
 test_output.txt
 logs/
-tmp/
 output/
 *.jsonl
 *_log*.txt
@@ -107,10 +139,47 @@ output/
 *debug*.txt
 final*.txt
 
+# Logs comuns do seu projeto
+firebase-debug.log
+flutter_*.log
+stable_test_run.log
+ci_stable_tests.log
+ci_stable_tests_after_fix.log
+
+# =========================
+# Screenshots / temp previews / generated media
+# =========================
+device_screen*.png
+device_view*.xml
+tmp_*.png
+*_preview.png
+tmp_logo_horizontal_preview.png
+
+# =========================
+# Local generated folders
+# =========================
+coverage/
+build/
+tmp/
+output/
+
+# =========================
 # Vendored dependency local-only extras
+# =========================
 third_party/firebase_storage/.dart_tool/
 third_party/firebase_storage/CHANGELOG.md
 third_party/firebase_storage/README.md
 third_party/firebase_storage/example/
 third_party/firebase_storage/pubspec.lock
 third_party/firebase_storage/test/
+
+# Gradle caches dentro de third_party
+third_party/**/.gradle/
+
+# =========================
+# Optional local project maps / generated docs
+# (descomente se quiser tirar do Git também)
+# =========================
+# AUTO_MAP.md
+# CODE_INDEX.md
+# PROJECT_MAP.md

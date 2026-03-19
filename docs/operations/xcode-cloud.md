@@ -24,6 +24,8 @@ Importante:
 
 - o Xcode Cloud pode publicar a build no TestFlight, mas a associacao da build a grupos internos ainda deve ser conferida no App Store Connect
 - se voce optar por teste externo depois, precisara preencher `Test Information` e a primeira build enviada para externo passara por Beta App Review
+- se o export do archive falhar com mensagens como `Failed to find an account with App Store Connect access for team`, `Unable to authenticate with App Store Connect`, `Automatic signing cannot update bundle identifier` ou `No profiles for 'com.mube.mubeoficial' were found`, o problema e o acesso da conta Apple usada pelo Xcode Cloud ao App Store Connect, nao o bootstrap Flutter
+- nesse caso, reconecte a conta correta no Xcode Cloud/App Store Connect e execute `Clean and Rebuild`; o `archive` pode compilar normalmente e falhar so no `exportArchive`
 
 ## Variaveis de ambiente do workflow
 
@@ -83,6 +85,7 @@ Isso gera os artefatos que nao ficam versionados no repo e que o Xcode Cloud pre
 Estas configuracoes ainda precisam existir fora do codigo para o pipeline ser publicavel:
 
 - Apple Developer / App Store Connect:
+  - a conta Apple conectada ao Xcode Cloud precisa ter acesso valido ao App Store Connect para o time `454U7QW5Q5`; sem isso, o export automatico nao consegue criar/selecionar provisioning profiles
   - o app ID `com.mube.mubeoficial` precisa estar com Signing automatico valido
   - Push Notifications deve estar habilitado, porque o app declara `aps-environment`
   - Sign in with Apple deve estar habilitado, porque o app declara esse entitlement
