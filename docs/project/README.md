@@ -16,6 +16,8 @@ Current implementation source of truth lives mostly in `docs/` and `lib/`.
 
 - `../plans/`: active technical plans still useful for execution.
 - `../analysis/`: diagnostics and investigations that can still support refactors.
+- `subagents-playbook.md`: project-specific subagent profiles and prompt templates for AppMube task delegation.
+- `../../.agent/workflows/appmube-package.md`: one-shot workflow shortcut for AppMube delegation.
 - `../archive/2025-mvp-foundation/`: initial planning batch from Dec/2025.
 - `../archive/2026-reconstruction/`: reverse-engineering and test-coverage snapshots kept only for traceability.
 - `status.md`: per-file status index with replacement references.
