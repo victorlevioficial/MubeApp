@@ -34,9 +34,7 @@ void main() {
     );
   }
 
-  ProviderContainer buildContainer({
-    required Stream<AppUser?> userStream,
-  }) {
+  ProviderContainer buildContainer({required Stream<AppUser?> userStream}) {
     return ProviderContainer(
       overrides: [
         notificationRepositoryProvider.overrideWithValue(
@@ -75,39 +73,43 @@ void main() {
   });
 
   group('unreadNotificationCountStreamProvider', () {
-    test('returns zero when user is null without touching notifications list', (
-      ) async {
-      container.dispose();
-      container = buildContainer(userStream: Stream.value(null));
+    test(
+      'returns zero when user is null without touching notifications list',
+      () async {
+        container.dispose();
+        container = buildContainer(userStream: Stream.value(null));
 
-      final value = await readUnreadCount(container);
+        final value = await readUnreadCount(container);
 
-      expect(value, 0);
-      expect(container.read(unreadNotificationCountProvider), 0);
-      expect(fakeNotificationRepository.watchUnreadNotificationCountCalls, 0);
-      expect(fakeNotificationRepository.watchNotificationsCalls, 0);
-    });
+        expect(value, 0);
+        expect(container.read(unreadNotificationCountProvider), 0);
+        expect(fakeNotificationRepository.watchUnreadNotificationCountCalls, 0);
+        expect(fakeNotificationRepository.watchNotificationsCalls, 0);
+      },
+    );
 
-    test('emits the exact unread count even above the visible notifications cap', (
-      ) async {
-      final notifications = <AppNotification>[
-        ...List.generate(
-          51,
-          (index) => buildNotification(id: 'unread-$index', isRead: false),
-        ),
-        ...List.generate(
-          9,
-          (index) => buildNotification(id: 'read-$index', isRead: true),
-        ),
-      ];
-      fakeNotificationRepository.setNotifications(notifications);
+    test(
+      'emits the exact unread count even above the visible notifications cap',
+      () async {
+        final notifications = <AppNotification>[
+          ...List.generate(
+            51,
+            (index) => buildNotification(id: 'unread-$index', isRead: false),
+          ),
+          ...List.generate(
+            9,
+            (index) => buildNotification(id: 'read-$index', isRead: true),
+          ),
+        ];
+        fakeNotificationRepository.setNotifications(notifications);
 
-      final value = await readUnreadCount(container);
+        final value = await readUnreadCount(container);
 
-      expect(value, 51);
-      expect(container.read(unreadNotificationCountProvider), 51);
-      expect(fakeNotificationRepository.watchUnreadNotificationCountCalls, 1);
-      expect(fakeNotificationRepository.watchNotificationsCalls, 0);
-    });
+        expect(value, 51);
+        expect(container.read(unreadNotificationCountProvider), 51);
+        expect(fakeNotificationRepository.watchUnreadNotificationCountCalls, 1);
+        expect(fakeNotificationRepository.watchNotificationsCalls, 0);
+      },
+    );
   });
 }
