@@ -142,6 +142,33 @@ cd android
 bundle exec fastlane android production
 ```
 
+#### GitHub Actions na `main`
+
+O workflow do repositorio agora tambem pode publicar Android automaticamente quando houver `push` na `main`.
+
+Comportamento:
+
+- sempre gera `APK`
+- na `main`, tambem gera `AAB`
+- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado no GitHub, publica o `AAB` na Play Console
+- track padrao: `alpha`
+- status padrao: `completed`
+
+Configuracoes opcionais em repository variables:
+
+- `PLAY_STORE_TRACK`
+- `PLAY_STORE_RELEASE_STATUS`
+
+Exemplos:
+
+- `PLAY_STORE_TRACK=internal` para espelhar melhor um fluxo tipo TestFlight interno
+- `PLAY_STORE_TRACK=alpha` para manter o closed testing padrao do projeto
+- `PLAY_STORE_RELEASE_STATUS=draft` se voce quiser que o artefato suba, mas sem liberar automaticamente para testers
+
+Observacao:
+
+- se o secret da Play nao estiver configurado ainda, o workflow nao quebra por causa disso; ele apenas gera os artefatos e registra um warning informando que o upload automatico foi pulado
+- producao continua sendo uma decisao explicita; a recomendacao e automatizar somente track de teste
 ### 4. Fluxo recomendado para teste fechado (Play Store)
 
 Use este caminho para evitar erros de configuracao:

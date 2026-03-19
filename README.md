@@ -124,6 +124,14 @@ cd android
 bundle exec fastlane android closed
 ```
 
+Deploy automatico no GitHub Actions:
+
+- `push` na `main` gera APK e AAB
+- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado, o workflow tambem publica o AAB na Play Console
+- track padrao: `alpha`
+- status padrao do release: `completed`
+- para trocar isso sem editar o workflow, configure os repository variables `PLAY_STORE_TRACK` e `PLAY_STORE_RELEASE_STATUS`
+
 Se estiver no WSL com repo em `/mnt/c` e o Bundler reclamar de permissao "world-writable":
 
 ```bash
