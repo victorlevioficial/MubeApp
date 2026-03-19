@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../routing/notification_navigation_resolver.dart';
@@ -17,6 +19,7 @@ class PushNotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications;
   static Future<void>? _activeInitialization;
   static bool _isInitialized = false;
+  static String? _lastTokenSyncUserId;
   static bool _hasResolvedInitialRemoteMessage = false;
   static bool _hasResolvedLaunchNotification = false;
 
@@ -41,6 +44,16 @@ class PushNotificationService {
     AppLogger.info('Active conversation set to: ${conversationId ?? "none"}');
   }
 
+  @visibleForTesting
+  static void debugReset() {
+    _activeInitialization = null;
+    _isInitialized = false;
+    _lastTokenSyncUserId = null;
+    _hasResolvedInitialRemoteMessage = false;
+    _hasResolvedLaunchNotification = false;
+    activeConversationId = null;
+  }
+
   Future<void> init() async {
     await _initInternal(requestPermission: true);
   }
@@ -53,14 +66,25 @@ class PushNotificationService {
   }
 
   Future<void> _initInternal({required bool requestPermission}) async {
+    final currentUserId = _auth.currentUser?.uid;
+
     if (_isInitialized) {
-      AppLogger.info('PushNotificationService already initialized');
+      if (currentUserId != null && currentUserId != _lastTokenSyncUserId) {
+        await _syncCurrentUserToken();
+      }
       return;
     }
 
     final existingInitialization = _activeInitialization;
     if (existingInitialization != null) {
       await existingInitialization;
+      if (_isInitialized) {
+        final refreshedUserId = _auth.currentUser?.uid;
+        if (refreshedUserId != null &&
+            refreshedUserId != _lastTokenSyncUserId) {
+          await _syncCurrentUserToken();
+        }
+      }
       return;
     }
 
@@ -159,7 +183,9 @@ class PushNotificationService {
       }
 
       // 3. Listen for Token Refresh
-      _fcm.onTokenRefresh.listen(_saveTokenToFirestore);
+      _fcm.onTokenRefresh.listen((token) {
+        unawaited(_saveTokenToFirestore(token));
+      });
 
       // 4. Handle Foreground Messages (with anti-flood suppression)
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -366,9 +392,33 @@ class PushNotificationService {
         'fcm_token': token,
         'fcm_updated_at': FieldValue.serverTimestamp(),
       });
+      _lastTokenSyncUserId = user.uid;
       AppLogger.info('FCM Token saved to Firestore for user ${user.uid}');
     } catch (e) {
       AppLogger.warning('Error saving FCM token: $e');
+    }
+  }
+
+  Future<void> _syncCurrentUserToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final token = await _fcm.getToken();
+      if (token == null) {
+        AppLogger.warning(
+          'FCM token unavailable while syncing current session for ${user.uid}',
+        );
+        return;
+      }
+
+      await _saveTokenToFirestore(token);
+    } catch (e, stack) {
+      AppLogger.warning(
+        'Failed to sync FCM token for current session',
+        e,
+        stack,
+      );
     }
   }
 }

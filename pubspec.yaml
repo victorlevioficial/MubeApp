@@ -123,6 +123,7 @@ dev_dependencies:
   mocktail: ^1.0.4
   firebase_core_platform_interface: any
   cloud_functions_platform_interface: any
+  flutter_local_notifications_platform_interface: ^7.2.0
 
 dependency_overrides:
   firebase_storage:

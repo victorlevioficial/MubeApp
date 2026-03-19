@@ -18,10 +18,21 @@ final notificationsStreamProvider =
           .watchNotifications(user.uid);
     });
 
+/// Stream da contagem exata de notificações não lidas.
+final unreadNotificationCountStreamProvider = StreamProvider.autoDispose<int>((
+  ref,
+) {
+  final user = ref.watch(currentUserProfileProvider).value;
+  if (user == null) return Stream.value(0);
+
+  return ref
+      .read(notificationRepositoryProvider)
+      .watchUnreadNotificationCount(user.uid);
+});
+
 /// Contagem de notificações não lidas baseada no Firestore.
 final unreadNotificationCountProvider = Provider<int>((ref) {
-  final notifications = ref.watch(notificationsStreamProvider).value ?? [];
-  return notifications.where((n) => !n.isRead).length;
+  return ref.watch(unreadNotificationCountStreamProvider).value ?? 0;
 });
 
 /// Mantém compatibilidade com código legado que incrementa manualmente.

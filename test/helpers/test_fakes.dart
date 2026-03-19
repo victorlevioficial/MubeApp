@@ -717,6 +717,8 @@ class FakeNotificationRepository extends Fake
     implements NotificationRepository {
   List<AppNotification> _notifications = [];
   bool throwError = false;
+  int watchNotificationsCalls = 0;
+  int watchUnreadNotificationCountCalls = 0;
 
   void setNotifications(List<AppNotification> items) {
     _notifications = items;
@@ -724,8 +726,16 @@ class FakeNotificationRepository extends Fake
 
   @override
   Stream<List<AppNotification>> watchNotifications(String userId) {
+    watchNotificationsCalls++;
     if (throwError) return Stream.error(Exception('Failed to load'));
     return Stream.value(_notifications);
+  }
+
+  @override
+  Stream<int> watchUnreadNotificationCount(String userId) {
+    watchUnreadNotificationCountCalls++;
+    if (throwError) return Stream.error(Exception('Failed to load'));
+    return Stream.value(_notifications.where((n) => !n.isRead).length);
   }
 
   @override

@@ -1415,6 +1415,7 @@ class ChatRepository {
       final decision = await _chatAccessResolver.resolveDelivery(
         senderId: requestSenderId,
         recipientId: requestRecipientId,
+        allowCached: false,
       );
       if (decision.isPending) return const Right(unit);
 

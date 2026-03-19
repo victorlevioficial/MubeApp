@@ -41,6 +41,7 @@ abstract class AuthRemoteDataSource {
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
   static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
+  static const int _firestoreWhereInLimit = 30;
   static const String _googleServerClientId =
       '798301748829-lrgta4d45h0k1d1o1vbpuhd7447e6121.apps.googleusercontent.com';
   static const String _googleIosClientId =
@@ -544,15 +545,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<List<AppUser>> fetchUsersByIds(List<String> uids) async {
     if (uids.isEmpty) return [];
 
-    // Firestore limits 'whereIn' to 30 items.
-    // For now we assume typical band size < 30.
-    // Production app should batch this if needed.
-    final query = await _firestore
-        .collection(FirestoreCollections.users)
-        .where(FieldPath.documentId, whereIn: uids.take(30).toList())
-        .get();
+    final orderedUsersById = <String, AppUser>{};
+    final requestedIds = uids.where((id) => id.trim().isNotEmpty).toList();
 
-    return query.docs.map((doc) => AppUser.fromJson(doc.data())).toList();
+    for (
+      var index = 0;
+      index < requestedIds.length;
+      index += _firestoreWhereInLimit
+    ) {
+      final end = (index + _firestoreWhereInLimit < requestedIds.length)
+          ? index + _firestoreWhereInLimit
+          : requestedIds.length;
+      final batchIds = requestedIds.sublist(index, end);
+
+      final query = await _firestore
+          .collection(FirestoreCollections.users)
+          .where(FieldPath.documentId, whereIn: batchIds)
+          .get();
+
+      for (final doc in query.docs) {
+        orderedUsersById[doc.id] = AppUser.fromJson(doc.data());
+      }
+    }
+
+    return requestedIds
+        .map((id) => orderedUsersById[id])
+        .whereType<AppUser>()
+        .toList(growable: false);
   }
 
   @override

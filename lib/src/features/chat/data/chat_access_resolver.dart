@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,11 +29,63 @@ class ChatAccessDecision {
 }
 
 class ChatAccessResolver {
-  const ChatAccessResolver(this._firestore);
+  ChatAccessResolver(this._firestore);
 
   final FirebaseFirestore _firestore;
+  static const Duration _decisionCacheTtl = Duration(seconds: 3);
+  final Map<String, _CachedChatAccessDecision> _decisionCache = {};
+  final Map<String, Future<ChatAccessDecision>> _inFlightDecisions = {};
 
   Future<ChatAccessDecision> resolveDelivery({
+    required String senderId,
+    required String recipientId,
+    bool allowCached = true,
+  }) async {
+    final cacheKey = _decisionCacheKey(senderId, recipientId);
+    if (!allowCached) {
+      unawaited(_inFlightDecisions.remove(cacheKey));
+      final decision = await _resolveDeliveryFresh(
+        senderId: senderId,
+        recipientId: recipientId,
+      );
+      _decisionCache[cacheKey] = _CachedChatAccessDecision(
+        decision: decision,
+        cachedAt: DateTime.now(),
+      );
+      return decision;
+    }
+
+    final now = DateTime.now();
+    final cachedDecision = _decisionCache[cacheKey];
+    if (cachedDecision != null &&
+        now.difference(cachedDecision.cachedAt) < _decisionCacheTtl) {
+      return cachedDecision.decision;
+    }
+
+    final inFlightDecision = _inFlightDecisions[cacheKey];
+    if (inFlightDecision != null) {
+      return await inFlightDecision;
+    }
+
+    final decisionFuture = _resolveDeliveryFresh(
+      senderId: senderId,
+      recipientId: recipientId,
+    );
+    _inFlightDecisions[cacheKey] = decisionFuture;
+
+    try {
+      final decision = await decisionFuture;
+      _decisionCache[cacheKey] = _CachedChatAccessDecision(
+        decision: decision,
+        cachedAt: DateTime.now(),
+      );
+      return decision;
+    } finally {
+      unawaited(_inFlightDecisions.remove(cacheKey));
+    }
+  }
+
+  Future<ChatAccessDecision> _resolveDeliveryFresh({
     required String senderId,
     required String recipientId,
   }) async {
@@ -70,6 +124,10 @@ class ChatAccessResolver {
       target: ChatAccessTarget.requests,
       reason: ChatAccessReason.privateChat,
     );
+  }
+
+  String _decisionCacheKey(String senderId, String recipientId) {
+    return '$senderId->$recipientId';
   }
 
   Future<bool> hasAuthorizationLink({
@@ -182,10 +240,32 @@ class ChatAccessResolver {
           .where(GigFields.status, isEqualTo: ApplicationStatus.accepted.name)
           .get();
 
+      if (acceptedApplications.docs.isEmpty) {
+        return false;
+      }
+
+      final gigRefs = <DocumentReference>[];
       for (final doc in acceptedApplications.docs) {
+        final data = doc.data();
+        final applicationCreatorId = (data[GigFields.creatorId] as String?)
+            ?.trim();
+        if (applicationCreatorId == creatorId) {
+          return true;
+        }
+
         final gigRef = doc.reference.parent.parent;
         if (gigRef == null) continue;
-        final gigSnapshot = await gigRef.get();
+        gigRefs.add(gigRef);
+      }
+
+      if (gigRefs.isEmpty) {
+        return false;
+      }
+
+      final gigSnapshots = await Future.wait(
+        gigRefs.map((gigRef) => gigRef.get()),
+      );
+      for (final gigSnapshot in gigSnapshots) {
         final data = gigSnapshot.data();
         if (data is! Map<String, dynamic>) continue;
         if ((data[GigFields.creatorId] as String?)?.trim() == creatorId) {
@@ -204,6 +284,16 @@ class ChatAccessResolver {
       return false;
     }
   }
+}
+
+class _CachedChatAccessDecision {
+  const _CachedChatAccessDecision({
+    required this.decision,
+    required this.cachedAt,
+  });
+
+  final ChatAccessDecision decision;
+  final DateTime cachedAt;
 }
 
 final chatAccessResolverProvider = Provider<ChatAccessResolver>((ref) {
