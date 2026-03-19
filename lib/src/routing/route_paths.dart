@@ -125,8 +125,7 @@ abstract final class RoutePaths {
   static bool isShellBranchPath(String path) {
     final normalizedPath = Uri.parse(path).path;
     return _shellRouteRoots.any(
-      (root) =>
-          normalizedPath == root || normalizedPath.startsWith('$root/'),
+      (root) => normalizedPath == root || normalizedPath.startsWith('$root/'),
     );
   }
 

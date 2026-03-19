@@ -78,9 +78,8 @@ void main() {
       initialLocation: RoutePaths.feed,
       routes: [
         StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) => Scaffold(
-            body: navigationShell,
-          ),
+          builder: (context, state, navigationShell) =>
+              Scaffold(body: navigationShell),
           branches: [
             StatefulShellBranch(
               routes: [

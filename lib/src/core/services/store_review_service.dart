@@ -45,12 +45,7 @@ enum StoreReviewManualRequestResult {
   launchFailed,
 }
 
-enum StoreReviewAutomaticRequestResult {
-  prompted,
-  deferred,
-  skipped,
-  noAction,
-}
+enum StoreReviewAutomaticRequestResult { prompted, deferred, skipped, noAction }
 
 abstract class StoreReviewPlatformClient {
   Future<bool> isAvailable();
@@ -273,7 +268,11 @@ class StoreReviewService {
       );
       return StoreReviewAutomaticRequestResult.prompted;
     } catch (error, stackTrace) {
-      AppLogger.warning('Failed to request automatic store review', error, stackTrace);
+      AppLogger.warning(
+        'Failed to request automatic store review',
+        error,
+        stackTrace,
+      );
       await _writeState(
         prefs,
         uid,
@@ -298,9 +297,7 @@ class StoreReviewService {
 
     await _analytics.logEvent(
       name: 'store_review_manual_tap',
-      parameters: {
-        'authenticated': uid == null || uid.isEmpty ? 0 : 1,
-      },
+      parameters: {'authenticated': uid == null || uid.isEmpty ? 0 : 1},
     );
 
     try {
@@ -326,7 +323,11 @@ class StoreReviewService {
         return StoreReviewManualRequestResult.promptRequested;
       }
     } catch (error, stackTrace) {
-      AppLogger.warning('Failed to request manual store review', error, stackTrace);
+      AppLogger.warning(
+        'Failed to request manual store review',
+        error,
+        stackTrace,
+      );
     }
 
     final fallbackUri = _fallbackStoreUri();
@@ -349,19 +350,13 @@ class StoreReviewService {
       await _writeState(
         prefs,
         uid,
-        state.copyWith(
-          lastPromptAt: now,
-          lastPromptedVersion: currentVersion,
-        ),
+        state.copyWith(lastPromptAt: now, lastPromptedVersion: currentVersion),
       );
     }
 
     await _analytics.logEvent(
       name: 'store_review_fallback_opened',
-      parameters: {
-        'platform': _platformResolver().name,
-        'source': 'manual',
-      },
+      parameters: {'platform': _platformResolver().name, 'source': 'manual'},
     );
     return StoreReviewManualRequestResult.fallbackOpened;
   }
@@ -441,21 +436,30 @@ class StoreReviewService {
     if (firstSeenAt == null) {
       await prefs.remove('${prefix}first_seen_at');
     } else {
-      await prefs.setInt('${prefix}first_seen_at', firstSeenAt.millisecondsSinceEpoch);
+      await prefs.setInt(
+        '${prefix}first_seen_at',
+        firstSeenAt.millisecondsSinceEpoch,
+      );
     }
 
     final lastPromptAt = state.lastPromptAt;
     if (lastPromptAt == null) {
       await prefs.remove('${prefix}last_prompt_at');
     } else {
-      await prefs.setInt('${prefix}last_prompt_at', lastPromptAt.millisecondsSinceEpoch);
+      await prefs.setInt(
+        '${prefix}last_prompt_at',
+        lastPromptAt.millisecondsSinceEpoch,
+      );
     }
 
     final lastPromptedVersion = state.lastPromptedVersion?.trim();
     if (lastPromptedVersion == null || lastPromptedVersion.isEmpty) {
       await prefs.remove('${prefix}last_prompted_version');
     } else {
-      await prefs.setString('${prefix}last_prompted_version', lastPromptedVersion);
+      await prefs.setString(
+        '${prefix}last_prompted_version',
+        lastPromptedVersion,
+      );
     }
 
     final pendingAutomaticTrigger = state.pendingAutomaticTrigger;
@@ -507,7 +511,8 @@ final storeReviewServiceProvider = Provider<StoreReviewService>((ref) {
   }
 
   return StoreReviewService(
-    currentUserUidLoader: () => ref.read(authRepositoryProvider).currentUser?.uid,
+    currentUserUidLoader: () =>
+        ref.read(authRepositoryProvider).currentUser?.uid,
     analytics: analytics,
     sharedPreferencesLoader: ref.read(sharedPreferencesLoaderProvider),
     packageInfoLoader: PackageInfo.fromPlatform,

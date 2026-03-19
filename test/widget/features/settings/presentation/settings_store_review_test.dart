@@ -82,18 +82,16 @@ void main() {
     await tester.tap(find.text('Avaliar o app'));
     await tester.pumpAndSettle();
 
-    expect(
-      launchedUris,
-      <Uri>[
-        Uri.parse(
-          'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
-        ),
-      ],
-    );
+    expect(launchedUris, <Uri>[
+      Uri.parse(
+        'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
+      ),
+    ]);
   });
 }
 
-class _UnavailableStoreReviewPlatformClient implements StoreReviewPlatformClient {
+class _UnavailableStoreReviewPlatformClient
+    implements StoreReviewPlatformClient {
   @override
   Future<bool> isAvailable() async => false;
 

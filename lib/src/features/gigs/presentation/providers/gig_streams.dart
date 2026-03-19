@@ -28,8 +28,8 @@ final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
   return ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
 });
 
-final publicCreatorOpenGigsProvider =
-    StreamProvider.autoDispose.family<List<Gig>, String>((ref, creatorId) {
+final publicCreatorOpenGigsProvider = StreamProvider.autoDispose
+    .family<List<Gig>, String>((ref, creatorId) {
       return ref
           .watch(gigRepositoryProvider)
           .watchPublicOpenGigsByCreator(creatorId, limit: 3);

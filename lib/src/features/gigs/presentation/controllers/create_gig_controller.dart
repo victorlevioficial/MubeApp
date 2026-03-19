@@ -33,7 +33,9 @@ class CreateGigController extends _$CreateGigController {
         operationLabel: 'create_gig_submit',
         action: () => ref.read(gigRepositoryProvider).createGig(draft),
       );
-      final gigCount = await ref.read(gigRepositoryProvider).getCurrentUserGigCount();
+      final gigCount = await ref
+          .read(gigRepositoryProvider)
+          .getCurrentUserGigCount();
       final isFirstGigForCurrentUser = gigCount == 1;
       if (isFirstGigForCurrentUser) {
         await ref

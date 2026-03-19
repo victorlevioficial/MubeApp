@@ -416,9 +416,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       );
     }
 
-    final normalizedUsername = normalizedPublicUsernameOrNull(
-      rawUsername,
-    );
+    final normalizedUsername = normalizedPublicUsernameOrNull(rawUsername);
     if (normalizedUsername == null) {
       return null;
     }

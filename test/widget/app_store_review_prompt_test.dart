@@ -29,49 +29,52 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{});
   });
 
-  testWidgets('does not request store review on blocked routes and resumes on feed', (
-    tester,
-  ) async {
-    final harness = _StoreReviewHarness(initialLocation: RoutePaths.login);
-    addTearDown(harness.dispose);
+  testWidgets(
+    'does not request store review on blocked routes and resumes on feed',
+    (tester) async {
+      final harness = _StoreReviewHarness(initialLocation: RoutePaths.login);
+      addTearDown(harness.dispose);
 
-    await tester.pumpWidget(harness.build());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
 
-    expect(harness.platformClient.requestReviewCalls, 0);
+      expect(harness.platformClient.requestReviewCalls, 0);
 
-    harness.router.go(RoutePaths.feed);
-    await tester.pumpAndSettle();
+      harness.router.go(RoutePaths.feed);
+      await tester.pumpAndSettle();
 
-    expect(harness.platformClient.requestReviewCalls, 1);
-  });
+      expect(harness.platformClient.requestReviewCalls, 1);
+    },
+  );
 
-  testWidgets('waits until the app update notice is dismissed before requesting review', (
-    tester,
-  ) async {
-    final harness = _StoreReviewHarness(
-      initialLocation: RoutePaths.feed,
-      notice: const AppUpdateNotice(
-        platform: TargetPlatform.android,
-        installedBuildNumber: 43,
-        minimumBuildNumber: 44,
-        installedVersion: '1.5.2',
-        storeUrl: 'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
-      ),
-    );
-    addTearDown(harness.dispose);
+  testWidgets(
+    'waits until the app update notice is dismissed before requesting review',
+    (tester) async {
+      final harness = _StoreReviewHarness(
+        initialLocation: RoutePaths.feed,
+        notice: const AppUpdateNotice(
+          platform: TargetPlatform.android,
+          installedBuildNumber: 43,
+          minimumBuildNumber: 44,
+          installedVersion: '1.5.2',
+          storeUrl:
+              'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
+        ),
+      );
+      addTearDown(harness.dispose);
 
-    await tester.pumpWidget(harness.build());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(harness.build());
+      await tester.pumpAndSettle();
 
-    expect(find.text('Atualizacao disponivel'), findsOneWidget);
-    expect(harness.platformClient.requestReviewCalls, 0);
+      expect(find.text('Atualizacao disponivel'), findsOneWidget);
+      expect(harness.platformClient.requestReviewCalls, 0);
 
-    await tester.tap(find.text('Depois'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Depois'));
+      await tester.pumpAndSettle();
 
-    expect(harness.platformClient.requestReviewCalls, 1);
-  });
+      expect(harness.platformClient.requestReviewCalls, 1);
+    },
+  );
 }
 
 class _StoreReviewHarness {
@@ -123,8 +126,12 @@ class _StoreReviewHarness {
           overrides: [
             authRepositoryProvider.overrideWithValue(_fakeAuthRepository),
             goRouterProvider.overrideWithValue(router),
-            authStateChangesProvider.overrideWith((ref) => _authController.stream),
-            currentUserProfileProvider.overrideWith((ref) => _profileController.stream),
+            authStateChangesProvider.overrideWith(
+              (ref) => _authController.stream,
+            ),
+            currentUserProfileProvider.overrideWith(
+              (ref) => _profileController.stream,
+            ),
             appUpdateNoticeProvider.overrideWith((ref) async => notice),
             storeReviewServiceProvider.overrideWithValue(
               StoreReviewService(
