@@ -114,7 +114,14 @@ class _PrimaryBottomActionButton extends StatelessWidget {
                     child: Icon(icon, size: 16, color: AppColors.textPrimary),
                   ),
                   const SizedBox(width: AppSpacing.s10),
-                  Text(label, style: AppTypography.buttonPrimary),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.buttonPrimary,
+                    ),
+                  ),
                 ],
               ),
             ),

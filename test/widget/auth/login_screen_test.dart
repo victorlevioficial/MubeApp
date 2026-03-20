@@ -483,6 +483,47 @@ void main() {
           expect(find.textContaining('Credenciais'), findsNothing);
         },
       );
+      testWidgets(
+        'mostra mensagem especifica para credenciais invalidas no login',
+        (tester) async {
+          when(
+            mockAuthRepository.signInWithEmailAndPassword(
+              'test@example.com',
+              'password123',
+            ),
+          ).thenAnswer(
+            (_) async => const Left(
+              AuthFailure(
+                message:
+                    'E-mail ou senha incorretos. Confira os dados e tente novamente.',
+              ),
+            ),
+          );
+
+          await tester.pumpWidget(createTestWidget());
+          await tester.pumpAndSettle();
+
+          await tester.enterText(
+            find.byKey(const Key('email_input')),
+            'test@example.com',
+          );
+          await tester.enterText(
+            find.byKey(const Key('password_input')),
+            'password123',
+          );
+          await tester.pump();
+
+          await tester.tap(find.byKey(const Key('login_button')));
+          await tester.pumpAndSettle();
+
+          expect(
+            find.text(
+              'E-mail ou senha incorretos. Confira os dados e tente novamente.',
+            ),
+            findsOneWidget,
+          );
+        },
+      );
     });
   });
 }

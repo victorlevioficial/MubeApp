@@ -160,7 +160,8 @@ class ProfileHeroHeader extends StatelessWidget {
             ),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final useSplitIdentity = constraints.maxWidth >= 320;
+                final useSplitIdentity =
+                    MediaQuery.sizeOf(context).width >= 600;
                 if (!useSplitIdentity) {
                   return _stackedIdentity(
                     displayName: displayName,

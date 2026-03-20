@@ -61,7 +61,9 @@ class AuthRepository {
         },
       );
       return Left(
-        AuthFailure(message: AuthExceptionHandler.handleException(e)),
+        AuthFailure(
+          message: AuthExceptionHandler.handleEmailPasswordSignInException(e),
+        ),
       );
     } catch (e, stackTrace) {
       AppLogger.warning(

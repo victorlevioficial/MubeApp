@@ -1037,9 +1037,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
           decoration: InputDecoration(
             hintText: 'mubeoficial',
             hintStyle: AppTypography.inputHint,
-            prefixText: '@',
-            prefixStyle: AppTypography.input.copyWith(
-              color: AppColors.textPlaceholder,
+            prefixIcon: Padding(
+              padding: const EdgeInsets.only(
+                left: AppSpacing.s16,
+                right: AppSpacing.s8,
+              ),
+              child: Text(
+                '@',
+                style: AppTypography.input.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 0,
+              minHeight: 0,
             ),
             filled: true,
             fillColor: AppColors.surface,

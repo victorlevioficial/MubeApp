@@ -23,6 +23,7 @@ class AuthExceptionHandler {
         case 'wrong-password':
           return 'Senha incorreta. Tente novamente.';
         case 'invalid-credential':
+        case 'invalid-login-credentials':
           return 'Credenciais inválidas ou expiradas.';
         case 'account-exists-with-different-credential':
           return 'Já existe uma conta com este e-mail usando outro método de login.';
@@ -49,6 +50,18 @@ class AuthExceptionHandler {
       }
     } else {
       return 'Ocorreu um erro inesperado. Tente novamente.';
+    }
+  }
+
+  static String handleEmailPasswordSignInException(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'wrong-password':
+        return 'Senha incorreta. Tente novamente.';
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+        return 'E-mail ou senha incorretos. Confira os dados e tente novamente.';
+      default:
+        return handleException(e);
     }
   }
 }

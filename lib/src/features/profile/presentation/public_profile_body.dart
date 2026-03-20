@@ -1,9 +1,6 @@
 part of 'public_profile_screen.dart';
 
 class _ProfileBody extends StatelessWidget {
-  static const double _topInset =
-      AppSpacing.s48 + AppSpacing.s24 + AppSpacing.s20;
-
   final AppUser user;
   final List<MediaItem> galleryItems;
   final List<AppUser> bandMembers;
@@ -43,11 +40,13 @@ class _ProfileBody extends StatelessWidget {
   }
 
   Widget _narrowLayout(BuildContext context) {
+    final topInset = PublicProfileScreen.bodyTopInset(context);
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: _topInset),
+          SizedBox(height: topInset),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
             child: ProfileHeroHeader(
@@ -65,10 +64,12 @@ class _ProfileBody extends StatelessWidget {
   }
 
   Widget _wideLayout(BuildContext context) {
+    final topInset = PublicProfileScreen.bodyTopInset(context);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         AppSpacing.s32,
-        _topInset,
+        topInset,
         AppSpacing.s32,
         AppSpacing.s48,
       ),
@@ -558,14 +559,16 @@ class _PublicProfileSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SkeletonShimmer(
+    final topInset = PublicProfileScreen.bodyTopInset(context);
+
+    return SkeletonShimmer(
       child: SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: _ProfileBody._topInset),
-            Padding(
+            SizedBox(height: topInset),
+            const Padding(
               padding: EdgeInsets.symmetric(horizontal: AppSpacing.s20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

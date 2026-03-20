@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
@@ -17,6 +18,7 @@ import 'package:mube/src/features/gigs/domain/gig_type.dart';
 import 'package:mube/src/features/gigs/domain/review_type.dart';
 import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/profile/presentation/public_profile_screen.dart';
+import 'package:mube/src/features/profile/presentation/widgets/profile_hero_header.dart';
 import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/pump_app.dart';
@@ -69,6 +71,22 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pump();
+  }
+
+  void setTestViewport(
+    WidgetTester tester, {
+    required Size physicalSize,
+    double devicePixelRatio = 1.0,
+    double topPadding = 0,
+  }) {
+    tester.view.physicalSize = physicalSize;
+    tester.view.devicePixelRatio = devicePixelRatio;
+    tester.view.padding = FakeViewPadding(top: topPadding);
+    tester.view.viewPadding = FakeViewPadding(top: topPadding);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
   }
 
   testWidgets('hides contractor personal gender from public profile', (
@@ -384,6 +402,37 @@ void main() {
 
     expect(find.byIcon(Icons.share_outlined), findsOneWidget);
     expect(find.text('Iniciar Conversa'), findsOneWidget);
+  });
+
+  testWidgets('keeps compact hero centered and below top actions on iPhone', (
+    tester,
+  ) async {
+    setTestViewport(tester, physicalSize: const Size(393, 852), topPadding: 44);
+
+    const professional = AppUser(
+      uid: 'professional-ios-layout-uid',
+      email: 'professional@example.com',
+      nome: 'Hygor Tomaz',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      location: {'cidade': 'Rio de Janeiro', 'estado': 'Rio de Janeiro'},
+      favoritesCount: 19,
+      dadosProfissional: {
+        'nomeArtistico': 'Hygor Tomaz',
+        'instrumentos': ['Guitarra'],
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    final backButtonBottom = tester.getRect(find.byTooltip('Voltar')).bottom;
+    final headerTop = tester.getRect(find.byType(ProfileHeroHeader)).top;
+    final avatarCenterX = tester.getCenter(find.byType(UserAvatar)).dx;
+    final titleCenterX = tester.getCenter(find.text('Hygor Tomaz')).dx;
+
+    expect(headerTop, greaterThan(backButtonBottom));
+    expect((avatarCenterX - titleCenterX).abs(), lessThan(2));
+    expect(find.text('Rio de Janeiro, RJ'), findsOneWidget);
   });
 
   testWidgets('shows open gigs preview when profile has active gigs', (

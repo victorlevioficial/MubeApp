@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +63,8 @@ class PublicProfileScreen extends ConsumerWidget {
   final String profileRef;
   final String? avatarHeroTag;
   static const double _topActionSize = AppSpacing.s48;
+  static const double _topActionTopPadding = AppSpacing.s8;
+  static const double _topContentGap = AppSpacing.s12;
 
   const PublicProfileScreen({
     super.key,
@@ -70,6 +73,14 @@ class PublicProfileScreen extends ConsumerWidget {
   });
 
   String _displayName(AppUser user) => user.appDisplayName;
+
+  static double bodyTopInset(BuildContext context) {
+    final topInset = math.max(
+      MediaQuery.viewPaddingOf(context).top,
+      AppSpacing.s24,
+    );
+    return topInset + _topActionTopPadding + _topActionSize + _topContentGap;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -163,7 +174,7 @@ class PublicProfileScreen extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.s12,
-          AppSpacing.s8,
+          _topActionTopPadding,
           AppSpacing.s12,
           0,
         ),

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/app.dart';
+import 'package:mube/src/core/domain/app_update_notice.dart';
 import 'package:mube/src/core/providers/app_update_provider.dart';
 import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -117,51 +118,100 @@ void main() {
       expect(find.text('Feed Placeholder'), findsOneWidget);
       expect(find.byType(BandFormationReminderDialog), findsNothing);
     });
+
+    testWidgets(
+      'waits for app update notice to close before showing reminder',
+      (tester) async {
+        final harness = _ReminderAppHarness(
+          initialLocation: RoutePaths.feed,
+          initialProfile: _bandProfile(confirmedMembers: 1),
+          notice: const AppUpdateNotice(
+            platform: TargetPlatform.android,
+            installedBuildNumber: 24,
+            minimumBuildNumber: 25,
+            installedVersion: '1.3.5',
+            storeUrl:
+                'https://play.google.com/store/apps/details?id=com.mube.app',
+          ),
+        );
+
+        addTearDown(harness.dispose);
+
+        await tester.pumpWidget(harness.build());
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Atualizacao disponivel'), findsOneWidget);
+        expect(find.byType(BandFormationReminderDialog), findsNothing);
+
+        await tester.tap(find.text('Depois'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Atualizacao disponivel'), findsNothing);
+        expect(find.byType(BandFormationReminderDialog), findsOneWidget);
+      },
+    );
   });
 }
 
 class _ReminderAppHarness {
-  _ReminderAppHarness({required String initialLocation})
-    : _fakeAuthRepository = FakeAuthRepository(),
-      _authController = StreamController<firebase_auth.User?>.broadcast(),
-      _profileController = StreamController<AppUser?>.broadcast(),
-      router = GoRouter(
-        navigatorKey: rootNavigatorKey,
-        initialLocation: initialLocation,
-        routes: <RouteBase>[
-          GoRoute(
-            path: RoutePaths.login,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Login Placeholder'),
-          ),
-          GoRoute(
-            path: RoutePaths.feed,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Feed Placeholder'),
-          ),
-          GoRoute(
-            path: RoutePaths.manageMembers,
-            builder: (context, state) =>
-                const _PlaceholderScreen('Manage Members Placeholder'),
-          ),
-        ],
-      );
+  _ReminderAppHarness({
+    required String initialLocation,
+    this.initialProfile,
+    this.notice,
+  }) : _fakeAuthRepository = FakeAuthRepository(),
+       _authController = StreamController<firebase_auth.User?>.broadcast(),
+       _profileController = StreamController<AppUser?>.broadcast(),
+       router = GoRouter(
+         navigatorKey: rootNavigatorKey,
+         initialLocation: initialLocation,
+         routes: <RouteBase>[
+           GoRoute(
+             path: RoutePaths.login,
+             builder: (context, state) =>
+                 const _PlaceholderScreen('Login Placeholder'),
+           ),
+           GoRoute(
+             path: RoutePaths.feed,
+             builder: (context, state) =>
+                 const _PlaceholderScreen('Feed Placeholder'),
+           ),
+           GoRoute(
+             path: RoutePaths.manageMembers,
+             builder: (context, state) =>
+                 const _PlaceholderScreen('Manage Members Placeholder'),
+           ),
+         ],
+       );
 
   final FakeAuthRepository _fakeAuthRepository;
   final StreamController<firebase_auth.User?> _authController;
   final StreamController<AppUser?> _profileController;
+  final AppUser? initialProfile;
+  final AppUpdateNotice? notice;
   final GoRouter router;
 
   Widget build() {
+    final initialAuthUser = initialProfile == null
+        ? null
+        : FakeFirebaseUser(
+            uid: initialProfile!.uid,
+            email: initialProfile!.email,
+          );
+
+    if (initialAuthUser != null) {
+      _fakeAuthRepository.emitUser(initialAuthUser);
+    }
+
     return ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(_fakeAuthRepository),
         goRouterProvider.overrideWithValue(router),
-        authStateChangesProvider.overrideWith((ref) => _authController.stream),
-        currentUserProfileProvider.overrideWith(
-          (ref) => _profileController.stream,
+        authStateChangesProvider.overrideWith(
+          (ref) => _authStream(initialAuthUser),
         ),
-        appUpdateNoticeProvider.overrideWith((ref) async => null),
+        currentUserProfileProvider.overrideWith((ref) => _profileStream()),
+        appUpdateNoticeProvider.overrideWith((ref) async => notice),
         pendingGigReviewsProvider.overrideWith((ref) async => const []),
         feedControllerProvider.overrideWith(_StubFeedController.new),
         connectivityProvider.overrideWith(
@@ -192,6 +242,22 @@ class _ReminderAppHarness {
     await _authController.close();
     await _profileController.close();
     _fakeAuthRepository.dispose();
+  }
+
+  Stream<firebase_auth.User?> _authStream(
+    firebase_auth.User? initialAuthUser,
+  ) async* {
+    if (initialAuthUser != null) {
+      yield initialAuthUser;
+    }
+    yield* _authController.stream;
+  }
+
+  Stream<AppUser?> _profileStream() async* {
+    if (initialProfile != null) {
+      yield initialProfile;
+    }
+    yield* _profileController.stream;
   }
 }
 

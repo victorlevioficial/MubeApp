@@ -70,6 +70,33 @@ void main() {
         },
       );
 
+      test(
+        'should map invalid credential to a friendly email login message',
+        () async {
+          final exception = FirebaseAuthException(
+            code: 'invalid-credential',
+            message: 'The supplied auth credential is incorrect.',
+          );
+          when(
+            mockDataSource.signInWithEmailAndPassword(email, password),
+          ).thenThrow(exception);
+
+          final result = await repository.signInWithEmailAndPassword(
+            email,
+            password,
+          );
+
+          expect(result.isLeft(), true);
+          result.fold(
+            (failure) => expect(
+              failure.message,
+              'E-mail ou senha incorretos. Confira os dados e tente novamente.',
+            ),
+            (_) => fail('Expected Left'),
+          );
+        },
+      );
+
       test('should return Left(AuthFailure) on generic exception', () async {
         // Arrange
         when(
