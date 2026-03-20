@@ -244,6 +244,20 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.stack || String(error));
+  const message = error?.stack || String(error);
+
+  if (message.includes("has already been used")) {
+    console.error(
+      [
+        "Play Console rejeitou o upload porque o versionCode ja foi usado.",
+        "Atualize a versao em pubspec.yaml para um novo PATCH+BUILD antes de publicar novamente.",
+        "",
+        message,
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
+  console.error(message);
   process.exit(1);
 });
