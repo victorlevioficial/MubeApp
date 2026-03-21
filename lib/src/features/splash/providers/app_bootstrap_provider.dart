@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/app_performance_tracker.dart';
 import '../../onboarding/providers/notification_permission_prompt_provider.dart';
 
 const String _appCheckDebugToken = String.fromEnvironment(
@@ -37,6 +38,10 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
       return;
     }
 
+    final bootstrapStopwatch = AppPerformanceTracker.startSpan(
+      'app.bootstrap.start',
+    );
+    var bootstrapStatus = 'done';
     _isStarting = true;
     state = AppBootstrapState.running;
 
@@ -44,12 +49,18 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
       await _ensureAppCheckActivation();
       unawaited(_warmNotificationPermissionPromptState());
     } catch (error, stack) {
+      bootstrapStatus = 'error';
       AppLogger.warning(
         'Falha ao concluir bootstrap inicial do app',
         error,
         stack,
       );
     } finally {
+      AppPerformanceTracker.finishSpan(
+        'app.bootstrap.start',
+        bootstrapStopwatch,
+        data: {'status': bootstrapStatus},
+      );
       state = AppBootstrapState.ready;
       _isStarting = false;
     }
@@ -59,18 +70,32 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     final inFlight = _appCheckActivation;
     if (inFlight != null) return inFlight;
 
-    final activation = ref
-        .read(appCheckBootstrapperProvider)()
-        .timeout(const Duration(seconds: 8))
-        .catchError((Object error, StackTrace stack) {
-          AppLogger.warning(
-            'Falha ao inicializar App Check',
-            error,
-            stack,
-            false,
+    final activation =
+        () async {
+          final appCheckStopwatch = AppPerformanceTracker.startSpan(
+            'app.bootstrap.app_check',
           );
-        })
-        .whenComplete(() {
+          var appCheckStatus = 'done';
+          try {
+            await ref
+                .read(appCheckBootstrapperProvider)()
+                .timeout(const Duration(seconds: 8));
+          } catch (error, stack) {
+            appCheckStatus = error is TimeoutException ? 'timeout' : 'error';
+            AppLogger.warning(
+              'Falha ao inicializar App Check',
+              error,
+              stack,
+              false,
+            );
+          } finally {
+            AppPerformanceTracker.finishSpan(
+              'app.bootstrap.app_check',
+              appCheckStopwatch,
+              data: {'status': appCheckStatus},
+            );
+          }
+        }().whenComplete(() {
           _appCheckActivation = null;
         });
 

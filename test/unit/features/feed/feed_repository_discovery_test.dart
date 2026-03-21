@@ -142,6 +142,90 @@ void main() {
       },
     );
 
+    test(
+      'returns a fast nearby-only partial pool before bounded scan backfill',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
+        const currentUserId = 'current-user';
+        const userLat = -23.5505;
+        const userLong = -46.6333;
+        final centerGeohash = GeohashHelper.encode(
+          userLat,
+          userLong,
+          precision: 5,
+        );
+        final farGeohash = GeohashHelper.encode(
+          userLat + 8,
+          userLong + 8,
+          precision: 5,
+        );
+
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc(currentUserId)
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.professional,
+              FirestoreFields.name: 'Current User',
+              FirestoreFields.geohash: centerGeohash,
+              FirestoreFields.location: {'lat': userLat, 'lng': userLong},
+              'status': 'ativo',
+            });
+
+        for (var i = 0; i < 25; i++) {
+          await firestore
+              .collection(FirestoreCollections.users)
+              .doc('near-$i')
+              .set({
+                FirestoreFields.registrationStatus: RegistrationStatus.complete,
+                FirestoreFields.profileType: ProfileType.professional,
+                FirestoreFields.name: 'Near User $i',
+                FirestoreFields.geohash: centerGeohash,
+                FirestoreFields.location: {
+                  'lat': userLat + (i * 0.0001),
+                  'lng': userLong + (i * 0.0001),
+                },
+                'status': 'ativo',
+              });
+        }
+
+        for (var i = 0; i < 40; i++) {
+          await firestore
+              .collection(FirestoreCollections.users)
+              .doc('far-$i')
+              .set({
+                FirestoreFields.registrationStatus: RegistrationStatus.complete,
+                FirestoreFields.profileType: ProfileType.band,
+                FirestoreFields.name: 'Far User $i',
+                FirestoreFields.geohash: farGeohash,
+                FirestoreFields.location: {
+                  'lat': userLat + 8 + (i * 0.0001),
+                  'lng': userLong + 8 + (i * 0.0001),
+                },
+                'status': 'ativo',
+              });
+        }
+
+        final result = await repository.getDiscoverFeedPool(
+          currentUserId: currentUserId,
+          userLat: userLat,
+          userLong: userLong,
+          targetResults: 40,
+          fastPartialThreshold: 20,
+        );
+
+        expect(result.isRight(), true);
+        result.fold((_) => fail('Expected discovery pool result'), (pool) {
+          expect(pool.source, 'nearby_partial');
+          expect(pool.isExhaustive, isFalse);
+          expect(pool.items.length, 25);
+          expect(pool.items.map((item) => item.uid), contains('near-0'));
+          expect(pool.items.map((item) => item.uid), isNot(contains('far-0')));
+        });
+      },
+    );
+
     test('caps bounded scan results when location is unavailable', () async {
       final firestore = FakeFirebaseFirestore();
       final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));

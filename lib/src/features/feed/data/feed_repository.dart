@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
@@ -25,12 +27,17 @@ final feedRepositoryProvider = Provider<FeedRepository>((ref) {
 
 /// Repository for feed-related data operations.
 class FeedRepository {
+  static const int defaultDiscoverPoolTargetResults = 120;
+  static const int defaultFilteredDiscoverPoolTargetResults = 80;
   static const int _discoverScanBatchSize = 120;
-  static const int _discoverPoolTargetResults = 120;
-  static const int _filteredDiscoverPoolTargetResults = 80;
+  static const int _discoverPoolTargetResults =
+      defaultDiscoverPoolTargetResults;
+  static const int _filteredDiscoverPoolTargetResults =
+      defaultFilteredDiscoverPoolTargetResults;
   static const int _discoverPoolMaxScannedDocs = _discoverScanBatchSize * 3;
   static const int _filteredDiscoverPoolMaxScannedDocs =
       _discoverScanBatchSize * 4;
+  static const int _preemptiveNeighborQueryThreshold = 60;
 
   final FeedRemoteDataSource _dataSource;
 
@@ -47,6 +54,34 @@ class FeedRepository {
     required double? userLong,
     List<String> excludedIds = const [],
     FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
+  }) async {
+    final poolResult = await getDiscoverFeedPool(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      excludedIds: excludedIds,
+      filter: filter,
+      targetResults: targetResults,
+      fastPartialThreshold: fastPartialThreshold,
+    );
+    return poolResult.map((pool) => pool.items);
+  }
+
+  /// Loads a deterministic discovery pool with optional fast partial mode.
+  ///
+  /// When [fastPartialThreshold] is provided, the repository may return a
+  /// nearby-only partial pool as soon as it has enough items to fill the first
+  /// visible page, deferring bounded scan backfill until a later request.
+  FutureResult<DiscoverFeedPoolResult> getDiscoverFeedPool({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    List<String> excludedIds = const [],
+    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
   }) async {
     final scanStopwatch = AppPerformanceTracker.startSpan(
       'feed.repo.discover_pool_scan',
@@ -54,7 +89,7 @@ class FeedRepository {
     );
     try {
       final diagnostics = _FeedPoolDiagnostics();
-      final targetResults = _targetResultsFor(filter);
+      final effectiveTargetResults = targetResults ?? _targetResultsFor(filter);
       final maxScannedDocs = _maxScannedDocsFor(filter);
       final discoverPool = await _loadDiscoverPool(
         currentUserId: currentUserId,
@@ -62,8 +97,9 @@ class FeedRepository {
         userLong: userLong,
         excludedIds: excludedIds,
         filter: filter,
-        targetResults: targetResults,
+        targetResults: effectiveTargetResults,
         maxScannedDocs: maxScannedDocs,
+        fastPartialThreshold: fastPartialThreshold,
         diagnostics: diagnostics,
       );
       final items = discoverPool.items;
@@ -75,12 +111,13 @@ class FeedRepository {
         data: {
           'source': discoverPool.source,
           'scanned_docs': discoverPool.scannedDocs,
-          'target_results': targetResults,
+          'target_results': effectiveTargetResults,
           'results': items.length,
+          'is_exhaustive': discoverPool.isExhaustive,
           ...diagnostics.toMap(),
         },
       );
-      return Right(items);
+      return Right(discoverPool.copyWith(items: items));
     } catch (e) {
       AppPerformanceTracker.finishSpan(
         'feed.repo.discover_pool_scan',
@@ -92,7 +129,7 @@ class FeedRepository {
     }
   }
 
-  Future<_DiscoverPoolLoadResult> _loadDiscoverPool({
+  Future<DiscoverFeedPoolResult> _loadDiscoverPool({
     required String currentUserId,
     required double? userLat,
     required double? userLong,
@@ -100,6 +137,7 @@ class FeedRepository {
     required FeedDiscoveryFilter filter,
     required int targetResults,
     required int maxScannedDocs,
+    required int? fastPartialThreshold,
     required _FeedPoolDiagnostics diagnostics,
   }) async {
     if (userLat == null || userLong == null) {
@@ -129,6 +167,12 @@ class FeedRepository {
       return nearbyPool;
     }
 
+    if (fastPartialThreshold != null &&
+        fastPartialThreshold > 0 &&
+        nearbyPool.items.length >= fastPartialThreshold) {
+      return nearbyPool.copyWith(source: 'nearby_partial');
+    }
+
     final backfillExcludedIds = <String>{
       ...excludedIds,
       ...nearbyPool.items.map((item) => item.uid),
@@ -145,12 +189,13 @@ class FeedRepository {
       diagnostics: diagnostics,
     );
 
-    return _DiscoverPoolLoadResult(
+    return DiscoverFeedPoolResult(
       items: _mergeUniqueItems(nearbyPool.items, backfillPool.items),
       scannedDocs: nearbyPool.scannedDocs + backfillPool.scannedDocs,
       source: backfillPool.items.isEmpty
           ? nearbyPool.source
           : 'nearby_plus_scan',
+      isExhaustive: backfillPool.isExhaustive,
     );
   }
 
@@ -179,7 +224,7 @@ class FeedRepository {
     };
   }
 
-  Future<_DiscoverPoolLoadResult> _loadDiscoverPoolFromNearby({
+  Future<DiscoverFeedPoolResult> _loadDiscoverPoolFromNearby({
     required String currentUserId,
     required double userLat,
     required double userLong,
@@ -212,14 +257,15 @@ class FeedRepository {
       diagnostics.countAdded(item);
     }
 
-    return _DiscoverPoolLoadResult(
+    return DiscoverFeedPoolResult(
       items: filteredItems,
       scannedDocs: filteredItems.length,
       source: 'nearby_optimized',
+      isExhaustive: false,
     );
   }
 
-  Future<_DiscoverPoolLoadResult> _loadDiscoverPoolFromBoundedScan({
+  Future<DiscoverFeedPoolResult> _loadDiscoverPoolFromBoundedScan({
     required String currentUserId,
     required double? userLat,
     required double? userLong,
@@ -232,6 +278,7 @@ class FeedRepository {
     final items = <FeedItem>[];
     DocumentSnapshot<Map<String, dynamic>>? cursor;
     var scannedDocs = 0;
+    var exhaustedSource = false;
 
     while (scannedDocs < maxScannedDocs && items.length < targetResults) {
       final remainingDocs = maxScannedDocs - scannedDocs;
@@ -240,10 +287,14 @@ class FeedRepository {
           : _discoverScanBatchSize;
       final snapshot = await _dataSource.getDiscoverFeedBatch(
         limit: batchLimit,
+        profileType: _profileTypeForDiscoverFilter(filter),
         startAfter: cursor,
       );
 
-      if (snapshot.docs.isEmpty) break;
+      if (snapshot.docs.isEmpty) {
+        exhaustedSource = true;
+        break;
+      }
 
       scannedDocs += snapshot.docs.length;
       cursor = snapshot.docs.last;
@@ -266,16 +317,17 @@ class FeedRepository {
           break;
         }
       }
-
       if (snapshot.docs.length < batchLimit) {
+        exhaustedSource = true;
         break;
       }
     }
 
-    return _DiscoverPoolLoadResult(
+    return DiscoverFeedPoolResult(
       items: items,
       scannedDocs: scannedDocs,
       source: 'bounded_scan',
+      isExhaustive: items.length < targetResults && exhaustedSource,
     );
   }
 
@@ -840,6 +892,17 @@ class FeedRepository {
     return filterType;
   }
 
+  int _resolvePreemptiveNeighborLimit({
+    required int targetResults,
+    required int neighborCount,
+  }) {
+    final estimatedCenterResults = (targetResults / (neighborCount + 1)).ceil();
+    return ((targetResults - estimatedCenterResults) / neighborCount)
+        .ceil()
+        .clamp(3, targetResults)
+        .toInt();
+  }
+
   int _resolveGeohashQueryLimit({
     required int geohashCount,
     required int? requestedLimit,
@@ -1018,6 +1081,52 @@ class FeedRepository {
 
       // Gera geohash do usuário com precisão 5 (~5km x 5km)
       final userGeohash = GeohashHelper.encode(userLat, userLong, precision: 5);
+      final neighbors = GeohashHelper.neighbors(userGeohash)
+        ..remove(userGeohash);
+      final shouldPreloadNeighbors =
+          targetResults >= _preemptiveNeighborQueryThreshold &&
+          neighbors.isNotEmpty;
+
+      Future<List<QuerySnapshot<Map<String, dynamic>>>>? preloadedNeighbors;
+      Stopwatch? neighborQueryStopwatch;
+      var neighborSpanFinished = false;
+      var preloadedNeighborLimit = 0;
+
+      void finishNeighborQuerySpan(Map<String, Object?> data) {
+        if (neighborSpanFinished || neighborQueryStopwatch == null) {
+          return;
+        }
+        neighborSpanFinished = true;
+        AppPerformanceTracker.finishSpan(
+          'feed.repo.nearby_users_neighbors_query',
+          neighborQueryStopwatch,
+          data: data,
+        );
+      }
+
+      if (shouldPreloadNeighbors) {
+        preloadedNeighborLimit = _resolvePreemptiveNeighborLimit(
+          targetResults: targetResults,
+          neighborCount: neighbors.length,
+        );
+        neighborQueryStopwatch = AppPerformanceTracker.startSpan(
+          'feed.repo.nearby_users_neighbors_query',
+          data: {
+            'neighbors': neighbors.length,
+            'per_neighbor_limit': preloadedNeighborLimit,
+            'mode': 'preloaded',
+          },
+        );
+        preloadedNeighbors = Future.wait(
+          neighbors.map(
+            (neighborHash) => _dataSource.getUsersByGeohash(
+              geohash: neighborHash,
+              filterType: filterType,
+              limit: preloadedNeighborLimit,
+            ),
+          ),
+        );
+      }
 
       // 1. Primeiro busca no geohash do usuário (mais próximos)
       final centerQueryStopwatch = AppPerformanceTracker.startSpan(
@@ -1045,61 +1154,90 @@ class FeedRepository {
       );
 
       // 2. Se não tiver suficientes, expande para vizinhos (9 áreas ao todo)
-      if (results.length < targetResults) {
-        final neighbors = GeohashHelper.neighbors(userGeohash);
+      if (results.length < targetResults && neighbors.isNotEmpty) {
         // Remove o centro que já buscamos
-        neighbors.remove(userGeohash);
 
-        if (neighbors.isNotEmpty) {
-          final perNeighborLimit =
-              ((targetResults - results.length) / neighbors.length)
+        final perNeighborLimit = shouldPreloadNeighbors
+            ? preloadedNeighborLimit
+            : ((targetResults - results.length) / neighbors.length)
                   .ceil()
                   .clamp(3, targetResults);
 
-          final neighborsQueryStopwatch = AppPerformanceTracker.startSpan(
+        if (!shouldPreloadNeighbors) {
+          neighborQueryStopwatch = AppPerformanceTracker.startSpan(
             'feed.repo.nearby_users_neighbors_query',
             data: {
               'neighbors': neighbors.length,
               'per_neighbor_limit': perNeighborLimit,
+              'mode': 'progressive',
             },
           );
+        }
 
-          final neighborSnapshots = await Future.wait(
-            neighbors.map(
-              (neighborHash) => _dataSource.getUsersByGeohash(
-                geohash: neighborHash,
-                filterType: filterType,
-                limit: perNeighborLimit,
-              ),
-            ),
-          );
+        final resolvedNeighborSnapshots = preloadedNeighbors != null
+            ? await preloadedNeighbors
+            : await Future.wait(
+                neighbors.map(
+                  (neighborHash) => _dataSource.getUsersByGeohash(
+                    geohash: neighborHash,
+                    filterType: filterType,
+                    limit: perNeighborLimit,
+                  ),
+                ),
+              );
 
-          final totalNeighborDocs = neighborSnapshots.fold<int>(
-            0,
-            (totalDocs, snapshot) => totalDocs + snapshot.docs.length,
-          );
-          AppPerformanceTracker.finishSpan(
-            'feed.repo.nearby_users_neighbors_query',
-            neighborsQueryStopwatch,
-            data: {'docs': totalNeighborDocs},
-          );
+        final totalNeighborDocs = resolvedNeighborSnapshots.fold<int>(
+          0,
+          (totalDocs, snapshot) => totalDocs + snapshot.docs.length,
+        );
+        finishNeighborQuerySpan({
+          'docs': totalNeighborDocs,
+          'mode': shouldPreloadNeighbors ? 'preloaded' : 'progressive',
+        });
 
-          for (final neighborSnapshot in neighborSnapshots) {
-            if (results.length >= targetResults) break;
-            _processGeohashResults(
-              neighborSnapshot,
-              results,
-              seenUids,
-              currentUserId,
-              userLat,
-              userLong,
-              excludedIds,
-            );
-          }
+        for (final neighborSnapshot in resolvedNeighborSnapshots) {
+          if (results.length >= targetResults) break;
+          _processGeohashResults(
+            neighborSnapshot,
+            results,
+            seenUids,
+            currentUserId,
+            userLat,
+            userLong,
+            excludedIds,
+          );
         }
       }
-
       // 3. Ordena por distância real calculada
+      else if (preloadedNeighbors != null) {
+        unawaited(
+          preloadedNeighbors
+              .then((snapshots) {
+                final totalNeighborDocs = snapshots.fold<int>(
+                  0,
+                  (totalDocs, snapshot) => totalDocs + snapshot.docs.length,
+                );
+                finishNeighborQuerySpan({
+                  'docs': totalNeighborDocs,
+                  'mode': 'preloaded',
+                  'status': 'discarded',
+                });
+              })
+              .catchError((Object error, StackTrace stack) {
+                finishNeighborQuerySpan({
+                  'mode': 'preloaded',
+                  'status': 'discarded_error',
+                  'error_type': error.runtimeType.toString(),
+                });
+                AppLogger.warning(
+                  'Preloaded neighbor queries failed after center query was sufficient',
+                  error,
+                  stack,
+                );
+              }),
+        );
+      }
+
       results.sort(
         (a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999),
       );
@@ -1220,14 +1358,30 @@ final class _FeedPoolDiagnostics {
   }
 }
 
-final class _DiscoverPoolLoadResult {
-  const _DiscoverPoolLoadResult({
+final class DiscoverFeedPoolResult {
+  const DiscoverFeedPoolResult({
     required this.items,
     required this.scannedDocs,
     required this.source,
+    required this.isExhaustive,
   });
 
   final List<FeedItem> items;
   final int scannedDocs;
   final String source;
+  final bool isExhaustive;
+
+  DiscoverFeedPoolResult copyWith({
+    List<FeedItem>? items,
+    int? scannedDocs,
+    String? source,
+    bool? isExhaustive,
+  }) {
+    return DiscoverFeedPoolResult(
+      items: items ?? this.items,
+      scannedDocs: scannedDocs ?? this.scannedDocs,
+      source: source ?? this.source,
+      isExhaustive: isExhaustive ?? this.isExhaustive,
+    );
+  }
 }

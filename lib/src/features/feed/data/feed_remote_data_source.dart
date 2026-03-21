@@ -37,6 +37,7 @@ abstract class FeedRemoteDataSource {
 
   Future<QuerySnapshot<Map<String, dynamic>>> getDiscoverFeedBatch({
     required int limit,
+    String? profileType,
     DocumentSnapshot? startAfter,
   });
 
@@ -203,6 +204,7 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
   @override
   Future<QuerySnapshot<Map<String, dynamic>>> getDiscoverFeedBatch({
     required int limit,
+    String? profileType,
     DocumentSnapshot? startAfter,
   }) {
     var query = _firestore
@@ -210,17 +212,22 @@ class FeedRemoteDataSourceImpl implements FeedRemoteDataSource {
         .where(
           FirestoreFields.registrationStatus,
           isEqualTo: RegistrationStatus.complete,
-        )
-        .where(
-          FirestoreFields.profileType,
-          whereIn: [
-            ProfileType.professional,
-            ProfileType.band,
-            ProfileType.studio,
-          ],
-        )
-        .orderBy(FieldPath.documentId)
-        .limit(limit);
+        );
+
+    if (profileType != null && profileType.isNotEmpty) {
+      query = query.where(FirestoreFields.profileType, isEqualTo: profileType);
+    } else {
+      query = query.where(
+        FirestoreFields.profileType,
+        whereIn: [
+          ProfileType.professional,
+          ProfileType.band,
+          ProfileType.studio,
+        ],
+      );
+    }
+
+    query = query.orderBy(FieldPath.documentId).limit(limit);
 
     if (startAfter != null) {
       query = query.startAfterDocument(startAfter);

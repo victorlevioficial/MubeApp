@@ -77,6 +77,7 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   void _removeNativeSplashIfNeeded() {
     if (_nativeSplashRemoved) return;
     _nativeSplashRemoved = true;
+    AppPerformanceTracker.mark('bootstrap.native_splash_removed');
     FlutterNativeSplash.remove();
   }
 

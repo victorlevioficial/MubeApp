@@ -20,6 +20,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
+import '../../splash/presentation/splash_feed_render_tracking.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import 'feed_controller.dart';
@@ -65,9 +66,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   int _lastWarmupAnchor = -1;
   int _criticalWarmupFingerprint = 0;
   int _criticalWarmupGeneration = 0;
-  bool _criticalImagesReady = false;
-  bool _hasRenderedFeedContent = false;
+  Stopwatch? _initialDependenciesHoldStopwatch;
   bool _hasReleasedInitialLayout = false;
+  bool _hasReportedFirstContentVisible = false;
+  bool _hasTrackedInitialDependenciesHold = false;
 
   @override
   void initState() {
@@ -81,6 +83,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   void dispose() {
+    _finishInitialDependenciesHold(status: 'disposed');
     _feedSubscription?.close();
     _deferredPrecacheTimer?.cancel();
     _scrollController.dispose();
@@ -203,23 +206,44 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
+  void _updateInitialDependenciesHoldTracking(bool shouldHold) {
+    if (shouldHold) {
+      if (_hasTrackedInitialDependenciesHold ||
+          _initialDependenciesHoldStopwatch != null) {
+        return;
+      }
+
+      _initialDependenciesHoldStopwatch = AppPerformanceTracker.startSpan(
+        'feed.ui.initial_dependencies_hold',
+        data: {'reason': 'current_user_or_gigs_preview_loading'},
+      );
+      return;
+    }
+
+    _finishInitialDependenciesHold(status: 'released');
+  }
+
+  void _finishInitialDependenciesHold({required String status}) {
+    final stopwatch = _initialDependenciesHoldStopwatch;
+    if (stopwatch == null) return;
+
+    _initialDependenciesHoldStopwatch = null;
+    _hasTrackedInitialDependenciesHold = true;
+    AppPerformanceTracker.finishSpan(
+      'feed.ui.initial_dependencies_hold',
+      stopwatch,
+      data: {'status': status},
+    );
+  }
+
   void _scheduleCriticalImageWarmup(FeedState state) {
     if (!mounted) return;
 
     final urls = _buildCriticalImageUrls(state);
-    if (urls.isEmpty) {
-      if (_criticalImagesReady && _hasRenderedFeedContent) return;
-      setState(() {
-        _criticalImagesReady = true;
-        _hasRenderedFeedContent = true;
-      });
-      return;
-    }
+    if (urls.isEmpty) return;
 
     final fingerprint = Object.hashAll(urls);
-    if (fingerprint == _criticalWarmupFingerprint && _criticalImagesReady) {
-      return;
-    }
+    if (fingerprint == _criticalWarmupFingerprint) return;
 
     _criticalWarmupFingerprint = fingerprint;
     final generation = ++_criticalWarmupGeneration;
@@ -227,14 +251,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       'feed.critical_image_warmup',
       data: {'urls': urls.length},
     );
-
-    if (_hasRenderedFeedContent) {
-      _criticalImagesReady = true;
-    } else {
-      setState(() {
-        _criticalImagesReady = false;
-      });
-    }
 
     final precacheService = ref.read(feedImagePrecacheServiceProvider);
     unawaited(
@@ -248,16 +264,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
             timeout: FeedConstants.criticalPrecacheTimeout,
           )
           .whenComplete(() {
-            if (!mounted || generation != _criticalWarmupGeneration) return;
             AppPerformanceTracker.finishSpan(
               'feed.critical_image_warmup',
               criticalWarmupStopwatch,
-              data: {'urls': urls.length},
+              data: {
+                'urls': urls.length,
+                'status': generation == _criticalWarmupGeneration
+                    ? 'done'
+                    : 'stale',
+              },
             );
-            setState(() {
-              _criticalImagesReady = true;
-              _hasRenderedFeedContent = true;
-            });
           }),
     );
   }
@@ -316,6 +332,34 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         .precacheItems(context, upcomingItems, maxItems: upcomingItems.length);
   }
 
+  void _reportFirstContentVisible({
+    required FeedState state,
+    required AsyncValue<AppUser?> currentUserAsync,
+    required AsyncValue<List<Gig>> gigsPreviewAsync,
+  }) {
+    if (_hasReportedFirstContentVisible) return;
+    _hasReportedFirstContentVisible = true;
+
+    finishSplashToFeedRenderTracking(
+      data: {
+        'items': state.items.length,
+        'sections': state.sectionItems.length,
+        'feed_status': state.status.name,
+        'has_current_user': currentUserAsync.hasValue,
+        'has_gigs_preview': gigsPreviewAsync.hasValue,
+      },
+    );
+
+    AppPerformanceTracker.mark(
+      'feed.ui.first_content_visible',
+      data: {
+        'items': state.items.length,
+        'sections': state.sectionItems.length,
+        'feed_status': state.status.name,
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final stateAsync = ref.watch(feedControllerProvider);
@@ -323,10 +367,6 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final controller = ref.read(feedControllerProvider.notifier);
     final currentUserAsync = ref.watch(currentUserProfileProvider);
     final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
-    final shouldHoldForCriticalImages =
-        !_hasRenderedFeedContent &&
-        state.items.isNotEmpty &&
-        !_criticalImagesReady;
     final shouldHoldForInitialDependencies =
         !_hasReleasedInitialLayout &&
         !stateAsync.hasError &&
@@ -334,13 +374,17 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         ((currentUserAsync.asData == null && currentUserAsync.isLoading) ||
             (gigsPreviewAsync.asData == null && gigsPreviewAsync.isLoading));
 
-    if (state.isInitialLoading ||
-        shouldHoldForCriticalImages ||
-        shouldHoldForInitialDependencies) {
+    if (state.isInitialLoading || shouldHoldForInitialDependencies) {
+      _updateInitialDependenciesHoldTracking(shouldHoldForInitialDependencies);
       return const FeedScreenSkeleton();
     }
 
-    _releaseInitialLayout();
+    _updateInitialDependenciesHoldTracking(false);
+    _releaseInitialLayout(
+      state: state,
+      currentUserAsync: currentUserAsync,
+      gigsPreviewAsync: gigsPreviewAsync,
+    );
 
     return _buildFeedScaffold(
       context: context,
@@ -352,11 +396,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     );
   }
 
-  void _releaseInitialLayout() {
+  void _releaseInitialLayout({
+    required FeedState state,
+    required AsyncValue<AppUser?> currentUserAsync,
+    required AsyncValue<List<Gig>> gigsPreviewAsync,
+  }) {
     if (_hasReleasedInitialLayout) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _hasReleasedInitialLayout) return;
       setState(() => _hasReleasedInitialLayout = true);
+      _reportFirstContentVisible(
+        state: state,
+        currentUserAsync: currentUserAsync,
+        gigsPreviewAsync: gigsPreviewAsync,
+      );
     });
   }
 }

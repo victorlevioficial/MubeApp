@@ -243,5 +243,43 @@ void main() {
         expect(find.byType(CustomScrollView), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'does not keep skeleton visible while critical image warmup is still running',
+      (tester) async {
+        fakePrecacheService.criticalUrlsCompleter = Completer<void>();
+        fakeFeedRepository.discoverFeedPool = const [
+          FeedItem(
+            uid: 'artist-1',
+            nome: 'Artist One',
+            nomeArtistico: 'Artist One',
+            tipoPerfil: 'profissional',
+            foto: 'https://example.com/artist-1.jpg',
+          ),
+        ];
+
+        await mockNetworkImagesFor(() async {
+          await tester.pumpWidget(
+            createSubject(
+              additionalOverrides: [
+                homeGigsPreviewProvider.overrideWith(
+                  (ref) => Stream.value(const []),
+                ),
+              ],
+            ),
+          );
+          await tester.pump();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+        });
+
+        expect(find.byType(CustomScrollView), findsOneWidget);
+        expect(find.byType(FeedScreenSkeleton), findsNothing);
+        expect(fakePrecacheService.criticalUrlsHistory, isNotEmpty);
+
+        fakePrecacheService.criticalUrlsCompleter!.complete();
+        await tester.pump();
+      },
+    );
   });
 }

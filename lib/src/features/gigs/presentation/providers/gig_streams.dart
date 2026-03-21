@@ -1,3 +1,7 @@
+// ignore_for_file: directives_ordering
+
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -8,6 +12,7 @@ import '../../domain/gig.dart';
 import '../../domain/gig_application.dart';
 import '../../domain/gig_review.dart';
 import '../../domain/gig_review_opportunity.dart';
+import '../../../../utils/app_performance_tracker.dart';
 import 'gig_filters_controller.dart';
 
 part 'gig_streams.g.dart';
@@ -25,7 +30,53 @@ final myGigApplicationProvider = StreamProvider.autoDispose
     });
 
 final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
-  return ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
+  final stopwatch = AppPerformanceTracker.startSpan(
+    'gigs.home_preview_stream',
+    data: {'limit': 3},
+  );
+  var completed = false;
+
+  void finish(
+    String status, {
+    int? items,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    if (completed) return;
+    completed = true;
+    final payload = <String, Object?>{'status': status};
+    if (items != null) {
+      payload['items'] = items;
+    }
+    if (error != null) {
+      payload['error_type'] = error.runtimeType.toString();
+    }
+    AppPerformanceTracker.finishSpan(
+      'gigs.home_preview_stream',
+      stopwatch,
+      data: payload,
+    );
+  }
+
+  ref.onDispose(() {
+    if (!completed) {
+      finish('disposed_before_first_event');
+    }
+  });
+
+  final source = ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
+  return source.transform(
+    StreamTransformer.fromHandlers(
+      handleData: (gigs, sink) {
+        finish('first_snapshot', items: gigs.length);
+        sink.add(gigs);
+      },
+      handleError: (error, stackTrace, sink) {
+        finish('first_error', error: error, stackTrace: stackTrace);
+        sink.addError(error, stackTrace);
+      },
+    ),
+  );
 });
 
 final publicCreatorOpenGigsProvider = StreamProvider.autoDispose

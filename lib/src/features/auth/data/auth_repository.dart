@@ -610,24 +610,56 @@ AuthRepository authRepository(Ref ref) {
 /// Stream provider for Firebase Auth state changes.
 @Riverpod(keepAlive: true)
 Stream<User?> authStateChanges(Ref ref) {
+  final repository = ref.watch(authRepositoryProvider);
   final stopwatch = AppPerformanceTracker.startSpan('auth.state_stream');
-  var firstEvent = true;
 
-  return ref.watch(authRepositoryProvider).authStateChanges().map((user) {
-    if (firstEvent) {
-      firstEvent = false;
-      AppPerformanceTracker.finishSpan(
-        'auth.state_stream',
-        stopwatch,
-        data: {'authenticated': user != null},
-      );
-    } else {
-      AppPerformanceTracker.mark(
-        'auth.state_stream.event',
-        data: {'authenticated': user != null},
-      );
+  return Stream<User?>.multi((controller) {
+    var firstEvent = true;
+    var lastUid = '';
+    var lastAuthenticated = false;
+
+    void emit(User? user, {required String source}) {
+      final uid = user?.uid ?? '';
+      final authenticated = user != null;
+      final isDuplicate =
+          !firstEvent && uid == lastUid && authenticated == lastAuthenticated;
+      if (isDuplicate) {
+        AppPerformanceTracker.mark(
+          'auth.state_stream.duplicate_skipped',
+          data: {'authenticated': authenticated, 'source': source},
+        );
+        return;
+      }
+
+      lastUid = uid;
+      lastAuthenticated = authenticated;
+
+      if (firstEvent) {
+        firstEvent = false;
+        AppPerformanceTracker.finishSpan(
+          'auth.state_stream',
+          stopwatch,
+          data: {'authenticated': authenticated, 'source': source},
+        );
+      } else {
+        AppPerformanceTracker.mark(
+          'auth.state_stream.event',
+          data: {'authenticated': authenticated, 'source': source},
+        );
+      }
+
+      controller.add(user);
     }
-    return user;
+
+    emit(repository.currentUser, source: 'current_user');
+
+    final subscription = repository.authStateChanges().listen(
+      (user) => emit(user, source: 'stream'),
+      onError: controller.addError,
+      onDone: controller.close,
+    );
+
+    controller.onCancel = subscription.cancel;
   });
 }
 
@@ -637,43 +669,58 @@ Stream<User?> authStateChanges(Ref ref) {
 @riverpod
 Stream<AppUser?> currentUserProfile(Ref ref) {
   final authState = ref.watch(authStateChangesProvider);
-  return authState.when(
-    data: (user) {
-      if (user == null) {
-        AppPerformanceTracker.mark(
-          'auth.profile_stream.skipped',
-          data: {'reason': 'unauthenticated'},
-        );
-        return Stream.value(null);
-      }
+  final repository = ref.watch(authRepositoryProvider);
+  final fallbackUser = repository.currentUser;
+  final currentUser = authState.asData?.value ?? fallbackUser;
 
-      final stopwatch = AppPerformanceTracker.startSpan(
-        'auth.profile_stream',
-        data: {'uid': user.uid},
+  if (currentUser == null) {
+    if (authState.isLoading) {
+      AppPerformanceTracker.mark(
+        'auth.profile_stream.waiting',
+        data: {'reason': 'auth_loading_without_current_user'},
       );
-      var firstEvent = true;
+      return const Stream.empty();
+    }
+    if (authState.hasError) {
+      AppPerformanceTracker.mark(
+        'auth.profile_stream.waiting',
+        data: {'reason': 'auth_error_without_current_user'},
+      );
+      return const Stream.empty();
+    }
+    AppPerformanceTracker.mark(
+      'auth.profile_stream.skipped',
+      data: {'reason': 'unauthenticated'},
+    );
+    return Stream.value(null);
+  }
 
-      return ref.watch(authRepositoryProvider).watchUser(user.uid).map((
-        profile,
-      ) {
-        if (firstEvent) {
-          firstEvent = false;
-          AppPerformanceTracker.finishSpan(
-            'auth.profile_stream',
-            stopwatch,
-            data: {
-              'uid': user.uid,
-              'has_profile': profile != null,
-              'cadastro_status': profile?.cadastroStatus,
-            },
-          );
-        }
-        return profile;
-      });
+  final stopwatch = AppPerformanceTracker.startSpan(
+    'auth.profile_stream',
+    data: {
+      'uid': currentUser.uid,
+      'auth_source': authState.asData?.value != null
+          ? 'auth_state'
+          : 'fallback',
     },
-    loading: () => const Stream.empty(),
-    error: (_, _) => const Stream.empty(),
   );
+  var firstEvent = true;
+
+  return repository.watchUser(currentUser.uid).map((profile) {
+    if (firstEvent) {
+      firstEvent = false;
+      AppPerformanceTracker.finishSpan(
+        'auth.profile_stream',
+        stopwatch,
+        data: {
+          'uid': currentUser.uid,
+          'has_profile': profile != null,
+          'cadastro_status': profile?.cadastroStatus,
+        },
+      );
+    }
+    return profile;
+  });
 }
 
 @riverpod

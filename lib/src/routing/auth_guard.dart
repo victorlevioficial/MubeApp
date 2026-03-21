@@ -13,6 +13,7 @@ import '../features/auth/presentation/account_deletion_provider.dart';
 import '../features/onboarding/providers/notification_permission_prompt_provider.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../utils/app_logger.dart';
+import '../utils/app_performance_tracker.dart';
 import 'route_paths.dart';
 
 /// Handles authentication and onboarding redirect logic.
@@ -23,6 +24,8 @@ class AuthGuard {
   final Ref _ref;
   bool _isRecoveringProfileAccess = false;
   DateTime? _lastProfileRecoveryAt;
+  Stopwatch? _profileWaitStopwatch;
+  String? _profileWaitPath;
   static const Duration _profileRecoveryCooldown = Duration(seconds: 4);
 
   AuthGuard(this._ref);
@@ -63,6 +66,7 @@ class AuthGuard {
 
     // Not logged in - redirect to register (first-time users expect signup)
     if (!isLoggedIn) {
+      _finishProfileWaitIfNeeded(status: 'signed_out', path: currentPath);
       if (currentPath == RoutePaths.splash) {
         return RoutePaths.register;
       }
@@ -98,6 +102,7 @@ class AuthGuard {
     }
 
     if (userProfileAsync.hasError) {
+      _finishProfileWaitIfNeeded(status: 'error', path: currentPath);
       if (isDeletingAccount) {
         _log(
           'Profile stream error during account deletion - skipping recovery',
@@ -126,6 +131,7 @@ class AuthGuard {
 
     // Profile not loaded yet.
     if (userProfileAsync.isLoading || !userProfileAsync.hasValue) {
+      _startProfileWaitIfNeeded(currentPath);
       if (currentPath == RoutePaths.splash) {
         _log('Profile loading - waiting on splash');
         return null; // Stay on splash
@@ -192,6 +198,7 @@ class AuthGuard {
     }
 
     final user = userProfileAsync.value!;
+    _finishProfileWaitIfNeeded(status: 'resolved', path: currentPath);
 
     // We have a fully loaded user profile. If they are on Splash, route them based on onboarding.
     if (currentPath == RoutePaths.splash) {
@@ -214,6 +221,31 @@ class AuthGuard {
     }
 
     return null;
+  }
+
+  void _startProfileWaitIfNeeded(String currentPath) {
+    if (_profileWaitStopwatch != null) return;
+    _profileWaitPath = currentPath;
+    _profileWaitStopwatch = AppPerformanceTracker.startSpan(
+      'auth.guard.profile_wait',
+      data: {'path': currentPath},
+    );
+  }
+
+  void _finishProfileWaitIfNeeded({
+    required String status,
+    required String path,
+  }) {
+    final stopwatch = _profileWaitStopwatch;
+    if (stopwatch == null) return;
+
+    AppPerformanceTracker.finishSpan(
+      'auth.guard.profile_wait',
+      stopwatch,
+      data: {'status': status, 'path': _profileWaitPath ?? path},
+    );
+    _profileWaitStopwatch = null;
+    _profileWaitPath = null;
   }
 
   Future<String?> _recoverPermissionRelatedProfileAccess(

@@ -11,12 +11,15 @@ import '../feed_state.dart';
 class FeedMainRuntime {
   List<FeedItem> allSortedUsers = [];
   bool hasLoadedPool = false;
+  bool isPoolExhaustive = false;
+  int loadedPoolTarget = 0;
   double? userLat;
   double? userLong;
 }
 
 /// Controller responsible for deterministic main feed pagination.
 class FeedMainController {
+  static const int _initialPoolPages = 2;
   final FeedRepository _feedRepository;
 
   const FeedMainController({required FeedRepository feedRepository})
@@ -39,19 +42,22 @@ class FeedMainController {
     if (reset && invalidatePool) {
       runtime.allSortedUsers = [];
       runtime.hasLoadedPool = false;
+      runtime.isPoolExhaustive = false;
+      runtime.loadedPoolTarget = 0;
     }
 
     try {
+      var expandedPoolDuringFetch = false;
       if (!runtime.hasLoadedPool) {
-        final poolResult = await _feedRepository.getDiscoverFeedPoolSorted(
-          currentUserId: user.uid,
-          userLat: runtime.userLat,
-          userLong: runtime.userLong,
-          excludedIds: blockedIds,
+        final failureMessage = await _loadDiscoveryPoolIntoRuntime(
+          user: user,
+          blockedIds: blockedIds,
+          runtime: runtime,
+          targetResults: _initialPoolTarget(batchSize),
+          fastPartialThreshold: batchSize,
+          markName: 'feed.main_pool.ready',
         );
 
-        String? failureMessage;
-        poolResult.fold((error) => failureMessage = error.message, (_) => null);
         if (failureMessage != null) {
           AppPerformanceTracker.finishSpan(
             'feed.main_fetch',
@@ -63,24 +69,46 @@ class FeedMainController {
             errorMessage: failureMessage,
           );
         }
-
-        runtime.allSortedUsers = poolResult.getOrElse((_) => const []);
-        runtime.hasLoadedPool = true;
-        AppPerformanceTracker.mark(
-          'feed.main_pool.ready',
-          data: {
-            'pool_items': runtime.allSortedUsers.length,
-            ..._diagnosticCounts(runtime.allSortedUsers, prefix: 'pool'),
-          },
-        );
       }
 
-      final filteredItems = _applyCurrentFilter(
+      var filteredItems = _applyCurrentFilter(
         runtime.allSortedUsers,
         currentState.currentFilter,
       );
       final page = reset ? 0 : currentState.currentPage;
       final startIndex = page * batchSize;
+
+      while (_shouldExpandPool(
+        filteredLength: filteredItems.length,
+        startIndex: startIndex,
+        batchSize: batchSize,
+        runtime: runtime,
+      )) {
+        expandedPoolDuringFetch = true;
+        final nextTarget = _nextPoolTarget(runtime, batchSize);
+        final failureMessage = await _loadDiscoveryPoolIntoRuntime(
+          user: user,
+          blockedIds: blockedIds,
+          runtime: runtime,
+          targetResults: nextTarget,
+          markName: 'feed.main_pool.expanded',
+        );
+        if (failureMessage != null) {
+          AppPerformanceTracker.finishSpan(
+            'feed.main_fetch',
+            mainFeedStopwatch,
+            data: {'status': 'error', 'source': 'discover_pool'},
+          );
+          return currentState.copyWithFeed(
+            status: PaginationStatus.error,
+            errorMessage: failureMessage,
+          );
+        }
+        filteredItems = _applyCurrentFilter(
+          runtime.allSortedUsers,
+          currentState.currentFilter,
+        );
+      }
 
       if (startIndex >= filteredItems.length) {
         final baseState = reset
@@ -107,8 +135,11 @@ class FeedMainController {
       final nextSlice = filteredItems.sublist(startIndex, endIndex);
       final pagedItems = reset
           ? nextSlice
+          : expandedPoolDuringFetch
+          ? filteredItems.sublist(0, endIndex)
           : [...currentState.items, ...nextSlice];
-      final hasMore = endIndex < filteredItems.length;
+      final hasMore =
+          endIndex < filteredItems.length || _canExpandPool(runtime);
 
       AppPerformanceTracker.finishSpan(
         'feed.main_fetch',
@@ -119,6 +150,7 @@ class FeedMainController {
           'batch_items': nextSlice.length,
           'pool_items': runtime.allSortedUsers.length,
           'filtered_items': filteredItems.length,
+          'expanded_pool': expandedPoolDuringFetch,
           ..._diagnosticCounts(filteredItems, prefix: 'filtered'),
         },
       );
@@ -140,6 +172,83 @@ class FeedMainController {
         errorMessage: resolveErrorMessage(error),
       );
     }
+  }
+
+  int _initialPoolTarget(int batchSize) {
+    final target = batchSize * _initialPoolPages;
+    return target.clamp(
+      batchSize,
+      FeedRepository.defaultDiscoverPoolTargetResults,
+    );
+  }
+
+  int _nextPoolTarget(FeedMainRuntime runtime, int batchSize) {
+    if (!_canExpandPool(runtime)) {
+      return runtime.loadedPoolTarget;
+    }
+
+    final currentTarget = runtime.loadedPoolTarget > 0
+        ? runtime.loadedPoolTarget
+        : _initialPoolTarget(batchSize);
+    final doubledTarget = currentTarget * 2;
+    return doubledTarget.clamp(
+      currentTarget,
+      FeedRepository.defaultDiscoverPoolTargetResults,
+    );
+  }
+
+  bool _canExpandPool(FeedMainRuntime runtime) {
+    return !runtime.isPoolExhaustive &&
+        runtime.loadedPoolTarget <
+            FeedRepository.defaultDiscoverPoolTargetResults;
+  }
+
+  bool _shouldExpandPool({
+    required int filteredLength,
+    required int startIndex,
+    required int batchSize,
+    required FeedMainRuntime runtime,
+  }) {
+    if (!_canExpandPool(runtime)) return false;
+    return (filteredLength - startIndex) < batchSize;
+  }
+
+  Future<String?> _loadDiscoveryPoolIntoRuntime({
+    required AppUser user,
+    required List<String> blockedIds,
+    required FeedMainRuntime runtime,
+    required int targetResults,
+    required String markName,
+    int? fastPartialThreshold,
+  }) async {
+    final poolResult = await _feedRepository.getDiscoverFeedPool(
+      currentUserId: user.uid,
+      userLat: runtime.userLat,
+      userLong: runtime.userLong,
+      excludedIds: blockedIds,
+      targetResults: targetResults,
+      fastPartialThreshold: fastPartialThreshold,
+    );
+
+    String? failureMessage;
+    poolResult.fold((error) => failureMessage = error.message, (pool) {
+      runtime.allSortedUsers = pool.items;
+      runtime.hasLoadedPool = true;
+      runtime.isPoolExhaustive = pool.isExhaustive;
+      runtime.loadedPoolTarget = targetResults;
+      AppPerformanceTracker.mark(
+        markName,
+        data: {
+          'pool_items': runtime.allSortedUsers.length,
+          'target_results': targetResults,
+          'is_exhaustive': runtime.isPoolExhaustive,
+          'can_expand_more': _canExpandPool(runtime),
+          ..._diagnosticCounts(runtime.allSortedUsers, prefix: 'pool'),
+        },
+      );
+    });
+
+    return failureMessage;
   }
 
   List<FeedItem> _applyCurrentFilter(

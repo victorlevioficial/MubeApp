@@ -241,6 +241,74 @@ void main() {
       ]);
     });
 
+    test(
+      'loadMoreMainFeed reorders visible items when expanded pool introduces closer matches',
+      () async {
+        final user = TestData.user(uid: 'user-1');
+        fakeAuthRepository.appUser = user;
+        fakeAuthRepository.emitUser(
+          FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        );
+        await waitForUser(container);
+
+        fakeFeedRepository.enqueueDiscoverFeedPoolPages([
+          List.generate(
+            20,
+            (index) => FeedItem(
+              uid: 'item-${index + 10}',
+              nome: 'Item ${index + 10}',
+              tipoPerfil: ProfileType.professional,
+              distanceKm: (index + 10).toDouble(),
+            ),
+          ),
+          List.generate(
+            30,
+            (index) => FeedItem(
+              uid: 'item-$index',
+              nome: 'Item $index',
+              tipoPerfil: ProfileType.professional,
+              distanceKm: index.toDouble(),
+            ),
+          ),
+        ]);
+
+        final controller = container.read(feedControllerProvider.notifier);
+        await controller.loadAllData();
+
+        final firstPageState = container.read(feedControllerProvider).value!;
+        expect(firstPageState.items.length, 20);
+        expect(firstPageState.hasMore, isTrue);
+        expect(
+          firstPageState.items.map((item) => item.distanceKm).toList(),
+          orderedEquals(List.generate(20, (index) => (index + 10).toDouble())),
+        );
+        expect(fakeFeedRepository.discoverFeedPoolTargetHistory, [40]);
+        expect(fakeFeedRepository.discoverFeedPoolFastPartialThresholdHistory, [
+          20,
+        ]);
+
+        await controller.loadMoreMainFeed();
+
+        final state = container.read(feedControllerProvider).value!;
+        expect(state.items.length, 30);
+        expect(state.items.first.uid, 'item-0');
+        expect(state.items.last.uid, 'item-29');
+        expect(
+          state.items.map((item) => item.distanceKm).toList(),
+          orderedEquals(List.generate(30, (index) => index.toDouble())),
+        );
+        expect(fakeFeedRepository.discoverFeedPoolCallHistory, [
+          FeedDiscoveryFilter.all,
+          FeedDiscoveryFilter.all,
+        ]);
+        expect(fakeFeedRepository.discoverFeedPoolTargetHistory, [40, 80]);
+        expect(fakeFeedRepository.discoverFeedPoolFastPartialThresholdHistory, [
+          20,
+          null,
+        ]);
+      },
+    );
+
     test('updateLikeCount updates state locally', () async {
       final user = TestData.user(uid: 'user-1');
       fakeAuthRepository.appUser = user;
@@ -374,12 +442,14 @@ void main() {
 
 class _MainFeedFailureFeedRepository extends FakeFeedRepository {
   @override
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+  FutureResult<DiscoverFeedPoolResult> getDiscoverFeedPool({
     required String currentUserId,
     required double? userLat,
     required double? userLong,
     List<String> excludedIds = const [],
     FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
   }) async {
     return Either.left(const ServerFailure(message: 'Main feed failed'));
   }
@@ -387,12 +457,14 @@ class _MainFeedFailureFeedRepository extends FakeFeedRepository {
 
 class _ThrowingMainFeedRepository extends FakeFeedRepository {
   @override
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+  FutureResult<DiscoverFeedPoolResult> getDiscoverFeedPool({
     required String currentUserId,
     required double? userLat,
     required double? userLong,
     List<String> excludedIds = const [],
     FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
   }) async {
     throw FirebaseException(plugin: 'cloud_firestore', code: 'unavailable');
   }

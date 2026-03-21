@@ -358,6 +358,9 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   final List<DocumentSnapshot?> techniciansPaginatedStartAfterHistory = [];
   final List<DocumentSnapshot?> mainFeedStartAfterHistory = [];
   final List<FeedDiscoveryFilter> discoverFeedPoolCallHistory = [];
+  final List<int?> discoverFeedPoolTargetHistory = [];
+  final List<int?> discoverFeedPoolFastPartialThresholdHistory = [];
+  final List<List<FeedItem>> discoverFeedPoolPages = [];
 
   void enqueueMainFeedResponses(List<PaginatedFeedResponse> responses) {
     mainFeedResponses = List<PaginatedFeedResponse>.from(responses);
@@ -368,6 +371,31 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     List<PaginatedFeedResponse> responses,
   ) {
     typePaginatedResponses[type] = List<PaginatedFeedResponse>.from(responses);
+  }
+
+  void enqueueDiscoverFeedPoolPages(List<List<FeedItem>> pages) {
+    discoverFeedPoolPages
+      ..clear()
+      ..addAll(pages.map((page) => List<FeedItem>.from(page)));
+  }
+
+  DiscoverFeedPoolResult _buildDiscoverFeedPoolResult(
+    List<FeedItem> source, {
+    required List<String> excludedIds,
+    required FeedDiscoveryFilter filter,
+    required bool isExhaustive,
+  }) {
+    final filtered = source
+        .where((item) => !excludedIds.contains(item.uid))
+        .where((item) => FeedDiscovery.matchesFilter(item, filter))
+        .toList(growable: false);
+    filtered.sort(FeedDiscovery.compareByDistance);
+    return DiscoverFeedPoolResult(
+      items: filtered,
+      scannedDocs: source.length,
+      source: 'fake',
+      isExhaustive: isExhaustive,
+    );
   }
 
   PaginatedFeedResponse? _dequeueMainFeedResponse() {
@@ -469,16 +497,34 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }
 
   @override
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+  FutureResult<DiscoverFeedPoolResult> getDiscoverFeedPool({
     required String currentUserId,
     required double? userLat,
     required double? userLong,
     List<String> excludedIds = const [],
     FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
     discoverFeedPoolCallHistory.add(filter);
+    discoverFeedPoolTargetHistory.add(targetResults);
+    discoverFeedPoolFastPartialThresholdHistory.add(fastPartialThreshold);
+
+    if (discoverFeedPoolPages.isNotEmpty) {
+      final page = discoverFeedPoolPages.removeAt(0);
+      final isExhaustive = discoverFeedPoolPages.isEmpty;
+      return Either.right(
+        _buildDiscoverFeedPoolResult(
+          page,
+          excludedIds: excludedIds,
+          filter: filter,
+          isExhaustive: isExhaustive,
+        ),
+      );
+    }
+
     final source = discoverFeedPool.isNotEmpty
         ? discoverFeedPool
         : [
@@ -489,12 +535,37 @@ class FakeFeedRepository extends Fake implements FeedRepository {
             ...bands,
             ...studios,
           ];
-    final filtered = source
-        .where((item) => !excludedIds.contains(item.uid))
-        .where((item) => FeedDiscovery.matchesFilter(item, filter))
-        .toList(growable: false);
-    filtered.sort(FeedDiscovery.compareByDistance);
-    return Either.right(filtered);
+
+    return Either.right(
+      _buildDiscoverFeedPoolResult(
+        source,
+        excludedIds: excludedIds,
+        filter: filter,
+        isExhaustive: true,
+      ),
+    );
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    List<String> excludedIds = const [],
+    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
+  }) async {
+    final poolResult = await getDiscoverFeedPool(
+      currentUserId: currentUserId,
+      userLat: userLat,
+      userLong: userLong,
+      excludedIds: excludedIds,
+      filter: filter,
+      targetResults: targetResults,
+      fastPartialThreshold: fastPartialThreshold,
+    );
+    return poolResult.map((pool) => pool.items);
   }
 
   @override
@@ -686,6 +757,9 @@ class FakeFeedRepository extends Fake implements FeedRepository {
 /// Fake implementation of FeedImagePrecacheService
 class FakeFeedImagePrecacheService extends Fake
     implements FeedImagePrecacheService {
+  Completer<void>? criticalUrlsCompleter;
+  final List<List<String>> criticalUrlsHistory = [];
+
   @override
   void precacheItems(
     dynamic context,
@@ -709,7 +783,12 @@ class FakeFeedImagePrecacheService extends Fake
     int? maxWidth,
     int? maxHeight,
     Duration timeout = const Duration(milliseconds: 1800),
-  }) async {}
+  }) async {
+    criticalUrlsHistory.add(List<String>.from(urls));
+    if (criticalUrlsCompleter != null) {
+      await criticalUrlsCompleter!.future;
+    }
+  }
 }
 
 /// Fake implementation of NotificationRepository
