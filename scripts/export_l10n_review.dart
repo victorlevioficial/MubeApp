@@ -43,13 +43,7 @@ void main() {
 
   for (final row in rows) {
     ptOnlyCsv.writeln(
-      [
-        row.key,
-        row.description,
-        row.ptCurrent,
-        '',
-        '',
-      ].map(_csvCell).join(','),
+      [row.key, row.description, row.ptCurrent, '', ''].map(_csvCell).join(','),
     );
 
     fullCsv.writeln(
@@ -84,10 +78,9 @@ void main() {
     File('${outputDir.path}/mube_l10n_review_full.csv'),
     fullCsv.toString(),
   );
-  File('${outputDir.path}/mube_l10n_review_preview.md').writeAsStringSync(
-    markdown.toString(),
-    encoding: utf8,
-  );
+  File(
+    '${outputDir.path}/mube_l10n_review_preview.md',
+  ).writeAsStringSync(markdown.toString(), encoding: utf8);
 
   stdout.writeln('Arquivos gerados em: ${outputDir.path}');
 }
@@ -100,9 +93,7 @@ List<_Row> _buildRows(
   Map<String, dynamic> ptData,
   Map<String, dynamic> enData,
 ) {
-  final keys = ptData.keys
-      .where((key) => !key.startsWith('@'))
-      .toList()
+  final keys = ptData.keys.where((key) => !key.startsWith('@')).toList()
     ..sort();
 
   return [
