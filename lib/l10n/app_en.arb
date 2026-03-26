@@ -144,6 +144,16 @@
   "settings_privacy_home_visibility_subtitle": "If disabled, your profile won't appear in general search results or in the feed.",
   "settings_privacy_matchpoint_title": "Enable MatchPoint",
   "settings_privacy_matchpoint_subtitle": "If disabled, nobody will see you in MatchPoint and you won't receive new matches.",
+  "settings_privacy_public_profile_title": "Public profile",
+  "settings_privacy_public_profile_subtitle": "Allows your venue to appear in search and have a shareable link.",
+  "settings_privacy_public_profile_photo_required": "Add a profile photo before enabling the public profile.",
+  "settings_privacy_public_profile_update_error": "Error updating public profile: {error}",
+  "@settings_privacy_public_profile_update_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_privacy_public_profile_updated": "Public profile updated.",
   "settings_privacy_public_chat_title": "Public chat",
   "settings_privacy_public_chat_subtitle": "If disabled, new messages from people with no prior connection to you will go to Requests.",
   "settings_privacy_chat_update_error": "Error updating chat privacy: {error}",

@@ -714,6 +714,8 @@ class SearchController extends Notifier<SearchPaginationState> {
         return ProfileType.band;
       case SearchCategory.studios:
         return ProfileType.studio;
+      case SearchCategory.venues:
+        return ProfileType.contractor;
       case SearchCategory.all:
         return null;
     }

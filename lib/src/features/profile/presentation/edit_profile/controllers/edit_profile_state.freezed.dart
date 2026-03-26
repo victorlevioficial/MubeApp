@@ -19,7 +19,8 @@ mixin _$EditProfileState {
  List<MediaItem> get galleryItems; bool get isUploadingMedia; double get uploadProgress; String get uploadStatus;// Professional Fields
  List<String> get selectedCategories; List<String> get selectedGenres; List<String> get selectedInstruments; List<String> get selectedRoles; String get backingVocalMode; bool get instrumentalistBackingVocal; bool get offersRemoteRecording;// Studio Fields
  String? get studioType; List<String> get selectedServices;// Band Fields
- List<String> get bandGenres;
+ List<String> get bandGenres;// Contractor Fields
+ String? get contractorVenueType; List<String> get contractorAmenities;
 /// Create a copy of EditProfileState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,16 +31,16 @@ $EditProfileStateCopyWith<EditProfileState> get copyWith => _$EditProfileStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditProfileState&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.hasChanges, hasChanges) || other.hasChanges == hasChanges)&&const DeepCollectionEquality().equals(other.galleryItems, galleryItems)&&(identical(other.isUploadingMedia, isUploadingMedia) || other.isUploadingMedia == isUploadingMedia)&&(identical(other.uploadProgress, uploadProgress) || other.uploadProgress == uploadProgress)&&(identical(other.uploadStatus, uploadStatus) || other.uploadStatus == uploadStatus)&&const DeepCollectionEquality().equals(other.selectedCategories, selectedCategories)&&const DeepCollectionEquality().equals(other.selectedGenres, selectedGenres)&&const DeepCollectionEquality().equals(other.selectedInstruments, selectedInstruments)&&const DeepCollectionEquality().equals(other.selectedRoles, selectedRoles)&&(identical(other.backingVocalMode, backingVocalMode) || other.backingVocalMode == backingVocalMode)&&(identical(other.instrumentalistBackingVocal, instrumentalistBackingVocal) || other.instrumentalistBackingVocal == instrumentalistBackingVocal)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.studioType, studioType) || other.studioType == studioType)&&const DeepCollectionEquality().equals(other.selectedServices, selectedServices)&&const DeepCollectionEquality().equals(other.bandGenres, bandGenres));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditProfileState&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.hasChanges, hasChanges) || other.hasChanges == hasChanges)&&const DeepCollectionEquality().equals(other.galleryItems, galleryItems)&&(identical(other.isUploadingMedia, isUploadingMedia) || other.isUploadingMedia == isUploadingMedia)&&(identical(other.uploadProgress, uploadProgress) || other.uploadProgress == uploadProgress)&&(identical(other.uploadStatus, uploadStatus) || other.uploadStatus == uploadStatus)&&const DeepCollectionEquality().equals(other.selectedCategories, selectedCategories)&&const DeepCollectionEquality().equals(other.selectedGenres, selectedGenres)&&const DeepCollectionEquality().equals(other.selectedInstruments, selectedInstruments)&&const DeepCollectionEquality().equals(other.selectedRoles, selectedRoles)&&(identical(other.backingVocalMode, backingVocalMode) || other.backingVocalMode == backingVocalMode)&&(identical(other.instrumentalistBackingVocal, instrumentalistBackingVocal) || other.instrumentalistBackingVocal == instrumentalistBackingVocal)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.studioType, studioType) || other.studioType == studioType)&&const DeepCollectionEquality().equals(other.selectedServices, selectedServices)&&const DeepCollectionEquality().equals(other.bandGenres, bandGenres)&&(identical(other.contractorVenueType, contractorVenueType) || other.contractorVenueType == contractorVenueType)&&const DeepCollectionEquality().equals(other.contractorAmenities, contractorAmenities));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isSaving,hasChanges,const DeepCollectionEquality().hash(galleryItems),isUploadingMedia,uploadProgress,uploadStatus,const DeepCollectionEquality().hash(selectedCategories),const DeepCollectionEquality().hash(selectedGenres),const DeepCollectionEquality().hash(selectedInstruments),const DeepCollectionEquality().hash(selectedRoles),backingVocalMode,instrumentalistBackingVocal,offersRemoteRecording,studioType,const DeepCollectionEquality().hash(selectedServices),const DeepCollectionEquality().hash(bandGenres));
+int get hashCode => Object.hash(runtimeType,isSaving,hasChanges,const DeepCollectionEquality().hash(galleryItems),isUploadingMedia,uploadProgress,uploadStatus,const DeepCollectionEquality().hash(selectedCategories),const DeepCollectionEquality().hash(selectedGenres),const DeepCollectionEquality().hash(selectedInstruments),const DeepCollectionEquality().hash(selectedRoles),backingVocalMode,instrumentalistBackingVocal,offersRemoteRecording,studioType,const DeepCollectionEquality().hash(selectedServices),const DeepCollectionEquality().hash(bandGenres),contractorVenueType,const DeepCollectionEquality().hash(contractorAmenities));
 
 @override
 String toString() {
-  return 'EditProfileState(isSaving: $isSaving, hasChanges: $hasChanges, galleryItems: $galleryItems, isUploadingMedia: $isUploadingMedia, uploadProgress: $uploadProgress, uploadStatus: $uploadStatus, selectedCategories: $selectedCategories, selectedGenres: $selectedGenres, selectedInstruments: $selectedInstruments, selectedRoles: $selectedRoles, backingVocalMode: $backingVocalMode, instrumentalistBackingVocal: $instrumentalistBackingVocal, offersRemoteRecording: $offersRemoteRecording, studioType: $studioType, selectedServices: $selectedServices, bandGenres: $bandGenres)';
+  return 'EditProfileState(isSaving: $isSaving, hasChanges: $hasChanges, galleryItems: $galleryItems, isUploadingMedia: $isUploadingMedia, uploadProgress: $uploadProgress, uploadStatus: $uploadStatus, selectedCategories: $selectedCategories, selectedGenres: $selectedGenres, selectedInstruments: $selectedInstruments, selectedRoles: $selectedRoles, backingVocalMode: $backingVocalMode, instrumentalistBackingVocal: $instrumentalistBackingVocal, offersRemoteRecording: $offersRemoteRecording, studioType: $studioType, selectedServices: $selectedServices, bandGenres: $bandGenres, contractorVenueType: $contractorVenueType, contractorAmenities: $contractorAmenities)';
 }
 
 
@@ -50,7 +51,7 @@ abstract mixin class $EditProfileStateCopyWith<$Res>  {
   factory $EditProfileStateCopyWith(EditProfileState value, $Res Function(EditProfileState) _then) = _$EditProfileStateCopyWithImpl;
 @useResult
 $Res call({
- bool isSaving, bool hasChanges, List<MediaItem> galleryItems, bool isUploadingMedia, double uploadProgress, String uploadStatus, List<String> selectedCategories, List<String> selectedGenres, List<String> selectedInstruments, List<String> selectedRoles, String backingVocalMode, bool instrumentalistBackingVocal, bool offersRemoteRecording, String? studioType, List<String> selectedServices, List<String> bandGenres
+ bool isSaving, bool hasChanges, List<MediaItem> galleryItems, bool isUploadingMedia, double uploadProgress, String uploadStatus, List<String> selectedCategories, List<String> selectedGenres, List<String> selectedInstruments, List<String> selectedRoles, String backingVocalMode, bool instrumentalistBackingVocal, bool offersRemoteRecording, String? studioType, List<String> selectedServices, List<String> bandGenres, String? contractorVenueType, List<String> contractorAmenities
 });
 
 
@@ -67,7 +68,7 @@ class _$EditProfileStateCopyWithImpl<$Res>
 
 /// Create a copy of EditProfileState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isSaving = null,Object? hasChanges = null,Object? galleryItems = null,Object? isUploadingMedia = null,Object? uploadProgress = null,Object? uploadStatus = null,Object? selectedCategories = null,Object? selectedGenres = null,Object? selectedInstruments = null,Object? selectedRoles = null,Object? backingVocalMode = null,Object? instrumentalistBackingVocal = null,Object? offersRemoteRecording = null,Object? studioType = freezed,Object? selectedServices = null,Object? bandGenres = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isSaving = null,Object? hasChanges = null,Object? galleryItems = null,Object? isUploadingMedia = null,Object? uploadProgress = null,Object? uploadStatus = null,Object? selectedCategories = null,Object? selectedGenres = null,Object? selectedInstruments = null,Object? selectedRoles = null,Object? backingVocalMode = null,Object? instrumentalistBackingVocal = null,Object? offersRemoteRecording = null,Object? studioType = freezed,Object? selectedServices = null,Object? bandGenres = null,Object? contractorVenueType = freezed,Object? contractorAmenities = null,}) {
   return _then(_self.copyWith(
 isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
 as bool,hasChanges: null == hasChanges ? _self.hasChanges : hasChanges // ignore: cast_nullable_to_non_nullable
@@ -85,6 +86,8 @@ as bool,offersRemoteRecording: null == offersRemoteRecording ? _self.offersRemot
 as bool,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
 as String?,selectedServices: null == selectedServices ? _self.selectedServices : selectedServices // ignore: cast_nullable_to_non_nullable
 as List<String>,bandGenres: null == bandGenres ? _self.bandGenres : bandGenres // ignore: cast_nullable_to_non_nullable
+as List<String>,contractorVenueType: freezed == contractorVenueType ? _self.contractorVenueType : contractorVenueType // ignore: cast_nullable_to_non_nullable
+as String?,contractorAmenities: null == contractorAmenities ? _self.contractorAmenities : contractorAmenities // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }
@@ -170,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres,  String? contractorVenueType,  List<String> contractorAmenities)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EditProfileState() when $default != null:
-return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres);case _:
+return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres,_that.contractorVenueType,_that.contractorAmenities);case _:
   return orElse();
 
 }
@@ -191,10 +194,10 @@ return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploa
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres,  String? contractorVenueType,  List<String> contractorAmenities)  $default,) {final _that = this;
 switch (_that) {
 case _EditProfileState():
-return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres);case _:
+return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres,_that.contractorVenueType,_that.contractorAmenities);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -211,10 +214,10 @@ return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploa
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isSaving,  bool hasChanges,  List<MediaItem> galleryItems,  bool isUploadingMedia,  double uploadProgress,  String uploadStatus,  List<String> selectedCategories,  List<String> selectedGenres,  List<String> selectedInstruments,  List<String> selectedRoles,  String backingVocalMode,  bool instrumentalistBackingVocal,  bool offersRemoteRecording,  String? studioType,  List<String> selectedServices,  List<String> bandGenres,  String? contractorVenueType,  List<String> contractorAmenities)?  $default,) {final _that = this;
 switch (_that) {
 case _EditProfileState() when $default != null:
-return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres);case _:
+return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploadingMedia,_that.uploadProgress,_that.uploadStatus,_that.selectedCategories,_that.selectedGenres,_that.selectedInstruments,_that.selectedRoles,_that.backingVocalMode,_that.instrumentalistBackingVocal,_that.offersRemoteRecording,_that.studioType,_that.selectedServices,_that.bandGenres,_that.contractorVenueType,_that.contractorAmenities);case _:
   return null;
 
 }
@@ -226,7 +229,7 @@ return $default(_that.isSaving,_that.hasChanges,_that.galleryItems,_that.isUploa
 
 
 class _EditProfileState extends EditProfileState {
-  const _EditProfileState({this.isSaving = false, this.hasChanges = false, final  List<MediaItem> galleryItems = const [], this.isUploadingMedia = false, this.uploadProgress = 0.0, this.uploadStatus = '', final  List<String> selectedCategories = const [], final  List<String> selectedGenres = const [], final  List<String> selectedInstruments = const [], final  List<String> selectedRoles = const [], this.backingVocalMode = '0', this.instrumentalistBackingVocal = false, this.offersRemoteRecording = false, this.studioType, final  List<String> selectedServices = const [], final  List<String> bandGenres = const []}): _galleryItems = galleryItems,_selectedCategories = selectedCategories,_selectedGenres = selectedGenres,_selectedInstruments = selectedInstruments,_selectedRoles = selectedRoles,_selectedServices = selectedServices,_bandGenres = bandGenres,super._();
+  const _EditProfileState({this.isSaving = false, this.hasChanges = false, final  List<MediaItem> galleryItems = const [], this.isUploadingMedia = false, this.uploadProgress = 0.0, this.uploadStatus = '', final  List<String> selectedCategories = const [], final  List<String> selectedGenres = const [], final  List<String> selectedInstruments = const [], final  List<String> selectedRoles = const [], this.backingVocalMode = '0', this.instrumentalistBackingVocal = false, this.offersRemoteRecording = false, this.studioType, final  List<String> selectedServices = const [], final  List<String> bandGenres = const [], this.contractorVenueType, final  List<String> contractorAmenities = const []}): _galleryItems = galleryItems,_selectedCategories = selectedCategories,_selectedGenres = selectedGenres,_selectedInstruments = selectedInstruments,_selectedRoles = selectedRoles,_selectedServices = selectedServices,_bandGenres = bandGenres,_contractorAmenities = contractorAmenities,super._();
   
 
 @override@JsonKey() final  bool isSaving;
@@ -296,6 +299,15 @@ class _EditProfileState extends EditProfileState {
   return EqualUnmodifiableListView(_bandGenres);
 }
 
+// Contractor Fields
+@override final  String? contractorVenueType;
+ final  List<String> _contractorAmenities;
+@override@JsonKey() List<String> get contractorAmenities {
+  if (_contractorAmenities is EqualUnmodifiableListView) return _contractorAmenities;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_contractorAmenities);
+}
+
 
 /// Create a copy of EditProfileState
 /// with the given fields replaced by the non-null parameter values.
@@ -307,16 +319,16 @@ _$EditProfileStateCopyWith<_EditProfileState> get copyWith => __$EditProfileStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditProfileState&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.hasChanges, hasChanges) || other.hasChanges == hasChanges)&&const DeepCollectionEquality().equals(other._galleryItems, _galleryItems)&&(identical(other.isUploadingMedia, isUploadingMedia) || other.isUploadingMedia == isUploadingMedia)&&(identical(other.uploadProgress, uploadProgress) || other.uploadProgress == uploadProgress)&&(identical(other.uploadStatus, uploadStatus) || other.uploadStatus == uploadStatus)&&const DeepCollectionEquality().equals(other._selectedCategories, _selectedCategories)&&const DeepCollectionEquality().equals(other._selectedGenres, _selectedGenres)&&const DeepCollectionEquality().equals(other._selectedInstruments, _selectedInstruments)&&const DeepCollectionEquality().equals(other._selectedRoles, _selectedRoles)&&(identical(other.backingVocalMode, backingVocalMode) || other.backingVocalMode == backingVocalMode)&&(identical(other.instrumentalistBackingVocal, instrumentalistBackingVocal) || other.instrumentalistBackingVocal == instrumentalistBackingVocal)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.studioType, studioType) || other.studioType == studioType)&&const DeepCollectionEquality().equals(other._selectedServices, _selectedServices)&&const DeepCollectionEquality().equals(other._bandGenres, _bandGenres));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditProfileState&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.hasChanges, hasChanges) || other.hasChanges == hasChanges)&&const DeepCollectionEquality().equals(other._galleryItems, _galleryItems)&&(identical(other.isUploadingMedia, isUploadingMedia) || other.isUploadingMedia == isUploadingMedia)&&(identical(other.uploadProgress, uploadProgress) || other.uploadProgress == uploadProgress)&&(identical(other.uploadStatus, uploadStatus) || other.uploadStatus == uploadStatus)&&const DeepCollectionEquality().equals(other._selectedCategories, _selectedCategories)&&const DeepCollectionEquality().equals(other._selectedGenres, _selectedGenres)&&const DeepCollectionEquality().equals(other._selectedInstruments, _selectedInstruments)&&const DeepCollectionEquality().equals(other._selectedRoles, _selectedRoles)&&(identical(other.backingVocalMode, backingVocalMode) || other.backingVocalMode == backingVocalMode)&&(identical(other.instrumentalistBackingVocal, instrumentalistBackingVocal) || other.instrumentalistBackingVocal == instrumentalistBackingVocal)&&(identical(other.offersRemoteRecording, offersRemoteRecording) || other.offersRemoteRecording == offersRemoteRecording)&&(identical(other.studioType, studioType) || other.studioType == studioType)&&const DeepCollectionEquality().equals(other._selectedServices, _selectedServices)&&const DeepCollectionEquality().equals(other._bandGenres, _bandGenres)&&(identical(other.contractorVenueType, contractorVenueType) || other.contractorVenueType == contractorVenueType)&&const DeepCollectionEquality().equals(other._contractorAmenities, _contractorAmenities));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isSaving,hasChanges,const DeepCollectionEquality().hash(_galleryItems),isUploadingMedia,uploadProgress,uploadStatus,const DeepCollectionEquality().hash(_selectedCategories),const DeepCollectionEquality().hash(_selectedGenres),const DeepCollectionEquality().hash(_selectedInstruments),const DeepCollectionEquality().hash(_selectedRoles),backingVocalMode,instrumentalistBackingVocal,offersRemoteRecording,studioType,const DeepCollectionEquality().hash(_selectedServices),const DeepCollectionEquality().hash(_bandGenres));
+int get hashCode => Object.hash(runtimeType,isSaving,hasChanges,const DeepCollectionEquality().hash(_galleryItems),isUploadingMedia,uploadProgress,uploadStatus,const DeepCollectionEquality().hash(_selectedCategories),const DeepCollectionEquality().hash(_selectedGenres),const DeepCollectionEquality().hash(_selectedInstruments),const DeepCollectionEquality().hash(_selectedRoles),backingVocalMode,instrumentalistBackingVocal,offersRemoteRecording,studioType,const DeepCollectionEquality().hash(_selectedServices),const DeepCollectionEquality().hash(_bandGenres),contractorVenueType,const DeepCollectionEquality().hash(_contractorAmenities));
 
 @override
 String toString() {
-  return 'EditProfileState(isSaving: $isSaving, hasChanges: $hasChanges, galleryItems: $galleryItems, isUploadingMedia: $isUploadingMedia, uploadProgress: $uploadProgress, uploadStatus: $uploadStatus, selectedCategories: $selectedCategories, selectedGenres: $selectedGenres, selectedInstruments: $selectedInstruments, selectedRoles: $selectedRoles, backingVocalMode: $backingVocalMode, instrumentalistBackingVocal: $instrumentalistBackingVocal, offersRemoteRecording: $offersRemoteRecording, studioType: $studioType, selectedServices: $selectedServices, bandGenres: $bandGenres)';
+  return 'EditProfileState(isSaving: $isSaving, hasChanges: $hasChanges, galleryItems: $galleryItems, isUploadingMedia: $isUploadingMedia, uploadProgress: $uploadProgress, uploadStatus: $uploadStatus, selectedCategories: $selectedCategories, selectedGenres: $selectedGenres, selectedInstruments: $selectedInstruments, selectedRoles: $selectedRoles, backingVocalMode: $backingVocalMode, instrumentalistBackingVocal: $instrumentalistBackingVocal, offersRemoteRecording: $offersRemoteRecording, studioType: $studioType, selectedServices: $selectedServices, bandGenres: $bandGenres, contractorVenueType: $contractorVenueType, contractorAmenities: $contractorAmenities)';
 }
 
 
@@ -327,7 +339,7 @@ abstract mixin class _$EditProfileStateCopyWith<$Res> implements $EditProfileSta
   factory _$EditProfileStateCopyWith(_EditProfileState value, $Res Function(_EditProfileState) _then) = __$EditProfileStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool isSaving, bool hasChanges, List<MediaItem> galleryItems, bool isUploadingMedia, double uploadProgress, String uploadStatus, List<String> selectedCategories, List<String> selectedGenres, List<String> selectedInstruments, List<String> selectedRoles, String backingVocalMode, bool instrumentalistBackingVocal, bool offersRemoteRecording, String? studioType, List<String> selectedServices, List<String> bandGenres
+ bool isSaving, bool hasChanges, List<MediaItem> galleryItems, bool isUploadingMedia, double uploadProgress, String uploadStatus, List<String> selectedCategories, List<String> selectedGenres, List<String> selectedInstruments, List<String> selectedRoles, String backingVocalMode, bool instrumentalistBackingVocal, bool offersRemoteRecording, String? studioType, List<String> selectedServices, List<String> bandGenres, String? contractorVenueType, List<String> contractorAmenities
 });
 
 
@@ -344,7 +356,7 @@ class __$EditProfileStateCopyWithImpl<$Res>
 
 /// Create a copy of EditProfileState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isSaving = null,Object? hasChanges = null,Object? galleryItems = null,Object? isUploadingMedia = null,Object? uploadProgress = null,Object? uploadStatus = null,Object? selectedCategories = null,Object? selectedGenres = null,Object? selectedInstruments = null,Object? selectedRoles = null,Object? backingVocalMode = null,Object? instrumentalistBackingVocal = null,Object? offersRemoteRecording = null,Object? studioType = freezed,Object? selectedServices = null,Object? bandGenres = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isSaving = null,Object? hasChanges = null,Object? galleryItems = null,Object? isUploadingMedia = null,Object? uploadProgress = null,Object? uploadStatus = null,Object? selectedCategories = null,Object? selectedGenres = null,Object? selectedInstruments = null,Object? selectedRoles = null,Object? backingVocalMode = null,Object? instrumentalistBackingVocal = null,Object? offersRemoteRecording = null,Object? studioType = freezed,Object? selectedServices = null,Object? bandGenres = null,Object? contractorVenueType = freezed,Object? contractorAmenities = null,}) {
   return _then(_EditProfileState(
 isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
 as bool,hasChanges: null == hasChanges ? _self.hasChanges : hasChanges // ignore: cast_nullable_to_non_nullable
@@ -362,6 +374,8 @@ as bool,offersRemoteRecording: null == offersRemoteRecording ? _self.offersRemot
 as bool,studioType: freezed == studioType ? _self.studioType : studioType // ignore: cast_nullable_to_non_nullable
 as String?,selectedServices: null == selectedServices ? _self._selectedServices : selectedServices // ignore: cast_nullable_to_non_nullable
 as List<String>,bandGenres: null == bandGenres ? _self._bandGenres : bandGenres // ignore: cast_nullable_to_non_nullable
+as List<String>,contractorVenueType: freezed == contractorVenueType ? _self.contractorVenueType : contractorVenueType // ignore: cast_nullable_to_non_nullable
+as String?,contractorAmenities: null == contractorAmenities ? _self._contractorAmenities : contractorAmenities // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }

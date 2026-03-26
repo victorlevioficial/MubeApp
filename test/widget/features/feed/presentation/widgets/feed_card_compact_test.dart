@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_card_compact.dart';
@@ -90,6 +91,27 @@ void main() {
 
       // Professional profile shows music_note icon
       expect(find.byIcon(Icons.music_note), findsOneWidget);
+    });
+
+    testWidgets('renders storefront icon for contractor type', (
+      WidgetTester tester,
+    ) async {
+      const contractorItem = FeedItem(
+        uid: 'venue-1',
+        nome: 'Arena Azul',
+        tipoPerfil: 'contratante',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FeedCardCompact(item: contractorItem, onTap: () {}),
+          ),
+        ),
+      );
+
+      final icon = tester.widget<Icon>(find.byIcon(Icons.storefront_rounded));
+      expect(icon.color, AppColors.warning);
     });
 
     testWidgets('renders band icon for band type', (WidgetTester tester) async {

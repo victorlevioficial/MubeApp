@@ -31,6 +31,10 @@ abstract class EditProfileState with _$EditProfileState {
 
     // Band Fields
     @Default([]) List<String> bandGenres,
+
+    // Contractor Fields
+    String? contractorVenueType,
+    @Default([]) List<String> contractorAmenities,
   }) = _EditProfileState;
 }
 

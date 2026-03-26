@@ -36,8 +36,9 @@ void main() {
         widget.controller?.text == contractorUser.publicUsername,
   );
 
-  AppButton saveButton(WidgetTester tester) =>
-      tester.widget<AppButton>(find.byType(AppButton));
+  AppButton saveButton(WidgetTester tester) => tester.widget<AppButton>(
+    find.widgetWithText(AppButton, 'Salvar Altera\u00E7\u00F5es'),
+  );
 
   setUp(() {
     fakeAuthRepository = FakeAuthRepository();
@@ -126,4 +127,16 @@ void main() {
       expect((prefix.child! as Text).data, '@');
     },
   );
+
+  testWidgets('shows contractor tabs and venue fields', (tester) async {
+    await pumpScreen(tester);
+
+    expect(find.text('Perfil'), findsWidgets);
+    expect(find.text('Midia'), findsOneWidget);
+    expect(find.text('Links Musicais'), findsNothing);
+    expect(find.text('Dados do Estabelecimento'), findsOneWidget);
+    expect(find.text('Nome de Exibicao'), findsOneWidget);
+    expect(find.text('Tipo de Local'), findsOneWidget);
+    expect(find.text('Comodidades'), findsOneWidget);
+  });
 }

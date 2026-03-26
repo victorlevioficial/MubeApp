@@ -5,6 +5,7 @@ import 'package:mube/l10n/generated/app_localizations.dart';
 import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/features/settings/presentation/privacy_settings_screen.dart';
@@ -21,17 +22,17 @@ void main() {
     fakeChatRepository = FakeChatRepository();
   });
 
-  AppUser buildUser({
-    Map<String, dynamic>? privacySettings,
-    Map<String, dynamic>? matchpointProfile,
-    List<String>? blockedUsers,
-  }) {
-    return TestData.user(uid: 'user-1').copyWith(
-      privacySettings:
-          privacySettings ??
-          const {'visible_in_home': true, 'chat_open': false},
-      matchpointProfile: matchpointProfile ?? const {'is_active': false},
-      blockedUsers: blockedUsers ?? const ['legacy-blocked-user'],
+  AppUser buildContractorUser({required bool hasPhoto, bool isPublic = false}) {
+    return TestData.user(
+      uid: 'contractor-1',
+      nome: 'Event Organizer',
+      tipoPerfil: AppUserType.contractor,
+      foto: hasPhoto ? 'https://example.com/avatar.jpg' : null,
+    ).copyWith(
+      dadosContratante: {'nomeExibicao': 'Casa Azul', 'isPublic': isPublic},
+      privacySettings: const {'visible_in_home': false, 'chat_open': false},
+      matchpointProfile: const {'is_active': false},
+      blockedUsers: const ['legacy-blocked-user'],
     );
   }
 
@@ -59,54 +60,63 @@ void main() {
   }
 
   group('PrivacySettingsScreen', () {
-    testWidgets('renders privacy controls and blocked users count', (
+    testWidgets(
+      'shows contractor public profile toggle and hides legacy controls',
+      (tester) async {
+        await tester.pumpWidget(
+          createSubject(user: buildContractorUser(hasPhoto: true)),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Privacidade e Visibilidade'), findsOneWidget);
+        expect(find.text('Perfil p\u00FAblico'), findsOneWidget);
+        expect(find.text('Aparecer na Home e Busca'), findsNothing);
+        expect(find.text('Ativar MatchPoint'), findsNothing);
+        expect(find.text('Chat p\u00FAblico'), findsOneWidget);
+        expect(find.text('Usu\u00E1rios Bloqueados'), findsOneWidget);
+      },
+    );
+
+    testWidgets('requires a profile photo before enabling public profile', (
       tester,
     ) async {
-      await tester.pumpWidget(createSubject(user: buildUser()));
-      await tester.pumpAndSettle();
+      final user = buildContractorUser(hasPhoto: false);
 
-      expect(find.text('Privacidade e Visibilidade'), findsOneWidget);
-      expect(find.text('Aparecer na Home e Busca'), findsOneWidget);
-      expect(find.text('Ativar MatchPoint'), findsOneWidget);
-      expect(find.text('Chat público'), findsOneWidget);
-      expect(find.text('Usuários Bloqueados'), findsOneWidget);
-      expect(find.text('2 usuários'), findsOneWidget);
-    });
-
-    testWidgets('updates home visibility preference', (tester) async {
-      await tester.pumpWidget(createSubject(user: buildUser()));
+      await tester.pumpWidget(createSubject(user: user));
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(SwitchListTile, 'Aparecer na Home e Busca'),
+        find.widgetWithText(SwitchListTile, 'Perfil p\u00FAblico'),
       );
       await tester.pumpAndSettle();
 
       expect(
-        fakeAuthRepository.lastUpdatedUser?.privacySettings['visible_in_home'],
-        isFalse,
+        find.text(
+          'Adicione uma foto de perfil antes de ativar o perfil p\u00FAblico.',
+        ),
+        findsOneWidget,
       );
+      expect(fakeAuthRepository.lastUpdatedUser, isNull);
     });
 
-    testWidgets(
-      'enabling public chat reevaluates pending conversations and shows success',
-      (tester) async {
-        await tester.pumpWidget(createSubject(user: buildUser()));
-        await tester.pumpAndSettle();
+    testWidgets('saves contractor public profile flag when photo exists', (
+      tester,
+    ) async {
+      final user = buildContractorUser(hasPhoto: true);
 
-        await tester.tap(find.widgetWithText(SwitchListTile, 'Chat público'));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createSubject(user: user));
+      await tester.pumpAndSettle();
 
-        expect(
-          fakeAuthRepository.lastUpdatedUser?.privacySettings['chat_open'],
-          isTrue,
-        );
-        expect(
-          fakeChatRepository.reevaluatePendingConversationsForRecipientCalls,
-          1,
-        );
-        expect(find.text('Privacidade do chat atualizada.'), findsOneWidget);
-      },
-    );
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, 'Perfil p\u00FAblico'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        fakeAuthRepository.lastUpdatedUser?.dadosContratante?['isPublic'],
+        isTrue,
+      );
+      expect(find.text('Perfil p\u00FAblico atualizado.'), findsOneWidget);
+    });
   });
 }

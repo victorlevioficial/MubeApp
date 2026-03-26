@@ -4,12 +4,62 @@ import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/profile/domain/media_item.dart';
 import 'package:mube/src/features/profile/presentation/edit_profile/controllers/edit_profile_controller.dart';
 import 'package:mube/src/features/profile/presentation/profile_controller.dart';
 
 import '../../../../helpers/test_fakes.dart';
 
 void main() {
+  group('EditProfileController.build', () {
+    test('parses photo gallery variants from persisted profile data', () {
+      const user = AppUser(
+        uid: 'professional-1',
+        email: 'professional@example.com',
+        cadastroStatus: 'concluido',
+        tipoPerfil: AppUserType.professional,
+        nome: 'Professional',
+        dadosProfissional: {
+          'categorias': ['instrumentalist'],
+          'instrumentos': ['Guitarra'],
+          'generosMusicais': ['Rock'],
+          'gallery': [
+            {
+              'id': 'photo-1',
+              'url': 'https://cdn.example.com/full.webp',
+              'thumbnailUrl': 'https://cdn.example.com/thumb.webp',
+              'mediumUrl': 'https://cdn.example.com/medium.webp',
+              'largeUrl': 'https://cdn.example.com/large.webp',
+              'type': 'photo',
+              'order': 0,
+            },
+          ],
+        },
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+          analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
+          currentUserProfileProvider.overrideWithValue(
+            const AsyncValue.data(user),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final state = container.read(editProfileControllerProvider(user.uid));
+      final item = state.galleryItems.single;
+
+      expect(item.type, MediaType.photo);
+      expect(item.thumbnailUrl, 'https://cdn.example.com/thumb.webp');
+      expect(item.mediumUrl, 'https://cdn.example.com/medium.webp');
+      expect(item.largeUrl, 'https://cdn.example.com/large.webp');
+      expect(item.previewUrl, 'https://cdn.example.com/thumb.webp');
+      expect(item.viewerUrl, 'https://cdn.example.com/large.webp');
+    });
+  });
+
   group('EditProfileController.saveProfile', () {
     late FakeAuthRepository fakeAuthRepository;
     late FakeAnalyticsService fakeAnalyticsService;

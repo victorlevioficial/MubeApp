@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../../../constants/venue_type_constants.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/chips/app_filter_chip.dart';
@@ -62,6 +63,13 @@ class _FilterModalState extends ConsumerState<FilterModal> {
 
   bool get _hasActiveFilters => _activeFilterCount > 0;
 
+  List<VenueOption> get _selectedVenueAmenityOptions {
+    final selectedAmenityIds = _selectedServices.toSet();
+    return venueAmenityOptions
+        .where((option) => selectedAmenityIds.contains(option.id))
+        .toList(growable: false);
+  }
+
   List<String> _roleItems() {
     switch (_professionalSubcategory) {
       case ProfessionalSubcategory.production:
@@ -110,6 +118,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     final isAll = category == SearchCategory.all;
     final isProfessional = category == SearchCategory.professionals || isAll;
     final isStudio = category == SearchCategory.studios || isAll;
+    final isVenue = category == SearchCategory.venues;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
@@ -158,26 +167,36 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                       ),
                       const SizedBox(height: AppSpacing.s20),
                     ],
-                    _SelectionLauncherCard(
-                      icon: FontAwesomeIcons.recordVinyl,
-                      title: 'Generos musicais',
-                      description:
-                          'Selecione estilos para refinar os resultados.',
-                      selectedItems: _selectedGenres,
-                      onTap: () => _openMultiSelect(
-                        title: 'Generos musicais',
-                        subtitle: 'Selecione os generos para filtrar',
-                        items: ref.read(genreLabelsProvider),
-                        selected: _selectedGenres,
-                        searchHint: 'Buscar genero...',
-                        onChanged: (value) {
-                          setState(() => _selectedGenres = value);
-                        },
+                    if (isVenue) ...[
+                      _FilterSection(
+                        title: 'Tipo de local',
+                        subtitle:
+                            'Defina o tipo de estabelecimento para contratar.',
+                        child: _FilterPanel(child: _buildVenueTypeChips()),
                       ),
-                      onClear: _selectedGenres.isNotEmpty
-                          ? () => setState(() => _selectedGenres.clear())
-                          : null,
-                    ),
+                      const SizedBox(height: AppSpacing.s20),
+                    ],
+                    if (!isVenue)
+                      _SelectionLauncherCard(
+                        icon: FontAwesomeIcons.recordVinyl,
+                        title: 'Generos musicais',
+                        description:
+                            'Selecione estilos para refinar os resultados.',
+                        selectedItems: _selectedGenres,
+                        onTap: () => _openMultiSelect(
+                          title: 'Generos musicais',
+                          subtitle: 'Selecione os generos para filtrar',
+                          items: ref.read(genreLabelsProvider),
+                          selected: _selectedGenres,
+                          searchHint: 'Buscar genero...',
+                          onChanged: (value) {
+                            setState(() => _selectedGenres = value);
+                          },
+                        ),
+                        onClear: _selectedGenres.isNotEmpty
+                            ? () => setState(() => _selectedGenres.clear())
+                            : null,
+                      ),
                     if (isProfessional) ...[
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
@@ -258,6 +277,36 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                           searchHint: 'Buscar servico...',
                           onChanged: (value) {
                             setState(() => _selectedServices = value);
+                          },
+                        ),
+                        onClear: _selectedServices.isNotEmpty
+                            ? () => setState(() => _selectedServices.clear())
+                            : null,
+                      ),
+                    ],
+                    if (isVenue) ...[
+                      const SizedBox(height: AppSpacing.s12),
+                      _SelectionLauncherCard(
+                        icon: Icons.storefront_rounded,
+                        title: 'Comodidades',
+                        description:
+                            'Filtre pelas comodidades disponiveis no local.',
+                        selectedItems: _selectedServices
+                            .map(venueAmenityLabel)
+                            .toList(growable: false),
+                        onTap: () => _openMultiSelect<VenueOption>(
+                          title: 'Comodidades',
+                          subtitle: 'Selecione as comodidades para filtrar',
+                          items: venueAmenityOptions,
+                          selected: _selectedVenueAmenityOptions,
+                          itemLabel: (item) => item.label,
+                          searchHint: 'Buscar comodidade...',
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedServices = value
+                                  .map((item) => item.id)
+                                  .toList(growable: false);
+                            });
                           },
                         ),
                         onClear: _selectedServices.isNotEmpty
@@ -374,6 +423,32 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     );
   }
 
+  Widget _buildVenueTypeChips() {
+    return Wrap(
+      spacing: AppSpacing.s8,
+      runSpacing: AppSpacing.s8,
+      children: [
+        AppFilterChip(
+          label: 'Qualquer',
+          isSelected: _studioType == null,
+          onSelected: (_) => setState(() => _studioType = null),
+        ),
+        ...venueTypeOptions.map((option) {
+          return AppFilterChip(
+            label: option.label,
+            icon: Icons.place_outlined,
+            isSelected: _studioType == option.id,
+            onSelected: (_) {
+              setState(() {
+                _studioType = _studioType == option.id ? null : option.id;
+              });
+            },
+          );
+        }),
+      ],
+    );
+  }
+
   Widget _buildBackingVocalChips() {
     return Wrap(
       spacing: AppSpacing.s8,
@@ -424,20 +499,22 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     );
   }
 
-  Future<void> _openMultiSelect({
+  Future<void> _openMultiSelect<T>({
     required String title,
     required String subtitle,
-    required List<String> items,
-    required List<String> selected,
+    required List<T> items,
+    required List<T> selected,
+    String Function(T)? itemLabel,
     required String searchHint,
-    required ValueChanged<List<String>> onChanged,
+    required ValueChanged<List<T>> onChanged,
   }) async {
-    final result = await EnhancedMultiSelectModal.show<String>(
+    final result = await EnhancedMultiSelectModal.show<T>(
       context: context,
       title: title,
       subtitle: subtitle,
       items: items,
       selectedItems: selected,
+      itemLabel: itemLabel,
       searchHint: searchHint,
     );
 

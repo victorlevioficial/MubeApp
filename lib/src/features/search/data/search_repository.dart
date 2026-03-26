@@ -14,6 +14,7 @@ import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/category_normalizer.dart';
 import 'package:mube/src/utils/professional_profile_utils.dart';
+import '../../../constants/venue_type_constants.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
 import '../domain/paginated_search_response.dart';
@@ -26,13 +27,31 @@ class SearchConfig {
   static const int targetResults = 20;
 }
 
-enum _SearchProfileScope { any, professional, band, studio, impossible }
+enum _SearchProfileScope {
+  any,
+  professional,
+  band,
+  studio,
+  contractor,
+  impossible,
+}
 
 /// Repository for searching users with smart pagination and filtering.
 class SearchRepository {
   static const FirestoreResilience _firestoreResilience = FirestoreResilience(
     'SearchRepository',
   );
+  static final Map<String, String> _venueTypeLookup = {
+    for (final option in venueTypeOptions) option.id.toLowerCase(): option.id,
+    for (final option in venueTypeOptions)
+      option.label.toLowerCase(): option.id,
+  };
+  static final Map<String, String> _venueAmenityLookup = {
+    for (final option in venueAmenityOptions)
+      option.id.toLowerCase(): option.id,
+    for (final option in venueAmenityOptions)
+      option.label.toLowerCase(): option.id,
+  };
 
   final FirebaseFirestore _firestore;
   final AnalyticsService? _analytics;
@@ -100,17 +119,23 @@ class SearchRepository {
 
           final data = doc.data();
 
-          // Skip contractors - NEVER show in results
-          if (data['tipo_perfil'] == 'contratante') continue;
-
           // Skip non-searchable (incomplete/inactive profiles)
           final cadastroStatus = data['cadastro_status'] as String?;
           final status = data['status'] as String? ?? 'ativo';
           if (cadastroStatus != 'concluido' || status != 'ativo') continue;
 
-          // Skip if hidden from search (Ghost Mode)
-          final privacy = data['privacy_settings'] as Map<String, dynamic>?;
-          if (privacy != null && privacy['visible_in_home'] == false) continue;
+          final isContractor = data['tipo_perfil'] == 'contratante';
+          if (isContractor) {
+            final contractorData =
+                data['contratante'] as Map<String, dynamic>? ?? {};
+            if (contractorData['isPublic'] != true) continue;
+          } else {
+            // Skip if hidden from search (Ghost Mode)
+            final privacy = data['privacy_settings'] as Map<String, dynamic>?;
+            if (privacy != null && privacy['visible_in_home'] == false) {
+              continue;
+            }
+          }
 
           // Deduplicate
           if (seenUids.contains(doc.id)) continue;
@@ -201,6 +226,8 @@ class SearchRepository {
         return 'banda';
       case _SearchProfileScope.studio:
         return 'estudio';
+      case _SearchProfileScope.contractor:
+        return 'contratante';
       case _SearchProfileScope.any:
       case _SearchProfileScope.impossible:
         return null;
@@ -219,6 +246,8 @@ class SearchRepository {
         return _SearchProfileScope.band;
       case SearchCategory.studios:
         return _SearchProfileScope.studio;
+      case SearchCategory.venues:
+        return _SearchProfileScope.contractor;
       case SearchCategory.all:
         if (filters.hasProfessionalOnlyFilters) {
           return _SearchProfileScope.professional;
@@ -288,19 +317,30 @@ class SearchRepository {
       return false;
     }
 
+    if (filters.category == SearchCategory.venues &&
+        item.tipoPerfil != 'contratante') {
+      return false;
+    }
+
     if (filters.hasProfessionalOnlyFilters &&
         item.tipoPerfil != 'profissional') {
       return false;
     }
 
-    if (filters.hasStudioOnlyFilters && item.tipoPerfil != 'estudio') {
-      return false;
+    if (filters.hasStudioOnlyFilters) {
+      if (filters.category == SearchCategory.venues) {
+        if (item.tipoPerfil != 'contratante') return false;
+      } else if (item.tipoPerfil != 'estudio') {
+        return false;
+      }
     }
 
     // Get nested data for detailed filters
     final profData = rawData['profissional'] as Map<String, dynamic>? ?? {};
     final bandData = rawData['banda'] as Map<String, dynamic>? ?? {};
     final studioData = rawData['estudio'] as Map<String, dynamic>? ?? {};
+    final contractorData =
+        rawData['contratante'] as Map<String, dynamic>? ?? {};
 
     // Professional subcategory filter
     if (filters.professionalSubcategory != null) {
@@ -361,19 +401,46 @@ class SearchRepository {
 
     // Services filter (studios only)
     if (filters.services.isNotEmpty) {
-      final itemServices = List<String>.from(
-        studioData['services'] ?? studioData['servicosOferecidos'] ?? [],
-      );
-      if (!listContainsAny(itemServices, filters.services)) {
+      final itemServices = item.tipoPerfil == 'contratante'
+          ? _normalizeVenueAmenityIds(contractorData['comodidades'])
+          : switch (item.tipoPerfil) {
+              'estudio' => List<String>.from(
+                studioData['services'] ??
+                    studioData['servicosOferecidos'] ??
+                    [],
+              ),
+              _ => const <String>[],
+            };
+      final filterServices = item.tipoPerfil == 'contratante'
+          ? filters.services
+                .map(_normalizeVenueAmenityId)
+                .whereType<String>()
+                .toList(growable: false)
+          : filters.services;
+      if (filterServices.isEmpty ||
+          !listContainsAny(itemServices, filterServices)) {
         return false;
       }
     }
 
     // Studio type filter
     if (filters.studioType != null) {
-      final studioType = studioData['studioType'] as String?;
-      if (studioType != filters.studioType) {
-        return false;
+      if (item.tipoPerfil == 'contratante') {
+        final filterVenueType = _normalizeVenueTypeId(filters.studioType);
+        final itemVenueType = _normalizeVenueTypeId(
+          contractorData['venueType'] as String?,
+        );
+        if (filterVenueType == null || itemVenueType != filterVenueType) {
+          return false;
+        }
+      } else {
+        final studioType = switch (item.tipoPerfil) {
+          'estudio' => studioData['studioType'] as String?,
+          _ => null,
+        };
+        if (studioType != filters.studioType) {
+          return false;
+        }
       }
     }
 
@@ -404,6 +471,34 @@ class SearchRepository {
     }
 
     return true;
+  }
+
+  String? _normalizeVenueTypeId(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return _venueTypeLookup[normalized.toLowerCase()];
+  }
+
+  String? _normalizeVenueAmenityId(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return _venueAmenityLookup[normalized.toLowerCase()];
+  }
+
+  List<String> _normalizeVenueAmenityIds(dynamic values) {
+    if (values is! Iterable) {
+      return const [];
+    }
+    return values
+        .whereType<String>()
+        .map(_normalizeVenueAmenityId)
+        .whereType<String>()
+        .toSet()
+        .toList(growable: false);
   }
 
   /// Calculates distance in km between two coordinates using Haversine formula.

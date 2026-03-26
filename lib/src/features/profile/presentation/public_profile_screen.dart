@@ -23,6 +23,7 @@ import '../../../design_system/foundations/tokens/app_icons.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../constants/venue_type_constants.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/professional_profile_utils.dart';
@@ -413,7 +414,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 child: ClipRRect(
                   borderRadius: AppRadius.all16,
                   child: CachedNetworkImage(
-                    imageUrl: user.foto!,
+                    imageUrl: user.avatarFullUrl!,
                     fit: BoxFit.contain,
                     cacheManager: ImageCacheConfig.optimizedCacheManager,
                     placeholder: (context, url) => AppShimmer.box(
@@ -439,6 +440,7 @@ class PublicProfileScreen extends ConsumerWidget {
   Widget _buildBottomBar(BuildContext context, WidgetRef ref, AppUser user) {
     final currentUser = ref.watch(currentUserProfileProvider).value;
     final isMe = currentUser?.uid == user.uid;
+    final canStartChat = !isMe;
 
     return SafeArea(
       top: false,
@@ -474,11 +476,14 @@ class PublicProfileScreen extends ConsumerWidget {
               ? _MeBottomBar(user: user)
               : _OtherBottomBar(
                   onShare: () => unawaited(_shareProfile(context, user)),
-                  onChat: () => ref
-                      .read(
-                        publicProfileControllerProvider(profileRef).notifier,
-                      )
-                      .openChat(context),
+                  onChat: canStartChat
+                      ? () => ref
+                            .read(
+                              publicProfileControllerProvider(profileRef)
+                                  .notifier,
+                            )
+                            .openChat(context)
+                      : null,
                 ),
         ),
       ),

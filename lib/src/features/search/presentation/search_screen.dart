@@ -305,10 +305,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       labels.add('funcoes');
     }
     if (requested.services.isNotEmpty && effective.services.isEmpty) {
-      labels.add('servicos');
+      labels.add(
+        requested.category == SearchCategory.venues
+            ? 'comodidades'
+            : 'servicos',
+      );
     }
     if (requested.studioType != null && effective.studioType == null) {
-      labels.add('tipo de estudio');
+      labels.add(
+        requested.category == SearchCategory.venues
+            ? 'tipo de local'
+            : 'tipo de estudio',
+      );
     }
     if (requested.canDoBackingVocal != null &&
         effective.canDoBackingVocal == null) {

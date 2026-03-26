@@ -34,6 +34,10 @@ class OnboardingFormState {
   final List<String> selectedServices;
 
   // Contractor / Location
+  final bool contractorWantsVenueSetup;
+  final String contractorDisplayName;
+  final String contractorVenueType;
+  final List<String> contractorAmenities;
   final String? cep;
   final String? logradouro;
   final String? numero;
@@ -60,6 +64,10 @@ class OnboardingFormState {
     this.offersRemoteRecording = false,
     this.studioType,
     this.selectedServices = const [],
+    this.contractorWantsVenueSetup = false,
+    this.contractorDisplayName = '',
+    this.contractorVenueType = '',
+    this.contractorAmenities = const [],
     this.cep,
     this.logradouro,
     this.numero,
@@ -87,6 +95,10 @@ class OnboardingFormState {
     bool? offersRemoteRecording,
     String? studioType,
     List<String>? selectedServices,
+    bool? contractorWantsVenueSetup,
+    String? contractorDisplayName,
+    String? contractorVenueType,
+    List<String>? contractorAmenities,
     String? cep,
     String? logradouro,
     String? numero,
@@ -115,6 +127,12 @@ class OnboardingFormState {
           offersRemoteRecording ?? this.offersRemoteRecording,
       studioType: studioType ?? this.studioType,
       selectedServices: selectedServices ?? this.selectedServices,
+      contractorWantsVenueSetup:
+          contractorWantsVenueSetup ?? this.contractorWantsVenueSetup,
+      contractorDisplayName:
+          contractorDisplayName ?? this.contractorDisplayName,
+      contractorVenueType: contractorVenueType ?? this.contractorVenueType,
+      contractorAmenities: contractorAmenities ?? this.contractorAmenities,
       cep: cep ?? this.cep,
       logradouro: logradouro ?? this.logradouro,
       numero: numero ?? this.numero,
@@ -144,6 +162,10 @@ class OnboardingFormState {
       'offersRemoteRecording': offersRemoteRecording,
       'studioType': studioType,
       'selectedServices': selectedServices,
+      'contractorWantsVenueSetup': contractorWantsVenueSetup,
+      'contractorDisplayName': contractorDisplayName,
+      'contractorVenueType': contractorVenueType,
+      'contractorAmenities': contractorAmenities,
       'cep': cep,
       'logradouro': logradouro,
       'numero': numero,
@@ -173,6 +195,10 @@ class OnboardingFormState {
       offersRemoteRecording: map['offersRemoteRecording'] ?? false,
       studioType: map['studioType'],
       selectedServices: List<String>.from(map['selectedServices'] ?? []),
+      contractorWantsVenueSetup: map['contractorWantsVenueSetup'] ?? false,
+      contractorDisplayName: map['contractorDisplayName'] ?? '',
+      contractorVenueType: map['contractorVenueType'] ?? '',
+      contractorAmenities: List<String>.from(map['contractorAmenities'] ?? []),
       cep: map['cep'],
       logradouro: map['logradouro'],
       numero: map['numero'],
@@ -458,6 +484,39 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
 
   void updateSelectedServices(List<String> value) {
     state = state.copyWith(selectedServices: value);
+    _scheduleSave();
+  }
+
+  void updateContractorWantsVenueSetup(bool value) {
+    if (state.contractorWantsVenueSetup == value) return;
+    state = state.copyWith(contractorWantsVenueSetup: value);
+    _scheduleSave();
+  }
+
+  void updateContractorDisplayName(String value) {
+    if (state.contractorDisplayName == value) return;
+    state = state.copyWith(contractorDisplayName: value);
+    _scheduleSave();
+  }
+
+  void updateContractorVenueType(String value) {
+    if (state.contractorVenueType == value) return;
+    state = state.copyWith(contractorVenueType: value);
+    _scheduleSave();
+  }
+
+  void updateContractorAmenities(List<String> value) {
+    state = state.copyWith(contractorAmenities: value);
+    _scheduleSave();
+  }
+
+  void clearContractorVenueSetup() {
+    state = state.copyWith(
+      contractorWantsVenueSetup: false,
+      contractorDisplayName: '',
+      contractorVenueType: '',
+      contractorAmenities: const [],
+    );
     _scheduleSave();
   }
 

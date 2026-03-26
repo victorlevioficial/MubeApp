@@ -56,20 +56,32 @@ class PublicProfileState {
 
 @riverpod
 class PublicProfileController extends _$PublicProfileController {
+  static const String _profileNotFoundMessage = 'Perfil n\u00E3o encontrado';
+
   @override
   FutureOr<PublicProfileState> build(String profileRef) async {
-    // Initial load
-    return _loadProfile(profileRef);
+    final viewerAsync = ref.watch(currentUserProfileProvider);
+    if (viewerAsync.isLoading) {
+      return const PublicProfileState(isLoading: true);
+    }
+
+    return _loadProfile(
+      profileRef,
+      viewer: viewerAsync.hasValue ? viewerAsync.value : null,
+    );
   }
 
-  Future<PublicProfileState> _loadProfile(String profileRef) async {
+  Future<PublicProfileState> _loadProfile(
+    String profileRef, {
+    AppUser? viewer,
+  }) async {
     try {
       final user = await _resolveProfileUser(profileRef);
 
-      if (user == null) {
+      if (user == null || !_canViewerAccessProfile(user, viewer)) {
         return const PublicProfileState(
           isLoading: false,
-          error: 'Perfil n\u00E3o encontrado',
+          error: _profileNotFoundMessage,
         );
       }
 
@@ -112,6 +124,13 @@ class PublicProfileController extends _$PublicProfileController {
         isLoading: false,
       );
     } catch (e, stackTrace) {
+      if (_looksLikePermissionDenied(e)) {
+        return const PublicProfileState(
+          isLoading: false,
+          error: _profileNotFoundMessage,
+        );
+      }
+
       AppLogger.error(
         'Erro ao carregar perfil publico ($profileRef)',
         e,
@@ -122,6 +141,27 @@ class PublicProfileController extends _$PublicProfileController {
         error: 'Erro ao carregar perfil: $e',
       );
     }
+  }
+
+  bool _canViewerAccessProfile(AppUser user, AppUser? viewer) {
+    if (user.tipoPerfil != AppUserType.contractor) {
+      return true;
+    }
+
+    final contractorData = user.dadosContratante ?? const <String, dynamic>{};
+    final isPublic = contractorData['isPublic'] == true;
+    if (isPublic) {
+      return true;
+    }
+
+    return viewer?.uid == user.uid;
+  }
+
+  bool _looksLikePermissionDenied(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('permission-denied') ||
+        message.contains('insufficient permissions') ||
+        message.contains('missing or insufficient permissions');
   }
 
   Future<AppUser?> _resolveProfileUser(String profileRef) async {
@@ -205,15 +245,35 @@ class PublicProfileController extends _$PublicProfileController {
   }
 
   Future<void> refresh() async {
+    final currentUserAsync = ref.read(currentUserProfileProvider);
+
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _loadProfile(profileRef));
+    state = await AsyncValue.guard(
+      () => _loadProfile(
+        profileRef,
+        viewer: currentUserAsync.hasValue ? currentUserAsync.value : null,
+      ),
+    );
   }
 
   Future<void> openChat(BuildContext context) async {
-    final currentUser = ref.read(currentUserProfileProvider).value;
+    final currentUserAsync = ref.read(currentUserProfileProvider);
+    final currentUser = currentUserAsync.hasValue
+        ? currentUserAsync.value
+        : null;
     final targetUser = state.value?.user;
 
-    if (currentUser == null || targetUser == null) return;
+    if (currentUser == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Entre para iniciar uma conversa.')),
+        );
+        await context.push(RoutePaths.register);
+      }
+      return;
+    }
+
+    if (targetUser == null) return;
     if (currentUser.uid == targetUser.uid) return;
 
     try {
@@ -251,7 +311,10 @@ class PublicProfileController extends _$PublicProfileController {
   }
 
   Future<bool> blockUser() async {
-    final currentUser = ref.read(currentUserProfileProvider).value;
+    final currentUserAsync = ref.read(currentUserProfileProvider);
+    final currentUser = currentUserAsync.hasValue
+        ? currentUserAsync.value
+        : null;
     final targetUser = state.value?.user;
 
     if (currentUser == null || targetUser == null) return false;
@@ -267,7 +330,10 @@ class PublicProfileController extends _$PublicProfileController {
   }
 
   Future<bool> reportUser(String reason, String? description) async {
-    final currentUser = ref.read(currentUserProfileProvider).value;
+    final currentUserAsync = ref.read(currentUserProfileProvider);
+    final currentUser = currentUserAsync.hasValue
+        ? currentUserAsync.value
+        : null;
     final targetUser = state.value?.user;
 
     if (currentUser == null || targetUser == null) return false;

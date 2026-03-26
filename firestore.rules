@@ -17,6 +17,12 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    function isPublicContractorProfileData(data) {
+      return data.tipo_perfil == 'contratante' &&
+        data.contratante is map &&
+        data.contratante.isPublic == true;
+    }
+
     function isParticipantByConversationId(conversationId) {
       return request.auth != null && request.auth.uid in conversationId.split('_');
     }
@@ -106,8 +112,11 @@ service cloud.firestore {
     // USERS - Perfis de Usuários
     // ================================================================
     match /users/{userId} {
-      // Qualquer autenticado pode ler perfis
-      allow read: if request.auth != null;
+      // Perfis seguem legiveis para autenticados.
+      // Contratantes com Perfil Publico ativo tambem podem ser lidos sem login
+      // para viabilizar links compartilhaveis por UID ou @username.
+      allow read: if request.auth != null ||
+        (resource != null && isPublicContractorProfileData(resource.data));
       
       // Apenas o próprio usuário pode criar seu perfil
       // e sem campos sensíveis gerenciados pelo backend.

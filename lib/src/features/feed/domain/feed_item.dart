@@ -78,6 +78,8 @@ sealed class FeedItem with _$FeedItem {
     final profData = data['profissional'] as Map<String, dynamic>? ?? {};
     final bandData = data['banda'] as Map<String, dynamic>? ?? {};
     final studioData = data['estudio'] as Map<String, dynamic>? ?? {};
+    final contractorData =
+        data['contratante'] as Map<String, dynamic>? ?? {};
 
     // Determine which nested data to use for artistic name
     String? artisticName;
@@ -150,8 +152,13 @@ sealed class FeedItem with _$FeedItem {
         extractedSkills.addAll(List<String>.from(studioServices));
       }
     } else if (tipoPerfil == 'contratante') {
-      // Contractor: usually not shown in public feed, but handle gracefully
-      category = 'Contratante';
+      artisticName = contractorData['nomeExibicao'] as String?;
+      category = 'Local';
+
+      final amenities = contractorData['comodidades'];
+      if (amenities is List) {
+        extractedSkills.addAll(amenities.whereType<String>());
+      }
     }
 
     // Optimization: Sort items by length for better UI display (cloud tags)

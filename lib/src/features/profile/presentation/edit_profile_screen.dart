@@ -56,7 +56,7 @@ enum _UsernameAvailabilityState {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     with SingleTickerProviderStateMixin {
   final _bioFormatter = SentenceStartUppercaseTextInputFormatter();
-  late TabController _tabController;
+  TabController? _tabController;
   final _profileFormKey = GlobalKey<FormState>();
   final _musicLinksFormKey = GlobalKey<FormState>();
   final Set<int> _visitedTabs = {0};
@@ -91,8 +91,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(_handleTabChange);
     // Preload app config to avoid empty option lists on first modal open.
     unawaited(ref.read(appConfigProvider.future));
   }
@@ -101,8 +99,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   void dispose() {
     _usernameValidationDebounce?.cancel();
     _usernameUiVersion.dispose();
-    _tabController.removeListener(_handleTabChange);
-    _tabController.dispose();
+    _tabController?.removeListener(_handleTabChange);
+    _tabController?.dispose();
     if (_isControllersInitialized) {
       _nomeController.dispose();
       _nomeArtisticoController.dispose();
@@ -121,11 +119,51 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   void _handleTabChange() {
-    if (_tabController.index == _tabController.previousIndex) return;
+    final tabController = _tabController;
+    if (tabController == null) return;
+
+    if (tabController.index == tabController.previousIndex) return;
     FocusManager.instance.primaryFocus?.unfocus();
-    if (_visitedTabs.add(_tabController.index) && mounted) {
+    if (_visitedTabs.add(tabController.index) && mounted) {
       setState(() {});
     }
+  }
+
+  int _tabCountForUser(AppUser user) {
+    return user.tipoPerfil == AppUserType.contractor ? 2 : 3;
+  }
+
+  TabController get _activeTabController {
+    final controller = _tabController;
+    if (controller == null) {
+      throw StateError('TabController should be initialized before use.');
+    }
+    return controller;
+  }
+
+  void _ensureTabControllerForUser(AppUser user) {
+    final expectedLength = _tabCountForUser(user);
+    final current = _tabController;
+
+    if (current != null && current.length == expectedLength) {
+      return;
+    }
+
+    final previousIndex = current?.index ?? 0;
+    current?.removeListener(_handleTabChange);
+    current?.dispose();
+
+    final initialIndex = previousIndex.clamp(0, expectedLength - 1);
+    final nextController = TabController(
+      length: expectedLength,
+      vsync: this,
+      initialIndex: initialIndex,
+    );
+    nextController.addListener(_handleTabChange);
+    _tabController = nextController;
+
+    _visitedTabs.removeWhere((index) => index >= expectedLength);
+    _visitedTabs.add(initialIndex);
   }
 
   String _normalizeBio(String value) {
@@ -179,6 +217,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         break;
       case AppUserType.contractor:
         final data = user.dadosContratante ?? {};
+        nomeArt = data['nomeExibicao'] ?? '';
         cel = data['celular'] ?? '';
         dataNasc = data['dataNascimento'] ?? '';
         gen = data['genero'] ?? '';
@@ -496,15 +535,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   bool _shouldBuildTab(int index) =>
-      _visitedTabs.contains(index) || _tabController.index == index;
+      _visitedTabs.contains(index) ||
+      ((_tabController?.index ?? 0) == index);
 
-  Future<bool> _validateProfileForm({required bool isContractor}) async {
+  Future<bool> _validateProfileForm() async {
     final profileFormState = _profileFormKey.currentState;
     if (profileFormState == null) return true;
 
     final isValid = profileFormState.validate();
-    if (!isValid && !isContractor && _tabController.index != 0) {
-      _tabController.animateTo(0);
+    if (!isValid && _activeTabController.index != 0) {
+      _activeTabController.animateTo(0);
       await Future<void>.delayed(const Duration(milliseconds: 250));
     }
 
@@ -535,8 +575,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       final error = MusicLinkValidator.validate(platform.key, value);
       if (error == null) continue;
 
-      if (_tabController.index != 2) {
-        _tabController.animateTo(2);
+      if (_activeTabController.index != 2) {
+        _activeTabController.animateTo(2);
         await Future<void>.delayed(const Duration(milliseconds: 250));
       }
 
@@ -553,8 +593,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
     final isValid = linksFormState.validate();
     if (!isValid) {
-      if (_tabController.index != 2) {
-        _tabController.animateTo(2);
+      if (_activeTabController.index != 2) {
+        _activeTabController.animateTo(2);
         await Future<void>.delayed(const Duration(milliseconds: 250));
       }
       if (!mounted) return null;
@@ -596,9 +636,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       return;
     }
 
-    final isProfileFormValid = await _validateProfileForm(
-      isContractor: isContractor,
-    );
+    final isProfileFormValid = await _validateProfileForm();
     if (!isProfileFormValid) {
       return;
     }
@@ -692,6 +730,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         if (!_isControllersInitialized) {
           _initializeControllers(user);
         }
+        _ensureTabControllerForUser(user);
+        final tabController = _activeTabController;
 
         // Watch edit state
         final editUiState = ref.watch(
@@ -721,8 +761,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             ),
             body: Column(
               children: [
-                if (!isContractor)
-                  Container(
+                Container(
                     margin: const EdgeInsets.all(AppSpacing.s16),
                     height: AppSpacing.s48,
                     decoration: BoxDecoration(
@@ -733,7 +772,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                       ),
                     ),
                     child: TabBar(
-                      controller: _tabController,
+                      controller: tabController,
                       onTap: (_) =>
                           FocusManager.instance.primaryFocus?.unfocus(),
                       labelColor: AppColors.textPrimary,
@@ -746,40 +785,40 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: AppColors.transparent,
                       padding: AppSpacing.all4,
-                      tabs: const [
-                        Tab(text: 'Perfil'),
-                        Tab(text: 'Mídia'),
-                        Tab(text: 'Links Musicais'),
-                      ],
+                      tabs: isContractor
+                          ? const [Tab(text: 'Perfil'), Tab(text: 'Midia')]
+                          : const [
+                              Tab(text: 'Perfil'),
+                              Tab(text: 'Midia'),
+                              Tab(text: 'Links Musicais'),
+                            ],
                     ),
                   ),
                 Expanded(
-                  child: isContractor
-                      ? _buildProfileTab(user)
-                      : TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _buildProfileTab(user),
-                            _shouldBuildTab(1)
-                                ? MediaGallerySection(user: user)
-                                : const SizedBox.shrink(),
-                            _shouldBuildTab(2)
-                                ? Form(
-                                    key: _musicLinksFormKey,
-                                    child: MusicLinksForm(
-                                      controllers: _musicLinkControllers,
-                                      onChanged: ref
-                                          .read(
-                                            editProfileControllerProvider(
-                                              user.uid,
-                                            ).notifier,
-                                          )
-                                          .markChanged,
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ],
-                        ),
+                  child: TabBarView(
+                    controller: tabController,
+                    children: [
+                      _buildProfileTab(user),
+                      _shouldBuildTab(1)
+                          ? MediaGallerySection(user: user)
+                          : const SizedBox.shrink(),
+                      if (!isContractor)
+                        _shouldBuildTab(2)
+                            ? Form(
+                                key: _musicLinksFormKey,
+                                child: MusicLinksForm(
+                                  controllers: _musicLinkControllers,
+                                  onChanged: ref
+                                      .read(
+                                        editProfileControllerProvider(user.uid)
+                                            .notifier,
+                                      )
+                                      .markChanged,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -927,12 +966,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         );
       case AppUserType.contractor:
         return ContractorFormFields(
+          nomeExibicaoController: _nomeArtisticoController,
           celularController: _celularController,
           celularMask: _celularMask,
           dataNascimentoController: _dataNascimentoController,
           generoController: _generoController,
           instagramController: _instagramController,
           bioController: _bioController,
+          contractorVenueType: editState.contractorVenueType,
+          contractorAmenities: editState.contractorAmenities,
+          onVenueTypeChanged: notifier.setContractorVenueType,
+          onAmenitiesChanged: notifier.updateContractorAmenities,
           onChanged: notifier.markChanged,
         );
       default:

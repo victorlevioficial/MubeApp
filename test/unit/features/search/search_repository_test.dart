@@ -109,6 +109,61 @@ void main() {
     });
 
     test(
+      'should include public contractors in venue search even when hidden from home',
+      () async {
+        await fakeFirestore.collection('users').doc('venue-public').set({
+          'nome': 'Arena Azul',
+          'tipo_perfil': 'contratante',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'privacy_settings': {'visible_in_home': false},
+          'contratante': {
+            'nomeExibicao': 'Arena Azul',
+            'isPublic': true,
+            'venueType': 'bar',
+            'comodidades': ['stage', 'sound_system'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        await fakeFirestore.collection('users').doc('venue-private').set({
+          'nome': 'Casa Vermelha',
+          'tipo_perfil': 'contratante',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'privacy_settings': {'visible_in_home': true},
+          'contratante': {
+            'nomeExibicao': 'Casa Vermelha',
+            'isPublic': false,
+            'venueType': 'restaurant',
+            'comodidades': ['parking'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        const filters = SearchFilters(
+          category: SearchCategory.venues,
+          services: ['stage'],
+          studioType: 'bar',
+        );
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 8,
+          getCurrentRequestId: () => 8,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items, hasLength(1));
+          expect(r.items.single.uid, 'venue-public');
+          expect(r.items.single.displayName, 'Arena Azul');
+          expect(r.items.single.categoria, 'Local');
+          expect(r.items.single.skills, containsAll(['stage', 'sound_system']));
+        });
+      },
+    );
+
+    test(
       'professional-only filters under all should return only professionals',
       () async {
         const filters = SearchFilters(instruments: ['guitar']);

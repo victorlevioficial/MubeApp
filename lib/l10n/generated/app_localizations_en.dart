@@ -416,6 +416,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'If disabled, nobody will see you in MatchPoint and you won\'t receive new matches.';
 
   @override
+  String get settings_privacy_public_profile_title => 'Public profile';
+
+  @override
+  String get settings_privacy_public_profile_subtitle =>
+      'Allows your venue to appear in search and have a shareable link.';
+
+  @override
+  String get settings_privacy_public_profile_photo_required =>
+      'Add a profile photo before enabling the public profile.';
+
+  @override
+  String settings_privacy_public_profile_update_error(Object error) {
+    return 'Error updating public profile: $error';
+  }
+
+  @override
+  String get settings_privacy_public_profile_updated =>
+      'Public profile updated.';
+
+  @override
   String get settings_privacy_public_chat_title => 'Public chat';
 
   @override

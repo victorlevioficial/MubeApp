@@ -214,7 +214,51 @@ class _ContractorDetails extends StatelessWidget {
   const _ContractorDetails({required this.user});
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    final contractor = user.dadosContratante ?? const <String, dynamic>{};
+    final venueTypeId = contractor['venueType'] as String?;
+    final amenities =
+        (contractor['comodidades'] as List?)?.cast<String>() ??
+        (contractor['amenities'] as List?)?.cast<String>() ??
+        const <String>[];
+    final venueType = venueTypeLabel(venueTypeId);
+    final amenityLabels = venueAmenityLabels(amenities);
+    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+
+    if ((venueType == null || venueType.isEmpty) && amenityLabels.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (venueType != null && venueType.isNotEmpty) ...[
+          _InfoCard(
+            icon: Icons.storefront_rounded,
+            title: 'Tipo de Local',
+            accentColor: color,
+            child: _ChipWrap(
+              items: [venueType],
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+          if (amenityLabels.isNotEmpty) const SizedBox(height: AppSpacing.s12),
+        ],
+        if (amenityLabels.isNotEmpty)
+          _InfoCard(
+            icon: Icons.check_circle_outline_rounded,
+            title: 'Comodidades',
+            accentColor: color,
+            child: _ChipWrap(
+              items: amenityLabels,
+              accentColor: color,
+              isSkill: true,
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _MusicLinksSection extends StatelessWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../constants/venue_type_constants.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -42,6 +43,7 @@ class ActiveFiltersBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final chips = <Widget>[];
     final maxChipWidth = MediaQuery.sizeOf(context).width * 0.62;
+    final isVenueCategory = filters.category == SearchCategory.venues;
 
     if (activePrefilterLabel != null) {
       chips.add(
@@ -83,12 +85,16 @@ class ActiveFiltersBar extends StatelessWidget {
     if (filters.studioType != null) {
       chips.add(
         _buildChip(
-          _studioTypeLabel(filters.studioType!),
-          AppColors.badgeStudio,
+          isVenueCategory
+              ? _venueTypeLabel(filters.studioType!)
+              : _studioTypeLabel(filters.studioType!),
+          isVenueCategory ? AppColors.warning : AppColors.badgeStudio,
           maxWidth: maxChipWidth,
-          icon: filters.studioType == 'home_studio'
-              ? Icons.home_rounded
-              : Icons.storefront_rounded,
+          icon: isVenueCategory
+              ? Icons.place_outlined
+              : (filters.studioType == 'home_studio'
+                    ? Icons.home_rounded
+                    : Icons.storefront_rounded),
           onRemove: onClearStudioType,
         ),
       );
@@ -135,10 +141,12 @@ class ActiveFiltersBar extends StatelessWidget {
     for (final service in filters.services) {
       chips.add(
         _buildChip(
-          service,
-          AppColors.success,
+          isVenueCategory ? _venueAmenityLabel(service) : service,
+          isVenueCategory ? AppColors.warning : AppColors.success,
           maxWidth: maxChipWidth,
-          icon: Icons.headset_mic_rounded,
+          icon: isVenueCategory
+              ? Icons.storefront_rounded
+              : Icons.headset_mic_rounded,
           onRemove: onRemoveService != null
               ? () => onRemoveService!(service)
               : null,
@@ -149,7 +157,7 @@ class ActiveFiltersBar extends StatelessWidget {
     if (filters.canDoBackingVocal != null) {
       chips.add(
         _buildChip(
-          filters.canDoBackingVocal == true ? 'Faz backing vocal' : 'Só solo',
+          filters.canDoBackingVocal == true ? 'Faz backing vocal' : 'So solo',
           AppColors.warning,
           maxWidth: maxChipWidth,
           icon: Icons.record_voice_over_rounded,
@@ -279,7 +287,9 @@ class ActiveFiltersBar extends StatelessWidget {
       case SearchCategory.bands:
         return 'Bandas';
       case SearchCategory.studios:
-        return 'Estúdios';
+        return 'Estudios';
+      case SearchCategory.venues:
+        return 'Locais';
     }
   }
 
@@ -293,6 +303,8 @@ class ActiveFiltersBar extends StatelessWidget {
         return Icons.groups_outlined;
       case SearchCategory.studios:
         return Icons.mic_none;
+      case SearchCategory.venues:
+        return Icons.storefront_outlined;
     }
   }
 
@@ -303,9 +315,9 @@ class ActiveFiltersBar extends StatelessWidget {
       case ProfessionalSubcategory.instrumentalist:
         return 'Instrumentista';
       case ProfessionalSubcategory.production:
-        return 'Produção Musical';
+        return 'Producao Musical';
       case ProfessionalSubcategory.stageTech:
-        return 'Técnica de Palco';
+        return 'Tecnica de Palco';
       case ProfessionalSubcategory.dj:
         return 'DJ';
     }
@@ -336,4 +348,9 @@ class ActiveFiltersBar extends StatelessWidget {
         return studioType;
     }
   }
+
+  String _venueTypeLabel(String venueType) =>
+      venueTypeLabel(venueType) ?? venueType;
+
+  String _venueAmenityLabel(String amenity) => venueAmenityLabel(amenity);
 }

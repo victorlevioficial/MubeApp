@@ -105,6 +105,10 @@ class FeedCardCompact extends StatelessWidget {
         icon = Icons.headphones;
         color = AppColors.badgeStudio;
         break;
+      case 'contratante':
+        icon = Icons.storefront_rounded;
+        color = AppColors.warning;
+        break;
       case 'profissional':
       default:
         // All professionals (musicians, vocalists, crew) get music note

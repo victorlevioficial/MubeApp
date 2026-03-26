@@ -13,7 +13,7 @@ extension _SearchScreenUi on _SearchScreenState {
         controller: _searchController,
         focusNode: _searchFocusNode,
         label: null,
-        hint: 'Buscar musicos, bandas, estudios...',
+        hint: 'Buscar musicos, bandas, estudios ou locais...',
         prefixIcon: const Icon(
           Icons.search_rounded,
           color: AppColors.textSecondary,

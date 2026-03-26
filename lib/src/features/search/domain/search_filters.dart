@@ -15,6 +15,9 @@ enum SearchCategory {
 
   /// Recording/rehearsal studios
   studios,
+
+  /// Public venues/contractors
+  venues,
 }
 
 /// Professional subcategories (only applies when category is [SearchCategory.professionals])
@@ -88,6 +91,8 @@ abstract class SearchFilters with _$SearchFilters {
         return hasStudioOnlyFilters;
       case SearchCategory.studios:
         return hasProfessionalOnlyFilters;
+      case SearchCategory.venues:
+        return hasProfessionalOnlyFilters;
       case SearchCategory.bands:
         return hasProfessionalOnlyFilters || hasStudioOnlyFilters;
     }
@@ -97,12 +102,30 @@ abstract class SearchFilters with _$SearchFilters {
   SearchFilters sanitizeForCategory(SearchCategory nextCategory) {
     var next = copyWith(category: nextCategory);
 
+    final isCurrentStudioLike =
+        category == SearchCategory.studios || category == SearchCategory.venues;
+    final isNextStudioLike =
+        nextCategory == SearchCategory.studios ||
+        nextCategory == SearchCategory.venues;
+
+    if (isCurrentStudioLike &&
+        isNextStudioLike &&
+        category != nextCategory) {
+      next = next.copyWith(services: const [], studioType: null);
+    }
+
+    if (category == SearchCategory.venues &&
+        nextCategory != SearchCategory.venues) {
+      next = next.copyWith(services: const [], studioType: null);
+    }
+
     if (nextCategory == SearchCategory.professionals ||
         nextCategory == SearchCategory.bands) {
       next = next.copyWith(services: const [], studioType: null);
     }
 
     if (nextCategory == SearchCategory.studios ||
+        nextCategory == SearchCategory.venues ||
         nextCategory == SearchCategory.bands) {
       next = next.copyWith(
         professionalSubcategory: null,
@@ -111,6 +134,10 @@ abstract class SearchFilters with _$SearchFilters {
         canDoBackingVocal: null,
         offersRemoteRecording: null,
       );
+    }
+
+    if (nextCategory == SearchCategory.venues) {
+      next = next.copyWith(genres: const []);
     }
 
     return next;
@@ -136,6 +163,7 @@ abstract class SearchFilters with _$SearchFilters {
         return this;
       case SearchCategory.professionals:
       case SearchCategory.studios:
+      case SearchCategory.venues:
       case SearchCategory.bands:
         return sanitizeForCategory(category);
     }

@@ -878,6 +878,36 @@ abstract class AppLocalizations {
   /// **'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.'**
   String get settings_privacy_matchpoint_subtitle;
 
+  /// No description provided for @settings_privacy_public_profile_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil público'**
+  String get settings_privacy_public_profile_title;
+
+  /// No description provided for @settings_privacy_public_profile_subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Permite que seu local apareça na busca e tenha link compartilhável.'**
+  String get settings_privacy_public_profile_subtitle;
+
+  /// No description provided for @settings_privacy_public_profile_photo_required.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicione uma foto de perfil antes de ativar o perfil público.'**
+  String get settings_privacy_public_profile_photo_required;
+
+  /// No description provided for @settings_privacy_public_profile_update_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar perfil público: {error}'**
+  String settings_privacy_public_profile_update_error(Object error);
+
+  /// No description provided for @settings_privacy_public_profile_updated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil público atualizado.'**
+  String get settings_privacy_public_profile_updated;
+
   /// No description provided for @settings_privacy_public_chat_title.
   ///
   /// In pt, this message translates to:

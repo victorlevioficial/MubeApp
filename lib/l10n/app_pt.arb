@@ -144,6 +144,16 @@
   "settings_privacy_home_visibility_subtitle": "Se desativado, seu perfil não aparecerá nas buscas gerais nem no feed.",
   "settings_privacy_matchpoint_title": "Ativar MatchPoint",
   "settings_privacy_matchpoint_subtitle": "Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.",
+  "settings_privacy_public_profile_title": "Perfil público",
+  "settings_privacy_public_profile_subtitle": "Permite que seu local apareça na busca e tenha link compartilhável.",
+  "settings_privacy_public_profile_photo_required": "Adicione uma foto de perfil antes de ativar o perfil público.",
+  "settings_privacy_public_profile_update_error": "Erro ao atualizar perfil público: {error}",
+  "@settings_privacy_public_profile_update_error": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settings_privacy_public_profile_updated": "Perfil público atualizado.",
   "settings_privacy_public_chat_title": "Chat público",
   "settings_privacy_public_chat_subtitle": "Se desativado, novas mensagens de quem ainda não tem vínculo com você irão para Solicitações.",
   "settings_privacy_chat_update_error": "Erro ao atualizar privacidade do chat: {error}",

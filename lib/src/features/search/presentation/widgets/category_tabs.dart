@@ -41,9 +41,15 @@ class CategoryTabs extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.s8),
           _buildTab(
-            label: 'Estúdios',
+            label: 'Estudios',
             icon: Icons.headset_outlined,
             category: SearchCategory.studios,
+          ),
+          const SizedBox(width: AppSpacing.s8),
+          _buildTab(
+            label: 'Locais',
+            icon: Icons.storefront_outlined,
+            category: SearchCategory.venues,
           ),
         ],
       ),

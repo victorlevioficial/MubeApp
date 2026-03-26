@@ -11,6 +11,7 @@ enum ProfileClassification {
   technician, // Pure stage technician
   band,
   studio,
+  venue,
 }
 
 /// A badge that displays the profile type with a colored icon.
@@ -33,7 +34,7 @@ class ProfileTypeBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '•',
+          '\u2022',
           style: AppTypography.labelLarge.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -64,6 +65,8 @@ class ProfileTypeBadge extends StatelessWidget {
             )
             ? ProfileClassification.technician
             : ProfileClassification.musician;
+      case 'contratante':
+        return ProfileClassification.venue;
       default:
         return ProfileClassification.musician;
     }
@@ -74,13 +77,15 @@ class ProfileTypeBadge extends StatelessWidget {
   ) {
     switch (classification) {
       case ProfileClassification.musician:
-        return ('Músico', Icons.music_note, AppColors.badgeMusician);
+        return ('Musico', Icons.music_note, AppColors.badgeMusician);
       case ProfileClassification.technician:
-        return ('Técnico', Icons.build_rounded, AppColors.badgeMusician);
+        return ('Tecnico', Icons.build_rounded, AppColors.badgeMusician);
       case ProfileClassification.band:
         return ('Banda', Icons.groups, AppColors.badgeBand);
       case ProfileClassification.studio:
-        return ('Estúdio', Icons.headphones, AppColors.badgeStudio);
+        return ('Estudio', Icons.headphones, AppColors.badgeStudio);
+      case ProfileClassification.venue:
+        return ('Local', Icons.storefront_rounded, AppColors.warning);
     }
   }
 }

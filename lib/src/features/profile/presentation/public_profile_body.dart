@@ -110,10 +110,8 @@ class _ProfileBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (user.tipoPerfil != AppUserType.contractor) ...[
-            _buildGallery(),
-            const SizedBox(height: AppSpacing.s16),
-          ],
+          _buildGallery(),
+          const SizedBox(height: AppSpacing.s16),
           if (bio != null) ...[
             _BioCard(bio: bio),
             const SizedBox(height: AppSpacing.s16),

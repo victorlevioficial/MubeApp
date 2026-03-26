@@ -418,6 +418,26 @@ class AppLocalizationsPt extends AppLocalizations {
       'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.';
 
   @override
+  String get settings_privacy_public_profile_title => 'Perfil público';
+
+  @override
+  String get settings_privacy_public_profile_subtitle =>
+      'Permite que seu local apareça na busca e tenha link compartilhável.';
+
+  @override
+  String get settings_privacy_public_profile_photo_required =>
+      'Adicione uma foto de perfil antes de ativar o perfil público.';
+
+  @override
+  String settings_privacy_public_profile_update_error(Object error) {
+    return 'Erro ao atualizar perfil público: $error';
+  }
+
+  @override
+  String get settings_privacy_public_profile_updated =>
+      'Perfil público atualizado.';
+
+  @override
   String get settings_privacy_public_chat_title => 'Chat público';
 
   @override

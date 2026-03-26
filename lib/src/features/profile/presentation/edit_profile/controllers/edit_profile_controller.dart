@@ -61,6 +61,8 @@ class EditProfileController extends _$EditProfileController {
     String? studioType;
     List<String> services = [];
     List<String> bandGenres = [];
+    String? contractorVenueType;
+    List<String> contractorAmenities = [];
     List<MediaItem> gallery = [];
 
     switch (user.tipoPerfil) {
@@ -97,6 +99,15 @@ class EditProfileController extends _$EditProfileController {
         gallery = _parseGallery(data['gallery']);
         break;
 
+      case AppUserType.contractor:
+        final data = user.dadosContratante ?? {};
+        contractorVenueType = data['venueType'] as String?;
+        contractorAmenities = List<String>.from(
+          data['comodidades'] ?? data['amenities'] ?? [],
+        );
+        gallery = _parseGallery(data['gallery']);
+        break;
+
       default:
         break;
     }
@@ -112,6 +123,8 @@ class EditProfileController extends _$EditProfileController {
       studioType: studioType,
       selectedServices: services,
       bandGenres: bandGenres,
+      contractorVenueType: contractorVenueType,
+      contractorAmenities: contractorAmenities,
       galleryItems: gallery,
     );
   }
@@ -119,21 +132,10 @@ class EditProfileController extends _$EditProfileController {
   List<MediaItem> _parseGallery(dynamic galleryData) {
     if (galleryData == null) return [];
     final List<dynamic> items = galleryData as List<dynamic>;
-    final parsed = items.map((item) {
-      final map = item as Map<String, dynamic>;
-
-      // Handle type conversion explicitly to match MediaType enum
-      final typeStr = map['type'] as String?;
-      final type = typeStr == 'video' ? MediaType.video : MediaType.photo;
-
-      return MediaItem(
-        id: map['id'] ?? const Uuid().v4(),
-        url: map['url'] ?? '',
-        type: type,
-        thumbnailUrl: map['thumbnailUrl'],
-        order: map['order'] ?? 0,
-      );
-    }).toList();
+    final parsed = items
+        .whereType<Map>()
+        .map((item) => MediaItem.fromJson(Map<String, dynamic>.from(item)))
+        .toList();
     parsed.sort((a, b) => a.order.compareTo(b.order));
     return parsed;
   }
@@ -247,6 +249,14 @@ class EditProfileController extends _$EditProfileController {
 
   void updateBandGenres(List<String> genres) {
     state = state.copyWith(bandGenres: genres, hasChanges: true);
+  }
+
+  void setContractorVenueType(String? venueType) {
+    state = state.copyWith(contractorVenueType: venueType, hasChanges: true);
+  }
+
+  void updateContractorAmenities(List<String> amenities) {
+    state = state.copyWith(contractorAmenities: amenities, hasChanges: true);
   }
 
   // --- Gallery Logic ---
@@ -397,6 +407,9 @@ class EditProfileController extends _$EditProfileController {
         id: mediaId,
         url: mediaUrls.full ?? '',
         type: MediaType.photo,
+        thumbnailUrl: mediaUrls.thumbnail,
+        mediumUrl: mediaUrls.medium,
+        largeUrl: mediaUrls.large,
         order: placeholder.order,
       );
 
@@ -698,6 +711,8 @@ class EditProfileController extends _$EditProfileController {
         'url': resolvedUrls[entry.key],
         'type': item.type == MediaType.video ? 'video' : 'photo',
         'thumbnailUrl': item.thumbnailUrl,
+        'mediumUrl': item.mediumUrl,
+        'largeUrl': item.largeUrl,
         'order': entry.key,
       };
     }).toList();
@@ -813,11 +828,21 @@ class EditProfileController extends _$EditProfileController {
           break;
 
         case AppUserType.contractor:
+          final currentData = Map<String, dynamic>.from(
+            user.dadosContratante ?? const <String, dynamic>{},
+          );
           updates['dadosContratante'] = {
+            ...currentData,
+            'nomeExibicao': nomeArtistico,
+            'bio': bio,
             'celular': celular,
             'dataNascimento': dataNascimento,
             'genero': genero,
             'instagram': instagram,
+            'gallery': gallery,
+            'isPublic': currentData['isPublic'] == true,
+            'venueType': state.contractorVenueType,
+            'comodidades': state.contractorAmenities,
           };
           break;
 
