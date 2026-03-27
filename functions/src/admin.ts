@@ -594,6 +594,353 @@ async function collectAdminUserDocsPage(params: {
   };
 }
 
+type QueryFilter = [string, FirebaseFirestore.WhereFilterOp, unknown];
+
+type QueryDocsOptions = {
+  collectionPath?: string;
+  collectionGroupId?: string;
+  filters?: QueryFilter[];
+  orderByField?: string;
+  direction?: FirebaseFirestore.OrderByDirection;
+  limit?: number;
+};
+
+function normalizePath(path: string): string {
+  return path
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\/+|\/+$/g, "");
+}
+
+function normalizeLimit(
+  value: unknown,
+  fallback = 20,
+  max = 100
+): number {
+  const raw = Number(value);
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(Math.max(Math.floor(raw), 1), max);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function isDocumentReferenceLike(
+  value: unknown
+): value is { id: string; path: string; get: unknown } {
+  const raw = value as Record<string, unknown>;
+  return raw != null &&
+    typeof raw === "object" &&
+    typeof raw.id === "string" &&
+    typeof raw.path === "string" &&
+    "get" in raw;
+}
+
+function serializeAdminValue(value: unknown): unknown {
+  if (value == null) return null;
+
+  if (value instanceof Timestamp) {
+    return {
+      __type: "timestamp",
+      millis: value.toMillis(),
+      iso: value.toDate().toISOString(),
+    };
+  }
+
+  if (value instanceof Date) {
+    return {
+      __type: "date",
+      millis: value.getTime(),
+      iso: value.toISOString(),
+    };
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => serializeAdminValue(item));
+  }
+
+  const maybeGeoPoint = value as Record<string, unknown>;
+  if (
+    typeof maybeGeoPoint.latitude === "number" &&
+    typeof maybeGeoPoint.longitude === "number"
+  ) {
+    return {
+      __type: "geopoint",
+      latitude: maybeGeoPoint.latitude,
+      longitude: maybeGeoPoint.longitude,
+    };
+  }
+
+  if (isDocumentReferenceLike(value)) {
+    return {
+      __type: "document_reference",
+      id: value.id,
+      path: value.path,
+    };
+  }
+
+  const record = asRecord(value);
+  const serializedEntries = Object.entries(record).map(([key, itemValue]) => [
+    key,
+    serializeAdminValue(itemValue),
+  ]);
+  return Object.fromEntries(serializedEntries);
+}
+
+function serializeSnapshot(
+  snapshot:
+    | FirebaseFirestore.DocumentSnapshot
+    | FirebaseFirestore.QueryDocumentSnapshot
+): Record<string, unknown> {
+  return {
+    id: snapshot.id,
+    path: snapshot.ref.path,
+    exists: snapshot.exists,
+    data: snapshot.exists ? serializeAdminValue(snapshot.data() || {}) : null,
+  };
+}
+
+async function loadAdminUsersMapByUid(
+  uids: string[]
+): Promise<Map<string, Record<string, unknown>>> {
+  const uniqueUids = uniqueStrings(uids);
+  if (uniqueUids.length === 0) {
+    return new Map<string, Record<string, unknown>>();
+  }
+
+  const snapshots = await db.getAll(
+    ...uniqueUids.map((uid) => db.collection("users").doc(uid))
+  );
+  const payloads = await buildAdminUsersFromDocs(snapshots);
+  return new Map(
+    payloads.map((payload) => [String(payload.uid || ""), payload])
+  );
+}
+
+async function fetchQueryDocs(
+  options: QueryDocsOptions
+): Promise<FirebaseFirestore.QueryDocumentSnapshot[]> {
+  const limit = normalizeLimit(options.limit, 20, 120);
+  let query: FirebaseFirestore.Query;
+
+  if (options.collectionGroupId) {
+    query = db.collectionGroup(options.collectionGroupId);
+  } else if (options.collectionPath) {
+    query = db.collection(options.collectionPath);
+  } else {
+    throw new HttpsError(
+      "invalid-argument",
+      "collectionPath ou collectionGroupId é obrigatório."
+    );
+  }
+
+  for (const [field, operator, value] of options.filters || []) {
+    query = query.where(field, operator, value);
+  }
+
+  if (options.orderByField) {
+    try {
+      const orderedSnapshot = await query
+        .orderBy(options.orderByField, options.direction || "desc")
+        .limit(limit)
+        .get();
+      return orderedSnapshot.docs;
+    } catch (error) {
+      console.warn(
+        "Admin query fallback without orderBy",
+        options.collectionPath || options.collectionGroupId,
+        options.orderByField,
+        error
+      );
+    }
+  }
+
+  const snapshot = await query.limit(limit).get();
+  return snapshot.docs;
+}
+
+async function countQueryDocuments(
+  collectionPath: string,
+  filters: QueryFilter[] = []
+): Promise<number> {
+  let query: FirebaseFirestore.Query = db.collection(collectionPath);
+  for (const [field, operator, value] of filters) {
+    query = query.where(field, operator, value);
+  }
+
+  const snapshot = await query.count().get();
+  return snapshot.data().count || 0;
+}
+
+async function listDocumentSubcollections(
+  docRef: FirebaseFirestore.DocumentReference
+): Promise<Array<Record<string, unknown>>> {
+  const collections = await docRef.listCollections();
+  return collections.map((collection) => ({
+    id: collection.id,
+    path: collection.path,
+  }));
+}
+
+function buildAdminGigListItem(
+  doc: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot,
+  creatorMap: Map<string, Record<string, unknown>>
+): Record<string, unknown> {
+  const data = (doc.data() || {}) as Record<string, unknown>;
+  const creatorId = firstNonEmptyString([data.creator_id]);
+
+  return {
+    id: doc.id,
+    path: doc.ref.path,
+    title: firstNonEmptyString([data.title], "Sem título"),
+    description: firstNonEmptyString([data.description]),
+    gigType: firstNonEmptyString([data.gig_type], "outro"),
+    status: firstNonEmptyString([data.status], "open"),
+    dateMode: firstNonEmptyString([data.date_mode], "unspecified"),
+    locationType: firstNonEmptyString([data.location_type], "presencial"),
+    applicantCount: toNonNegativeInt(data.applicant_count),
+    slotsTotal: toNonNegativeInt(data.slots_total),
+    slotsFilled: toNonNegativeInt(data.slots_filled),
+    compensationType: firstNonEmptyString([data.compensation_type], "tbd"),
+    compensationValue: data.compensation_value ?? null,
+    creatorId,
+    creator: creatorId ? creatorMap.get(creatorId) || { uid: creatorId } : null,
+    createdAt: getTimestampMillis(data.created_at),
+    updatedAt: getTimestampMillis(data.updated_at),
+    expiresAt: getTimestampMillis(data.expires_at),
+    location: serializeAdminValue(data.location),
+    raw: serializeAdminValue(data),
+  };
+}
+
+async function buildAdminGigList(
+  docs: Array<FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot>
+): Promise<Record<string, unknown>[]> {
+  const creatorIds = uniqueStrings(
+    docs.map((doc) => firstNonEmptyString([(doc.data() || {}).creator_id]))
+  );
+  const creatorMap = await loadAdminUsersMapByUid(creatorIds);
+  return docs.map((doc) => buildAdminGigListItem(doc, creatorMap));
+}
+
+async function buildConversationPayloads(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+): Promise<Record<string, unknown>[]> {
+  const participantIds = uniqueStrings(
+    docs.flatMap((doc) => {
+      const data = doc.data();
+      return Array.isArray(data.participants) ?
+        data.participants.filter(
+          (item): item is string => typeof item === "string"
+        ) :
+        [];
+    })
+  );
+  const userMap = await loadAdminUsersMapByUid(participantIds);
+
+  return docs.map((doc) => {
+    const data = doc.data();
+    const participantUids = Array.isArray(data.participants) ?
+      data.participants.filter(
+        (item): item is string => typeof item === "string"
+      ) :
+      [];
+
+    return {
+      id: doc.id,
+      path: doc.ref.path,
+      type: firstNonEmptyString([data.type], "direct"),
+      participants: participantUids.map((uid) => userMap.get(uid) || { uid }),
+      participantUids,
+      lastMessageText: firstNonEmptyString([data.lastMessageText]),
+      lastSenderId: firstNonEmptyString([data.lastSenderId]),
+      createdAt: getTimestampMillis(data.createdAt),
+      updatedAt: getTimestampMillis(data.updatedAt),
+      lastMessageAt: getTimestampMillis(data.lastMessageAt),
+      raw: serializeAdminValue(data),
+    };
+  });
+}
+
+async function buildMatchPayloads(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+): Promise<Record<string, unknown>[]> {
+  const userIds = uniqueStrings(
+    docs.flatMap((doc) => {
+      const data = doc.data();
+      return Array.isArray(data.user_ids) ?
+        data.user_ids.filter((item): item is string => typeof item === "string") :
+        [];
+    })
+  );
+  const userMap = await loadAdminUsersMapByUid(userIds);
+
+  return docs.map((doc) => {
+    const data = doc.data();
+    const participants = Array.isArray(data.user_ids) ?
+      data.user_ids.filter((item): item is string => typeof item === "string") :
+      [];
+
+    return {
+      id: doc.id,
+      path: doc.ref.path,
+      createdAt: getTimestampMillis(data.created_at ?? data.createdAt),
+      conversationId: firstNonEmptyString([
+        data.conversation_id,
+        data.conversationId,
+      ]),
+      users: participants.map((uid) => userMap.get(uid) || { uid }),
+      raw: serializeAdminValue(data),
+    };
+  });
+}
+
+async function buildInteractionPayloads(
+  docs: FirebaseFirestore.QueryDocumentSnapshot[]
+): Promise<Record<string, unknown>[]> {
+  const userIds = uniqueStrings(
+    docs.flatMap((doc) => {
+      const data = doc.data();
+      return [
+        firstNonEmptyString([data.source_user_id]),
+        firstNonEmptyString([data.target_user_id]),
+      ];
+    })
+  );
+  const userMap = await loadAdminUsersMapByUid(userIds);
+
+  return docs.map((doc) => {
+    const data = doc.data();
+    const sourceUserId = firstNonEmptyString([data.source_user_id]);
+    const targetUserId = firstNonEmptyString([data.target_user_id]);
+
+    return {
+      id: doc.id,
+      path: doc.ref.path,
+      type: firstNonEmptyString([data.type], "unknown"),
+      sourceUserId,
+      targetUserId,
+      sourceUser: sourceUserId ?
+        userMap.get(sourceUserId) || { uid: sourceUserId } :
+        null,
+      targetUser: targetUserId ?
+        userMap.get(targetUserId) || { uid: targetUserId } :
+        null,
+      createdAt: getTimestampMillis(data.created_at),
+      raw: serializeAdminValue(data),
+    };
+  });
+}
+
 // ================================================================
 // AUTH: Definir custom claim admin
 // ================================================================
@@ -1299,7 +1646,7 @@ export const getMatchpointRankingAuditDashboard = onCall(
 // ================================================================
 // CHAT MODERATION
 // ================================================================
-export const listConversations = onCall(
+export const listConversationsLegacy = onCall(
   { region: "southamerica-east1", memory: "256MiB", invoker: "public" },
   async (request) => {
     assertAdmin(request);
@@ -1379,5 +1726,932 @@ export const getConversationMessages = onCall(
     }).reverse();
 
     return { messages };
+  }
+);
+
+export const getDashboardOverview = onCall(
+  { region: "southamerica-east1", memory: "512MiB", invoker: "public" },
+  async (request) => {
+    assertAdmin(request);
+
+    const recentUserDocsPromise = fetchQueryDocs({
+      collectionPath: "users",
+      orderByField: "created_at",
+      limit: 8,
+    });
+    const recentGigDocsPromise = fetchQueryDocs({
+      collectionPath: "gigs",
+      orderByField: "created_at",
+      limit: 6,
+    });
+    const recentTicketDocsPromise = fetchQueryDocs({
+      collectionPath: "tickets",
+      orderByField: "createdAt",
+      limit: 6,
+    });
+    const recentReportDocsPromise = fetchQueryDocs({
+      collectionPath: "reports",
+      orderByField: "created_at",
+      limit: 6,
+    });
+    const recentConversationDocsPromise = fetchQueryDocs({
+      collectionPath: "conversations",
+      orderByField: "updatedAt",
+      limit: 6,
+    });
+    const recentTranscodeDocsPromise = fetchQueryDocs({
+      collectionPath: "mediaTranscodeJobs",
+      orderByField: "updatedAt",
+      limit: 6,
+    });
+    const trendingHashtagsPromise = fetchQueryDocs({
+      collectionPath: "hashtagRanking",
+      orderByField: "use_count",
+      limit: 8,
+    });
+
+    const [
+      totalUsers,
+      completedProfiles,
+      activeMatchpointProfiles,
+      totalGigs,
+      openGigs,
+      totalConversations,
+      totalMatches,
+      totalInteractions,
+      pendingReports,
+      activeSuspensions,
+      openTickets,
+      processingTranscodes,
+      featuredDoc,
+      appDataDoc,
+      recentUserDocs,
+      recentGigDocs,
+      recentTicketDocs,
+      recentReportDocs,
+      recentConversationDocs,
+      recentTranscodeDocs,
+      trendingHashtagsDocs,
+    ] = await Promise.all([
+      countQueryDocuments("users"),
+      countQueryDocuments("users", [["cadastro_status", "==", "concluido"]]),
+      countQueryDocuments(
+        "users",
+        [["matchpoint_profile.is_active", "==", true]]
+      ),
+      countQueryDocuments("gigs"),
+      countQueryDocuments("gigs", [["status", "==", "open"]]),
+      countQueryDocuments("conversations"),
+      countQueryDocuments("matches"),
+      countQueryDocuments("interactions"),
+      countQueryDocuments("reports", [["status", "==", "pending"]]),
+      countQueryDocuments("suspensions", [["status", "==", "active"]]),
+      countQueryDocuments("tickets", [["status", "==", "open"]]),
+      countQueryDocuments(
+        "mediaTranscodeJobs",
+        [["status", "==", "processing"]]
+      ),
+      db.collection("config").doc("featuredProfiles").get(),
+      db.collection("config").doc("app_data").get(),
+      recentUserDocsPromise,
+      recentGigDocsPromise,
+      recentTicketDocsPromise,
+      recentReportDocsPromise,
+      recentConversationDocsPromise,
+      recentTranscodeDocsPromise,
+      trendingHashtagsPromise,
+    ]);
+
+    const recentUsers = await buildAdminUsersFromDocs(recentUserDocs);
+    const recentGigs = await buildAdminGigList(recentGigDocs);
+    const recentConversations = await buildConversationPayloads(
+      recentConversationDocs
+    );
+
+    const trendingHashtags = trendingHashtagsDocs.map((doc) => ({
+      id: doc.id,
+      path: doc.ref.path,
+      label: doc.id,
+      useCount: toNonNegativeInt(doc.data().use_count),
+      weeklyCount: toNonNegativeInt(doc.data().weekly_count),
+      trend: firstNonEmptyString([doc.data().trend], "stable"),
+      trendDelta: toNonNegativeInt(doc.data().trend_delta),
+      isTrending: doc.data().is_trending === true,
+      raw: serializeAdminValue(doc.data()),
+    }));
+
+    const featuredData = featuredDoc.data() || {};
+    const featuredUids = Array.isArray(featuredData.uids) ?
+      featuredData.uids.filter((item): item is string => typeof item === "string") :
+      [];
+
+    return {
+      counts: {
+        totalUsers,
+        completedProfiles,
+        activeMatchpointProfiles,
+        totalGigs,
+        openGigs,
+        totalConversations,
+        totalMatches,
+        totalInteractions,
+        pendingReports,
+        activeSuspensions,
+        openTickets,
+        processingTranscodes,
+        featuredProfiles: featuredUids.length,
+      },
+      recentUsers,
+      recentGigs,
+      recentTickets: recentTicketDocs.map((doc) => serializeSnapshot(doc)),
+      recentReports: recentReportDocs.map((doc) => serializeSnapshot(doc)),
+      recentConversations,
+      recentTranscodeJobs: recentTranscodeDocs.map((doc) => serializeSnapshot(doc)),
+      trendingHashtags,
+      featured: {
+        updatedAt: getTimestampMillis(featuredData.updatedAt),
+        uids: featuredUids,
+      },
+      configSummary: {
+        exists: appDataDoc.exists,
+        updatedAt: getTimestampMillis(appDataDoc.data()?.updated_at),
+        data: appDataDoc.exists ? serializeAdminValue(appDataDoc.data() || {}) : null,
+      },
+    };
+  }
+);
+
+export const getUserAdminDetail = onCall(
+  { region: "southamerica-east1", memory: "1GiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const uid = firstNonEmptyString([request.data?.uid]);
+    if (!uid) {
+      throw new HttpsError("invalid-argument", "UID é obrigatório.");
+    }
+
+    const userDoc = await db.collection("users").doc(uid).get();
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "Usuário não encontrado.");
+    }
+
+    const userData = (userDoc.data() || {}) as Record<string, unknown>;
+
+    let authRecord: admin.auth.UserRecord | null = null;
+    try {
+      authRecord = await admin.auth().getUser(uid);
+    } catch (error) {
+      console.warn(`Auth record não encontrado para ${uid}:`, error);
+    }
+
+    const moderationDocPromise = db.collection("userModerations").doc(uid).get();
+    const favoritesDocsPromise = fetchQueryDocs({
+      collectionPath: `users/${uid}/favorites`,
+      limit: 40,
+    });
+    const blockedDocsPromise = fetchQueryDocs({
+      collectionPath: `users/${uid}/blocked`,
+      limit: 40,
+    });
+    const notificationDocsPromise = fetchQueryDocs({
+      collectionPath: `users/${uid}/notifications`,
+      orderByField: "updatedAt",
+      limit: 25,
+    });
+    const previewDocsPromise = fetchQueryDocs({
+      collectionPath: `users/${uid}/conversationPreviews`,
+      orderByField: "updatedAt",
+      limit: 25,
+    });
+    const gigDocsPromise = fetchQueryDocs({
+      collectionPath: "gigs",
+      filters: [["creator_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 25,
+    });
+    const applicationDocsPromise = fetchQueryDocs({
+      collectionGroupId: "gig_applications",
+      filters: [["applicant_id", "==", uid]],
+      orderByField: "applied_at",
+      limit: 25,
+    });
+    const ticketDocsPromise = fetchQueryDocs({
+      collectionPath: "tickets",
+      filters: [["userId", "==", uid]],
+      orderByField: "createdAt",
+      limit: 20,
+    });
+    const reportDocsPromise = fetchQueryDocs({
+      collectionPath: "reports",
+      filters: [["reporter_user_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const receivedReportDocsPromise = fetchQueryDocs({
+      collectionPath: "reports",
+      filters: [["reported_item_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const suspensionDocsPromise = fetchQueryDocs({
+      collectionPath: "suspensions",
+      filters: [["user_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const inviteTargetDocsPromise = fetchQueryDocs({
+      collectionPath: "invites",
+      filters: [["target_uid", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const inviteSenderDocsPromise = fetchQueryDocs({
+      collectionPath: "invites",
+      filters: [["sender_uid", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const inviteBandDocsPromise = fetchQueryDocs({
+      collectionPath: "invites",
+      filters: [["band_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const matchDocsPromise = fetchQueryDocs({
+      collectionPath: "matches",
+      filters: [["user_ids", "array-contains", uid]],
+      orderByField: "created_at",
+      limit: 20,
+    });
+    const interactionsSentPromise = fetchQueryDocs({
+      collectionPath: "interactions",
+      filters: [["source_user_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 15,
+    });
+    const interactionsReceivedPromise = fetchQueryDocs({
+      collectionPath: "interactions",
+      filters: [["target_user_id", "==", uid]],
+      orderByField: "created_at",
+      limit: 15,
+    });
+    const transcodeJobsPromise = fetchQueryDocs({
+      collectionPath: "mediaTranscodeJobs",
+      filters: [["userId", "==", uid]],
+      orderByField: "updatedAt",
+      limit: 20,
+    });
+
+    const [
+      moderationDoc,
+      favoritesDocs,
+      blockedDocs,
+      notificationDocs,
+      previewDocs,
+      gigDocs,
+      applicationDocs,
+      ticketDocs,
+      reportDocs,
+      receivedReportDocs,
+      suspensionDocs,
+      inviteTargetDocs,
+      inviteSenderDocs,
+      inviteBandDocs,
+      matchDocs,
+      interactionsSentDocs,
+      interactionsReceivedDocs,
+      transcodeJobDocs,
+    ] = await Promise.all([
+      moderationDocPromise,
+      favoritesDocsPromise,
+      blockedDocsPromise,
+      notificationDocsPromise,
+      previewDocsPromise,
+      gigDocsPromise,
+      applicationDocsPromise,
+      ticketDocsPromise,
+      reportDocsPromise,
+      receivedReportDocsPromise,
+      suspensionDocsPromise,
+      inviteTargetDocsPromise,
+      inviteSenderDocsPromise,
+      inviteBandDocsPromise,
+      matchDocsPromise,
+      interactionsSentPromise,
+      interactionsReceivedPromise,
+      transcodeJobsPromise,
+    ]);
+
+    const moderationData = moderationDoc.exists ?
+      (moderationDoc.data() || {}) as Record<string, unknown> :
+      null;
+
+    const baseProfile = buildAdminUserPayload(
+      uid,
+      userData,
+      authRecord,
+      moderationData
+    );
+
+    const relatedUserIds = uniqueStrings([
+      ...favoritesDocs.map((doc) => doc.id),
+      ...blockedDocs.map((doc) => doc.id),
+    ]);
+    const relatedUsersMap = await loadAdminUsersMapByUid(relatedUserIds);
+    const gigsCreated = await buildAdminGigList(gigDocs);
+    const matches = await buildMatchPayloads(matchDocs);
+    const interactions = await buildInteractionPayloads([
+      ...interactionsSentDocs,
+      ...interactionsReceivedDocs,
+    ]);
+
+    const applicationGigIds = uniqueStrings(
+      applicationDocs.map((doc) => firstNonEmptyString([doc.ref.parent.parent?.id]))
+    );
+    const applicationGigDocs = applicationGigIds.length > 0 ?
+      await db.getAll(
+        ...applicationGigIds.map((gigId) => db.collection("gigs").doc(gigId))
+      ) :
+      [];
+    const gigMap = new Map(
+      applicationGigDocs
+        .filter((doc) => doc.exists)
+        .map((doc) => [doc.id, doc.data() || {}])
+    );
+
+    const inviteDocs = [
+      ...inviteTargetDocs,
+      ...inviteSenderDocs,
+      ...inviteBandDocs,
+    ];
+    const inviteMap = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+    for (const doc of inviteDocs) {
+      inviteMap.set(doc.id, doc);
+    }
+
+    return {
+      profile: baseProfile,
+      auth: authRecord ? {
+        uid: authRecord.uid,
+        email: authRecord.email || "",
+        displayName: authRecord.displayName || "",
+        photoURL: authRecord.photoURL || "",
+        disabled: authRecord.disabled,
+        emailVerified: authRecord.emailVerified,
+        customClaims: serializeAdminValue(authRecord.customClaims || {}),
+        providerData: authRecord.providerData.map((provider) => ({
+          providerId: provider.providerId,
+          uid: provider.uid,
+          email: provider.email || "",
+          displayName: provider.displayName || "",
+        })),
+        metadata: {
+          creationTime: authRecord.metadata.creationTime || null,
+          lastSignInTime: authRecord.metadata.lastSignInTime || null,
+        },
+      } : null,
+      moderation: moderationData ? serializeAdminValue(moderationData) : null,
+      rawUser: serializeAdminValue(userData),
+      favoritesSent: favoritesDocs.map((doc) => ({
+        id: doc.id,
+        path: doc.ref.path,
+        targetUser: relatedUsersMap.get(doc.id) || { uid: doc.id },
+        raw: serializeAdminValue(doc.data()),
+      })),
+      blockedUsers: blockedDocs.map((doc) => ({
+        id: doc.id,
+        path: doc.ref.path,
+        user: relatedUsersMap.get(doc.id) || { uid: doc.id },
+        raw: serializeAdminValue(doc.data()),
+      })),
+      notifications: notificationDocs.map((doc) => serializeSnapshot(doc)),
+      conversationPreviews: previewDocs.map((doc) => serializeSnapshot(doc)),
+      gigsCreated,
+      gigApplications: applicationDocs.map((doc) => {
+        const gigId = firstNonEmptyString([doc.ref.parent.parent?.id]);
+        const gigData = asRecord(gigMap.get(gigId));
+        return {
+          id: doc.id,
+          path: doc.ref.path,
+          gigId,
+          gigTitle: firstNonEmptyString([gigData.title], "Gig"),
+          status: firstNonEmptyString([doc.data().status], "pending"),
+          appliedAt: getTimestampMillis(doc.data().applied_at),
+          respondedAt: getTimestampMillis(doc.data().responded_at),
+          raw: serializeAdminValue(doc.data()),
+        };
+      }),
+      tickets: ticketDocs.map((doc) => serializeSnapshot(doc)),
+      reportsFiled: reportDocs.map((doc) => serializeSnapshot(doc)),
+      reportsReceived: receivedReportDocs.map((doc) => serializeSnapshot(doc)),
+      suspensions: suspensionDocs.map((doc) => serializeSnapshot(doc)),
+      invites: [...inviteMap.values()].map((doc) => serializeSnapshot(doc)),
+      matches,
+      interactions,
+      transcodeJobs: transcodeJobDocs.map((doc) => serializeSnapshot(doc)),
+      derivedStoragePrefixes: [
+        `profile_photos/${uid}/`,
+        `gallery_photos/${uid}/`,
+        `gallery_videos/${uid}/`,
+        `gallery_videos_transcoded/${uid}/`,
+        `gallery_thumbnails/${uid}/`,
+        `support_tickets/${uid}/`,
+      ],
+    };
+  }
+);
+
+const listConversationsAdminHandler = async (
+  request: { auth?: { token?: Record<string, unknown> }; data?: Record<string, unknown> }
+): Promise<Record<string, unknown>> => {
+  assertAdmin(request);
+
+  const limit = normalizeLimit(request.data?.limit, 20, 100);
+  const search = normalizeText(firstNonEmptyString([request.data?.search]));
+  const queryLimit = search ? Math.min(limit * 5, 200) : limit;
+  const conversationDocs = await fetchQueryDocs({
+    collectionPath: "conversations",
+    orderByField: "updatedAt",
+    limit: queryLimit,
+  });
+  const conversations = await buildConversationPayloads(conversationDocs);
+  const filtered = search ?
+    conversations.filter((conversation) => {
+      const participants = Array.isArray(conversation.participants) ?
+        conversation.participants as Array<Record<string, unknown>> :
+        [];
+      const haystack = normalizeText([
+        conversation.id,
+        conversation.lastMessageText,
+        ...participants.flatMap((participant) => [
+          participant.uid,
+          participant.nome,
+          participant.displayName,
+          participant.email,
+        ]),
+      ].map((value) => String(value || "")).join(" "));
+
+      return haystack.includes(search);
+    }) :
+    conversations;
+
+  return {
+    conversations: filtered.slice(0, limit),
+    total: filtered.length,
+    search: search || null,
+  };
+};
+
+export const listConversationsAdmin = onCall(
+  { region: "southamerica-east1", memory: "512MiB", invoker: "public", maxInstances: 1 },
+  async (request) => listConversationsAdminHandler(request)
+);
+
+export const getConversationAdminDetail = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const conversationId = firstNonEmptyString([request.data?.conversationId]);
+    const messageLimit = normalizeLimit(request.data?.messageLimit, 100, 250);
+    if (!conversationId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "conversationId é obrigatório."
+      );
+    }
+
+    const conversationRef = db.collection("conversations").doc(conversationId);
+    const conversationDoc = await conversationRef.get();
+    if (!conversationDoc.exists) {
+      throw new HttpsError("not-found", "Conversa não encontrada.");
+    }
+
+    const data = conversationDoc.data() || {};
+    const participantUids = Array.isArray(data.participants) ?
+      data.participants.filter((item): item is string => typeof item === "string") :
+      [];
+    const participantsMap = await loadAdminUsersMapByUid(participantUids);
+
+    const [messageDocs, safetyDocs, previewDocs] = await Promise.all([
+      fetchQueryDocs({
+        collectionPath: `conversations/${conversationId}/messages`,
+        orderByField: "createdAt",
+        limit: messageLimit,
+      }),
+      fetchQueryDocs({
+        collectionPath: "chatSafetyEvents",
+        filters: [["conversation_id", "==", conversationId]],
+        orderByField: "created_at",
+        limit: 50,
+      }),
+      Promise.all(
+        participantUids.map((uid) =>
+          db
+            .collection("users")
+            .doc(uid)
+            .collection("conversationPreviews")
+            .doc(conversationId)
+            .get()
+        )
+      ),
+    ]);
+
+    return {
+      conversation: {
+        id: conversationDoc.id,
+        path: conversationDoc.ref.path,
+        type: firstNonEmptyString([data.type], "direct"),
+        participants: participantUids.map(
+          (uid) => participantsMap.get(uid) || { uid }
+        ),
+        createdAt: getTimestampMillis(data.createdAt),
+        updatedAt: getTimestampMillis(data.updatedAt),
+        lastMessageText: firstNonEmptyString([data.lastMessageText]),
+        lastMessageAt: getTimestampMillis(data.lastMessageAt),
+        lastSenderId: firstNonEmptyString([data.lastSenderId]),
+        raw: serializeAdminValue(data),
+      },
+      messages: messageDocs.map((doc) => {
+        const messageData = doc.data();
+        const senderId = firstNonEmptyString([messageData.senderId]);
+        return {
+          id: doc.id,
+          path: doc.ref.path,
+          senderId,
+          sender: senderId ? participantsMap.get(senderId) || { uid: senderId } : null,
+          text: firstNonEmptyString([messageData.text]),
+          type: firstNonEmptyString([messageData.type], "text"),
+          createdAt: getTimestampMillis(messageData.createdAt),
+          raw: serializeAdminValue(messageData),
+        };
+      }),
+      chatSafetyEvents: safetyDocs.map((doc) => serializeSnapshot(doc)),
+      participantPreviews: previewDocs
+        .filter((doc) => doc.exists)
+        .map((doc) => serializeSnapshot(doc)),
+    };
+  }
+);
+
+export const listConversations = onCall(
+  { region: "southamerica-east1", memory: "512MiB", invoker: "public", maxInstances: 1 },
+  async (request) => listConversationsAdminHandler(request)
+);
+
+export const listGigsAdmin = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const limit = normalizeLimit(request.data?.limit, 20, 100);
+    const status = firstNonEmptyString([request.data?.status], "all");
+    const creatorId = firstNonEmptyString([request.data?.creatorId]);
+    const search = normalizeText(firstNonEmptyString([request.data?.search]));
+    const filters: QueryFilter[] = [];
+
+    if (status !== "all") {
+      filters.push(["status", "==", status]);
+    }
+    if (creatorId) {
+      filters.push(["creator_id", "==", creatorId]);
+    }
+
+    const docs = await fetchQueryDocs({
+      collectionPath: "gigs",
+      filters,
+      orderByField: "created_at",
+      limit: search ? Math.min(limit * 5, 200) : limit,
+    });
+    const gigs = await buildAdminGigList(docs);
+    const filtered = search ?
+      gigs.filter((gig) => normalizeText([
+        gig.id,
+        gig.title,
+        gig.description,
+        (gig.creator as Record<string, unknown> | null)?.nome,
+        (gig.creator as Record<string, unknown> | null)?.email,
+      ].map((value) => String(value || "")).join(" ")).includes(search)) :
+      gigs;
+
+    return {
+      gigs: filtered.slice(0, limit),
+      total: filtered.length,
+      status,
+    };
+  }
+);
+
+export const getGigAdminDetail = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const gigId = firstNonEmptyString([request.data?.gigId]);
+    if (!gigId) {
+      throw new HttpsError("invalid-argument", "gigId é obrigatório.");
+    }
+
+    const gigDoc = await db.collection("gigs").doc(gigId).get();
+    if (!gigDoc.exists) {
+      throw new HttpsError("not-found", "Gig não encontrada.");
+    }
+
+    const gigData = (gigDoc.data() || {}) as Record<string, unknown>;
+    const creatorId = firstNonEmptyString([gigData.creator_id]);
+    const [creatorMap, applicationDocs, reviewDocs] = await Promise.all([
+      loadAdminUsersMapByUid(creatorId ? [creatorId] : []),
+      fetchQueryDocs({
+        collectionPath: `gigs/${gigId}/gig_applications`,
+        orderByField: "applied_at",
+        limit: 100,
+      }),
+      fetchQueryDocs({
+        collectionPath: "gig_reviews",
+        filters: [["gig_id", "==", gigId]],
+        limit: 100,
+      }),
+    ]);
+
+    const applicantIds = uniqueStrings(
+      applicationDocs.map((doc) => firstNonEmptyString([doc.data().applicant_id]))
+    );
+    const reviewerIds = uniqueStrings(
+      reviewDocs.flatMap((doc) => [
+        firstNonEmptyString([doc.data().reviewer_id]),
+        firstNonEmptyString([doc.data().reviewed_user_id]),
+      ])
+    );
+    const userMap = await loadAdminUsersMapByUid([
+      ...applicantIds,
+      ...reviewerIds,
+    ]);
+
+    return {
+      gig: buildAdminGigListItem(gigDoc, creatorMap),
+      applications: applicationDocs.map((doc) => {
+        const data = doc.data();
+        const applicantId = firstNonEmptyString([data.applicant_id]);
+        return {
+          id: doc.id,
+          path: doc.ref.path,
+          applicantId,
+          applicant: applicantId ? userMap.get(applicantId) || { uid: applicantId } : null,
+          status: firstNonEmptyString([data.status], "pending"),
+          message: firstNonEmptyString([data.message]),
+          appliedAt: getTimestampMillis(data.applied_at),
+          respondedAt: getTimestampMillis(data.responded_at),
+          raw: serializeAdminValue(data),
+        };
+      }),
+      reviews: reviewDocs.map((doc) => {
+        const data = doc.data();
+        const reviewerId = firstNonEmptyString([data.reviewer_id]);
+        const reviewedUserId = firstNonEmptyString([data.reviewed_user_id]);
+        return {
+          id: doc.id,
+          path: doc.ref.path,
+          reviewerId,
+          reviewer: reviewerId ? userMap.get(reviewerId) || { uid: reviewerId } : null,
+          reviewedUserId,
+          reviewedUser: reviewedUserId ?
+            userMap.get(reviewedUserId) || { uid: reviewedUserId } :
+            null,
+          rating: toNonNegativeInt(data.rating),
+          comment: firstNonEmptyString([data.comment]),
+          reviewType: firstNonEmptyString([data.review_type]),
+          createdAt: getTimestampMillis(data.created_at ?? data.createdAt),
+          raw: serializeAdminValue(data),
+        };
+      }),
+    };
+  }
+);
+
+export const getMatchpointAdminOverview = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const limit = normalizeLimit(request.data?.limit, 20, 60);
+    const [matchDocs, interactionDocs, hashtagDocs, auditDocs, activeProfiles] =
+      await Promise.all([
+        fetchQueryDocs({
+          collectionPath: "matches",
+          orderByField: "created_at",
+          limit,
+        }),
+        fetchQueryDocs({
+          collectionPath: "interactions",
+          orderByField: "created_at",
+          limit,
+        }),
+        fetchQueryDocs({
+          collectionPath: "hashtagRanking",
+          orderByField: "use_count",
+          limit: 20,
+        }),
+        fetchQueryDocs({
+          collectionPath: "matchpointStats",
+          filters: [["type", "==", "ranking_audit_hourly"]],
+          orderByField: "bucket_start",
+          limit: 12,
+        }),
+        countQueryDocuments(
+          "users",
+          [["matchpoint_profile.is_active", "==", true]]
+        ),
+      ]);
+
+    const matches = await buildMatchPayloads(matchDocs);
+    const interactions = await buildInteractionPayloads(interactionDocs);
+    const rankingAuditSummary = auditDocs.reduce((acc, doc) => {
+      const data = doc.data();
+      acc.totalEvents += readAuditNumber(data, "total_events");
+      acc.returnedTotal += readAuditNumber(data, "returned_total_sum");
+      acc.poolTotal += readAuditNumber(data, "pool_total_sum");
+      acc.geohashUsedCount += readAuditNumber(data, "geohash_used_count");
+      return acc;
+    }, {
+      totalEvents: 0,
+      returnedTotal: 0,
+      poolTotal: 0,
+      geohashUsedCount: 0,
+    });
+
+    return {
+      counts: {
+        activeProfiles,
+        matches: matches.length,
+        recentInteractions: interactions.length,
+      },
+      matches,
+      interactions,
+      hashtags: hashtagDocs.map((doc) => ({
+        id: doc.id,
+        path: doc.ref.path,
+        label: doc.id,
+        useCount: toNonNegativeInt(doc.data().use_count),
+        weeklyCount: toNonNegativeInt(doc.data().weekly_count),
+        trend: firstNonEmptyString([doc.data().trend], "stable"),
+        trendDelta: toNonNegativeInt(doc.data().trend_delta),
+        isTrending: doc.data().is_trending === true,
+        raw: serializeAdminValue(doc.data()),
+      })),
+      rankingAudit: {
+        buckets: auditDocs.map((doc) => serializeSnapshot(doc)),
+        summary: {
+          ...rankingAuditSummary,
+          averageReturnedPerEvent: rankingAuditSummary.totalEvents > 0 ?
+            rankingAuditSummary.returnedTotal / rankingAuditSummary.totalEvents :
+            0,
+          averagePoolPerEvent: rankingAuditSummary.totalEvents > 0 ?
+            rankingAuditSummary.poolTotal / rankingAuditSummary.totalEvents :
+            0,
+        },
+      },
+    };
+  }
+);
+
+export const getSystemAdminData = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const limit = normalizeLimit(request.data?.limit, 20, 80);
+    const [
+      appDataDoc,
+      featuredDoc,
+      adminDoc,
+      deletedUserDocs,
+      transcodeJobDocs,
+      hashtagDocs,
+      rootCollections,
+    ] = await Promise.all([
+      db.collection("config").doc("app_data").get(),
+      db.collection("config").doc("featuredProfiles").get(),
+      db.collection("config").doc("admin").get(),
+      fetchQueryDocs({
+        collectionPath: "deletedUsers",
+        orderByField: "deleted_at",
+        limit,
+      }).catch(() => []),
+      fetchQueryDocs({
+        collectionPath: "mediaTranscodeJobs",
+        orderByField: "updatedAt",
+        limit,
+      }),
+      fetchQueryDocs({
+        collectionPath: "hashtagRanking",
+        orderByField: "use_count",
+        limit: 20,
+      }),
+      db.listCollections(),
+    ]);
+
+    return {
+      config: {
+        appData: serializeSnapshot(appDataDoc),
+        featuredProfiles: serializeSnapshot(featuredDoc),
+        admin: serializeSnapshot(adminDoc),
+      },
+      recentDeletedUsers: deletedUserDocs.map((doc) => serializeSnapshot(doc)),
+      transcodeJobs: transcodeJobDocs.map((doc) => serializeSnapshot(doc)),
+      hashtags: hashtagDocs.map((doc) => serializeSnapshot(doc)),
+      rootCollections: rootCollections.map((collection) => ({
+        id: collection.id,
+        path: collection.path,
+      })),
+    };
+  }
+);
+
+export const inspectFirestorePath = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const path = normalizePath(firstNonEmptyString([request.data?.path]));
+    const limit = normalizeLimit(request.data?.limit, 20, 120);
+    const cursor = firstNonEmptyString([request.data?.cursor]);
+
+    if (!path) {
+      const collections = await db.listCollections();
+      return {
+        kind: "root",
+        path: "",
+        collections: collections.map((collection) => ({
+          id: collection.id,
+          path: collection.path,
+        })),
+      };
+    }
+
+    const segments = path.split("/").filter(Boolean);
+    const isDocumentPath = segments.length % 2 === 0;
+
+    if (isDocumentPath) {
+      const docRef = db.doc(path);
+      const snapshot = await docRef.get();
+      return {
+        kind: "document",
+        path,
+        document: serializeSnapshot(snapshot),
+        subcollections: await listDocumentSubcollections(docRef),
+      };
+    }
+
+    let query: FirebaseFirestore.Query = db.collection(path)
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .limit(limit);
+    if (cursor) {
+      query = query.startAfter(cursor);
+    }
+    const snapshot = await query.get();
+    return {
+      kind: "collection",
+      path,
+      documents: snapshot.docs.map((doc) => serializeSnapshot(doc)),
+      nextCursor: snapshot.empty ? null : snapshot.docs[snapshot.docs.length - 1].id,
+    };
+  }
+);
+
+export const inspectStoragePrefix = onCall(
+  { region: "us-central1", memory: "256MiB", invoker: "public", maxInstances: 1 },
+  async (request) => {
+    assertAdmin(request);
+
+    const prefix = normalizePath(firstNonEmptyString([request.data?.prefix]));
+    const limit = normalizeLimit(request.data?.limit, 20, 100);
+    const bucket = admin.storage().bucket();
+    const [files, nextQuery] = await bucket.getFiles({
+      prefix,
+      maxResults: limit,
+      autoPaginate: false,
+    });
+
+    const items = await Promise.all(files.map(async (file) => {
+      const [metadata] = await file.getMetadata();
+      return {
+        name: file.name,
+        bucket: file.bucket.name,
+        size: metadata.size || null,
+        contentType: metadata.contentType || null,
+        updated: metadata.updated || null,
+        timeCreated: metadata.timeCreated || null,
+        metadata: metadata.metadata || {},
+      };
+    }));
+
+    return {
+      bucket: bucket.name,
+      prefix,
+      files: items,
+      nextPageToken:
+        typeof nextQuery?.pageToken === "string" ? nextQuery.pageToken : null,
+    };
   }
 );

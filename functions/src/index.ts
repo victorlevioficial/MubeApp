@@ -65,6 +65,8 @@ export {
   setAdminClaim,
   setFeaturedProfiles,
   getFeaturedProfiles,
+  getDashboardOverview,
+  getUserAdminDetail,
   lookupUser,
   searchUsers,
   listUsersAdmin,
@@ -76,8 +78,16 @@ export {
   updateTicket,
   getDashboardStats,
   getMatchpointRankingAuditDashboard,
+  listConversationsAdmin,
   listConversations,
   getConversationMessages,
+  getConversationAdminDetail,
+  listGigsAdmin,
+  getGigAdminDetail,
+  getMatchpointAdminOverview,
+  getSystemAdminData,
+  inspectFirestorePath,
+  inspectStoragePrefix,
 } from "./admin";
 
 // Export Favorites functions
