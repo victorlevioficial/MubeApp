@@ -70,7 +70,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Busca'), findsOneWidget);
-      expect(find.text('Buscar musicos, bandas, estudios...'), findsOneWidget);
+      expect(
+        find.text('Buscar musicos, bandas, estudios ou locais...'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders discovery state by default', (tester) async {

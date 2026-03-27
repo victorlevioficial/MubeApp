@@ -522,8 +522,8 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text('Mídia'), findsOneWidget);
-        expect(find.text('Mídia & Portfólio'), findsNothing);
+        expect(find.text('Midia'), findsOneWidget);
+        expect(find.text('Midia & Portfolio'), findsNothing);
       });
 
       testWidgets('should keep music links tab selected while saving', (
