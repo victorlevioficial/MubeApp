@@ -346,16 +346,20 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   List<FeedItem> artists = [];
   List<FeedItem> bands = [];
   List<FeedItem> studios = [];
+  List<FeedItem> venues = [];
   List<FeedItem> technicians = [];
   List<FeedItem> professionals = [];
   List<FeedItem> discoverFeedPool = [];
   PaginatedFeedResponse? mainFeedResponse;
   List<PaginatedFeedResponse> mainFeedResponses = [];
   List<PaginatedFeedResponse> technicianPaginatedResponses = [];
+  List<PaginatedFeedResponse> publicContractorPaginatedResponses = [];
   final Map<String, List<PaginatedFeedResponse>> typePaginatedResponses = {};
   final List<String> paginatedTypeCallHistory = [];
   final List<DocumentSnapshot?> paginatedTypeStartAfterHistory = [];
   final List<DocumentSnapshot?> techniciansPaginatedStartAfterHistory = [];
+  final List<DocumentSnapshot?> publicContractorsPaginatedStartAfterHistory =
+      [];
   final List<DocumentSnapshot?> mainFeedStartAfterHistory = [];
   final List<FeedDiscoveryFilter> discoverFeedPoolCallHistory = [];
   final List<int?> discoverFeedPoolTargetHistory = [];
@@ -371,6 +375,14 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     List<PaginatedFeedResponse> responses,
   ) {
     typePaginatedResponses[type] = List<PaginatedFeedResponse>.from(responses);
+  }
+
+  void enqueuePublicContractorPaginatedResponses(
+    List<PaginatedFeedResponse> responses,
+  ) {
+    publicContractorPaginatedResponses = List<PaginatedFeedResponse>.from(
+      responses,
+    );
   }
 
   void enqueueDiscoverFeedPoolPages(List<List<FeedItem>> pages) {
@@ -414,6 +426,11 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     return technicianPaginatedResponses.removeAt(0);
   }
 
+  PaginatedFeedResponse? _dequeuePublicContractorPaginatedResponse() {
+    if (publicContractorPaginatedResponses.isEmpty) return null;
+    return publicContractorPaginatedResponses.removeAt(0);
+  }
+
   Future<void> _maybeWait() async {
     if (throwError) throw Exception('Connection failed');
     if (requestCompleter != null) await requestCompleter!.future;
@@ -447,6 +464,23 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: ''));
     final filtered = artists
+        .where((item) => !excludedIds.contains(item.uid))
+        .take(limit)
+        .toList(growable: false);
+    return Either.right(filtered);
+  }
+
+  @override
+  FutureResult<List<FeedItem>> getPublicContractors({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    final filtered = venues
         .where((item) => !excludedIds.contains(item.uid))
         .take(limit)
         .toList(growable: false);
@@ -583,6 +617,7 @@ class FakeFeedRepository extends Fake implements FeedRepository {
       ...artists,
       ...bands,
       ...studios,
+      ...venues,
       ...technicians,
       ...professionals,
     ];
@@ -686,6 +721,37 @@ class FakeFeedRepository extends Fake implements FeedRepository {
               hasMore: false,
               lastDocument: null,
             ),
+        excludedIds,
+      ),
+    );
+  }
+
+  @override
+  FutureResult<PaginatedFeedResponse> getPublicContractorsPaginated({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    await _maybeWait();
+    if (throwError) return Either.left(const ServerFailure(message: ''));
+    publicContractorsPaginatedStartAfterHistory.add(startAfter);
+    final queuedResponse = _dequeuePublicContractorPaginatedResponse();
+    if (queuedResponse != null) {
+      return Either.right(
+        _filterPaginatedResponse(queuedResponse, excludedIds),
+      );
+    }
+
+    return Either.right(
+      _filterPaginatedResponse(
+        PaginatedFeedResponse(
+          items: venues.take(limit).toList(growable: false),
+          hasMore: false,
+          lastDocument: null,
+        ),
         excludedIds,
       ),
     );

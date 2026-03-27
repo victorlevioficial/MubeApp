@@ -201,6 +201,35 @@ void main() {
       expect(find.text('Ver todos'), findsOneWidget);
     });
 
+    testWidgets('shows public contractor section on home when venues exist', (
+      tester,
+    ) async {
+      fakeFeedRepository.venues = const [
+        FeedItem(
+          uid: 'venue-1',
+          nome: 'Casa Azul',
+          nomeArtistico: 'Casa Azul',
+          tipoPerfil: 'contratante',
+          distanceKm: 2,
+        ),
+      ];
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(createSubject());
+        await tester.pump();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
+      });
+
+      await tester.scrollUntilVisible(
+        find.text('Locais pr\u00F3ximos'),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Locais pr\u00F3ximos'), findsOneWidget);
+      expect(find.text('Casa Azul'), findsWidgets);
+    });
+
     testWidgets(
       'keeps full screen skeleton until gigs preview resolves on first render',
       (tester) async {

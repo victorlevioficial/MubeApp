@@ -448,5 +448,57 @@ void main() {
             expect(page.items.map((item) => item.uid), ['tech-1', 'tech-2']),
       );
     });
+
+    test(
+      'loads only public contractors and ignores visible_in_home for venues',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
+
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('venue-1')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.contractor,
+              FirestoreFields.name: 'Venue 1',
+              FirestoreFields.location: {'lat': -23.55, 'lng': -46.63},
+              'status': 'ativo',
+              'privacy_settings': {'visible_in_home': false},
+              FirestoreFields.contractor: {
+                'isPublic': true,
+                'nomeExibicao': 'Venue 1',
+              },
+            });
+
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('venue-2')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.contractor,
+              FirestoreFields.name: 'Venue 2',
+              FirestoreFields.location: {'lat': -23.56, 'lng': -46.64},
+              'status': 'ativo',
+              FirestoreFields.contractor: {
+                'isPublic': false,
+                'nomeExibicao': 'Venue 2',
+              },
+            });
+
+        final result = await repository.getPublicContractorsPaginated(
+          currentUserId: 'current-user',
+          userLat: -23.55,
+          userLong: -46.63,
+          limit: 10,
+        );
+
+        expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected public contractor items'),
+          (page) => expect(page.items.map((item) => item.uid), ['venue-1']),
+        );
+      },
+    );
   });
 }

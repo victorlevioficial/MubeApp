@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 
 /// Enum for feed section types.
-enum FeedSectionType { nearby, artists, bands, technicians, studios }
+enum FeedSectionType { nearby, artists, bands, technicians, studios, venues }
 
 /// Model for a feed section with title and items.
 @immutable
@@ -21,18 +21,23 @@ class FeedSection {
   static const List<FeedSection> homeSections = [
     FeedSection(
       type: FeedSectionType.technicians,
-      title: 'Técnicos',
+      title: 'T\u00E9cnicos',
       filterValue: 'stage_tech',
     ),
     FeedSection(
       type: FeedSectionType.bands,
-      title: 'Bandas próximas',
+      title: 'Bandas pr\u00F3ximas',
       filterValue: 'banda',
     ),
     FeedSection(
       type: FeedSectionType.studios,
-      title: 'Estúdios próximos',
+      title: 'Est\u00FAdios pr\u00F3ximos',
       filterValue: 'estudio',
+    ),
+    FeedSection(
+      type: FeedSectionType.venues,
+      title: 'Locais pr\u00F3ximos',
+      filterValue: 'contratante',
     ),
   ];
 }

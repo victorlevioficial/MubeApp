@@ -33,6 +33,9 @@ void main() {
   FeedItem createStudioItem(String id) =>
       FeedItem(uid: id, nome: 'Studio $id', tipoPerfil: ProfileType.studio);
 
+  FeedItem createVenueItem(String id) =>
+      FeedItem(uid: id, nome: 'Venue $id', tipoPerfil: ProfileType.contractor);
+
   FeedItem createTechnicianItem(String id) => FeedItem(
     uid: id,
     nome: 'Tech $id',
@@ -167,6 +170,29 @@ void main() {
       expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
       expect(fakeFeedRepo.paginatedTypeCallHistory, [ProfileType.studio]);
     });
+
+    test(
+      'loads venues section from dedicated public contractor query',
+      () async {
+        fakeFeedRepo.venues = List.generate(
+          2,
+          (i) => createVenueItem('venue-$i').copyWith(distanceKm: i.toDouble()),
+        );
+        await waitForUser(container);
+
+        final provider = feedListControllerProvider(FeedSectionType.venues);
+        await container.read(provider.future);
+        final state = container.read(provider).value!;
+
+        expect(state.items.map((item) => item.uid), ['venue-0', 'venue-1']);
+        expect(state.hasMore, isFalse);
+        expect(fakeFeedRepo.discoverFeedPoolCallHistory, isEmpty);
+        expect(fakeFeedRepo.paginatedTypeCallHistory, isEmpty);
+        expect(fakeFeedRepo.publicContractorsPaginatedStartAfterHistory, [
+          isNull,
+        ]);
+      },
+    );
 
     test('loads artists without scanning the full discovery pool', () async {
       fakeFeedRepo.artists = [

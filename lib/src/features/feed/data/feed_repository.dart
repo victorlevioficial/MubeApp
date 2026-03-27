@@ -438,6 +438,90 @@ class FeedRepository {
     }
   }
 
+  /// Fetches public contractor profiles for dedicated venue discovery.
+  FutureResult<List<FeedItem>> getPublicContractors({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 10,
+  }) async {
+    final result = await getPublicContractorsPaginated(
+      currentUserId: currentUserId,
+      excludedIds: excludedIds,
+      userLat: userLat,
+      userLong: userLong,
+      limit: limit,
+    );
+    return result.map((page) => page.items);
+  }
+
+  /// Fetches public contractor profiles with pagination support.
+  FutureResult<PaginatedFeedResponse> getPublicContractorsPaginated({
+    required String currentUserId,
+    List<String> excludedIds = const [],
+    double? userLat,
+    double? userLong,
+    int limit = 20,
+    DocumentSnapshot? startAfter,
+  }) async {
+    const candidateMultiplier = 3;
+    const maxCandidatePasses = 3;
+
+    try {
+      final collectedItems = <FeedItem>[];
+      final seenIds = <String>{};
+      DocumentSnapshot? cursor = startAfter;
+      var hasMoreCandidates = true;
+      var passCount = 0;
+
+      while (collectedItems.length < limit &&
+          hasMoreCandidates &&
+          passCount < maxCandidatePasses) {
+        final snapshot = await _dataSource.getUsersByType(
+          type: ProfileType.contractor,
+          limit: limit * candidateMultiplier,
+          startAfter: cursor,
+        );
+        passCount++;
+
+        if (snapshot.docs.isEmpty) {
+          hasMoreCandidates = false;
+          break;
+        }
+
+        cursor = snapshot.docs.last;
+        hasMoreCandidates = snapshot.docs.length >= limit * candidateMultiplier;
+
+        final candidateItems = _processPublicContractorsSnapshot(
+          snapshot,
+          currentUserId,
+          userLat,
+          userLong,
+          excludedIds,
+        );
+        for (final item in candidateItems) {
+          if (seenIds.add(item.uid)) {
+            collectedItems.add(item);
+          }
+        }
+      }
+
+      collectedItems.sort(FeedDiscovery.compareByDistance);
+      final pageItems = collectedItems.take(limit).toList(growable: false);
+
+      return Right(
+        PaginatedFeedResponse(
+          items: pageItems,
+          lastDocument: cursor,
+          hasMore: hasMoreCandidates,
+        ),
+      );
+    } catch (e) {
+      return Left(mapExceptionToFailure(e));
+    }
+  }
+
   /// Fetches professional users by category.
   FutureResult<List<FeedItem>> getUsersByCategory({
     required String category,
@@ -662,6 +746,32 @@ class FeedRepository {
     return items;
   }
 
+  List<FeedItem> _processPublicContractorsSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+    String currentUserId,
+    double? userLat,
+    double? userLong,
+    List<String> excludedIds,
+  ) {
+    final items = <FeedItem>[];
+
+    for (final doc in snapshot.docs) {
+      final item = _buildVisiblePublicContractorFeedItem(
+        data: doc.data(),
+        docId: doc.id,
+        currentUserId: currentUserId,
+        userLat: userLat,
+        userLong: userLong,
+        excludedIds: excludedIds,
+      );
+      if (item != null) {
+        items.add(item);
+      }
+    }
+
+    return items;
+  }
+
   FeedItem? _buildVisibleFeedItem({
     required Map<String, dynamic> data,
     required String docId,
@@ -725,6 +835,60 @@ class FeedRepository {
       }
     } else {
       diagnostics?.resultsWithoutDistance++;
+    }
+
+    return item;
+  }
+
+  FeedItem? _buildVisiblePublicContractorFeedItem({
+    required Map<String, dynamic> data,
+    required String docId,
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    required List<String> excludedIds,
+  }) {
+    if (docId == currentUserId || excludedIds.contains(docId)) {
+      return null;
+    }
+
+    final tipoPerfil = data[FirestoreFields.profileType] as String?;
+    if (tipoPerfil != ProfileType.contractor) {
+      return null;
+    }
+
+    final cadastroStatus = data[FirestoreFields.registrationStatus] as String?;
+    if (cadastroStatus != RegistrationStatus.complete) {
+      return null;
+    }
+
+    final status = data['status'] as String? ?? 'ativo';
+    if (status != 'ativo') {
+      return null;
+    }
+
+    final contractorData =
+        data[FirestoreFields.contractor] as Map<String, dynamic>? ?? {};
+    if (contractorData['isPublic'] != true) {
+      return null;
+    }
+
+    var item = FeedItem.fromFirestore(data, docId);
+
+    if (userLat != null && userLong != null && item.location != null) {
+      final itemLat = (item.location!['lat'] as num?)?.toDouble();
+      final itemLng = (item.location!['lng'] as num?)?.toDouble();
+
+      if (itemLat != null && itemLng != null) {
+        item = item.copyWith(
+          distanceKm: DistanceCalculator.haversine(
+            fromLat: userLat,
+            fromLng: userLong,
+            toLat: itemLat,
+            toLng: itemLng,
+          ),
+        );
+      }
     }
 
     return item;

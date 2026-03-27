@@ -157,6 +157,15 @@ class FeedListController extends _$FeedListController {
           userLong: userLong,
           pageIndex: pageIndex,
         );
+      case FeedSectionType.venues:
+        return _fetchPublicContractorsPaginatedPage(
+          sectionType: sectionType,
+          currentUserId: currentUserId,
+          blockedIds: blockedIds,
+          userLat: userLat,
+          userLong: userLong,
+          pageIndex: pageIndex,
+        );
       case FeedSectionType.technicians:
         return _fetchTechniciansPaginatedPage(
           sectionType: sectionType,
@@ -224,6 +233,40 @@ class FeedListController extends _$FeedListController {
 
     final result = await _feedRepository!.getUsersByTypePaginated(
       type: type,
+      currentUserId: currentUserId,
+      excludedIds: blockedIds,
+      userLat: userLat,
+      userLong: userLong,
+      limit: _pageSize,
+      startAfter: startAfter,
+    );
+
+    return result.fold((failure) => throw failure, (page) {
+      _sectionLastDocuments[sectionType] = page.lastDocument;
+      return page;
+    });
+  }
+
+  Future<PaginatedFeedResponse> _fetchPublicContractorsPaginatedPage({
+    required FeedSectionType sectionType,
+    required String currentUserId,
+    required List<String> blockedIds,
+    required double? userLat,
+    required double? userLong,
+    required int pageIndex,
+  }) async {
+    if (pageIndex == 0) {
+      _sectionLastDocuments.remove(sectionType);
+    }
+
+    final startAfter = pageIndex == 0
+        ? null
+        : _sectionLastDocuments[sectionType];
+    if (pageIndex > 0 && startAfter == null) {
+      return const PaginatedFeedResponse.empty();
+    }
+
+    final result = await _feedRepository!.getPublicContractorsPaginated(
       currentUserId: currentUserId,
       excludedIds: blockedIds,
       userLat: userLat,

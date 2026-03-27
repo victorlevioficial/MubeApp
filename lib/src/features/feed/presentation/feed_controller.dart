@@ -308,6 +308,16 @@ class FeedController extends _$FeedController {
           limit: FeedDataConstants.sectionLimit,
         ),
       ),
+      _loadSection(
+        type: FeedSectionType.venues,
+        loader: () => repository.getPublicContractors(
+          currentUserId: user.uid,
+          excludedIds: blockedIds,
+          userLat: userLat,
+          userLong: userLong,
+          limit: FeedDataConstants.sectionLimit,
+        ),
+      ),
     ]);
 
     return {for (final result in results) result.type: result.items};

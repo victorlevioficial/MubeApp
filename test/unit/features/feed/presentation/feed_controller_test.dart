@@ -122,6 +122,15 @@ void main() {
             distanceKm: 5.0,
           ),
         ];
+        fakeFeedRepository.venues = const [
+          FeedItem(
+            uid: 'venue-1',
+            nome: 'Venue 1',
+            nomeArtistico: 'Venue 1',
+            tipoPerfil: ProfileType.contractor,
+            distanceKm: 6.0,
+          ),
+        ];
 
         final controller = container.read(feedControllerProvider.notifier);
         await controller.loadAllData();
@@ -147,6 +156,10 @@ void main() {
         expect(
           state.sectionItems[FeedSectionType.studios]?.map((item) => item.uid),
           ['studio-1'],
+        );
+        expect(
+          state.sectionItems[FeedSectionType.venues]?.map((item) => item.uid),
+          ['venue-1'],
         );
         expect(fakeFeedRepository.discoverFeedPoolCallHistory, [
           FeedDiscoveryFilter.all,
