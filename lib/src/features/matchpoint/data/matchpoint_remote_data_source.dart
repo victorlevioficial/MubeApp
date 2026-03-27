@@ -10,6 +10,7 @@ import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_availability.dart';
 import 'package:mube/src/utils/app_check_refresh_coordinator.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/distance_calculator.dart';
@@ -391,8 +392,35 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   bool _isEligibleMatchpointType(Map<String, dynamic> userData) {
     final profileType = userData[FirestoreFields.profileType] as String?;
-    return profileType == ProfileType.professional ||
-        profileType == ProfileType.band;
+    if (profileType == ProfileType.band) return true;
+    if (profileType != ProfileType.professional) return false;
+
+    final professional = userData[FirestoreFields.professional];
+    final rawCategories = <String>[];
+    final rawRoles = <String>[];
+
+    if (professional is Map<String, dynamic>) {
+      final categories = professional['categorias'] as List?;
+      if (categories != null) {
+        rawCategories.addAll(categories.whereType<String>());
+      }
+
+      final legacyCategory = professional['categoria'];
+      if (legacyCategory is String && legacyCategory.isNotEmpty) {
+        rawCategories.add(legacyCategory);
+      }
+
+      final roles = professional['funcoes'] as List?;
+      if (roles != null) {
+        rawRoles.addAll(roles.whereType<String>());
+      }
+    }
+
+    return isMatchpointAvailableForProfileType(
+      profileType,
+      rawCategories: rawCategories,
+      rawRoles: rawRoles,
+    );
   }
 
   List<String> _extractCandidateGenres(Map<String, dynamic> userData) {

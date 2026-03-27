@@ -419,7 +419,7 @@ class _OnboardingContractorFlowState
                     ),
                     const SizedBox(height: AppSpacing.s4),
                     Text(
-                      'Se ativado, voce ja salva nome de exibicao, tipo de local e comodidades.',
+                      'Ao ativar, seu perfil ficará público e exibirá nome, tipo de local e comodidades.',
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),

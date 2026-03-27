@@ -44,7 +44,7 @@ extension _FeedScreenUi on _FeedScreenState {
             if (spotlightItems.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s8),
+                  padding: const EdgeInsets.only(top: AppSpacing.s12),
                   child: FeaturedSpotlightCarousel(
                     items: spotlightItems,
                     onItemTap: _navigateToUser,
@@ -70,6 +70,20 @@ extension _FeedScreenUi on _FeedScreenState {
                   ),
                 ),
               ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.s20,
+                  AppSpacing.s8,
+                  AppSpacing.s20,
+                  AppSpacing.s8,
+                ),
+                child: MatchpointHighlightCard(
+                  user: currentUser,
+                  onTap: () => context.push(RoutePaths.matchpoint),
+                ),
+              ),
+            ),
             if (state.sectionItems.isNotEmpty)
               SliverPadding(
                 padding: const EdgeInsets.only(top: AppSpacing.s8),

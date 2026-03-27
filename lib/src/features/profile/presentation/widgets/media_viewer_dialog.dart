@@ -60,7 +60,9 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
   }
 
   void _precacheItem(MediaItem item) {
-    final url = item.type == MediaType.video ? item.thumbnailUrl : item.url;
+    final url = item.type == MediaType.video
+        ? item.thumbnailUrl
+        : item.viewerUrl;
     if (url == null || url.isEmpty || !mounted) return;
 
     unawaited(
@@ -163,7 +165,7 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           child: Hero(
             tag: 'media_${item.id}',
             child: CachedNetworkImage(
-              imageUrl: item.url,
+              imageUrl: item.viewerUrl,
               fit: BoxFit.contain,
               fadeInDuration: Duration.zero,
               fadeOutDuration: Duration.zero,

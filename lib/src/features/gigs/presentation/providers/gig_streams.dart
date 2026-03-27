@@ -92,7 +92,7 @@ Stream<List<Gig>> gigsStream(Ref ref) {
   return ref.watch(gigRepositoryProvider).watchGigs(filters);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<List<Gig>> myGigsStream(Ref ref) {
   return ref.watch(gigRepositoryProvider).watchMyGigs();
 }
@@ -107,7 +107,7 @@ Stream<List<GigApplication>> gigApplications(Ref ref, String gigId) {
   return ref.watch(gigRepositoryProvider).watchApplications(gigId);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 Stream<List<GigApplication>> myApplications(Ref ref) {
   final authAsync = ref.watch(authStateChangesProvider);
   final fallbackUser = ref.read(authRepositoryProvider).currentUser;
@@ -116,9 +116,6 @@ Stream<List<GigApplication>> myApplications(Ref ref) {
   if (currentUser == null) {
     if (authAsync.hasError) {
       return Stream.error(authAsync.error!, authAsync.stackTrace);
-    }
-    if (authAsync.isLoading) {
-      return const Stream.empty();
     }
     return Stream.value(const <GigApplication>[]);
   }

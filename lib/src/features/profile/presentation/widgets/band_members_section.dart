@@ -101,7 +101,8 @@ class _BandMemberCard extends StatelessWidget {
               children: [
                 UserAvatar(
                   size: 68,
-                  photoUrl: member.foto,
+                  photoUrl: member.avatarFullUrl,
+                  photoPreviewUrl: member.avatarPreviewUrl,
                   name: name,
                   showBorder: false,
                 ),

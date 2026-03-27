@@ -118,7 +118,8 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
     // Once profile URL changes, remote image is up to date and local preview
     // can be discarded safely.
     if (_optimisticAvatarFile != null &&
-        oldWidget.user.foto != widget.user.foto) {
+        (oldWidget.user.foto != widget.user.foto ||
+            oldWidget.user.fotoThumb != widget.user.fotoThumb)) {
       _optimisticAvatarFile = null;
     }
   }
@@ -224,9 +225,10 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
     }
 
     // Priority 2: remote photo URL
-    if (widget.user.foto != null) {
+    final avatarUrl = widget.user.avatarPreviewUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: widget.user.foto!,
+        imageUrl: avatarUrl,
         fit: BoxFit.cover,
         width: 100,
         height: 100,

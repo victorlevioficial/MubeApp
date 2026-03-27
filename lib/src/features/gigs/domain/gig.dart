@@ -94,6 +94,9 @@ abstract class Gig with _$Gig {
     return gigDate!.isBefore(DateTime.now());
   }
 
+  bool get isOpenForApplications =>
+      status == GigStatus.open && !isFull && !isExpiredByDate;
+
   bool get canEditAllFields => applicantCount == 0 && status == GigStatus.open;
 
   bool get canEditDescriptionOnly =>

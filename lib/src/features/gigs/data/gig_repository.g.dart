@@ -48,4 +48,4 @@ final class GigRepositoryProvider
   }
 }
 
-String _$gigRepositoryHash() => r'08911bdbfd3619dd1d60b9b863926d455ff784a1';
+String _$gigRepositoryHash() => r'af44f8f563f4505c4c8d322f4f309e5134445ec0';

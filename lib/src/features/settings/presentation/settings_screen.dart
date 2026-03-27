@@ -22,6 +22,7 @@ import '../../../routing/route_paths.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/user_type.dart';
 import '../../auth/presentation/account_deletion_provider.dart';
+import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import 'widgets/bento_header.dart';
 import 'widgets/neon_settings_tile.dart';
 import 'widgets/settings_group.dart';
@@ -61,6 +62,11 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             const SizedBox(height: AppSpacing.s4),
             const BentoHeader(),
+            const SizedBox(height: AppSpacing.s16),
+            MatchpointHighlightCard(
+              user: ref.watch(currentUserProfileProvider).value,
+              onTap: () => context.push(RoutePaths.matchpoint),
+            ),
             const SizedBox(height: AppSpacing.s40),
             SettingsGroup(
               title: l10n.settings_account,
@@ -96,13 +102,6 @@ class SettingsScreen extends ConsumerWidget {
                   title: l10n.settings_notifications,
                   onTap: () => context.push(RoutePaths.notifications),
                   customAccentColor: AppColors.info,
-                ),
-                NeonSettingsTile(
-                  icon: Icons.bolt_outlined,
-                  title: l10n.matchpoint_title,
-                  subtitle: l10n.settings_matchpoint_subtitle,
-                  onTap: () => context.push(RoutePaths.matchpoint),
-                  customAccentColor: AppColors.warning,
                 ),
                 NeonSettingsTile(
                   icon: Icons.location_on_outlined,

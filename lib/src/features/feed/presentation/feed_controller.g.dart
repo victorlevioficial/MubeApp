@@ -33,7 +33,7 @@ final class FeedControllerProvider
   FeedController create() => FeedController();
 }
 
-String _$feedControllerHash() => r'06f97dc03b0beebc8366b6b3e254b8e04a6d665f';
+String _$feedControllerHash() => r'e9d7e58d72c4993f443971a6534b3b2177905cb1';
 
 abstract class _$FeedController extends $AsyncNotifier<FeedState> {
   FutureOr<FeedState> build();

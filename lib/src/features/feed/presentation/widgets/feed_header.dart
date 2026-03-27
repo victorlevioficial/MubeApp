@@ -102,6 +102,13 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
                   _getHeaderCategoryLabel(),
                   resolvedNotificationCount,
                 ),
+                if (widget.currentUser != null) ...[
+                  const SizedBox(height: AppSpacing.s14),
+                  _buildFavoritesShortcut(
+                    context,
+                    widget.currentUser!.favoritesCount,
+                  ),
+                ],
                 if (alerts.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.s16),
                   _buildAlertsSurface(context, alerts),

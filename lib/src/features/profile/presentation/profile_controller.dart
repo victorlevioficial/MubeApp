@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../shared/services/content_moderation_service.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/profile_photo_urls.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../storage/data/storage_repository.dart';
@@ -69,6 +70,7 @@ class ProfileController extends _$ProfileController {
         bio: updates['bio'] ?? currentUser.bio,
         location: updates['location'] ?? currentUser.location,
         foto: updates['foto'] ?? currentUser.foto,
+        fotoThumb: updates['fotoThumb'] ?? currentUser.fotoThumb,
         dadosProfissional: updatedDadosProfissional,
         dadosEstudio: updatedDadosEstudio,
         dadosBanda: updatedDadosBanda,
@@ -115,8 +117,16 @@ class ProfileController extends _$ProfileController {
         throw Exception('Upload retornou URL de foto vazia');
       }
 
-      final updatedPhotoUrl = _withCacheBuster(photoUrl);
-      final updatedUser = currentUser.copyWith(foto: updatedPhotoUrl);
+      final version = DateTime.now().millisecondsSinceEpoch;
+      final updatedPhotoUrl = appendCacheBuster(photoUrl, version: version);
+      final updatedPhotoThumbUrl = appendCacheBusterIfPresent(
+        imageUrls.thumbnail,
+        version: version,
+      );
+      final updatedUser = currentUser.copyWith(
+        foto: updatedPhotoUrl,
+        fotoThumb: updatedPhotoThumbUrl,
+      );
       final result = await authRepo.updateUser(updatedUser);
 
       result.fold(
@@ -129,7 +139,7 @@ class ProfileController extends _$ProfileController {
         },
         (_) {
           AppLogger.info(
-            'Profile image updated successfully: $updatedPhotoUrl',
+            'Profile image updated successfully: full=$updatedPhotoUrl thumb=${updatedPhotoThumbUrl != null}',
           );
         },
       );
@@ -141,12 +151,6 @@ class ProfileController extends _$ProfileController {
       );
       return;
     });
-  }
-
-  String _withCacheBuster(String url) {
-    final separator = url.contains('?') ? '&' : '?';
-    final version = DateTime.now().millisecondsSinceEpoch;
-    return '$url${separator}v=$version';
   }
 
   Future<void> deleteProfile() async {

@@ -164,6 +164,104 @@ void main() {
     });
 
     test(
+      'replays deferred public gig link after splash finishes for unauthenticated users',
+      () async {
+        final fakeAuthRepository = FakeAuthRepository();
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              const AsyncValue.data(null),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              const AsyncValue.data(null),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        final guard = container.read(_authGuardProvider);
+        final context = _FakeBuildContext();
+        final gigPath = RoutePaths.gigDetailById('gig-123');
+
+        final splashRedirect = await guard.redirect(
+          context,
+          _stateForPath(gigPath),
+        );
+
+        expect(splashRedirect, RoutePaths.splash);
+
+        container.read(splashFinishedProvider.notifier).finish();
+
+        final resumedRedirect = await guard.redirect(
+          context,
+          _stateForPath(RoutePaths.splash),
+        );
+
+        expect(resumedRedirect, gigPath);
+      },
+    );
+
+    test(
+      'replays deferred public gig link after splash finishes for completed users',
+      () async {
+        SharedPreferences.setMockInitialValues({
+          notificationPermissionPromptKey: true,
+        });
+
+        final fakeUser = FakeFirebaseUser(
+          uid: 'user-1',
+          email: 'test@mube.app',
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              AsyncValue.data(
+                TestData.user(uid: 'user-1', email: 'test@mube.app'),
+              ),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        final guard = container.read(_authGuardProvider);
+        final context = _FakeBuildContext();
+        final gigPath = RoutePaths.gigDetailById('gig-123');
+
+        final splashRedirect = await guard.redirect(
+          context,
+          _stateForPath(gigPath),
+        );
+
+        expect(splashRedirect, RoutePaths.splash);
+
+        container.read(splashFinishedProvider.notifier).finish();
+        await container.read(notificationPermissionPromptProvider.future);
+
+        final resumedRedirect = await guard.redirect(
+          context,
+          _stateForPath(RoutePaths.splash),
+        );
+
+        expect(resumedRedirect, gigPath);
+      },
+    );
+
+    test(
       'refreshes security context instead of signing out on permission-related profile stream error',
       () async {
         final fakeUser = FakeFirebaseUser(

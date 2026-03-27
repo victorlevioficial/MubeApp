@@ -187,5 +187,44 @@ void main() {
         });
       });
     });
+
+    group('avatar urls', () {
+      test('prefers explicit fotoThumb for preview surfaces', () {
+        const user = AppUser(
+          uid: 'artist-uid',
+          email: 'artist@example.com',
+          foto: 'https://cdn.example.com/profile_photos/user/large.webp',
+          fotoThumb:
+              'https://cdn.example.com/profile_photos/user/thumbnail.webp',
+        );
+
+        expect(
+          user.avatarPreviewUrl,
+          'https://cdn.example.com/profile_photos/user/thumbnail.webp',
+        );
+        expect(
+          user.avatarFullUrl,
+          'https://cdn.example.com/profile_photos/user/large.webp',
+        );
+      });
+
+      test('falls back to foto when fotoThumb is absent', () {
+        const user = AppUser(
+          uid: 'artist-uid',
+          email: 'artist@example.com',
+          foto:
+              'https://firebasestorage.googleapis.com/v0/b/app/o/profile_photos%2Fartist-uid%2Flarge.webp?alt=media&token=abc',
+        );
+
+        expect(
+          user.avatarPreviewUrl,
+          'https://firebasestorage.googleapis.com/v0/b/app/o/profile_photos%2Fartist-uid%2Flarge.webp?alt=media&token=abc',
+        );
+        expect(
+          user.avatarFullUrl,
+          'https://firebasestorage.googleapis.com/v0/b/app/o/profile_photos%2Fartist-uid%2Flarge.webp?alt=media&token=abc',
+        );
+      });
+    });
   });
 }

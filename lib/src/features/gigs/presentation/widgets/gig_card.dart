@@ -241,8 +241,8 @@ class _GigCardCreatorRow extends StatelessWidget {
             children: [
               Text(
                 creator.appDisplayName,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textTertiary,
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
@@ -253,9 +253,8 @@ class _GigCardCreatorRow extends StatelessWidget {
                 Text(
                   categoryLabel,
                   style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

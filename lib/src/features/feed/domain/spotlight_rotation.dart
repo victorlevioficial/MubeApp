@@ -35,9 +35,13 @@ abstract final class SpotlightRotation {
     );
   }
 
-  static bool _isEligible(FeedItem item) {
+  static bool isEligible(FeedItem item) {
+    if (!item.hasAvatarPhoto) return false;
+
     return item.tipoPerfil == ProfileType.professional ||
         item.tipoPerfil == ProfileType.band ||
         item.tipoPerfil == ProfileType.studio;
   }
+
+  static bool _isEligible(FeedItem item) => isEligible(item);
 }

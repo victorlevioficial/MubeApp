@@ -82,5 +82,27 @@ void main() {
         isFalse,
       );
     });
+
+    test(
+      'isOpenForApplications only when gig is open with available slots',
+      () {
+        expect(buildGig().isOpenForApplications, isTrue);
+        expect(
+          buildGig(status: GigStatus.closed).isOpenForApplications,
+          isFalse,
+        );
+        expect(
+          buildGig(slotsTotal: 1, slotsFilled: 1).isOpenForApplications,
+          isFalse,
+        );
+        expect(
+          buildGig(
+            dateMode: GigDateMode.fixedDate,
+            gigDate: DateTime.now().subtract(const Duration(days: 1)),
+          ).isOpenForApplications,
+          isFalse,
+        );
+      },
+    );
   });
 }

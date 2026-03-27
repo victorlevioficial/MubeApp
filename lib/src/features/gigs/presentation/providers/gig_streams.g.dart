@@ -56,7 +56,7 @@ final class MyGigsStreamProvider
         argument: null,
         retry: null,
         name: r'myGigsStreamProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -75,7 +75,7 @@ final class MyGigsStreamProvider
   }
 }
 
-String _$myGigsStreamHash() => r'f6e6c030fed521c08f0d9c95bffcc215b94db1ef';
+String _$myGigsStreamHash() => r'010fa48c427055f07e6a7090a2c82ed5bf31f8f0';
 
 @ProviderFor(gigDetail)
 const gigDetailProvider = GigDetailFamily._();
@@ -242,7 +242,7 @@ final class MyApplicationsProvider
         argument: null,
         retry: null,
         name: r'myApplicationsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -262,7 +262,7 @@ final class MyApplicationsProvider
   }
 }
 
-String _$myApplicationsHash() => r'f5e6450c9b1a1bfeac5be0b82412ab19693fd5d0';
+String _$myApplicationsHash() => r'0288b295c4933699e2ae567e3ac75a0d879d494e';
 
 @ProviderFor(hasApplied)
 const hasAppliedProvider = HasAppliedFamily._();

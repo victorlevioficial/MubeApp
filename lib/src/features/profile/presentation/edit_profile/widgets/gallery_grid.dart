@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 
+import '../../../../../core/services/image_cache_config.dart';
 import '../../../../../design_system/components/loading/app_shimmer.dart';
 import '../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../design_system/foundations/tokens/app_radius.dart';
@@ -461,11 +462,14 @@ class _FilledSlot extends StatelessWidget {
     }
 
     return CachedNetworkImage(
-      imageUrl: item.url,
+      imageUrl: item.previewUrl,
       fit: BoxFit.cover,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
+      useOldImageOnUrlChange: true,
+      cacheManager: ImageCacheConfig.thumbnailCacheManager,
       memCacheWidth: 300,
+      maxWidthDiskCache: 600,
       placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
       errorWidget: (context, url, error) => Container(
         color: AppColors.surface,
@@ -591,6 +595,12 @@ class _VideoCard extends StatelessWidget {
       return CachedNetworkImage(
         imageUrl: item.thumbnailUrl!,
         fit: BoxFit.cover,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
+        cacheManager: ImageCacheConfig.thumbnailCacheManager,
+        memCacheWidth: 300,
+        maxWidthDiskCache: 600,
         placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
         errorWidget: (context, url, error) => Container(
           color: AppColors.surface,

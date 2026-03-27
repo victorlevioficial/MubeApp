@@ -93,6 +93,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String? _currentRequestRecipientId;
   bool? _cachedEmailSendAllowed;
   DateTime? _cachedEmailCheckAt;
+  DateTime? _lastSendAttemptAt;
   DocumentSnapshot<Map<String, dynamic>>? _oldestServerMessageDoc;
   bool _isHydratingOtherUserPreview = false;
 
@@ -1206,6 +1207,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     if (!await _canSendMessageWithVerifiedEmail()) return;
+
+    // Client-side throttle: block rapid-fire taps after all guards pass.
+    final now = DateTime.now();
+    if (_lastSendAttemptAt != null &&
+        now.difference(_lastSendAttemptAt!) < const Duration(seconds: 1)) {
+      return;
+    }
+    _lastSendAttemptAt = now;
 
     final previousRequestStatus = _currentRequestStatus;
     final previousRequestCycle = _currentRequestCycle;

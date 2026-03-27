@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
@@ -237,7 +238,20 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppAppBar(title: 'Detalhes da gig'),
+      appBar: AppAppBar(
+        title: 'Detalhes da gig',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Compartilhar gig',
+            onPressed: () {
+              SharePlus.instance.share(
+                ShareParams(text: RoutePaths.gigShareUrl(widget.gigId)),
+              );
+            },
+          ),
+        ],
+      ),
       body: body,
     );
   }

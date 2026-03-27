@@ -7,6 +7,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../constants/firestore_constants.dart';
 import '../../../core/errors/failure_mapper.dart';
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../core/services/analytics/analytics_service.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/domain/app_user.dart';
 import '../domain/application_status.dart';
@@ -30,16 +32,18 @@ GigRepository gigRepository(Ref ref) {
   return GigRepository(
     ref.read(firebaseFirestoreProvider),
     ref.read(firebaseAuthProvider),
+    ref.read(analyticsServiceProvider),
   );
 }
 
 class GigRepository {
-  GigRepository(this._firestore, this._auth);
+  GigRepository(this._firestore, this._auth, this._analytics);
 
   static const int _maxFirestoreRetryAttempts = 3;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final AnalyticsService _analytics;
 
   CollectionReference<Map<String, dynamic>> get _gigs =>
       _firestore.collection(FirestoreCollections.gigs);
@@ -297,11 +301,13 @@ class GigRepository {
   Stream<List<Gig>> watchLatestOpenGigs({int limit = 3}) {
     final query = _gigs
         .where(GigFields.status, isEqualTo: _gigStatusValue(GigStatus.open))
-        .orderBy(GigFields.createdAt, descending: true)
-        .limit(limit);
+        .orderBy(GigFields.createdAt, descending: true);
     return _watchQuery(query, operationLabel: 'watch_latest_open_gigs').map(
-      (snapshot) =>
-          snapshot.docs.map(Gig.fromFirestore).toList(growable: false),
+      (snapshot) => snapshot.docs
+          .map(Gig.fromFirestore)
+          .where((gig) => gig.isOpenForApplications)
+          .take(limit)
+          .toList(growable: false),
     );
   }
 
@@ -380,7 +386,7 @@ class GigRepository {
     ).map((snapshot) {
       return snapshot.docs
           .map(Gig.fromFirestore)
-          .where((gig) => gig.status == GigStatus.open && !gig.isExpiredByDate)
+          .where((gig) => gig.isOpenForApplications)
           .take(limit)
           .toList(growable: false);
     });
@@ -446,6 +452,15 @@ class GigRepository {
           ? null
           : Timestamp.fromDate(draft.gigDate!),
     }, operationLabel: 'create_gig_set');
+
+    unawaited(
+      _analytics
+          .logEvent(
+            name: 'gig_created',
+            parameters: {'gig_id': doc.id, 'gig_type': draft.gigType.name},
+          )
+          .catchError((_) {}),
+    );
 
     return doc.id;
   }
@@ -635,6 +650,15 @@ class GigRepository {
       GigFields.appliedAt: FieldValue.serverTimestamp(),
       GigFields.respondedAt: null,
     }, operationLabel: 'apply_to_gig_set_application');
+
+    unawaited(
+      _analytics
+          .logEvent(
+            name: 'gig_application_submitted',
+            parameters: {'gig_id': gigId},
+          )
+          .catchError((_) {}),
+    );
   }
 
   Future<void> withdrawApplication(String gigId) async {

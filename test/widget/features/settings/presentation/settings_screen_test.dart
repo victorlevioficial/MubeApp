@@ -8,6 +8,7 @@ import 'package:mube/l10n/generated/app_localizations.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import 'package:mube/src/features/settings/presentation/settings_screen.dart';
 import 'package:mube/src/routing/route_paths.dart';
 
@@ -70,6 +71,11 @@ void main() {
           path: RoutePaths.support,
           builder: (context, state) =>
               const Scaffold(body: Text('Support Screen')),
+        ),
+        GoRoute(
+          path: RoutePaths.matchpoint,
+          builder: (context, state) =>
+              const Scaffold(body: Text('Matchpoint Screen')),
         ),
         GoRoute(
           path:
@@ -177,6 +183,34 @@ void main() {
 
       expect(find.text('Gerenciar Banda'), findsOneWidget);
       expect(find.text('Minhas Bandas'), findsNothing);
+    });
+
+    testWidgets(
+      'renders matchpoint highlight below header and removes old tile',
+      (tester) async {
+        await tester.pumpWidget(
+          createSubject(userType: AppUserType.professional),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(MatchpointHighlightCard), findsOneWidget);
+        expect(find.text('MatchPoint'), findsOneWidget);
+        expect(find.byIcon(Icons.bolt_outlined), findsNothing);
+      },
+    );
+
+    testWidgets('navigates to MatchPoint from the highlight card', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createSubject(userType: AppUserType.professional),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ativar MatchPoint'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Matchpoint Screen'), findsOneWidget);
     });
 
     testWidgets('navigates to Addresses when tapped', (tester) async {

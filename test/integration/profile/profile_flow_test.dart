@@ -9,6 +9,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
+import 'package:mube/src/design_system/components/buttons/app_button.dart';
 import 'package:mube/src/design_system/components/loading/app_shimmer.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -73,16 +74,16 @@ class FakeAnalyticsService extends Mock implements AnalyticsService {
   Future<void> logProfileEdit({required String userId}) async {}
 }
 
-/// Testes de integração para o fluxo de perfil
+/// Testes de integraÃ§Ã£o para o fluxo de perfil
 ///
 /// Cobertura:
-/// - Visualização do perfil
-/// - Edição de dados básicos
+/// - VisualizaÃ§Ã£o do perfil
+/// - EdiÃ§Ã£o de dados bÃ¡sicos
 /// - Upload de foto de perfil
-/// - Edição de dados específicos por tipo (profissional, banda, estúdio)
-/// - Validação de formulários
+/// - EdiÃ§Ã£o de dados especÃ­ficos por tipo (profissional, banda, estÃºdio)
+/// - ValidaÃ§Ã£o de formulÃ¡rios
 /// - Logout
-/// - Exclusão de conta
+/// - ExclusÃ£o de conta
 void main() {
   setUpAll(() => setupFirebaseCoreMocks());
 
@@ -115,7 +116,7 @@ void main() {
             'instrumentos': ['guitar', 'piano'],
             'generosMusicais': ['rock', 'pop'],
           },
-          location: {'cidade': 'São Paulo', 'estado': 'SP'},
+          location: {'cidade': 'SÃ£o Paulo', 'estado': 'SP'},
         );
 
         when(
@@ -144,7 +145,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - Verifica nome artístico e tipo de perfil (em maiúsculas)
+        // Assert - Verifica nome artÃ­stico e tipo de perfil (em maiÃºsculas)
         expect(find.text('Johnny Rock'), findsOneWidget);
         expect(find.text('PROFISSIONAL'), findsOneWidget);
       });
@@ -190,7 +191,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - Verifica nome da banda e tipo de perfil (em maiúsculas)
+        // Assert - Verifica nome da banda e tipo de perfil (em maiÃºsculas)
         expect(find.text('The Rockers'), findsOneWidget);
         expect(find.text('BANDA'), findsOneWidget);
       });
@@ -208,7 +209,7 @@ void main() {
             'studioType': 'commercial',
             'servicosOferecidos': ['recording', 'mixing'],
           },
-          location: {'cidade': 'São Paulo', 'estado': 'SP'},
+          location: {'cidade': 'SÃ£o Paulo', 'estado': 'SP'},
         );
 
         when(
@@ -237,9 +238,9 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - Verifica nome do estúdio e tipo de perfil (em maiúsculas)
+        // Assert - Verifica nome do estÃºdio e tipo de perfil (em maiÃºsculas)
         expect(find.text('Music Studio'), findsOneWidget);
-        expect(find.text('ESTÚDIO'), findsOneWidget);
+        expect(find.text('EST\u00daDIO'), findsOneWidget);
       });
 
       testWidgets('should show loading state', (tester) async {
@@ -327,7 +328,7 @@ void main() {
           const Duration(milliseconds: 100),
         ); // Allow for state stability
 
-        // Assert - Deve mostrar mensagem de erro e NÃO mostrar o skeleton
+        // Assert - Deve mostrar mensagem de erro e NÃƒO mostrar o skeleton
         expect(find.byType(ProfileSkeleton), findsNothing);
         expect(find.byKey(const Key('profile_error_center')), findsOneWidget);
         expect(find.textContaining('Error loading profile'), findsOneWidget);
@@ -375,7 +376,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - Tela de edição deve ser exibida
+        // Assert - Tela de ediÃ§Ã£o deve ser exibida
         expect(find.byType(EditProfileScreen), findsOneWidget);
       });
 
@@ -476,10 +477,15 @@ void main() {
         await tester.tap(find.text('Perfil'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Salvar Alterações'));
+        final saveButton = find.widgetWithText(
+          AppButton,
+          'Salvar Altera\u00E7\u00F5es',
+        );
+        await tester.ensureVisible(saveButton);
+        await tester.tap(saveButton);
         await tester.pumpAndSettle();
 
-        expect(find.text('Use um link válido do Spotify.'), findsWidgets);
+        expect(find.text('Use um link v\u00E1lido do Spotify.'), findsWidgets);
         expect(find.text('Links Musicais'), findsWidgets);
       });
 
@@ -591,7 +597,12 @@ void main() {
         );
         await tester.pump();
 
-        await tester.tap(find.text('Salvar Alterações'));
+        final saveButton = find.widgetWithText(
+          AppButton,
+          'Salvar Altera\u00E7\u00F5es',
+        );
+        await tester.ensureVisible(saveButton);
+        await tester.tap(saveButton);
         await tester.pump(const Duration(milliseconds: 100));
 
         final tabBar = tester.widget<TabBar>(find.byType(TabBar));
@@ -704,7 +715,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Tap no botão de logout
+        // Tap no botÃ£o de logout
         final logoutButton = find.byIcon(Icons.logout);
         if (logoutButton.evaluate().isNotEmpty) {
           await tester.ensureVisible(logoutButton);
@@ -780,7 +791,7 @@ void main() {
         when(mockAuthDataSource.deleteAccount('test-uid')).thenThrow(
           FirebaseAuthException(
             code: 'requires-recent-login',
-            message: 'Re-autenticação necessária',
+            message: 'Re-autenticaÃ§Ã£o necessÃ¡ria',
           ),
         );
 
@@ -1043,7 +1054,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Assert - Verifica nome e tipo de perfil (em maiúsculas)
+        // Assert - Verifica nome e tipo de perfil (em maiÃºsculas)
         expect(find.text('Event Organizer'), findsOneWidget);
         expect(find.text('CONTRATANTE'), findsOneWidget);
       });
@@ -1060,7 +1071,7 @@ void main() {
           cadastroStatus: 'concluido',
           dadosProfissional: {'nomeArtistico': 'John Doe'},
           location: {
-            'cidade': 'São Paulo',
+            'cidade': 'SÃ£o Paulo',
             'estado': 'SP',
             'bairro': 'Pinheiros',
             'lat': -23.5,

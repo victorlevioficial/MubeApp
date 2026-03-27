@@ -508,6 +508,7 @@ class _AvatarBubble extends StatelessWidget {
               child: UserAvatar(
                 size: size,
                 photoUrl: user.avatarFullUrl,
+                photoPreviewUrl: user.avatarPreviewUrl,
                 name: displayName,
                 showBorder: false,
               ),

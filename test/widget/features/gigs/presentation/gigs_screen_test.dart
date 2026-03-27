@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mube/src/design_system/components/loading/app_skeleton.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
@@ -37,6 +38,7 @@ void main() {
   Widget createSubject(
     Stream<List<Gig>> gigsStream, {
     Map<String, AppUser>? creatorsById,
+    bool embedded = false,
   }) {
     final resolvedCreatorsById =
         creatorsById ??
@@ -61,7 +63,7 @@ void main() {
           (ref) => Stream.value(TestData.user()),
         ),
       ],
-      child: const MaterialApp(home: GigsScreen()),
+      child: MaterialApp(home: GigsScreen(embedded: embedded)),
     );
   }
 
@@ -83,6 +85,16 @@ void main() {
     expect(find.text('Nenhuma gig encontrada'), findsOneWidget);
     expect(find.text('Criar gig'), findsOneWidget);
     expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
+  testWidgets('does not render hero header when embedded', (tester) async {
+    await tester.pumpWidget(
+      createSubject(Stream.value(const [sampleGig]), embedded: true),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Oportunidades em tempo real'), findsNothing);
+    expect(find.text('Procuro baterista'), findsOneWidget);
   });
 
   testWidgets('renders extended fab when gigs are available', (tester) async {
@@ -119,6 +131,13 @@ void main() {
 
     expect(find.text('Lia Vox'), findsOneWidget);
     expect(find.text('Perfil Individual'), findsOneWidget);
+
+    final creatorName = tester.widget<Text>(find.text('Lia Vox'));
+    final category = tester.widget<Text>(find.text('Perfil Individual'));
+
+    expect(creatorName.style?.fontSize, greaterThan(11));
+    expect(creatorName.style?.color, AppColors.textPrimary);
+    expect(category.style?.color, AppColors.textSecondary);
   });
 
   testWidgets('does not overflow on narrow mobile width', (tester) async {

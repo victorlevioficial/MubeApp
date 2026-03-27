@@ -105,6 +105,8 @@ abstract final class RoutePaths {
   }) =>
       'https://mubeapp.com.br${publicProfileSharePath(uid: uid, username: username)}';
   static String gigDetailById(String gigId) => '$gigs/$gigId';
+  static String gigShareUrl(String gigId) =>
+      'https://mubeapp.com.br/gigs/$gigId';
   static String gigApplicantsById(String gigId) =>
       '${gigDetailById(gigId)}/applicants';
   static String gigReviewById(String gigId, String userId) =>
@@ -136,6 +138,7 @@ abstract final class RoutePaths {
       publicRoutes.contains(path) ||
       _isPublicHandlePath(path) ||
       _isPublicProfilePath(path) ||
+      _isPublicGigPath(path) ||
       _publicRoutePrefixes.any((prefix) => path.startsWith(prefix));
 
   static bool _isPublicHandlePath(String path) {
@@ -174,5 +177,16 @@ abstract final class RoutePaths {
     }
 
     return !_reservedProfileRouteSegments.contains(identifier);
+  }
+
+  /// Matches only `/gigs/<gigId>` (exactly 2 segments).
+  /// Rejects `/gigs/create`, `/gigs/:id/applicants`, `/gigs/:id/review/:uid`.
+  static bool _isPublicGigPath(String path) {
+    final segments = Uri.parse(path).pathSegments;
+    if (segments.length != 2) return false;
+    if (segments.first != 'gigs') return false;
+    // Reject known non-public sub-routes.
+    if (segments.last == 'create') return false;
+    return segments.last.isNotEmpty;
   }
 }

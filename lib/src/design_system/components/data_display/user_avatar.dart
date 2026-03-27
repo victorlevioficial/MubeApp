@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../core/services/image_cache_config.dart';
+import '../../../utils/profile_photo_urls.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_typography.dart';
 
@@ -10,6 +11,7 @@ import '../../foundations/tokens/app_typography.dart';
 /// Features a thick border and modern pastel colors for initials fallback.
 class UserAvatar extends StatelessWidget {
   final String? photoUrl;
+  final String? photoPreviewUrl;
   final String? name;
   final double size;
   final bool showBorder;
@@ -17,6 +19,7 @@ class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
     this.photoUrl,
+    this.photoPreviewUrl,
     this.name,
     this.size = 80,
     this.showBorder = true,
@@ -66,10 +69,14 @@ class UserAvatar extends StatelessWidget {
   Widget _buildContent(BuildContext context) {
     final pixelRatio = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
     final cacheSize = (size * pixelRatio).round().clamp(64, 1024).toInt();
+    final effectivePhotoUrl = resolveProfilePhotoPreviewUrl(
+      thumbnailUrl: photoPreviewUrl,
+      photoUrl: photoUrl,
+    );
 
-    if (photoUrl != null && photoUrl!.isNotEmpty) {
+    if (effectivePhotoUrl != null && effectivePhotoUrl.isNotEmpty) {
       return CachedNetworkImage(
-        imageUrl: photoUrl!,
+        imageUrl: effectivePhotoUrl,
         cacheManager: ImageCacheConfig.profileCacheManager,
         memCacheWidth: cacheSize,
         memCacheHeight: cacheSize,

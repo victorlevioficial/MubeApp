@@ -19,117 +19,121 @@ import '../gig_error_message.dart';
 import '../providers/gig_streams.dart';
 
 class MyApplicationsScreen extends ConsumerWidget {
-  const MyApplicationsScreen({super.key});
+  const MyApplicationsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final applicationsAsync = ref.watch(myApplicationsProvider);
+    final body = applicationsAsync.when(
+      loading: () => const _MyApplicationsListSkeleton(),
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s24),
+          child: EmptyStateWidget(
+            icon: Icons.cloud_off_rounded,
+            title: 'Não foi possível carregar suas candidaturas',
+            subtitle: resolveGigErrorMessage(error),
+            actionButton: AppButton.secondary(
+              text: 'Tentar novamente',
+              onPressed: () => ref.invalidate(myApplicationsProvider),
+            ),
+          ),
+        ),
+      ),
+      data: (applications) {
+        if (applications.isEmpty) {
+          return const EmptyStateWidget(
+            icon: Icons.assignment_outlined,
+            title: 'Nenhuma candidatura ainda',
+            subtitle:
+                'Quando você se candidatar a uma gig, ela aparecerá aqui.',
+          );
+        }
+
+        // Summary
+        final pendingCount = applications
+            .where((a) => a.status == ApplicationStatus.pending)
+            .length;
+        final acceptedCount = applications
+            .where((a) => a.status == ApplicationStatus.accepted)
+            .length;
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s24,
+          ),
+          children: [
+            if (applications.length > 1) ...[
+              _ApplicationsSummaryBar(
+                total: applications.length,
+                pending: pendingCount,
+                accepted: acceptedCount,
+              ),
+              const SizedBox(height: AppSpacing.s16),
+            ],
+            for (var index = 0; index < applications.length; index++) ...[
+              _ApplicationCard(
+                application: applications[index],
+                onViewGig: () => context.push(
+                  RoutePaths.gigDetailById(applications[index].gigId),
+                ),
+                onMessage:
+                    applications[index].status == ApplicationStatus.accepted &&
+                        applications[index].creatorId != null
+                    ? () => ref
+                          .read(gigActionsControllerProvider.notifier)
+                          .openConversation(
+                            context,
+                            otherUserId: applications[index].creatorId!,
+                          )
+                    : null,
+                onWithdraw:
+                    (applications[index].status == ApplicationStatus.accepted ||
+                        applications[index].status == ApplicationStatus.pending)
+                    ? () async {
+                        try {
+                          await ref
+                              .read(gigActionsControllerProvider.notifier)
+                              .withdrawApplication(applications[index].gigId);
+                          if (!context.mounted) return;
+                          AppSnackBar.success(
+                            context,
+                            applications[index].status ==
+                                    ApplicationStatus.accepted
+                                ? 'Você desistiu da gig.'
+                                : 'Candidatura retirada com sucesso.',
+                          );
+                        } catch (error) {
+                          if (!context.mounted) return;
+                          AppSnackBar.error(
+                            context,
+                            resolveGigErrorMessage(error),
+                          );
+                        }
+                      }
+                    : null,
+              ),
+              if (index < applications.length - 1)
+                const SizedBox(height: AppSpacing.s12),
+            ],
+          ],
+        );
+      },
+    );
+
+    if (embedded) {
+      return body;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Minhas candidaturas'),
-      body: applicationsAsync.when(
-        loading: () => const _MyApplicationsListSkeleton(),
-        error: (error, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.s24),
-            child: EmptyStateWidget(
-              icon: Icons.cloud_off_rounded,
-              title: 'Não foi possível carregar suas candidaturas',
-              subtitle: resolveGigErrorMessage(error),
-              actionButton: AppButton.secondary(
-                text: 'Tentar novamente',
-                onPressed: () => ref.invalidate(myApplicationsProvider),
-              ),
-            ),
-          ),
-        ),
-        data: (applications) {
-          if (applications.isEmpty) {
-            return const EmptyStateWidget(
-              icon: Icons.assignment_outlined,
-              title: 'Nenhuma candidatura ainda',
-              subtitle:
-                  'Quando você se candidatar a uma gig, ela aparecerá aqui.',
-            );
-          }
-
-          // Summary
-          final pendingCount = applications
-              .where((a) => a.status == ApplicationStatus.pending)
-              .length;
-          final acceptedCount = applications
-              .where((a) => a.status == ApplicationStatus.accepted)
-              .length;
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s16,
-              AppSpacing.s8,
-              AppSpacing.s16,
-              AppSpacing.s24,
-            ),
-            children: [
-              if (applications.length > 1) ...[
-                _ApplicationsSummaryBar(
-                  total: applications.length,
-                  pending: pendingCount,
-                  accepted: acceptedCount,
-                ),
-                const SizedBox(height: AppSpacing.s16),
-              ],
-              for (var index = 0; index < applications.length; index++) ...[
-                _ApplicationCard(
-                  application: applications[index],
-                  onViewGig: () => context.push(
-                    RoutePaths.gigDetailById(applications[index].gigId),
-                  ),
-                  onMessage:
-                      applications[index].status ==
-                              ApplicationStatus.accepted &&
-                          applications[index].creatorId != null
-                      ? () => ref
-                            .read(gigActionsControllerProvider.notifier)
-                            .openConversation(
-                              context,
-                              otherUserId: applications[index].creatorId!,
-                            )
-                      : null,
-                  onWithdraw:
-                      (applications[index].status ==
-                              ApplicationStatus.accepted ||
-                          applications[index].status ==
-                              ApplicationStatus.pending)
-                      ? () async {
-                          try {
-                            await ref
-                                .read(gigActionsControllerProvider.notifier)
-                                .withdrawApplication(applications[index].gigId);
-                            if (!context.mounted) return;
-                            AppSnackBar.success(
-                              context,
-                              applications[index].status ==
-                                      ApplicationStatus.accepted
-                                  ? 'Você desistiu da gig.'
-                                  : 'Candidatura retirada com sucesso.',
-                            );
-                          } catch (error) {
-                            if (!context.mounted) return;
-                            AppSnackBar.error(
-                              context,
-                              resolveGigErrorMessage(error),
-                            );
-                          }
-                        }
-                      : null,
-                ),
-                if (index < applications.length - 1)
-                  const SizedBox(height: AppSpacing.s12),
-              ],
-            ],
-          );
-        },
-      ),
+      body: body,
     );
   }
 }

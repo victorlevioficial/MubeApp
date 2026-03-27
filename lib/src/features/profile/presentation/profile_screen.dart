@@ -116,6 +116,7 @@ class ProfileScreen extends ConsumerWidget {
                   UserAvatar(
                     size: 100,
                     photoUrl: user.avatarFullUrl,
+                    photoPreviewUrl: user.avatarPreviewUrl,
                     name: _getDisplayName(user),
                   ),
                   const SizedBox(height: AppSpacing.s12),

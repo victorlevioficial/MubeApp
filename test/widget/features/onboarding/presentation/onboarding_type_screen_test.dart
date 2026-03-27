@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/design_system/components/buttons/app_button.dart';
+import 'package:mube/src/design_system/components/patterns/full_width_selection_card.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/onboarding/presentation/onboarding_type_screen.dart';
 
@@ -34,16 +35,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Bem-vindo ao Mube!'), findsOneWidget);
-      expect(find.text('Como você quer usar a plataforma?'), findsOneWidget);
+      expect(
+        find.text('Como voc\u00EA quer usar a plataforma?'),
+        findsOneWidget,
+      );
       expect(find.text('Contratante'), findsOneWidget);
       expect(find.text('Perfil Individual'), findsOneWidget);
       expect(
         find.text(
-          'Cantor, instrumentista, DJ, produção musical ou técnica de palco',
+          'Cantor, instrumentista, DJ, produ\u00E7\u00E3o musical, audiovisual, educa\u00E7\u00E3o, luthier, performance ou t\u00E9cnica de palco',
         ),
         findsOneWidget,
       );
-      expect(find.text('Estúdio'), findsOneWidget);
+      expect(find.text('Est\u00FAdio'), findsOneWidget);
       expect(find.text('Banda'), findsOneWidget);
       expect(find.text('Continuar'), findsOneWidget);
     });
@@ -82,7 +86,9 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Perfil Individual'));
+      await tester.tap(
+        find.widgetWithText(FullWidthSelectionCard, 'Perfil Individual'),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Continuar'));
@@ -97,7 +103,11 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Banda'));
+      final bandCard = find.widgetWithText(FullWidthSelectionCard, 'Banda');
+      await tester.ensureVisible(bandCard);
+      await tester.pumpAndSettle();
+
+      await tester.tap(bandCard, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       expect(find.text('Como funciona o perfil de banda'), findsOneWidget);
@@ -126,10 +136,11 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.text('Banda'));
+      final bandCard = find.widgetWithText(FullWidthSelectionCard, 'Banda');
+      await tester.ensureVisible(bandCard);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Banda'));
+      await tester.tap(bandCard, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       final continueRect = tester.getRect(find.text('Continuar como banda'));
@@ -145,10 +156,16 @@ void main() {
       await tester.pumpWidget(createSubject());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Perfil Individual'));
+      await tester.tap(
+        find.widgetWithText(FullWidthSelectionCard, 'Perfil Individual'),
+      );
       await tester.pump();
 
-      await tester.tap(find.text('Banda'));
+      final bandCard = find.widgetWithText(FullWidthSelectionCard, 'Banda');
+      await tester.ensureVisible(bandCard);
+      await tester.pumpAndSettle();
+
+      await tester.tap(bandCard, warnIfMissed: false);
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text('Escolher outro tipo'));

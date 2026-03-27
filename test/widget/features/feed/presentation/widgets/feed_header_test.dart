@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -9,6 +10,7 @@ import 'package:mube/src/features/bands/data/invites_repository.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_header.dart';
 import 'package:mube/src/features/notifications/data/notification_repository.dart';
 import 'package:mube/src/features/settings/domain/saved_address.dart';
+import 'package:mube/src/routing/route_paths.dart';
 import 'package:network_image_mock/network_image_mock.dart';
 
 import '../../../../../helpers/test_data.dart';
@@ -129,6 +131,36 @@ void main() {
           body: CustomScrollView(slivers: [FeedHeader(currentUser: user)]),
         ),
       ),
+    );
+  }
+
+  Widget createRoutedSubject(AppUser user) {
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => Scaffold(
+            body: CustomScrollView(slivers: [FeedHeader(currentUser: user)]),
+          ),
+        ),
+        GoRoute(
+          path: RoutePaths.receivedFavorites,
+          builder: (context, state) =>
+              const Scaffold(body: Text('Received Favorites Screen')),
+        ),
+      ],
+    );
+
+    return ProviderScope(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+        notificationRepositoryProvider.overrideWithValue(
+          fakeNotificationRepository,
+        ),
+        invitesRepositoryProvider.overrideWithValue(fakeInvitesRepository),
+      ],
+      child: MaterialApp.router(routerConfig: router),
     );
   }
 
@@ -272,6 +304,30 @@ void main() {
 
       expect(find.text('Alertas da home'), findsOneWidget);
       expect(find.text('Ver convites'), findsOneWidget);
+    });
+
+    testWidgets('shows favorites shortcut and opens received favorites', (
+      tester,
+    ) async {
+      final user = buildProfessionalUser(
+        complete: true,
+        addresses: [primaryAddress()],
+      ).copyWith(favoritesCount: 27);
+
+      await tester.pumpWidget(createRoutedSubject(user));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('feed_header_favorites_shortcut')),
+        findsOneWidget,
+      );
+      expect(find.text('Favoritos'), findsOneWidget);
+      expect(find.text('27'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('feed_header_favorites_shortcut')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Received Favorites Screen'), findsOneWidget);
     });
   });
 }

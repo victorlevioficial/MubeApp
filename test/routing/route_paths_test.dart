@@ -23,6 +23,7 @@ void main() {
       expect(RoutePaths.isPublic('/@mubeoficial'), true);
       expect(RoutePaths.isPublic('/profile/user-1'), true);
       expect(RoutePaths.isPublic('/user/user-1'), true);
+      expect(RoutePaths.isPublic('/gigs/abc123'), true);
     });
 
     test('isPublic returns false for protected routes', () {
@@ -32,6 +33,9 @@ void main() {
       expect(RoutePaths.isPublic('/profile/edit'), false);
       expect(RoutePaths.isPublic('/onboarding'), false);
       expect(RoutePaths.isPublic('/onboarding/form'), false);
+      expect(RoutePaths.isPublic('/gigs/create'), false);
+      expect(RoutePaths.isPublic('/gigs/abc123/applicants'), false);
+      expect(RoutePaths.isPublic('/gigs/abc123/review/user-1'), false);
     });
 
     test('onboarding form path starts with onboarding', () {
@@ -64,6 +68,13 @@ void main() {
       expect(
         RoutePaths.publicProfileShareUrlById('user-1'),
         'https://mubeapp.com.br/profile/user-1',
+      );
+    });
+
+    test('gigShareUrl builds expected URL', () {
+      expect(
+        RoutePaths.gigShareUrl('gig-1'),
+        'https://mubeapp.com.br/gigs/gig-1',
       );
     });
   });

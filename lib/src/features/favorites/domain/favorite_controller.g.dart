@@ -42,7 +42,7 @@ final class FavoriteControllerProvider
 }
 
 String _$favoriteControllerHash() =>
-    r'e22dba3bb318f2b6c352bbf33d504164d9662d26';
+    r'4615680cdcb143d9cc42b45cf0c89a839161c509';
 
 abstract class _$FavoriteController extends $Notifier<FavoriteState> {
   FavoriteState build();

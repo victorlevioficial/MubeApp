@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
@@ -19,6 +20,53 @@ void main() {
 
       expect(find.byType(UserAvatar), findsOneWidget);
       expect(find.byType(Container), findsWidgets);
+    });
+
+    testWidgets('prefers explicit photoPreviewUrl when provided', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: UserAvatar(
+              photoUrl: 'https://example.com/profile/large.webp',
+              photoPreviewUrl: 'https://example.com/profile/thumbnail.webp',
+              name: 'John Doe',
+              size: 80,
+            ),
+          ),
+        ),
+      );
+
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+      expect(image.imageUrl, 'https://example.com/profile/thumbnail.webp');
+    });
+
+    testWidgets('falls back to photoUrl when preview is absent', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: UserAvatar(
+              photoUrl:
+                  'https://firebasestorage.googleapis.com/v0/b/app/o/profile_photos%2Fuser-1%2Flarge.webp?alt=media&token=abc',
+              name: 'John Doe',
+              size: 80,
+            ),
+          ),
+        ),
+      );
+
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+      expect(
+        image.imageUrl,
+        'https://firebasestorage.googleapis.com/v0/b/app/o/profile_photos%2Fuser-1%2Flarge.webp?alt=media&token=abc',
+      );
     });
 
     testWidgets('renders initials when photoUrl is null', (

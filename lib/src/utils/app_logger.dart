@@ -19,6 +19,7 @@ class AppLogger {
   );
 
   static bool _isCrashlyticsEnabled = false;
+  static bool _debugConsoleMirroringEnabled = true;
   static const List<String> _nonFatalFlutterErrorPatterns = <String>[
     'a renderflex overflowed',
     'a renderviewport overflowed',
@@ -33,13 +34,18 @@ class AppLogger {
   static bool get verboseLoggingEnabled =>
       kDebugMode && _enableVerboseDebugLogs;
 
+  @visibleForTesting
+  static void setDebugConsoleMirroringEnabled(bool enabled) {
+    _debugConsoleMirroringEnabled = enabled;
+  }
+
   static void _mirrorToFlutterConsole(
     String loggerName,
     String message, {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    if (!kDebugMode) return;
+    if (!kDebugMode || !_debugConsoleMirroringEnabled) return;
 
     final buffer = StringBuffer('[$loggerName] $message');
     if (error != null) {

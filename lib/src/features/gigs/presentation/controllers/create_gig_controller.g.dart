@@ -34,7 +34,7 @@ final class CreateGigControllerProvider
 }
 
 String _$createGigControllerHash() =>
-    r'14d472bf4a089d355967b3e7dc7e94335ee3a714';
+    r'78a7b621ae7e1f652b1d3f5b050048c1cefc65ae';
 
 abstract class _$CreateGigController extends $AsyncNotifier<void> {
   FutureOr<void> build();

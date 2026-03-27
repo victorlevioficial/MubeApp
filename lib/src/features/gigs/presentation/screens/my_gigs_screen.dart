@@ -16,83 +16,88 @@ import '../providers/gig_streams.dart';
 import '../widgets/gig_card.dart';
 
 class MyGigsScreen extends ConsumerWidget {
-  const MyGigsScreen({super.key});
+  const MyGigsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gigsAsync = ref.watch(myGigsStreamProvider);
+    final body = gigsAsync.when(
+      loading: () => const _MyGigsListSkeleton(),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.s24),
+        child: EmptyStateWidget(
+          icon: Icons.cloud_off_rounded,
+          title: 'Não foi possível carregar seus gigs',
+          subtitle: resolveGigErrorMessage(error),
+        ),
+      ),
+      data: (gigs) {
+        if (gigs.isEmpty) {
+          return const EmptyStateWidget(
+            icon: Icons.library_music_outlined,
+            title: 'Você ainda não publicou gigs',
+            subtitle: 'Quando publicar, elas aparecerão aqui.',
+          );
+        }
+
+        // Summary
+        final openCount = gigs.where((g) => g.status == GigStatus.open).length;
+        final totalApplicants = gigs.fold<int>(
+          0,
+          (sum, g) => sum + g.applicantCount,
+        );
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.s16,
+            AppSpacing.s8,
+            AppSpacing.s16,
+            AppSpacing.s24,
+          ),
+          children: [
+            // Summary chips
+            if (gigs.length > 1) ...[
+              Row(
+                children: [
+                  _MiniStat(
+                    icon: Icons.work_outline_rounded,
+                    label: '$openCount abertas',
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(width: AppSpacing.s8),
+                  _MiniStat(
+                    icon: Icons.how_to_reg_outlined,
+                    label: '$totalApplicants candidaturas',
+                    color: AppColors.info,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s16),
+            ],
+            for (var index = 0; index < gigs.length; index++) ...[
+              GigCard(
+                gig: gigs[index],
+                onTap: () =>
+                    context.push(RoutePaths.gigDetailById(gigs[index].id)),
+              ),
+              if (index < gigs.length - 1)
+                const SizedBox(height: AppSpacing.s12),
+            ],
+          ],
+        );
+      },
+    );
+
+    if (embedded) {
+      return body;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(title: 'Meus gigs'),
-      body: gigsAsync.when(
-        loading: () => const _MyGigsListSkeleton(),
-        error: (error, _) => Padding(
-          padding: const EdgeInsets.all(AppSpacing.s24),
-          child: EmptyStateWidget(
-            icon: Icons.cloud_off_rounded,
-            title: 'Não foi possível carregar seus gigs',
-            subtitle: resolveGigErrorMessage(error),
-          ),
-        ),
-        data: (gigs) {
-          if (gigs.isEmpty) {
-            return const EmptyStateWidget(
-              icon: Icons.library_music_outlined,
-              title: 'Você ainda não publicou gigs',
-              subtitle: 'Quando publicar, elas aparecerão aqui.',
-            );
-          }
-
-          // Summary
-          final openCount = gigs
-              .where((g) => g.status == GigStatus.open)
-              .length;
-          final totalApplicants = gigs.fold<int>(
-            0,
-            (sum, g) => sum + g.applicantCount,
-          );
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s16,
-              AppSpacing.s8,
-              AppSpacing.s16,
-              AppSpacing.s24,
-            ),
-            children: [
-              // Summary chips
-              if (gigs.length > 1) ...[
-                Row(
-                  children: [
-                    _MiniStat(
-                      icon: Icons.work_outline_rounded,
-                      label: '$openCount abertas',
-                      color: AppColors.success,
-                    ),
-                    const SizedBox(width: AppSpacing.s8),
-                    _MiniStat(
-                      icon: Icons.how_to_reg_outlined,
-                      label: '$totalApplicants candidaturas',
-                      color: AppColors.info,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.s16),
-              ],
-              for (var index = 0; index < gigs.length; index++) ...[
-                GigCard(
-                  gig: gigs[index],
-                  onTap: () =>
-                      context.push(RoutePaths.gigDetailById(gigs[index].id)),
-                ),
-                if (index < gigs.length - 1)
-                  const SizedBox(height: AppSpacing.s12),
-              ],
-            ],
-          );
-        },
-      ),
+      body: body,
     );
   }
 }

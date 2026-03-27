@@ -487,6 +487,47 @@ void main() {
         verify(mockAuthRepository.updateUser(any)).called(1);
       });
 
+      test('should persist fotoThumb when thumbnail upload succeeds', () async {
+        when(
+          mockContentModerationService.validateImage(any),
+        ).thenAnswer((_) async => true);
+        when(
+          mockStorageRepository.uploadProfileImageWithSizes(
+            userId: anyNamed('userId'),
+            file: anyNamed('file'),
+            generateMultipleSizes: anyNamed('generateMultipleSizes'),
+          ),
+        ).thenAnswer(
+          (_) async => const ImageUrls(
+            thumbnail: 'https://example.com/thumb.jpg',
+            large: 'https://example.com/large.jpg',
+            full: 'https://example.com/full.jpg',
+          ),
+        );
+        when(
+          mockAuthRepository.updateUser(any),
+        ).thenAnswer((_) async => const Right(unit));
+
+        final controller = container.read(profileControllerProvider.notifier);
+
+        await controller.updateProfileImage(
+          file: mockFile,
+          currentUser: testUser,
+        );
+
+        final capturedUser =
+            verify(mockAuthRepository.updateUser(captureAny)).captured.single
+                as AppUser;
+
+        expect(capturedUser.foto, contains('https://example.com/full.jpg'));
+        expect(capturedUser.foto, contains('v='));
+        expect(
+          capturedUser.fotoThumb,
+          contains('https://example.com/thumb.jpg'),
+        );
+        expect(capturedUser.fotoThumb, contains('v='));
+      });
+
       test('should call analytics on successful image update', () async {
         // Arrange
         when(

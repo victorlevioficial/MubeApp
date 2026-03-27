@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../chat/data/chat_repository.dart';
@@ -142,6 +143,20 @@ class FavoriteController extends _$FavoriteController {
           } else {
             await repo.removeFavorite(targetId);
           }
+
+          // Analytics: fire-and-forget after successful remote sync.
+          unawaited(
+            ref
+                .read(analyticsServiceProvider)
+                .logEvent(
+                  name: 'favorite_toggled',
+                  parameters: {
+                    'target_id': targetId,
+                    'action': desiredStatus ? 'add' : 'remove',
+                  },
+                )
+                .catchError((_) {}),
+          );
 
           _setServerFavorite(targetId, desiredStatus);
 

@@ -20,9 +20,11 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
+import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import '../../splash/presentation/splash_feed_render_tracking.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
+import '../domain/spotlight_rotation.dart';
 import 'feed_controller.dart';
 import 'feed_image_precache_service.dart';
 import 'widgets/featured_spotlight_carousel.dart';
@@ -132,7 +134,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   List<FeedItem> _getSpotlightItems(FeedState state) {
     if (state.featuredItems.isNotEmpty) {
-      return state.featuredItems;
+      return state.featuredItems
+          .where(SpotlightRotation.isEligible)
+          .toList(growable: false);
     }
 
     final allItems = <FeedItem>[];
@@ -144,6 +148,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
     final uniqueItems = <String, FeedItem>{};
     for (final item in allItems) {
+      if (!SpotlightRotation.isEligible(item)) continue;
       uniqueItems[item.uid] = item;
     }
     final sortedItems = uniqueItems.values.toList();
@@ -215,7 +220,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
       _initialDependenciesHoldStopwatch = AppPerformanceTracker.startSpan(
         'feed.ui.initial_dependencies_hold',
-        data: {'reason': 'current_user_or_gigs_preview_loading'},
+        data: {'reason': 'current_user_loading'},
       );
       return;
     }
@@ -371,8 +376,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         !_hasReleasedInitialLayout &&
         !stateAsync.hasError &&
         state.status != PaginationStatus.error &&
-        ((currentUserAsync.asData == null && currentUserAsync.isLoading) ||
-            (gigsPreviewAsync.asData == null && gigsPreviewAsync.isLoading));
+        (currentUserAsync.asData == null && currentUserAsync.isLoading);
 
     if (state.isInitialLoading || shouldHoldForInitialDependencies) {
       _updateInitialDependenciesHoldTracking(shouldHoldForInitialDependencies);

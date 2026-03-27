@@ -3,6 +3,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/gigs/data/gig_repository.dart';
 
 import '../../../helpers/firebase_mocks.dart';
@@ -24,7 +25,11 @@ void main() {
 
     when(mockAuth.currentUser).thenReturn(mockUser);
 
-    repository = GigRepository(fakeFirestore, mockAuth);
+    repository = GigRepository(
+      fakeFirestore,
+      mockAuth,
+      const NoopAnalyticsService(),
+    );
 
     await fakeFirestore.collection('users').doc(applicantId).set({
       'uid': applicantId,
@@ -57,6 +62,83 @@ void main() {
       'applicant_count': 0,
       'created_at': Timestamp.fromDate(DateTime(2026, 3, 9)),
       'updated_at': Timestamp.fromDate(DateTime(2026, 3, 9)),
+    });
+  });
+
+  Future<void> seedGig(
+    String id, {
+    required String title,
+    String status = 'open',
+    String dateMode = 'unspecified',
+    DateTime? gigDate,
+    int slotsTotal = 2,
+    int slotsFilled = 0,
+    DateTime? createdAt,
+  }) {
+    return fakeFirestore.collection('gigs').doc(id).set({
+      'title': title,
+      'description': 'Gig de teste com detalhes suficientes para candidatura.',
+      'gig_type': 'show_ao_vivo',
+      'status': status,
+      'date_mode': dateMode,
+      'gig_date': gigDate == null ? null : Timestamp.fromDate(gigDate),
+      'location_type': 'presencial',
+      'genres': const <String>['rock'],
+      'required_instruments': const <String>['guitarra'],
+      'required_crew_roles': const <String>[],
+      'required_studio_services': const <String>[],
+      'slots_total': slotsTotal,
+      'slots_filled': slotsFilled,
+      'compensation_type': 'fixed',
+      'compensation_value': 500,
+      'creator_id': creatorId,
+      'applicant_count': 0,
+      'created_at': Timestamp.fromDate(createdAt ?? DateTime(2026, 3, 9)),
+      'updated_at': Timestamp.fromDate(createdAt ?? DateTime(2026, 3, 9)),
+    });
+  }
+
+  group('GigRepository.watchLatestOpenGigs', () {
+    test('skips gigs that are full or expired and keeps valid ones', () async {
+      await fakeFirestore.collection('gigs').doc(gigId).delete();
+
+      await seedGig(
+        'gig-full',
+        title: 'Gig lotada',
+        slotsTotal: 1,
+        slotsFilled: 1,
+        createdAt: DateTime(2026, 3, 12),
+      );
+      await seedGig(
+        'gig-expired',
+        title: 'Gig expirada',
+        dateMode: 'fixed_date',
+        gigDate: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime(2026, 3, 11),
+      );
+      await seedGig(
+        'gig-valid-1',
+        title: 'Gig aberta 1',
+        createdAt: DateTime(2026, 3, 10),
+      );
+      await seedGig(
+        'gig-valid-2',
+        title: 'Gig aberta 2',
+        createdAt: DateTime(2026, 3, 9),
+      );
+      await seedGig(
+        'gig-valid-3',
+        title: 'Gig aberta 3',
+        createdAt: DateTime(2026, 3, 8),
+      );
+
+      final gigs = await repository.watchLatestOpenGigs(limit: 3).first;
+
+      expect(gigs.map((gig) => gig.title).toList(), <String>[
+        'Gig aberta 1',
+        'Gig aberta 2',
+        'Gig aberta 3',
+      ]);
     });
   });
 

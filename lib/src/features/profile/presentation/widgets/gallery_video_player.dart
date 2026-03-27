@@ -50,7 +50,9 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     WidgetsBinding.instance.addObserver(this);
     _resumeAfterInterruption = widget.isActive;
     _resolveThumbnailAspectRatio();
-    _initializePlayer();
+    if (widget.isActive) {
+      _initializePlayer();
+    }
   }
 
   @override
@@ -67,10 +69,18 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
       _isInitialized = false;
       _hasError = false;
       _resumeAfterInterruption = widget.isActive;
-      _initializePlayer();
+      if (widget.isActive) {
+        _initializePlayer();
+      }
     }
 
     if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive &&
+          !_isInitialized &&
+          _controller == null &&
+          !_hasError) {
+        _initializePlayer();
+      }
       _handleActiveStateChange();
     }
   }
@@ -650,9 +660,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
 
     final controller = _controller;
     if (!_isInitialized || controller == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.textPrimary),
-      );
+      return _buildLoadingPreview();
     }
 
     return ValueListenableBuilder<VideoPlayerValue>(
@@ -839,6 +847,82 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLoadingPreview() {
+    final thumbnailUrl = widget.thumbnailUrl;
+    final aspectRatio = _thumbnailAspectRatio ?? (16 / 9);
+    final isWaitingForActivePlayback = !widget.isActive;
+
+    Widget background = Container(
+      color: AppColors.surface,
+      child: const Center(
+        child: Icon(
+          Icons.videocam_outlined,
+          color: AppColors.textSecondary,
+          size: 48,
+        ),
+      ),
+    );
+
+    if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
+      background = CachedNetworkImage(
+        imageUrl: thumbnailUrl,
+        fit: BoxFit.contain,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
+        cacheManager: ImageCacheConfig.thumbnailCacheManager,
+        memCacheWidth: 900,
+        maxWidthDiskCache: 1400,
+        placeholder: (context, url) => Container(color: AppColors.surface),
+        errorWidget: (context, url, error) => Container(
+          color: AppColors.surface,
+          child: const Center(
+            child: Icon(
+              Icons.videocam_off,
+              color: AppColors.textSecondary,
+              size: 48,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      color: AppColors.background,
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: aspectRatio,
+          child: Stack(
+            fit: StackFit.expand,
+            alignment: Alignment.center,
+            children: [
+              background,
+              Container(color: AppColors.background.withValues(alpha: 0.18)),
+              Center(
+                child: isWaitingForActivePlayback
+                    ? Container(
+                        padding: AppSpacing.all12,
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withValues(alpha: 0.6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          color: AppColors.textPrimary,
+                          size: 40,
+                        ),
+                      )
+                    : const CircularProgressIndicator(
+                        color: AppColors.textPrimary,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

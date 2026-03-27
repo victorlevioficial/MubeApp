@@ -11,6 +11,7 @@ void main() {
         (index) => FeedItem(
           uid: 'item-$index',
           nome: 'Item $index',
+          foto: 'https://example.com/item-$index.jpg',
           tipoPerfil: ProfileType.professional,
         ),
         growable: false,
@@ -63,12 +64,19 @@ void main() {
             FeedItem(
               uid: 'contractor',
               nome: 'Contratante',
+              foto: 'https://example.com/contractor.jpg',
               tipoPerfil: 'contratante',
             ),
-            FeedItem(uid: 'band', nome: 'Band', tipoPerfil: ProfileType.band),
+            FeedItem(
+              uid: 'band',
+              nome: 'Band',
+              foto: 'https://example.com/band.jpg',
+              tipoPerfil: ProfileType.band,
+            ),
             FeedItem(
               uid: 'pro',
               nome: 'Pro',
+              foto: 'https://example.com/pro.jpg',
               tipoPerfil: ProfileType.professional,
             ),
           ],
@@ -76,16 +84,19 @@ void main() {
             FeedItem(
               uid: 'pro',
               nome: 'Pro 2',
+              foto: 'https://example.com/pro-2.jpg',
               tipoPerfil: ProfileType.professional,
             ),
             FeedItem(
               uid: 'studio',
               nome: 'Studio',
+              foto: 'https://example.com/studio.jpg',
               tipoPerfil: ProfileType.studio,
             ),
             FeedItem(
               uid: 'artist',
               nome: 'Artist',
+              foto: 'https://example.com/artist.jpg',
               tipoPerfil: ProfileType.professional,
             ),
           ],
@@ -105,5 +116,42 @@ void main() {
         );
       },
     );
+
+    test('skips profiles without avatar photo', () {
+      final spotlight = SpotlightRotation.build(
+        priorityItems: const [
+          FeedItem(
+            uid: 'without-avatar-priority',
+            nome: 'Without Avatar Priority',
+            tipoPerfil: ProfileType.professional,
+          ),
+          FeedItem(
+            uid: 'with-avatar-priority',
+            nome: 'With Avatar Priority',
+            foto: 'https://example.com/priority.jpg',
+            tipoPerfil: ProfileType.professional,
+          ),
+        ],
+        candidateItems: const [
+          FeedItem(
+            uid: 'without-avatar-candidate',
+            nome: 'Without Avatar Candidate',
+            tipoPerfil: ProfileType.band,
+          ),
+          FeedItem(
+            uid: 'with-avatar-candidate',
+            nome: 'With Avatar Candidate',
+            foto: 'https://example.com/candidate.jpg',
+            tipoPerfil: ProfileType.band,
+          ),
+        ],
+        now: DateTime.utc(2026, 1, 1, 0),
+      );
+
+      expect(spotlight.map((item) => item.uid), [
+        'with-avatar-priority',
+        'with-avatar-candidate',
+      ]);
+    });
   });
 }

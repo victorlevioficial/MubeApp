@@ -19,7 +19,6 @@ import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_filters.dart';
-import '../../domain/gig_status.dart';
 import '../providers/gig_filters_controller.dart';
 import '../providers/gig_streams.dart';
 import '../utils/gig_image_precache.dart';
@@ -27,10 +26,29 @@ import '../widgets/gig_card.dart';
 import '../widgets/gig_filters_sheet.dart';
 
 class GigsScreen extends ConsumerStatefulWidget {
-  const GigsScreen({super.key});
+  const GigsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<GigsScreen> createState() => _GigsScreenState();
+}
+
+Future<void> showGigFiltersSheet(BuildContext context, WidgetRef ref) async {
+  final config = await ref.read(appConfigProvider.future);
+  if (!context.mounted) return;
+
+  final result = await AppOverlay.bottomSheet(
+    context: context,
+    builder: (_) => GigFiltersSheet(
+      initialFilters: ref.read(gigFiltersControllerProvider),
+      config: config,
+    ),
+  );
+
+  if (result is GigFilters && context.mounted) {
+    ref.read(gigFiltersControllerProvider.notifier).updateFilters(result);
+  }
 }
 
 class _GigsScreenState extends ConsumerState<GigsScreen> {
@@ -69,10 +87,13 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
             gigsAsync.asData?.value.isNotEmpty == true &&
             !_criticalAvatarsReady);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxScrolled) => [
+    final content = NestedScrollView(
+      headerSliverBuilder: (context, innerBoxScrolled) {
+        if (widget.embedded) {
+          return const [];
+        }
+
+        return [
           SliverAppBar(
             expandedHeight: isCompactWidth ? 236 : 172,
             floating: false,
@@ -88,7 +109,7 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
                 activeFilterCount: activeCount,
                 isCompactLayout: isCompactWidth,
                 showSummarySkeleton: showHeroSkeleton,
-                onFiltersTap: () => _openFilters(context, ref),
+                onFiltersTap: () => showGigFiltersSheet(context, ref),
               ),
             ),
             title: Text(
@@ -100,7 +121,7 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.s8),
                 child: IconButton(
-                  onPressed: () => _openFilters(context, ref),
+                  onPressed: () => showGigFiltersSheet(context, ref),
                   tooltip: 'Filtros',
                   icon: Stack(
                     clipBehavior: Clip.none,
@@ -140,97 +161,106 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
               ),
             ],
           ),
-        ],
-        body: gigsAsync.when(
-          loading: () => const _GigsListSkeleton(),
-          error: (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.s24),
-              child: EmptyStateWidget(
-                icon: Icons.cloud_off_rounded,
-                title: 'Não foi possível carregar as gigs',
-                subtitle:
-                    'Tente novamente em instantes. Se o erro persistir, verifique sua conexão.',
-                actionButton: AppButton.secondary(
-                  text: 'Tentar novamente',
-                  onPressed: () => ref.invalidate(gigsStreamProvider),
-                ),
+        ];
+      },
+      body: gigsAsync.when(
+        loading: () => const _GigsListSkeleton(),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: EmptyStateWidget(
+              icon: Icons.cloud_off_rounded,
+              title: 'Não foi possível carregar as gigs',
+              subtitle:
+                  'Tente novamente em instantes. Se o erro persistir, verifique sua conexão.',
+              actionButton: AppButton.secondary(
+                text: 'Tentar novamente',
+                onPressed: () => ref.invalidate(gigsStreamProvider),
               ),
             ),
           ),
-          data: (gigs) {
-            if (gigs.isEmpty) {
-              return EmptyStateWidget(
-                icon: Icons.storefront_outlined,
-                title: 'Nenhuma gig encontrada',
-                subtitle:
-                    'Ajuste seus filtros ou publique a primeira oportunidade.',
-                actionButton: profile == null || !profile.isCadastroConcluido
-                    ? null
-                    : AppButton.primary(
-                        text: 'Criar gig',
-                        onPressed: () => context.push(RoutePaths.gigCreate),
-                      ),
-              );
-            }
-
-            final creatorIdsKey = encodeGigUserIdsKey(
-              gigs.map((gig) => gig.creatorId),
-            );
-            final creatorsAsync = creatorIdsKey.isEmpty
-                ? const AsyncData(<String, AppUser>{})
-                : ref.watch(gigUsersByStableIdsProvider(creatorIdsKey));
-            final creatorsById = creatorsAsync.asData?.value;
-
-            if (creatorsById == null && creatorsAsync.isLoading) {
-              return const _GigsListSkeleton();
-            }
-
-            final resolvedCreators = creatorsById ?? const <String, AppUser>{};
-            if (shouldDeferInitialContent) {
-              _scheduleCriticalAvatarWarmup(gigs, resolvedCreators);
-            }
-
-            final shouldHoldForCriticalAvatars =
-                shouldDeferInitialContent &&
-                !_hasRenderedInitialContent &&
-                gigs.isNotEmpty &&
-                !_criticalAvatarsReady;
-
-            if (shouldHoldForCriticalAvatars) {
-              return const _GigsListSkeleton();
-            }
-
-            return RefreshIndicator(
-              color: AppColors.primary,
-              backgroundColor: AppColors.surface2,
-              onRefresh: () async {
-                ref.invalidate(gigsStreamProvider);
-                await ref.read(gigsStreamProvider.future);
-              },
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.s16,
-                  AppSpacing.s8,
-                  AppSpacing.s16,
-                  AppSpacing.s48,
-                ),
-                itemBuilder: (context, index) => GigCard(
-                  gig: gigs[index],
-                  creator: resolvedCreators[gigs[index].creatorId],
-                  onTap: () => context.push(
-                    RoutePaths.gigDetailById(gigs[index].id),
-                    extra: gigs[index],
-                  ),
-                ),
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.s12),
-                itemCount: gigs.length,
-              ),
-            );
-          },
         ),
+        data: (gigs) {
+          if (gigs.isEmpty) {
+            return EmptyStateWidget(
+              icon: Icons.storefront_outlined,
+              title: 'Nenhuma gig encontrada',
+              subtitle:
+                  'Ajuste seus filtros ou publique a primeira oportunidade.',
+              actionButton: profile == null || !profile.isCadastroConcluido
+                  ? null
+                  : AppButton.primary(
+                      text: 'Criar gig',
+                      onPressed: () => context.push(RoutePaths.gigCreate),
+                    ),
+            );
+          }
+
+          final creatorIdsKey = encodeGigUserIdsKey(
+            gigs.map((gig) => gig.creatorId),
+          );
+          final creatorsAsync = creatorIdsKey.isEmpty
+              ? const AsyncData(<String, AppUser>{})
+              : ref.watch(gigUsersByStableIdsProvider(creatorIdsKey));
+          final creatorsById = creatorsAsync.asData?.value;
+
+          if (creatorsById == null && creatorsAsync.isLoading) {
+            return const _GigsListSkeleton();
+          }
+
+          final resolvedCreators = creatorsById ?? const <String, AppUser>{};
+          if (shouldDeferInitialContent) {
+            _scheduleCriticalAvatarWarmup(gigs, resolvedCreators);
+          }
+
+          final shouldHoldForCriticalAvatars =
+              shouldDeferInitialContent &&
+              !_hasRenderedInitialContent &&
+              gigs.isNotEmpty &&
+              !_criticalAvatarsReady;
+
+          if (shouldHoldForCriticalAvatars) {
+            return const _GigsListSkeleton();
+          }
+
+          return RefreshIndicator(
+            color: AppColors.primary,
+            backgroundColor: AppColors.surface2,
+            onRefresh: () async {
+              ref.invalidate(gigsStreamProvider);
+              await ref.read(gigsStreamProvider.future);
+            },
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s16,
+                AppSpacing.s8,
+                AppSpacing.s16,
+                AppSpacing.s48,
+              ),
+              itemBuilder: (context, index) => GigCard(
+                gig: gigs[index],
+                creator: resolvedCreators[gigs[index].creatorId],
+                onTap: () => context.push(
+                  RoutePaths.gigDetailById(gigs[index].id),
+                  extra: gigs[index],
+                ),
+              ),
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: AppSpacing.s12),
+              itemCount: gigs.length,
+            ),
+          );
+        },
       ),
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: content,
       floatingActionButton: !showCreateFab
           ? null
           : FloatingActionButton.extended(
@@ -318,23 +348,6 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
 
     return urls;
   }
-
-  Future<void> _openFilters(BuildContext context, WidgetRef ref) async {
-    final config = await ref.read(appConfigProvider.future);
-    if (!context.mounted) return;
-
-    final result = await AppOverlay.bottomSheet(
-      context: context,
-      builder: (_) => GigFiltersSheet(
-        initialFilters: ref.read(gigFiltersControllerProvider),
-        config: config,
-      ),
-    );
-
-    if (result is GigFilters && context.mounted) {
-      ref.read(gigFiltersControllerProvider.notifier).updateFilters(result);
-    }
-  }
 }
 
 // ── Hero header with summary stats ────────────────────────────────────────────
@@ -345,19 +358,19 @@ class _GigsHeroHeader extends StatelessWidget {
     required this.activeFilterCount,
     required this.isCompactLayout,
     required this.showSummarySkeleton,
-    required this.onFiltersTap,
+    this.onFiltersTap,
   });
 
   final AsyncValue<List<Gig>> gigsAsync;
   final int activeFilterCount;
   final bool isCompactLayout;
   final bool showSummarySkeleton;
-  final VoidCallback onFiltersTap;
+  final VoidCallback? onFiltersTap;
 
   @override
   Widget build(BuildContext context) {
     final gigs = gigsAsync.asData?.value ?? [];
-    final openCount = gigs.where((g) => g.status == GigStatus.open).length;
+    final openCount = gigs.where((g) => g.isOpenForApplications).length;
     final totalSlots = gigs.fold<int>(0, (sum, g) => sum + g.availableSlots);
 
     return Container(

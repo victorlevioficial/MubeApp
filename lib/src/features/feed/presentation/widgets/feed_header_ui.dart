@@ -159,6 +159,87 @@ extension _FeedHeaderUi on _FeedHeaderState {
     );
   }
 
+  Widget _buildFavoritesShortcut(BuildContext context, int favoritesCount) {
+    return Material(
+      key: const Key('feed_header_favorites_shortcut'),
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: AppRadius.all16,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          context.push(RoutePaths.receivedFavorites);
+        },
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s14,
+            vertical: AppSpacing.s12,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface.withValues(alpha: 0.72),
+            borderRadius: AppRadius.all16,
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.07),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.14),
+                  borderRadius: AppRadius.all12,
+                ),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Favoritos',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      'Ver quem curtiu voce',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Text(
+                '$favoritesCount',
+                style: AppTypography.titleLarge.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.textSecondary.withValues(alpha: 0.78),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAlertsSurface(BuildContext context, List<_HeaderAlert> alerts) {
     switch (_alertDisplayMode) {
       case _AlertDisplayMode.expanded:

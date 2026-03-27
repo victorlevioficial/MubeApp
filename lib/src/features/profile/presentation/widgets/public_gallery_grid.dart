@@ -52,7 +52,7 @@ class _PublicGalleryGridState extends State<PublicGalleryGrid> {
         .where((item) {
           final url = item.type == MediaType.video
               ? item.thumbnailUrl
-              : item.url;
+              : item.previewUrl;
           return url != null && url.isNotEmpty;
         })
         .take(_warmupLimit)
@@ -61,12 +61,14 @@ class _PublicGalleryGridState extends State<PublicGalleryGrid> {
     for (final item in previewItems) {
       if (!mounted) return;
 
-      final url = item.type == MediaType.video ? item.thumbnailUrl! : item.url;
-      if (!_prefetchedUrls.add(url)) continue;
+      final effectiveUrl = item.type == MediaType.video
+          ? item.thumbnailUrl!
+          : item.previewUrl;
+      if (!_prefetchedUrls.add(effectiveUrl)) continue;
 
       await precacheImage(
         CachedNetworkImageProvider(
-          url,
+          effectiveUrl,
           cacheManager: ImageCacheConfig.thumbnailCacheManager,
           maxWidth: _prefetchMaxDimension,
           maxHeight: _prefetchMaxDimension,
@@ -113,7 +115,7 @@ class _GalleryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = item.type == MediaType.video
         ? (item.thumbnailUrl ?? '')
-        : item.url;
+        : item.previewUrl;
     final hasPreviewImage = imageUrl.isNotEmpty;
 
     return GestureDetector(

@@ -26,6 +26,7 @@ class AuthGuard {
   DateTime? _lastProfileRecoveryAt;
   Stopwatch? _profileWaitStopwatch;
   String? _profileWaitPath;
+  String? _deferredPublicPathDuringSplash;
   static const Duration _profileRecoveryCooldown = Duration(seconds: 4);
 
   AuthGuard(this._ref);
@@ -48,6 +49,7 @@ class AuthGuard {
         _log('Splash loading - waiting on splash screen');
         return null; // Pass-through
       }
+      _rememberDeferredPublicPathIfNeeded(state.uri);
       return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
     }
 
@@ -68,6 +70,14 @@ class AuthGuard {
     if (!isLoggedIn) {
       _finishProfileWaitIfNeeded(status: 'signed_out', path: currentPath);
       if (currentPath == RoutePaths.splash) {
+        final deferredPublicPath = _consumeDeferredPublicPathIfAny();
+        if (deferredPublicPath != null) {
+          _log(
+            'Unauthenticated on splash with deferred public path - '
+            'redirecting to $deferredPublicPath',
+          );
+          return deferredPublicPath;
+        }
         return RoutePaths.register;
       }
       return _handleUnauthenticated(currentPath);
@@ -204,7 +214,18 @@ class AuthGuard {
     if (currentPath == RoutePaths.splash) {
       if (user.isTipoPendente) return RoutePaths.onboarding;
       if (user.isPerfilPendente) return RoutePaths.onboardingForm;
-      return await _guardCompletedUser(RoutePaths.splash);
+      final completedRedirect = await _guardCompletedUser(RoutePaths.splash);
+      if (completedRedirect == RoutePaths.feed || completedRedirect == null) {
+        final deferredPublicPath = _consumeDeferredPublicPathIfAny();
+        if (deferredPublicPath != null) {
+          _log(
+            'Authenticated on splash with deferred public path - '
+            'redirecting to $deferredPublicPath',
+          );
+          return deferredPublicPath;
+        }
+      }
+      return completedRedirect;
     }
 
     // Check onboarding status for current navigation
@@ -471,5 +492,30 @@ class AuthGuard {
         normalized.contains('user-token-expired') ||
         normalized.contains('invalid-user-token') ||
         normalized.contains('user-disabled');
+  }
+
+  void _rememberDeferredPublicPathIfNeeded(Uri uri) {
+    final path = uri.path;
+    if (path == RoutePaths.splash || !RoutePaths.isPublic(path)) {
+      return;
+    }
+    _deferredPublicPathDuringSplash = uri.toString();
+    _log(
+      'Deferring public path until splash finishes: '
+      '$_deferredPublicPathDuringSplash',
+    );
+  }
+
+  String? _consumeDeferredPublicPathIfAny() {
+    final deferredPath = _deferredPublicPathDuringSplash;
+    if (deferredPath == null) return null;
+
+    final parsedPath = Uri.parse(deferredPath).path;
+    _deferredPublicPathDuringSplash = null;
+
+    if (!RoutePaths.isPublic(parsedPath) || parsedPath == RoutePaths.splash) {
+      return null;
+    }
+    return deferredPath;
   }
 }
