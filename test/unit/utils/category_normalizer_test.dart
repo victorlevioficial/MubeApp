@@ -33,6 +33,28 @@ void main() {
 
       expect(categories, ['crew']);
     });
+
+    test('preserves the new professional support subcategories', () {
+      final categories = CategoryNormalizer.resolveCategories(
+        rawCategories: const [
+          'audiovisual',
+          'education',
+          'luthier',
+          'performance',
+        ],
+        rawRoles: const [],
+      );
+
+      expect(
+        categories,
+        containsAll(const [
+          'audiovisual',
+          'education',
+          'luthier',
+          'performance',
+        ]),
+      );
+    });
   });
 
   group('CategoryNormalizer.isPureTechnician', () {
@@ -61,6 +83,64 @@ void main() {
       );
 
       expect(isPureTechnician, isFalse);
+    });
+  });
+
+  group('CategoryNormalizer.shouldRequireGenres', () {
+    test('hides genres for audiovisual, education and luthier', () {
+      expect(
+        CategoryNormalizer.shouldRequireGenres(
+          rawCategories: const ['audiovisual'],
+          rawRoles: const [],
+        ),
+        isFalse,
+      );
+      expect(
+        CategoryNormalizer.shouldRequireGenres(
+          rawCategories: const ['education'],
+          rawRoles: const [],
+        ),
+        isFalse,
+      );
+      expect(
+        CategoryNormalizer.shouldRequireGenres(
+          rawCategories: const ['luthier'],
+          rawRoles: const [],
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps genres required for performance', () {
+      expect(
+        CategoryNormalizer.shouldRequireGenres(
+          rawCategories: const ['performance'],
+          rawRoles: const [],
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('CategoryNormalizer.isEligibleForHomeAndMatchpoint', () {
+    test('excludes luthier-only profiles from Home and MatchPoint', () {
+      expect(
+        CategoryNormalizer.isEligibleForHomeAndMatchpoint(
+          rawCategories: const ['luthier'],
+          rawRoles: const [],
+        ),
+        isFalse,
+      );
+    });
+
+    test('keeps instrumentalist plus luthier profiles eligible', () {
+      expect(
+        CategoryNormalizer.isEligibleForHomeAndMatchpoint(
+          rawCategories: const ['instrumentalist', 'luthier'],
+          rawRoles: const [],
+        ),
+        isTrue,
+      );
     });
   });
 }

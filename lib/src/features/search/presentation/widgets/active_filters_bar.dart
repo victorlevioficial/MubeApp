@@ -320,6 +320,14 @@ class ActiveFiltersBar extends StatelessWidget {
         return 'Tecnica de Palco';
       case ProfessionalSubcategory.dj:
         return 'DJ';
+      case ProfessionalSubcategory.audiovisual:
+        return 'Audiovisual';
+      case ProfessionalSubcategory.education:
+        return 'Educacao';
+      case ProfessionalSubcategory.luthier:
+        return 'Luthier';
+      case ProfessionalSubcategory.performance:
+        return 'Performance';
     }
   }
 
@@ -335,6 +343,14 @@ class ActiveFiltersBar extends StatelessWidget {
         return Icons.build_rounded;
       case ProfessionalSubcategory.dj:
         return Icons.album_rounded;
+      case ProfessionalSubcategory.audiovisual:
+        return Icons.video_library_rounded;
+      case ProfessionalSubcategory.education:
+        return Icons.school_rounded;
+      case ProfessionalSubcategory.luthier:
+        return Icons.handyman_rounded;
+      case ProfessionalSubcategory.performance:
+        return Icons.theater_comedy_rounded;
     }
   }
 

@@ -70,81 +70,29 @@ class AppConfigRepository {
   }
 
   AppConfig _buildFallbackConfig() {
-    final productionRoles = fallback.productionRoles
-        .map(
-          (r) => ConfigItem(
-            id: _toId(r),
-            label: r,
-            order: fallback.productionRoles.indexOf(r),
-          ),
-        )
-        .toList();
-    final stageTechRoles = fallback.stageTechRoles
-        .map(
-          (r) => ConfigItem(
-            id: _toId(r),
-            label: r,
-            order: fallback.stageTechRoles.indexOf(r),
-          ),
-        )
-        .toList();
-    final crewRoleLabels = <String>[
-      ...fallback.productionRoles,
-      ...fallback.stageTechRoles,
-    ];
-
     return AppConfig(
       version: 0,
       minAndroidBuildNumber: 0,
       minIosBuildNumber: 0,
       androidStoreUrl: null,
       iosStoreUrl: null,
-      genres: fallback.genres
-          .map(
-            (g) => ConfigItem(
-              id: _toId(g),
-              label: g,
-              order: fallback.genres.indexOf(g),
-            ),
-          )
-          .toList(),
-      instruments: fallback.instruments
-          .map(
-            (i) => ConfigItem(
-              id: _toId(i),
-              label: i,
-              order: fallback.instruments.indexOf(i),
-            ),
-          )
-          .toList(),
-      productionRoles: productionRoles,
-      stageTechRoles: stageTechRoles,
-      crewRoles: crewRoleLabels
-          .map(
-            (r) => ConfigItem(
-              id: _toId(r),
-              label: r,
-              order: crewRoleLabels.indexOf(r),
-            ),
-          )
-          .toList(),
-      studioServices: fallback.studioServices
-          .map(
-            (s) => ConfigItem(
-              id: _toId(s),
-              label: s,
-              order: fallback.studioServices.indexOf(s),
-            ),
-          )
-          .toList(),
+      genres: _itemsFromLabels(fallback.genres),
+      instruments: _itemsFromLabels(fallback.instruments),
+      productionRoles: _itemsFromLabels(fallback.productionRoles),
+      stageTechRoles: _itemsFromLabels(fallback.stageTechRoles),
+      crewRoles: _itemsFromLabels([
+        ...fallback.productionRoles,
+        ...fallback.stageTechRoles,
+      ]),
+      audiovisualRoles: _itemsFromLabels(fallback.audiovisualRoles),
+      educationRoles: _itemsFromLabels(fallback.educationRoles),
+      luthierRoles: _itemsFromLabels(fallback.luthierRoles),
+      performanceRoles: _itemsFromLabels(fallback.performanceRoles),
+      studioServices: _itemsFromLabels(fallback.studioServices),
       professionalCategories: fallback.professionalCategories
           .map(
-            (c) => ConfigItem(
-              id: c['id'] as String,
-              label: c['label'] as String,
-              // icon logic omitted as fallback doesn't imply exact storage needing icons here for now,
-              // but let's keep it simple.
-            ),
+            (c) =>
+                ConfigItem(id: c['id'] as String, label: c['label'] as String),
           )
           .toList(),
     );
@@ -154,26 +102,47 @@ class AppConfigRepository {
     final fallbackConfig = _buildFallbackConfig();
 
     final productionRoles = config.productionRoles.isNotEmpty
-        ? config.productionRoles
+        ? _mergeConfigItems(
+            config.productionRoles,
+            fallbackConfig.productionRoles,
+          )
         : _pickRolesFromUnion(
             config.crewRoles,
             fallback.productionRoles,
           ).ifEmpty(fallbackConfig.productionRoles);
     final stageTechRoles = config.stageTechRoles.isNotEmpty
-        ? config.stageTechRoles
+        ? _mergeConfigItems(
+            config.stageTechRoles,
+            fallbackConfig.stageTechRoles,
+          )
         : _pickRolesFromUnion(
             config.crewRoles,
             fallback.stageTechRoles,
           ).ifEmpty(fallbackConfig.stageTechRoles);
+    final audiovisualRoles = _mergeConfigItems(
+      config.audiovisualRoles,
+      fallbackConfig.audiovisualRoles,
+    );
+    final educationRoles = _mergeConfigItems(
+      config.educationRoles,
+      fallbackConfig.educationRoles,
+    );
+    final luthierRoles = _mergeConfigItems(
+      config.luthierRoles,
+      fallbackConfig.luthierRoles,
+    );
+    final performanceRoles = _mergeConfigItems(
+      config.performanceRoles,
+      fallbackConfig.performanceRoles,
+    );
 
     final crewRoles = config.crewRoles.isNotEmpty
         ? config.crewRoles
         : [...productionRoles, ...stageTechRoles];
-
-    final categoryIds = config.professionalCategories.map((c) => c.id).toSet();
-    final hasSplitCategories =
-        categoryIds.contains('production') &&
-        categoryIds.contains('stage_tech');
+    final professionalCategories = _mergeConfigItems(
+      config.professionalCategories,
+      fallbackConfig.professionalCategories,
+    );
 
     return config.copyWith(
       minAndroidBuildNumber: _normalizeMinimumBuildNumber(
@@ -185,10 +154,32 @@ class AppConfigRepository {
       productionRoles: productionRoles,
       stageTechRoles: stageTechRoles,
       crewRoles: crewRoles,
-      professionalCategories: hasSplitCategories
-          ? config.professionalCategories
-          : fallbackConfig.professionalCategories,
+      audiovisualRoles: audiovisualRoles,
+      educationRoles: educationRoles,
+      luthierRoles: luthierRoles,
+      performanceRoles: performanceRoles,
+      professionalCategories: professionalCategories,
     );
+  }
+
+  List<ConfigItem> _itemsFromLabels(List<String> labels) {
+    return labels.asMap().entries.map((entry) {
+      final label = entry.value;
+      return ConfigItem(id: _toId(label), label: label, order: entry.key);
+    }).toList();
+  }
+
+  List<ConfigItem> _mergeConfigItems(
+    List<ConfigItem> configured,
+    List<ConfigItem> fallbackItems,
+  ) {
+    if (configured.isEmpty) return fallbackItems;
+
+    final knownIds = configured.map((item) => item.id).toSet();
+    return [
+      ...configured,
+      ...fallbackItems.where((item) => !knownIds.contains(item.id)),
+    ];
   }
 
   List<ConfigItem> _pickRolesFromUnion(

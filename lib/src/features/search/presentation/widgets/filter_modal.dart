@@ -49,7 +49,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   }
 
   int get _activeFilterCount {
-    int count = 0;
+    var count = 0;
     if (_professionalSubcategory != null) count++;
     if (_selectedGenres.isNotEmpty) count++;
     if (_selectedInstruments.isNotEmpty) count++;
@@ -71,46 +71,78 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   }
 
   List<String> _roleItems() {
-    switch (_professionalSubcategory) {
-      case ProfessionalSubcategory.production:
+    switch (_professionalSubcategory?.firestoreId) {
+      case 'production':
         return ref.read(productionRoleLabelsProvider);
-      case ProfessionalSubcategory.stageTech:
+      case 'stage_tech':
         return ref.read(stageTechRoleLabelsProvider);
-      case ProfessionalSubcategory.singer:
-      case ProfessionalSubcategory.instrumentalist:
-      case ProfessionalSubcategory.dj:
+      case 'audiovisual':
+        return ref.read(audiovisualRoleLabelsProvider);
+      case 'education':
+        return ref.read(educationRoleLabelsProvider);
+      case 'luthier':
+        return ref.read(luthierRoleLabelsProvider);
+      case 'performance':
+        return ref.read(performanceRoleLabelsProvider);
+      case 'singer':
+      case 'instrumentalist':
+      case 'dj':
       case null:
+      default:
         return const [];
     }
   }
 
-  String get _roleSectionTitle {
-    switch (_professionalSubcategory) {
-      case ProfessionalSubcategory.production:
-        return 'Funções de produção';
-      case ProfessionalSubcategory.stageTech:
-        return 'Funções de palco';
-      case ProfessionalSubcategory.singer:
-      case ProfessionalSubcategory.instrumentalist:
-      case ProfessionalSubcategory.dj:
+  ({String title, String subtitle, IconData icon})? get _roleSectionInfo {
+    switch (_professionalSubcategory?.firestoreId) {
+      case 'production':
+        return (
+          title: 'Funções de produção',
+          subtitle: 'Selecione apenas funções de produção musical.',
+          icon: FontAwesomeIcons.sliders,
+        );
+      case 'stage_tech':
+        return (
+          title: 'Funções de palco',
+          subtitle: 'Selecione apenas funções de técnica de palco.',
+          icon: FontAwesomeIcons.toolbox,
+        );
+      case 'audiovisual':
+        return (
+          title: 'Funções de audiovisual',
+          subtitle: 'Selecione apenas funções de audiovisual.',
+          icon: FontAwesomeIcons.camera,
+        );
+      case 'education':
+        return (
+          title: 'Funções de educação musical',
+          subtitle: 'Selecione apenas funções de educação musical.',
+          icon: FontAwesomeIcons.graduationCap,
+        );
+      case 'luthier':
+        return (
+          title: 'Funções de luthieria',
+          subtitle: 'Selecione apenas funções de luthieria.',
+          icon: FontAwesomeIcons.screwdriverWrench,
+        );
+      case 'performance':
+        return (
+          title: 'Funções de performance',
+          subtitle: 'Selecione apenas funções de performance.',
+          icon: FontAwesomeIcons.personRunning,
+        );
+      case 'singer':
+      case 'instrumentalist':
+      case 'dj':
       case null:
-        return '';
+      default:
+        return null;
     }
   }
 
-  String get _roleSectionSubtitle {
-    switch (_professionalSubcategory) {
-      case ProfessionalSubcategory.production:
-        return 'Selecione apenas funções de produção musical.';
-      case ProfessionalSubcategory.stageTech:
-        return 'Selecione apenas funções de técnica de palco.';
-      case ProfessionalSubcategory.singer:
-      case ProfessionalSubcategory.instrumentalist:
-      case ProfessionalSubcategory.dj:
-      case null:
-        return '';
-    }
-  }
+  String get _roleSectionTitle => _roleSectionInfo?.title ?? '';
+
+  String get _roleSectionSubtitle => _roleSectionInfo?.subtitle ?? '';
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +151,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     final isProfessional = category == SearchCategory.professionals || isAll;
     final isStudio = category == SearchCategory.studios || isAll;
     final isVenue = category == SearchCategory.venues;
+    final roleSectionInfo = _roleSectionInfo;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
 
@@ -219,18 +252,10 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                             : null,
                       ),
                     ],
-                    if (isProfessional &&
-                        (_professionalSubcategory ==
-                                ProfessionalSubcategory.production ||
-                            _professionalSubcategory ==
-                                ProfessionalSubcategory.stageTech)) ...[
+                    if (isProfessional && roleSectionInfo != null) ...[
                       const SizedBox(height: AppSpacing.s12),
                       _SelectionLauncherCard(
-                        icon:
-                            _professionalSubcategory ==
-                                ProfessionalSubcategory.production
-                            ? FontAwesomeIcons.sliders
-                            : FontAwesomeIcons.toolbox,
+                        icon: roleSectionInfo.icon,
                         title: _roleSectionTitle,
                         description: _roleSectionSubtitle,
                         selectedItems: _selectedRoles,
@@ -248,8 +273,8 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                             ? () => setState(() => _selectedRoles.clear())
                             : null,
                       ),
-                      if (_professionalSubcategory ==
-                          ProfessionalSubcategory.production) ...[
+                      if (_professionalSubcategory?.firestoreId ==
+                          'production') ...[
                         const SizedBox(height: AppSpacing.s12),
                         _FilterSection(
                           title: 'Gravação remota',
@@ -339,45 +364,32 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   }
 
   Widget _buildSubcategoryChips() {
-    final items = <(ProfessionalSubcategory, String, IconData)>[
-      (
-        ProfessionalSubcategory.singer,
-        'Cantor(a)',
-        FontAwesomeIcons.microphone,
-      ),
-      (
-        ProfessionalSubcategory.instrumentalist,
-        'Instrumentista',
-        FontAwesomeIcons.guitar,
-      ),
-      (
-        ProfessionalSubcategory.production,
-        'Producao Musical',
-        FontAwesomeIcons.sliders,
-      ),
-      (
-        ProfessionalSubcategory.stageTech,
-        'Tecnica de Palco',
-        FontAwesomeIcons.toolbox,
-      ),
-      (ProfessionalSubcategory.dj, 'DJ', FontAwesomeIcons.compactDisc),
-    ];
+    final items =
+        <
+          ({ProfessionalSubcategory subcategory, String label, IconData icon})
+        >[];
+
+    for (final subcategory in ProfessionalSubcategory.values) {
+      final info = _subcategoryInfo(subcategory);
+      if (info == null) continue;
+      items.add((subcategory: subcategory, label: info.label, icon: info.icon));
+    }
 
     return Wrap(
       spacing: AppSpacing.s8,
       runSpacing: AppSpacing.s8,
       children: items.map((item) {
-        final isSelected = _professionalSubcategory == item.$1;
+        final isSelected = _professionalSubcategory == item.subcategory;
         return AppFilterChip(
-          label: item.$2,
-          icon: item.$3,
+          label: item.label,
+          icon: item.icon,
           isSelected: isSelected,
           onSelected: (_) {
             setState(() {
-              final next = isSelected ? null : item.$1;
+              final next = isSelected ? null : item.subcategory;
               if (_professionalSubcategory != next) {
                 _selectedRoles.clear();
-                if (next != ProfessionalSubcategory.production) {
+                if (next?.firestoreId != 'production') {
                   _offersRemoteRecording = null;
                 }
               }
@@ -387,6 +399,36 @@ class _FilterModalState extends ConsumerState<FilterModal> {
         );
       }).toList(),
     );
+  }
+
+  ({String label, IconData icon})? _subcategoryInfo(
+    ProfessionalSubcategory subcategory,
+  ) {
+    switch (subcategory.firestoreId) {
+      case 'singer':
+        return (label: 'Cantor(a)', icon: FontAwesomeIcons.microphone);
+      case 'instrumentalist':
+        return (label: 'Instrumentista', icon: FontAwesomeIcons.guitar);
+      case 'production':
+        return (label: 'Producao Musical', icon: FontAwesomeIcons.sliders);
+      case 'stage_tech':
+        return (label: 'Tecnica de Palco', icon: FontAwesomeIcons.toolbox);
+      case 'dj':
+        return (label: 'DJ', icon: FontAwesomeIcons.compactDisc);
+      case 'audiovisual':
+        return (label: 'Audiovisual', icon: FontAwesomeIcons.camera);
+      case 'education':
+        return (
+          label: 'Educacao Musical',
+          icon: FontAwesomeIcons.graduationCap,
+        );
+      case 'luthier':
+        return (label: 'Luthieria', icon: FontAwesomeIcons.screwdriverWrench);
+      case 'performance':
+        return (label: 'Performance', icon: FontAwesomeIcons.personRunning);
+      default:
+        return null;
+    }
   }
 
   Widget _buildStudioTypeChips() {

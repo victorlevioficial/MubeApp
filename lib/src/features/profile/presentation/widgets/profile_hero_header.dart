@@ -6,8 +6,10 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/category_normalizer.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_type.dart';
+import '../../../matchpoint/domain/matchpoint_availability.dart';
 
 /// Hero header for the public profile screen.
 ///
@@ -70,11 +72,72 @@ class ProfileHeroHeader extends StatelessWidget {
     }
   }
 
+  static IconData profileTypeIconForUser(AppUser user) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return _isArtisticallyEligibleProfessional(user)
+            ? Icons.music_note_rounded
+            : Icons.badge_rounded;
+      case AppUserType.band:
+        return Icons.people_rounded;
+      case AppUserType.studio:
+        return Icons.headphones_rounded;
+      case AppUserType.contractor:
+        return Icons.business_center_rounded;
+      default:
+        return Icons.person_rounded;
+    }
+  }
+
+  static String profileTypeLabelForUser(AppUser user) {
+    switch (user.tipoPerfil) {
+      case AppUserType.professional:
+        return _isArtisticallyEligibleProfessional(user)
+            ? 'Músico'
+            : 'Profissional';
+      case AppUserType.band:
+        return 'Banda';
+      case AppUserType.studio:
+        return 'Estúdio';
+      case AppUserType.contractor:
+        return 'Contratante';
+      default:
+        return 'Perfil';
+    }
+  }
+
+  static bool _isArtisticallyEligibleProfessional(AppUser user) {
+    final professional = user.dadosProfissional;
+    final rawCategories = <String>[];
+    final rawRoles = <String>[];
+
+    final categories = professional?['categorias'] as List?;
+    if (categories != null) {
+      rawCategories.addAll(categories.whereType<String>());
+    }
+
+    final legacyCategory = professional?['categoria'];
+    if (legacyCategory is String && legacyCategory.isNotEmpty) {
+      rawCategories.add(legacyCategory);
+    }
+
+    final roles = professional?['funcoes'] as List?;
+    if (roles != null) {
+      rawRoles.addAll(roles.whereType<String>());
+    }
+
+    return isArtisticallyEligibleProfessionalCategories(
+      rawCategories: rawCategories,
+      rawRoles: rawRoles,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayName = user.appDisplayName;
     final typeColor = profileTypeColor(user.tipoPerfil);
-    final hasAvatar = user.foto != null && user.foto!.isNotEmpty;
+    final hasAvatar =
+        user.avatarPreviewUrl != null && user.avatarPreviewUrl!.isNotEmpty;
     final metadata = _buildMetadata(typeColor);
 
     return Container(
@@ -386,8 +449,8 @@ class _IdentityContent extends StatelessWidget {
             if (user.publicHandle != null)
               _PublicHandleChip(label: user.publicHandle!),
             _ProfileTypeBadge(
-              icon: ProfileHeroHeader.profileTypeIcon(user.tipoPerfil),
-              label: ProfileHeroHeader.profileTypeLabel(user.tipoPerfil),
+              icon: ProfileHeroHeader.profileTypeIconForUser(user),
+              label: ProfileHeroHeader.profileTypeLabelForUser(user),
               color: typeColor,
             ),
           ],
@@ -444,7 +507,7 @@ class _AvatarBubble extends StatelessWidget {
               tag: avatarHeroTag,
               child: UserAvatar(
                 size: size,
-                photoUrl: user.foto,
+                photoUrl: user.avatarFullUrl,
                 name: displayName,
                 showBorder: false,
               ),
@@ -601,24 +664,17 @@ class _SubCategoriesRow extends StatelessWidget {
         continue;
       }
 
-      final config = professionalCategories.firstWhere(
-        (c) => c['id'] == id,
-        orElse: () => <String, dynamic>{},
-      );
-      if (config.isEmpty) continue;
+      final config = _subCategoryConfig(id);
+      if (config == null) continue;
 
       widgets.add(
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              config['icon'] as IconData,
-              size: 12,
-              color: AppColors.textSecondary,
-            ),
+            Icon(config.icon, size: 12, color: AppColors.textSecondary),
             const SizedBox(width: AppSpacing.s4),
             Text(
-              config['label'] as String,
+              config.label,
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -636,6 +692,54 @@ class _SubCategoriesRow extends StatelessWidget {
       alignment: alignment,
       children: widgets,
     );
+  }
+}
+
+class _SubCategoryConfig {
+  final String label;
+  final IconData icon;
+
+  const _SubCategoryConfig({required this.label, required this.icon});
+}
+
+_SubCategoryConfig? _subCategoryConfig(String rawId) {
+  final normalized = CategoryNormalizer.normalizeCategoryId(rawId);
+
+  for (final config in professionalCategories) {
+    if (config['id'] == normalized) {
+      return _SubCategoryConfig(
+        label: config['label'] as String,
+        icon: config['icon'] as IconData,
+      );
+    }
+  }
+
+  switch (normalized) {
+    case 'audiovisual':
+    case 'audio_visual':
+      return const _SubCategoryConfig(
+        label: 'Audiovisual',
+        icon: Icons.videocam_rounded,
+      );
+    case 'education':
+    case 'educacao':
+      return const _SubCategoryConfig(
+        label: 'Educação',
+        icon: Icons.school_rounded,
+      );
+    case 'luthier':
+    case 'luthieria':
+      return const _SubCategoryConfig(
+        label: 'Luthier',
+        icon: Icons.handyman_rounded,
+      );
+    case 'performance':
+      return const _SubCategoryConfig(
+        label: 'Performance',
+        icon: Icons.mic_rounded,
+      );
+    default:
+      return null;
   }
 }
 

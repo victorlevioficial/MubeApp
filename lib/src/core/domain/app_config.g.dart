@@ -57,6 +57,26 @@ _AppConfig _$AppConfigFromJson(Map<String, dynamic> json) => _AppConfig(
           ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  audiovisualRoles:
+      (json['audiovisualRoles'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  educationRoles:
+      (json['educationRoles'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  luthierRoles:
+      (json['luthierRoles'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  performanceRoles:
+      (json['performanceRoles'] as List<dynamic>?)
+          ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
   studioServices:
       (json['studioServices'] as List<dynamic>?)
           ?.map((e) => ConfigItem.fromJson(e as Map<String, dynamic>))
@@ -81,6 +101,10 @@ Map<String, dynamic> _$AppConfigToJson(_AppConfig instance) =>
       'productionRoles': instance.productionRoles,
       'stageTechRoles': instance.stageTechRoles,
       'crewRoles': instance.crewRoles,
+      'audiovisualRoles': instance.audiovisualRoles,
+      'educationRoles': instance.educationRoles,
+      'luthierRoles': instance.luthierRoles,
+      'performanceRoles': instance.performanceRoles,
       'studioServices': instance.studioServices,
       'professionalCategories': instance.professionalCategories,
     };

@@ -2,6 +2,7 @@ import '../../../../core/errors/error_message_resolver.dart';
 import '../../../../core/mixins/pagination_mixin.dart';
 import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/domain/app_user.dart';
+import '../../../matchpoint/domain/matchpoint_availability.dart';
 import '../../data/feed_repository.dart';
 import '../../domain/feed_discovery.dart';
 import '../../domain/feed_item.dart';
@@ -232,7 +233,7 @@ class FeedMainController {
 
     String? failureMessage;
     poolResult.fold((error) => failureMessage = error.message, (pool) {
-      runtime.allSortedUsers = pool.items;
+      runtime.allSortedUsers = _filterMainDiscoveryItems(pool.items);
       runtime.hasLoadedPool = true;
       runtime.isPoolExhaustive = pool.isExhaustive;
       runtime.loadedPoolTarget = targetResults;
@@ -262,9 +263,27 @@ class FeedMainController {
       _ => FeedDiscoveryFilter.all,
     };
 
-    return items
+    final filteredItems = items
         .where((item) => FeedDiscovery.matchesFilter(item, filter))
         .toList(growable: false);
+
+    if (filter == FeedDiscoveryFilter.bands ||
+        filter == FeedDiscoveryFilter.studios) {
+      return filteredItems;
+    }
+
+    return filteredItems
+        .where(_isEligibleForMainDiscovery)
+        .toList(growable: false);
+  }
+
+  List<FeedItem> _filterMainDiscoveryItems(List<FeedItem> items) {
+    return items.where(_isEligibleForMainDiscovery).toList(growable: false);
+  }
+
+  bool _isEligibleForMainDiscovery(FeedItem item) {
+    if (item.tipoPerfil != 'profissional') return true;
+    return !isSupportOnlyCategoryIds(item.subCategories);
   }
 
   Map<String, Object> _diagnosticCounts(

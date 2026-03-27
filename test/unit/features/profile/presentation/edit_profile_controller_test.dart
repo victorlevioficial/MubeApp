@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/constants/app_constants.dart' as app_constants;
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -163,5 +164,97 @@ void main() {
         expect(profileState.hasError, true);
       },
     );
+  });
+
+  group('EditProfileController.saveProfile - professional genre rules', () {
+    late FakeAuthRepository fakeAuthRepository;
+    late FakeAnalyticsService fakeAnalyticsService;
+    late ProviderContainer container;
+
+    const professionalUser = AppUser(
+      uid: 'professional-genre-1',
+      email: 'professional@example.com',
+      cadastroStatus: 'concluido',
+      tipoPerfil: AppUserType.professional,
+      nome: 'Professional Genre User',
+      matchpointProfile: {},
+      privacySettings: {},
+      blockedUsers: [],
+      dadosProfissional: {},
+    );
+
+    setUp(() {
+      fakeAuthRepository = FakeAuthRepository();
+      fakeAuthRepository.appUser = professionalUser;
+      fakeAnalyticsService = FakeAnalyticsService();
+
+      container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          analyticsServiceProvider.overrideWithValue(fakeAnalyticsService),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(professionalUser),
+          ),
+        ],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+      fakeAuthRepository.dispose();
+    });
+
+    Future<void> saveProfile() {
+      return container
+          .read(editProfileControllerProvider(professionalUser.uid).notifier)
+          .saveProfile(
+            user: professionalUser,
+            nome: 'Professional Genre User',
+            bio: 'Bio nova',
+            username: 'mube.oficial',
+            nomeArtistico: 'Profissional',
+            celular: '11999999999',
+            dataNascimento: '1990-01-01',
+            genero: 'Outro',
+            instagram: '@profissional',
+            musicLinks: const <String, String>{},
+          );
+    }
+
+    test('drops genres for luthier-only profiles', () async {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['luthier']);
+      controller.updateRoles(['Ajuste e Regulagem']);
+      controller.updateGenres(const ['rock']);
+
+      await saveProfile();
+
+      final updatedUser = fakeAuthRepository.lastUpdatedUser;
+      expect(updatedUser, isNotNull);
+      expect(updatedUser!.dadosProfissional?['categorias'], ['luthier']);
+      expect(updatedUser.dadosProfissional?['generosMusicais'], isEmpty);
+      expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
+
+    test('keeps genres for performance profiles', () async {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['performance']);
+      controller.updateRoles([app_constants.performanceRoles.first]);
+      controller.updateGenres(const ['rock']);
+
+      await saveProfile();
+
+      final updatedUser = fakeAuthRepository.lastUpdatedUser;
+      expect(updatedUser, isNotNull);
+      expect(updatedUser!.dadosProfissional?['categorias'], ['performance']);
+      expect(updatedUser.dadosProfissional?['generosMusicais'], ['rock']);
+      expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
   });
 }

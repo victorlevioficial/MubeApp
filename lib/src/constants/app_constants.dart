@@ -1,6 +1,6 @@
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-// Categorias Profissionais
+// Categorias profissionais
 const List<Map<String, dynamic>> professionalCategories = [
   {'id': 'singer', 'label': 'Cantor(a)', 'icon': FontAwesomeIcons.microphone},
   {
@@ -11,22 +11,84 @@ const List<Map<String, dynamic>> professionalCategories = [
   {'id': 'dj', 'label': 'DJ', 'icon': FontAwesomeIcons.compactDisc},
   {
     'id': 'production',
-    'label': 'Produção Musical',
+    'label': 'Produ\u00E7\u00E3o Musical',
     'icon': FontAwesomeIcons.sliders,
   },
   {
     'id': 'stage_tech',
-    'label': 'Técnica de Palco',
+    'label': 'T\u00E9cnica de Palco',
     'icon': FontAwesomeIcons.wrench,
+  },
+  {'id': 'audiovisual', 'label': 'Audiovisual', 'icon': FontAwesomeIcons.video},
+  {
+    'id': 'education',
+    'label': 'Educa\u00E7\u00E3o',
+    'icon': FontAwesomeIcons.graduationCap,
+  },
+  {
+    'id': 'luthier',
+    'label': 'Luthier',
+    'icon': FontAwesomeIcons.screwdriverWrench,
+  },
+  {
+    'id': 'performance',
+    'label': 'Performance',
+    'icon': FontAwesomeIcons.masksTheater,
   },
 ];
 
-// Gêneros Musicais
+// Funcoes de audiovisual
+const List<String> audiovisualRoles = [
+  'Videomaker',
+  'Fot\u00F3grafo Musical',
+  'Editor de V\u00EDdeo',
+  'Motion Designer',
+  'Social Media Manager',
+  'Diretor de Arte',
+  'Colorista',
+  'Operador de C\u00E2mera',
+  'Live Streamer',
+];
+
+// Funcoes de educacao
+const List<String> educationRoles = [
+  'Professor(a)',
+  'Instrutor(a)',
+  'Mentor(a)',
+  'Coach',
+  'Oficineiro(a)',
+  'Palestrante',
+  'Educador(a) Musical',
+];
+
+// Funcoes de luthieria
+const List<String> luthierRoles = [
+  'Luthier',
+  'Setup de Instrumentos',
+  'Manuten\u00E7\u00E3o de Instrumentos',
+  'Reparo de Instrumentos',
+  'Ajuste de Instrumentos',
+  'Regulagem',
+  'Restaura\u00E7\u00E3o de Instrumentos',
+];
+
+// Funcoes de performance
+const List<String> performanceRoles = [
+  'Performer',
+  'Dan\u00E7arino(a)',
+  'Ator/atriz',
+  'Apresentador(a)',
+  'MC',
+  'Artista de Palco',
+  'Int\u00E9rprete',
+];
+
+// Generos musicais
 const List<String> genres = [
   'Pagode',
   'Sertanejo',
   'Funk',
-  'Forró',
+  'Forr\u00F3',
   'Trap',
   'Rap',
   'Hip Hop',
@@ -35,13 +97,13 @@ const List<String> genres = [
   'Samba',
   'MPB',
   'Gospel',
-  'Eletrônica',
+  'Eletr\u00F4nica',
   'Reggae',
-  'Axé',
+  'Ax\u00E9',
   'Jazz',
   'Blues',
   'Metal',
-  'Clássica',
+  'Cl\u00E1ssica',
   'Brega',
   'Indie',
   'R&B',
@@ -50,15 +112,15 @@ const List<String> genres = [
   'Latino',
   'Infantil',
   'Experimental',
-  'Sertanejo Universitário',
+  'Sertanejo Universit\u00E1rio',
   'Samba-enredo',
   'Xote',
-  'Baião',
+  'Bai\u00E3o',
   'Xaxado',
   'Piseiro',
   'Lo-Fi',
   'Pop Rock',
-  'Rock Clássico',
+  'Rock Cl\u00E1ssico',
   'Indie Rock',
   'Hard Rock',
   'Punk Rock',
@@ -89,13 +151,13 @@ const List<String> genres = [
 
 // Instrumentos
 const List<String> instruments = [
-  'Violão',
+  'Viol\u00E3o',
   'Guitarra',
   'Baixo',
   'Bass Synth',
   'Cavaquinho',
   'Viola caipira',
-  'Violão 7 cordas',
+  'Viol\u00E3o 7 cordas',
   'Bandolim',
   'Banjo',
   'Ukulele',
@@ -105,82 +167,82 @@ const List<String> instruments = [
   'Contrabaixo de arco',
   'Piano',
   'Teclado',
-  'Órgão',
+  '\u00D3rg\u00E3o',
   'Clavinete',
   'Sintetizador',
   'Acordeon',
   'Bateria',
-  'Cajón',
+  'Caj\u00F3n',
   'Congas',
-  'Bongô',
+  'Bong\u00F4',
   'Timbales',
   'Pandeiro',
   'Tantan',
   'Tamborim',
   'Surdo',
   'Repique',
-  'Repique de mão',
+  'Repique de m\u00E3o',
   'Timbal (baiano)',
-  'Cuíca',
+  'Cu\u00EDca',
   'Caixa',
-  'Agogô',
+  'Agog\u00F4',
   'Reco-reco',
-  'Ganzá',
+  'Ganz\u00E1',
   'Chocalho / Shaker',
-  'Triângulo',
+  'Tri\u00E2ngulo',
   'Atabaque',
   'Berimbau',
   'Zabumba',
   'Alfaia',
-  'Percussão geral',
+  'Percuss\u00E3o geral',
   'Flauta transversal',
   'Flauta doce',
   'Clarinete',
   'Saxofone soprano',
   'Saxofone alto',
   'Saxofone tenor',
-  'Saxofone barítono',
-  'Gaita (harmônica)',
+  'Saxofone bar\u00EDtono',
+  'Gaita (harm\u00F4nica)',
   'Trompete',
   'Trombone',
   'Trompa',
   'Tuba',
-  'Eufônio / Bombardino',
-  'Oboé',
+  'Euf\u00F4nio / Bombardino',
+  'Obo\u00E9',
   'EWI',
   'Flugelhorn',
 ];
 
-// Funções de Produção Musical
+// Funcoes de producao musical
 const List<String> productionRoles = [
   'Produtor Musical',
-  'Técnico de Gravação',
-  'Edição de Áudio',
-  'Afinação de Voz',
+  'T\u00E9cnico de Grava\u00E7\u00E3o',
+  'Edi\u00E7\u00E3o de \u00C1udio',
+  'Afina\u00E7\u00E3o de Voz',
   'Time Alignment (Bateria/Instrumentos)',
   'Mixagem',
-  'Masterização',
+  'Masteriza\u00E7\u00E3o',
   'Sound Design',
-  'Programação de Bateria (MIDI)',
-  'Programação de Instrumentos (MIDI)',
+  'Programa\u00E7\u00E3o de Bateria (MIDI)',
+  'Programa\u00E7\u00E3o de Instrumentos (MIDI)',
   'Beatmaker',
   'Arranjador',
   'Compositor',
   'Diretor Vocal',
 ];
 
-// Funções de Técnica de Palco
+// Funcoes de tecnica de palco
 const List<String> stageTechRoles = [
-  'Produtor Técnico',
-  'Produtor Artístico',
+  'Produtor T\u00E9cnico',
+  'Produtor Art\u00EDstico',
   'Produtor Executivo',
-  'Técnico de PA',
-  'Técnico de Monitor',
-  'Técnico de RF',
-  'Técnico de Luz',
-  'VJ (Telão)',
-  'Técnico de LED (Painel)',
-  'Técnico de Teleprompter',
+  'T\u00E9cnico de PA',
+  'T\u00E9cnico de Monitor',
+  'T\u00E9cnico de RF',
+  'T\u00E9cnico de Luz',
+  'VJ (Tel\u00E3o)',
+  'T\u00E9cnico de LED (Painel)',
+  'T\u00E9cnico de Teleprompter',
   'Roadie',
   'Stage Manager',
   'Drum Tech',
@@ -194,42 +256,42 @@ const List<String> stageTechRoles = [
 )
 const List<String> crewRoles = [...productionRoles, ...stageTechRoles];
 
-// Serviços de Estúdio
+// Servicos de estudio
 const List<String> studioServices = [
   'Mixagem',
-  'Masterização',
-  'Edição de áudio',
-  'Afinação de voz',
-  'Alinhamento/edição de voz',
-  'Edição de bateria',
-  'Programação de bateria (MIDI)',
-  'Criação de beat',
-  'Produção musical',
+  'Masteriza\u00E7\u00E3o',
+  'Edi\u00E7\u00E3o de \u00E1udio',
+  'Afina\u00E7\u00E3o de voz',
+  'Alinhamento/edi\u00E7\u00E3o de voz',
+  'Edi\u00E7\u00E3o de bateria',
+  'Programa\u00E7\u00E3o de bateria (MIDI)',
+  'Cria\u00E7\u00E3o de beat',
+  'Produ\u00E7\u00E3o musical',
   'Arranjo',
   'Sound design',
-  'Restauração de áudio',
+  'Restaura\u00E7\u00E3o de \u00E1udio',
   'Mixagem de podcast',
-  'Edição de podcast',
+  'Edi\u00E7\u00E3o de podcast',
   'Trilha/jingle',
-  'Gravação de voz',
-  'Gravação de violão',
-  'Gravação de guitarra',
-  'Gravação de baixo',
-  'Gravação de teclados',
-  'Gravação de bateria',
-  'Gravação de banda ao vivo',
-  'Direção vocal',
-  'Locução (gravação)',
-  'Dublagem (gravação)',
-  'Ensaios pré-produção (com gravação guia)',
+  'Grava\u00E7\u00E3o de voz',
+  'Grava\u00E7\u00E3o de viol\u00E3o',
+  'Grava\u00E7\u00E3o de guitarra',
+  'Grava\u00E7\u00E3o de baixo',
+  'Grava\u00E7\u00E3o de teclados',
+  'Grava\u00E7\u00E3o de bateria',
+  'Grava\u00E7\u00E3o de banda ao vivo',
+  'Dire\u00E7\u00E3o vocal',
+  'Locu\u00E7\u00E3o (grava\u00E7\u00E3o)',
+  'Dublagem (grava\u00E7\u00E3o)',
+  'Ensaios pr\u00E9-produ\u00E7\u00E3o (com grava\u00E7\u00E3o guia)',
 ];
 
-// Gênero (perfil profissional/contratante)
+// Genero (perfil profissional/contratante)
 const String genderMale = 'Masculino';
 const String genderFemale = 'Feminino';
 const String genderOther = 'Outro';
-const String genderPreferNotToInform = 'Prefiro não informar';
-const String _legacyGenderPreferNotToSay = 'Prefiro não dizer';
+const String genderPreferNotToInform = 'Prefiro n\u00E3o informar';
+const String _legacyGenderPreferNotToSay = 'Prefiro n\u00E3o dizer';
 
 const List<String> genderOptions = [
   genderMale,

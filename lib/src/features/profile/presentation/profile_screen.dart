@@ -12,6 +12,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
+import '../../../utils/category_normalizer.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -55,12 +56,26 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     // Pre-cache avatar for faster loading on edit screen
-    if (user.foto != null && user.foto!.isNotEmpty) {
-      precacheImage(CachedNetworkImageProvider(user.foto!), context);
+    if (user.avatarPreviewUrl != null && user.avatarPreviewUrl!.isNotEmpty) {
+      precacheImage(
+        CachedNetworkImageProvider(user.avatarPreviewUrl!),
+        context,
+      );
     }
 
     // Helper to format categories
     String formatCategory(String cat) {
+      final normalizedCategory = CategoryNormalizer.normalizeCategoryId(cat);
+      if (normalizedCategory == 'audiovisual' ||
+          normalizedCategory == 'audio_visual' ||
+          normalizedCategory == 'education' ||
+          normalizedCategory == 'educacao' ||
+          normalizedCategory == 'luthier' ||
+          normalizedCategory == 'luthieria' ||
+          normalizedCategory == 'performance') {
+        return _formatProfessionalCategoryLabel(cat);
+      }
+
       switch (cat) {
         case 'singer':
           return 'Cantor(a)';
@@ -100,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: AppSpacing.s32),
                   UserAvatar(
                     size: 100,
-                    photoUrl: user.foto,
+                    photoUrl: user.avatarFullUrl,
                     name: _getDisplayName(user),
                   ),
                   const SizedBox(height: AppSpacing.s12),
@@ -177,6 +192,51 @@ class ProfileScreen extends ConsumerWidget {
 
   String _getDisplayName(AppUser user) {
     return user.appDisplayName;
+  }
+
+  String _formatProfessionalCategoryLabel(String cat) {
+    switch (CategoryNormalizer.normalizeCategoryId(cat)) {
+      case 'singer':
+        return 'Cantor(a)';
+      case 'instrumentalist':
+        return 'Instrumentista';
+      case 'band':
+        return 'Banda';
+      case 'dj':
+        return 'DJ';
+      case 'production':
+        return 'Produção Musical';
+      case 'stage_tech':
+        return 'Técnica de Palco';
+      case 'crew':
+        return 'Equipe Técnica';
+      case 'audiovisual':
+      case 'audio_visual':
+        return 'Audiovisual';
+      case 'education':
+      case 'educacao':
+        return 'Educação';
+      case 'luthier':
+      case 'luthieria':
+        return 'Luthier';
+      case 'performance':
+        return 'Performance';
+      case 'other':
+        return 'Outro';
+      default:
+        return _titleCaseFallback(cat);
+    }
+  }
+
+  String _titleCaseFallback(String value) {
+    final normalized = value.trim().replaceAll('_', ' ');
+    if (normalized.isEmpty) return value;
+
+    return normalized
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0].toUpperCase() + part.substring(1).toLowerCase())
+        .join(' ');
   }
 
   bool _shouldShowBandActivationBanner(AppUser user) {

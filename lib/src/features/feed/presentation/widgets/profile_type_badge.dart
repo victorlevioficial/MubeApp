@@ -4,11 +4,13 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/category_normalizer.dart';
+import '../../../matchpoint/domain/matchpoint_availability.dart';
 
 /// Determines the profile classification based on selected categories.
 enum ProfileClassification {
   musician, // Cantor/Instrumentista without technical crew
   technician, // Pure stage technician
+  professional,
   band,
   studio,
   venue,
@@ -64,11 +66,13 @@ class ProfileTypeBadge extends StatelessWidget {
               rawRoles: const [],
             )
             ? ProfileClassification.technician
-            : ProfileClassification.musician;
+            : isArtisticallyEligibleCategoryIds(subCategories)
+            ? ProfileClassification.musician
+            : ProfileClassification.professional;
       case 'contratante':
         return ProfileClassification.venue;
       default:
-        return ProfileClassification.musician;
+        return ProfileClassification.professional;
     }
   }
 
@@ -80,6 +84,8 @@ class ProfileTypeBadge extends StatelessWidget {
         return ('Musico', Icons.music_note, AppColors.badgeMusician);
       case ProfileClassification.technician:
         return ('Tecnico', Icons.build_rounded, AppColors.badgeMusician);
+      case ProfileClassification.professional:
+        return ('Profissional', Icons.badge_rounded, AppColors.primary);
       case ProfileClassification.band:
         return ('Banda', Icons.groups, AppColors.badgeBand);
       case ProfileClassification.studio:

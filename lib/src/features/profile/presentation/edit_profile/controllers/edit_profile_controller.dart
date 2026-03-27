@@ -4,6 +4,7 @@ import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../../constants/app_constants.dart' as app_constants;
 import '../../../../../core/providers/firebase_providers.dart';
 import '../../../../../utils/app_logger.dart';
 import '../../../../../utils/category_normalizer.dart';
@@ -28,6 +29,107 @@ class _VideoTranscodeException implements Exception {
 
   @override
   String toString() => message;
+}
+
+const List<String> _audiovisualRoleLabels = [
+  'Direção de Vídeo',
+  'Captação de Vídeo',
+  'Edição de Vídeo',
+  'Motion Design',
+  'Operação de Câmera',
+  'Streaming ao Vivo',
+];
+
+const List<String> _educationRoleLabels = [
+  'Professor(a)',
+  'Mentor(a)',
+  'Oficineiro(a)',
+  'Palestrante',
+  'Coach Artístico',
+  'Consultor(a)',
+];
+
+const List<String> _luthierRoleLabels = [
+  'Ajuste e Regulagem',
+  'Reparo',
+  'Construção de Instrumentos',
+  'Elétrica e Eletrônica',
+  'Customização',
+  'Encordoamento e Manutenção',
+];
+
+const List<String> _performanceRoleLabels = [
+  'Performer',
+  'Artista de Palco',
+  'Intervenção Cênica',
+  'Dança',
+  'Live Act',
+  'VJ / Visuals',
+];
+
+const Set<String> _genreHiddenCategories = {
+  'audiovisual',
+  'education',
+  'luthier',
+};
+
+const Set<String> _roleCategoriesWithSelectors = {
+  'production',
+  'stage_tech',
+  'audiovisual',
+  'education',
+  'luthier',
+  'performance',
+};
+
+String _roleIdForLabel(String label, {String? prefix}) {
+  final normalized = CategoryNormalizer.sanitize(label);
+  return prefix == null ? normalized : '${prefix}_$normalized';
+}
+
+final Map<String, String> _roleIdLookup = _buildRoleIdLookup();
+final Map<String, String> _roleCategoryById = _buildRoleCategoryById();
+
+Map<String, String> _buildRoleIdLookup() {
+  final lookup = <String, String>{};
+
+  void addRoles(String categoryId, List<String> labels, {String? prefix}) {
+    for (final label in labels) {
+      final roleId = _roleIdForLabel(label, prefix: prefix);
+      lookup[roleId] = roleId;
+      lookup[label] = roleId;
+      lookup[CategoryNormalizer.sanitize(label)] = roleId;
+    }
+  }
+
+  addRoles('production', app_constants.productionRoles);
+  addRoles('stage_tech', app_constants.stageTechRoles);
+  addRoles('audiovisual', _audiovisualRoleLabels, prefix: 'audiovisual');
+  addRoles('education', _educationRoleLabels, prefix: 'education');
+  addRoles('luthier', _luthierRoleLabels, prefix: 'luthier');
+  addRoles('performance', _performanceRoleLabels, prefix: 'performance');
+
+  return lookup;
+}
+
+Map<String, String> _buildRoleCategoryById() {
+  final map = <String, String>{};
+
+  void addRoles(String categoryId, List<String> labels, {String? prefix}) {
+    for (final label in labels) {
+      final roleId = _roleIdForLabel(label, prefix: prefix);
+      map[roleId] = categoryId;
+    }
+  }
+
+  addRoles('production', app_constants.productionRoles);
+  addRoles('stage_tech', app_constants.stageTechRoles);
+  addRoles('audiovisual', _audiovisualRoleLabels, prefix: 'audiovisual');
+  addRoles('education', _educationRoleLabels, prefix: 'education');
+  addRoles('luthier', _luthierRoleLabels, prefix: 'luthier');
+  addRoles('performance', _performanceRoleLabels, prefix: 'performance');
+
+  return map;
 }
 
 @riverpod
@@ -68,7 +170,7 @@ class EditProfileController extends _$EditProfileController {
     switch (user.tipoPerfil) {
       case AppUserType.professional:
         final data = user.dadosProfissional ?? {};
-        roles = List<String>.from(data['funcoes'] ?? []);
+        roles = _normalizeRoleIds(List<String>.from(data['funcoes'] ?? []));
         categories = CategoryNormalizer.resolveCategories(
           rawCategories: List<String>.from(data['categorias'] ?? []),
           rawRoles: roles,
@@ -140,6 +242,63 @@ class EditProfileController extends _$EditProfileController {
     return parsed;
   }
 
+  String _normalizeRoleId(String rawRole) {
+    final trimmed = rawRole.trim();
+    if (trimmed.isEmpty) return '';
+    return _roleIdLookup[trimmed] ??
+        _roleIdLookup[CategoryNormalizer.sanitize(trimmed)] ??
+        trimmed;
+  }
+
+  List<String> _normalizeRoleIds(Iterable<String> rawRoles) {
+    return rawRoles
+        .map(_normalizeRoleId)
+        .where((role) => role.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  bool _roleBelongsToCategory(String roleId, String categoryId) {
+    return _roleCategoryById[roleId] == categoryId;
+  }
+
+  bool _roleBelongsToAnySelectedCategory(
+    String roleId,
+    List<String> categories,
+  ) {
+    return categories.any(
+      (category) => _roleBelongsToCategory(roleId, category),
+    );
+  }
+
+  List<String> _pruneRolesForCategories(List<String> categories) {
+    return state.selectedRoles
+        .where(
+          (roleId) => _roleBelongsToAnySelectedCategory(roleId, categories),
+        )
+        .toList(growable: false);
+  }
+
+  bool _shouldShowGenresForCategories(List<String> categories) {
+    final resolved = CategoryNormalizer.resolveCategories(
+      rawCategories: categories,
+      rawRoles: state.selectedRoles,
+    );
+    return resolved.any(
+      (category) => !_genreHiddenCategories.contains(category),
+    );
+  }
+
+  List<String> _rolesForSelectedCategories(
+    List<String> categories,
+    List<String> roles,
+  ) {
+    return roles
+        .where(
+          (roleId) => _roleBelongsToAnySelectedCategory(roleId, categories),
+        )
+        .toList(growable: false);
+  }
+
   void markChanged() {
     if (!state.hasChanges && !state.isSaving) {
       state = state.copyWith(hasChanges: true);
@@ -155,7 +314,11 @@ class EditProfileController extends _$EditProfileController {
     } else {
       list.add(category);
     }
-    state = state.copyWith(selectedCategories: list, hasChanges: true);
+    state = state.copyWith(
+      selectedCategories: list,
+      selectedRoles: _pruneRolesForCategories(list),
+      hasChanges: true,
+    );
   }
 
   void toggleGenre(String genre) {
@@ -179,11 +342,13 @@ class EditProfileController extends _$EditProfileController {
   }
 
   void toggleRole(String role) {
+    final normalizedRole = _normalizeRoleId(role);
+    if (normalizedRole.isEmpty) return;
     final list = List<String>.from(state.selectedRoles);
-    if (list.contains(role)) {
-      list.remove(role);
+    if (list.contains(normalizedRole)) {
+      list.remove(normalizedRole);
     } else {
-      list.add(role);
+      list.add(normalizedRole);
     }
     state = state.copyWith(selectedRoles: list, hasChanges: true);
   }
@@ -228,7 +393,11 @@ class EditProfileController extends _$EditProfileController {
   }
 
   void updateCategories(List<String> categories) {
-    state = state.copyWith(selectedCategories: categories, hasChanges: true);
+    state = state.copyWith(
+      selectedCategories: categories,
+      selectedRoles: _pruneRolesForCategories(categories),
+      hasChanges: true,
+    );
   }
 
   void updateGenres(List<String> genres) {
@@ -240,7 +409,10 @@ class EditProfileController extends _$EditProfileController {
   }
 
   void updateRoles(List<String> roles) {
-    state = state.copyWith(selectedRoles: roles, hasChanges: true);
+    state = state.copyWith(
+      selectedRoles: _normalizeRoleIds(roles),
+      hasChanges: true,
+    );
   }
 
   void updateServices(List<String> services) {
@@ -638,19 +810,18 @@ class EditProfileController extends _$EditProfileController {
           state.selectedInstruments.isEmpty) {
         return false;
       }
-      if (state.selectedCategories.contains('production') &&
-          CategoryNormalizer.filterProductionRoles(
-            state.selectedRoles,
-          ).isEmpty) {
+      for (final categoryId in _roleCategoriesWithSelectors) {
+        if (state.selectedCategories.contains(categoryId) &&
+            state.selectedRoles
+                .where((roleId) => _roleBelongsToCategory(roleId, categoryId))
+                .isEmpty) {
+          return false;
+        }
+      }
+      if (_shouldShowGenresForCategories(state.selectedCategories) &&
+          state.selectedGenres.isEmpty) {
         return false;
       }
-      if (state.selectedCategories.contains('stage_tech') &&
-          CategoryNormalizer.filterStageTechRoles(
-            state.selectedRoles,
-          ).isEmpty) {
-        return false;
-      }
-      if (state.selectedGenres.isEmpty) return false;
     } else if (type == AppUserType.band) {
       if (state.bandGenres.isEmpty) return false;
     } else if (type == AppUserType.studio) {
@@ -777,6 +948,14 @@ class EditProfileController extends _$EditProfileController {
 
       switch (user.tipoPerfil) {
         case AppUserType.professional:
+          final genresToSave =
+              _shouldShowGenresForCategories(state.selectedCategories)
+              ? state.selectedGenres
+              : <String>[];
+          final rolesToSave = _rolesForSelectedCategories(
+            state.selectedCategories,
+            state.selectedRoles,
+          );
           updates['dadosProfissional'] = {
             'nomeArtistico': nomeArtistico,
             'celular': celular,
@@ -784,9 +963,9 @@ class EditProfileController extends _$EditProfileController {
             'genero': genero,
             'instagram': instagram,
             'categorias': state.selectedCategories,
-            'generosMusicais': state.selectedGenres,
+            'generosMusicais': genresToSave,
             'instrumentos': state.selectedInstruments,
-            'funcoes': state.selectedRoles,
+            'funcoes': rolesToSave,
             'backingVocalMode': state.backingVocalMode,
             'instrumentalistBackingVocal': state.instrumentalistBackingVocal,
             'fazBackingVocal': state.instrumentalistBackingVocal,

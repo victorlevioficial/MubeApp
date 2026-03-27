@@ -263,6 +263,173 @@ final class StageTechRoleLabelsProvider
 String _$stageTechRoleLabelsHash() =>
     r'b5474f6d61fee1728c2e28da949a7cdc29c4d545';
 
+@ProviderFor(audiovisualRoleLabels)
+const audiovisualRoleLabelsProvider = AudiovisualRoleLabelsProvider._();
+
+final class AudiovisualRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const AudiovisualRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'audiovisualRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$audiovisualRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return audiovisualRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$audiovisualRoleLabelsHash() =>
+    r'f328cad402ca9697be59f7a274124e9e9b774680';
+
+@ProviderFor(educationRoleLabels)
+const educationRoleLabelsProvider = EducationRoleLabelsProvider._();
+
+final class EducationRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const EducationRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'educationRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$educationRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return educationRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$educationRoleLabelsHash() =>
+    r'd6b352720992dcaffc5d1af066d104bbb1bf9cfc';
+
+@ProviderFor(luthierRoleLabels)
+const luthierRoleLabelsProvider = LuthierRoleLabelsProvider._();
+
+final class LuthierRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const LuthierRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'luthierRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$luthierRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return luthierRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$luthierRoleLabelsHash() => r'79a2579162e003ad063eee6268e169d2467833d6';
+
+@ProviderFor(performanceRoleLabels)
+const performanceRoleLabelsProvider = PerformanceRoleLabelsProvider._();
+
+final class PerformanceRoleLabelsProvider
+    extends $FunctionalProvider<List<String>, List<String>, List<String>>
+    with $Provider<List<String>> {
+  const PerformanceRoleLabelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'performanceRoleLabelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$performanceRoleLabelsHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<String>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<String> create(Ref ref) {
+    return performanceRoleLabels(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<String> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<String>>(value),
+    );
+  }
+}
+
+String _$performanceRoleLabelsHash() =>
+    r'e4bb01b1bc7dd67efba3c7d725f4df671a8ffc9f';
+
 @ProviderFor(studioServiceLabels)
 const studioServiceLabelsProvider = StudioServiceLabelsProvider._();
 

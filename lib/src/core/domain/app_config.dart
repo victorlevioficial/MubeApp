@@ -34,6 +34,10 @@ abstract class AppConfig with _$AppConfig {
     @Default([]) List<ConfigItem> productionRoles,
     @Default([]) List<ConfigItem> stageTechRoles,
     @Default([]) List<ConfigItem> crewRoles,
+    @Default([]) List<ConfigItem> audiovisualRoles,
+    @Default([]) List<ConfigItem> educationRoles,
+    @Default([]) List<ConfigItem> luthierRoles,
+    @Default([]) List<ConfigItem> performanceRoles,
     @Default([]) List<ConfigItem> studioServices,
     @Default([]) List<ConfigItem> professionalCategories,
   }) = _AppConfig;

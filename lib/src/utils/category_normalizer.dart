@@ -24,6 +24,13 @@ abstract final class CategoryNormalizer {
     'equipe_tecnico': 'crew',
     'tecnico': 'crew',
     'tecnica': 'crew',
+    'audiovisual': 'audiovisual',
+    'audio_visual': 'audiovisual',
+    'education': 'education',
+    'educacao': 'education',
+    'luthier': 'luthier',
+    'performance': 'performance',
+    'performer': 'performance',
   };
 
   static final Map<String, String> _productionRoleAliases = _buildRoleAliases(
@@ -37,6 +44,32 @@ abstract final class CategoryNormalizer {
     stageTechRoles,
     legacyAliases: const {'backline_tech': 'backline_tech'},
   );
+  static final Map<String, String> _audiovisualRoleAliases = _buildRoleAliases(
+    audiovisualRoles,
+  );
+  static final Map<String, String> _educationRoleAliases = _buildRoleAliases(
+    educationRoles,
+  );
+  static final Map<String, String> _luthierRoleAliases = _buildRoleAliases(
+    luthierRoles,
+  );
+  static final Map<String, String> _performanceRoleAliases = _buildRoleAliases(
+    performanceRoles,
+  );
+
+  static const Set<String> _newGenreOptionalCategories = <String>{
+    'audiovisual',
+    'education',
+    'luthier',
+  };
+  static const Set<String> _legacyHomeMatchpointCategories = <String>{
+    'singer',
+    'instrumentalist',
+    'dj',
+    'production',
+    'stage_tech',
+    'crew',
+  };
 
   static String sanitize(String value) {
     return removeDiacritics(value)
@@ -59,6 +92,10 @@ abstract final class CategoryNormalizer {
 
     return _productionRoleAliases[sanitized] ??
         _stageTechRoleAliases[sanitized] ??
+        _audiovisualRoleAliases[sanitized] ??
+        _educationRoleAliases[sanitized] ??
+        _luthierRoleAliases[sanitized] ??
+        _performanceRoleAliases[sanitized] ??
         sanitized;
   }
 
@@ -139,6 +176,37 @@ abstract final class CategoryNormalizer {
         resolved.contains('production');
 
     return hasStageTech && !hasMusician;
+  }
+
+  static bool shouldRequireGenres({
+    required List<String> rawCategories,
+    required List<String> rawRoles,
+  }) {
+    final resolved = resolveCategories(
+      rawCategories: rawCategories,
+      rawRoles: rawRoles,
+    ).toSet();
+
+    if (resolved.isEmpty) return true;
+    return !resolved.every(_newGenreOptionalCategories.contains);
+  }
+
+  static bool isEligibleForHomeAndMatchpoint({
+    required List<String> rawCategories,
+    required List<String> rawRoles,
+  }) {
+    final resolved = resolveCategories(
+      rawCategories: rawCategories,
+      rawRoles: rawRoles,
+    ).toSet();
+
+    if (resolved.isEmpty) return false;
+
+    if (resolved.any(_legacyHomeMatchpointCategories.contains)) {
+      return true;
+    }
+
+    return false;
   }
 
   static Map<String, String> _buildRoleAliases(

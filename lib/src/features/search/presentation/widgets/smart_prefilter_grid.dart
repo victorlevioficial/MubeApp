@@ -46,8 +46,6 @@ class _PrefilterSection {
   });
 }
 
-// ─── Pre-filter Definitions ──────────────────────────────────────────────────
-
 const _kMusiciansSection = _PrefilterSection(
   title: 'Músicos',
   subtitle: 'Encontre instrumentistas e cantores',
@@ -225,6 +223,177 @@ const _kStageTechSection = _PrefilterSection(
   ],
 );
 
+const _kAudiovisualSection = _PrefilterSection(
+  title: 'Audiovisual',
+  subtitle: 'Foto, video, arte e conteudo',
+  items: [
+    SmartPrefilter(
+      label: 'Fot\u00f3grafos',
+      subtitle: 'Cobertura e ensaio',
+      icon: FontAwesomeIcons.camera,
+      accentColor: Color(0xFF38BDF8),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.audiovisual,
+        roles: ['Fot\u00f3grafo Musical'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Videomakers',
+      subtitle: 'Capta\u00e7\u00e3o e streaming',
+      icon: FontAwesomeIcons.video,
+      accentColor: Color(0xFF0EA5E9),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.audiovisual,
+        roles: ['Videomaker', 'Operador de C\u00e2mera', 'Live Streamer'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Edi\u00e7\u00e3o',
+      subtitle: 'Finaliza\u00e7\u00e3o de video',
+      icon: FontAwesomeIcons.film,
+      accentColor: Color(0xFF22C55E),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.audiovisual,
+        roles: ['Editor de V\u00eddeo', 'Motion Designer', 'Colorista'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Marca & Conte\u00fado',
+      subtitle: 'Design e social media',
+      icon: FontAwesomeIcons.penNib,
+      accentColor: Color(0xFFF59E0B),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.audiovisual,
+        roles: ['Diretor de Arte', 'Social Media Manager'],
+      ),
+    ),
+  ],
+);
+
+const _kEducationSection = _PrefilterSection(
+  title: 'Educação Musical',
+  subtitle: 'Ensino, didática e mentoria',
+  items: [
+    SmartPrefilter(
+      label: 'Professores',
+      subtitle: 'Instrumento e canto',
+      icon: Icons.school_rounded,
+      accentColor: Color(0xFF60A5FA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.education,
+        roles: ['Professor de Instrumento', 'Professor de Canto'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Teoria & Produção',
+      subtitle: 'Didática e arranjo',
+      icon: FontAwesomeIcons.bookOpen,
+      accentColor: Color(0xFFA78BFA),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.education,
+        roles: ['Professor de Teoria Musical', 'Professor de Produção Musical'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Mentoria Vocal',
+      subtitle: 'Voz e performance',
+      icon: Icons.record_voice_over_rounded,
+      accentColor: Color(0xFFF472B6),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.education,
+        roles: ['Coach Vocal', 'Professor de DJ'],
+      ),
+    ),
+  ],
+);
+
+const _kLuthierSection = _PrefilterSection(
+  title: 'Luthieria',
+  subtitle: 'Reparo, regulagem e manutenção',
+  items: [
+    SmartPrefilter(
+      label: 'Cordas',
+      subtitle: 'Ajuste e manutenção',
+      icon: FontAwesomeIcons.guitar,
+      accentColor: Color(0xFFF97316),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.luthier,
+        roles: ['Luthier de Cordas'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Sopros',
+      subtitle: 'Reparo e regulagem',
+      icon: FontAwesomeIcons.screwdriverWrench,
+      accentColor: Color(0xFF14B8A6),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.luthier,
+        roles: ['Luthier de Sopros', 'Afinador de Piano'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Equipamentos',
+      subtitle: 'Amplificadores e eletrônicos',
+      icon: Icons.tune_rounded,
+      accentColor: Color(0xFFFB7185),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.luthier,
+        roles: ['Técnico de Amplificadores', 'Técnico de Equipamentos'],
+      ),
+    ),
+  ],
+);
+
+const _kPerformanceSection = _PrefilterSection(
+  title: 'Performance',
+  subtitle: 'Palco, movimento e apresentação',
+  items: [
+    SmartPrefilter(
+      label: 'Dança',
+      subtitle: 'Movimento e cena',
+      icon: FontAwesomeIcons.personRunning,
+      accentColor: Color(0xFF34D399),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.performance,
+        roles: ['Dançarino(a)'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Coreografia',
+      subtitle: 'Direção corporal',
+      icon: Icons.theater_comedy_rounded,
+      accentColor: Color(0xFF38BDF8),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.performance,
+        roles: ['Coreógrafo(a)'],
+      ),
+    ),
+    SmartPrefilter(
+      label: 'Palco & Apresentação',
+      subtitle: 'MC e performance',
+      icon: Icons.mic_rounded,
+      accentColor: Color(0xFFF59E0B),
+      filters: SearchFilters(
+        category: SearchCategory.professionals,
+        professionalSubcategory: ProfessionalSubcategory.performance,
+        roles: ['Performer', 'MC / Apresentador'],
+      ),
+    ),
+  ],
+);
+
 const _kBandsStudiosSection = _PrefilterSection(
   title: 'Bandas & Estúdios',
   subtitle: 'Grupos e espaços musicais',
@@ -317,6 +486,10 @@ final List<_PrefilterSection> _kAllSections = [
   _kMusiciansSection,
   _kProductionSection,
   _kStageTechSection,
+  _kAudiovisualSection,
+  _kEducationSection,
+  _kLuthierSection,
+  _kPerformanceSection,
   _kBandsStudiosSection,
   _kGenresSection,
 ];
@@ -363,7 +536,6 @@ class SmartPrefilterGrid extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
             child: Row(
@@ -402,7 +574,6 @@ class SmartPrefilterGrid extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s12),
-
           LayoutBuilder(
             builder: (context, constraints) {
               const spacing = AppSpacing.s10;
@@ -524,7 +695,7 @@ class _PrefilterCardState extends State<_PrefilterCard> {
                   widget.item.subtitle,
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textTertiary,
-                    fontSize: 10,
+                    fontSize: 11,
                     height: 1.2,
                   ),
                   maxLines: 2,

@@ -16,7 +16,7 @@ mixin _$SearchFilters {
 
 /// Text search term (normalized)
  String get term;/// Main category filter
- SearchCategory get category;/// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
+ SearchCategory get category;/// Professional subcategory (singer, instrumentalist, production, stageTech, dj, audiovisual, education, luthier, performance)
  ProfessionalSubcategory? get professionalSubcategory;/// Selected genres filter
  List<String> get genres;/// Selected instruments filter (for instrumentalists)
  List<String> get instruments;/// Selected professional role filters (production/stage tech)
@@ -233,7 +233,7 @@ class _SearchFilters extends SearchFilters {
 @override@JsonKey() final  String term;
 /// Main category filter
 @override@JsonKey() final  SearchCategory category;
-/// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
+/// Professional subcategory (singer, instrumentalist, production, stageTech, dj, audiovisual, education, luthier, performance)
 @override final  ProfessionalSubcategory? professionalSubcategory;
 /// Selected genres filter
  final  List<String> _genres;

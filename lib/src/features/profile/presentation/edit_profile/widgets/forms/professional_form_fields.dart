@@ -22,6 +22,139 @@ import '../../../../../../utils/category_normalizer.dart';
 import '../../../../../../utils/instagram_utils.dart';
 import '../../../../../../utils/professional_profile_utils.dart';
 
+class _RoleOption {
+  final String id;
+  final String label;
+
+  const _RoleOption({required this.id, required this.label});
+}
+
+class _RoleSectionDefinition {
+  final String categoryId;
+  final String title;
+  final String subtitle;
+  final List<_RoleOption> options;
+
+  const _RoleSectionDefinition({
+    required this.categoryId,
+    required this.title,
+    required this.subtitle,
+    required this.options,
+  });
+
+  Map<String, String> get labelById => {
+    for (final option in options) option.id: option.label,
+  };
+}
+
+List<_RoleOption> _buildPlainRoleOptions(List<String> labels) {
+  return labels
+      .map(
+        (label) =>
+            _RoleOption(id: CategoryNormalizer.sanitize(label), label: label),
+      )
+      .toList(growable: false);
+}
+
+List<_RoleOption> _buildPrefixedRoleOptions(
+  String prefix,
+  List<String> labels,
+) {
+  return labels
+      .map(
+        (label) => _RoleOption(
+          id: '${prefix}_${CategoryNormalizer.sanitize(label)}',
+          label: label,
+        ),
+      )
+      .toList(growable: false);
+}
+
+const List<String> _audiovisualRoleLabels = [
+  'Direção de Vídeo',
+  'Captação de Vídeo',
+  'Edição de Vídeo',
+  'Motion Design',
+  'Operação de Câmera',
+  'Streaming ao Vivo',
+];
+
+const List<String> _educationRoleLabels = [
+  'Professor(a)',
+  'Mentor(a)',
+  'Oficineiro(a)',
+  'Palestrante',
+  'Coach Artístico',
+  'Consultor(a)',
+];
+
+const List<String> _luthierRoleLabels = [
+  'Ajuste e Regulagem',
+  'Reparo',
+  'Construção de Instrumentos',
+  'Elétrica e Eletrônica',
+  'Customização',
+  'Encordoamento e Manutenção',
+];
+
+const List<String> _performanceRoleLabels = [
+  'Performer',
+  'Artista de Palco',
+  'Intervenção Cênica',
+  'Dança',
+  'Live Act',
+  'VJ / Visuals',
+];
+
+final List<_RoleSectionDefinition> _roleSections = [
+  _RoleSectionDefinition(
+    categoryId: 'production',
+    title: 'Produção Musical *',
+    subtitle: 'Quais funções de produção você desempenha?',
+    options: _buildPlainRoleOptions(productionRoles),
+  ),
+  _RoleSectionDefinition(
+    categoryId: 'stage_tech',
+    title: 'Técnica de Palco *',
+    subtitle: 'Quais funções técnicas de palco você desempenha?',
+    options: _buildPlainRoleOptions(stageTechRoles),
+  ),
+  _RoleSectionDefinition(
+    categoryId: 'audiovisual',
+    title: 'Audiovisual *',
+    subtitle: 'Selecione suas funções em vídeo e conteúdo visual',
+    options: _buildPrefixedRoleOptions('audiovisual', _audiovisualRoleLabels),
+  ),
+  _RoleSectionDefinition(
+    categoryId: 'education',
+    title: 'Educação *',
+    subtitle: 'Selecione suas funções ligadas a ensino e mentoria',
+    options: _buildPrefixedRoleOptions('education', _educationRoleLabels),
+  ),
+  _RoleSectionDefinition(
+    categoryId: 'luthier',
+    title: 'Luthier *',
+    subtitle: 'Selecione suas funções de construção e manutenção',
+    options: _buildPrefixedRoleOptions('luthier', _luthierRoleLabels),
+  ),
+  _RoleSectionDefinition(
+    categoryId: 'performance',
+    title: 'Performance *',
+    subtitle: 'Selecione suas funções de presença cênica e live acts',
+    options: _buildPrefixedRoleOptions('performance', _performanceRoleLabels),
+  ),
+];
+
+final Map<String, _RoleSectionDefinition> _roleSectionByCategoryId = {
+  for (final section in _roleSections) section.categoryId: section,
+};
+
+const Set<String> _genreHiddenCategories = {
+  'audiovisual',
+  'education',
+  'luthier',
+};
+
 /// Enhanced Professional Form Fields with modern card-based design.
 /// Matches the onboarding flow UI.
 class ProfessionalFormFields extends ConsumerStatefulWidget {
@@ -120,32 +253,100 @@ class _ProfessionalFormFieldsState
       'description': 'PA, monitor, RF, luz, LED, roadie e backline',
       'icon': FontAwesomeIcons.wrench,
     },
+    {
+      'id': 'audiovisual',
+      'label': 'Audiovisual',
+      'description': 'Vídeo, transmissão, captação, edição e motion',
+      'icon': Icons.video_camera_front_outlined,
+    },
+    {
+      'id': 'education',
+      'label': 'Educação',
+      'description': 'Aulas, oficinas, mentoria, palestras e consultoria',
+      'icon': Icons.school_outlined,
+    },
+    {
+      'id': 'luthier',
+      'label': 'Luthier',
+      'description': 'Ajuste, reparo, construção e manutenção de instrumentos',
+      'icon': Icons.handyman_outlined,
+    },
+    {
+      'id': 'performance',
+      'label': 'Performance',
+      'description': 'Cena, live acts, intervenção artística e corpo',
+      'icon': Icons.auto_awesome_outlined,
+    },
   ];
 
-  List<String> get _selectedProductionRoles =>
-      CategoryNormalizer.filterProductionRoles(widget.selectedRoles);
+  bool get _shouldShowGenres => _categoriesRequireGenres(_selectedCategories);
 
-  List<String> get _selectedStageTechRoles =>
-      CategoryNormalizer.filterStageTechRoles(widget.selectedRoles);
+  List<String> _selectedRoleIdsForCategory(String categoryId) {
+    return widget.selectedRoles
+        .where((roleId) => _roleBelongsToCategory(roleId, categoryId))
+        .toList(growable: false);
+  }
 
-  void _updateProductionRoles(List<String> roles) {
+  bool _roleBelongsToCategory(String roleId, String categoryId) {
+    return _roleSectionByCategoryId[categoryId]?.options.any(
+          (option) => option.id == roleId,
+        ) ??
+        false;
+  }
+
+  bool _roleBelongsToAnySelectedCategory(
+    String roleId,
+    List<String> categories,
+  ) {
+    return categories.any(
+      (category) => _roleBelongsToCategory(roleId, category),
+    );
+  }
+
+  List<String> _pruneRolesForCategories(List<String> categories) {
+    return widget.selectedRoles
+        .where(
+          (roleId) => _roleBelongsToAnySelectedCategory(roleId, categories),
+        )
+        .toList(growable: false);
+  }
+
+  bool _categoriesRequireGenres(List<String> categories) {
+    final resolved = CategoryNormalizer.resolveCategories(
+      rawCategories: categories,
+      rawRoles: widget.selectedRoles,
+    );
+    return resolved.any(
+      (category) => !_genreHiddenCategories.contains(category),
+    );
+  }
+
+  void _updateRolesForCategory(String categoryId, List<String> roleIds) {
     final next = [
       ...widget.selectedRoles.where(
-        (role) => !CategoryNormalizer.isProductionRole(role),
+        (roleId) => !_roleBelongsToCategory(roleId, categoryId),
       ),
-      ...roles,
+      ...roleIds,
     ];
     widget.onRolesChanged(next);
   }
 
-  void _updateStageTechRoles(List<String> roles) {
-    final next = [
-      ...widget.selectedRoles.where(
-        (role) => !CategoryNormalizer.isStageTechRole(role),
-      ),
-      ...roles,
-    ];
-    widget.onRolesChanged(next);
+  Future<void> _showRoleSelector(_RoleSectionDefinition section) async {
+    final currentRoleIds = _selectedRoleIdsForCategory(section.categoryId);
+    final result = await EnhancedMultiSelectModal.show<String>(
+      context: context,
+      title: section.title,
+      subtitle: section.subtitle,
+      items: section.options.map((option) => option.id).toList(growable: false),
+      selectedItems: currentRoleIds,
+      searchHint: 'Buscar função...',
+      itemLabel: (id) => section.labelById[id] ?? id,
+    );
+
+    if (result != null) {
+      _updateRolesForCategory(section.categoryId, result);
+      widget.onStateChanged();
+    }
   }
 
   @override
@@ -163,6 +364,7 @@ class _ProfessionalFormFieldsState
       }
     });
     widget.onCategoriesChanged(_selectedCategories);
+    widget.onRolesChanged(_pruneRolesForCategories(_selectedCategories));
   }
 
   @override
@@ -358,7 +560,7 @@ class _ProfessionalFormFieldsState
 
     if (_selectedCategories.contains('production')) {
       widgets.addAll([
-        _buildProductionRolesSelector(),
+        _buildRoleSection(_roleSectionByCategoryId['production']!),
         const SizedBox(height: AppSpacing.s16),
         _buildRemoteRecordingCheckbox(),
         const SizedBox(height: AppSpacing.s48),
@@ -367,18 +569,60 @@ class _ProfessionalFormFieldsState
 
     if (_selectedCategories.contains('stage_tech')) {
       widgets.addAll([
-        _buildStageTechRolesSelector(),
+        _buildRoleSection(_roleSectionByCategoryId['stage_tech']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
 
-    // Genres (always shown)
-    widgets.addAll([
-      _buildGenresSelector(),
-      const SizedBox(height: AppSpacing.s24),
-    ]);
+    if (_selectedCategories.contains('audiovisual')) {
+      widgets.addAll([
+        _buildRoleSection(_roleSectionByCategoryId['audiovisual']!),
+        const SizedBox(height: AppSpacing.s48),
+      ]);
+    }
+
+    if (_selectedCategories.contains('education')) {
+      widgets.addAll([
+        _buildRoleSection(_roleSectionByCategoryId['education']!),
+        const SizedBox(height: AppSpacing.s48),
+      ]);
+    }
+
+    if (_selectedCategories.contains('luthier')) {
+      widgets.addAll([
+        _buildRoleSection(_roleSectionByCategoryId['luthier']!),
+        const SizedBox(height: AppSpacing.s48),
+      ]);
+    }
+
+    if (_selectedCategories.contains('performance')) {
+      widgets.addAll([
+        _buildRoleSection(_roleSectionByCategoryId['performance']!),
+        const SizedBox(height: AppSpacing.s48),
+      ]);
+    }
+
+    if (_shouldShowGenres) {
+      widgets.addAll([
+        _buildGenresSelector(),
+        const SizedBox(height: AppSpacing.s24),
+      ]);
+    }
 
     return widgets;
+  }
+
+  Widget _buildRoleSection(_RoleSectionDefinition section) {
+    final selectedIds = _selectedRoleIdsForCategory(section.categoryId);
+    final selectedLabels = selectedIds
+        .map((id) => section.labelById[id] ?? id)
+        .toList(growable: false);
+
+    return _buildSelectionContainer(
+      label: section.title,
+      selectedItems: selectedLabels,
+      onEdit: () => _showRoleSelector(section),
+    );
   }
 
   Widget _buildInstrumentsSelector() {
@@ -408,72 +652,6 @@ class _ProfessionalFormFieldsState
             selectedItems: widget.selectedInstruments,
             onChanged: widget.onInstrumentsChanged,
             searchHint: 'Buscar instrumento...',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProductionRolesSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Produção Musical', style: AppTypography.headlineMedium),
-        const SizedBox(height: AppSpacing.s8),
-        Text(
-          'Quais são suas funções de produção?',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s16),
-        _buildSelectionContainer(
-          label: 'Funções de Produção',
-          selectedItems: _selectedProductionRoles,
-          onEdit: () => _showEnhancedModal(
-            title: 'Produção Musical',
-            subtitle: 'Selecione suas funções de produção',
-            items: ref.watch(productionRoleLabelsProvider),
-            loadItems: () async {
-              final config = await ref.read(appConfigProvider.future);
-              return config.productionRoles.map((item) => item.label).toList();
-            },
-            selectedItems: _selectedProductionRoles,
-            onChanged: _updateProductionRoles,
-            searchHint: 'Buscar função...',
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStageTechRolesSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Técnica de Palco', style: AppTypography.headlineMedium),
-        const SizedBox(height: AppSpacing.s8),
-        Text(
-          'Quais são suas funções técnicas de palco?',
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s16),
-        _buildSelectionContainer(
-          label: 'Funções Técnicas',
-          selectedItems: _selectedStageTechRoles,
-          onEdit: () => _showEnhancedModal(
-            title: 'Técnica de Palco',
-            subtitle: 'Selecione suas funções técnicas',
-            items: ref.watch(stageTechRoleLabelsProvider),
-            loadItems: () async {
-              final config = await ref.read(appConfigProvider.future);
-              return config.stageTechRoles.map((item) => item.label).toList();
-            },
-            selectedItems: _selectedStageTechRoles,
-            onChanged: _updateStageTechRoles,
-            searchHint: 'Buscar função...',
           ),
         ),
       ],

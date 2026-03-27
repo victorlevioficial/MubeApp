@@ -69,6 +69,29 @@ void main() {
       });
     });
 
+    Future<void> seedProfessionalProfile(
+      String uid, {
+      required List<String> categories,
+      List<String> roles = const [],
+      List<String> genres = const [],
+      List<String> instruments = const [],
+    }) async {
+      await fakeFirestore.collection('users').doc(uid).set({
+        'nome': uid,
+        'tipo_perfil': 'profissional',
+        'cadastro_status': 'concluido',
+        'status': 'ativo',
+        'profissional': {
+          'nomeArtistico': uid,
+          'categorias': categories,
+          'funcoes': roles,
+          'generosMusicais': genres,
+          'instrumentos': instruments,
+        },
+        'created_at': Timestamp.now(),
+      });
+    }
+
     test('searchUsers should return list of matching users', () async {
       const filters = SearchFilters(term: 'João');
 
@@ -353,5 +376,98 @@ void main() {
         });
       },
     );
+
+    test(
+      'should match audiovisual profiles without requiring genres',
+      () async {
+        await seedProfessionalProfile(
+          'audiovisual-1',
+          categories: const ['audiovisual'],
+          roles: const ['Videomaker'],
+        );
+
+        const filters = SearchFilters(
+          professionalSubcategory: ProfessionalSubcategory.audiovisual,
+        );
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 9,
+          getCurrentRequestId: () => 9,
+        );
+
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('audiovisual-1'));
+        });
+      },
+    );
+
+    test('should match education profiles without requiring genres', () async {
+      await seedProfessionalProfile(
+        'education-1',
+        categories: const ['education'],
+        roles: const ['Professor(a)'],
+      );
+
+      const filters = SearchFilters(
+        professionalSubcategory: ProfessionalSubcategory.education,
+      );
+
+      final result = await repository.searchUsers(
+        filters: filters,
+        requestId: 10,
+        getCurrentRequestId: () => 10,
+      );
+
+      result.fold((l) => fail('Should not fail'), (r) {
+        expect(r.items.map((item) => item.uid), contains('education-1'));
+      });
+    });
+
+    test('should match luthier profiles without requiring genres', () async {
+      await seedProfessionalProfile(
+        'luthier-1',
+        categories: const ['luthier'],
+        roles: const ['Ajuste e Regulagem'],
+      );
+
+      const filters = SearchFilters(
+        professionalSubcategory: ProfessionalSubcategory.luthier,
+      );
+
+      final result = await repository.searchUsers(
+        filters: filters,
+        requestId: 11,
+        getCurrentRequestId: () => 11,
+      );
+
+      result.fold((l) => fail('Should not fail'), (r) {
+        expect(r.items.map((item) => item.uid), contains('luthier-1'));
+      });
+    });
+
+    test('should match performance profiles when genres are present', () async {
+      await seedProfessionalProfile(
+        'performance-1',
+        categories: const ['performance'],
+        roles: const ['Performer'],
+        genres: const ['rock'],
+      );
+
+      const filters = SearchFilters(
+        professionalSubcategory: ProfessionalSubcategory.performance,
+        genres: ['rock'],
+      );
+
+      final result = await repository.searchUsers(
+        filters: filters,
+        requestId: 12,
+        getCurrentRequestId: () => 12,
+      );
+
+      result.fold((l) => fail('Should not fail'), (r) {
+        expect(r.items.map((item) => item.uid), contains('performance-1'));
+      });
+    });
   });
 }

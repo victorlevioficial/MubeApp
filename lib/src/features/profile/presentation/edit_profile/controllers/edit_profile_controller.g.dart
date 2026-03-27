@@ -59,7 +59,7 @@ final class EditProfileControllerProvider
 }
 
 String _$editProfileControllerHash() =>
-    r'835fbab843de068d3c8c91afa38a470517335b21';
+    r'4f609c3d46375fc0c31c008220d56d97b96a1aac';
 
 final class EditProfileControllerFamily extends $Family
     with

@@ -26,7 +26,11 @@ enum ProfessionalSubcategory {
   instrumentalist('instrumentalist'),
   production('production'),
   stageTech('stage_tech'),
-  dj('dj');
+  dj('dj'),
+  audiovisual('audiovisual'),
+  education('education'),
+  luthier('luthier'),
+  performance('performance');
 
   const ProfessionalSubcategory(this.firestoreId);
 
@@ -43,7 +47,7 @@ abstract class SearchFilters with _$SearchFilters {
     /// Main category filter
     @Default(SearchCategory.all) SearchCategory category,
 
-    /// Professional subcategory (singer, instrumentalist, production, stageTech, dj)
+    /// Professional subcategory (singer, instrumentalist, production, stageTech, dj, audiovisual, education, luthier, performance)
     ProfessionalSubcategory? professionalSubcategory,
 
     /// Selected genres filter
@@ -184,4 +188,22 @@ abstract class SearchFilters with _$SearchFilters {
 
   /// Resets everything to default
   SearchFilters reset() => const SearchFilters();
+
+  /// Whether the current professional subcategory still requires genres.
+  bool get requiresGenresForProfessionalSubcategory {
+    switch (professionalSubcategory) {
+      case null:
+      case ProfessionalSubcategory.singer:
+      case ProfessionalSubcategory.instrumentalist:
+      case ProfessionalSubcategory.production:
+      case ProfessionalSubcategory.stageTech:
+      case ProfessionalSubcategory.dj:
+      case ProfessionalSubcategory.performance:
+        return true;
+      case ProfessionalSubcategory.audiovisual:
+      case ProfessionalSubcategory.education:
+      case ProfessionalSubcategory.luthier:
+        return false;
+    }
+  }
 }

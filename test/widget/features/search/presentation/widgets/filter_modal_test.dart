@@ -12,6 +12,10 @@ void main() {
       ConfigItem(id: 'diretor_musical', label: 'Diretor Musical'),
     ],
     stageTechRoles: [ConfigItem(id: 'backline_tech', label: 'Backline Tech')],
+    audiovisualRoles: [ConfigItem(id: 'videomaker', label: 'Videomaker')],
+    educationRoles: [ConfigItem(id: 'professor', label: 'Professor(a)')],
+    luthierRoles: [ConfigItem(id: 'setup', label: 'Ajuste e Regulagem')],
+    performanceRoles: [ConfigItem(id: 'performer', label: 'Performer')],
   );
 
   Widget createSubject(SearchFilters filters) {
@@ -76,5 +80,19 @@ void main() {
         expect(textContaining('remota'), findsNothing);
       },
     );
+
+    testWidgets('shows the new professional subcategory chips', (tester) async {
+      await tester.pumpWidget(
+        createSubject(
+          const SearchFilters(category: SearchCategory.professionals),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Audiovisual'), findsOneWidget);
+      expect(find.text('Educacao Musical'), findsOneWidget);
+      expect(find.text('Luthieria'), findsOneWidget);
+      expect(find.text('Performance'), findsOneWidget);
+    });
   });
 }

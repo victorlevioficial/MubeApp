@@ -59,6 +59,42 @@ List<String> stageTechRoleLabels(Ref ref) {
 }
 
 @riverpod
+List<String> audiovisualRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.audiovisualRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
+List<String> educationRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.educationRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
+List<String> luthierRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.luthierRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
+List<String> performanceRoleLabels(Ref ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.maybeWhen(
+    data: (c) => c.performanceRoles.map((r) => r.label).toList(),
+    orElse: () => [],
+  );
+}
+
+@riverpod
 List<String> studioServiceLabels(Ref ref) {
   final config = ref.watch(appConfigProvider);
   return config.maybeWhen(

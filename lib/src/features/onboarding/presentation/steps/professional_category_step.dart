@@ -15,6 +15,10 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 /// - DJ
 /// - Produção Musical
 /// - Técnica de Palco
+/// - Audiovisual
+/// - Educação
+/// - Luthier
+/// - Performance
 ///
 /// Uses the modern full-width card design instead of grid.
 class ProfessionalCategoryStep extends StatefulWidget {
@@ -70,6 +74,31 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
       'description': 'Ex: PA, monitor, RF, luz, LED, roadie e backline',
       'icon': FontAwesomeIcons.wrench,
     },
+    {
+      'id': 'audiovisual',
+      'label': 'Audiovisual',
+      'description': 'Ex: Vídeo, transmissão, captação, edição e motion',
+      'icon': Icons.video_camera_front_outlined,
+    },
+    {
+      'id': 'education',
+      'label': 'Educação',
+      'description': 'Ex: Aulas, oficinas, mentoria, palestras e consultoria',
+      'icon': Icons.school_outlined,
+    },
+    {
+      'id': 'luthier',
+      'label': 'Luthier',
+      'description':
+          'Ex: Ajuste, reparo, construção e manutenção de instrumentos',
+      'icon': Icons.handyman_outlined,
+    },
+    {
+      'id': 'performance',
+      'label': 'Performance',
+      'description': 'Ex: Cena, live acts, intervenção artística e corpo',
+      'icon': Icons.auto_awesome_outlined,
+    },
   ];
 
   @override
@@ -94,7 +123,6 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Title
         Text(
           'Qual é sua área?',
           style: AppTypography.headlineLarge,
@@ -151,7 +179,6 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
 
         const SizedBox(height: AppSpacing.s32),
 
-        // Category Cards
         ...List.generate(_categories.length, (index) {
           final category = _categories[index];
           return Padding(
@@ -171,7 +198,6 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
 
         const SizedBox(height: AppSpacing.s48),
 
-        // Continue Button
         SizedBox(
           height: 56,
           child: AppButton.primary(

@@ -134,10 +134,10 @@ class _MatchpointSetupWizardScreenState
 
   @override
   Widget build(BuildContext context) {
-    final userType = ref.watch(
-      currentUserProfileProvider.select((value) => value.value?.tipoPerfil),
+    final currentUser = ref.watch(
+      currentUserProfileProvider.select((value) => value.value),
     );
-    if (userType != null && !isMatchpointAvailableForType(userType)) {
+    if (currentUser != null && !_canConfigureMatchpoint(currentUser)) {
       return const MatchpointUnavailableScreen(showBackButton: true);
     }
 
@@ -206,6 +206,33 @@ class _MatchpointSetupWizardScreenState
           ),
         ),
       ),
+    );
+  }
+
+  bool _canConfigureMatchpoint(AppUser user) {
+    final professional = user.dadosProfissional;
+    final rawCategories = <String>[];
+    final rawRoles = <String>[];
+
+    final categories = professional?['categorias'] as List?;
+    if (categories != null) {
+      rawCategories.addAll(categories.whereType<String>());
+    }
+
+    final legacyCategory = professional?['categoria'];
+    if (legacyCategory is String && legacyCategory.isNotEmpty) {
+      rawCategories.add(legacyCategory);
+    }
+
+    final roles = professional?['funcoes'] as List?;
+    if (roles != null) {
+      rawRoles.addAll(roles.whereType<String>());
+    }
+
+    return isMatchpointAvailableForType(
+      user.tipoPerfil,
+      rawCategories: rawCategories,
+      rawRoles: rawRoles,
     );
   }
 

@@ -249,6 +249,30 @@ void main() {
       },
     );
 
+    test(
+      'setProfessionalSubcategory should promote luthier filters to professionals',
+      () async {
+        final controller = container.read(searchControllerProvider.notifier);
+
+        controller.setCategory(SearchCategory.studios);
+        await Future.delayed(Duration.zero);
+
+        controller.setProfessionalSubcategory(ProfessionalSubcategory.luthier);
+        await Future.delayed(const Duration(milliseconds: 20));
+
+        final state = container.read(searchControllerProvider);
+        expect(state.filters.category, SearchCategory.professionals);
+        expect(
+          state.filters.professionalSubcategory,
+          ProfessionalSubcategory.luthier,
+        );
+        expect(
+          fakeSearchRepository.lastSearchFilters?.professionalSubcategory,
+          ProfessionalSubcategory.luthier,
+        );
+      },
+    );
+
     test('setGenres should update genres filter with AND logic', () async {
       // Arrange
       final controller = container.read(searchControllerProvider.notifier);

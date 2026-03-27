@@ -57,6 +57,9 @@ sealed class FeedItem with _$FeedItem {
     return '${distanceKm!.round()} km';
   }
 
+  /// Whether the profile has an avatar photo configured.
+  bool get hasAvatarPhoto => (foto?.trim().isNotEmpty ?? false);
+
   /// Formatted genres (converts snake_case IDs to readable labels)
   List<String> get formattedGenres =>
       generosMusicais.map(_formatGenreLabel).toList();

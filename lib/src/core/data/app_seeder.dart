@@ -11,6 +11,7 @@ import '../../constants/app_constants.dart' as app_constants;
 import '../../constants/firestore_constants.dart';
 import '../../features/auth/domain/user_type.dart';
 import '../../utils/app_logger.dart';
+import '../../utils/category_normalizer.dart';
 import '../domain/app_config.dart';
 import '../providers/firebase_providers.dart';
 import 'app_config_repository.dart';
@@ -588,6 +589,26 @@ class AppSeeder {
     '🔊 DJ e Produtor. Criando beats de {{genre}} há {{years}} anos.',
     '🎵 DJ versátil. De {{genre}} a eletrônico. {{years}} anos na cena carioca.',
   ];
+  static const _bioTemplatesAudiovisual = [
+    '🎥 {{role}} profissional. Conteudo, clipes e eventos ha {{years}} anos.',
+    '🎬 {{role}} criativo(a). Registros, coberturas e backstage em foco.',
+    '🎞️ {{role}} especializado(a) em narrativa visual. {{years}} anos de estrada.',
+  ];
+  static const _bioTemplatesEducation = [
+    '🎓 {{role}} em musica ha {{years}} anos. Aulas, workshops e mentoria.',
+    '📚 {{role}} dedicado(a). Compartilhando conhecimento e pratica no dia a dia.',
+    '🎤 {{role}} com foco em desenvolvimento artistico e tecnico.',
+  ];
+  static const _bioTemplatesLuthier = [
+    '🛠️ {{role}} ha {{years}} anos. Setup, manutencao e reparo de instrumentos.',
+    '🎸 {{role}} especializado(a) em regulagem, restauracao e ajuste fino.',
+    '🔧 {{role}} de confianca para deixar o instrumento pronto para o palco.',
+  ];
+  static const _bioTemplatesPerformance = [
+    '🎭 {{role}} de {{genre}} ha {{years}} anos. Palco, presenca e energia.',
+    '🎵 {{role}} versatil em {{genre}}. Criando momentos fortes ao vivo.',
+    '✨ {{role}} com pegada artistica e repertorio movido por {{genre}}.',
+  ];
   // Band Bios
   static const _bioTemplatesBand = [
     '🎸 Banda de {{genre}} do Rio! Procurando {{role}} para completar a formação.',
@@ -749,6 +770,10 @@ class AppSeeder {
   ) async {
     final productionRolesConfig = appConfig.productionRoles;
     final stageTechRolesConfig = appConfig.stageTechRoles;
+    final audiovisualRolesConfig = appConfig.audiovisualRoles;
+    final educationRolesConfig = appConfig.educationRoles;
+    final luthierRolesConfig = appConfig.luthierRoles;
+    final performanceRolesConfig = appConfig.performanceRoles;
     final instrumentsConfig = appConfig.instruments;
     final genresConfig = appConfig.genres;
 
@@ -766,6 +791,10 @@ class AppSeeder {
         instrumentsConfig: instrumentsConfig,
         productionRolesConfig: productionRolesConfig,
         stageTechRolesConfig: stageTechRolesConfig,
+        audiovisualRolesConfig: audiovisualRolesConfig,
+        educationRolesConfig: educationRolesConfig,
+        luthierRolesConfig: luthierRolesConfig,
+        performanceRolesConfig: performanceRolesConfig,
         firstName: name,
         photoUrl: photoUrl,
       );
@@ -799,6 +828,10 @@ class AppSeeder {
     final instrumentsConfig = appConfig.instruments;
     final productionRolesConfig = appConfig.productionRoles;
     final stageTechRolesConfig = appConfig.stageTechRoles;
+    final audiovisualRolesConfig = appConfig.audiovisualRoles;
+    final educationRolesConfig = appConfig.educationRoles;
+    final luthierRolesConfig = appConfig.luthierRoles;
+    final performanceRolesConfig = appConfig.performanceRoles;
     final studioServicesConfig = appConfig.studioServices;
     final categoriesConfig = appConfig.professionalCategories;
 
@@ -828,6 +861,10 @@ class AppSeeder {
         instrumentsConfig: instrumentsConfig,
         productionRolesConfig: productionRolesConfig,
         stageTechRolesConfig: stageTechRolesConfig,
+        audiovisualRolesConfig: audiovisualRolesConfig,
+        educationRolesConfig: educationRolesConfig,
+        luthierRolesConfig: luthierRolesConfig,
+        performanceRolesConfig: performanceRolesConfig,
         categoriesConfig: categoriesConfig,
         photoUrl: shuffledPhotos[photoIndex++ % shuffledPhotos.length],
       );
@@ -908,6 +945,10 @@ class AppSeeder {
     required List<ConfigItem> instrumentsConfig,
     required List<ConfigItem> productionRolesConfig,
     required List<ConfigItem> stageTechRolesConfig,
+    required List<ConfigItem> audiovisualRolesConfig,
+    required List<ConfigItem> educationRolesConfig,
+    required List<ConfigItem> luthierRolesConfig,
+    required List<ConfigItem> performanceRolesConfig,
     List<ConfigItem> categoriesConfig = const [],
     required String photoUrl,
     String? firstName,
@@ -919,30 +960,57 @@ class AppSeeder {
     final nomeArtistico = _random.nextBool() ? first : null;
 
     // Pick 1-3 professional categories from the active config labels.
-    final categoryLabels = categoriesConfig.isNotEmpty
-        ? categoriesConfig.map((c) => c.label).toList()
-        : ['Instrumentista'];
-    final userCategories = <String>[];
-    userCategories.add(categoryLabels[_random.nextInt(categoryLabels.length)]);
-    if (_random.nextDouble() > 0.5 && categoryLabels.length > 1) {
-      final second = categoryLabels[_random.nextInt(categoryLabels.length)];
-      if (!userCategories.contains(second)) userCategories.add(second);
+    final categoryPool = categoriesConfig.isNotEmpty
+        ? categoriesConfig
+        : app_constants.professionalCategories
+              .map(
+                (c) => ConfigItem(
+                  id: c['id'] as String,
+                  label: c['label'] as String,
+                ),
+              )
+              .toList();
+    final selectedCategories = <ConfigItem>[];
+    selectedCategories.add(categoryPool[_random.nextInt(categoryPool.length)]);
+    if (_random.nextDouble() > 0.5 && categoryPool.length > 1) {
+      final second = categoryPool[_random.nextInt(categoryPool.length)];
+      if (!selectedCategories.contains(second)) selectedCategories.add(second);
     }
-    if (_random.nextDouble() > 0.75 && categoryLabels.length > 2) {
-      final third = categoryLabels[_random.nextInt(categoryLabels.length)];
-      if (!userCategories.contains(third)) userCategories.add(third);
+    if (_random.nextDouble() > 0.75 && categoryPool.length > 2) {
+      final third = categoryPool[_random.nextInt(categoryPool.length)];
+      if (!selectedCategories.contains(third)) selectedCategories.add(third);
     }
+    final selectedCategoryIds = selectedCategories
+        .map((c) => c.id)
+        .toList(growable: false);
+    final selectedCategoryLabels = selectedCategories
+        .map((c) => c.label)
+        .toList(growable: false);
+
+    final requiresGenres = CategoryNormalizer.shouldRequireGenres(
+      rawCategories: selectedCategoryIds,
+      rawRoles: const [],
+    );
 
     // Pick genres
-    final userGenres = _pickGenres(genresConfig, 1, 3);
-    final primaryGenre = userGenres.first;
+    final userGenres = requiresGenres
+        ? _pickGenres(genresConfig, 1, 3)
+        : <ConfigItem>[];
+    final primaryGenre = userGenres.isNotEmpty ? userGenres.first : null;
 
     // Pick instrument based on category
     String? instrument;
     List<String> instruments = [];
     // Functions are specific roles, not categories.
     final List<String> functions = [];
-    if (userCategories.contains('Instrumentista') &&
+    String pickRoleLabel(List<ConfigItem> configs, List<String> fallbackRoles) {
+      if (configs.isNotEmpty) {
+        return configs[_random.nextInt(configs.length)].label;
+      }
+      return fallbackRoles[_random.nextInt(fallbackRoles.length)];
+    }
+
+    if (selectedCategoryIds.contains('instrumentalist') &&
         instrumentsConfig.isNotEmpty) {
       final inst = instrumentsConfig[_random.nextInt(instrumentsConfig.length)];
       instrument = inst.label;
@@ -954,27 +1022,43 @@ class AppSeeder {
         if (!instruments.contains(second.label)) instruments.add(second.label);
       }
     }
-    if (userCategories.contains('Produção Musical')) {
-      final productionRole = productionRolesConfig.isNotEmpty
-          ? productionRolesConfig[_random.nextInt(productionRolesConfig.length)]
-                .label
-          : app_constants.productionRoles[_random.nextInt(
-              app_constants.productionRoles.length,
-            )];
-      functions.add(productionRole);
+    if (selectedCategoryIds.contains('production')) {
+      functions.add(
+        pickRoleLabel(productionRolesConfig, app_constants.productionRoles),
+      );
     }
-    if (userCategories.contains('Técnica de Palco')) {
-      final stageTechRole = stageTechRolesConfig.isNotEmpty
-          ? stageTechRolesConfig[_random.nextInt(stageTechRolesConfig.length)]
-                .label
-          : app_constants.stageTechRoles[_random.nextInt(
-              app_constants.stageTechRoles.length,
-            )];
-      functions.add(stageTechRole);
+    if (selectedCategoryIds.contains('stage_tech')) {
+      functions.add(
+        pickRoleLabel(stageTechRolesConfig, app_constants.stageTechRoles),
+      );
+    }
+    if (selectedCategoryIds.contains('audiovisual')) {
+      functions.add(
+        pickRoleLabel(audiovisualRolesConfig, app_constants.audiovisualRoles),
+      );
+    }
+    if (selectedCategoryIds.contains('education')) {
+      functions.add(
+        pickRoleLabel(educationRolesConfig, app_constants.educationRoles),
+      );
+    }
+    if (selectedCategoryIds.contains('luthier')) {
+      functions.add(
+        pickRoleLabel(luthierRolesConfig, app_constants.luthierRoles),
+      );
+    }
+    if (selectedCategoryIds.contains('performance')) {
+      functions.add(
+        pickRoleLabel(performanceRolesConfig, app_constants.performanceRoles),
+      );
     }
     if (functions.isEmpty &&
         productionRolesConfig.isEmpty &&
-        stageTechRolesConfig.isEmpty) {
+        stageTechRolesConfig.isEmpty &&
+        audiovisualRolesConfig.isEmpty &&
+        educationRolesConfig.isEmpty &&
+        luthierRolesConfig.isEmpty &&
+        performanceRolesConfig.isEmpty) {
       functions.add(_legacyCrewRoles[_random.nextInt(_legacyCrewRoles.length)]);
     }
 
@@ -988,34 +1072,66 @@ class AppSeeder {
 
     // Generate bio based on primary category
     String bio;
-    final primaryCategory = userCategories.first;
+    final primaryCategoryId = selectedCategoryIds.first;
+    final primaryCategoryLabel = selectedCategoryLabels.first;
+    final genreLabel = primaryGenre?.label ?? 'Música';
+    final roleLabel = functions.isNotEmpty
+        ? functions.first
+        : primaryCategoryLabel;
+    final isMatchpointEligible =
+        CategoryNormalizer.isEligibleForHomeAndMatchpoint(
+          rawCategories: selectedCategoryIds,
+          rawRoles: functions,
+        );
     // Use labels from the active config set for the bio templates.
-    if (primaryCategory == 'Cantor(a)') {
+    if (primaryCategoryId == 'singer') {
       bio = _bioTemplatesCantor[_random.nextInt(_bioTemplatesCantor.length)]
-          .replaceAll('{{genre}}', primaryGenre.label)
+          .replaceAll('{{genre}}', genreLabel)
           .replaceAll('{{years}}', years.toString());
-    } else if (primaryCategory == 'DJ') {
+    } else if (primaryCategoryId == 'dj') {
       bio = _bioTemplatesDJ[_random.nextInt(_bioTemplatesDJ.length)]
-          .replaceAll('{{genre}}', primaryGenre.label)
+          .replaceAll('{{genre}}', genreLabel)
           .replaceAll('{{years}}', years.toString());
-    } else if (primaryCategory == 'Produção Musical') {
-      final role = functions.isNotEmpty ? functions.first : 'Produtor Musical';
+    } else if (primaryCategoryId == 'production') {
       bio = _bioTemplatesCrew[_random.nextInt(_bioTemplatesCrew.length)]
-          .replaceAll('{{genre}}', primaryGenre.label)
-          .replaceAll('{{role}}', role)
+          .replaceAll('{{genre}}', genreLabel)
+          .replaceAll('{{role}}', roleLabel)
           .replaceAll('{{years}}', years.toString());
-    } else if (primaryCategory == 'Técnica de Palco') {
-      final role = functions.isNotEmpty ? functions.first : 'Técnico de PA';
+    } else if (primaryCategoryId == 'stage_tech') {
       bio = _bioTemplatesCrew[_random.nextInt(_bioTemplatesCrew.length)]
-          .replaceAll('{{genre}}', primaryGenre.label)
-          .replaceAll('{{role}}', role)
+          .replaceAll('{{genre}}', genreLabel)
+          .replaceAll('{{role}}', roleLabel)
           .replaceAll('{{years}}', years.toString());
+    } else if (primaryCategoryId == 'audiovisual') {
+      bio =
+          _bioTemplatesAudiovisual[_random.nextInt(
+                _bioTemplatesAudiovisual.length,
+              )]
+              .replaceAll('{{role}}', roleLabel)
+              .replaceAll('{{years}}', years.toString());
+    } else if (primaryCategoryId == 'education') {
+      bio =
+          _bioTemplatesEducation[_random.nextInt(_bioTemplatesEducation.length)]
+              .replaceAll('{{role}}', roleLabel)
+              .replaceAll('{{years}}', years.toString());
+    } else if (primaryCategoryId == 'luthier') {
+      bio = _bioTemplatesLuthier[_random.nextInt(_bioTemplatesLuthier.length)]
+          .replaceAll('{{role}}', roleLabel)
+          .replaceAll('{{years}}', years.toString());
+    } else if (primaryCategoryId == 'performance') {
+      bio =
+          _bioTemplatesPerformance[_random.nextInt(
+                _bioTemplatesPerformance.length,
+              )]
+              .replaceAll('{{genre}}', genreLabel)
+              .replaceAll('{{role}}', roleLabel)
+              .replaceAll('{{years}}', years.toString());
     } else {
       bio =
           _bioTemplatesInstrumentista[_random.nextInt(
                 _bioTemplatesInstrumentista.length,
               )]
-              .replaceAll('{{genre}}', primaryGenre.label)
+              .replaceAll('{{genre}}', genreLabel)
               .replaceAll('{{instrument}}', instrument ?? 'Músico')
               .replaceAll('{{years}}', years.toString());
     }
@@ -1042,7 +1158,7 @@ class AppSeeder {
       },
       'profissional': {
         'nomeArtistico': nomeArtistico ?? firstName,
-        'categorias': userCategories.map(_mapProfessionalCategoryToId).toList(),
+        'categorias': selectedCategoryIds,
         'funcoes': functions,
         'instrumentos': instruments,
         'generosMusicais': userGenres.map((g) => g.id).toList(),
@@ -1051,8 +1167,8 @@ class AppSeeder {
         'cache': _random.nextBool() ? '${500 + _random.nextInt(2000)}' : null,
       },
       FirestoreFields.matchpointProfile: {
-        FirestoreFields.isActive: true,
-        'intent': 'join_band',
+        FirestoreFields.isActive: isMatchpointEligible,
+        'intent': isMatchpointEligible ? 'join_band' : null,
         FirestoreFields.musicalGenres: userGenres.map((g) => g.id).toList(),
         'hashtags': hashtags,
         'target_roles': [],
@@ -1325,6 +1441,42 @@ class AppSeeder {
           ),
         )
         .toList();
+    final audiovisualRoles = app_constants.audiovisualRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: app_constants.audiovisualRoles.indexOf(r),
+          ),
+        )
+        .toList();
+    final educationRoles = app_constants.educationRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: app_constants.educationRoles.indexOf(r),
+          ),
+        )
+        .toList();
+    final luthierRoles = app_constants.luthierRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: app_constants.luthierRoles.indexOf(r),
+          ),
+        )
+        .toList();
+    final performanceRoles = app_constants.performanceRoles
+        .map(
+          (r) => ConfigItem(
+            id: _toId(r),
+            label: r,
+            order: app_constants.performanceRoles.indexOf(r),
+          ),
+        )
+        .toList();
     final crewRoleLabels = <String>[
       ...app_constants.productionRoles,
       ...app_constants.stageTechRoles,
@@ -1361,6 +1513,10 @@ class AppSeeder {
             ),
           )
           .toList(),
+      audiovisualRoles: audiovisualRoles,
+      educationRoles: educationRoles,
+      luthierRoles: luthierRoles,
+      performanceRoles: performanceRoles,
       studioServices: app_constants.studioServices
           .map(
             (s) => ConfigItem(
@@ -1383,6 +1539,7 @@ class AppSeeder {
     AppLogger.debug('[AppSeeder] App Config seeded to config/app_data');
   }
 
+  // ignore: unused_element
   static String _mapProfessionalCategoryToId(String label) {
     switch (label) {
       case 'Cantor(a)':
@@ -1395,6 +1552,14 @@ class AppSeeder {
         return 'production';
       case 'Técnica de Palco':
         return 'stage_tech';
+      case 'Audiovisual':
+        return 'audiovisual';
+      case 'Educação':
+        return 'education';
+      case 'Luthier':
+        return 'luthier';
+      case 'Performance':
+        return 'performance';
       case 'Equipe Técnica':
         return 'crew';
       default:
