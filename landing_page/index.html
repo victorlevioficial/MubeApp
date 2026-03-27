@@ -5,482 +5,233 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
-    content="Mube - O app que conecta músicos, bandas, estúdios e profissionais da música em todo o Brasil. Encontre sua banda. Descubra seu som." />
-  <meta name="theme-color" content="#0A0A0A" />
-  <title>Mube — Conectando Músicos</title>
+    content="Mube conecta músicos, bandas, estúdios e contratantes para a próxima formação, gravação ou gig." />
+  <meta name="theme-color" content="#090909" />
+  <title>Mube | A cena não se monta sozinha</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet" />
 
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20260327-spotlight-2" />
 </head>
 
-<body>
-
-  <!-- ========== HEADER ========== -->
-  <header class="header" id="header">
-    <nav class="header__nav container">
-      <a href="#" class="header__logo" aria-label="Mube Home">
-        <img src="assets/logo.svg" alt="Mube" class="header__logo-img">
-      </a>
-
-      <ul class="header__links" id="navLinks">
-        <li><a href="#features" class="header__link">Funcionalidades</a></li>
-        <li><a href="#how-it-works" class="header__link">Como Funciona</a></li>
-      </ul>
-
-      <a href="#download" class="btn btn--primary header__cta">Baixar App</a>
-
-      <button class="header__hamburger" id="hamburger" aria-label="Abrir menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-    </nav>
-
-    <!-- Mobile menu -->
-    <div class="mobile-menu" id="mobileMenu">
-      <ul class="mobile-menu__links">
-        <li><a href="#features" class="mobile-menu__link">Funcionalidades</a></li>
-        <li><a href="#how-it-works" class="mobile-menu__link">Como Funciona</a></li>
-        <li><a href="#download" class="btn btn--primary mobile-menu__cta">Baixar App</a></li>
-      </ul>
-    </div>
-  </header>
-
-  <!-- ========== HERO ========== -->
-  <section class="hero" id="hero">
-    <div class="hero__bg-effects">
-      <div class="hero__glow hero__glow--1"></div>
-      <div class="hero__glow hero__glow--2"></div>
-      <div class="hero__glow hero__glow--3"></div>
-    </div>
-
-    <div class="hero__content container">
-      <div class="hero__text">
-        <span class="hero__badge animate-on-scroll">🎵 A rede dos músicos brasileiros</span>
-        <h1 class="hero__title animate-on-scroll">
-          ENCONTRE SUA BANDA.<br />
-          <span class="hero__title--accent">DESCUBRA SEU SOM.</span>
-        </h1>
-        <p class="hero__description animate-on-scroll">
-          O app que conecta músicos, bandas, estúdios e profissionais da música em todo o Brasil. Crie conexões reais e
-          faça música acontecer.
-        </p>
-        <div class="hero__actions animate-on-scroll">
-          <a href="#download" class="btn btn--primary btn--lg">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Baixar Grátis
-          </a>
-          <a href="#how-it-works" class="btn btn--outline btn--lg">
-            Saiba Mais
-          </a>
-        </div>
-        <div class="hero__proof animate-on-scroll">
-          <div class="hero__avatars">
-            <img src="https://i.pravatar.cc/40?u=maria" alt="Usuário" class="hero__avatar" />
-            <img src="https://i.pravatar.cc/40?u=joao" alt="Usuário" class="hero__avatar" />
-            <img src="https://i.pravatar.cc/40?u=ana" alt="Usuário" class="hero__avatar" />
-            <img src="https://i.pravatar.cc/40?u=pedro" alt="Usuário" class="hero__avatar" />
-          </div>
-          <div class="hero__proof-text">
-            <strong>+5.000 músicos</strong>
-            <span>já estão conectados</span>
-          </div>
-        </div>
+<body id="top">
+  <div class="site-shell">
+    <header class="site-header" aria-label="Topo da página">
+      <div class="wrap">
+        <a class="brand brand--header" href="#top" aria-label="Mube">
+          <img src="assets/landing/brand-horizontal-primary.svg" alt="Mube" />
+        </a>
       </div>
+    </header>
 
-      <div class="hero__visual">
-        <div class="hero__phone">
-          <div class="hero__phone-frame">
-            <div class="hero__phone-screen">
-              <div class="hero__phone-mockup">
-                <!-- Mockup app header -->
-                <div class="mockup__header">
-                  <div class="mockup__logo-small">mube</div>
-                  <div class="mockup__icons">
-                    <div class="mockup__icon-dot"></div>
-                    <div class="mockup__icon-dot"></div>
-                  </div>
+    <main>
+      <section class="section hero">
+        <div class="wrap hero__grid">
+          <div class="hero__copy reveal">
+            <p class="eyebrow">A rede da cena musical brasileira</p>
+            <h1>A cena não se monta sozinha.</h1>
+            <p class="lede">
+              O app que aproxima músicos, bandas, estúdios e contratantes para a próxima formação,
+              gravação ou gig.
+            </p>
+
+            <div class="store-row">
+              <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.mube.mubeoficial&pcampaignid=web_share"
+                target="_blank" rel="noreferrer">
+                <span class="store-badge__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" role="img">
+                    <path
+                      d="M4.8 3.5 14.9 13 4.8 20.5c-.6-.4-.8-.9-.8-1.6V5.1c0-.7.2-1.2.8-1.6Zm11.7 7L19 12.2c.8.4.8 1.2 0 1.6L16.5 15l-2.7-2.5 2.7-2Zm-1.2-.8L6.3 1.4l10.9 6.2-1.9 2.1Zm1.9 6.7L6.3 22.6l9-8.2 1.9 2Z" />
+                  </svg>
+                </span>
+                <span class="store-badge__text">
+                  <small>Disponível no</small>
+                  <strong>Google Play</strong>
+                </span>
+              </a>
+
+              <a class="store-badge" href="https://apps.apple.com/br/app/mube/id6741443354" target="_blank"
+                rel="noreferrer">
+                <span class="store-badge__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" role="img">
+                    <path
+                      d="M16.8 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.5-2.7-1.7-3.2-1.7-1.3-.1-2.6.8-3.2.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.8-3.5 2.1-1.5 2.5-.4 6.2 1 8.2.7 1 1.5 2.1 2.6 2 .9 0 1.3-.6 2.5-.6 1.1 0 1.5.6 2.5.6 1 0 1.7-1 2.4-2 .8-1.2 1.1-2.4 1.1-2.4-.1 0-2.2-.9-2.2-3Zm-2.2-6.3c.6-.8 1-1.9.9-3.1-.9.1-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.2Z" />
+                  </svg>
+                </span>
+                <span class="store-badge__text">
+                  <small>Disponível na</small>
+                  <strong>App Store</strong>
+                </span>
+              </a>
+            </div>
+
+            <div class="hero__meta">
+              <a href="#como-funciona">Ver como funciona</a>
+              <a href="#redes">Instagram e TikTok</a>
+            </div>
+          </div>
+
+          <figure class="hero__photo reveal reveal--delay">
+            <img src="assets/landing/photo-hero-live.jpg" alt="Cantor ao vivo segurando o microfone perto do palco" />
+          </figure>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap split split--scene">
+          <figure class="media-card reveal">
+            <img src="assets/landing/photo-guitar.jpg"
+              alt="Músico tocando guitarra em apresentação com luzes quentes de palco" />
+          </figure>
+
+          <div class="stack reveal reveal--delay">
+            <p class="section-kicker">Feito para quem está na cena</p>
+            <h2>Menos ruído, mais encontro certo.</h2>
+            <p class="section-copy">
+              O Mube não tenta parecer uma rede social genérica. Ele foi pensado para busca real,
+              oportunidade real e conexão que faz sentido para o momento de cada projeto.
+            </p>
+
+            <ul class="detail-list">
+              <li>
+                <strong>Músicos</strong>
+                <span>descobrem gente por estilo, instrumento, cidade e fase do corre.</span>
+              </li>
+              <li>
+                <strong>Bandas e contratantes</strong>
+                <span>encontram quem fecha a formação ou resolve a próxima gig.</span>
+              </li>
+              <li>
+                <strong>Estúdios</strong>
+                <span>ganham um ponto de contato mais direto com quem já está em movimento.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="como-funciona">
+        <div class="wrap split split--process">
+          <div class="stack reveal">
+            <p class="section-kicker">Como funciona</p>
+            <h2>Do perfil ao palco, sem enrolação.</h2>
+
+            <ol class="process-list">
+              <li>
+                <span class="process-list__number">1</span>
+                <div>
+                  <strong>Monte seu perfil</strong>
+                  <p>Mostre estilo, cidade, instrumento e o momento em que você está.</p>
                 </div>
-                <!-- Mockup card -->
-                <div class="mockup__card">
-                  <img
-                    src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/SohoSessions-JUN26-16-Photoroom.png?alt=media&token=d0f4a374-4eeb-4733-86f4-190cc05153f3"
-                    alt="Músico tocando teclado" class="mockup__card-img" />
-                  <div class="mockup__card-info">
-                    <div class="mockup__card-name">Yuri Ricardo</div>
-                    <div class="mockup__card-detail">Tecladista • Rio de Janeiro</div>
-                    <div class="mockup__card-tags">
-                      <span class="mockup__tag">Rock</span>
-                      <span class="mockup__tag">Blues</span>
-                      <span class="mockup__tag">Indie</span>
-                    </div>
-                  </div>
+              </li>
+              <li>
+                <span class="process-list__number">2</span>
+                <div>
+                  <strong>Descubra combinações</strong>
+                  <p>Use busca, feed e MatchPoint para enxergar quem faz sentido para o seu som.</p>
                 </div>
-                <!-- Mockup action buttons -->
-                <div class="mockup__actions">
-                  <div class="mockup__action mockup__action--connect">Conectar</div>
+              </li>
+              <li>
+                <span class="process-list__number">3</span>
+                <div>
+                  <strong>Leve para a conversa</strong>
+                  <p>Fale no chat e transforme interesse em ensaio, gravação, banda ou gig.</p>
                 </div>
-              </div>
+              </li>
+            </ol>
+          </div>
+
+          <figure class="media-card media-card--portrait reveal reveal--delay">
+            <img src="assets/landing/photo-keys.png"
+              alt="Músico tocando teclado durante sessão com iluminação baixa e foco no instrumento" />
+          </figure>
+        </div>
+      </section>
+
+      <section class="section section--spotlight">
+        <div class="wrap spotlight-stage reveal">
+          <div class="spotlight-copy reveal reveal--delay">
+            <p class="section-kicker">Ao vivo</p>
+            <h2>Conexões que saem do perfil e chegam no palco.</h2>
+            <p class="section-copy">
+              Busca, descoberta, conversa e oportunidade em um fluxo mais próximo da vida real da
+              cena musical brasileira.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--cta">
+        <div class="wrap cta-card">
+          <figure class="cta-card__photo reveal">
+            <img src="assets/landing/photo-band-live.jpg"
+              alt="Banda tocando ao vivo com luzes coloridas e público ao fundo" />
+          </figure>
+
+          <div class="cta-card__copy reveal reveal--delay">
+            <p class="section-kicker">Baixe o app</p>
+            <h2>Leve o Mube para a próxima conexão.</h2>
+            <p class="section-copy">
+              Lojas oficiais e redes do app em um só lugar para entrar na cena com o link certo.
+            </p>
+
+            <div class="store-column">
+              <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.mube.mubeoficial&pcampaignid=web_share"
+                target="_blank" rel="noreferrer">
+                <span class="store-badge__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" role="img">
+                    <path
+                      d="M4.8 3.5 14.9 13 4.8 20.5c-.6-.4-.8-.9-.8-1.6V5.1c0-.7.2-1.2.8-1.6Zm11.7 7L19 12.2c.8.4.8 1.2 0 1.6L16.5 15l-2.7-2.5 2.7-2Zm-1.2-.8L6.3 1.4l10.9 6.2-1.9 2.1Zm1.9 6.7L6.3 22.6l9-8.2 1.9 2Z" />
+                  </svg>
+                </span>
+                <span class="store-badge__text">
+                  <small>Disponível no</small>
+                  <strong>Google Play</strong>
+                </span>
+              </a>
+
+              <a class="store-badge" href="https://apps.apple.com/br/app/mube/id6741443354" target="_blank"
+                rel="noreferrer">
+                <span class="store-badge__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor" role="img">
+                    <path
+                      d="M16.8 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.5-2.7-1.7-3.2-1.7-1.3-.1-2.6.8-3.2.8-.7 0-1.7-.8-2.8-.8-1.4 0-2.8.8-3.5 2.1-1.5 2.5-.4 6.2 1 8.2.7 1 1.5 2.1 2.6 2 .9 0 1.3-.6 2.5-.6 1.1 0 1.5.6 2.5.6 1 0 1.7-1 2.4-2 .8-1.2 1.1-2.4 1.1-2.4-.1 0-2.2-.9-2.2-3Zm-2.2-6.3c.6-.8 1-1.9.9-3.1-.9.1-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.2Z" />
+                  </svg>
+                </span>
+                <span class="store-badge__text">
+                  <small>Disponível na</small>
+                  <strong>App Store</strong>
+                </span>
+              </a>
+            </div>
+
+            <div class="social-links" id="redes">
+              <a href="https://www.instagram.com/mube.app/" target="_blank" rel="noreferrer">Instagram</a>
+              <a href="https://www.tiktok.com/@mube.app" target="_blank" rel="noreferrer">TikTok</a>
             </div>
           </div>
         </div>
+      </section>
+    </main>
 
-        <!-- Floating cards -->
-        <div class="hero__float-card hero__float-card--1 animate-float">
-          <div class="float-card__icon">🤝</div>
-          <div class="float-card__text">
-            <strong>Nova conexão!</strong>
-            <span>Banda buscando tecladista</span>
-          </div>
-        </div>
-        <div class="hero__float-card hero__float-card--2 animate-float-delay">
-          <div class="float-card__icon">💬</div>
-          <div class="float-card__text">
-            <strong>Chat Ativo</strong>
-            <span>Converse em tempo real</span>
-          </div>
-        </div>
-        <div class="hero__float-card hero__float-card--3 animate-float-delay-2">
-          <div class="float-card__icon">📍</div>
-          <div class="float-card__text">
-            <strong>Perto de você</strong>
-            <span>23 músicos na região</span>
-          </div>
+    <footer class="site-footer">
+      <div class="wrap footer-row">
+        <span>Mube</span>
+        <div class="footer-links">
+          <a href="/manual/">Manual da marca</a>
+          <a href="/politicadeprivacidade/">Política de privacidade</a>
+          <a href="/termosdeuso/">Termos de uso</a>
         </div>
       </div>
-    </div>
+    </footer>
+  </div>
 
-    <div class="hero__scroll-indicator">
-      <div class="hero__scroll-mouse">
-        <div class="hero__scroll-wheel"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== FEATURES BENTO ========== -->
-  <section class="features" id="features">
-    <div class="container">
-      <div class="section-header animate-on-scroll">
-        <span class="section-tag">Funcionalidades</span>
-        <h2 class="section-title">Tudo que você precisa <span class="text-gradient">em um só app</span></h2>
-        <p class="section-subtitle">Ferramentas poderosas para conectar, descobrir e criar música juntos.</p>
-      </div>
-
-      <div class="features__grid">
-        <!-- Large card: MatchPoint -->
-        <div class="feature-card feature-card--lg animate-on-scroll" data-delay="0">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--primary">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Conexões Inteligentes</h3>
-          <p class="feature-card__desc">Sistema de recomendação que conecta músicos compatíveis baseado em gêneros,
-            instrumentos e localização. Encontre as pessoas certas para o seu projeto.</p>
-          <div class="feature-card__visual">
-            <div class="feature-card__swipe-demo">
-              <div class="swipe-card swipe-card--back">
-                <img
-                  src="https://images.pexels.com/photos/8512613/pexels-photo-8512613.jpeg?auto=compress&cs=tinysrgb&w=200&h=250&dpr=1"
-                  alt="Banda" />
-              </div>
-              <div class="swipe-card swipe-card--front">
-                <img
-                  src="https://firebasestorage.googleapis.com/v0/b/mube-63a93.firebasestorage.app/o/C1AB23F4-E56C-4C5D-9DA5-4B88D8AC3134.JPG.jpeg?alt=media&token=8a9a0f50-eaa1-483c-bd07-e5a02d58a550"
-                  alt="Músico" />
-                <span class="swipe-card__label">🤝 Conectar</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Large card: Search -->
-        <div class="feature-card feature-card--lg animate-on-scroll" data-delay="100">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--blue">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Busca Inteligente</h3>
-          <p class="feature-card__desc">Encontre músicos, bandas e estúdios por localização, gênero musical,
-            instrumentos e muito mais. Filtros avançados para achar exatamente o que você procura.</p>
-          <div class="feature-card__filter-pills">
-            <span class="filter-pill">🎸 Guitarra</span>
-            <span class="filter-pill">🎤 Vocal</span>
-            <span class="filter-pill">🥁 Bateria</span>
-            <span class="filter-pill">📍 São Paulo</span>
-            <span class="filter-pill">🎵 Rock</span>
-          </div>
-        </div>
-
-        <!-- Small card: Chat -->
-        <div class="feature-card animate-on-scroll" data-delay="200">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--green">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Chat em Tempo Real</h3>
-          <p class="feature-card__desc">Converse instantaneamente com suas conexões. Troque ideias, marque
-            ensaios e compartilhe músicas.</p>
-        </div>
-
-        <!-- Small card: Profiles -->
-        <div class="feature-card animate-on-scroll" data-delay="300">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--purple">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Perfis Completos</h3>
-          <p class="feature-card__desc">Mostre seu talento com galeria de fotos, vídeos, instrumentos, gêneros e
-            experiência musical.</p>
-        </div>
-
-        <!-- Small card: Favorites -->
-        <div class="feature-card animate-on-scroll" data-delay="400">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--amber">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Favoritos</h3>
-          <p class="feature-card__desc">Salve perfis que chamaram sua atenção para acessar rapidamente depois.</p>
-        </div>
-
-        <!-- Small card: Notifications -->
-        <div class="feature-card animate-on-scroll" data-delay="500">
-          <div class="feature-card__icon-wrap feature-card__icon-wrap--rose">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </div>
-          <h3 class="feature-card__title">Notificações</h3>
-          <p class="feature-card__desc">Receba alertas sobre novas conexões, mensagens e atividades relevantes na sua
-            região.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========== HOW IT WORKS ========== -->
-  <section class="how-it-works" id="how-it-works">
-    <div class="container">
-      <div class="section-header animate-on-scroll">
-        <span class="section-tag">Como Funciona</span>
-        <h2 class="section-title">Comece em <span class="text-gradient">3 passos simples</span></h2>
-        <p class="section-subtitle">Do download até sua primeira conexão musical, tudo rápido e intuitivo.</p>
-      </div>
-
-      <div class="steps">
-        <div class="steps__line"></div>
-
-        <div class="step animate-on-scroll" data-delay="0">
-          <div class="step__number">01</div>
-          <div class="step__icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-          <h3 class="step__title">Crie seu Perfil</h3>
-          <p class="step__desc">Monte seu perfil com suas habilidades, instrumentos, gêneros musicais e disponibilidade.
-            Mostre ao mundo seu talento.</p>
-        </div>
-
-        <div class="step animate-on-scroll" data-delay="200">
-          <div class="step__number">02</div>
-          <div class="step__icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </div>
-          <h3 class="step__title">Descubra Talentos</h3>
-          <p class="step__desc">Explore milhares de músicos, bandas e estúdios próximos a você com filtros inteligentes
-            de busca.</p>
-        </div>
-
-        <div class="step animate-on-scroll" data-delay="400">
-          <div class="step__number">03</div>
-          <div class="step__icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </div>
-          <h3 class="step__title">Conecte-se &amp; Crie</h3>
-          <p class="step__desc">Faça conexões, converse em tempo real e comece a criar música juntos. Sua próxima banda
-            está
-            a um clique de distância.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
-
-
-
-  <!-- ========== DOWNLOAD CTA ========== -->
-  <section class="download" id="download">
-    <div class="download__bg-effects">
-      <div class="download__glow download__glow--1"></div>
-      <div class="download__glow download__glow--2"></div>
-    </div>
-
-    <div class="container download__content">
-      <div class="animate-on-scroll">
-        <h2 class="download__title">Pronto para encontrar sua <span class="text-gradient">conexão musical?</span></h2>
-        <p class="download__desc">Junte-se a milhares de músicos que já estão usando o Mube para transformar a cena
-          musical brasileira.</p>
-      </div>
-
-      <div class="download__badges animate-on-scroll">
-        <!-- App Store Badge -->
-        <a href="#" class="download__badge" aria-label="Baixar na App Store">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-          </svg>
-          <div>
-            <span class="download__badge-sub">Disponível na</span>
-            <span class="download__badge-main">App Store</span>
-          </div>
-        </a>
-
-        <!-- Google Play Badge -->
-        <a href="#" class="download__badge" aria-label="Disponível no Google Play">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.61 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z" />
-          </svg>
-          <div>
-            <span class="download__badge-sub">Disponível no</span>
-            <span class="download__badge-main">Google Play</span>
-          </div>
-        </a>
-      </div>
-
-
-    </div>
-  </section>
-
-  <!-- ========== FOOTER ========== -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer__grid">
-        <div class="footer__brand">
-          <a href="#" class="footer__logo" aria-label="Mube">
-            <svg class="footer__logo-icon" viewBox="0 0 750 750" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="375" cy="375" r="375" fill="#e8466c" />
-              <path
-                d="M586.09,443.47c0,37.28-30.22,67.5-67.5,67.5-9.54,0-18.61-1.98-26.84-5.55-23.92-10.37-40.66-34.21-40.66-61.95v-241.87c0-4.81-1.97-9.19-5.14-12.36-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,.47-.01.94-.04,1.41v6.23c-.08,37.22-30.27,67.36-67.5,67.36-6.04,0-11.89-.79-17.45-2.28-28.09-7.49-48.96-32.65-50-62.85v-194.24c0-.43-.02-.86-.05-1.28-.31-4.3-2.2-8.19-5.09-11.08-3.17-3.17-7.55-5.14-12.36-5.14-9.62,0-17.5,7.87-17.5,17.5v284.37c0,13.75-11.25,25-25,25s-25-11.25-25-25v-284.37c.08-37.22,30.27-67.36,67.5-67.36,6.03,0,11.88.79,17.45,2.29,28.09,7.48,48.96,32.64,50,62.84v194.24c0,.43.02.86.05,1.28.31,4.3,2.2,8.19,5.09,11.08,3.17,3.17,7.55,5.14,12.36,5.14,9.62,0,17.5-7.87,17.5-17.5V209.24c0-.47,0-.94.04-1.41v-6.23c.08-37.22,30.27-67.36,67.5-67.36s67.42,30.14,67.5,67.36v176.66c5.58-1.49,11.45-2.29,17.5-2.29,37.28,0,67.5,30.22,67.5,67.5Z"
-                fill="#fff" />
-            </svg>
-            <span class="footer__logo-text">mube</span>
-          </a>
-          <p class="footer__tagline">Conectando músicos em todo o Brasil. Crie conexões reais e faça música acontecer.
-          </p>
-          <div class="footer__social">
-            <a href="#" class="footer__social-link" aria-label="Instagram">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-              </svg>
-            </a>
-            <a href="#" class="footer__social-link" aria-label="TikTok">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1 0-5.78c.27 0 .54.04.8.1V9.01a6.27 6.27 0 0 0-.8-.05 6.34 6.34 0 1 0 6.34 6.34V9.38a8.16 8.16 0 0 0 3.77.94V6.87a4.83 4.83 0 0 1-.01-.18z" />
-              </svg>
-            </a>
-            <a href="#" class="footer__social-link" aria-label="YouTube">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path
-                  d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
-              </svg>
-            </a>
-            <a href="#" class="footer__social-link" aria-label="Twitter/X">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-          </div>
-        </div>
-
-        <div class="footer__links-group">
-          <h4 class="footer__links-title">Produto</h4>
-          <ul class="footer__links">
-            <li><a href="#features">Funcionalidades</a></li>
-            <li><a href="#how-it-works">Como Funciona</a></li>
-            <li><a href="#download">Download</a></li>
-          </ul>
-        </div>
-
-        <div class="footer__links-group">
-          <h4 class="footer__links-title">Empresa</h4>
-          <ul class="footer__links">
-            <li><a href="#">Sobre nós</a></li>
-            <li><a href="#">Blog</a></li>
-            <li><a href="#">Carreiras</a></li>
-            <li><a href="#">Imprensa</a></li>
-          </ul>
-        </div>
-
-        <div class="footer__links-group">
-          <h4 class="footer__links-title">Legal</h4>
-          <ul class="footer__links">
-            <li><a href="/politicadeprivacidade">Privacidade</a></li>
-            <li><a href="/termosdeuso">Termos de Uso</a></li>
-            <li><a href="#download">Contato</a></li>
-            <li><a href="mailto:suporte@mubeapp.com.br">suporte@mubeapp.com.br</a></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="footer__bottom">
-        <p>&copy; 2026 Mube. Todos os direitos reservados.</p>
-        <p class="footer__made">Feito com ❤️ para a música brasileira</p>
-      </div>
-    </div>
-  </footer>
-
-  <script src="script.js"></script>
+  <script src="script.js?v=20260327-spotlight-2"></script>
 </body>
 
 </html>
