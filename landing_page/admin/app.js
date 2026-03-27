@@ -1,1124 +1,1585 @@
-/* ============================================
-   Mube Admin Panel — app.js
-   Firebase Auth + Cloud Functions Integration
-   ============================================ */
+(function () {
+  "use strict";
 
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyA9uPQy-IFGxFjqJ5bAHGS_gxK8S91jwBo",
-  authDomain: "mube-63a93.firebaseapp.com",
-  projectId: "mube-63a93",
-  storageBucket: "mube-63a93.firebasestorage.app",
-  messagingSenderId: "798301748829",
-  appId: "1:798301748829:web:f1b96526dcd3f99b47d7b4",
-};
+  const REGION = "southamerica-east1";
+  const FUNCTION_REGIONS = {
+    getConversationAdminDetail: "us-central1",
+    listGigsAdmin: "us-central1",
+    getGigAdminDetail: "us-central1",
+    getMatchpointAdminOverview: "us-central1",
+    getSystemAdminData: "us-central1",
+    inspectFirestorePath: "us-central1",
+    inspectStoragePrefix: "us-central1",
+  };
+  const SECTION_META = {
+    dashboard: { title: "Dashboard", kicker: "Visao geral do backend", loader: loadDashboard },
+    users: { title: "Usuarios", kicker: "Base, perfis e moderacao", loader: loadUsers },
+    conversations: { title: "Conversas", kicker: "Chat, mensagens e compliance", loader: loadConversations },
+    gigs: { title: "Gigs", kicker: "Marketplace e operacao", loader: loadGigs },
+    matchpoint: { title: "MatchPoint", kicker: "Matching, hashtags e ranking", loader: loadMatchpoint },
+    featured: { title: "Perfis em destaque", kicker: "Curadoria do feed", loader: loadFeatured },
+    reports: { title: "Denuncias", kicker: "Moderacao e processamento", loader: loadReports },
+    suspensions: { title: "Suspensoes", kicker: "Controle de acesso", loader: loadSuspensions },
+    tickets: { title: "Tickets", kicker: "Suporte e resposta administrativa", loader: loadTickets },
+    system: { title: "Sistema", kicker: "Infra, config e exploradores", loader: loadSystem },
+  };
 
-// Initialize only if not already initialized by hosting init.js
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const functions = firebase.app().functions("southamerica-east1");
+  const ui = {
+    loginScreen: requiredElement("login-screen"),
+    loginForm: requiredElement("login-form"),
+    loginEmail: requiredElement("login-email"),
+    loginPassword: requiredElement("login-password"),
+    loginButton: requiredElement("login-btn"),
+    loginError: requiredElement("login-error"),
+    adminShell: requiredElement("admin-shell"),
+    sidebar: requiredElement("sidebar"),
+    sidebarScrim: requiredElement("sidebar-scrim"),
+    sidebarOpen: requiredElement("sidebar-open"),
+    sidebarClose: requiredElement("sidebar-close"),
+    sidebarAdminEmail: requiredElement("sidebar-admin-email"),
+    topbarAdminEmail: requiredElement("topbar-admin-email"),
+    logoutButton: requiredElement("logout-btn"),
+    pageKicker: requiredElement("page-kicker"),
+    pageTitle: requiredElement("page-title"),
+    refreshActiveSection: requiredElement("refresh-active-section"),
+    navItems: Array.from(document.querySelectorAll(".nav-item[data-section]")),
+    pageSections: Array.from(document.querySelectorAll(".page-section")),
+    detailDrawer: requiredElement("detail-drawer"),
+    detailDrawerScrim: requiredElement("detail-drawer-scrim"),
+    drawerClose: requiredElement("drawer-close"),
+    drawerKicker: requiredElement("drawer-kicker"),
+    drawerTitle: requiredElement("drawer-title"),
+    drawerSubtitle: requiredElement("drawer-subtitle"),
+    drawerBody: requiredElement("drawer-body"),
+    toast: requiredElement("toast"),
+    dashboardQuickStats: requiredElement("dashboard-quick-stats"),
+    dashboardMetrics: requiredElement("dashboard-metrics"),
+    dashboardHealth: requiredElement("dashboard-health"),
+    dashboardActivity: requiredElement("dashboard-activity"),
+    dashboardAudit: requiredElement("dashboard-audit"),
+    usersRefreshButton: requiredElement("users-refresh-btn"),
+    userSearchInput: requiredElement("user-search-input"),
+    usersStatusFilter: requiredElement("users-status-filter"),
+    usersProfileFilter: requiredElement("users-profile-filter"),
+    usersRegistrationFilter: requiredElement("users-registration-filter"),
+    usersPageSize: requiredElement("users-page-size"),
+    userSearchButton: requiredElement("user-search-btn"),
+    userClearButton: requiredElement("user-clear-btn"),
+    usersSummary: requiredElement("users-summary"),
+    usersResults: requiredElement("users-results"),
+    usersLoadMoreButton: requiredElement("users-load-more-btn"),
+    conversationSearchInput: requiredElement("conversation-search-input"),
+    conversationLimitSelect: requiredElement("conversation-limit-select"),
+    conversationsRefreshButton: requiredElement("conversations-refresh-btn"),
+    conversationsList: requiredElement("conversations-list"),
+    conversationsDetail: requiredElement("conversations-detail"),
+    gigSearchInput: requiredElement("gig-search-input"),
+    gigStatusFilter: requiredElement("gig-status-filter"),
+    gigLimitSelect: requiredElement("gig-limit-select"),
+    gigsRefreshButton: requiredElement("gigs-refresh-btn"),
+    gigsList: requiredElement("gigs-list"),
+    gigsDetail: requiredElement("gigs-detail"),
+    matchpointRefreshButton: requiredElement("matchpoint-refresh-btn"),
+    matchpointSummary: requiredElement("matchpoint-summary"),
+    matchpointHashtags: requiredElement("matchpoint-hashtags"),
+    matchpointMatches: requiredElement("matchpoint-matches"),
+    matchpointInteractions: requiredElement("matchpoint-interactions"),
+    featuredUidInput: requiredElement("featured-uid-input"),
+    featuredLookupButton: requiredElement("featured-lookup-btn"),
+    featuredAddButton: requiredElement("featured-add-btn"),
+    featuredPreview: requiredElement("featured-preview"),
+    featuredSaveButton: requiredElement("featured-save-btn"),
+    featuredList: requiredElement("featured-list"),
+    reportsFilter: requiredElement("reports-filter"),
+    reportsList: requiredElement("reports-list"),
+    suspendUidInput: requiredElement("suspend-uid"),
+    suspendReasonInput: requiredElement("suspend-reason"),
+    suspendDaysInput: requiredElement("suspend-days"),
+    suspendConfirmButton: requiredElement("suspend-confirm-btn"),
+    suspensionsFilter: requiredElement("suspensions-filter"),
+    suspensionsList: requiredElement("suspensions-list"),
+    ticketsFilter: requiredElement("tickets-filter"),
+    ticketsList: requiredElement("tickets-list"),
+    ticketsDetail: requiredElement("tickets-detail"),
+    systemRefreshButton: requiredElement("system-refresh-btn"),
+    systemConfigCards: requiredElement("system-config-cards"),
+    systemTranscodeJobs: requiredElement("system-transcode-jobs"),
+    firestorePathInput: requiredElement("firestore-path-input"),
+    firestoreLimitSelect: requiredElement("firestore-limit-select"),
+    firestoreInspectButton: requiredElement("firestore-inspect-btn"),
+    firestoreExplorerResult: requiredElement("firestore-explorer-result"),
+    storagePrefixInput: requiredElement("storage-prefix-input"),
+    storageLimitSelect: requiredElement("storage-limit-select"),
+    storageInspectButton: requiredElement("storage-inspect-btn"),
+    storageExplorerResult: requiredElement("storage-explorer-result"),
+  };
 
-// ============================================
-// STATE
-// ============================================
-let currentUser = null;
-let featuredUids = [];
-let featuredProfiles = [];
-let matchpointAuditState = null;
-let selectedAdminUser = null;
-const usersState = {
-  items: [],
-  baseTotal: null,
-  nextCursor: null,
-  hasMore: false,
-  loading: false,
-  mode: "browse",
-};
-const DEFAULT_AVATAR_DATA_URL =
-  "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 " +
-  "viewBox=%220 0 40 40%22><rect fill=%22%231a1a26%22 width=%2240%22 " +
-  "height=%2240%22/><text x=%2250%%22 y=%2255%%22 text-anchor=%22middle%22 " +
-  "fill=%22%238b8ba0%22 font-size=%2216%22>?</text></svg>";
+  const firebaseApp = firebase.app();
+  const auth = firebase.auth();
+  const functionsByRegion = {};
 
-// ============================================
-// DOM REFS
-// ============================================
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
+  const state = {
+    activeSection: resolveInitialSection(),
+    sectionLoaded: {},
+    authUser: null,
+    dashboard: null,
+    dashboardAudit: null,
+    users: { items: [], mode: "list", totalUsersBase: 0, scannedCount: 0, total: 0, hasMore: false, nextCursor: null },
+    userDetail: null,
+    conversations: { items: [], total: 0, selectedId: "", detail: null },
+    gigs: { items: [], total: 0, selectedId: "", detail: null },
+    matchpoint: null,
+    featured: { uids: [], profiles: [], preview: null },
+    reports: [],
+    suspensions: [],
+    tickets: { items: [], selectedId: "" },
+    system: { data: null, firestoreResult: null, storageResult: null },
+    drawerPayloads: Object.create(null),
+    toastTimer: null,
+  };
 
-const loginScreen = $("#login-screen");
-const adminPanel = $("#admin-panel");
-const loginForm = $("#login-form");
-const loginError = $("#login-error");
-const loginBtn = $("#login-btn");
-const logoutBtn = $("#logout-btn");
-const pageTitle = $("#page-title");
-const adminEmail = $("#admin-email");
-const matchpointAuditBody = $("#matchpoint-audit-body");
-const matchpointAuditRefreshBtn = $("#matchpoint-audit-refresh-btn");
-const userSearchInput = $("#user-search-input");
-const userSearchResults = $("#user-search-results");
-const userSearchBtn = $("#user-search-btn");
-const userClearBtn = $("#user-clear-btn");
-const usersRefreshBtn = $("#users-refresh-btn");
-const usersStatusFilter = $("#users-status-filter");
-const usersProfileFilter = $("#users-profile-filter");
-const usersRegistrationFilter = $("#users-registration-filter");
-const usersPageSize = $("#users-page-size");
-const usersLoadMoreBtn = $("#users-load-more-btn");
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function () {
+    return null;
+  });
 
-// ============================================
-// AUTH
-// ============================================
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    const token = await user.getIdTokenResult();
-    if (token.claims.admin) {
-      currentUser = user;
-      loginScreen.classList.add("hidden");
-      adminPanel.classList.remove("hidden");
-      adminEmail.textContent = user.email;
-      loadDashboard();
+  bindStaticEvents();
+  exposeDebugHandle();
+  setLoggedOutUI();
+  auth.onAuthStateChanged(handleAuthStateChanged);
+
+  function bindStaticEvents() {
+    ui.loginForm.addEventListener("submit", onLoginSubmit);
+    ui.logoutButton.addEventListener("click", onLogoutClick);
+    ui.sidebarOpen.addEventListener("click", openSidebar);
+    ui.sidebarClose.addEventListener("click", closeSidebar);
+    ui.sidebarScrim.addEventListener("click", closeSidebar);
+    ui.detailDrawerScrim.addEventListener("click", closeDrawer);
+    ui.drawerClose.addEventListener("click", closeDrawer);
+    ui.refreshActiveSection.addEventListener("click", function () {
+      activateSection(state.activeSection, { force: true }).catch(handleError);
+    });
+    ui.navItems.forEach(function (button) {
+      button.addEventListener("click", function () {
+        activateSection(button.dataset.section).catch(handleError);
+      });
+    });
+
+    ui.usersRefreshButton.addEventListener("click", function () { loadUsers({ force: true, reset: true }).catch(handleError); });
+    ui.userSearchButton.addEventListener("click", function () { loadUsers({ force: true, reset: true }).catch(handleError); });
+    ui.userClearButton.addEventListener("click", function () {
+      ui.userSearchInput.value = "";
+      ui.usersStatusFilter.value = "all";
+      ui.usersProfileFilter.value = "all";
+      ui.usersRegistrationFilter.value = "all";
+      loadUsers({ force: true, reset: true }).catch(handleError);
+    });
+    ui.usersLoadMoreButton.addEventListener("click", function () { loadUsers({ append: true }).catch(handleError); });
+    ui.userSearchInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        loadUsers({ force: true, reset: true }).catch(handleError);
+      }
+    });
+    [ui.usersStatusFilter, ui.usersProfileFilter, ui.usersRegistrationFilter, ui.usersPageSize].forEach(function (element) {
+      element.addEventListener("change", function () {
+        loadUsers({ force: true, reset: true }).catch(handleError);
+      });
+    });
+
+    ui.conversationsRefreshButton.addEventListener("click", function () { loadConversations({ force: true }).catch(handleError); });
+    ui.conversationSearchInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        loadConversations({ force: true }).catch(handleError);
+      }
+    });
+    ui.conversationLimitSelect.addEventListener("change", function () { loadConversations({ force: true }).catch(handleError); });
+
+    ui.gigsRefreshButton.addEventListener("click", function () { loadGigs({ force: true }).catch(handleError); });
+    ui.gigSearchInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        loadGigs({ force: true }).catch(handleError);
+      }
+    });
+    ui.gigStatusFilter.addEventListener("change", function () { loadGigs({ force: true }).catch(handleError); });
+    ui.gigLimitSelect.addEventListener("change", function () { loadGigs({ force: true }).catch(handleError); });
+
+    ui.matchpointRefreshButton.addEventListener("click", function () { loadMatchpoint({ force: true }).catch(handleError); });
+    ui.featuredLookupButton.addEventListener("click", function () { lookupFeaturedPreview().catch(handleError); });
+    ui.featuredAddButton.addEventListener("click", function () {
+      if (state.featured.preview) {
+        addFeaturedFromUid(stringValue(state.featured.preview.uid)).catch(handleError);
+      }
+    });
+    ui.featuredUidInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        lookupFeaturedPreview().catch(handleError);
+      }
+    });
+    ui.featuredSaveButton.addEventListener("click", function () { saveFeaturedProfiles().catch(handleError); });
+    ui.reportsFilter.addEventListener("change", function () { loadReports({ force: true }).catch(handleError); });
+    ui.suspendConfirmButton.addEventListener("click", function () { createSuspension().catch(handleError); });
+    ui.suspensionsFilter.addEventListener("change", function () { loadSuspensions({ force: true }).catch(handleError); });
+    ui.ticketsFilter.addEventListener("change", function () { loadTickets({ force: true }).catch(handleError); });
+    ui.systemRefreshButton.addEventListener("click", function () { loadSystem({ force: true }).catch(handleError); });
+    ui.firestoreInspectButton.addEventListener("click", function () { inspectFirestorePath().catch(handleError); });
+    ui.storageInspectButton.addEventListener("click", function () { inspectStoragePrefix().catch(handleError); });
+    ui.firestorePathInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        inspectFirestorePath().catch(handleError);
+      }
+    });
+    ui.storagePrefixInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        inspectStoragePrefix().catch(handleError);
+      }
+    });
+
+    document.addEventListener("click", onDocumentActionClick);
+    window.addEventListener("hashchange", function () {
+      const section = resolveInitialSection();
+      if (section !== state.activeSection && state.authUser) {
+        activateSection(section).catch(handleError);
+      }
+    });
+    window.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeDrawer();
+        closeSidebar();
+      }
+    });
+  }
+
+  function exposeDebugHandle() {
+    window.mubeAdmin = {
+      state: state,
+      activateSection: activateSection,
+      openUserDetail: openUserDetail,
+      refresh: function () {
+        return activateSection(state.activeSection, { force: true });
+      },
+    };
+  }
+
+  async function handleAuthStateChanged(user) {
+    if (!user) {
+      state.authUser = null;
+      setLoggedOutUI();
+      return;
+    }
+
+    setLoginLoading(true, "Validando acesso...");
+    try {
+      await ensureAdminAccess(user);
+      state.authUser = user;
+      setLoggedInUI(user);
+      await activateSection(state.activeSection, { force: true });
+    } catch (error) {
+      await auth.signOut().catch(function () { return null; });
+      showLoginError(getErrorMessage(error));
+      setLoggedOutUI();
+    } finally {
+      setLoginLoading(false, "Entrar");
+    }
+  }
+
+  async function onLoginSubmit(event) {
+    event.preventDefault();
+    hideLoginError();
+    const email = ui.loginEmail.value.trim();
+    const password = ui.loginPassword.value;
+    if (!email || !password) {
+      showLoginError("Informe email e senha para entrar.");
+      return;
+    }
+    setLoginLoading(true, "Entrando...");
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (error) {
+      showLoginError(getErrorMessage(error));
+      setLoginLoading(false, "Entrar");
+    }
+  }
+
+  async function onLogoutClick() {
+    setButtonBusy(ui.logoutButton, true);
+    try {
+      await auth.signOut();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setButtonBusy(ui.logoutButton, false);
+    }
+  }
+
+  async function ensureAdminAccess(user) {
+    let tokenResult = await user.getIdTokenResult(true);
+    if (tokenResult.claims && tokenResult.claims.admin === true) {
+      return tokenResult;
+    }
+
+    const email = user.email || ui.loginEmail.value.trim();
+    if (!email) {
+      throw new Error("Nao foi possivel validar a conta administrativa.");
+    }
+
+    try {
+      await callFunction("setAdminClaim", { email: email });
+      await user.getIdToken(true);
+      tokenResult = await user.getIdTokenResult(true);
+      if (tokenResult.claims && tokenResult.claims.admin === true) {
+        showToast("Acesso administrativo habilitado para esta conta.", "success");
+        return tokenResult;
+      }
+    } catch (error) {
+      if (!isPermissionDeniedError(error)) {
+        throw error;
+      }
+    }
+
+    throw new Error("Sua conta autenticou, mas ainda nao possui permissao de admin.");
+  }
+
+  async function activateSection(section, options) {
+    const settings = options || {};
+    if (!SECTION_META[section]) {
+      section = "dashboard";
+    }
+    state.activeSection = section;
+    ui.navItems.forEach(function (button) {
+      button.classList.toggle("is-active", button.dataset.section === section);
+    });
+    ui.pageSections.forEach(function (panel) {
+      const isActive = panel.id === "section-" + section;
+      panel.classList.toggle("hidden", !isActive);
+      panel.classList.toggle("is-active", isActive);
+    });
+    ui.pageTitle.textContent = SECTION_META[section].title;
+    ui.pageKicker.textContent = SECTION_META[section].kicker;
+    window.history.replaceState(null, "", "#" + section);
+    closeSidebar();
+
+    const shouldReload = settings.force === true || state.sectionLoaded[section] !== true;
+    if (state.authUser && shouldReload) {
+      await SECTION_META[section].loader({ force: settings.force === true, reset: settings.reset === true });
+      state.sectionLoaded[section] = true;
+    }
+  }
+
+  async function loadDashboard(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.dashboard) {
+      renderDashboard();
+      return;
+    }
+
+    setLoadingMarkup(ui.dashboardQuickStats, "Carregando visao executiva...", "query_stats");
+    setLoadingMarkup(ui.dashboardMetrics, "Carregando indicadores...", "insights");
+    setLoadingMarkup(ui.dashboardHealth, "Avaliando saude operacional...", "monitor_heart");
+    setLoadingMarkup(ui.dashboardActivity, "Montando linhas do tempo...", "schedule");
+    setLoadingMarkup(ui.dashboardAudit, "Buscando buckets de auditoria...", "analytics");
+
+    const results = await Promise.all([
+      callFunction("getDashboardOverview", {}),
+      callFunction("getMatchpointRankingAuditDashboard", { limit: 12 }).catch(function () { return null; }),
+    ]);
+    state.dashboard = results[0] || null;
+    state.dashboardAudit = results[1] || null;
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    if (!state.dashboard) {
+      setLoadingMarkup(ui.dashboardQuickStats, "Nenhum dado de dashboard disponivel.", "dashboard");
+      return;
+    }
+
+    const counts = asObject(state.dashboard.counts);
+    ui.dashboardQuickStats.innerHTML = [
+      renderSummaryCard({ icon: "groups", label: "Usuarios totais", value: formatNumber(counts.totalUsers), text: formatNumber(counts.completedProfiles) + " com cadastro concluido" }),
+      renderSummaryCard({ icon: "forum", label: "Conversas", value: formatNumber(counts.totalConversations), text: formatNumber(counts.totalMatches) + " matches registrados" }),
+      renderSummaryCard({ icon: "event_note", label: "Gigs", value: formatNumber(counts.totalGigs), text: formatNumber(counts.openGigs) + " abertas agora" }),
+      renderSummaryCard({ icon: "support_agent", label: "Tickets abertos", value: formatNumber(counts.openTickets), text: formatNumber(counts.pendingReports) + " denuncias pendentes" }),
+    ].join("");
+
+    ui.dashboardMetrics.innerHTML = [
+      renderMetricCard({ icon: "radio_button_checked", label: "Perfis MatchPoint ativos", value: formatNumber(counts.activeMatchpointProfiles), text: "Usuarios com perfil ativo no motor de matching" }),
+      renderMetricCard({ icon: "swap_horiz", label: "Interacoes", value: formatNumber(counts.totalInteractions), text: "Likes e dislikes acumulados" }),
+      renderMetricCard({ icon: "gpp_bad", label: "Suspensoes ativas", value: formatNumber(counts.activeSuspensions), text: "Contas com acesso bloqueado" }),
+      renderMetricCard({ icon: "video_settings", label: "Transcodes em processamento", value: formatNumber(counts.processingTranscodes), text: formatNumber(counts.featuredProfiles) + " perfis em destaque" }),
+    ].join("");
+
+    ui.dashboardHealth.innerHTML = [
+      healthCard("Denuncias pendentes", counts.pendingReports, counts.pendingReports > 0 ? "pill-red" : "pill-green", counts.pendingReports > 0 ? "Existe fila de moderacao aguardando tratamento." : "Fila de denuncias sem pendencias relevantes."),
+      healthCard("Tickets abertos", counts.openTickets, counts.openTickets > 4 ? "pill-yellow" : "pill-blue", counts.openTickets > 4 ? "Vale revisar tempos de resposta do suporte." : "Atendimento sob controle."),
+      healthCard("Jobs de transcode", counts.processingTranscodes, counts.processingTranscodes > 0 ? "pill-blue" : "pill-green", counts.processingTranscodes > 0 ? "Pipeline de video com trabalhos em andamento." : "Nenhum job ativo no momento."),
+      healthCard("Curadoria do feed", counts.featuredProfiles, counts.featuredProfiles === 0 ? "pill-red" : "pill-accent", counts.featuredProfiles === 0 ? "A lista de destaques esta vazia." : "Lista de destaque pronta para o app."),
+    ].join("");
+
+    ui.dashboardActivity.innerHTML = [
+      timelineColumn("Usuarios recentes", "person_add", asArray(state.dashboard.recentUsers).slice(0, 4).map(function (user) {
+        return timelineItem(
+          escapeHtml(stringValue(user.nome, stringValue(user.uid))),
+          [escapeHtml(stringValue(user.email, "Sem email")), escapeHtml(stringValue(user.displayLocation, "Local nao informado"))].join(" | "),
+          badgeHtml(stringValue(user.statusLabel, "Ativo"), stringValue(user.statusKey, "active")),
+          actionButton("open-user", "Ver", "visibility", { uid: stringValue(user.uid) }, "secondary")
+        );
+      })),
+      timelineColumn("Conversas recentes", "forum", asArray(state.dashboard.recentConversations).slice(0, 4).map(function (conversation) {
+        const participants = asArray(conversation.participants).map(function (user) {
+          return stringValue(user.nome, stringValue(user.uid));
+        }).filter(Boolean);
+        return timelineItem(
+          escapeHtml(participants.join(" x ") || stringValue(conversation.id)),
+          escapeHtml(stringValue(conversation.lastMessageText, "Sem ultima mensagem")),
+          badgeHtml(stringValue(conversation.type, "direct"), stringValue(conversation.type, "active")),
+          actionButton("open-conversation", "Abrir", "chat", { conversationId: stringValue(conversation.id) }, "secondary")
+        );
+      })),
+      timelineColumn("Gigs recentes", "event_note", asArray(state.dashboard.recentGigs).slice(0, 4).map(function (gig) {
+        return timelineItem(
+          escapeHtml(stringValue(gig.title, "Gig sem titulo")),
+          escapeHtml([stringValue(asObject(gig.creator).nome, "Criador nao identificado"), "Candidaturas: " + formatNumber(gig.applicantCount)].join(" | ")),
+          badgeHtml(stringValue(gig.status, "open"), stringValue(gig.status, "open")),
+          actionButton("open-gig", "Detalhar", "event_repeat", { gigId: stringValue(gig.id) }, "secondary")
+        );
+      })),
+      timelineColumn("Operacao recente", "warning_amber", [
+        timelineItem("Tickets mais novos", escapeHtml(asArray(state.dashboard.recentTickets).length > 0 ? asArray(state.dashboard.recentTickets).map(function (doc) {
+          return stringValue(asObject(doc.data).subject, stringValue(doc.id));
+        }).slice(0, 3).join(", ") : "Nenhum ticket recente"), badgeHtml(formatNumber(counts.openTickets) + " abertos", "open"), actionButton("open-section", "Suporte", "support_agent", { section: "tickets" }, "secondary")),
+        timelineItem("Trending hashtags", escapeHtml(asArray(state.dashboard.trendingHashtags).slice(0, 3).map(function (tag) {
+          return "#" + stringValue(tag.label);
+        }).join(", ") || "Sem hashtags"), badgeHtml(formatNumber(asArray(state.dashboard.trendingHashtags).length) + " itens", "processed"), actionButton("open-section", "MatchPoint", "bolt", { section: "matchpoint" }, "secondary")),
+        timelineItem("Config do app", escapeHtml(state.dashboard.configSummary && state.dashboard.configSummary.exists ? "Documento app_data encontrado." : "Documento app_data nao encontrado."), badgeHtml(state.dashboard.configSummary && state.dashboard.configSummary.exists ? "Disponivel" : "Ausente", state.dashboard.configSummary && state.dashboard.configSummary.exists ? "processed" : "pending"), actionButton("open-section", "Sistema", "memory", { section: "system" }, "secondary")),
+      ]),
+    ].join("");
+
+    const audit = state.dashboardAudit;
+    if (audit && asArray(audit.buckets).length > 0) {
+      const summary = asObject(audit.summary);
+      ui.dashboardAudit.innerHTML = [
+        stackCard("Resumo acumulado", ["Eventos: " + formatNumber(summary.totalEvents), "Pool medio/evento: " + formatDecimal(summary.averagePoolPerEvent), "Retorno medio/evento: " + formatDecimal(summary.averageReturnedPerEvent), "Buckets com geohash: " + formatNumber(summary.geohashUsedCount)].join(" | "), pillHtml("Auditoria ativa", "pill-blue")),
+      ].concat(asArray(audit.buckets).slice(0, 8).map(function (bucket) {
+        return stackCard("Bucket " + formatDateTime(bucket.bucketStart), ["Eventos: " + formatNumber(bucket.totalEvents), "Pool: " + formatNumber(bucket.poolTotal), "Retornados: " + formatNumber(bucket.returnedTotal), "Proximidade: " + formatNumber(bucket.returnedProximity)].join(" | "), pillHtml("Geohash " + formatNumber(bucket.geohashUsedCount), "pill-accent"));
+      })).join("");
     } else {
-      showLoginError("Conta sem permissão de administrador.");
-      auth.signOut();
+      ui.dashboardAudit.innerHTML = renderEmptyState("Nenhuma auditoria de ranking encontrada.", "analytics");
     }
-  } else {
-    currentUser = null;
-    loginScreen.classList.remove("hidden");
-    adminPanel.classList.add("hidden");
-  }
-});
-
-loginForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = $("#login-email").value;
-  const password = $("#login-password").value;
-
-  setLoginLoading(true);
-  hideLoginError();
-
-  try {
-    await auth.signInWithEmailAndPassword(email, password);
-  } catch (err) {
-    showLoginError(translateAuthError(err.code));
-  } finally {
-    setLoginLoading(false);
-  }
-});
-
-logoutBtn.addEventListener("click", () => auth.signOut());
-
-function setLoginLoading(loading) {
-  loginBtn.querySelector(".btn-text").classList.toggle("hidden", loading);
-  loginBtn.querySelector(".btn-loader").classList.toggle("hidden", !loading);
-  loginBtn.disabled = loading;
-}
-
-function showLoginError(msg) {
-  loginError.textContent = msg;
-  loginError.classList.remove("hidden");
-}
-
-function hideLoginError() {
-  loginError.classList.add("hidden");
-}
-
-function translateAuthError(code) {
-  const map = {
-    "auth/user-not-found": "Usuário não encontrado.",
-    "auth/wrong-password": "Senha incorreta.",
-    "auth/invalid-email": "Email inválido.",
-    "auth/too-many-requests": "Muitas tentativas. Tente mais tarde.",
-    "auth/invalid-credential": "Credenciais inválidas.",
-  };
-  return map[code] || "Erro ao fazer login.";
-}
-
-// ============================================
-// NAVIGATION
-// ============================================
-$$(".nav-item").forEach((item) => {
-  item.addEventListener("click", () => {
-    const section = item.dataset.section;
-    $$(".nav-item").forEach((n) => n.classList.remove("active"));
-    item.classList.add("active");
-    $$(".section").forEach((s) => s.classList.add("hidden"));
-    $(`#section-${section}`).classList.remove("hidden");
-    pageTitle.textContent = item.querySelector("span:last-child").textContent;
-    loadSectionData(section);
-  });
-});
-
-function loadSectionData(section) {
-  switch (section) {
-    case "dashboard": loadDashboard(); break;
-    case "featured": loadFeatured(); break;
-    case "users": loadUsersSection({ reset: true }); break;
-    case "reports": loadReports(); break;
-    case "suspensions": loadSuspensions(); break;
-    case "tickets": loadTickets(); break;
-  }
-}
-
-// ============================================
-// DASHBOARD
-// ============================================
-async function loadDashboard() {
-  try {
-    const result = await functions.httpsCallable("getDashboardStats")();
-    const d = result.data;
-    $("#stat-users").textContent = formatNumber(d.totalUsers);
-    $("#stat-new24h").textContent = formatNumber(d.newUsers24h);
-    $("#stat-new7d").textContent = formatNumber(d.newUsers7d);
-    $("#stat-reports").textContent = formatNumber(d.pendingReports);
-    $("#stat-suspensions").textContent = formatNumber(d.activeSuspensions);
-    $("#stat-tickets").textContent = formatNumber(d.openTickets);
-  } catch (err) {
-    console.error("Dashboard error:", err);
-    toast("Erro ao carregar dashboard", "error");
   }
 
-  try {
-    await loadMatchpointAuditDashboard();
-  } catch (err) {
-    console.error("Dashboard audit error:", err);
-  }
-}
+  async function loadUsers(options) {
+    const settings = options || {};
+    const search = (ui.userSearchInput.value || "").trim();
+    const pageSize = Math.min(toInteger(ui.usersPageSize.value, 24), 60);
+    const filters = {
+      status: ui.usersStatusFilter.value || "all",
+      profileType: ui.usersProfileFilter.value || "all",
+      registrationStatus: ui.usersRegistrationFilter.value || "all",
+    };
 
-async function loadMatchpointAuditDashboard() {
-  if (matchpointAuditBody) {
-    matchpointAuditBody.innerHTML =
-      '<p class="empty-state">Carregando auditoria do MatchPoint...</p>';
-  }
-
-  try {
-    const result = await functions
-      .httpsCallable("getMatchpointRankingAuditDashboard")({ limit: 24 });
-    matchpointAuditState = result.data || null;
-    renderMatchpointAuditDashboard(matchpointAuditState);
-    return result;
-  } catch (err) {
-    console.error("MatchPoint audit error:", err);
-    if (matchpointAuditBody) {
-      matchpointAuditBody.innerHTML =
-        `<p class="empty-state" style="color:red;font-weight:bold;">` +
-        `Erro ao carregar auditoria do MatchPoint: ${esc(err.message || "desconhecido")}` +
-        `</p>`;
+    if (settings.reset || !settings.append) {
+      state.users.nextCursor = null;
     }
-    throw err;
-  }
-}
 
-function renderMatchpointAuditDashboard(data) {
-  if (!matchpointAuditBody) return;
+    if (search) {
+      setLoadingMarkup(ui.usersResults, "Buscando usuarios...", "search");
+      const response = await callFunction("searchUsers", {
+        query: search,
+        limit: Math.min(pageSize, 50),
+      });
+      state.users.items = asArray(response.results || response.users);
+      state.users.total = toInteger(response.total, state.users.items.length);
+      state.users.mode = "search";
+      state.users.hasMore = false;
+      state.users.totalUsersBase = state.users.total;
+      renderUsers();
+      return;
+    }
 
-  const summary = data?.summary || {};
-  const buckets = Array.isArray(data?.buckets) ? data.buckets : [];
+    if (!settings.append) {
+      setLoadingMarkup(ui.usersResults, "Carregando base de usuarios...", "groups");
+    }
 
-  if (buckets.length === 0) {
-    matchpointAuditBody.innerHTML = `
-      <p class="empty-state">
-        Ainda nao existem buckets de auditoria do MatchPoint para exibir.
-      </p>
-    `;
-    return;
-  }
-
-  const totalEvents = numberOrZero(summary.totalEvents);
-  const totalReturned = numberOrZero(summary.returnedTotal);
-  const geohashUsedCount = numberOrZero(summary.geohashUsedCount);
-  const returnedProximity = numberOrZero(summary.returnedProximity);
-  const returnedHashtag = numberOrZero(summary.returnedHashtag);
-  const returnedGenre = numberOrZero(summary.returnedGenre);
-  const returnedFallback = numberOrZero(summary.returnedFallback);
-  const returnedLocalTotal = numberOrZero(summary.returnedLocalTotal);
-  const returnedLocalHashtag = numberOrZero(summary.returnedLocalHashtag);
-  const returnedLocalGenre = numberOrZero(summary.returnedLocalGenre);
-
-  matchpointAuditBody.innerHTML = `
-    <div class="audit-summary-grid">
-      <div class="audit-summary-card">
-        <span class="audit-summary-label">Eventos (24 buckets)</span>
-        <span class="audit-summary-value">${formatNumber(totalEvents)}</span>
-        <span class="audit-summary-meta">${formatNumber(totalReturned)} perfis retornados</span>
-      </div>
-      <div class="audit-summary-card">
-        <span class="audit-summary-label">Media por busca</span>
-        <span class="audit-summary-value">${formatDecimal(summary.averageReturnedPerEvent)}</span>
-        <span class="audit-summary-meta">${formatDecimal(summary.averagePoolPerEvent)} perfis no pool</span>
-      </div>
-      <div class="audit-summary-card">
-        <span class="audit-summary-label">Busca com geohash</span>
-        <span class="audit-summary-value">${formatPercent(geohashUsedCount, totalEvents)}</span>
-        <span class="audit-summary-meta">${formatNumber(geohashUsedCount)}/${formatNumber(totalEvents)} eventos</span>
-      </div>
-      <div class="audit-summary-card">
-        <span class="audit-summary-label">Mix retornado</span>
-        <span class="audit-summary-value">P ${formatPercent(returnedProximity, totalReturned)}</span>
-        <span class="audit-summary-meta">H ${formatPercent(returnedHashtag, totalReturned)} | G ${formatPercent(returnedGenre, totalReturned)} | F ${formatPercent(returnedFallback, totalReturned)}</span>
-      </div>
-      <div class="audit-summary-card">
-        <span class="audit-summary-label">Locais com afinidade</span>
-        <span class="audit-summary-value">H ${formatNumber(returnedLocalHashtag)} | G ${formatNumber(returnedLocalGenre)}</span>
-        <span class="audit-summary-meta">${formatNumber(returnedLocalTotal)} perfis dentro do raio</span>
-      </div>
-    </div>
-    <div class="audit-buckets">
-      ${buckets.slice(0, 8).map((bucket) => `
-        <div class="audit-bucket">
-          <div>
-            <div class="audit-bucket-title">${formatAuditBucketStart(bucket.bucketStart)}</div>
-            <div class="audit-bucket-meta">
-              ${formatNumber(bucket.totalEvents)} buscas | ${formatNumber(bucket.returnedTotal)} perfis retornados | ${formatNumber(bucket.poolTotal)} no pool
-            </div>
-          </div>
-          <div class="audit-bucket-right">
-            <div class="audit-bucket-mix">
-              P ${formatNumber(bucket.returnedProximity)} | H ${formatNumber(bucket.returnedHashtag)} | G ${formatNumber(bucket.returnedGenre)} | F ${formatNumber(bucket.returnedFallback)}
-            </div>
-            <div class="audit-bucket-extra">
-              Locais ${formatNumber(bucket.returnedLocalTotal)} | H ${formatNumber(bucket.returnedLocalHashtag)} | G ${formatNumber(bucket.returnedLocalGenre)}
-            </div>
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-// ============================================
-// FEATURED PROFILES
-// ============================================
-async function loadFeatured() {
-  try {
-    const result = await functions.httpsCallable("getFeaturedProfiles")();
-    featuredUids = result.data.uids || [];
-    featuredProfiles = result.data.profiles || [];
-    renderFeaturedList();
-  } catch (err) {
-    console.error("Featured error:", err);
-    toast("Erro ao carregar destaques", "error");
-  }
-}
-
-function renderFeaturedList() {
-  const list = $("#featured-list");
-  const saveBtn = $("#featured-save-btn");
-
-  if (featuredProfiles.length === 0) {
-    list.innerHTML = '<p class="empty-state">Nenhum perfil em destaque. Adicione usando o campo acima.</p>';
-    saveBtn.classList.remove("hidden"); // <-- BOTÃO FICA VISÍVEL MESMO COM LISTA VAZIA
-    return;
-  }
-
-  list.innerHTML = featuredProfiles
-    .map((p, i) => `
-      <div class="featured-item" data-uid="${p.uid}">
-        <span class="order">${i + 1}</span>
-        <img class="user-avatar" src="${p.foto || ''}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect fill=%22%231a1a26%22 width=%2240%22 height=%2240%22/><text x=%2250%%22 y=%2255%%22 text-anchor=%22middle%22 fill=%22%238b8ba0%22 font-size=%2216%22>?</text></svg>'">
-        <div class="user-info">
-          <div class="name">${esc(p.nome)}</div>
-          <div class="meta">${esc(p.tipoPerfil)} · ${esc(p.cidade)} · ❤ ${p.likeCount}</div>
-        </div>
-        <div class="actions">
-          <button class="btn btn-sm btn-danger" onclick="removeFeatured('${p.uid}')">
-            <span class="material-icons-round">close</span>
-          </button>
-        </div>
-      </div>
-    `)
-    .join("");
-
-  saveBtn.classList.remove("hidden");
-}
-
-// Lookup user for preview
-$("#featured-lookup-btn").addEventListener("click", async () => {
-  const uid = $("#featured-uid-input").value.trim();
-  if (!uid) return;
-
-  try {
-    const result = await functions.httpsCallable("lookupUser")({ uid });
-    const u = result.data;
-    const preview = $("#featured-preview");
-    preview.innerHTML = `
-      <img class="user-avatar" src="${u.foto || ''}" alt="" onerror="this.src='${DEFAULT_AVATAR_DATA_URL}'">
-      <div class="user-info">
-        <div class="name">${esc(u.nome)}</div>
-        <div class="meta">${esc(u.tipoPerfilLabel || u.tipoPerfil)} · ${esc(u.cidade || '—')} · ❤ ${u.likeCount || 0} · Status: ${esc(u.statusLabel || u.status)}</div>
-      </div>
-    `;
-    preview.classList.remove("hidden");
-    $("#featured-add-btn").classList.remove("hidden");
-    $("#featured-add-btn").dataset.uid = uid;
-  } catch (err) {
-    toast("Usuário não encontrado", "error");
-    $("#featured-preview").classList.add("hidden");
-    $("#featured-add-btn").classList.add("hidden");
-  }
-});
-
-// Add to featured
-$("#featured-add-btn").addEventListener("click", () => {
-  const uid = $("#featured-add-btn").dataset.uid;
-  if (!uid || featuredUids.includes(uid)) {
-    toast("Perfil já está na lista", "error");
-    return;
-  }
-
-  const preview = $("#featured-preview");
-  const name = preview.querySelector(".name")?.textContent || "";
-  const meta = preview.querySelector(".meta")?.textContent || "";
-  const foto = preview.querySelector(".user-avatar")?.src || "";
-
-  featuredUids.push(uid);
-  featuredProfiles.push({
-    uid,
-    nome: name,
-    foto: foto,
-    tipoPerfil: meta.split(" · ")[0] || "",
-    cidade: meta.split(" · ")[1] || "",
-    likeCount: 0,
-  });
-
-  renderFeaturedList();
-  $("#featured-uid-input").value = "";
-  preview.classList.add("hidden");
-  $("#featured-add-btn").classList.add("hidden");
-  toast("Perfil adicionado! Clique em Salvar para confirmar.", "success");
-});
-
-// Remove from featured
-window.removeFeatured = function (uid) {
-  featuredUids = featuredUids.filter((u) => u !== uid);
-  featuredProfiles = featuredProfiles.filter((p) => p.uid !== uid);
-  renderFeaturedList();
-  toast("Perfil removido. Salve para confirmar.", "success");
-};
-
-// Save featured
-$("#featured-save-btn").addEventListener("click", async () => {
-  try {
-    await functions.httpsCallable("setFeaturedProfiles")({ uids: featuredUids });
-    toast("Perfis em destaque salvos!", "success");
-  } catch (err) {
-    console.error("Save featured error:", err);
-    toast("Erro ao salvar destaques", "error");
-  }
-});
-
-// ============================================
-// USERS
-// ============================================
-function readUsersFilters() {
-  return {
-    status: usersStatusFilter?.value || "all",
-    profileType: usersProfileFilter?.value || "all",
-    registrationStatus: usersRegistrationFilter?.value || "all",
-    pageSize: parseInt(usersPageSize?.value || "24", 10) || 24,
-  };
-}
-
-function matchesUsersUiFilters(user, filters = readUsersFilters()) {
-  if (filters.status !== "all" && (user.statusKey || user.status) !== filters.status) {
-    return false;
-  }
-
-  if (
-    filters.profileType !== "all" &&
-    (user.tipoPerfil || "").toLowerCase() !== filters.profileType
-  ) {
-    return false;
-  }
-
-  if (
-    filters.registrationStatus !== "all" &&
-    user.cadastroStatus !== filters.registrationStatus
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-function getDisplayedUsers() {
-  const filters = readUsersFilters();
-  return usersState.items.filter((user) => matchesUsersUiFilters(user, filters));
-}
-
-function updateUsersSummary(displayedUsers) {
-  $("#users-total-base").textContent = formatNumber(usersState.baseTotal);
-  $("#users-loaded-count").textContent = formatNumber(displayedUsers.length);
-  $("#users-pending-count").textContent = formatNumber(
-    displayedUsers.filter((user) => user.cadastroStatus !== "concluido").length
-  );
-  $("#users-suspended-count").textContent = formatNumber(
-    displayedUsers.filter((user) => (user.statusKey || user.status) === "suspended").length
-  );
-}
-
-function updateUsersLoadMoreButton() {
-  if (!usersLoadMoreBtn) return;
-
-  const canLoadMore = usersState.mode === "browse" && usersState.hasMore;
-  usersLoadMoreBtn.classList.toggle("hidden", !canLoadMore);
-  usersLoadMoreBtn.disabled = usersState.loading;
-
-  const label = usersLoadMoreBtn.querySelector("span:last-child");
-  if (label) {
-    label.textContent = usersState.loading ? "Carregando..." : "Carregar mais";
-  }
-}
-
-function renderUsersEmptyState(message) {
-  updateUsersSummary([]);
-  userSearchResults.innerHTML = `<p class="empty-state">${esc(message)}</p>`;
-  updateUsersLoadMoreButton();
-}
-
-function renderUserCard(user) {
-  const statusKey = user.statusKey || user.status || "active";
-  const statusLabel = user.statusLabel || user.status || "Ativo";
-  const cadastroKey = user.cadastroStatusKey || "type-pending";
-  const cadastroLabel = user.cadastroStatusLabel || user.cadastroStatus || "—";
-  const categoryLabel = user.tipoPerfilLabel || user.tipoPerfil || "Sem categoria";
-  const location = [user.bairro, user.cidade].filter(Boolean).join(" · ") ||
-    user.estado ||
-    "Localização pendente";
-
-  return `
-    <div class="user-preview user-preview-extended" onclick="showUserDetail('${user.uid}')">
-      <img class="user-avatar" src="${user.foto || ''}" alt="" onerror="this.src='${DEFAULT_AVATAR_DATA_URL}'">
-      <div class="user-info">
-        <div class="user-card-header">
-          <div class="name">${esc(user.nome || "Sem nome")}</div>
-          <div class="user-badges">
-            <span class="badge badge-neutral">${esc(categoryLabel)}</span>
-            <span class="badge badge-${statusKey}">${esc(statusLabel)}</span>
-            <span class="badge badge-${cadastroKey}">${esc(cadastroLabel)}</span>
-          </div>
-        </div>
-        <div class="meta">${esc(location)}</div>
-        <div class="user-kv-grid">
-          <span><strong>UID:</strong> <span class="mono-text">${esc(user.uid || "—")}</span></span>
-          <span><strong>Email:</strong> ${esc(user.email || "—")}</span>
-          <span><strong>Criado:</strong> ${formatDate(user.createdAt)}</span>
-          <span><strong>Último login:</strong> ${formatDate(user.lastSignInAt)}</span>
-        </div>
-        <div class="user-inline-stats">
-          <span>❤ ${formatNumber(user.likeCount || 0)}</span>
-          <span>Reports ${formatNumber(user.reportCount || 0)}</span>
-          <span>Suspensões ${formatNumber(user.suspensionCount || 0)}</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderUsersList() {
-  const displayedUsers = getDisplayedUsers();
-  updateUsersSummary(displayedUsers);
-
-  if (displayedUsers.length === 0) {
-    const hasQuery = userSearchInput.value.trim().length > 0;
-    const message = usersState.items.length > 0 ?
-      "Nenhum usuário corresponde aos filtros atuais." :
-      hasQuery ? "Nenhum usuário encontrado." : "Nenhum usuário carregado.";
-    renderUsersEmptyState(message);
-    return;
-  }
-
-  userSearchResults.innerHTML = displayedUsers.map((user) => renderUserCard(user)).join("");
-  updateUsersLoadMoreButton();
-}
-
-async function loadUsersSection({ reset = false } = {}) {
-  if (usersState.loading) return;
-
-  const query = userSearchInput.value.trim();
-  if (query) {
-    await searchAdminUsers();
-    return;
-  }
-
-  if (reset) {
-    usersState.items = [];
-    usersState.nextCursor = null;
-    usersState.hasMore = false;
-  }
-
-  const filters = readUsersFilters();
-  usersState.loading = true;
-  usersState.mode = "browse";
-  updateUsersLoadMoreButton();
-
-  if (reset) {
-    userSearchResults.innerHTML = '<p class="empty-state">Carregando usuários...</p>';
-  }
-
-  try {
-    const result = await functions.httpsCallable("listUsersAdmin")({
-      pageSize: filters.pageSize,
-      cursor: reset ? null : usersState.nextCursor,
+    const response = await callFunction("listUsersAdmin", {
+      pageSize: pageSize,
+      cursor: settings.append ? state.users.nextCursor : null,
       status: filters.status,
       profileType: filters.profileType,
       registrationStatus: filters.registrationStatus,
-      includeTotal: reset || usersState.baseTotal === null,
+      includeTotal: !settings.append,
     });
 
-    const data = result.data || {};
-    const incomingUsers = Array.isArray(data.users) ? data.users : [];
-    usersState.items = reset ?
-      incomingUsers :
-      [...usersState.items, ...incomingUsers];
-    usersState.nextCursor = data.nextCursor || null;
-    usersState.hasMore = data.hasMore === true;
-
-    if (data.totalUsersBase !== undefined && data.totalUsersBase !== null) {
-      usersState.baseTotal = data.totalUsersBase;
-    }
-
-    renderUsersList();
-  } catch (err) {
-    console.error("Users list error:", err);
-    renderUsersEmptyState("Erro ao carregar usuários.");
-  } finally {
-    usersState.loading = false;
-    updateUsersLoadMoreButton();
-  }
-}
-
-async function searchAdminUsers() {
-  const query = userSearchInput.value.trim();
-  if (!query) {
-    await loadUsersSection({ reset: true });
-    return;
+    const incoming = asArray(response.users);
+    state.users.mode = "list";
+    state.users.items = settings.append ? state.users.items.concat(incoming) : incoming;
+    state.users.total = state.users.items.length;
+    state.users.totalUsersBase = toInteger(response.totalUsersBase, settings.append ? state.users.totalUsersBase : incoming.length);
+    state.users.scannedCount = toInteger(response.scannedCount, 0);
+    state.users.hasMore = response.hasMore === true;
+    state.users.nextCursor = response.nextCursor || null;
+    renderUsers();
   }
 
-  usersState.loading = true;
-  usersState.mode = "search";
-  usersState.hasMore = false;
-  updateUsersLoadMoreButton();
-  userSearchResults.innerHTML = '<p class="empty-state">Buscando usuários...</p>';
+  function renderUsers() {
+    const users = state.users.items;
+    ui.usersSummary.innerHTML = [
+      renderSummaryCard({ icon: "groups", label: "Usuarios carregados", value: formatNumber(users.length), text: state.users.mode === "search" ? "Resultado da busca atual" : "Pagina exibida agora" }),
+      renderSummaryCard({ icon: "database", label: "Base total", value: formatNumber(state.users.totalUsersBase), text: "Contagem base do collection users" }),
+      renderSummaryCard({ icon: "gpp_bad", label: "Suspensos na pagina", value: formatNumber(users.filter(function (user) { return stringValue(user.statusKey, stringValue(user.status)) === "suspended"; }).length), text: "Filtro local sobre os itens retornados" }),
+      renderSummaryCard({ icon: "bolt", label: "MatchPoint ativo", value: formatNumber(users.filter(function (user) { return user.matchpointActive === true; }).length), text: "Perfis ativos no matching" }),
+    ].join("");
 
-  try {
-    const result = await functions.httpsCallable("searchUsers")({
-      query,
-      limit: readUsersFilters().pageSize,
+    ui.usersResults.innerHTML = users.length > 0 ?
+      users.map(renderUserCard).join("") :
+      renderEmptyState("Nenhum usuario encontrado com os filtros atuais.", "person_search");
+    ui.usersLoadMoreButton.classList.toggle("hidden", !state.users.hasMore || state.users.mode !== "list");
+  }
+
+  function renderUserCard(user) {
+    const uid = stringValue(user.uid);
+    return [
+      "<article class=\"card-row\">",
+      avatarMarkup(stringValue(user.foto), stringValue(user.nome, uid), true),
+      "<div class=\"card-copy\">",
+      "<h3>" + escapeHtml(stringValue(user.nome, uid)) + "</h3>",
+      "<p>" + escapeHtml(buildUserSubtitle(user)) + "</p>",
+      "<div class=\"card-meta\">",
+      badgeHtml(stringValue(user.statusLabel, "Ativo"), stringValue(user.statusKey, "active")),
+      badgeHtml(stringValue(user.cadastroStatusLabel, "Cadastro"), registrationBadgeKey(stringValue(user.cadastroStatusKey, stringValue(user.cadastroStatus)))),
+      pillHtml(stringValue(user.tipoPerfilLabel, stringValue(user.tipoPerfil, "Perfil")), "pill-blue"),
+      "</div>",
+      "<div class=\"card-tags\">",
+      pillHtml(formatNumber(user.likeCount) + " likes", "pill-accent"),
+      pillHtml(formatNumber(user.reportCount) + " reports", user.reportCount > 0 ? "pill-yellow" : "pill-green"),
+      user.matchpointActive === true ? pillHtml("MatchPoint ativo", "pill-green") : "",
+      "</div>",
+      "</div>",
+      "<div class=\"card-actions\">",
+      actionButton("open-user", "Ver tudo", "visibility", { uid: uid }, "secondary"),
+      actionButton("prepare-suspension", "Suspender", "gpp_bad", { uid: uid }, "ghost"),
+      actionButton("add-featured-user", "Destacar", "stars", { uid: uid }, "secondary"),
+      "</div>",
+      "</article>",
+    ].join("");
+  }
+
+  async function openUserDetail(uid) {
+    if (!uid) return;
+
+    openDrawer({
+      kicker: "Usuario",
+      title: uid,
+      subtitle: "Carregando detalhes administrativos...",
+      html: renderEmptyState("Buscando perfil, auth, moderacao e relacoes...", "manage_accounts"),
     });
-    usersState.items = Array.isArray(result.data?.results) ? result.data.results : [];
-    renderUsersList();
-  } catch (err) {
-    console.error("Search error:", err);
-    renderUsersEmptyState("Erro na busca.");
-  } finally {
-    usersState.loading = false;
-    updateUsersLoadMoreButton();
-  }
-}
 
-function closeUserModal() {
-  $("#user-detail-modal").classList.add("hidden");
-}
+    const detail = await callFunction("getUserAdminDetail", { uid: uid });
+    state.userDetail = detail;
+    const profile = asObject(detail.profile);
+    const payloadKey = "user-raw-" + uid;
+    registerDrawerPayload(payloadKey, {
+      kicker: "Usuario",
+      title: stringValue(profile.nome, uid),
+      subtitle: "JSON bruto consolidado",
+      data: detail,
+    });
 
-userSearchBtn.addEventListener("click", async () => {
-  if (userSearchInput.value.trim()) {
-    await searchAdminUsers();
-    return;
-  }
-
-  await loadUsersSection({ reset: true });
-});
-
-userSearchInput.addEventListener("keydown", async (e) => {
-  if (e.key === "Enter") {
-    if (userSearchInput.value.trim()) {
-      await searchAdminUsers();
-    } else {
-      await loadUsersSection({ reset: true });
-    }
-  }
-});
-
-userClearBtn.addEventListener("click", async () => {
-  userSearchInput.value = "";
-  await loadUsersSection({ reset: true });
-});
-
-usersRefreshBtn.addEventListener("click", async () => {
-  if (userSearchInput.value.trim()) {
-    await searchAdminUsers();
-    return;
+    openDrawer({
+      kicker: "Usuario",
+      title: stringValue(profile.nome, uid),
+      subtitle: [stringValue(profile.email, "Sem email"), stringValue(profile.tipoPerfilLabel, "Perfil nao definido"), stringValue(profile.displayLocation)].filter(Boolean).join(" | "),
+      html: renderUserDrawer(detail, payloadKey),
+    });
   }
 
-  await loadUsersSection({ reset: true });
-});
+  function renderUserDrawer(detail, payloadKey) {
+    const profile = asObject(detail.profile);
+    const authData = asObject(detail.auth);
+    const moderation = asObject(detail.moderation);
+    const interactions = asObject(detail.interactions);
+    const counts = [
+      { label: "Likes", value: formatNumber(profile.likeCount) },
+      { label: "Reports", value: formatNumber(profile.reportCount) },
+      { label: "Suspensoes", value: formatNumber(profile.suspensionCount) },
+      { label: "Bloqueados", value: formatNumber(profile.blockedUsersCount) },
+      { label: "Favoritos", value: formatNumber(asArray(detail.favoritesSent).length) },
+      { label: "Conversas preview", value: formatNumber(asArray(detail.conversationPreviews).length) },
+      { label: "Gigs criadas", value: formatNumber(asArray(detail.gigsCreated).length) },
+      { label: "Aplicacoes", value: formatNumber(asArray(detail.gigApplications).length) },
+      { label: "Tickets", value: formatNumber(asArray(detail.tickets).length) },
+      { label: "Matches", value: formatNumber(asArray(detail.matches).length) },
+      { label: "Interacoes enviadas", value: formatNumber(asArray(interactions.sent).length) },
+      { label: "Interacoes recebidas", value: formatNumber(asArray(interactions.received).length) },
+    ];
 
-[usersStatusFilter, usersProfileFilter, usersRegistrationFilter].forEach((el) => {
-  el.addEventListener("change", async () => {
-    if (userSearchInput.value.trim()) {
-      renderUsersList();
+    return [
+      detailSection("Resumo da conta", renderKeyValueGrid([
+        ["UID", stringValue(profile.uid)],
+        ["Email", stringValue(profile.email)],
+        ["Perfil", stringValue(profile.tipoPerfilLabel)],
+        ["Status", badgeHtml(stringValue(profile.statusLabel), stringValue(profile.statusKey, "active"))],
+        ["Cadastro", badgeHtml(stringValue(profile.cadastroStatusLabel), registrationBadgeKey(stringValue(profile.cadastroStatusKey)))],
+        ["Localizacao", stringValue(profile.displayLocation, "Nao informada")],
+        ["Criado em", formatDateTime(profile.createdAt)],
+        ["Ultimo login", formatDateTime(profile.lastSignInAt)],
+        ["Email verificado", profile.emailVerified === true ? "Sim" : "Nao"],
+        ["Auth desabilitado", profile.authDisabled === true ? "Sim" : "Nao"],
+        ["Visivel no feed", profile.visibleInHome === true ? "Sim" : "Nao"],
+        ["Visivel na busca", profile.visibleInSearch === true ? "Sim" : "Nao"],
+      ])),
+      detailSection("Bio e operacao", "<div class=\"detail-rich-text\">" + escapeHtml(stringValue(profile.bio, "Sem bio cadastrada.")) + "</div><div class=\"kv-grid\" style=\"margin-top:12px;\">" + counts.map(function (item) { return renderKvItem(item.label, item.value); }).join("") + "</div>"),
+      detailSection("Auth e claims", renderKeyValueGrid([
+        ["UID auth", stringValue(authData.uid, stringValue(profile.uid))],
+        ["Providers", asArray(profile.providerIds).join(", ") || "Nenhum"],
+        ["Claims", asArray(Object.keys(asObject(authData.customClaims))).join(", ") || "Nenhuma"],
+        ["Conta existe no Auth", profile.authExists === true ? "Sim" : "Nao"],
+        ["Suspenso ate", formatDateTime(profile.suspendedUntil)],
+        ["Ghost mode", profile.ghostMode === true ? "Sim" : "Nao"],
+      ])),
+      detailSection("Moderacao e storage", renderKeyValueGrid([
+        ["Report count", formatNumber(moderation.report_count || profile.reportCount)],
+        ["Suspension count", formatNumber(moderation.suspension_count || profile.suspensionCount)],
+        ["Storage sugerido", asArray(detail.derivedStoragePrefixes).join(", ") || "Nenhum prefixo derivado"],
+        ["Jobs de transcode", formatNumber(asArray(detail.transcodeJobs).length)],
+      ])),
+      detailSection("Atividade relacionada", [
+        renderMiniList("Favoritos enviados", asArray(detail.favoritesSent), function (item) { return simpleLine(stringValue(item.id), "Path: " + stringValue(item.path)); }, "Nenhum favorito registrado."),
+        renderMiniList("Bloqueados", asArray(detail.blockedUsers), function (item) { return simpleLine(stringValue(item.id), "Path: " + stringValue(item.path)); }, "Nenhum bloqueio."),
+        renderMiniList("Previews de conversa", asArray(detail.conversationPreviews), function (item) { return simpleLine(stringValue(item.id), "Atualizado em " + formatDateTime(asObject(item.data).updatedAt)); }, "Nenhum preview."),
+        renderMiniList("Notificacoes", asArray(detail.notifications), function (item) { return simpleLine(stringValue(item.id), "Atualizado em " + formatDateTime(asObject(item.data).updatedAt)); }, "Nenhuma notificacao recente."),
+        renderMiniList("Tickets", asArray(detail.tickets), function (item) { return simpleLine(stringValue(item.subject, stringValue(item.title, stringValue(item.id))), "Status: " + stringValue(item.status, "open")); }, "Nenhum ticket."),
+        renderMiniList("Suspensoes", asArray(detail.suspensions), function (item) { return simpleLine(stringValue(item.id), "Status: " + stringValue(asObject(item.data).status, "active")); }, "Nenhuma suspensao registrada."),
+      ].join("")),
+      detailSection("Acoes rapidas", "<div class=\"drawer-actions\">" + actionButton("prepare-suspension", "Abrir suspensao", "gpp_bad", { uid: stringValue(profile.uid) }, "danger") + actionButton("add-featured-user", "Adicionar aos destaques", "stars", { uid: stringValue(profile.uid) }, "secondary") + actionButton("open-payload", "Ver JSON bruto", "data_object", { payloadKey: payloadKey }, "ghost") + "</div>"),
+    ].join("");
+  }
+
+  async function loadConversations(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.conversations.items.length > 0) {
+      renderConversations();
       return;
     }
 
-    await loadUsersSection({ reset: true });
-  });
-});
+    setLoadingMarkup(ui.conversationsList, "Carregando conversas...", "forum");
+    setLoadingMarkup(ui.conversationsDetail, "Selecione uma conversa para detalhar.", "chat");
 
-usersPageSize.addEventListener("change", async () => {
-  if (userSearchInput.value.trim()) {
-    await searchAdminUsers();
-    return;
-  }
+    const payload = {
+      search: ui.conversationSearchInput.value.trim(),
+      limit: Math.min(toInteger(ui.conversationLimitSelect.value, 20), 80),
+    };
 
-  await loadUsersSection({ reset: true });
-});
-
-usersLoadMoreBtn.addEventListener("click", async () => {
-  await loadUsersSection({ reset: false });
-});
-
-window.showUserDetail = async function (uid) {
-  try {
-    const result = await functions.httpsCallable("lookupUser")({ uid });
-    const u = result.data;
-    selectedAdminUser = u;
-    const modal = $("#user-detail-modal");
-    const body = $("#user-detail-body");
-
-    body.innerHTML = `
-      <div class="modal-user-header">
-        <img class="user-avatar modal-user-avatar" src="${u.foto || ''}" alt="" onerror="this.src='${DEFAULT_AVATAR_DATA_URL}'">
-        <div class="modal-user-meta">
-          <h3>${esc(u.nome || "Sem nome")}</h3>
-          <div class="user-badges">
-            <span class="badge badge-neutral">${esc(u.tipoPerfilLabel || u.tipoPerfil || "Sem categoria")}</span>
-            <span class="badge badge-${u.statusKey || u.status || "active"}">${esc(u.statusLabel || u.status || "Ativo")}</span>
-            <span class="badge badge-${u.cadastroStatusKey || "type-pending"}">${esc(u.cadastroStatusLabel || u.cadastroStatus || "—")}</span>
-          </div>
-        </div>
-      </div>
-      <table class="data-table" style="width:100%">
-        <tbody>
-          <tr><td style="color:var(--text-muted);width:160px">UID</td><td><span class="mono-text">${esc(u.uid || "—")}</span></td></tr>
-          <tr><td style="color:var(--text-muted)">Nome de cadastro</td><td>${esc(u.nomeCadastro || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Email</td><td>${esc(u.email || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Categoria</td><td>${esc(u.tipoPerfilLabel || u.tipoPerfil || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Bairro</td><td>${esc(u.bairro || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Cidade</td><td>${esc(u.cidade || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Estado</td><td>${esc(u.estado || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Criado em</td><td>${formatDate(u.createdAt)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Último login</td><td>${formatDate(u.lastSignInAt)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Email verificado</td><td>${u.emailVerified ? "Sim" : "Não"}</td></tr>
-          <tr><td style="color:var(--text-muted)">Auth desabilitado</td><td>${u.authDisabled ? "Sim" : "Não"}</td></tr>
-          <tr><td style="color:var(--text-muted)">Providers</td><td>${esc((u.providerIds || []).join(", ") || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Bio</td><td>${esc(u.bio || "—")}</td></tr>
-          <tr><td style="color:var(--text-muted)">Likes</td><td>❤ ${formatNumber(u.likeCount || 0)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Reports</td><td>${formatNumber(u.reportCount || 0)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Suspensões</td><td>${formatNumber(u.suspensionCount || 0)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Endereços</td><td>${formatNumber(u.addressesCount || 0)}</td></tr>
-          <tr><td style="color:var(--text-muted)">Bloqueados</td><td>${formatNumber(u.blockedUsersCount || 0)}</td></tr>
-          <tr><td style="color:var(--text-muted)">MatchPoint</td><td>${u.matchpointActive ? "Ativo" : "Inativo"}</td></tr>
-          <tr><td style="color:var(--text-muted)">Visível no home</td><td>${u.visibleInHome ? "Sim" : "Não"}</td></tr>
-          <tr><td style="color:var(--text-muted)">Ghost mode</td><td>${u.ghostMode ? "Sim" : "Não"}</td></tr>
-        </tbody>
-      </table>
-      <div class="modal-actions">
-        <button id="user-detail-featured-btn" class="btn btn-primary btn-sm">
-          <span class="material-icons-round">stars</span> Add Destaque
-        </button>
-        ${(u.statusKey || u.status) !== "suspended" ? `
-          <button id="user-detail-suspend-btn" class="btn btn-danger btn-sm">
-            <span class="material-icons-round">block</span> Suspender
-          </button>
-        ` : ""}
-      </div>
-    `;
-
-    $("#user-detail-featured-btn")?.addEventListener("click", () => {
-      window.addCurrentUserToFeatured();
-    });
-    $("#user-detail-suspend-btn")?.addEventListener("click", () => {
-      window.quickSuspendCurrentUser();
-    });
-
-    modal.classList.remove("hidden");
-  } catch (err) {
-    toast("Erro ao carregar detalhes", "error");
-  }
-};
-
-$("#user-modal-close").addEventListener("click", closeUserModal);
-
-window.addCurrentUserToFeatured = function () {
-  if (!selectedAdminUser) return;
-
-  if (featuredUids.includes(selectedAdminUser.uid)) {
-    toast("Já está em destaque", "error");
-    return;
-  }
-
-  featuredUids.push(selectedAdminUser.uid);
-  featuredProfiles.push({
-    uid: selectedAdminUser.uid,
-    nome: selectedAdminUser.nome,
-    foto: selectedAdminUser.foto,
-    tipoPerfil: selectedAdminUser.tipoPerfilLabel || selectedAdminUser.tipoPerfil,
-    cidade: selectedAdminUser.cidade || "",
-    likeCount: selectedAdminUser.likeCount || 0,
-  });
-  toast("Adicionado! Vá em Em Destaque para salvar.", "success");
-  closeUserModal();
-};
-
-window.quickSuspend = function (uid) {
-  closeUserModal();
-  // Switch to suspensions section and open modal
-  $$(".nav-item").forEach((n) => n.classList.remove("active"));
-  $('[data-section="suspensions"]').classList.add("active");
-  $$(".section").forEach((s) => s.classList.add("hidden"));
-  $("#section-suspensions").classList.remove("hidden");
-  pageTitle.textContent = "Suspensões";
-
-  $("#suspend-uid").value = uid;
-  $("#suspension-modal").classList.remove("hidden");
-};
-
-window.quickSuspendCurrentUser = function () {
-  if (!selectedAdminUser?.uid) return;
-  window.quickSuspend(selectedAdminUser.uid);
-};
-
-// ============================================
-// REPORTS
-// ============================================
-async function loadReports() {
-  const filter = $("#reports-filter").value;
-  const container = $("#reports-list");
-  container.innerHTML = '<p class="empty-state">Carregando...</p>';
-
-  try {
-    const result = await functions.httpsCallable("listReports")({ status: filter, limit: 50 });
-    const reports = result.data.reports || [];
-
-    if (reports.length === 0) {
-      container.innerHTML = '<p class="empty-state">Nenhuma denúncia encontrada.</p>';
-      return;
-    }
-
-    container.innerHTML = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th>ID Reportado</th>
-            <th>Motivo</th>
-            <th>Status</th>
-            <th>Data</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reports.map((r) => `
-            <tr>
-              <td>${esc(r.reportedItemType)}</td>
-              <td style="font-family:monospace;font-size:12px">${r.reportedItemId.substring(0, 16)}...</td>
-              <td>${esc(r.reason)}</td>
-              <td><span class="badge badge-${r.status}">${r.status}</span></td>
-              <td>${formatDate(r.createdAt)}</td>
-              <td>
-                ${r.status !== 'processed' ? `<button class="btn btn-sm btn-primary" onclick="updateReport('${r.id}','processed')">Processar</button>` : ''}
-                ${r.status !== 'rejected' ? `<button class="btn btn-sm btn-secondary" onclick="updateReport('${r.id}','rejected')">Rejeitar</button>` : ''}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error("Reports error:", err);
-    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar denúncias: ${err.message}</p>`;
-  }
-}
-
-$("#reports-filter").addEventListener("change", loadReports);
-
-window.updateReport = async function (reportId, status) {
-  try {
-    await functions.httpsCallable("updateReportStatus")({ reportId, status });
-    toast(`Report ${status === 'processed' ? 'processado' : 'rejeitado'}!`, "success");
-    loadReports();
-  } catch (err) {
-    toast("Erro ao atualizar report", "error");
-  }
-};
-
-// ============================================
-// SUSPENSIONS
-// ============================================
-async function loadSuspensions() {
-  const filter = $("#suspensions-filter").value;
-  const container = $("#suspensions-list");
-  container.innerHTML = '<p class="empty-state">Carregando...</p>';
-
-  try {
-    const result = await functions.httpsCallable("listSuspensions")({ status: filter, limit: 50 });
-    const suspensions = result.data.suspensions || [];
-
-    if (suspensions.length === 0) {
-      container.innerHTML = '<p class="empty-state">Nenhuma suspensão encontrada.</p>';
-      return;
-    }
-
-    container.innerHTML = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Usuário</th>
-            <th>Motivo</th>
-            <th>Status</th>
-            <th>Expira em</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${suspensions.map((s) => `
-            <tr>
-              <td style="font-family:monospace;font-size:12px">${s.userId.substring(0, 16)}...</td>
-              <td>${esc(s.reason)}</td>
-              <td><span class="badge badge-${s.status === 'active' ? 'suspended' : 'lifted'}">${s.status}</span></td>
-              <td>${formatDate(s.suspendedUntil)}</td>
-              <td>
-                ${s.status === 'active' ? `<button class="btn btn-sm btn-primary" onclick="liftSuspension('${s.id}')">Levantar</button>` : '—'}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error("Suspensions error:", err);
-    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar suspensões: ${err.message}</p>`;
-  }
-}
-
-$("#suspensions-filter").addEventListener("change", loadSuspensions);
-
-window.liftSuspension = async function (suspensionId) {
-  try {
-    await functions.httpsCallable("manageSuspension")({ action: "lift", suspensionId });
-    toast("Suspensão levantada!", "success");
-    loadSuspensions();
-  } catch (err) {
-    toast("Erro ao levantar suspensão", "error");
-  }
-};
-
-// Create suspension modal
-$("#create-suspension-btn").addEventListener("click", () => {
-  $("#suspension-modal").classList.remove("hidden");
-});
-
-$("#suspension-modal-close").addEventListener("click", () => {
-  $("#suspension-modal").classList.add("hidden");
-});
-
-$("#suspend-confirm-btn").addEventListener("click", async () => {
-  const userId = $("#suspend-uid").value.trim();
-  const reason = $("#suspend-reason").value.trim();
-  const durationDays = parseInt($("#suspend-days").value) || 7;
-
-  if (!userId || !reason) {
-    toast("Preencha UID e motivo", "error");
-    return;
-  }
-
-  try {
-    await functions.httpsCallable("manageSuspension")({
-      action: "create",
-      userId,
-      reason,
-      durationDays,
-    });
-    toast("Usuário suspenso!", "success");
-    $("#suspension-modal").classList.add("hidden");
-    loadSuspensions();
-  } catch (err) {
-    toast("Erro ao suspender", "error");
-  }
-});
-
-// ============================================
-// TICKETS
-// ============================================
-async function loadTickets() {
-  const filter = $("#tickets-filter").value;
-  const container = $("#tickets-list");
-  container.innerHTML = '<p class="empty-state">Carregando...</p>';
-
-  try {
-    const result = await functions.httpsCallable("listTickets")({ status: filter, limit: 50 });
-    const tickets = result.data.tickets || [];
-
-    if (tickets.length === 0) {
-      container.innerHTML = '<p class="empty-state">Nenhum ticket encontrado.</p>';
-      return;
-    }
-
-    container.innerHTML = `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Assunto</th>
-            <th>Categoria</th>
-            <th>Status</th>
-            <th>Data</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tickets.map((t) => `
-            <tr>
-              <td>${esc(t.subject || t.message?.substring(0, 40) || '—')}</td>
-              <td>${esc(t.category || '—')}</td>
-              <td><span class="badge badge-${t.status}">${t.status}</span></td>
-              <td>${formatDate(t.createdAt)}</td>
-              <td>
-                <button class="btn btn-sm btn-secondary" onclick="viewTicket('${t.id}', ${JSON.stringify(t).replace(/'/g, "\\'")})"">Ver</button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (err) {
-    console.error("Tickets error:", err);
-    container.innerHTML = `<p class="empty-state" style="color:red;font-weight:bold;">Erro ao carregar tickets: ${err.message}</p>`;
-  }
-}
-
-$("#tickets-filter").addEventListener("change", loadTickets);
-
-if (matchpointAuditRefreshBtn) {
-  matchpointAuditRefreshBtn.addEventListener("click", async () => {
+    let response;
     try {
-      await loadMatchpointAuditDashboard();
-      toast("Auditoria MatchPoint atualizada!", "success");
-    } catch (_) {
-      toast("Erro ao atualizar auditoria MatchPoint", "error");
+      response = await callFunction("listConversationsAdmin", payload);
+    } catch (error) {
+      response = await callFunction("listConversations", payload);
     }
-  });
-}
 
-window.viewTicket = function (ticketId, ticket) {
-  const modal = $("#user-detail-modal");
-  const body = $("#user-detail-body");
+    state.conversations.items = asArray(response.conversations);
+    state.conversations.total = toInteger(response.total, state.conversations.items.length);
 
-  body.innerHTML = `
-    <h3 style="margin-bottom:16px">Ticket #${ticketId.substring(0, 8)}</h3>
-    <table class="data-table" style="width:100%">
-      <tbody>
-        <tr><td style="color:var(--text-muted);width:120px">Usuário</td><td style="font-family:monospace">${ticket.userId}</td></tr>
-        <tr><td style="color:var(--text-muted)">Categoria</td><td>${esc(ticket.category || '—')}</td></tr>
-        <tr><td style="color:var(--text-muted)">Status</td><td><span class="badge badge-${ticket.status}">${ticket.status}</span></td></tr>
-        <tr><td style="color:var(--text-muted)">Mensagem</td><td>${esc(ticket.message || '—')}</td></tr>
-        <tr><td style="color:var(--text-muted)">Resposta</td><td>${esc(ticket.adminResponse || 'Sem resposta')}</td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-sm btn-primary" onclick="changeTicketStatus('${ticketId}','in_progress')">Em Andamento</button>
-      <button class="btn btn-sm btn-primary" onclick="changeTicketStatus('${ticketId}','resolved')">Resolvido</button>
-    </div>
-  `;
-  modal.classList.remove("hidden");
-};
-
-window.changeTicketStatus = async function (ticketId, status) {
-  try {
-    await functions.httpsCallable("updateTicket")({ ticketId, status });
-    toast("Ticket atualizado!", "success");
-    $("#user-detail-modal").classList.add("hidden");
-    loadTickets();
-  } catch (err) {
-    toast("Erro ao atualizar ticket", "error");
-  }
-};
-
-// ============================================
-// UTILS
-// ============================================
-function toast(msg, type = "success") {
-  const el = $("#toast");
-  el.textContent = msg;
-  el.className = `toast ${type}`;
-  el.classList.remove("hidden");
-  setTimeout(() => el.classList.add("hidden"), 3000);
-}
-
-function esc(str) {
-  const div = document.createElement("div");
-  div.textContent = str || "";
-  return div.innerHTML;
-}
-
-function formatNumber(n) {
-  if (n === undefined || n === null) return "—";
-  return n.toLocaleString("pt-BR");
-}
-
-function formatDecimal(n) {
-  const value = Number(n);
-  if (!Number.isFinite(value)) return "0,0";
-  return value.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-function numberOrZero(value) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-}
-
-function formatPercent(value, total) {
-  const safeValue = numberOrZero(value);
-  const safeTotal = numberOrZero(total);
-  if (safeTotal <= 0) return "0%";
-  const percent = (safeValue / safeTotal) * 100;
-  return `${percent.toLocaleString("pt-BR", {
-    minimumFractionDigits: percent >= 10 ? 0 : 1,
-    maximumFractionDigits: percent >= 10 ? 0 : 1,
-  })}%`;
-}
-
-function formatAuditBucketStart(bucketStart) {
-  if (!bucketStart) return "Bucket sem horario";
-  const date = new Date(bucketStart);
-  if (Number.isNaN(date.getTime())) return "Bucket sem horario";
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).replace(",", "");
-}
-
-function formatDate(ts) {
-  if (!ts) return "—";
-  try {
-    const date = ts._seconds ? new Date(ts._seconds * 1000) : new Date(ts);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+    const stillSelected = state.conversations.items.some(function (item) {
+      return stringValue(item.id) === state.conversations.selectedId;
     });
-  } catch {
-    return "—";
+    if (!stillSelected) {
+      state.conversations.selectedId = "";
+      state.conversations.detail = null;
+    }
+
+    renderConversations();
+    if (stillSelected && state.conversations.selectedId) {
+      await selectConversation(state.conversations.selectedId);
+    }
   }
-}
+
+  function renderConversations() {
+    ui.conversationsList.innerHTML = state.conversations.items.length > 0 ?
+      state.conversations.items.map(function (conversation) {
+        const id = stringValue(conversation.id);
+        const participants = asArray(conversation.participants);
+        const title = participants.map(function (user) { return stringValue(user.nome, stringValue(user.uid)); }).filter(Boolean).join(" x ") || id;
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(title) + "</h3><p>" + escapeHtml(stringValue(conversation.lastMessageText, "Sem ultima mensagem")) + "</p></div>" + badgeHtml(stringValue(conversation.type, "direct"), stringValue(conversation.type, "active")) + "</div><div class=\"card-meta\">" + pillHtml("Atualizada " + formatDateTime(conversation.updatedAt), "pill-blue") + pillHtml("Mens. em " + formatDateTime(conversation.lastMessageAt), "pill-accent") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-conversation", "Abrir conversa", "chat", { conversationId: id }, "primary") + participants.map(function (user) { return actionButton("open-user", stringValue(user.nome, "Usuario"), "person", { uid: stringValue(user.uid) }, "ghost"); }).join("") + "</div></article>";
+      }).join("") :
+      renderEmptyState("Nenhuma conversa encontrada com esse filtro.", "forum");
+
+    if (!state.conversations.detail) {
+      ui.conversationsDetail.innerHTML = renderEmptyState("Selecione uma conversa para ver mensagens, participantes e eventos de seguranca.", "mark_chat_read");
+    }
+  }
+
+  async function selectConversation(conversationId) {
+    if (!conversationId) return;
+    state.conversations.selectedId = conversationId;
+    setLoadingMarkup(ui.conversationsDetail, "Carregando mensagens e contexto...", "chat");
+
+    let detail;
+    try {
+      detail = await callFunction("getConversationAdminDetail", { conversationId: conversationId, messageLimit: 120 });
+    } catch (error) {
+      const fallbackMessages = await callFunction("getConversationMessages", { conversationId: conversationId, limit: 120 });
+      const listItem = state.conversations.items.find(function (item) { return stringValue(item.id) === conversationId; }) || {};
+      detail = { conversation: listItem, messages: asArray(fallbackMessages.messages), chatSafetyEvents: [], participantPreviews: [] };
+    }
+
+    state.conversations.detail = detail;
+    const payloadKey = "conversation-" + conversationId + "-raw";
+    registerDrawerPayload(payloadKey, { kicker: "Conversa", title: conversationId, subtitle: "Estrutura consolidada da conversa", data: detail });
+    ui.conversationsDetail.innerHTML = renderConversationDetail(detail, payloadKey);
+  }
+
+  function renderConversationDetail(detail, payloadKey) {
+    const conversation = asObject(detail.conversation);
+    const participants = asArray(conversation.participants);
+    const messages = asArray(detail.messages);
+    const safetyEvents = asArray(detail.chatSafetyEvents);
+    const previews = asArray(detail.participantPreviews);
+
+    return [
+      detailSection("Resumo da conversa", renderKeyValueGrid([
+        ["Conversa", stringValue(conversation.id)],
+        ["Tipo", badgeHtml(stringValue(conversation.type, "direct"), stringValue(conversation.type, "active"))],
+        ["Criada em", formatDateTime(conversation.createdAt)],
+        ["Atualizada em", formatDateTime(conversation.updatedAt)],
+        ["Ultimo envio", formatDateTime(conversation.lastMessageAt)],
+        ["Ultimo remetente", stringValue(conversation.lastSenderId, "Nao identificado")],
+      ]) + "<div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-payload", "Abrir JSON", "data_object", { payloadKey: payloadKey }, "ghost") + "</div>"),
+      detailSection("Participantes", participants.length > 0 ? "<div class=\"stack-list\">" + participants.map(function (user) {
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(user.nome, stringValue(user.uid, "Usuario"))) + "</h3><p>" + escapeHtml(buildUserSubtitle(user)) + "</p></div>" + badgeHtml(stringValue(user.tipoPerfilLabel, "Perfil"), stringValue(user.statusKey, "active")) + "</div><div class=\"drawer-actions\">" + actionButton("open-user", "Abrir usuario", "person", { uid: stringValue(user.uid) }, "secondary") + "</div></article>";
+      }).join("") + "</div>" : renderEmptyState("Nenhum participante identificado.", "person")),
+      detailSection("Mensagens", messages.length > 0 ? "<div class=\"stack-list\">" + messages.map(function (message) {
+        const sender = asObject(message.sender);
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(sender.nome, stringValue(message.senderId, "Sistema"))) + "</h3><p>" + escapeHtml(stringValue(message.text, "[sem texto]")) + "</p></div>" + badgeHtml(stringValue(message.type, "text"), stringValue(message.type, "processed")) + "</div><div class=\"card-meta\">" + pillHtml(formatDateTime(message.createdAt), "pill-blue") + (sender.uid ? actionButton("open-user", "Ver usuario", "person", { uid: stringValue(sender.uid) }, "ghost") : "") + "</div></article>";
+      }).join("") + "</div>" : renderEmptyState("Nao ha mensagens retornadas para esta conversa.", "sms")),
+      detailSection("Chat safety e previews", [
+        renderMiniList("Eventos de chat safety", safetyEvents, function (item) { return simpleLine(stringValue(item.id), "Path: " + stringValue(item.path)); }, "Nenhum evento de chat safety."),
+        renderMiniList("Conversation previews", previews, function (item) { return simpleLine(stringValue(item.id), "Path: " + stringValue(item.path)); }, "Nenhum preview localizado."),
+      ].join("")),
+    ].join("");
+  }
+
+  async function loadGigs(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.gigs.items.length > 0) {
+      renderGigs();
+      return;
+    }
+
+    setLoadingMarkup(ui.gigsList, "Carregando gigs...", "event_repeat");
+    setLoadingMarkup(ui.gigsDetail, "Selecione uma gig para detalhar.", "receipt_long");
+
+    const response = await callFunction("listGigsAdmin", {
+      search: ui.gigSearchInput.value.trim(),
+      status: ui.gigStatusFilter.value || "all",
+      limit: Math.min(toInteger(ui.gigLimitSelect.value, 20), 80),
+    });
+
+    state.gigs.items = asArray(response.gigs);
+    state.gigs.total = toInteger(response.total, state.gigs.items.length);
+    const stillSelected = state.gigs.items.some(function (item) { return stringValue(item.id) === state.gigs.selectedId; });
+    if (!stillSelected) {
+      state.gigs.selectedId = "";
+      state.gigs.detail = null;
+    }
+
+    renderGigs();
+    if (stillSelected && state.gigs.selectedId) {
+      await selectGig(state.gigs.selectedId);
+    }
+  }
+
+  function renderGigs() {
+    ui.gigsList.innerHTML = state.gigs.items.length > 0 ?
+      state.gigs.items.map(function (gig) {
+        const creator = asObject(gig.creator);
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(gig.title, "Gig sem titulo")) + "</h3><p>" + escapeHtml(stringValue(gig.description, "Sem descricao")) + "</p></div>" + badgeHtml(stringValue(gig.status, "open"), stringValue(gig.status, "open")) + "</div><div class=\"card-meta\">" + pillHtml("Criador: " + escapeHtml(stringValue(creator.nome, stringValue(gig.creatorId, "nao identificado"))), "pill-blue") + pillHtml("Candidaturas: " + formatNumber(gig.applicantCount), "pill-accent") + pillHtml("Criada em " + formatDateTime(gig.createdAt), "pill-green") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-gig", "Detalhar", "event_note", { gigId: stringValue(gig.id) }, "primary") + (creator.uid ? actionButton("open-user", "Criador", "person", { uid: stringValue(creator.uid) }, "ghost") : "") + "</div></article>";
+      }).join("") :
+      renderEmptyState("Nenhuma gig encontrada com os filtros atuais.", "event_busy");
+
+    if (!state.gigs.detail) {
+      ui.gigsDetail.innerHTML = renderEmptyState("Selecione uma gig para ver descricao, aplicacoes e reviews.", "assignment");
+    }
+  }
+
+  async function selectGig(gigId) {
+    if (!gigId) return;
+    state.gigs.selectedId = gigId;
+    setLoadingMarkup(ui.gigsDetail, "Buscando detalhes da gig...", "receipt_long");
+    const detail = await callFunction("getGigAdminDetail", { gigId: gigId });
+    state.gigs.detail = detail;
+    const payloadKey = "gig-" + gigId + "-raw";
+    registerDrawerPayload(payloadKey, { kicker: "Gig", title: stringValue(asObject(detail.gig).title, gigId), subtitle: "Estrutura consolidada da gig", data: detail });
+    ui.gigsDetail.innerHTML = renderGigDetail(detail, payloadKey);
+  }
+
+  function renderGigDetail(detail, payloadKey) {
+    const gig = asObject(detail.gig);
+    const creator = asObject(gig.creator);
+    const applications = asArray(detail.applications);
+    const reviews = asArray(detail.reviews);
+    return [
+      detailSection("Resumo da gig", renderKeyValueGrid([
+        ["Gig", stringValue(gig.title)],
+        ["Status", badgeHtml(stringValue(gig.status, "open"), stringValue(gig.status, "open"))],
+        ["Tipo", stringValue(gig.gigType, "outro")],
+        ["Modelo de data", stringValue(gig.dateMode, "nao informado")],
+        ["Local", stringValue(gig.locationType, "nao informado")],
+        ["Compensacao", stringValue(gig.compensationType, "nao informado") + " / " + stringValue(gig.compensationValue, "-")],
+        ["Candidaturas", formatNumber(gig.applicantCount)],
+        ["Slots", formatNumber(gig.slotsFilled) + " / " + formatNumber(gig.slotsTotal)],
+        ["Criada em", formatDateTime(gig.createdAt)],
+        ["Expira em", formatDateTime(gig.expiresAt)],
+      ]) + "<div class=\"detail-rich-text\" style=\"margin-top:12px;\">" + escapeHtml(stringValue(gig.description, "Sem descricao da gig.")) + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + (creator.uid ? actionButton("open-user", "Abrir criador", "person", { uid: stringValue(creator.uid) }, "secondary") : "") + actionButton("open-payload", "Ver JSON", "data_object", { payloadKey: payloadKey }, "ghost") + "</div>"),
+      detailSection("Aplicacoes", applications.length > 0 ? "<div class=\"stack-list\">" + applications.map(function (item) {
+        const applicant = asObject(item.applicant);
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(applicant.nome, stringValue(item.applicantId, "Candidato"))) + "</h3><p>" + escapeHtml(stringValue(item.message, "Sem mensagem enviada.")) + "</p></div>" + badgeHtml(stringValue(item.status, "pending"), stringValue(item.status, "pending")) + "</div><div class=\"card-meta\">" + pillHtml("Aplicado em " + formatDateTime(item.appliedAt), "pill-blue") + (item.applicantId ? actionButton("open-user", "Abrir usuario", "person", { uid: stringValue(item.applicantId) }, "ghost") : "") + "</div></article>";
+      }).join("") + "</div>" : renderEmptyState("Nenhuma candidatura encontrada para esta gig.", "group_add")),
+      detailSection("Reviews", reviews.length > 0 ? "<div class=\"stack-list\">" + reviews.map(function (item) {
+        const reviewer = asObject(item.reviewer);
+        const reviewedUser = asObject(item.reviewedUser);
+        return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(reviewer.nome, stringValue(item.reviewerId, "Review"))) + "</h3><p>" + escapeHtml(stringValue(item.comment, "Sem comentario")) + "</p></div>" + pillHtml("Nota " + formatNumber(item.rating), "pill-accent") + "</div><div class=\"card-meta\">" + pillHtml("Para " + escapeHtml(stringValue(reviewedUser.nome, stringValue(item.reviewedUserId, "usuario"))), "pill-blue") + pillHtml(formatDateTime(item.createdAt), "pill-green") + (item.reviewedUserId ? actionButton("open-user", "Ver avaliado", "person", { uid: stringValue(item.reviewedUserId) }, "ghost") : "") + "</div></article>";
+      }).join("") + "</div>" : renderEmptyState("Nenhuma review localizada para esta gig.", "rate_review")),
+    ].join("");
+  }
+
+  async function loadMatchpoint(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.matchpoint) {
+      renderMatchpoint();
+      return;
+    }
+
+    setLoadingMarkup(ui.matchpointSummary, "Carregando MatchPoint...", "bolt");
+    setLoadingMarkup(ui.matchpointHashtags, "Buscando hashtags...", "tag");
+    setLoadingMarkup(ui.matchpointMatches, "Listando matches...", "favorite");
+    setLoadingMarkup(ui.matchpointInteractions, "Montando interacoes...", "swap_horiz");
+
+    state.matchpoint = await callFunction("getMatchpointAdminOverview", { limit: 24 });
+    renderMatchpoint();
+  }
+
+  function renderMatchpoint() {
+    const data = state.matchpoint;
+    if (!data) return;
+    const counts = asObject(data.counts);
+    const rankingAudit = asObject(data.rankingAudit);
+    const summary = asObject(rankingAudit.summary);
+
+    ui.matchpointSummary.innerHTML = [
+      renderSummaryCard({ icon: "bolt", label: "Perfis ativos", value: formatNumber(counts.activeProfiles), text: "Usuarios com MatchPoint ativo" }),
+      renderSummaryCard({ icon: "favorite", label: "Matches retornados", value: formatNumber(counts.matches), text: "Matches recentes da amostra" }),
+      renderSummaryCard({ icon: "swap_horiz", label: "Interacoes recentes", value: formatNumber(counts.recentInteractions), text: "Likes e dislikes recentes" }),
+      renderSummaryCard({ icon: "analytics", label: "Media retornada", value: formatDecimal(summary.averageReturnedPerEvent), text: "Itens retornados por evento de auditoria" }),
+    ].join("");
+
+    ui.matchpointHashtags.innerHTML = asArray(data.hashtags).length > 0 ? asArray(data.hashtags).map(function (item) {
+      return stackCard("#" + escapeHtml(stringValue(item.label)), ["Uso total: " + formatNumber(item.useCount), "Semana: " + formatNumber(item.weeklyCount), "Tendencia: " + escapeHtml(stringValue(item.trend, "stable"))].join(" | "), item.isTrending === true ? pillHtml("Trending", "pill-green") : pillHtml("Estavel", "pill-blue"));
+    }).join("") : renderEmptyState("Nenhuma hashtag encontrada.", "tag");
+
+    ui.matchpointMatches.innerHTML = asArray(data.matches).length > 0 ? asArray(data.matches).map(function (match) {
+      const users = asArray(match.users);
+      return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(users.map(function (user) { return stringValue(user.nome, stringValue(user.uid)); }).join(" x ") || stringValue(match.id)) + "</h3><p>" + escapeHtml("Conversa: " + stringValue(match.conversationId, "nao vinculada")) + "</p></div>" + pillHtml(formatDateTime(match.createdAt), "pill-blue") + "</div><div class=\"drawer-actions\">" + users.map(function (user) { return actionButton("open-user", stringValue(user.nome, "Usuario"), "person", { uid: stringValue(user.uid) }, "ghost"); }).join("") + (match.conversationId ? actionButton("open-conversation", "Abrir conversa", "chat", { conversationId: stringValue(match.conversationId) }, "secondary") : "") + "</div></article>";
+    }).join("") : renderEmptyState("Nenhum match recente.", "favorite_border");
+
+    ui.matchpointInteractions.innerHTML = renderInteractionsTable(asArray(data.interactions));
+  }
+
+  async function loadFeatured(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.featured.uids.length > 0) {
+      renderFeatured();
+      return;
+    }
+
+    setLoadingMarkup(ui.featuredList, "Carregando curadoria...", "stars");
+    const response = await callFunction("getFeaturedProfiles", {});
+    state.featured.uids = asArray(response.uids).map(function (uid) { return String(uid || ""); }).filter(Boolean);
+    state.featured.profiles = asArray(response.profiles);
+    state.featured.preview = null;
+    renderFeatured();
+  }
+
+  function renderFeatured() {
+    const profilesByUid = new Map();
+    state.featured.profiles.forEach(function (profile) { profilesByUid.set(stringValue(profile.uid), profile); });
+
+    ui.featuredAddButton.classList.toggle("hidden", !state.featured.preview);
+    ui.featuredPreview.innerHTML = state.featured.preview ? renderUserCard(state.featured.preview) : renderEmptyState("Busque um UID para visualizar o perfil antes de adicionar.", "search");
+    ui.featuredList.innerHTML = state.featured.uids.length > 0 ? state.featured.uids.map(function (uid, index) {
+      const profile = profilesByUid.get(uid) || { uid: uid, nome: uid };
+      return "<article class=\"card-row\">" + avatarMarkup(stringValue(profile.foto), stringValue(profile.nome, uid), true) + "<div class=\"card-copy\"><h3>" + escapeHtml((index + 1) + ". " + stringValue(profile.nome, uid)) + "</h3><p>" + escapeHtml(buildUserSubtitle(profile)) + "</p><div class=\"card-meta\">" + pillHtml("UID: " + escapeHtml(uid), "pill-blue") + pillHtml("Likes: " + formatNumber(profile.likeCount), "pill-accent") + "</div></div><div class=\"card-actions\">" + actionButton("open-user", "Ver usuario", "visibility", { uid: uid }, "secondary") + actionButton("featured-move-up", "Subir", "arrow_upward", { uid: uid }, "ghost") + actionButton("featured-move-down", "Descer", "arrow_downward", { uid: uid }, "ghost") + actionButton("featured-remove", "Remover", "delete", { uid: uid }, "danger") + "</div></article>";
+    }).join("") : renderEmptyState("Nenhum perfil em destaque configurado.", "stars");
+  }
+
+  async function lookupFeaturedPreview() {
+    const uid = ui.featuredUidInput.value.trim();
+    if (!uid) {
+      showToast("Informe um UID para buscar o perfil.", "error");
+      return;
+    }
+    setButtonBusy(ui.featuredLookupButton, true);
+    try {
+      state.featured.preview = await callFunction("lookupUser", { uid: uid });
+      renderFeatured();
+      showToast("Perfil localizado e pronto para destaque.", "success");
+    } finally {
+      setButtonBusy(ui.featuredLookupButton, false);
+    }
+  }
+
+  async function addFeaturedFromUid(uid, quiet) {
+    if (!uid) return;
+    if (state.featured.uids.indexOf(uid) >= 0) {
+      if (!quiet) showToast("Esse usuario ja esta na lista de destaque.", "error");
+      return;
+    }
+    let profile = state.featured.preview;
+    if (!profile || stringValue(profile.uid) !== uid) {
+      profile = await callFunction("lookupUser", { uid: uid });
+    }
+    state.featured.uids.push(uid);
+    if (!state.featured.profiles.some(function (item) { return stringValue(item.uid) === uid; })) {
+      state.featured.profiles.push(profile);
+    }
+    state.featured.preview = profile;
+    renderFeatured();
+    if (!quiet) showToast("Perfil adicionado a curadoria local. Clique em salvar para publicar.", "success");
+  }
+
+  function removeFeatured(uid) {
+    state.featured.uids = state.featured.uids.filter(function (item) { return item !== uid; });
+    renderFeatured();
+  }
+
+  function moveFeatured(uid, direction) {
+    const currentIndex = state.featured.uids.indexOf(uid);
+    if (currentIndex < 0) return;
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= state.featured.uids.length) return;
+    const next = state.featured.uids.slice();
+    const temp = next[currentIndex];
+    next[currentIndex] = next[targetIndex];
+    next[targetIndex] = temp;
+    state.featured.uids = next;
+    renderFeatured();
+  }
+
+  async function saveFeaturedProfiles() {
+    setButtonBusy(ui.featuredSaveButton, true);
+    try {
+      await callFunction("setFeaturedProfiles", { uids: state.featured.uids });
+      showToast("Perfis em destaque salvos no backend.", "success");
+      await loadFeatured({ force: true });
+    } finally {
+      setButtonBusy(ui.featuredSaveButton, false);
+    }
+  }
+
+  async function loadReports(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.reports.length > 0) {
+      renderReports();
+      return;
+    }
+    setLoadingMarkup(ui.reportsList, "Carregando denuncias...", "outlined_flag");
+    const response = await callFunction("listReports", { status: ui.reportsFilter.value || "all", limit: 60 });
+    state.reports = asArray(response.reports);
+    renderReports();
+  }
+
+  function renderReports() {
+    if (state.reports.length === 0) {
+      ui.reportsList.innerHTML = renderEmptyState("Nenhuma denuncia retornada para este filtro.", "outlined_flag");
+      return;
+    }
+    ui.reportsList.innerHTML = "<table class=\"data-table\"><thead><tr><th>Data</th><th>Reportado</th><th>Motivo</th><th>Status</th><th>Acoes</th></tr></thead><tbody>" + state.reports.map(function (report) {
+      const reportedId = stringValue(report.reportedItemId);
+      return "<tr><td><div><strong>" + escapeHtml(formatDateTime(report.createdAt)) + "</strong></div><div class=\"detail-meta mono\">" + escapeHtml(stringValue(report.id)) + "</div></td><td><div><strong>" + escapeHtml(stringValue(report.reportedName, reportedId)) + "</strong></div><div class=\"detail-meta mono\">" + escapeHtml(reportedId) + "</div></td><td><div><strong>" + escapeHtml(stringValue(report.reason, "Sem motivo")) + "</strong></div><div class=\"detail-meta\">" + escapeHtml(stringValue(report.description, "Sem descricao")) + "</div></td><td>" + badgeHtml(stringValue(report.status, "pending"), stringValue(report.status, "pending")) + "</td><td><div class=\"table-actions\">" + (reportedId && stringValue(report.reportedItemType) === "user" ? actionButton("open-user", "Usuario", "person", { uid: reportedId }, "ghost") : "") + actionButton("report-status", "Processing", "schedule", { reportId: stringValue(report.id), status: "processing" }, "secondary") + actionButton("report-status", "Processar", "done", { reportId: stringValue(report.id), status: "processed" }, "primary") + actionButton("report-status", "Rejeitar", "close", { reportId: stringValue(report.id), status: "rejected" }, "danger") + "</div></td></tr>";
+    }).join("") + "</tbody></table>";
+  }
+
+  async function updateReportStatus(reportId, status) {
+    if (!reportId || !status) return;
+    await callFunction("updateReportStatus", { reportId: reportId, status: status });
+    showToast("Status da denuncia atualizado.", "success");
+    await loadReports({ force: true });
+  }
+
+  async function loadSuspensions(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.suspensions.length > 0) {
+      renderSuspensions();
+      return;
+    }
+    setLoadingMarkup(ui.suspensionsList, "Carregando suspensoes...", "gpp_bad");
+    const response = await callFunction("listSuspensions", { status: ui.suspensionsFilter.value || "active", limit: 60 });
+    state.suspensions = asArray(response.suspensions);
+    renderSuspensions();
+  }
+
+  function renderSuspensions() {
+    if (state.suspensions.length === 0) {
+      ui.suspensionsList.innerHTML = renderEmptyState("Nenhuma suspensao encontrada.", "gpp_maybe");
+      return;
+    }
+    ui.suspensionsList.innerHTML = "<table class=\"data-table\"><thead><tr><th>Usuario</th><th>Motivo</th><th>Periodo</th><th>Status</th><th>Acoes</th></tr></thead><tbody>" + state.suspensions.map(function (item) {
+      const userId = stringValue(item.userId);
+      return "<tr><td><div><strong>" + escapeHtml(stringValue(item.userName, userId)) + "</strong></div><div class=\"detail-meta mono\">" + escapeHtml(userId) + "</div></td><td>" + escapeHtml(stringValue(item.reason, "Sem motivo")) + "</td><td><div>" + escapeHtml("Criada em " + formatDateTime(item.createdAt)) + "</div><div class=\"detail-meta\">" + escapeHtml("Ate " + formatDateTime(item.suspendedUntil)) + "</div></td><td>" + badgeHtml(stringValue(item.status, "active"), stringValue(item.status, "active")) + "</td><td><div class=\"table-actions\">" + (userId ? actionButton("open-user", "Usuario", "person", { uid: userId }, "ghost") : "") + (stringValue(item.status) === "active" ? actionButton("lift-suspension", "Levantar", "gpp_good", { suspensionId: stringValue(item.id) }, "secondary") : "") + "</div></td></tr>";
+    }).join("") + "</tbody></table>";
+  }
+
+  async function createSuspension() {
+    const userId = ui.suspendUidInput.value.trim();
+    const reason = ui.suspendReasonInput.value.trim();
+    const durationDays = Math.min(Math.max(toInteger(ui.suspendDaysInput.value, 7), 1), 365);
+    if (!userId || !reason) {
+      showToast("Informe o UID e o motivo da suspensao.", "error");
+      return;
+    }
+    setButtonBusy(ui.suspendConfirmButton, true);
+    try {
+      await callFunction("manageSuspension", { action: "create", userId: userId, reason: reason, durationDays: durationDays });
+      ui.suspendReasonInput.value = "";
+      ui.suspendDaysInput.value = "7";
+      showToast("Suspensao criada com sucesso.", "success");
+      await loadSuspensions({ force: true });
+    } finally {
+      setButtonBusy(ui.suspendConfirmButton, false);
+    }
+  }
+
+  async function liftSuspension(suspensionId) {
+    if (!suspensionId) return;
+    await callFunction("manageSuspension", { action: "lift", suspensionId: suspensionId });
+    showToast("Suspensao levantada.", "success");
+    await loadSuspensions({ force: true });
+  }
+
+  async function loadTickets(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.tickets.items.length > 0) {
+      renderTickets();
+      return;
+    }
+    setLoadingMarkup(ui.ticketsList, "Carregando tickets...", "support_agent");
+    const response = await callFunction("listTickets", { status: ui.ticketsFilter.value || "all", limit: 60 });
+    state.tickets.items = asArray(response.tickets);
+    const selectedExists = state.tickets.items.some(function (item) { return stringValue(item.id) === state.tickets.selectedId; });
+    if (!selectedExists) state.tickets.selectedId = "";
+    renderTickets();
+  }
+
+  function renderTickets() {
+    const tickets = state.tickets.items;
+    ui.ticketsList.innerHTML = tickets.length > 0 ? tickets.map(function (ticket) {
+      const ticketId = stringValue(ticket.id);
+      return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(ticket.subject, stringValue(ticket.title, ticketId))) + "</h3><p>" + escapeHtml(stringValue(ticket.contactEmail, stringValue(ticket.userId, "Sem contato"))) + "</p></div>" + badgeHtml(stringValue(ticket.status, "open"), stringValue(ticket.status, "open")) + "</div><div class=\"card-meta\">" + pillHtml(stringValue(ticket.category, "Sem categoria"), "pill-blue") + pillHtml("Criado em " + formatDateTime(ticket.createdAt), "pill-accent") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-ticket", "Abrir", "mark_email_read", { ticketId: ticketId }, "primary") + (ticket.userId ? actionButton("open-user", "Usuario", "person", { uid: stringValue(ticket.userId) }, "ghost") : "") + "</div></article>";
+    }).join("") : renderEmptyState("Nenhum ticket encontrado com esse status.", "mail");
+    const selected = tickets.find(function (ticket) { return stringValue(ticket.id) === state.tickets.selectedId; });
+    ui.ticketsDetail.innerHTML = selected ? renderTicketDetail(selected) : renderEmptyState("Selecione um ticket para responder ou atualizar o status.", "support_agent");
+  }
+
+  function renderTicketDetail(ticket) {
+    const payloadKey = "ticket-" + stringValue(ticket.id) + "-raw";
+    registerDrawerPayload(payloadKey, { kicker: "Ticket", title: stringValue(ticket.subject, stringValue(ticket.id)), subtitle: "Estrutura atual do ticket", data: ticket });
+    return [
+      detailSection("Resumo", renderKeyValueGrid([
+        ["Ticket", stringValue(ticket.id)],
+        ["Status", badgeHtml(stringValue(ticket.status, "open"), stringValue(ticket.status, "open"))],
+        ["Categoria", stringValue(ticket.category, "Nao informada")],
+        ["Origem", stringValue(ticket.source, "app")],
+        ["Contato", stringValue(ticket.contactName, "Nao informado")],
+        ["Email", stringValue(ticket.contactEmail, "Nao informado")],
+        ["Criado em", formatDateTime(ticket.createdAt)],
+        ["Atualizado em", formatDateTime(ticket.updatedAt)],
+      ])),
+      detailSection("Mensagem", "<div class=\"detail-rich-text\">" + escapeHtml(stringValue(ticket.message, stringValue(ticket.description, "Sem descricao."))) + "</div>"),
+      detailSection("Atualizar ticket", "<label class=\"field\"><span>Status</span><select id=\"ticket-status-editor\">" + selectOption("open", "Aberto", stringValue(ticket.status) === "open") + selectOption("in_progress", "Em andamento", stringValue(ticket.status) === "in_progress") + selectOption("resolved", "Resolvido", stringValue(ticket.status) === "resolved") + selectOption("closed", "Fechado", stringValue(ticket.status) === "closed") + "</select></label><label class=\"field\"><span>Resposta administrativa</span><textarea id=\"ticket-response-editor\" rows=\"6\" placeholder=\"Escreva a resposta interna ou enviada ao usuario\">" + escapeHtml(stringValue(ticket.adminResponse)) + "</textarea></label><div class=\"drawer-actions\">" + actionButton("save-ticket", "Salvar atualizacao", "save", {}, "primary") + (ticket.userId ? actionButton("open-user", "Abrir usuario", "person", { uid: stringValue(ticket.userId) }, "secondary") : "") + actionButton("open-payload", "Ver JSON", "data_object", { payloadKey: payloadKey }, "ghost") + "</div>"),
+    ].join("");
+  }
+
+  function selectTicket(ticketId) {
+    state.tickets.selectedId = ticketId || "";
+    renderTickets();
+  }
+
+  async function saveSelectedTicket() {
+    const selected = state.tickets.items.find(function (ticket) { return stringValue(ticket.id) === state.tickets.selectedId; });
+    if (!selected) {
+      showToast("Selecione um ticket antes de salvar.", "error");
+      return;
+    }
+    const statusEditor = document.getElementById("ticket-status-editor");
+    const responseEditor = document.getElementById("ticket-response-editor");
+    const status = statusEditor ? statusEditor.value : stringValue(selected.status, "open");
+    const response = responseEditor ? responseEditor.value.trim() : "";
+    await callFunction("updateTicket", { ticketId: stringValue(selected.id), status: status, response: response });
+    showToast("Ticket atualizado com sucesso.", "success");
+    await loadTickets({ force: true });
+    state.tickets.selectedId = stringValue(selected.id);
+    renderTickets();
+  }
+
+  async function loadSystem(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.system.data) {
+      renderSystem();
+      return;
+    }
+    setLoadingMarkup(ui.systemConfigCards, "Carregando configuracoes...", "memory");
+    setLoadingMarkup(ui.systemTranscodeJobs, "Buscando jobs de transcode...", "video_settings");
+    if (!state.system.firestoreResult) setLoadingMarkup(ui.firestoreExplorerResult, "Use o explorador para inspecionar caminhos Firestore.", "saved_search");
+    if (!state.system.storageResult) setLoadingMarkup(ui.storageExplorerResult, "Use o explorador para listar arquivos do Storage.", "folder_open");
+    state.system.data = await callFunction("getSystemAdminData", { limit: 40 });
+    renderSystem();
+  }
+
+  function renderSystem() {
+    const data = state.system.data;
+    if (!data) return;
+    const config = asObject(data.config);
+    ui.systemConfigCards.innerHTML = [
+      systemConfigCard("appData", "Config app_data", asObject(config.appData)),
+      systemConfigCard("featuredProfiles", "Config featuredProfiles", asObject(config.featuredProfiles)),
+      systemConfigCard("admin", "Config admin", asObject(config.admin)),
+      stackCard("Collections raiz", asArray(data.rootCollections).map(function (collection) { return stringValue(collection.path); }).join(", ") || "Nenhuma collection retornada.", pillHtml(formatNumber(asArray(data.rootCollections).length) + " colecoes", "pill-blue")),
+    ].join("");
+
+    ui.systemTranscodeJobs.innerHTML = asArray(data.transcodeJobs).length > 0 ? asArray(data.transcodeJobs).map(function (job, index) {
+      const payloadKey = "transcode-job-" + index;
+      registerDrawerPayload(payloadKey, { kicker: "Sistema", title: stringValue(job.id, "Transcode job"), subtitle: stringValue(job.path), data: job });
+      const jobData = asObject(job.data);
+      return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(job.id, "Job")) + "</h3><p>" + escapeHtml(stringValue(job.path, "Sem path")) + "</p></div>" + badgeHtml(stringValue(jobData.status, "pending"), stringValue(jobData.status, "pending")) + "</div><div class=\"card-meta\">" + pillHtml("User: " + escapeHtml(stringValue(jobData.userId, "nao informado")), "pill-blue") + pillHtml("Atualizado em " + formatDateTime(jobData.updatedAt || jobData.updated_at), "pill-green") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + (jobData.userId ? actionButton("open-user", "Abrir usuario", "person", { uid: stringValue(jobData.userId) }, "secondary") : "") + actionButton("open-payload", "Ver JSON", "data_object", { payloadKey: payloadKey }, "ghost") + "</div></article>";
+    }).join("") : renderEmptyState("Nenhum job de transcode retornado.", "video_library");
+
+    renderSystemExplorerResult(ui.firestoreExplorerResult, state.system.firestoreResult, "Firestore");
+    renderSystemExplorerResult(ui.storageExplorerResult, state.system.storageResult, "Storage");
+  }
+
+  function systemConfigCard(key, title, snapshot) {
+    const payloadKey = "system-config-" + key;
+    registerDrawerPayload(payloadKey, { kicker: "Sistema", title: title, subtitle: stringValue(snapshot.path, "Documento de configuracao"), data: snapshot });
+    return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(title) + "</h3><p>" + escapeHtml(stringValue(snapshot.path, "Sem path")) + "</p></div>" + badgeHtml(snapshot.exists === true ? "Disponivel" : "Ausente", snapshot.exists === true ? "processed" : "pending") + "</div><div class=\"card-meta\">" + pillHtml("Doc id: " + escapeHtml(stringValue(snapshot.id, "-")), "pill-blue") + pillHtml("Tem dados: " + (snapshot.exists === true ? "sim" : "nao"), "pill-accent") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-payload", "Inspecionar JSON", "data_object", { payloadKey: payloadKey }, "secondary") + "</div></article>";
+  }
+
+  async function inspectFirestorePath() {
+    const path = ui.firestorePathInput.value.trim();
+    const limit = Math.min(toInteger(ui.firestoreLimitSelect.value, 10), 50);
+    setButtonBusy(ui.firestoreInspectButton, true);
+    setLoadingMarkup(ui.firestoreExplorerResult, "Inspecionando caminho Firestore...", "saved_search");
+    try {
+      state.system.firestoreResult = await callFunction("inspectFirestorePath", { path: path, limit: limit });
+      renderSystem();
+    } finally {
+      setButtonBusy(ui.firestoreInspectButton, false);
+    }
+  }
+
+  async function inspectStoragePrefix() {
+    const prefix = ui.storagePrefixInput.value.trim();
+    const limit = Math.min(toInteger(ui.storageLimitSelect.value, 20), 100);
+    setButtonBusy(ui.storageInspectButton, true);
+    setLoadingMarkup(ui.storageExplorerResult, "Listando arquivos do Storage...", "folder_open");
+    try {
+      state.system.storageResult = await callFunction("inspectStoragePrefix", { prefix: prefix, limit: limit });
+      renderSystem();
+    } finally {
+      setButtonBusy(ui.storageInspectButton, false);
+    }
+  }
+
+  function renderSystemExplorerResult(element, payload, kindLabel) {
+    if (!payload) {
+      element.innerHTML = renderEmptyState("Nenhum resultado carregado ainda para " + kindLabel + ".", kindLabel === "Firestore" ? "saved_search" : "folder_open");
+      return;
+    }
+    const payloadKey = "explorer-" + kindLabel.toLowerCase();
+    registerDrawerPayload(payloadKey, { kicker: "Explorador " + kindLabel, title: kindLabel, subtitle: "Resultado bruto da ultima consulta", data: payload });
+    const lines = [];
+    if (kindLabel === "Firestore") {
+      lines.push("kind: " + stringValue(payload.kind, "unknown"));
+      lines.push("path: " + stringValue(payload.path, "(root)"));
+      if (payload.kind === "root") lines.push("collections: " + formatNumber(asArray(payload.collections).length));
+      if (payload.kind === "document") lines.push("subcollections: " + formatNumber(asArray(payload.subcollections).length));
+      if (payload.kind === "collection") {
+        lines.push("documents: " + formatNumber(asArray(payload.documents).length));
+        lines.push("nextCursor: " + stringValue(payload.nextCursor, "null"));
+      }
+    } else {
+      lines.push("bucket: " + stringValue(payload.bucket));
+      lines.push("prefix: " + stringValue(payload.prefix, "(root)"));
+      lines.push("files: " + formatNumber(asArray(payload.files).length));
+      lines.push("nextPageToken: " + stringValue(payload.nextPageToken, "null"));
+    }
+    element.innerHTML = "<div class=\"stack-list\"><article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(kindLabel + " Explorer") + "</h3><p>" + escapeHtml(lines.join(" | ")) + "</p></div></div><div class=\"drawer-actions\">" + actionButton("open-payload", "Abrir JSON completo", "data_object", { payloadKey: payloadKey }, "secondary") + "</div></article><div class=\"code-shell\"><pre>" + escapeHtml(prettyJson(payload)) + "</pre></div></div>";
+  }
+
+  function callFunction(name, payload) {
+    const region = FUNCTION_REGIONS[name] || REGION;
+    if (!functionsByRegion[region]) {
+      functionsByRegion[region] = firebaseApp.functions(region);
+    }
+    return functionsByRegion[region].httpsCallable(name)(payload || {}).then(function (response) {
+      return response.data;
+    });
+  }
+
+  function onDocumentActionClick(event) {
+    const button = event.target.closest("[data-action]");
+    if (!button) return;
+    event.preventDefault();
+    const action = button.dataset.action;
+    switch (action) {
+    case "open-user":
+      openUserDetail(button.dataset.uid).catch(handleError);
+      break;
+    case "prepare-suspension":
+      prepareSuspension(button.dataset.uid);
+      break;
+    case "add-featured-user":
+      addFeaturedFromUid(button.dataset.uid).catch(handleError);
+      break;
+    case "open-conversation":
+      activateSection("conversations").then(function () { return selectConversation(button.dataset.conversationId); }).catch(handleError);
+      break;
+    case "open-gig":
+      activateSection("gigs").then(function () { return selectGig(button.dataset.gigId); }).catch(handleError);
+      break;
+    case "open-ticket":
+      activateSection("tickets").then(function () { selectTicket(button.dataset.ticketId); }).catch(handleError);
+      break;
+    case "save-ticket":
+      saveSelectedTicket().catch(handleError);
+      break;
+    case "featured-remove":
+      removeFeatured(button.dataset.uid);
+      break;
+    case "featured-move-up":
+      moveFeatured(button.dataset.uid, -1);
+      break;
+    case "featured-move-down":
+      moveFeatured(button.dataset.uid, 1);
+      break;
+    case "report-status":
+      updateReportStatus(button.dataset.reportId, button.dataset.status).catch(handleError);
+      break;
+    case "lift-suspension":
+      liftSuspension(button.dataset.suspensionId).catch(handleError);
+      break;
+    case "open-section":
+      activateSection(button.dataset.section).catch(handleError);
+      break;
+    case "open-payload":
+      openRegisteredPayload(button.dataset.payloadKey);
+      break;
+    default:
+      break;
+    }
+  }
+
+  function prepareSuspension(uid) {
+    if (!uid) return;
+    ui.suspendUidInput.value = uid;
+    activateSection("suspensions").catch(handleError);
+    showToast("UID preenchido na tela de suspensoes.", "success");
+    closeDrawer();
+  }
+
+  function openRegisteredPayload(key) {
+    const payload = state.drawerPayloads[key];
+    if (!payload) {
+      showToast("Conteudo bruto nao encontrado para esta acao.", "error");
+      return;
+    }
+    openDrawer({
+      kicker: stringValue(payload.kicker, "Inspecao"),
+      title: stringValue(payload.title, "JSON"),
+      subtitle: stringValue(payload.subtitle),
+      html: "<div class=\"code-shell\"><pre>" + escapeHtml(prettyJson(payload.data)) + "</pre></div>",
+    });
+  }
+
+  function registerDrawerPayload(key, payload) {
+    state.drawerPayloads[key] = payload;
+    return key;
+  }
+
+  function openDrawer(config) {
+    ui.drawerKicker.textContent = stringValue(config.kicker, "Detalhes");
+    ui.drawerTitle.textContent = stringValue(config.title, "Inspecao");
+    ui.drawerSubtitle.textContent = stringValue(config.subtitle);
+    ui.drawerBody.innerHTML = stringValue(config.html);
+    ui.detailDrawer.classList.remove("hidden");
+  }
+
+  function closeDrawer() {
+    ui.detailDrawer.classList.add("hidden");
+  }
+
+  function openSidebar() {
+    ui.sidebar.classList.add("is-open");
+    ui.sidebarScrim.classList.remove("hidden");
+  }
+
+  function closeSidebar() {
+    ui.sidebar.classList.remove("is-open");
+    ui.sidebarScrim.classList.add("hidden");
+  }
+
+  function setLoggedOutUI() {
+    ui.loginScreen.classList.remove("hidden");
+    ui.adminShell.classList.add("hidden");
+    ui.sidebar.classList.remove("is-open");
+    ui.sidebarScrim.classList.add("hidden");
+    closeDrawer();
+  }
+
+  function setLoggedInUI(user) {
+    const email = user && user.email ? user.email : "admin@mube";
+    ui.sidebarAdminEmail.textContent = email;
+    ui.topbarAdminEmail.textContent = email;
+    ui.loginScreen.classList.add("hidden");
+    ui.adminShell.classList.remove("hidden");
+    hideLoginError();
+  }
+
+  function setLoginLoading(isLoading, label) {
+    const textElement = ui.loginButton.querySelector(".btn-text");
+    const loader = ui.loginButton.querySelector(".btn-loader");
+    ui.loginButton.disabled = isLoading;
+    if (textElement) textElement.textContent = label || "Entrar";
+    if (loader) loader.classList.toggle("hidden", !isLoading);
+  }
+
+  function showLoginError(message) {
+    ui.loginError.textContent = message;
+    ui.loginError.classList.remove("hidden");
+  }
+
+  function hideLoginError() {
+    ui.loginError.textContent = "";
+    ui.loginError.classList.add("hidden");
+  }
+
+  function showToast(message, type) {
+    clearTimeout(state.toastTimer);
+    ui.toast.textContent = message;
+    ui.toast.className = "toast " + (type || "success");
+    ui.toast.classList.remove("hidden");
+    state.toastTimer = window.setTimeout(function () {
+      ui.toast.classList.add("hidden");
+    }, 3600);
+  }
+
+  function setButtonBusy(button, isBusy) {
+    if (button) button.disabled = isBusy;
+  }
+
+  function setLoadingMarkup(element, message, icon) {
+    element.innerHTML = renderEmptyState(message, icon || "hourglass_top");
+  }
+
+  function renderSummaryCard(item) {
+    return "<article class=\"summary-card\"><span class=\"material-icons-round\">" + escapeHtml(item.icon || "insights") + "</span><strong>" + escapeHtml(stringValue(item.value, "0")) + "</strong><p>" + escapeHtml(stringValue(item.label)) + "</p>" + (item.text ? "<p class=\"detail-meta\">" + escapeHtml(stringValue(item.text)) + "</p>" : "") + "</article>";
+  }
+
+  function renderMetricCard(item) {
+    return "<article class=\"metric-card\"><span class=\"material-icons-round\">" + escapeHtml(item.icon || "analytics") + "</span><strong>" + escapeHtml(stringValue(item.value, "0")) + "</strong><p>" + escapeHtml(stringValue(item.label)) + "</p>" + (item.text ? "<p class=\"detail-meta\">" + escapeHtml(stringValue(item.text)) + "</p>" : "") + "</article>";
+  }
+
+  function healthCard(title, value, variant, text) {
+    return stackCard(title, text, pillHtml(formatNumber(value), variant));
+  }
+
+  function timelineColumn(title, icon, items) {
+    return "<article class=\"timeline-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(title) + "</h3><p>Atualizado a partir do backend administrativo</p></div><span class=\"material-icons-round\">" + escapeHtml(icon) + "</span></div>" + (items.length > 0 ? items.join("") : renderEmptyState("Sem itens recentes.", icon)) + "</article>";
+  }
+
+  function timelineItem(title, text, badge, action) {
+    return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + title + "</h3><p>" + text + "</p></div>" + (badge || "") + "</div>" + (action ? "<div class=\"drawer-actions\">" + action + "</div>" : "") + "</article>";
+  }
+
+  function stackCard(title, text, trailingHtml) {
+    return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + title + "</h3><p>" + text + "</p></div>" + (trailingHtml || "") + "</div></article>";
+  }
+
+  function detailSection(title, bodyHtml) {
+    return "<section class=\"detail-section\"><h3>" + escapeHtml(title) + "</h3>" + bodyHtml + "</section>";
+  }
+
+  function renderKeyValueGrid(items) {
+    return "<div class=\"kv-grid\">" + items.map(function (item) { return renderKvItem(item[0], item[1]); }).join("") + "</div>";
+  }
+
+  function renderKvItem(label, value) {
+    return "<div class=\"kv-item\"><strong>" + escapeHtml(stringValue(label)) + "</strong><div>" + (typeof value === "string" && /<[^>]+>/.test(value) ? value : escapeHtml(stringValue(value, "-"))) + "</div></div>";
+  }
+
+  function renderMiniList(title, items, formatter, emptyText) {
+    return "<div style=\"margin-bottom:14px;\"><strong style=\"display:block;margin-bottom:8px;\">" + escapeHtml(title) + "</strong>" + (items.length > 0 ? "<div class=\"stack-list\">" + items.slice(0, 6).map(function (item) { return "<article class=\"stack-card\">" + formatter(item) + "</article>"; }).join("") + "</div>" : renderEmptyState(emptyText, "inbox")) + "</div>";
+  }
+
+  function simpleLine(title, subtitle) {
+    return "<div><strong>" + escapeHtml(title) + "</strong></div><div class=\"detail-meta\">" + escapeHtml(subtitle) + "</div>";
+  }
+
+  function renderInteractionsTable(items) {
+    if (items.length === 0) return renderEmptyState("Nenhuma interacao recente encontrada.", "swap_horiz");
+    return "<table class=\"data-table\"><thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Destino</th><th>Acoes</th></tr></thead><tbody>" + items.map(function (item) {
+      const sourceUser = asObject(item.sourceUser);
+      const targetUser = asObject(item.targetUser);
+      return "<tr><td>" + escapeHtml(formatDateTime(item.createdAt)) + "</td><td>" + badgeHtml(stringValue(item.type, "unknown"), stringValue(item.type, "pending")) + "</td><td><div><strong>" + escapeHtml(stringValue(sourceUser.nome, stringValue(item.sourceUserId))) + "</strong></div><div class=\"detail-meta mono\">" + escapeHtml(stringValue(item.sourceUserId)) + "</div></td><td><div><strong>" + escapeHtml(stringValue(targetUser.nome, stringValue(item.targetUserId))) + "</strong></div><div class=\"detail-meta mono\">" + escapeHtml(stringValue(item.targetUserId)) + "</div></td><td><div class=\"table-actions\">" + (item.sourceUserId ? actionButton("open-user", "Origem", "person", { uid: stringValue(item.sourceUserId) }, "ghost") : "") + (item.targetUserId ? actionButton("open-user", "Destino", "person", { uid: stringValue(item.targetUserId) }, "ghost") : "") + "</div></td></tr>";
+    }).join("") + "</tbody></table>";
+  }
+
+  function renderEmptyState(message, icon) {
+    return "<div class=\"empty-state\"><span class=\"material-icons-round\">" + escapeHtml(icon || "inbox") + "</span><p>" + escapeHtml(message) + "</p></div>";
+  }
+
+  function avatarMarkup(photoUrl, label, round) {
+    const safeLabel = escapeHtml(firstWord(label || "U"));
+    if (photoUrl) return "<img class=\"card-avatar" + (round ? " is-round" : "") + "\" src=\"" + escapeHtml(photoUrl) + "\" alt=\"" + escapeHtml(label || "Avatar") + "\">";
+    return "<div class=\"card-avatar" + (round ? " is-round" : "") + "\" style=\"display:grid;place-items:center;color:var(--text-soft);font-weight:700;\">" + safeLabel.slice(0, 1).toUpperCase() + "</div>";
+  }
+
+  function actionButton(action, label, icon, data, variant) {
+    const attrs = Object.keys(data || {}).map(function (key) { return " data-" + camelToKebab(key) + "=\"" + escapeHtml(String(data[key])) + "\""; }).join("");
+    return "<button class=\"btn btn-" + escapeHtml(variant || "secondary") + "\" type=\"button\" data-action=\"" + escapeHtml(action) + "\"" + attrs + ">" + (icon ? "<span class=\"material-icons-round\">" + escapeHtml(icon) + "</span>" : "") + "<span>" + escapeHtml(label) + "</span></button>";
+  }
+
+  function badgeHtml(label, key) {
+    return "<span class=\"badge badge-" + escapeHtml(sanitizeBadgeKey(key || label)) + "\">" + escapeHtml(label) + "</span>";
+  }
+
+  function pillHtml(label, className) {
+    return "<span class=\"pill " + escapeHtml(className || "") + "\">" + label + "</span>";
+  }
+
+  function selectOption(value, label, selected) {
+    return "<option value=\"" + escapeHtml(value) + "\"" + (selected ? " selected" : "") + ">" + escapeHtml(label) + "</option>";
+  }
+
+  function resolveInitialSection() {
+    const hash = (window.location.hash || "").replace(/^#/, "").trim();
+    return SECTION_META[hash] ? hash : "dashboard";
+  }
+
+  function requiredElement(id) {
+    const element = document.getElementById(id);
+    if (!element) throw new Error("Elemento obrigatorio nao encontrado: #" + id);
+    return element;
+  }
+
+  function sanitizeBadgeKey(value) {
+    return String(value || "default").trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "_");
+  }
+
+  function registrationBadgeKey(value) {
+    if (value === "completed") return "completed";
+    if (value === "profile-pending") return "profile-pending";
+    if (value === "type-pending") return "type-pending";
+    return sanitizeBadgeKey(value || "pending");
+  }
+
+  function buildUserSubtitle(user) {
+    return [stringValue(user.email), stringValue(user.displayLocation), stringValue(user.tipoPerfilLabel)].filter(Boolean).join(" | ") || "Sem contexto adicional";
+  }
+
+  function stringValue(value, fallback) {
+    if (value === null || value === undefined) return fallback || "";
+    return String(value);
+  }
+
+  function toInteger(value, fallback) {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.floor(number) : (fallback || 0);
+  }
+
+  function formatNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? new Intl.NumberFormat("pt-BR").format(number) : "0";
+  }
+
+  function formatDecimal(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "0";
+    return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 }).format(number);
+  }
+
+  function formatDateTime(value) {
+    const millis = toMillis(value);
+    if (!millis) return "-";
+    return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(millis));
+  }
+
+  function toMillis(value) {
+    if (!value && value !== 0) return null;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Date.parse(value);
+      return Number.isNaN(parsed) ? null : parsed;
+    }
+    if (value instanceof Date) return value.getTime();
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value.millis === "number") return value.millis;
+    if (typeof value._seconds === "number") return value._seconds * 1000 + Math.floor((value._nanoseconds || 0) / 1000000);
+    if (typeof value.seconds === "number") return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1000000);
+    if (typeof value.iso === "string") {
+      const parsedIso = Date.parse(value.iso);
+      return Number.isNaN(parsedIso) ? null : parsedIso;
+    }
+    return null;
+  }
+
+  function prettyJson(value) {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  function escapeHtml(value) {
+    return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function camelToKebab(value) {
+    return String(value || "").replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  }
+
+  function firstWord(value) {
+    return String(value || "").trim().split(/\s+/)[0] || "U";
+  }
+
+  function asArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  function asObject(value) {
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+
+  function isPermissionDeniedError(error) {
+    const code = stringValue(error && error.code);
+    return code === "functions/permission-denied" || code === "permission-denied";
+  }
+
+  function getErrorMessage(error) {
+    const code = stringValue(error && error.code);
+    const message = stringValue(error && error.message, "Falha inesperada.");
+    if (code === "auth/wrong-password" || code === "auth/invalid-credential") return "Email ou senha invalidos.";
+    if (code === "auth/user-not-found") return "Conta nao encontrada.";
+    if (code === "functions/permission-denied" || code === "permission-denied") return "Sua conta nao possui permissao para esta operacao.";
+    return message.replace(/^Firebase:\s*/i, "").trim();
+  }
+
+  function handleError(error) {
+    console.error("[Mube Admin]", error);
+    showToast(getErrorMessage(error), "error");
+  }
+})();
