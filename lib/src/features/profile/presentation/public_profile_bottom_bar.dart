@@ -2,9 +2,9 @@ part of 'public_profile_screen.dart';
 
 class _OtherBottomBar extends StatelessWidget {
   final VoidCallback onShare;
-  final VoidCallback onChat;
+  final VoidCallback? onChat;
 
-  const _OtherBottomBar({required this.onShare, required this.onChat});
+  const _OtherBottomBar({required this.onShare, this.onChat});
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +15,16 @@ class _OtherBottomBar extends StatelessWidget {
           onPressed: onShare,
           tooltip: 'Compartilhar perfil',
         ),
-        const SizedBox(width: AppSpacing.s12),
-        Expanded(
-          child: _PrimaryBottomActionButton(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'Iniciar Conversa',
-            onPressed: onChat,
+        if (onChat != null) ...[
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: _PrimaryBottomActionButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Iniciar Conversa',
+              onPressed: onChat!,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

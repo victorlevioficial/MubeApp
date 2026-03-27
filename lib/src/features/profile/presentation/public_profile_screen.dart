@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../constants/venue_type_constants.dart';
 import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
@@ -23,7 +24,6 @@ import '../../../design_system/foundations/tokens/app_icons.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../constants/venue_type_constants.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/professional_profile_utils.dart';
@@ -479,8 +479,9 @@ class PublicProfileScreen extends ConsumerWidget {
                   onChat: canStartChat
                       ? () => ref
                             .read(
-                              publicProfileControllerProvider(profileRef)
-                                  .notifier,
+                              publicProfileControllerProvider(
+                                profileRef,
+                              ).notifier,
                             )
                             .openChat(context)
                       : null,

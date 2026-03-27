@@ -1,25 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mube/src/design_system/components/data_display/user_avatar.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
-import 'package:mube/src/features/gigs/domain/compensation_type.dart';
 import 'package:mube/src/features/gigs/domain/gig.dart';
-import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
-import 'package:mube/src/features/gigs/domain/gig_location_type.dart';
 import 'package:mube/src/features/gigs/domain/gig_review.dart';
-import 'package:mube/src/features/gigs/domain/gig_status.dart';
-import 'package:mube/src/features/gigs/domain/gig_type.dart';
 import 'package:mube/src/features/gigs/domain/review_type.dart';
 import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/profile/presentation/public_profile_screen.dart';
 import 'package:mube/src/features/profile/presentation/widgets/profile_hero_header.dart';
-import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/pump_app.dart';
 import '../../../../helpers/test_data.dart';

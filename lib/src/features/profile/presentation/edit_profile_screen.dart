@@ -535,8 +535,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
   }
 
   bool _shouldBuildTab(int index) =>
-      _visitedTabs.contains(index) ||
-      ((_tabController?.index ?? 0) == index);
+      _visitedTabs.contains(index) || ((_tabController?.index ?? 0) == index);
 
   Future<bool> _validateProfileForm() async {
     final profileFormState = _profileFormKey.currentState;
@@ -762,38 +761,37 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
             body: Column(
               children: [
                 Container(
-                    margin: const EdgeInsets.all(AppSpacing.s16),
-                    height: AppSpacing.s48,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
-                      borderRadius: AppRadius.pill,
-                      border: Border.all(
-                        color: AppColors.textPrimary.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: TabBar(
-                      controller: tabController,
-                      onTap: (_) =>
-                          FocusManager.instance.primaryFocus?.unfocus(),
-                      labelColor: AppColors.textPrimary,
-                      unselectedLabelColor: AppColors.textSecondary,
-                      indicator: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: AppRadius.pill,
-                        boxShadow: AppEffects.buttonShadow,
-                      ),
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: AppColors.transparent,
-                      padding: AppSpacing.all4,
-                      tabs: isContractor
-                          ? const [Tab(text: 'Perfil'), Tab(text: 'Midia')]
-                          : const [
-                              Tab(text: 'Perfil'),
-                              Tab(text: 'Midia'),
-                              Tab(text: 'Links Musicais'),
-                            ],
+                  margin: const EdgeInsets.all(AppSpacing.s16),
+                  height: AppSpacing.s48,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
+                    borderRadius: AppRadius.pill,
+                    border: Border.all(
+                      color: AppColors.textPrimary.withValues(alpha: 0.05),
                     ),
                   ),
+                  child: TabBar(
+                    controller: tabController,
+                    onTap: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+                    labelColor: AppColors.textPrimary,
+                    unselectedLabelColor: AppColors.textSecondary,
+                    indicator: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: AppRadius.pill,
+                      boxShadow: AppEffects.buttonShadow,
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: AppColors.transparent,
+                    padding: AppSpacing.all4,
+                    tabs: isContractor
+                        ? const [Tab(text: 'Perfil'), Tab(text: 'Midia')]
+                        : const [
+                            Tab(text: 'Perfil'),
+                            Tab(text: 'Midia'),
+                            Tab(text: 'Links Musicais'),
+                          ],
+                  ),
+                ),
                 Expanded(
                   child: TabBarView(
                     controller: tabController,
@@ -810,8 +808,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
                                   controllers: _musicLinkControllers,
                                   onChanged: ref
                                       .read(
-                                        editProfileControllerProvider(user.uid)
-                                            .notifier,
+                                        editProfileControllerProvider(
+                                          user.uid,
+                                        ).notifier,
                                       )
                                       .markChanged,
                                 ),

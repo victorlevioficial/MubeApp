@@ -108,9 +108,7 @@ abstract class SearchFilters with _$SearchFilters {
         nextCategory == SearchCategory.studios ||
         nextCategory == SearchCategory.venues;
 
-    if (isCurrentStudioLike &&
-        isNextStudioLike &&
-        category != nextCategory) {
+    if (isCurrentStudioLike && isNextStudioLike && category != nextCategory) {
       next = next.copyWith(services: const [], studioType: null);
     }
 

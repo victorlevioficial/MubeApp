@@ -78,8 +78,7 @@ sealed class FeedItem with _$FeedItem {
     final profData = data['profissional'] as Map<String, dynamic>? ?? {};
     final bandData = data['banda'] as Map<String, dynamic>? ?? {};
     final studioData = data['estudio'] as Map<String, dynamic>? ?? {};
-    final contractorData =
-        data['contratante'] as Map<String, dynamic>? ?? {};
+    final contractorData = data['contratante'] as Map<String, dynamic>? ?? {};
 
     // Determine which nested data to use for artistic name
     String? artisticName;

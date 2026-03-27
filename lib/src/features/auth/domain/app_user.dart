@@ -54,6 +54,9 @@ abstract class AppUser with _$AppUser {
     /// Profile photo URL.
     String? foto,
 
+    /// Thumbnail-sized profile photo URL when available.
+    @JsonKey(name: 'foto_thumb') String? fotoThumb,
+
     /// Short biography.
     String? bio,
 
@@ -192,6 +195,12 @@ abstract class AppUser with _$AppUser {
 
   /// Public username normalized to the canonical lowercase form.
   String? get publicUsername => normalizedPublicUsernameOrNull(username);
+
+  /// Best avatar URL for compact surfaces such as headers, lists and chips.
+  String? get avatarPreviewUrl => _firstNonEmptyText([fotoThumb, foto]);
+
+  /// Best avatar URL for large/full surfaces such as media viewers.
+  String? get avatarFullUrl => _firstNonEmptyText([foto, fotoThumb]);
 
   /// Public handle shown in shareable contexts.
   String? get publicHandle {

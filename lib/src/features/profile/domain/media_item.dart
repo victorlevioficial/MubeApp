@@ -15,8 +15,17 @@ class MediaItem {
   /// Type of media (photo or video).
   final MediaType type;
 
-  /// Thumbnail URL for videos only.
+  /// Preview thumbnail URL.
+  ///
+  /// For videos, this is the generated poster frame.
+  /// For photos, this may contain a smaller variant for grid previews.
   final String? thumbnailUrl;
+
+  /// Medium-sized URL for photos when available.
+  final String? mediumUrl;
+
+  /// Large-sized URL for photos when available.
+  final String? largeUrl;
 
   /// Order in the gallery (0 = first/main).
   final int order;
@@ -41,6 +50,8 @@ class MediaItem {
     required this.url,
     required this.type,
     this.thumbnailUrl,
+    this.mediumUrl,
+    this.largeUrl,
     required this.order,
     this.localPath,
     this.localThumbnailPath,
@@ -53,11 +64,27 @@ class MediaItem {
   bool get hasLocalPreview => localPath != null && localPath!.isNotEmpty;
   bool get isProcessing => isUploading || isDeleting;
 
+  /// Best image URL for grid/list previews.
+  String get previewUrl {
+    if (type == MediaType.video) {
+      return _firstNonEmpty([thumbnailUrl, url]);
+    }
+    return _firstNonEmpty([thumbnailUrl, mediumUrl, largeUrl, url]);
+  }
+
+  /// Best image URL for full-screen photo viewing.
+  String get viewerUrl {
+    if (type == MediaType.video) return url;
+    return _firstNonEmpty([largeUrl, mediumUrl, thumbnailUrl, url]);
+  }
+
   MediaItem copyWith({
     String? id,
     String? url,
     MediaType? type,
     String? thumbnailUrl,
+    String? mediumUrl,
+    String? largeUrl,
     int? order,
     String? localPath,
     String? localThumbnailPath,
@@ -70,6 +97,8 @@ class MediaItem {
       url: url ?? this.url,
       type: type ?? this.type,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      mediumUrl: mediumUrl ?? this.mediumUrl,
+      largeUrl: largeUrl ?? this.largeUrl,
       order: order ?? this.order,
       localPath: localPath ?? this.localPath,
       localThumbnailPath: localThumbnailPath ?? this.localThumbnailPath,
@@ -85,6 +114,8 @@ class MediaItem {
       'url': url,
       'type': type == MediaType.video ? 'video' : 'photo',
       'thumbnailUrl': thumbnailUrl,
+      'mediumUrl': mediumUrl,
+      'largeUrl': largeUrl,
       'order': order,
     };
   }
@@ -95,6 +126,8 @@ class MediaItem {
       url: json['url'] as String,
       type: json['type'] == 'video' ? MediaType.video : MediaType.photo,
       thumbnailUrl: json['thumbnailUrl'] as String?,
+      mediumUrl: json['mediumUrl'] as String?,
+      largeUrl: json['largeUrl'] as String?,
       order: json['order'] as int? ?? 0,
     );
   }
@@ -107,4 +140,13 @@ class MediaItem {
 
   @override
   int get hashCode => id.hashCode;
+
+  static String _firstNonEmpty(List<String?> candidates) {
+    for (final candidate in candidates) {
+      if (candidate != null && candidate.isNotEmpty) {
+        return candidate;
+      }
+    }
+    return '';
+  }
 }
