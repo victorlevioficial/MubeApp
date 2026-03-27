@@ -92,6 +92,14 @@
       {
         "source": "/user/**",
         "destination": "/profile/index.html"
+      },
+      {
+        "source": "/gigs",
+        "destination": "/gigs/index.html"
+      },
+      {
+        "source": "/gigs/**",
+        "destination": "/gigs/index.html"
       }
     ],
     "headers": [

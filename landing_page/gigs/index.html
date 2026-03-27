@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0A0A0A" />
+  <meta
+    name="description"
+    content="Abra gigs do Mube direto no app ou continue no site."
+  />
+  <base href="/" />
+  <title>Abrir Gig no Mube</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    :root {
+      --bg-deep: #050816;
+      --primary: #e8466c;
+      --font-display: "Poppins", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      background:
+        radial-gradient(circle at top, rgba(232, 70, 108, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 28%),
+        var(--bg-deep);
+    }
+
+    .gig-link-card {
+      width: min(100%, 520px);
+      background: rgba(20, 20, 20, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .gig-link-brand {
+      width: 180px;
+      height: auto;
+    }
+
+    .gig-link-headline {
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    .gig-link-headline span {
+      background: linear-gradient(135deg, #e8466c 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gig-link-copy {
+      font-family: "Inter", sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #aaa;
+    }
+
+    .gig-link-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 54px;
+      padding: 0 20px;
+      border-radius: 16px;
+      border: 1px solid transparent;
+      font-family: "Inter", sans-serif;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn--primary {
+      background: linear-gradient(135deg, #e8466c 0%, #3b82f6 100%);
+      color: #fff;
+      box-shadow: 0 14px 36px rgba(232, 70, 108, 0.28);
+    }
+
+    .btn--outline {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .gig-link-path {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .gig-link-path strong {
+      font-family: "Inter", sans-serif;
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .gig-link-path code {
+      font-size: 0.85rem;
+      color: #e8466c;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="gig-link-card">
+      <img
+        class="gig-link-brand"
+        src="/assets/landing/brand-horizontal-primary.svg"
+        alt="Mube"
+        onerror="this.style.display='none'"
+      />
+      <h1 class="gig-link-headline">
+        Abrir <span>Gig</span> no Mube
+      </h1>
+      <p class="gig-link-copy">
+        Os links de gig do Mube funcionam como App Link e Universal Link.
+        Em celulares compativeis, tocar no link abre a gig no app. Se voce caiu no navegador,
+        use os atalhos abaixo para tentar novamente.
+      </p>
+      <div class="gig-link-actions">
+        <a class="btn btn--primary" id="openInAppButton" href="/">
+          Abrir no app
+        </a>
+        <a
+          class="btn btn--outline"
+          href="https://play.google.com/store/apps/details?id=com.mube.mubeoficial"
+        >
+          Baixar no Google Play
+        </a>
+        <a class="btn btn--outline" href="/">
+          Ir para o site do Mube
+        </a>
+      </div>
+      <div class="gig-link-path">
+        <strong>Link detectado</strong>
+        <code id="gigPath">/gigs/...</code>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var path = window.location.pathname || "/gigs";
+      var segments = path.split("/").filter(Boolean);
+      var gigId = "";
+
+      // Extract gig ID: /gigs/:gigId
+      if (segments.length >= 2 && segments[0] === "gigs") {
+        gigId = segments[1];
+      }
+
+      var canonicalPath = gigId ? "/gigs/" + encodeURIComponent(gigId) : "/gigs";
+      var canonicalUrl = window.location.origin + canonicalPath;
+      var openButton = document.getElementById("openInAppButton");
+      var gigPathEl = document.getElementById("gigPath");
+
+      if (gigPathEl) {
+        gigPathEl.textContent = path;
+      }
+
+      if (!openButton) {
+        return;
+      }
+
+      var isAndroid = /android/i.test(window.navigator.userAgent);
+      if (isAndroid && gigId) {
+        openButton.href =
+          "intent://mubeapp.com.br" +
+          canonicalPath +
+          "#Intent;scheme=https;package=com.mube.mubeoficial;S.browser_fallback_url=" +
+          encodeURIComponent(canonicalUrl) +
+          ";end";
+        return;
+      }
+
+      openButton.href = canonicalUrl;
+    })();
+  </script>
+</body>
+</html>
