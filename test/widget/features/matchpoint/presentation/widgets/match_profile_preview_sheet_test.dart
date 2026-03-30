@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/matchpoint/presentation/widgets/match_profile_preview_sheet.dart';
@@ -66,12 +67,18 @@ void main() {
       tipoPerfil: AppUserType.professional,
     );
 
-    Future<void> openSheet(WidgetTester tester, AppUser user) async {
+    Future<void> openSheet(
+      WidgetTester tester,
+      AppUser user, {
+      MediaQueryData mediaQueryData = const MediaQueryData(
+        size: Size(400, 900),
+      ),
+    }) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
             builder: (context) => MediaQuery(
-              data: const MediaQueryData(size: Size(400, 900)),
+              data: mediaQueryData,
               child: Scaffold(
                 body: ElevatedButton(
                   onPressed: () => MatchProfilePreviewSheet.show(context, user),
@@ -162,6 +169,24 @@ void main() {
       expect(find.text('Hashtags', skipOffstage: false), findsOneWidget);
       expect(find.text('#rock_brasil', skipOffstage: false), findsOneWidget);
       expect(find.text('#guitar_hero', skipOffstage: false), findsOneWidget);
+    });
+
+    testWidgets('uses safe area and keeps bottom breathing room', (
+      tester,
+    ) async {
+      await openSheet(
+        tester,
+        professionalUser,
+        mediaQueryData: const MediaQueryData(
+          size: Size(400, 900),
+          viewPadding: EdgeInsets.only(bottom: 28),
+        ),
+      );
+
+      final listView = tester.widget<ListView>(find.byType(ListView).first);
+      final padding = listView.padding! as EdgeInsets;
+      expect(find.byType(SafeArea), findsWidgets);
+      expect(padding.bottom, AppSpacing.s24);
     });
 
     testWidgets('does not render hashtags when none exist', (tester) async {

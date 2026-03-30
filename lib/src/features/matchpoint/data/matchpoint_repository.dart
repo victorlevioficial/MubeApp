@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/errors/failures.dart';
@@ -27,9 +28,13 @@ class MatchpointRepository {
     : _analytics = analytics;
 
   static const String _submitActionFallbackMessage =
-      'Não foi possível registrar sua ação agora. Tente novamente.';
+      'Nao foi possivel registrar sua acao agora. Tente novamente.';
   static const String _likesQuotaFallbackMessage =
-      'Não foi possível consultar seus swipes agora. Tente novamente.';
+      'Nao foi possivel consultar seus swipes agora. Tente novamente.';
+  static const String _appCheckDebugMessage =
+      'App Check de desenvolvimento nao configurado. Cadastre o token de debug no Firebase Console e reabra o app.';
+  static const String _appCheckReleaseMessage =
+      'Falha de verificacao de seguranca. Feche e abra o app e tente novamente.';
 
   Failure _mapFunctionsFailure(
     FirebaseFunctionsException error, {
@@ -44,14 +49,13 @@ class MatchpointRepository {
     }
     if (mentionsAppCheck) {
       return const ServerFailure(
-        message:
-            'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
+        message: kDebugMode ? _appCheckDebugMessage : _appCheckReleaseMessage,
         debugMessage: 'app-check-auth-context-failure',
       );
     }
     if (code == 'unauthenticated') {
       return AuthFailure(
-        message: 'Sua sessão expirou. Faça login novamente.',
+        message: 'Sua sessao expirou. Faca login novamente.',
         debugMessage: 'functions-unauthenticated',
         originalError: error,
       );
@@ -132,7 +136,7 @@ class MatchpointRepository {
     }
   }
 
-  /// Submete uma ação de like/dislike via Cloud Function
+  /// Submete uma acao de like/dislike via Cloud Function
   FutureResult<MatchpointActionResult> submitAction({
     required String targetUserId,
     required String type, // 'like' or 'dislike'
@@ -144,7 +148,7 @@ class MatchpointRepository {
       );
 
       if (!result.success) {
-        // Verificar se é erro de quota
+        // Verificar se e erro de quota
         if (result.message?.contains('Limite') == true) {
           return Left(QuotaExceededFailure.dailyLikes());
         }
@@ -229,7 +233,7 @@ class MatchpointRepository {
     );
   }
 
-  /// Obtém quantidade de likes restantes
+  /// Obtem quantidade de likes restantes
   FutureResult<LikesQuotaInfo> getRemainingLikes() async {
     try {
       final quota = await _dataSource.getRemainingLikes();
@@ -243,8 +247,8 @@ class MatchpointRepository {
     }
   }
 
-  /// Busca matches do usuário com dados completos
-  /// Usa Future.wait para paralelizar busca de usuários
+  /// Busca matches do usuario com dados completos
+  /// Usa Future.wait para paralelizar busca de usuarios
   FutureResult<List<MatchInfo>> fetchMatches(String currentUserId) async {
     try {
       final matchesData = await _dataSource.fetchMatches(currentUserId);
@@ -259,7 +263,7 @@ class MatchpointRepository {
 
       if (normalizedMatches.isEmpty) return const Right([]);
 
-      // Paralelizar busca de usuários (ao invés de sequencial N+1)
+      // Paralelizar busca de usuarios (ao inves de sequencial N+1)
       final otherUserIds = normalizedMatches
           .map((m) => m['_other_user_id'] as String)
           .toList();

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -12,6 +13,7 @@ import 'src/app.dart';
 import 'src/core/services/image_cache_config.dart';
 import 'src/core/services/performance/app_performance_monitoring.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
+import 'src/features/splash/providers/app_bootstrap_provider.dart';
 import 'src/utils/app_logger.dart';
 import 'src/utils/app_performance_tracker.dart';
 
@@ -96,6 +98,29 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         'firebase.initialize_app',
         firebaseInitStopwatch,
       );
+
+      final appCheckInitStopwatch = AppPerformanceTracker.startSpan(
+        'firebase.app_check.initialize',
+      );
+      try {
+        await ensureAppCheckActivated(app_check.FirebaseAppCheck.instance);
+        AppPerformanceTracker.finishSpan(
+          'firebase.app_check.initialize',
+          appCheckInitStopwatch,
+        );
+      } catch (error, stack) {
+        AppLogger.warning(
+          'Falha ao ativar App Check no bootstrap principal do app',
+          error,
+          stack,
+          false,
+        );
+        AppPerformanceTracker.finishSpan(
+          'firebase.app_check.initialize',
+          appCheckInitStopwatch,
+          data: {'status': 'error', 'error_type': error.runtimeType.toString()},
+        );
+      }
 
       await AppPerformanceMonitoring.initialize();
 

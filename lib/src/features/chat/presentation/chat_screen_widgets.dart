@@ -347,25 +347,33 @@ extension _ChatScreenWidgets on _ChatScreenState {
                 builder: (context, value, _) {
                   final hasText = value.text.trim().isNotEmpty;
 
-                  return GestureDetector(
-                    onTap: canInteract && hasText ? _sendMessage : null,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 120),
-                      height: 44,
-                      width: 44,
-                      decoration: BoxDecoration(
-                        color: hasText && _canReadConversation
-                            ? AppColors.primary
-                            : AppColors.surfaceHighlight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.send_rounded,
-                          color: hasText && _canReadConversation
-                              ? AppColors.textPrimary
-                              : AppColors.textTertiary,
-                          size: 20,
+                  return Tooltip(
+                    message: 'Enviar mensagem',
+                    child: Semantics(
+                      button: true,
+                      enabled: canInteract && hasText,
+                      label: 'Enviar mensagem',
+                      child: GestureDetector(
+                        onTap: canInteract && hasText ? _sendMessage : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          height: 44,
+                          width: 44,
+                          decoration: BoxDecoration(
+                            color: hasText && _canReadConversation
+                                ? AppColors.primary
+                                : AppColors.surfaceHighlight,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.send_rounded,
+                              color: hasText && _canReadConversation
+                                  ? AppColors.textPrimary
+                                  : AppColors.textTertiary,
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ),
                     ),

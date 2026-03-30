@@ -41,11 +41,13 @@ class CreateGigScreen extends ConsumerStatefulWidget {
 
 class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _dateFieldKey = GlobalKey();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _locationController;
   late final TextEditingController _compensationValueController;
   late final TextEditingController _slotsController;
+  late final ScrollController _scrollController;
 
   late GigType _gigType;
   late GigDateMode _dateMode;
@@ -60,6 +62,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
   late bool _showInstrumentsRequirements;
   late bool _showRolesRequirements;
   late bool _showServicesRequirements;
+  bool _showValidationErrors = false;
 
   bool get _isEditing => widget.initialGig != null;
   bool get _canEditAllFields => widget.initialGig?.canEditAllFields ?? true;
@@ -81,6 +84,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     _slotsController = TextEditingController(
       text: (gig?.slotsTotal ?? 1).toString(),
     );
+    _scrollController = ScrollController();
     _gigType = gig?.gigType ?? GigType.liveShow;
     _dateMode = gig?.dateMode ?? GigDateMode.fixedDate;
     _gigDate = gig?.gigDate;
@@ -107,6 +111,7 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     _locationController.dispose();
     _compensationValueController.dispose();
     _slotsController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -114,6 +119,10 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
   Widget build(BuildContext context) {
     final configAsync = ref.watch(appConfigProvider);
     final createState = ref.watch(createGigControllerProvider);
+    final hasDateValidationError =
+        _showValidationErrors &&
+        _dateMode == GigDateMode.fixedDate &&
+        _gigDate == null;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -135,7 +144,11 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
         data: (config) => SafeArea(
           child: Form(
             key: _formKey,
+            autovalidateMode: _showValidationErrors
+                ? AutovalidateMode.onUserInteraction
+                : AutovalidateMode.disabled,
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.s16,
                 vertical: AppSpacing.s20,
@@ -225,10 +238,16 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
                     ),
                     if (_dateMode == GigDateMode.fixedDate) ...[
                       const SizedBox(height: AppSpacing.s12),
-                      _DatePickerTile(
-                        gigDate: _gigDate,
-                        enabled: _canEditAllFields,
-                        onTap: _pickDateTime,
+                      KeyedSubtree(
+                        key: _dateFieldKey,
+                        child: _DatePickerTile(
+                          gigDate: _gigDate,
+                          enabled: _canEditAllFields,
+                          errorText: hasDateValidationError
+                              ? 'Selecione a data da gig.'
+                              : null,
+                          onTap: _pickDateTime,
+                        ),
                       ),
                     ],
                     const SizedBox(height: AppSpacing.s16),
@@ -476,9 +495,34 @@ class _CreateGigScreenState extends ConsumerState<CreateGigScreen> {
     });
   }
 
+  Future<void> _scrollToDateField() async {
+    final dateFieldContext = _dateFieldKey.currentContext;
+    if (dateFieldContext == null) return;
+
+    await Scrollable.ensureVisible(
+      dateFieldContext,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: 0.15,
+    );
+  }
+
   Future<void> _submit(AppConfig config) async {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    if (!_showValidationErrors) {
+      setState(() => _showValidationErrors = true);
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      AppSnackBar.error(
+        context,
+        'Revise os campos obrigatorios para continuar.',
+      );
+      return;
+    }
     if (_dateMode == GigDateMode.fixedDate && _gigDate == null) {
+      await _scrollToDateField();
+      if (!mounted) return;
       AppSnackBar.error(context, 'Selecione a data da gig.');
       return;
     }
@@ -652,16 +696,19 @@ class _DatePickerTile extends StatelessWidget {
   const _DatePickerTile({
     required this.gigDate,
     required this.enabled,
+    required this.errorText,
     required this.onTap,
   });
 
   final DateTime? gigDate;
   final bool enabled;
+  final String? errorText;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final hasDate = gigDate != null;
+    final hasError = errorText != null;
     final label = hasDate
         ? '${gigDate!.day.toString().padLeft(2, '0')}/${gigDate!.month.toString().padLeft(2, '0')}/${gigDate!.year}  ${gigDate!.hour.toString().padLeft(2, '0')}:${gigDate!.minute.toString().padLeft(2, '0')}'
         : 'Selecionar data e horário';
@@ -678,29 +725,49 @@ class _DatePickerTile extends StatelessWidget {
           color: AppColors.surfaceHighlight,
           borderRadius: AppRadius.all12,
           border: Border.all(
-            color: hasDate
+            color: hasError
+                ? AppColors.error.withValues(alpha: 0.7)
+                : hasDate
                 ? AppColors.primary.withValues(alpha: 0.4)
                 : AppColors.border.withValues(alpha: 0.4),
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.event_outlined,
-              size: 18,
-              color: hasDate ? AppColors.primary : AppColors.textTertiary,
-            ),
-            const SizedBox(width: AppSpacing.s10),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: hasDate
-                      ? AppColors.textPrimary
+            Row(
+              children: [
+                Icon(
+                  Icons.event_outlined,
+                  size: 18,
+                  color: hasError
+                      ? AppColors.error
+                      : hasDate
+                      ? AppColors.primary
                       : AppColors.textTertiary,
                 ),
-              ),
+                const SizedBox(width: AppSpacing.s10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: hasError
+                          ? AppColors.error
+                          : hasDate
+                          ? AppColors.textPrimary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            if (errorText != null) ...[
+              const SizedBox(height: AppSpacing.s8),
+              Text(
+                errorText!,
+                style: AppTypography.bodySmall.copyWith(color: AppColors.error),
+              ),
+            ],
           ],
         ),
       ),

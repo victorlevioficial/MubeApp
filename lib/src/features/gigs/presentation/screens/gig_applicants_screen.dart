@@ -22,6 +22,9 @@ import '../providers/gig_streams.dart';
 
 enum _ApplicantCardAction { accept, reject }
 
+const double _gigApplicantsBottomClearance =
+    AppSpacing.s24 + AppSpacing.s48 + AppSpacing.s40;
+
 class GigApplicantsScreen extends ConsumerWidget {
   const GigApplicantsScreen({super.key, required this.gigId});
 
@@ -105,12 +108,15 @@ class GigApplicantsScreen extends ConsumerWidget {
               message: resolveGigErrorMessage(error),
             ),
             data: (users) {
+              final listBottomPadding =
+                  MediaQuery.paddingOf(context).bottom +
+                  _gigApplicantsBottomClearance;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(
+                padding: EdgeInsets.fromLTRB(
                   AppSpacing.s16,
                   AppSpacing.s8,
                   AppSpacing.s16,
-                  AppSpacing.s24,
+                  listBottomPadding,
                 ),
                 children: [
                   // Summary bar

@@ -41,6 +41,33 @@ class SearchRepository {
   static const FirestoreResilience _firestoreResilience = FirestoreResilience(
     'SearchRepository',
   );
+  static final Map<String, List<String>> _searchQueryAliases = {
+    'cantor': ['cantora', 'cantores', 'vocalista', 'vocal', 'singer'],
+    'cantora': ['cantor', 'cantores', 'vocalista', 'vocal', 'singer'],
+    'cantores': ['cantor', 'cantora', 'vocalista', 'vocal', 'singer'],
+    'vocalista': ['cantor', 'cantora', 'cantores', 'vocal', 'singer'],
+    'vocalistas': ['cantor', 'cantora', 'cantores', 'vocalista', 'singer'],
+    'guitarrista': ['guitarra', 'violao', 'guitar', 'instrumentalist'],
+    'guitarristas': ['guitarra', 'violao', 'guitar', 'instrumentalist'],
+    'baixista': ['baixo', 'contrabaixo', 'bass', 'instrumentalist'],
+    'baixistas': ['baixo', 'contrabaixo', 'bass', 'instrumentalist'],
+    'baterista': ['bateria', 'percussao', 'drum', 'instrumentalist'],
+    'bateristas': ['bateria', 'percussao', 'drum', 'instrumentalist'],
+    'tecladista': ['teclado', 'piano', 'keyboard', 'instrumentalist'],
+    'tecladistas': ['teclado', 'piano', 'keyboard', 'instrumentalist'],
+    'dj': ['djs', 'disc jockey'],
+    'djs': ['dj', 'disc jockey'],
+    'produtor': ['producao', 'producer', 'beatmaker', 'arranjador'],
+    'produtores': ['producao', 'producer', 'beatmaker', 'arranjador'],
+    'roadie': ['roadies', 'stage tech', 'tecnico de palco'],
+    'roadies': ['roadie', 'stage tech', 'tecnico de palco'],
+    'estudio': ['studio', 'estudios', 'gravacao', 'ensaio'],
+    'estudios': ['estudio', 'studio', 'gravacao', 'ensaio'],
+    'banda': ['band', 'bandas', 'grupo'],
+    'bandas': ['band', 'banda', 'grupo'],
+    'local': ['locais', 'venue', 'contratante', 'casa de show'],
+    'locais': ['local', 'venue', 'contratante', 'casa de show'],
+  };
   static final Map<String, String> _venueTypeLookup = {
     for (final option in venueTypeOptions) option.id.toLowerCase(): option.id,
     for (final option in venueTypeOptions)
@@ -295,9 +322,7 @@ class SearchRepository {
 
     // Text search (name/artistic name)
     if (filters.term.isNotEmpty) {
-      final normalizedTerm = normalizeText(filters.term);
-      final normalizedName = normalizeText(item.displayName);
-      if (!normalizedName.contains(normalizedTerm)) {
+      if (!_matchesSearchTerm(filters.term, item)) {
         return false;
       }
     }
@@ -499,6 +524,57 @@ class SearchRepository {
         .whereType<String>()
         .toSet()
         .toList(growable: false);
+  }
+
+  bool _matchesSearchTerm(String term, FeedItem item) {
+    final normalizedTerm = normalizeText(term);
+    if (normalizedTerm.isEmpty) {
+      return true;
+    }
+
+    final searchableText = _buildSearchableText(item);
+    if (searchableText.contains(normalizedTerm)) {
+      return true;
+    }
+
+    final aliases = _searchQueryAliases[normalizedTerm] ?? const <String>[];
+    return aliases.any(searchableText.contains);
+  }
+
+  String _buildSearchableText(FeedItem item) {
+    final terms = <String>{
+      item.nome,
+      item.nomeArtistico ?? '',
+      item.displayName,
+      item.categoria ?? '',
+      item.tipoPerfil,
+      ...item.generosMusicais,
+      ...item.skills,
+      ...item.subCategories,
+      ..._profileTypeSearchTerms(item.tipoPerfil),
+    };
+
+    return terms
+        .map(normalizeText)
+        .where((value) => value.isNotEmpty)
+        .join(' ');
+  }
+
+  Iterable<String> _profileTypeSearchTerms(String tipoPerfil) sync* {
+    switch (tipoPerfil) {
+      case 'profissional':
+        yield* const ['musico', 'profissional', 'artista'];
+        break;
+      case 'banda':
+        yield* const ['banda', 'grupo', 'band'];
+        break;
+      case 'estudio':
+        yield* const ['estudio', 'studio', 'gravacao', 'ensaio'];
+        break;
+      case 'contratante':
+        yield* const ['local', 'contratante', 'venue', 'casa de show'];
+        break;
+    }
   }
 
   /// Calculates distance in km between two coordinates using Haversine formula.

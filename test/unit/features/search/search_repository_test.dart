@@ -108,6 +108,38 @@ void main() {
       });
     });
 
+    test(
+      'should match common musician search aliases against profile skills',
+      () async {
+        await fakeFirestore.collection('users').doc('guitar-1').set({
+          'nome': 'Pedro Oliveira',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          'profissional': {
+            'nomeArtistico': 'Pedro das Cordas',
+            'categorias': ['instrumentalist'],
+            'generosMusicais': ['rock'],
+            'instrumentos': ['Guitarra'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        const filters = SearchFilters(term: 'guitarrista');
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 101,
+          getCurrentRequestId: () => 101,
+        );
+
+        expect(result.isRight(), true);
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('guitar-1'));
+        });
+      },
+    );
+
     test('should filter out hidden profiles (Ghost Mode)', () async {
       // Add hidden user
       await fakeFirestore.collection('users').doc('hidden-user').set({

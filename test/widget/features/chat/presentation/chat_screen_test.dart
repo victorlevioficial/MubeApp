@@ -438,6 +438,14 @@ void main() {
     expect(field.autocorrect, isTrue);
   });
 
+  testWidgets('exposes an accessible send action label', (tester) async {
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Enviar mensagem'), findsOneWidget);
+  });
+
   testWidgets('prepares conversation after delayed user profile load', (
     tester,
   ) async {

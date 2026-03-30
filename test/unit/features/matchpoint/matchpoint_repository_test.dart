@@ -150,7 +150,7 @@ void main() {
         expect(result.isLeft(), true);
         result.fold((failure) {
           expect(failure, isA<AuthFailure>());
-          expect(failure.message, 'Sua sessão expirou. Faça login novamente.');
+          expect(failure.message, 'Sua sessao expirou. Faca login novamente.');
           expect(failure.debugMessage, 'functions-unauthenticated');
         }, (_) => fail('Expected failure'));
       },
@@ -175,7 +175,7 @@ void main() {
         expect(failure, isA<ServerFailure>());
         expect(
           failure.message,
-          'Falha de verificação de segurança. Feche e abra o app e tente novamente.',
+          'App Check de desenvolvimento nao configurado. Cadastre o token de debug no Firebase Console e reabra o app.',
         );
         expect(failure.debugMessage, 'app-check-auth-context-failure');
       }, (_) => fail('Expected failure'));
@@ -201,7 +201,7 @@ void main() {
           expect(failure, isA<ServerFailure>());
           expect(
             failure.message,
-            'Não foi possível registrar sua ação agora. Tente novamente.',
+            'Nao foi possivel registrar sua acao agora. Tente novamente.',
           );
           expect(failure.debugMessage, 'internal');
         }, (_) => fail('Expected failure'));

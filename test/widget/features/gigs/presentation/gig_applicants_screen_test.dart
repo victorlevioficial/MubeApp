@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/design_system/components/loading/app_skeleton.dart';
+import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
@@ -118,6 +119,10 @@ void main() {
     expect(find.text('Ana Guitar'), findsOneWidget);
     expect(find.text('Tenho backline proprio.'), findsOneWidget);
     expect(find.text('Pendente'), findsOneWidget);
+
+    final listView = tester.widget<ListView>(find.byType(ListView));
+    final padding = listView.padding! as EdgeInsets;
+    expect(padding.bottom, greaterThan(AppSpacing.s24));
   });
 
   testWidgets('shows friendly state when current user is not the gig creator', (

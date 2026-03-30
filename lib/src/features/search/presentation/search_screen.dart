@@ -96,6 +96,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _onPrefilterTap(SmartPrefilter prefilter) {
+    _dismissSearchKeyboard();
     setState(() => _activePrefilterLabel = prefilter.label);
     final controller = ref.read(ctrl.searchControllerProvider.notifier);
     final filters = prefilter.filters;
@@ -116,9 +117,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _clearAllFilters() {
+    _dismissSearchKeyboard();
     setState(() => _activePrefilterLabel = null);
     _searchController.clear();
     ref.read(ctrl.searchControllerProvider.notifier).reset();
+  }
+
+  void _dismissSearchKeyboard() {
+    _searchFocusNode.unfocus();
+    FocusScope.of(context).unfocus();
   }
 
   void _showFilterModal() {

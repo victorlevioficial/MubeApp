@@ -26,6 +26,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: AppColors.transparent,
       barrierColor: AppColors.background.withValues(alpha: 0.6),
       builder: (_) => MatchProfilePreviewSheet(user: user),
@@ -41,6 +42,8 @@ class MatchProfilePreviewSheet extends StatelessWidget {
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
+        final bottomPadding =
+            MediaQuery.viewPaddingOf(context).bottom + AppSpacing.s24;
         return Container(
           decoration: const BoxDecoration(
             color: AppColors.background,
@@ -81,8 +84,11 @@ class MatchProfilePreviewSheet extends StatelessWidget {
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s24,
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.s24,
+                    0,
+                    AppSpacing.s24,
+                    bottomPadding,
                   ),
                   children: [
                     _buildPhotoSection(),
@@ -96,7 +102,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
                     _buildMatchpointHashtags(),
                     _buildTypeSpecificDetails(),
                     _buildGallerySection(),
-                    const SizedBox(height: AppSpacing.s48),
                   ],
                 ),
               ),

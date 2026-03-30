@@ -144,13 +144,16 @@ bundle exec fastlane android production
 
 #### GitHub Actions na `main`
 
-O workflow do repositorio agora tambem pode publicar Android automaticamente quando houver `push` na `main`.
+O workflow do repositorio continua gerando artefatos automaticamente, mas a publicacao Android na Play Console agora acontece apenas em release explicita.
 
 Comportamento:
 
 - sempre gera `APK`
 - na `main`, tambem gera `AAB`
-- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado no GitHub, publica o `AAB` na Play Console
+- publica o `AAB` na Play Console somente quando ocorrer uma destas condicoes:
+  - `push` na `main` com commit message iniciando em `chore(release):`
+  - execucao manual de `workflow_dispatch` com `publish_play_store=true`
+- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado e a release explicita for detectada, publica o `AAB` na Play Console
 - track padrao: `alpha`
 - status padrao: `completed`
 
@@ -168,6 +171,7 @@ Exemplos:
 Observacao:
 
 - se o secret da Play nao estiver configurado ainda, o workflow nao quebra por causa disso; ele apenas gera os artefatos e registra um warning informando que o upload automatico foi pulado
+- pushes normais de feature na `main` nao tentam mais publicar no Google Play, evitando falhas por `versionCode` ja usado
 - producao continua sendo uma decisao explicita; a recomendacao e automatizar somente track de teste
 ### 4. Fluxo recomendado para teste fechado (Play Store)
 

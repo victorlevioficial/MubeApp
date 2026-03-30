@@ -11,6 +11,13 @@ on:
     paths-ignore:
       - "docs/**"
       - "**/*.md"
+  workflow_dispatch:
+    inputs:
+      publish_play_store:
+        description: "Publicar Android na Play Console"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -105,10 +112,35 @@ jobs:
     name: Build Android
     runs-on: ubuntu-latest
     needs: [analyze, test]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+
+      - name: Determine Android release mode
+        id: android_release_mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DISPATCH_PUBLISH_PLAY_STORE: ${{ inputs.publish_play_store }}
+        run: |
+          should_publish="false"
+          reason="Regular CI build without Play Console release."
+
+          if [ "$REF_NAME" = "refs/heads/main" ]; then
+            if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DISPATCH_PUBLISH_PLAY_STORE" = "true" ]; then
+              should_publish="true"
+              reason="Manual Play Console release requested via workflow_dispatch."
+            elif [ "$EVENT_NAME" = "push" ] && [[ "$HEAD_COMMIT_MESSAGE" == chore\(release\):* ]]; then
+              should_publish="true"
+              reason="Release commit detected on main."
+            fi
+          fi
+
+          echo "should_publish=$should_publish" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "$reason"
 
       - name: Setup Flutter
         uses: ./.github/actions/setup-flutter
@@ -168,7 +200,7 @@ jobs:
           mv android/key.properties.tmp android/key.properties
 
       - name: Check Play Store publishing configuration
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && steps.android_release_mode.outputs.should_publish == 'true'
         id: play_publish_config
         env:
           PLAY_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}

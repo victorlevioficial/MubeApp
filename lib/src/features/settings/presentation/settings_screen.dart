@@ -248,9 +248,6 @@ class SettingsScreen extends ConsumerWidget {
 
     final notifier = ref.read(appDisplayPreferencesProvider.notifier);
     switch (selected) {
-      case _languageOptionSystem:
-        await notifier.setLocaleOverride(null);
-        break;
       case _languageOptionPortuguese:
         await notifier.setLocaleOverride(const Locale('pt'));
         break;
@@ -553,24 +550,20 @@ class _LogoutButtonState extends State<_LogoutButton> {
   }
 }
 
-const String _languageOptionSystem = 'system';
 const String _languageOptionPortuguese = 'pt';
 const String _languageOptionEnglish = 'en';
 const List<String> _languageOptionIds = <String>[
-  _languageOptionSystem,
   _languageOptionPortuguese,
   _languageOptionEnglish,
 ];
 
 String _languageOptionIdFor(Locale? localeOverride) {
-  if (localeOverride == null) return _languageOptionSystem;
-  switch (localeOverride.languageCode) {
+  switch (localeOverride?.languageCode) {
     case 'en':
       return _languageOptionEnglish;
     case 'pt':
-      return _languageOptionPortuguese;
     default:
-      return _languageOptionSystem;
+      return _languageOptionPortuguese;
   }
 }
 
@@ -580,8 +573,7 @@ String _labelForLanguageOptionId(AppLocalizations l10n, String id) {
       return l10n.settings_language_portuguese_brazil;
     case _languageOptionEnglish:
       return l10n.settings_language_english;
-    case _languageOptionSystem:
     default:
-      return l10n.settings_language_device;
+      return l10n.settings_language_portuguese_brazil;
   }
 }
