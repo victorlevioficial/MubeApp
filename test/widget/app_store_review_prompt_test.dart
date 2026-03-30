@@ -48,7 +48,7 @@ void main() {
   );
 
   testWidgets(
-    'waits until the app update notice is dismissed before requesting review',
+    'does not request review while update gate is active',
     (tester) async {
       final harness = _StoreReviewHarness(
         initialLocation: RoutePaths.feed,
@@ -66,13 +66,8 @@ void main() {
       await tester.pumpWidget(harness.build());
       await tester.pumpAndSettle();
 
-      expect(find.text('Atualizacao disponivel'), findsOneWidget);
+      expect(find.text('Atualizacao necessaria'), findsOneWidget);
       expect(harness.platformClient.requestReviewCalls, 0);
-
-      await tester.tap(find.text('Depois'));
-      await tester.pumpAndSettle();
-
-      expect(harness.platformClient.requestReviewCalls, 1);
     },
   );
 }

@@ -120,7 +120,7 @@ void main() {
     });
 
     testWidgets(
-      'waits for app update notice to close before showing reminder',
+      'does not show reminder while update gate is active',
       (tester) async {
         final harness = _ReminderAppHarness(
           initialLocation: RoutePaths.feed,
@@ -141,14 +141,8 @@ void main() {
         await tester.pump();
         await tester.pumpAndSettle();
 
-        expect(find.text('Atualizacao disponivel'), findsOneWidget);
+        expect(find.text('Atualizacao necessaria'), findsOneWidget);
         expect(find.byType(BandFormationReminderDialog), findsNothing);
-
-        await tester.tap(find.text('Depois'));
-        await tester.pumpAndSettle();
-
-        expect(find.text('Atualizacao disponivel'), findsNothing);
-        expect(find.byType(BandFormationReminderDialog), findsOneWidget);
       },
     );
   });

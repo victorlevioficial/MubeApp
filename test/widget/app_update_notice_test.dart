@@ -21,7 +21,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('App update notice', () {
-    testWidgets('shows once per session and can be dismissed', (tester) async {
+    testWidgets('blocks app usage until update', (tester) async {
       final launchedUris = <Uri>[];
       final harness = _AppUpdateHarness(
         notice: const AppUpdateNotice(
@@ -43,27 +43,21 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      expect(find.text('Atualizacao disponivel'), findsOneWidget);
+      expect(find.text('Atualizacao necessaria'), findsOneWidget);
       expect(
         find.textContaining('Voce esta usando a versao 1.3.5'),
         findsOneWidget,
       );
-
-      await tester.tap(find.text('Depois'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Feed Placeholder'), findsOneWidget);
-      expect(find.text('Atualizacao disponivel'), findsNothing);
       expect(launchedUris, isEmpty);
 
       harness.router.go(RoutePaths.login);
       await tester.pumpAndSettle();
 
       expect(find.text('Login Placeholder'), findsOneWidget);
-      expect(find.text('Atualizacao disponivel'), findsNothing);
+      expect(find.text('Atualizacao necessaria'), findsOneWidget);
     });
 
-    testWidgets('opens store when update CTA is tapped', (tester) async {
+    testWidgets('opens store and keeps update gate visible', (tester) async {
       final launchedUris = <Uri>[];
       final harness = _AppUpdateHarness(
         notice: const AppUpdateNotice(
@@ -84,13 +78,13 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Atualizar'));
+      await tester.tap(find.text('Atualizar agora'));
       await tester.pumpAndSettle();
 
       expect(launchedUris, <Uri>[
         Uri.parse('https://apps.apple.com/br/app/id1234567890'),
       ]);
-      expect(find.text('Feed Placeholder'), findsOneWidget);
+      expect(find.text('Atualizacao necessaria'), findsOneWidget);
     });
   });
 }

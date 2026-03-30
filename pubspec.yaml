@@ -1,7 +1,7 @@
 name: mube
 description: "Mube - Conectando Músicos"
 publish_to: 'none'
-version: 1.5.9+50
+version: 1.6.0+134
 
 # Scripts úteis para build
 # Para gerar um build de release Android:
