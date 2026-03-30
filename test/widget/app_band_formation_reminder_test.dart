@@ -119,32 +119,31 @@ void main() {
       expect(find.byType(BandFormationReminderDialog), findsNothing);
     });
 
-    testWidgets(
-      'does not show reminder while update gate is active',
-      (tester) async {
-        final harness = _ReminderAppHarness(
-          initialLocation: RoutePaths.feed,
-          initialProfile: _bandProfile(confirmedMembers: 1),
-          notice: const AppUpdateNotice(
-            platform: TargetPlatform.android,
-            installedBuildNumber: 24,
-            minimumBuildNumber: 25,
-            installedVersion: '1.3.5',
-            storeUrl:
-                'https://play.google.com/store/apps/details?id=com.mube.app',
-          ),
-        );
+    testWidgets('does not show reminder while update gate is active', (
+      tester,
+    ) async {
+      final harness = _ReminderAppHarness(
+        initialLocation: RoutePaths.feed,
+        initialProfile: _bandProfile(confirmedMembers: 1),
+        notice: const AppUpdateNotice(
+          platform: TargetPlatform.android,
+          installedBuildNumber: 24,
+          minimumBuildNumber: 25,
+          installedVersion: '1.3.5',
+          storeUrl:
+              'https://play.google.com/store/apps/details?id=com.mube.app',
+        ),
+      );
 
-        addTearDown(harness.dispose);
+      addTearDown(harness.dispose);
 
-        await tester.pumpWidget(harness.build());
-        await tester.pump();
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(harness.build());
+      await tester.pump();
+      await tester.pumpAndSettle();
 
-        expect(find.text('Atualizacao necessaria'), findsOneWidget);
-        expect(find.byType(BandFormationReminderDialog), findsNothing);
-      },
-    );
+      expect(find.text('Atualizacao necessaria'), findsOneWidget);
+      expect(find.byType(BandFormationReminderDialog), findsNothing);
+    });
   });
 }
 

@@ -44,10 +44,9 @@ extension _MubeAppView on _MubeAppState {
                               notice: appUpdateNotice,
                               onOpenStore: appUpdateNotice.storeUri == null
                                   ? null
-                                  : (uri) =>
-                                        ref.read(appUpdateLauncherProvider)(
-                                          uri,
-                                        ),
+                                  : (uri) => ref.read(
+                                      appUpdateLauncherProvider,
+                                    )(uri),
                             ),
                           ),
                         ),

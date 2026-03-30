@@ -13,7 +13,8 @@ class _RecordingFirebaseAppCheck extends Fake
   bool tokenAutoRefreshEnabled = false;
   app_check.AndroidAppCheckProvider? providerAndroid;
   app_check.AppleAppCheckProvider? providerApple;
-  final StreamController<String?> _tokenChanges = StreamController<String?>.broadcast();
+  final StreamController<String?> _tokenChanges =
+      StreamController<String?>.broadcast();
 
   @override
   Stream<String?> get onTokenChange => _tokenChanges.stream;
@@ -39,7 +40,9 @@ class _RecordingFirebaseAppCheck extends Fake
   Future<String?> getToken([bool? forceRefresh]) async => null;
 
   @override
-  Future<void> setTokenAutoRefreshEnabled(bool isTokenAutoRefreshEnabled) async {
+  Future<void> setTokenAutoRefreshEnabled(
+    bool isTokenAutoRefreshEnabled,
+  ) async {
     tokenAutoRefreshEnabled = isTokenAutoRefreshEnabled;
   }
 }
@@ -75,16 +78,19 @@ void main() {
       },
     );
 
-    test('deduplicates app check activation across concurrent callers', () async {
-      final appCheck = _RecordingFirebaseAppCheck();
+    test(
+      'deduplicates app check activation across concurrent callers',
+      () async {
+        final appCheck = _RecordingFirebaseAppCheck();
 
-      await Future.wait([
-        ensureAppCheckActivated(appCheck),
-        ensureAppCheckActivated(appCheck),
-      ]);
+        await Future.wait([
+          ensureAppCheckActivated(appCheck),
+          ensureAppCheckActivated(appCheck),
+        ]);
 
-      expect(appCheck.activateCalls, 1);
-      expect(appCheck.tokenAutoRefreshEnabled, isTrue);
-    });
+        expect(appCheck.activateCalls, 1);
+        expect(appCheck.tokenAutoRefreshEnabled, isTrue);
+      },
+    );
   });
 }

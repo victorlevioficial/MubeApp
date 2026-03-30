@@ -47,29 +47,28 @@ void main() {
     },
   );
 
-  testWidgets(
-    'does not request review while update gate is active',
-    (tester) async {
-      final harness = _StoreReviewHarness(
-        initialLocation: RoutePaths.feed,
-        notice: const AppUpdateNotice(
-          platform: TargetPlatform.android,
-          installedBuildNumber: 43,
-          minimumBuildNumber: 44,
-          installedVersion: '1.5.2',
-          storeUrl:
-              'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
-        ),
-      );
-      addTearDown(harness.dispose);
+  testWidgets('does not request review while update gate is active', (
+    tester,
+  ) async {
+    final harness = _StoreReviewHarness(
+      initialLocation: RoutePaths.feed,
+      notice: const AppUpdateNotice(
+        platform: TargetPlatform.android,
+        installedBuildNumber: 43,
+        minimumBuildNumber: 44,
+        installedVersion: '1.5.2',
+        storeUrl:
+            'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
+      ),
+    );
+    addTearDown(harness.dispose);
 
-      await tester.pumpWidget(harness.build());
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(harness.build());
+    await tester.pumpAndSettle();
 
-      expect(find.text('Atualizacao necessaria'), findsOneWidget);
-      expect(harness.platformClient.requestReviewCalls, 0);
-    },
-  );
+    expect(find.text('Atualizacao necessaria'), findsOneWidget);
+    expect(harness.platformClient.requestReviewCalls, 0);
+  });
 }
 
 class _StoreReviewHarness {

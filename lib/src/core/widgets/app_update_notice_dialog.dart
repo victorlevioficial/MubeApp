@@ -34,10 +34,7 @@ class _AppUpdateNoticeDialogState extends State<AppUpdateNoticeDialog> {
         surfaceTintColor: AppColors.transparent,
         elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.all24),
-        title: Text(
-          'Atualizacao necessaria',
-          style: AppTypography.titleLarge,
-        ),
+        title: Text('Atualizacao necessaria', style: AppTypography.titleLarge),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,9 +49,7 @@ class _AppUpdateNoticeDialogState extends State<AppUpdateNoticeDialog> {
               const SizedBox(height: AppSpacing.s12),
               Text(
                 _errorMessage!,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.error,
-                ),
+                style: AppTypography.bodySmall.copyWith(color: AppColors.error),
               ),
             ],
           ],
