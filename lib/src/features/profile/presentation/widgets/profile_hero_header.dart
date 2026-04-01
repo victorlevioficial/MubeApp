@@ -109,8 +109,9 @@ class ProfileHeroHeader extends StatelessWidget {
 
   static bool _isArtisticallyEligibleProfessional(AppUser user) {
     final professional = user.dadosProfissional;
-    final rawCategories = profileStringList(professional?['categorias'])
-        .toList(growable: true);
+    final rawCategories = profileStringList(
+      professional?['categorias'],
+    ).toList(growable: true);
 
     final legacyCategory = professional?['categoria'];
     if (legacyCategory is String && legacyCategory.isNotEmpty) {

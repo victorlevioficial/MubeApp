@@ -56,7 +56,11 @@ class StoryComposeController extends Notifier<StoryComposeState> {
       return false;
     }
 
-    state = state.copyWith(isPublishing: true, clearError: true, didPublish: false);
+    state = state.copyWith(
+      isPublishing: true,
+      clearError: true,
+      didPublish: false,
+    );
 
     try {
       await ref
@@ -84,7 +88,10 @@ class StoryComposeController extends Notifier<StoryComposeState> {
         errorMessage: _resolveErrorMessage(error),
       );
       if (context.mounted) {
-        AppSnackBar.error(context, state.errorMessage ?? 'Nao foi possivel publicar o story.');
+        AppSnackBar.error(
+          context,
+          state.errorMessage ?? 'Nao foi possivel publicar o story.',
+        );
       }
       return false;
     }

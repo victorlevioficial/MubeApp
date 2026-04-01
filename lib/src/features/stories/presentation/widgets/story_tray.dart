@@ -101,19 +101,19 @@ class _StoryTrayItem extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           borderRadius: AppRadius.all16,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  StoryRingAvatar(
-                    name: name,
-                    photoUrl: photoUrl,
-                    photoPreviewUrl: photoPreviewUrl,
-                    size: 64,
-                    hasUnseen: hasUnseen,
-                    showAddBadge: showAddBadge,
-                  ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StoryRingAvatar(
+                  name: name,
+                  photoUrl: photoUrl,
+                  photoPreviewUrl: photoPreviewUrl,
+                  size: 64,
+                  hasUnseen: hasUnseen,
+                  showAddBadge: showAddBadge,
+                ),
                 const SizedBox(height: AppSpacing.s8),
                 Text(
                   title,

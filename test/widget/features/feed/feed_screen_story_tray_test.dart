@@ -174,9 +174,9 @@ void main() {
       expect(find.text('Favorite User'), findsOneWidget);
       expect(find.text('Ver story'), findsOneWidget);
 
-      final headerTop = tester.getTopLeft(
-        find.byKey(const Key('feed_header_profile_card')),
-      ).dy;
+      final headerTop = tester
+          .getTopLeft(find.byKey(const Key('feed_header_profile_card')))
+          .dy;
       final trayTop = tester.getTopLeft(find.byType(StoryTray)).dy;
 
       expect(trayTop, greaterThan(headerTop));

@@ -4,10 +4,7 @@ import 'package:mube/src/utils/professional_profile_utils.dart';
 void main() {
   group('professional_profile_utils profileStringList', () {
     test('normalizes list, scalar string and mixed legacy values safely', () {
-      expect(profileStringList(['Guitarra', '  ', 42]), [
-        'Guitarra',
-        '42',
-      ]);
+      expect(profileStringList(['Guitarra', '  ', 42]), ['Guitarra', '42']);
       expect(profileStringList('Baixo'), ['Baixo']);
       expect(profileStringList('   '), isEmpty);
       expect(profileStringList(null), isEmpty);

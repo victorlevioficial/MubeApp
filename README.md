@@ -126,11 +126,15 @@ bundle exec fastlane android closed
 
 Deploy automatico no GitHub Actions:
 
-- `push` na `main` gera APK e AAB
-- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado, o workflow tambem publica o AAB na Play Console
+- `push` na `main` sempre gera APK e, na `main`, tambem gera AAB
+- a publicacao automatica do AAB na Play Console acontece apenas em release explicita:
+  - `push` na `main` com commit message iniciando em `chore(release):`
+  - execucao manual de `workflow_dispatch` com `publish_play_store=true`
+- se o secret `PLAY_STORE_SERVICE_ACCOUNT_JSON` ou `PLAY_STORE_SERVICE_ACCOUNT_JSON_BASE64` estiver configurado e a release explicita for detectada, o workflow publica o AAB na Play Console
 - track padrao: `alpha`
 - status padrao do release: `completed`
 - para trocar isso sem editar o workflow, configure os repository variables `PLAY_STORE_TRACK` e `PLAY_STORE_RELEASE_STATUS`
+- para iOS/TestFlight, siga o fluxo documentado em `docs/operations/xcode-cloud.md`
 
 Se estiver no WSL com repo em `/mnt/c` e o Bundler reclamar de permissao "world-writable":
 

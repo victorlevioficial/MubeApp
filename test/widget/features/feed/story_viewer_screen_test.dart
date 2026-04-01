@@ -65,10 +65,7 @@ StoryItem _story({
   );
 }
 
-StoryTrayBundle _bundle(
-  List<StoryItem> stories, {
-  bool isCurrentUser = false,
-}) {
+StoryTrayBundle _bundle(List<StoryItem> stories, {bool isCurrentUser = false}) {
   return StoryTrayBundle(
     ownerUid: 'owner-user',
     ownerName: 'Owner User',
@@ -141,55 +138,56 @@ void main() {
       expect(find.text('Esse story nao esta mais disponivel.'), findsOneWidget);
     });
 
-    testWidgets('deletes the current story and keeps the viewer open on the next one', (
-      tester,
-    ) async {
-      final firstStory = _story(
-        id: 'story-delete-1',
-        caption: 'Story para excluir',
-        createdAt: DateTime(2026, 4, 10, 8),
-      );
-      final secondStory = _story(
-        id: 'story-delete-2',
-        caption: 'Story restante',
-        createdAt: DateTime(2026, 4, 10, 9),
-      );
-      final args = StoryViewerRouteArgs(
-        bundles: [
-          _bundle([firstStory, secondStory], isCurrentUser: true),
-        ],
-        initialOwnerUid: 'owner-user',
-        initialStoryId: firstStory.id,
-      );
-      final repository = _FakeStoryRepository();
-
-      await mockNetworkImagesFor(() async {
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              storyRepositoryProvider.overrideWithValue(repository),
-            ],
-            child: MaterialApp(home: StoryViewerScreen(args: args)),
-          ),
+    testWidgets(
+      'deletes the current story and keeps the viewer open on the next one',
+      (tester) async {
+        final firstStory = _story(
+          id: 'story-delete-1',
+          caption: 'Story para excluir',
+          createdAt: DateTime(2026, 4, 10, 8),
         );
+        final secondStory = _story(
+          id: 'story-delete-2',
+          caption: 'Story restante',
+          createdAt: DateTime(2026, 4, 10, 9),
+        );
+        final args = StoryViewerRouteArgs(
+          bundles: [
+            _bundle([firstStory, secondStory], isCurrentUser: true),
+          ],
+          initialOwnerUid: 'owner-user',
+          initialStoryId: firstStory.id,
+        );
+        final repository = _FakeStoryRepository();
+
+        await mockNetworkImagesFor(() async {
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                storyRepositoryProvider.overrideWithValue(repository),
+              ],
+              child: MaterialApp(home: StoryViewerScreen(args: args)),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
+        });
+
+        expect(find.text('Story para excluir'), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.delete_outline_rounded));
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-      });
+        await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('Story para excluir'), findsOneWidget);
+        await tester.tap(find.text('Excluir'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
 
-      await tester.tap(find.byIcon(Icons.delete_outline_rounded));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      await tester.tap(find.text('Excluir'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(repository.deletedStoryIds, ['story-delete-1']);
-      expect(find.text('Story restante'), findsOneWidget);
-      expect(find.text('Story para excluir'), findsNothing);
-    });
+        expect(repository.deletedStoryIds, ['story-delete-1']);
+        expect(find.text('Story restante'), findsOneWidget);
+        expect(find.text('Story para excluir'), findsNothing);
+      },
+    );
   });
 
   group('StoryMediaPickerService', () {

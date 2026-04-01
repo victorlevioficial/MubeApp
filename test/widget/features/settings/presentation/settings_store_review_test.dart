@@ -20,72 +20,78 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{});
   });
 
-  testWidgets('manual rate app action opens native Play Store listing on Android', (
-    tester,
-  ) async {
-    final fakeAuthRepository = FakeAuthRepository();
-    final user = TestData.user(
-      uid: 'user-1',
-      email: 'user-1@mube.app',
-      tipoPerfil: AppUserType.professional,
-    );
-    fakeAuthRepository.emitUser(
-      FakeFirebaseUser(uid: user.uid, email: user.email),
-    );
+  testWidgets(
+    'manual rate app action opens native Play Store listing on Android',
+    (tester) async {
+      final fakeAuthRepository = FakeAuthRepository();
+      final user = TestData.user(
+        uid: 'user-1',
+        email: 'user-1@mube.app',
+        tipoPerfil: AppUserType.professional,
+      );
+      fakeAuthRepository.emitUser(
+        FakeFirebaseUser(uid: user.uid, email: user.email),
+      );
 
-    final launchedUris = <Uri>[];
-    final platformClient = _RecordingStoreReviewPlatformClient();
-    final service = StoreReviewService(
-      currentUserUidLoader: () => fakeAuthRepository.currentUser?.uid,
-      analytics: FakeAnalyticsService(),
-      sharedPreferencesLoader: SharedPreferences.getInstance,
-      packageInfoLoader: () async => PackageInfo(
-        appName: 'Mube',
-        packageName: 'com.mube.mubeoficial',
-        version: '1.5.2',
-        buildNumber: '43',
-        buildSignature: '',
-      ),
-      platformClient: platformClient,
-      urlLauncher: (uri) async {
-        launchedUris.add(uri);
-        return true;
-      },
-      clock: () => DateTime(2026, 3, 19, 12),
-      platformResolver: () => TargetPlatform.android,
-    );
-
-    final router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(path: '/', builder: (context, state) => const SettingsScreen()),
-      ],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
-          currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
-          storeReviewServiceProvider.overrideWithValue(service),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          locale: const Locale('pt'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
+      final launchedUris = <Uri>[];
+      final platformClient = _RecordingStoreReviewPlatformClient();
+      final service = StoreReviewService(
+        currentUserUidLoader: () => fakeAuthRepository.currentUser?.uid,
+        analytics: FakeAnalyticsService(),
+        sharedPreferencesLoader: SharedPreferences.getInstance,
+        packageInfoLoader: () async => PackageInfo(
+          appName: 'Mube',
+          packageName: 'com.mube.mubeoficial',
+          version: '1.5.2',
+          buildNumber: '43',
+          buildSignature: '',
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+        platformClient: platformClient,
+        urlLauncher: (uri) async {
+          launchedUris.add(uri);
+          return true;
+        },
+        clock: () => DateTime(2026, 3, 19, 12),
+        platformResolver: () => TargetPlatform.android,
+      );
 
-    await tester.ensureVisible(find.text('Avaliar o app'));
-    await tester.tap(find.text('Avaliar o app'));
-    await tester.pumpAndSettle();
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
+      );
 
-    expect(platformClient.openStoreListingCalls, 1);
-    expect(launchedUris, isEmpty);
-  });
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            currentUserProfileProvider.overrideWith(
+              (ref) => Stream.value(user),
+            ),
+            storeReviewServiceProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            locale: const Locale('pt'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Avaliar o app'));
+      await tester.tap(find.text('Avaliar o app'));
+      await tester.pumpAndSettle();
+
+      expect(platformClient.openStoreListingCalls, 1);
+      expect(launchedUris, isEmpty);
+    },
+  );
 }
 
 class _RecordingStoreReviewPlatformClient implements StoreReviewPlatformClient {

@@ -62,9 +62,9 @@ class StoryViewersScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: AppSpacing.s2),
                         Text(
-                          DateFormat('dd/MM - HH:mm').format(
-                            viewer.viewedAt.toLocal(),
-                          ),
+                          DateFormat(
+                            'dd/MM - HH:mm',
+                          ).format(viewer.viewedAt.toLocal()),
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textTertiary,
                           ),

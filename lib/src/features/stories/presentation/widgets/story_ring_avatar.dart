@@ -73,10 +73,7 @@ class StoryRingAvatar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: AppRadius.pill,
-                  border: Border.all(
-                    color: AppColors.background,
-                    width: 2,
-                  ),
+                  border: Border.all(color: AppColors.background, width: 2),
                 ),
                 child: const Icon(
                   Icons.add,
