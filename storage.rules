@@ -110,6 +110,55 @@ service firebase.storage {
     }
 
     // ========================================
+    // STORIES IMAGES
+    // ========================================
+
+    match /stories_images/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+                             && isOwner(userId)
+                             && isValidImage()
+                             && isValidPhotoSize();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
+    // STORIES VIDEO SOURCE
+    // ========================================
+
+    match /stories_videos_source/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create, update: if isAuthenticated()
+                             && isOwner(userId)
+                             && isValidVideo()
+                             && isValidVideoSize();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
+    // STORIES VIDEO MASTER
+    // ========================================
+
+    match /stories_videos_master/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if false;
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
+    // STORIES VIDEO THUMBNAILS
+    // ========================================
+
+    match /stories_videos_thumbs/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isAuthenticated()
+                             && isOwner(userId)
+                             && isValidImage()
+                             && isValidPhotoSize();
+      allow delete: if isAuthenticated() && isOwner(userId);
+    }
+
+    // ========================================
     // SUPPORT TICKET ATTACHMENTS
     // ========================================
 

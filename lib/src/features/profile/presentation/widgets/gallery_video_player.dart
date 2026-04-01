@@ -887,6 +887,11 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
             ),
           ),
         ),
+        errorListener: (error) => AppLogger.logHandledImageError(
+          source: 'GalleryVideoPlayer.loadingPreview',
+          url: thumbnailUrl,
+          error: error,
+        ),
       );
     }
 

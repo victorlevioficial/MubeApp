@@ -8,6 +8,7 @@ extension _FeedScreenUi on _FeedScreenState {
     required FeedController controller,
     required AppUser? currentUser,
     required AsyncValue<List<Gig>> gigsPreviewAsync,
+    required AsyncValue<List<StoryTrayBundle>> storyTrayAsync,
   }) {
     final hasError =
         stateAsync.hasError || state.status == PaginationStatus.error;
@@ -28,7 +29,7 @@ extension _FeedScreenUi on _FeedScreenState {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: AppRefreshIndicator(
-        onRefresh: controller.refresh,
+        onRefresh: _refreshFeedSurface,
         child: CustomScrollView(
           controller: _scrollController,
           cacheExtent: FeedConstants.initialCacheExtent,
@@ -41,6 +42,18 @@ extension _FeedScreenUi on _FeedScreenState {
                 context.push(RoutePaths.notifications);
               },
             ),
+            if (currentUser != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s12),
+                  child: StoryTray(
+                    currentUser: currentUser,
+                    storyBundles: storyTrayAsync.asData?.value ?? const [],
+                    onCreateStory: _openStoryCreator,
+                    onOpenStoryBundle: _openStoryViewer,
+                  ),
+                ),
+              ),
             if (spotlightItems.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(

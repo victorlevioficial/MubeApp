@@ -17,6 +17,7 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../../utils/app_logger.dart';
+import '../../domain/matchpoint_dynamic_fields.dart';
 import '../../presentation/controllers/matchpoint_controller.dart';
 import '../widgets/match_swipe_deck.dart';
 import '../widgets/matchpoint_tutorial_overlay.dart';
@@ -264,33 +265,39 @@ class _MatchpointExploreScreenState
     final userProfile = ref.read(currentUserProfileProvider).value;
     if (userProfile == null) return null;
 
-    final mpGenres =
-        userProfile.matchpointProfile?[FirestoreFields.musicalGenres] as List?;
-    if (mpGenres != null && mpGenres.isNotEmpty) {
-      return mpGenres.cast<String>();
+    final mpGenres = matchpointStringList(
+      userProfile.matchpointProfile?[FirestoreFields.musicalGenres],
+    );
+    if (mpGenres.isNotEmpty) {
+      return mpGenres;
     }
 
-    final legacyMpGenres =
-        userProfile.matchpointProfile?['musicalGenres'] as List?;
-    if (legacyMpGenres != null && legacyMpGenres.isNotEmpty) {
-      return legacyMpGenres.cast<String>();
+    final legacyMpGenres = matchpointStringList(
+      userProfile.matchpointProfile?['musicalGenres'],
+    );
+    if (legacyMpGenres.isNotEmpty) {
+      return legacyMpGenres;
     }
 
-    final oldSnakeCase =
-        userProfile.matchpointProfile?['musical_genres'] as List?;
-    if (oldSnakeCase != null && oldSnakeCase.isNotEmpty) {
-      return oldSnakeCase.cast<String>();
+    final oldSnakeCase = matchpointStringList(
+      userProfile.matchpointProfile?['musical_genres'],
+    );
+    if (oldSnakeCase.isNotEmpty) {
+      return oldSnakeCase;
     }
 
-    final profGenres =
-        userProfile.dadosProfissional?['generosMusicais'] as List?;
-    if (profGenres != null && profGenres.isNotEmpty) {
-      return profGenres.cast<String>();
+    final profGenres = matchpointStringList(
+      userProfile.dadosProfissional?['generosMusicais'],
+    );
+    if (profGenres.isNotEmpty) {
+      return profGenres;
     }
 
-    final bandGenres = userProfile.dadosBanda?['generosMusicais'] as List?;
-    if (bandGenres != null && bandGenres.isNotEmpty) {
-      return bandGenres.cast<String>();
+    final bandGenres = matchpointStringList(
+      userProfile.dadosBanda?['generosMusicais'],
+    );
+    if (bandGenres.isNotEmpty) {
+      return bandGenres;
     }
 
     return null;

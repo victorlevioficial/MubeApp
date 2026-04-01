@@ -7,6 +7,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/category_normalizer.dart';
+import '../../../../utils/professional_profile_utils.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../matchpoint/domain/matchpoint_availability.dart';
@@ -108,23 +109,15 @@ class ProfileHeroHeader extends StatelessWidget {
 
   static bool _isArtisticallyEligibleProfessional(AppUser user) {
     final professional = user.dadosProfissional;
-    final rawCategories = <String>[];
-    final rawRoles = <String>[];
-
-    final categories = professional?['categorias'] as List?;
-    if (categories != null) {
-      rawCategories.addAll(categories.whereType<String>());
-    }
+    final rawCategories = profileStringList(professional?['categorias'])
+        .toList(growable: true);
 
     final legacyCategory = professional?['categoria'];
     if (legacyCategory is String && legacyCategory.isNotEmpty) {
       rawCategories.add(legacyCategory);
     }
 
-    final roles = professional?['funcoes'] as List?;
-    if (roles != null) {
-      rawRoles.addAll(roles.whereType<String>());
-    }
+    final rawRoles = profileStringList(professional?['funcoes']);
 
     return isArtisticallyEligibleProfessionalCategories(
       rawCategories: rawCategories,
@@ -637,7 +630,7 @@ class _SubCategoriesRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ids = user.dadosProfissional?['categorias'] as List? ?? [];
+    final ids = profileStringList(user.dadosProfissional?['categorias']);
     if (ids.isEmpty) return const SizedBox.shrink();
 
     final widgets = <Widget>[];

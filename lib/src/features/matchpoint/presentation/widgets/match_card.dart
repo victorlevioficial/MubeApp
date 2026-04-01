@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
@@ -10,6 +10,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/user_type.dart';
+import '../../domain/matchpoint_dynamic_fields.dart';
 
 class MatchCard extends StatelessWidget {
   final AppUser user;
@@ -275,8 +276,8 @@ class MatchCard extends StatelessWidget {
 
   String _getSubtitle() {
     if (user.tipoPerfil == AppUserType.professional) {
-      final roles = user.dadosProfissional?['funcoes'] as List?;
-      if (roles != null && roles.isNotEmpty) {
+      final roles = matchpointStringList(user.dadosProfissional?['funcoes']);
+      if (roles.isNotEmpty) {
         return roles.join(' • ');
       }
     }
@@ -297,40 +298,34 @@ class MatchCard extends StatelessWidget {
   List<String> _getTags() {
     final List<String> tags = [];
     if (user.tipoPerfil == AppUserType.professional) {
-      final genres = user.dadosProfissional?['generosMusicais'] as List?;
-      if (genres != null) tags.addAll(genres.cast<String>());
+      tags.addAll(
+        matchpointStringList(user.dadosProfissional?['generosMusicais']),
+      );
     } else if (user.tipoPerfil == AppUserType.band) {
-      final genres = user.dadosBanda?['generosMusicais'] as List?;
-      if (genres != null) tags.addAll(genres.cast<String>());
+      tags.addAll(matchpointStringList(user.dadosBanda?['generosMusicais']));
     }
 
     if (tags.isEmpty && user.matchpointProfile != null) {
-      final mpGenres =
-          user.matchpointProfile?[FirestoreFields.musicalGenres] as List?;
-      if (mpGenres != null) {
-        tags.addAll(mpGenres.cast<String>());
+      tags.addAll(
+        matchpointStringList(
+          user.matchpointProfile?[FirestoreFields.musicalGenres],
+        ),
+      );
+
+      if (tags.isEmpty) {
+        tags.addAll(
+          matchpointStringList(user.matchpointProfile?['musicalGenres']),
+        );
       }
 
       if (tags.isEmpty) {
-        final legacyMpGenres =
-            user.matchpointProfile?['musicalGenres'] as List?;
-        if (legacyMpGenres != null) {
-          tags.addAll(legacyMpGenres.cast<String>());
-        }
+        tags.addAll(
+          matchpointStringList(user.matchpointProfile?['musical_genres']),
+        );
       }
 
       if (tags.isEmpty) {
-        final oldSnakeCase = user.matchpointProfile?['musical_genres'] as List?;
-        if (oldSnakeCase != null) {
-          tags.addAll(oldSnakeCase.cast<String>());
-        }
-      }
-
-      if (tags.isEmpty) {
-        final oldGenres = user.matchpointProfile?['genres'] as List?;
-        if (oldGenres != null) {
-          tags.addAll(oldGenres.cast<String>());
-        }
+        tags.addAll(matchpointStringList(user.matchpointProfile?['genres']));
       }
     }
 

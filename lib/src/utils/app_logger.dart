@@ -30,6 +30,21 @@ class AppLogger {
     'horizontal viewport was given unbounded',
     'viewport was given unbounded',
   ];
+  static const List<String> _handledImageFlutterErrorContextPatterns = <String>[
+    'image failed to precache',
+    'image resource service',
+    'cachednetworkimageprovider',
+    'networkimage',
+  ];
+  static const List<String> _handledImageFlutterErrorCausePatterns = <String>[
+    'invalid statuscode: 404',
+    'httpexception',
+    'clientexception',
+    'socketexception',
+    'connection closed while receiving data',
+    'failed host lookup',
+    'networkimageloadexception',
+  ];
 
   static bool get verboseLoggingEnabled =>
       kDebugMode && _enableVerboseDebugLogs;
@@ -153,8 +168,50 @@ class AppLogger {
     }
   }
 
+  @visibleForTesting
+  static bool isHandledImageFlutterError(FlutterErrorDetails details) {
+    final normalized = [
+      details.exceptionAsString(),
+      details.context?.toDescription() ?? '',
+      details.library ?? '',
+      details.stack?.toString() ?? '',
+    ].join(' ').toLowerCase();
+
+    final matchesImageContext = _handledImageFlutterErrorContextPatterns.any(
+      (pattern) => normalized.contains(pattern),
+    );
+    if (!matchesImageContext) return false;
+
+    return _handledImageFlutterErrorCausePatterns.any(
+      (pattern) => normalized.contains(pattern),
+    );
+  }
+
+  @visibleForTesting
+  static bool shouldReportFlutterError(FlutterErrorDetails details) {
+    return !isHandledImageFlutterError(details);
+  }
+
+  static void logHandledImageError({
+    required String source,
+    required String url,
+    required Object error,
+    StackTrace? stackTrace,
+  }) {
+    warning(
+      'Handled image load failure | source=$source | url=$url',
+      error,
+      stackTrace,
+      false,
+    );
+  }
+
   /// Log de erro do framework Flutter
   static bool shouldTreatFlutterErrorAsFatal(FlutterErrorDetails details) {
+    if (isHandledImageFlutterError(details)) {
+      return false;
+    }
+
     final normalized = [
       details.exceptionAsString(),
       details.context?.toDescription() ?? '',
@@ -191,21 +248,23 @@ class AppLogger {
       );
     }
 
-    if (_isCrashlyticsEnabled) {
-      _crashlytics.setCustomKey(
-        'flutter_error_type',
-        details.exception.runtimeType.toString(),
-      );
-      _crashlytics.setCustomKey('flutter_error_fatal', fatal);
-      _crashlytics.setCustomKey(
-        'flutter_error_context',
-        details.context?.toDescription() ?? 'unknown',
-      );
-      if (fatal) {
-        _crashlytics.recordFlutterFatalError(details);
-      } else {
-        _crashlytics.recordFlutterError(details);
-      }
+    if (!_isCrashlyticsEnabled || !shouldReportFlutterError(details)) {
+      return;
+    }
+
+    _crashlytics.setCustomKey(
+      'flutter_error_type',
+      details.exception.runtimeType.toString(),
+    );
+    _crashlytics.setCustomKey('flutter_error_fatal', fatal);
+    _crashlytics.setCustomKey(
+      'flutter_error_context',
+      details.context?.toDescription() ?? 'unknown',
+    );
+    if (fatal) {
+      _crashlytics.recordFlutterFatalError(details);
+    } else {
+      _crashlytics.recordFlutterError(details);
     }
   }
 

@@ -6,6 +6,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/professional_profile_utils.dart';
 import '../../../auth/domain/app_user.dart';
 
 /// Horizontal scrollable section showing band members.
@@ -70,11 +71,11 @@ class _BandMemberCard extends StatelessWidget {
 
     final instrumentos = prof['instrumentos'] as List?;
     if (instrumentos != null && instrumentos.isNotEmpty) {
-      return instrumentos.first as String;
+      return instrumentDisplayLabel(instrumentos.first.toString());
     }
     final funcoes = prof['funcoes'] as List?;
     if (funcoes != null && funcoes.isNotEmpty) {
-      return funcoes.first as String;
+      return professionalRoleDisplayLabel(funcoes.first.toString());
     }
     // Legacy field
     final skills = prof['skills'] as List?;

@@ -121,6 +121,15 @@ export {
   backfillGalleryVideoTranscodes,
 } from "./video_transcode";
 
+// Export Stories functions
+export {
+  publishStory,
+  deleteStory,
+  onStoryViewed,
+  expireStories,
+  onStoryVideoUploaded,
+} from "./stories";
+
 /**
  * Push notification throttle cooldown in milliseconds.
  * Messages within this window from the same sender won't trigger

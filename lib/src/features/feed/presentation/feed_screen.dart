@@ -22,6 +22,10 @@ import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
 import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import '../../splash/presentation/splash_feed_render_tracking.dart';
+import '../../stories/domain/story_tray_bundle.dart';
+import '../../stories/domain/story_viewer_route_args.dart';
+import '../../stories/presentation/controllers/story_tray_controller.dart';
+import '../../stories/presentation/widgets/story_tray.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import '../domain/spotlight_rotation.dart';
@@ -130,6 +134,40 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   void _navigateToSectionList(FeedSectionType type) {
     context.push(RoutePaths.feedList, extra: {'type': type});
+  }
+
+  void _openStoryCreator() {
+    context.push(RoutePaths.storyCreate);
+  }
+
+  void _openStoryViewer(StoryTrayBundle bundle) {
+    final initialStory = bundle.stories.isEmpty
+        ? bundle.latestStory
+        : bundle.stories.first;
+    if (initialStory == null) {
+      return;
+    }
+
+    final bundles = ref.read(storyTrayControllerProvider).asData?.value;
+    final viewerBundles = bundles == null || bundles.isEmpty
+        ? <StoryTrayBundle>[bundle]
+        : bundles;
+
+    context.push(
+      RoutePaths.storyViewerById(initialStory.id),
+      extra: StoryViewerRouteArgs(
+        bundles: viewerBundles,
+        initialOwnerUid: bundle.ownerUid,
+        initialStoryId: initialStory.id,
+      ),
+    );
+  }
+
+  Future<void> _refreshFeedSurface() async {
+    await Future.wait<void>([
+      ref.read(feedControllerProvider.notifier).refresh(),
+      ref.read(storyTrayControllerProvider.notifier).refresh(),
+    ]);
   }
 
   List<FeedItem> _getSpotlightItems(FeedState state) {
@@ -372,6 +410,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final controller = ref.read(feedControllerProvider.notifier);
     final currentUserAsync = ref.watch(currentUserProfileProvider);
     final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
+    final storyTrayAsync = ref.watch(storyTrayControllerProvider);
     final shouldHoldForInitialDependencies =
         !_hasReleasedInitialLayout &&
         !stateAsync.hasError &&
@@ -397,6 +436,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       controller: controller,
       currentUser: currentUserAsync.asData?.value,
       gigsPreviewAsync: gigsPreviewAsync,
+      storyTrayAsync: storyTrayAsync,
     );
   }
 

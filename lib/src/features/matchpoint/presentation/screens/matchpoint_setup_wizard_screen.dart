@@ -15,6 +15,7 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../domain/matchpoint_availability.dart';
+import '../../domain/matchpoint_dynamic_fields.dart';
 import '../controllers/matchpoint_controller.dart';
 import 'matchpoint_unavailable_screen.dart';
 
@@ -214,20 +215,14 @@ class _MatchpointSetupWizardScreenState
     final rawCategories = <String>[];
     final rawRoles = <String>[];
 
-    final categories = professional?['categorias'] as List?;
-    if (categories != null) {
-      rawCategories.addAll(categories.whereType<String>());
-    }
+    rawCategories.addAll(matchpointStringList(professional?['categorias']));
 
     final legacyCategory = professional?['categoria'];
     if (legacyCategory is String && legacyCategory.isNotEmpty) {
       rawCategories.add(legacyCategory);
     }
 
-    final roles = professional?['funcoes'] as List?;
-    if (roles != null) {
-      rawRoles.addAll(roles.whereType<String>());
-    }
+    rawRoles.addAll(matchpointStringList(professional?['funcoes']));
 
     return isMatchpointAvailableForType(
       user.tipoPerfil,

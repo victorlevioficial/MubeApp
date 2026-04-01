@@ -77,6 +77,9 @@ abstract final class RoutePaths {
   static const String conversation = '/conversation';
   static const String notifications = '/notifications';
   static const String gigCreate = '/gigs/create';
+  static const String storyCreate = '/stories/create';
+  static const String storyViewer = '/stories/viewer';
+  static const String storyViewers = '/stories/viewers';
 
   static String publicProfileById(String uid) => '$publicProfile/$uid';
   static String publicProfileByUsername(String username) =>
@@ -114,6 +117,10 @@ abstract final class RoutePaths {
 
   static String conversationById(String conversationId) =>
       '$conversation/$conversationId';
+
+  static String storyViewerById(String storyId) => '$storyViewer/$storyId';
+
+  static String storyViewersById(String storyId) => '$storyViewers/$storyId';
 
   static String supportCreatePath() => '$support/$supportCreate';
 

@@ -32,6 +32,9 @@ void main() {
       expect(RoutePaths.isPublic('/profile/edit'), false);
       expect(RoutePaths.isPublic('/onboarding'), false);
       expect(RoutePaths.isPublic('/onboarding/form'), false);
+      expect(RoutePaths.isPublic(RoutePaths.storyCreate), false);
+      expect(RoutePaths.isPublic(RoutePaths.storyViewer), false);
+      expect(RoutePaths.isPublic(RoutePaths.storyViewers), false);
     });
 
     test('onboarding form path starts with onboarding', () {
@@ -49,6 +52,9 @@ void main() {
       expect(RoutePaths.profile.startsWith('/'), true);
       expect(RoutePaths.profileEdit.startsWith('/'), true);
       expect(RoutePaths.gallery.startsWith('/'), true);
+      expect(RoutePaths.storyCreate.startsWith('/'), true);
+      expect(RoutePaths.storyViewer.startsWith('/'), true);
+      expect(RoutePaths.storyViewers.startsWith('/'), true);
     });
 
     test('gig helper routes build expected paths', () {
@@ -58,6 +64,17 @@ void main() {
       expect(
         RoutePaths.gigReviewById('gig-1', 'user-1'),
         '/gigs/gig-1/review/user-1',
+      );
+    });
+
+    test('story helper routes build expected paths', () {
+      expect(RoutePaths.storyCreate, '/stories/create');
+      expect(RoutePaths.storyViewer, '/stories/viewer');
+      expect(RoutePaths.storyViewerById('story-1'), '/stories/viewer/story-1');
+      expect(RoutePaths.storyViewers, '/stories/viewers');
+      expect(
+        RoutePaths.storyViewersById('story-1'),
+        '/stories/viewers/story-1',
       );
     });
 

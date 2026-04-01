@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../core/services/image_cache_config.dart';
+import '../../../utils/app_logger.dart';
 import '../../../utils/profile_photo_urls.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_typography.dart';
@@ -92,6 +93,11 @@ class UserAvatar extends StatelessWidget {
         filterQuality: FilterQuality.medium,
         placeholder: (context, url) => _buildLoadingPlaceholder(),
         errorWidget: (context, url, error) => _buildInitialsAvatar(),
+        errorListener: (error) => AppLogger.logHandledImageError(
+          source: 'UserAvatar',
+          url: effectivePhotoUrl,
+          error: error,
+        ),
       );
     }
 

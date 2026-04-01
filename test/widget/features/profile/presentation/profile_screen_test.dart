@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
 import 'package:mube/src/features/bands/domain/band_activation_rules.dart';
 import 'package:mube/src/features/profile/presentation/profile_screen.dart';
+import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -24,6 +26,16 @@ void main() {
         currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
       ],
       child: const MaterialApp(home: ProfileScreen()),
+    );
+  }
+
+  Widget createRouterSubject(AppUser user, GoRouter router) {
+    return ProviderScope(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+      ],
+      child: MaterialApp.router(routerConfig: router),
     );
   }
 
@@ -96,5 +108,68 @@ void main() {
 
     expect(find.textContaining('rascunho'), findsNothing);
     expect(find.text('Adicionar integrantes'), findsNothing);
+  });
+
+  testWidgets(
+    'opens edit profile with push so the route can be popped safely',
+    (tester) async {
+      final user = TestData.user(
+        tipoPerfil: AppUserType.professional,
+        status: profileActiveStatus,
+      );
+      fakeAuthRepository.appUser = user;
+
+      final router = GoRouter(
+        initialLocation: '/profile',
+        routes: [
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: RoutePaths.profileEdit,
+            builder: (context, state) =>
+                const Scaffold(body: Text('Edit Profile Page')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(createRouterSubject(user, router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Editar Perfil'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Edit Profile Page'), findsOneWidget);
+      expect(router.canPop(), true);
+    },
+  );
+
+  testWidgets('renders legacy scalar profile fields without crashing', (
+    tester,
+  ) async {
+    const user = AppUser(
+      uid: 'legacy-professional-uid',
+      email: 'legacy@example.com',
+      nome: 'Legacy Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'categorias': 'production',
+        'instrumentos': 'bass_synth',
+        'generosMusicais': 'mpb',
+        'funcoes': 'audiovisual_motion_design',
+      },
+    );
+    fakeAuthRepository.appUser = user;
+
+    await tester.pumpWidget(createSubject(user));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Produção Musical'), findsOneWidget);
+    expect(find.text('Bass Synth'), findsOneWidget);
+    expect(find.text('MPB'), findsOneWidget);
+    expect(find.text('Motion Design'), findsOneWidget);
   });
 }

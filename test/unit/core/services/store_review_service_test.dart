@@ -15,6 +15,8 @@ void main() {
   StoreReviewService createService({
     TargetPlatform platform = TargetPlatform.android,
     String? iosAppStoreId,
+    bool urlLaunchResult = true,
+    Object? urlLaunchError,
   }) {
     return StoreReviewService(
       currentUserUidLoader: () => currentUid,
@@ -30,7 +32,10 @@ void main() {
       platformClient: platformClient,
       urlLauncher: (uri) async {
         launchedUris.add(uri);
-        return true;
+        if (urlLaunchError != null) {
+          throw urlLaunchError;
+        }
+        return urlLaunchResult;
       },
       clock: () => now,
       platformResolver: () => platform,
@@ -133,42 +138,77 @@ void main() {
   });
 
   test(
-    'manual Android flow opens Play Store when prompt is unavailable',
+    'manual Android flow opens native store listing from settings tap',
     () async {
-      platformClient.isAvailableResult = false;
       final service = createService();
 
       final result = await service.requestManualReview();
       final state = await service.debugLoadState('user-1');
 
       expect(result, StoreReviewManualRequestResult.fallbackOpened);
-      expect(launchedUris, <Uri>[
-        Uri.parse(
-          'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
-        ),
-      ]);
+      expect(platformClient.requestReviewCalls, 0);
+      expect(platformClient.openStoreListingCalls, 1);
+      expect(launchedUris, isEmpty);
       expect(state.lastPromptedVersion, '1.5.2+43');
       expect(analytics.eventNames, contains('store_review_manual_tap'));
       expect(analytics.eventNames, contains('store_review_fallback_opened'));
     },
   );
 
+  test(
+    'manual Android flow falls back to Play Store URL when native listing fails',
+    () async {
+      platformClient.openStoreListingError = Exception('native listing failed');
+      final service = createService();
+
+      final result = await service.requestManualReview();
+
+      expect(result, StoreReviewManualRequestResult.fallbackOpened);
+      expect(platformClient.openStoreListingCalls, 1);
+      expect(launchedUris, <Uri>[
+        Uri.parse(
+          'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
+        ),
+      ]);
+    },
+  );
+
+  test(
+    'manual Android flow returns launchFailed when URL fallback throws',
+    () async {
+      platformClient.openStoreListingError = Exception('native listing failed');
+      final service = createService(
+        urlLaunchError: Exception('fallback launch failed'),
+      );
+
+      final result = await service.requestManualReview();
+
+      expect(result, StoreReviewManualRequestResult.launchFailed);
+      expect(platformClient.openStoreListingCalls, 1);
+      expect(launchedUris, <Uri>[
+        Uri.parse(
+          'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
+        ),
+      ]);
+      expect(analytics.eventNames, contains('store_review_prompt_skipped'));
+    },
+  );
+
   test('manual iOS flow stays unavailable without an App Store ID', () async {
-    platformClient.isAvailableResult = false;
     final service = createService(platform: TargetPlatform.iOS);
 
     final result = await service.requestManualReview();
 
     expect(result, StoreReviewManualRequestResult.unavailable);
+    expect(platformClient.openStoreListingCalls, 0);
     expect(launchedUris, isEmpty);
     expect(analytics.eventNames, contains('store_review_manual_tap'));
     expect(analytics.eventNames, contains('store_review_prompt_skipped'));
   });
 
   test(
-    'manual iOS flow opens App Store review page when App Store ID exists',
+    'manual iOS flow opens native App Store review page when App Store ID exists',
     () async {
-      platformClient.isAvailableResult = false;
       final service = createService(
         platform: TargetPlatform.iOS,
         iosAppStoreId: '6741443354',
@@ -178,11 +218,9 @@ void main() {
       final state = await service.debugLoadState('user-1');
 
       expect(result, StoreReviewManualRequestResult.fallbackOpened);
-      expect(launchedUris, <Uri>[
-        Uri.parse(
-          'https://apps.apple.com/app/id6741443354?action=write-review',
-        ),
-      ]);
+      expect(platformClient.openStoreListingCalls, 1);
+      expect(platformClient.lastAppStoreId, '6741443354');
+      expect(launchedUris, isEmpty);
       expect(state.lastPromptedVersion, '1.5.2+43');
       expect(analytics.eventNames, contains('store_review_manual_tap'));
       expect(analytics.eventNames, contains('store_review_fallback_opened'));
@@ -193,6 +231,9 @@ void main() {
 class _FakeStoreReviewPlatformClient implements StoreReviewPlatformClient {
   bool isAvailableResult = true;
   int requestReviewCalls = 0;
+  int openStoreListingCalls = 0;
+  String? lastAppStoreId;
+  Object? openStoreListingError;
 
   @override
   Future<bool> isAvailable() async => isAvailableResult;
@@ -200,6 +241,15 @@ class _FakeStoreReviewPlatformClient implements StoreReviewPlatformClient {
   @override
   Future<void> requestReview() async {
     requestReviewCalls += 1;
+  }
+
+  @override
+  Future<void> openStoreListing({String? appStoreId}) async {
+    openStoreListingCalls += 1;
+    lastAppStoreId = appStoreId;
+    if (openStoreListingError != null) {
+      throw openStoreListingError!;
+    }
   }
 }
 

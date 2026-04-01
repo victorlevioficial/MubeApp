@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mube Home Capture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Poppins:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <style>
+      :root {
+        --primary: #e8466c;
+        --primary-pressed: #d13f61;
+        --background: #0a0a0a;
+        --surface: #141414;
+        --surface-2: #1f1f1f;
+        --surface-highlight: #292929;
+        --border: #383838;
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+        --text-tertiary: #8a8a8a;
+        --info: #3b82f6;
+        --warning: #f59e0b;
+        --badge-band: #c026d3;
+        --badge-studio: #dc2626;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(232, 70, 108, 0.12), transparent 22%),
+          radial-gradient(circle at 20% 20%, rgba(232, 70, 108, 0.08), transparent 28%),
+          var(--background);
+        font-family: "Inter", sans-serif;
+        color: var(--text-primary);
+        padding: 32px;
+      }
+
+      .capture-root {
+        width: 430px;
+        min-height: 1650px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 20px 20px 24px;
+        background:
+          linear-gradient(180deg, rgba(232, 70, 108, 0.14) 0%, rgba(232, 70, 108, 0.08) 34%, rgba(232, 70, 108, 0.02) 68%, rgba(10, 10, 10, 1) 100%);
+      }
+
+      .address-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(20, 20, 20, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .header-main {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .eyebrow {
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1.8px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .welcome {
+        margin: 6px 0 0;
+        font-family: "Poppins", sans-serif;
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .icon-button,
+      .avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: rgba(31, 31, 31, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: grid;
+        place-items: center;
+        position: relative;
+      }
+
+      .avatar {
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 30% 25%, #ff98b1, transparent 35%),
+          linear-gradient(135deg, #2a2a2a, #171717);
+        font-family: "Poppins", sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .badge {
+        position: absolute;
+        top: -4px;
+        right: -2px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+        border: 2px solid var(--background);
+        display: grid;
+        place-items: center;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .shortcut-row {
+        margin-top: 14px;
+        display: flex;
+        gap: 12px;
+      }
+
+      .shortcut-card {
+        flex: 1;
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: rgba(20, 20, 20, 0.84);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .shortcut-title {
+        font-size: 11px;
+        color: var(--text-secondary);
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+
+      .shortcut-value {
+        margin-top: 6px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .alert-card {
+        margin-top: 16px;
+        border-radius: 18px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(20, 20, 20, 0.92));
+        border: 1px solid rgba(59, 130, 246, 0.22);
+      }
+
+      .alert-top,
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .alert-left,
+      .section-head-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .tiny-icon,
+      .section-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: rgba(20, 20, 20, 0.68);
+        font-size: 16px;
+      }
+
+      .section-icon {
+        width: 34px;
+        height: 34px;
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+      }
+
+      .alert-title,
+      .section-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .alert-text {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .section-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid rgba(56, 56, 56, 0.9);
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .stories {
+        padding: 12px 20px 0;
+        display: flex;
+        gap: 16px;
+        overflow: hidden;
+      }
+
+      .story-item {
+        width: 82px;
+        text-align: center;
+      }
+
+      .story-ring {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto;
+        padding: 3px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--primary), #ff8da7);
+        position: relative;
+      }
+
+      .story-ring.muted {
+        background: linear-gradient(180deg, #393939, #262626);
+      }
+
+      .story-core {
+        width: 100%;
+        height: 100%;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 28% 24%, rgba(255,255,255,0.26), transparent 28%),
+          linear-gradient(135deg, #424242, #1a1a1a);
+        border: 3px solid var(--background);
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .story-plus {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: var(--primary);
+        border: 2px solid var(--background);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .story-title {
+        margin-top: 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .story-subtitle {
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--text-tertiary);
+      }
+
+      .section {
+        margin-top: 16px;
+      }
+
+      .spotlight-card {
+        margin: 16px 20px 0;
+        height: 200px;
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        background:
+          radial-gradient(circle at 70% 20%, rgba(232, 70, 108, 0.4), transparent 24%),
+          linear-gradient(135deg, #5d2432 0%, #1a1a1a 52%, #121212 100%);
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+      }
+
+      .spotlight-photo {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 62% 26%, rgba(255,255,255,0.14), transparent 12%),
+          radial-gradient(circle at 54% 14%, rgba(255,255,255,0.08), transparent 18%),
+          linear-gradient(180deg, rgba(255,255,255,0.02), transparent 22%),
+          linear-gradient(180deg, rgba(10,10,10,0.0) 24%, rgba(10,10,10,0.64) 70%, rgba(10,10,10,0.96) 100%);
+      }
+
+      .spotlight-floating {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(10, 10, 10, 0.78);
+        border: 1px solid rgba(56, 56, 56, 1);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .spotlight-content {
+        position: absolute;
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+      }
+
+      .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(232, 70, 108, 0.22);
+        border: 1px solid rgba(232, 70, 108, 0.35);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .spotlight-name {
+        margin-top: 10px;
+        font-family: "Poppins", sans-serif;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .spotlight-meta {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .indicators {
+        margin-top: 16px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--surface-highlight);
+      }
+
+      .indicator.active {
+        width: 24px;
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+      }
+
+      .gigs-row,
+      .compact-row {
+        margin-top: 16px;
+        padding: 0 20px;
+        display: flex;
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      .gig-card {
+        min-width: 250px;
+        padding: 14px 12px 12px;
+        border-radius: 20px;
+        background: var(--surface);
+        border: 1px solid rgba(56, 56, 56, 0.75);
+        box-shadow: 0 10px 18px rgba(0, 0, 0, 0.28);
+        position: relative;
+      }
+
+      .gig-accent {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 3px;
+        border-radius: 20px 20px 0 0;
+        background: rgba(232, 70, 108, 0.65);
+      }
+
+      .gig-top {
+        display: flex;
+        gap: 10px;
+      }
+
+      .gig-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--surface-2);
+        border: 1px solid rgba(232, 70, 108, 0.18);
+        display: grid;
+        place-items: center;
+      }
+
+      .gig-title {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+
+      .gig-subtitle,
+      .gig-copy {
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .gig-copy {
+        margin-top: 10px;
+        min-height: 34px;
+      }
+
+      .pill-row {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .pill {
+        flex: 1;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: var(--surface-highlight);
+        border: 1px solid rgba(56, 56, 56, 0.55);
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .matchpoint {
+        margin: 16px 20px 0;
+        padding: 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(232, 70, 108, 0.18);
+        background: linear-gradient(135deg, rgba(232, 70, 108, 0.18), #1f1f1f 55%, #141414 100%);
+      }
+
+      .matchpoint-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .matchpoint-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .bolt {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: rgba(41, 41, 41, 0.42);
+        border: 1px solid rgba(232, 70, 108, 0.18);
+        display: grid;
+        place-items: center;
+        color: var(--primary);
+        font-size: 24px;
+      }
+
+      .matchpoint-copy {
+        margin-top: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .secondary-button {
+        margin-top: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--surface-highlight);
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .compact-card {
+        width: 110px;
+        text-align: center;
+      }
+
+      .compact-avatar {
+        width: 96px;
+        height: 96px;
+        margin: 0 auto;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 30% 24%, rgba(255,255,255,0.26), transparent 24%),
+          linear-gradient(135deg, #454545, #1d1d1d);
+      }
+
+      .compact-name {
+        margin-top: 8px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .compact-meta {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 10px;
+      }
+
+      .sticky-filter {
+        margin-top: 24px;
+        padding-top: 10px;
+        background: var(--background);
+      }
+
+      .filter-row {
+        padding: 0 16px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: var(--surface-highlight);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .filter-chip.active {
+        background: rgba(232, 70, 108, 0.3);
+        border: 1px solid rgba(232, 70, 108, 0.5);
+      }
+
+      .main-header {
+        padding: 24px 20px 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .main-feed {
+        padding: 0 20px 140px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .profile-card {
+        padding: 14px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #161616, #121212);
+        border: 1px solid rgba(56, 56, 56, 0.85);
+      }
+
+      .profile-top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .profile-avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 30% 24%, rgba(255,255,255,0.28), transparent 22%),
+          linear-gradient(135deg, #494949, #202020);
+      }
+
+      .profile-name {
+        font-family: "Poppins", sans-serif;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .profile-role,
+      .profile-copy {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .tags {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .card-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .card-action {
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 999px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .card-action.primary {
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+      }
+
+      .card-action.secondary {
+        background: var(--surface-highlight);
+        color: var(--text-secondary);
+      }
+
+      .bottom-nav {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        padding: 12px 8px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, #141414, rgba(20, 20, 20, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow:
+          0 8px 24px rgba(0, 0, 0, 0.6),
+          0 4px 16px rgba(232, 70, 108, 0.05);
+        display: flex;
+        justify-content: space-around;
+      }
+
+      .nav-item {
+        width: 72px;
+        text-align: center;
+        color: rgba(179, 179, 179, 0.75);
+        font-size: 11px;
+        font-weight: 600;
+        position: relative;
+      }
+
+      .nav-icon-wrap {
+        width: 56px;
+        height: 32px;
+        margin: 0 auto 4px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+      }
+
+      .nav-item.active {
+        color: var(--primary);
+      }
+
+      .nav-item.active .nav-icon-wrap {
+        background: linear-gradient(135deg, rgba(232, 70, 108, 0.15), rgba(232, 70, 108, 0.08));
+        border: 1px solid rgba(232, 70, 108, 0.2);
+      }
+
+      .chat-badge {
+        position: absolute;
+        top: -2px;
+        right: 10px;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid var(--background);
+        background: var(--primary);
+        font-size: 9px;
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="capture-root">
+      <div class="header">
+        <div class="address-pill">📍 Rua Augusta, Consolação</div>
+
+        <div class="header-main">
+          <div>
+            <div class="eyebrow">Perfil individual</div>
+            <div class="welcome">Bom te ver, Victor</div>
+          </div>
+          <div class="header-actions">
+            <div class="icon-button">🔔<div class="badge">3</div></div>
+            <div class="avatar">VL</div>
+          </div>
+        </div>
+
+        <div class="shortcut-row">
+          <div class="shortcut-card">
+            <div class="shortcut-title">Favoritos</div>
+            <div class="shortcut-value">12 recebidos</div>
+          </div>
+          <div class="shortcut-card">
+            <div class="shortcut-title">Perfil</div>
+            <div class="shortcut-value">86% completo</div>
+          </div>
+        </div>
+
+        <div class="alert-card">
+          <div class="alert-top">
+            <div class="alert-left">
+              <div class="tiny-icon">✉️</div>
+              <div class="alert-title">2 alertas ativos</div>
+            </div>
+            <div class="section-link">Ver convites →</div>
+          </div>
+          <div class="alert-text">
+            Abra seus convites pendentes e responda os que fizerem sentido para você.
+          </div>
+        </div>
+      </div>
+
+      <div class="stories">
+        <div class="story-item">
+          <div class="story-ring">
+            <div class="story-core">VL</div>
+            <div class="story-plus">+</div>
+          </div>
+          <div class="story-title">Seu story</div>
+          <div class="story-subtitle">Publicar</div>
+        </div>
+        <div class="story-item">
+          <div class="story-ring"><div class="story-core">AM</div></div>
+          <div class="story-title">Ana Mello</div>
+          <div class="story-subtitle">Stories</div>
+        </div>
+        <div class="story-item">
+          <div class="story-ring"><div class="story-core">BR</div></div>
+          <div class="story-title">Brava</div>
+          <div class="story-subtitle">Favorito</div>
+        </div>
+        <div class="story-item">
+          <div class="story-ring muted"><div class="story-core">ET</div></div>
+          <div class="story-title">Estúdio 88</div>
+          <div class="story-subtitle">Stories</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head" style="padding: 0 20px;">
+          <div class="section-head-left">
+            <div class="section-icon">✦</div>
+            <div class="section-title">Em Destaque</div>
+          </div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-photo"></div>
+          <div class="spotlight-floating">Ver perfil</div>
+          <div class="spotlight-content">
+            <div class="type-badge">♪ Profissional</div>
+            <div class="spotlight-name">Ayla Monteiro</div>
+            <div class="spotlight-meta">Pinheiros, SP • Soul • Pop • 3 km</div>
+          </div>
+        </div>
+        <div class="indicators">
+          <div class="indicator active"></div>
+          <div class="indicator"></div>
+          <div class="indicator"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head" style="padding: 0 20px;">
+          <div class="section-head-left">
+            <div class="tiny-icon" style="color: var(--primary); border: 1px solid rgba(232,70,108,0.18); background: var(--surface);">💼</div>
+            <div class="section-title">Gigs em aberto</div>
+          </div>
+          <div class="section-link">Ver todos →</div>
+        </div>
+        <div class="gigs-row">
+          <div class="gig-card">
+            <div class="gig-accent"></div>
+            <div class="gig-top">
+              <div class="gig-icon">🎤</div>
+              <div>
+                <div class="gig-title">Vocal para show acústico</div>
+                <div class="gig-subtitle">Show • R$ 450</div>
+              </div>
+            </div>
+            <div class="gig-copy">Projeto intimista em bar de São Paulo com repertório pop e MPB.</div>
+            <div class="pill-row">
+              <div class="pill">14/04</div>
+              <div class="pill">Vila Madalena</div>
+            </div>
+          </div>
+          <div class="gig-card">
+            <div class="gig-accent" style="background: rgba(59,130,246,0.65);"></div>
+            <div class="gig-top">
+              <div class="gig-icon" style="border-color: rgba(59,130,246,0.18);">🎧</div>
+              <div>
+                <div class="gig-title">Captação para live session</div>
+                <div class="gig-subtitle">Estúdio • R$ 900</div>
+              </div>
+            </div>
+            <div class="gig-copy">Sessão ao vivo com banda alternativa. Precisa de técnico e captação multicam.</div>
+            <div class="pill-row">
+              <div class="pill">A combinar</div>
+              <div class="pill">Remoto</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="matchpoint">
+        <div class="matchpoint-top">
+          <div class="matchpoint-title">MatchPoint</div>
+          <div class="bolt">⚡</div>
+        </div>
+        <div class="matchpoint-copy">
+          Ative seu perfil para entrar no fluxo de descoberta por compatibilidade.
+        </div>
+        <div class="secondary-button">Ativar MatchPoint →</div>
+      </div>
+
+      <div class="section">
+        <div class="section-head" style="padding: 0 20px;">
+          <div class="section-title" style="font-size:18px;">Músicos próximos</div>
+          <div class="section-link">Ver todos →</div>
+        </div>
+        <div class="compact-row">
+          <div class="compact-card">
+            <div class="compact-avatar"></div>
+            <div class="compact-name">Rafa Costa</div>
+            <div class="compact-meta">2 km • ♪</div>
+          </div>
+          <div class="compact-card">
+            <div class="compact-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.2), transparent 24%), linear-gradient(135deg, #3b3147, #181818);"></div>
+            <div class="compact-name">Banda Atlas</div>
+            <div class="compact-meta" style="color: var(--badge-band);">5 km • grupos</div>
+          </div>
+          <div class="compact-card">
+            <div class="compact-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.2), transparent 24%), linear-gradient(135deg, #4b2a2a, #181818);"></div>
+            <div class="compact-name">Estúdio Gama</div>
+            <div class="compact-meta" style="color: var(--badge-studio);">7 km • fones</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sticky-filter">
+        <div class="filter-row">
+          <div class="filter-chip active">👥 Todos</div>
+          <div class="filter-chip">👤 Profissionais</div>
+          <div class="filter-chip">🎙️ Bandas</div>
+        </div>
+      </div>
+
+      <div class="main-header">
+        <div class="section-icon">🔥</div>
+        <div class="section-title" style="font-size:20px;">Principais Perfis</div>
+      </div>
+
+      <div class="main-feed">
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar"></div>
+            <div>
+              <div class="profile-name">Luna Prado</div>
+              <div class="profile-role">Vocalista • 4 km • São Paulo</div>
+            </div>
+          </div>
+          <div class="tags">
+            <div class="tag">Pop</div>
+            <div class="tag">Soul</div>
+            <div class="tag">Shows</div>
+          </div>
+          <div class="card-actions">
+            <div class="card-action primary">Ver perfil</div>
+            <div class="card-action secondary">Favoritar</div>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.22), transparent 22%), linear-gradient(135deg, #43304a, #1c1c1c);"></div>
+            <div>
+              <div class="profile-name">Banda Tropa</div>
+              <div class="profile-role">Banda • Indie Rock • 9 km</div>
+            </div>
+          </div>
+          <div class="profile-copy">Quarteto com agenda ativa para festivais, bares e eventos autorais.</div>
+          <div class="tags">
+            <div class="tag">Indie</div>
+            <div class="tag">Rock</div>
+            <div class="tag">Autoral</div>
+          </div>
+          <div class="card-actions">
+            <div class="card-action primary">Ver perfil</div>
+            <div class="card-action secondary">Chamar</div>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-top">
+            <div class="profile-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255,255,255,0.22), transparent 22%), linear-gradient(135deg, #4d332a, #1b1b1b);"></div>
+            <div>
+              <div class="profile-name">Marco Ruiz</div>
+              <div class="profile-role">Guitarrista • 6 km • Pinheiros</div>
+            </div>
+          </div>
+          <div class="profile-copy">Sessões, gravações e estrada. Disponível para turnês curtas e projetos pop.</div>
+          <div class="tags">
+            <div class="tag">Guitarra</div>
+            <div class="tag">Sessão</div>
+            <div class="tag">Turnê</div>
+          </div>
+          <div class="card-actions">
+            <div class="card-action primary">Ver perfil</div>
+            <div class="card-action secondary">Favoritar</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active">
+          <div class="nav-icon-wrap">⌂</div>
+          Feed
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap">⌕</div>
+          Busca
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap">▣</div>
+          Gigs
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap">💬</div>
+          <div class="chat-badge">5</div>
+          Chat
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap">◉</div>
+          Conta
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

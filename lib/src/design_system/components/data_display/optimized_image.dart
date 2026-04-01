@@ -4,6 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../core/services/image_cache_config.dart';
+import '../../../utils/app_logger.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
 import '../../foundations/tokens/app_spacing.dart';
@@ -239,6 +240,11 @@ class OptimizedImage extends StatelessWidget {
       cacheManager: effectiveCacheManager,
       placeholder: (context, url) => placeholder ?? _buildShimmerPlaceholder(),
       errorWidget: (context, url, error) => errorWidget ?? _buildErrorWidget(),
+      errorListener: (error) => AppLogger.logHandledImageError(
+        source: 'OptimizedImage',
+        url: imageUrl!,
+        error: error,
+      ),
       // Limita cache em memória para otimizar performance
       memCacheWidth: cacheWidth,
       memCacheHeight: cacheHeight,
@@ -396,6 +402,12 @@ extension OptimizedImageCache on OptimizedImage {
                 maxHeight: maxDimension,
               ),
               context,
+              onError: (error, stackTrace) => AppLogger.logHandledImageError(
+                source: 'OptimizedImage.preloadImages',
+                url: url,
+                error: error,
+                stackTrace: stackTrace,
+              ),
             );
           } catch (_) {
             // Ignore individual image failures to keep preload pipeline flowing.

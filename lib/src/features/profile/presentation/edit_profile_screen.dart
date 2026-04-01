@@ -605,6 +605,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     return {...preservedUnsupportedLinks, ...sanitized};
   }
 
+  void _leaveEditProfile() {
+    final router = GoRouter.maybeOf(context);
+    if (router?.canPop() ?? false) {
+      context.pop();
+      return;
+    }
+
+    final navigator = Navigator.maybeOf(context);
+    if (navigator?.canPop() ?? false) {
+      navigator!.pop();
+      return;
+    }
+
+    router?.go(RoutePaths.settings);
+  }
+
   Future<void> _handleSave(AppUser user) async {
     final editState = ref.read(editProfileControllerProvider(user.uid));
     final controller = ref.read(
@@ -664,7 +680,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
 
       if (mounted) {
         AppSnackBar.success(context, 'Perfil atualizado com sucesso!');
-        context.pop();
+        _leaveEditProfile();
       }
     } catch (e) {
       if (mounted) {
@@ -689,7 +705,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     }
 
     if (!state.hasChanges) {
-      context.pop();
+      _leaveEditProfile();
       return;
     }
 
@@ -706,7 +722,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     );
 
     if (shouldLeave == true && mounted) {
-      context.pop();
+      _leaveEditProfile();
     }
   }
 

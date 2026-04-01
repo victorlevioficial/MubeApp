@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mube Login Capture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+     <link
+       href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Poppins:wght@600;700&display=swap"
+       rel="stylesheet"
+     />
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <style>
+      :root {
+        --background: #0a0a0a;
+        --surface: #141414;
+        --surface-highlight: #292929;
+        --border: #383838;
+        --primary: #e8466c;
+        --primary-pressed: #d13f61;
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+        --text-tertiary: #8a8a8a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top center, rgba(232, 70, 108, 0.11), transparent 32%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%),
+          var(--background);
+        color: var(--text-primary);
+        font-family: "Inter", sans-serif;
+      }
+
+      .page {
+        width: 1440px;
+        min-height: 1200px;
+        margin: 0 auto;
+        padding: 72px 24px 48px;
+        position: relative;
+      }
+
+      .content {
+        width: 480px;
+        margin: 0 auto;
+        padding: 48px 24px;
+      }
+
+      .logo {
+        display: block;
+        width: 178px;
+        height: auto;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 32px 0 12px;
+        font-family: "Poppins", sans-serif;
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -1px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--text-secondary);
+        text-align: center;
+        font-size: 16px;
+        line-height: 1.5;
+        font-weight: 500;
+      }
+
+      .section-gap-lg {
+        height: 48px;
+      }
+
+      .field-group + .field-group {
+        margin-top: 24px;
+      }
+
+      .field-label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+      }
+
+      .field {
+        height: 48px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        gap: 12px;
+      }
+
+      .field svg {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        color: var(--text-tertiary);
+      }
+
+      .field span {
+        color: var(--text-tertiary);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .forgot-link {
+        margin-top: 16px;
+        text-align: right;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary);
+      }
+
+      .primary-button {
+        margin-top: 32px;
+        width: 100%;
+        height: 56px;
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .divider {
+        margin: 32px 0;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .divider-line {
+        height: 1px;
+        flex: 1;
+        background: var(--border);
+      }
+
+      .divider-text {
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .social-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .social-button {
+        height: 48px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: var(--text-primary);
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .social-button svg {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+      }
+
+      .register {
+        margin-top: 48px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-secondary);
+      }
+
+      .register strong {
+        font-family: "Poppins", sans-serif;
+        font-weight: 700;
+        color: var(--primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="content">
+        <svg
+          class="logo"
+          viewBox="0 0 2091.85 750"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-label="Mube"
+        >
+          <path d="M1510.84 449.12c0 14.87-2.79 28.11-8.37 39.73-5.57 11.62-13.55 20.68-23.93 27.19-10.38 6.5-22.7 9.76-36.95 9.76-13.01 0-24.71-2.78-35.09-8.37-10.38-5.57-18.59-13.54-24.63-23.93-6.04-10.38-9.07-22.85-9.07-37.42V300.86h-27.88V458.4c0 19.52 4.18 36.33 12.55 50.43 8.37 14.11 19.59 25.02 33.69 32.76 14.1 7.74 29.51 11.62 46.24 11.62 19.52 0 36.4-4.87 50.66-14.64 9.62-6.59 17.1-14.76 22.77-24.24v33.31h27.88V300.87h-27.88v148.25Z" fill="#FFF"/>
+          <path d="M1772.92 312.02c-18.28-11.15-39.04-16.72-62.27-16.72s-42.69 5.34-60.18 16.03c-14.88 9.08-26.61 20.96-35.55 35.31v-150.8h-27.88v351.81h27.88v-47.62c8.52 15.08 20.08 27.43 35.09 36.7 17.81 10.99 38.03 16.49 60.65 16.49s43.99-5.65 62.27-16.96c18.27-11.3 32.68-26.72 43.22-46.24 10.53-19.51 15.8-41.51 15.8-65.99s-5.27-46.47-15.8-66c-10.54-19.51-24.95-34.85-43.22-46.01Zm17.19 163.82c-8.06 15.33-19.05 27.42-32.99 36.24-13.94 8.84-29.75 13.25-47.4 13.25s-33.62-4.41-47.87-13.25c-14.25-8.83-25.56-20.91-33.92-36.24-8.37-15.34-12.55-32.61-12.55-51.82s4.18-36.4 12.55-51.59c8.37-15.17 19.67-27.19 33.92-36.01 14.25-8.84 30.21-13.25 47.87-13.25s33.46 4.41 47.4 13.25c13.94 8.83 24.94 20.84 32.99 36.01 8.06 15.18 12.08 32.38 12.08 51.59s-4.03 36.48-12.08 51.82Z" fill="#FFF"/>
+          <path d="M1251.47 310.6c-13.79-7.75-28.89-11.62-45.31-11.62-1.32 0-2.57.23-3.88.28-1.44-.06-2.83-.28-4.29-.28-19.2 0-36.72 5.5-52.52 16.49-9.73 6.78-17.51 15.03-23.56 24.59-6.06-9.56-13.83-17.82-23.56-24.59-15.8-10.99-33.31-16.49-52.52-16.49-1.46 0-2.85.22-4.29.28-1.31-.05-2.55-.28-3.88-.28-16.42 0-31.52 3.87-45.31 11.62-13.78 7.75-24.94 18.51-33.46 32.29-8.52 13.79-12.78 29.51-12.78 47.17v161.26h27.88V398.29c0-14.88 3.02-27.66 9.06-38.35 6.04-10.69 14.02-18.9 23.94-24.63 9.92-5.73 21.07-8.6 33.46-8.6 13.33 0 25.02 3.25 35.09 9.76 10.07 6.5 17.97 15.5 23.7 26.95 5.74 11.47 8.6 24.64 8.6 39.51v148.71h28.15V402.93c0-14.87 2.86-28.04 8.6-39.51 5.73-11.45 13.63-20.44 23.7-26.95 10.07-6.5 21.76-9.76 35.09-9.76 12.39 0 23.54 2.87 33.46 8.6 9.91 5.73 17.89 13.94 23.94 24.63 6.04 10.69 9.06 23.47 9.06 38.35v153.36h27.88V390.39c0-17.66-4.26-33.38-12.78-47.17-8.53-13.78-19.68-24.54-33.46-32.29Z" fill="#FFF"/>
+          <path d="M2060.92 334.49c-9.93-10.84-21.69-19.31-35.28-25.43-13.59-6.11-28.79-9.16-45.58-9.16-21.99 0-41.85 5.5-59.56 16.49-17.72 11-31.77 26.04-42.15 45.13-10.39 19.09-15.58 40.7-15.58 64.83s5.34 45.89 16.04 65.28c10.69 19.4 25.2 34.67 43.52 45.81 18.32 11.15 38.94 16.72 61.85 16.72 15.58 0 30.01-2.6 43.29-7.79 13.29-5.19 24.97-12.29 35.05-21.3 10.08-9 17.87-19.16 23.36-30.46l-23.36-12.37c-8.25 14.05-18.94 25.28-32.07 33.67-13.13 8.4-28.56 12.6-46.27 12.6s-33.29-4.35-47.65-13.06c-14.36-8.71-25.66-20.69-33.9-35.96-7.02-13-10.82-27.66-11.42-43.98h198.8c.61-3.66 1.07-7.17 1.37-10.54.3-3.36.46-6.56.46-9.62 0-15.27-2.68-29.85-8.02-43.75-5.35-13.89-12.99-26.27-22.91-37.11Zm-158.74 39.86c7.94-15.12 18.78-27.03 32.53-35.73 13.74-8.7 28.86-13.06 45.35-13.06s31.23 4.2 44.21 12.6c12.98 8.4 22.98 19.7 30.01 33.9 5.73 11.58 8.51 24.34 8.35 38.25h-170.9c1.31-13.19 4.79-25.18 10.46-35.96Z" fill="#FFF"/>
+          <circle cx="375" cy="375" r="375" fill="#E8466C"/>
+          <path d="M586.09 443.47c0 37.28-30.22 67.5-67.5 67.5-9.54 0-18.61-1.98-26.84-5.55-23.92-10.37-40.66-34.21-40.66-61.95V201.6c0-4.81-1.97-9.19-5.14-12.36-3.17-3.17-7.55-5.14-12.36-5.14-9.62 0-17.5 7.87-17.5 17.5v284.37c0 .47-.01.94-.04 1.41v6.23c-.08 37.22-30.27 67.36-67.5 67.36-6.04 0-11.89-.79-17.45-2.28-28.09-7.49-48.96-32.65-50-62.85V301.6c0-.43-.02-.86-.05-1.28-.31-4.3-2.2-8.19-5.09-11.08-3.17-3.17-7.55-5.14-12.36-5.14-9.62 0-17.5 7.87-17.5 17.5v284.37c0 13.75-11.25 25-25 25s-25-11.25-25-25V301.6c.08-37.22 30.27-67.36 67.5-67.36 6.03 0 11.88.79 17.45 2.29 28.09 7.48 48.96 32.64 50 62.84v194.24c0 .43.02.86.05 1.28.31 4.3 2.2 8.19 5.09 11.08 3.17 3.17 7.55 5.14 12.36 5.14 9.62 0 17.5-7.87 17.5-17.5V209.24c0-.47 0-.94.04-1.41v-6.23c.08-37.22 30.27-67.36 67.5-67.36s67.42 30.14 67.5 67.36v176.66c5.58-1.49 11.45-2.29 17.5-2.29 37.28 0 67.5 30.22 67.5 67.5Z" fill="#FFF"/>
+        </svg>
+
+        <h1>Bem-vindo de volta</h1>
+        <p class="subtitle">Entre para gerenciar sua carreira musical</p>
+
+        <div class="section-gap-lg"></div>
+
+        <div class="field-group">
+          <label class="field-label">E-mail</label>
+          <div class="field">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3.25" y="5.25" width="17.5" height="13.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 7l7 5 7-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>seu@email.com</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Senha</label>
+          <div class="field">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="5.25" y="10.25" width="13.5" height="9.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8.5 10V7.75A3.5 3.5 0 0 1 12 4.25 3.5 3.5 0 0 1 15.5 7.75V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
+            <svg viewBox="0 0 24 24" fill="none" style="margin-left:auto">
+              <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="forgot-link">Esqueceu a senha?</div>
+
+        <button class="primary-button">Entrar</button>
+
+        <div class="divider">
+          <div class="divider-line"></div>
+          <div class="divider-text">Ou entre com</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <div class="social-stack">
+          <div class="social-button">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8.857h11.895c-1.443 7.254-9.039 8.04-11.895 8.04-6.475 0-12.26-5.405-12.26-12.897 0-7.489 5.753-12.895 12.26-12.895 3.399 0 6.666 1.487 8.528 3.514l6.095-6.665C34.75 3.93 29.58 3 24 3 12.404 3 3 12.404 3 24s9.404 21 21 21c10.421 0 19.349-7.398 20.738-17.513.128-.868.205-1.758.205-2.668 0-1.879-.26-3.702-.738-5.464-.285-1.05-.624-2.062-1.594-3.272z"/>
+              <path fill="#FF3D00" d="M6.306 14.691 12.877 19.51C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4c-7.682 0-14.344 4.337-17.694 10.691z"/>
+              <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+              <path fill="#1976D2" d="M43.611 20.083 43.595 20H24v8.857h11.895c-.538 2.704-1.921 5.061-3.709 6.777l6.536 5.531C42.846 36.634 46 30.706 46 24c0-1.353-.13-2.673-.389-3.917z"/>
+            </svg>
+            <span>Continuar com Google</span>
+          </div>
+
+          <div class="social-button">
+            <svg viewBox="0 0 384 512" aria-hidden="true">
+              <path fill="#FFFFFF" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 52.3-11.4 69.5-34.3z"/>
+            </svg>
+            <span>Continuar com Apple</span>
+          </div>
+        </div>
+
+        <div class="register">Não tem uma conta? <strong>Crie agora</strong></div>
+      </div>
+    </div>
+  </body>
+</html>

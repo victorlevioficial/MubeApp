@@ -31,9 +31,15 @@ class _ProfessionalDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prof = user.dadosProfissional ?? const <String, dynamic>{};
-    final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
-    final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
-    final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final instrumentos = instrumentDisplayLabels(
+      profileStringList(prof['instrumentos']),
+    );
+    final funcoes = professionalRoleDisplayLabels(
+      profileStringList(prof['funcoes']),
+    );
+    final generos = genreDisplayLabels(
+      profileStringList(prof['generosMusicais']),
+    );
     final offersRemoteRecording = professionalOffersRemoteRecording(prof);
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
@@ -112,7 +118,9 @@ class _BandDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final banda = user.dadosBanda;
-    final generos = (banda?['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final generos = genreDisplayLabels(
+      profileStringList(banda?['generosMusicais']),
+    );
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
@@ -153,10 +161,11 @@ class _StudioDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final estudio = user.dadosEstudio ?? const <String, dynamic>{};
     final studioType = estudio['studioType'] as String?;
-    final services =
-        (estudio['services'] as List?)?.cast<String>() ??
-        (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
-        [];
+    final services = studioServiceDisplayLabels(
+      profileStringList(estudio['services']).isNotEmpty
+          ? profileStringList(estudio['services'])
+          : profileStringList(estudio['servicosOferecidos']),
+    );
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
@@ -217,10 +226,9 @@ class _ContractorDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final contractor = user.dadosContratante ?? const <String, dynamic>{};
     final venueTypeId = contractor['venueType'] as String?;
-    final amenities =
-        (contractor['comodidades'] as List?)?.cast<String>() ??
-        (contractor['amenities'] as List?)?.cast<String>() ??
-        const <String>[];
+    final amenities = profileStringList(contractor['comodidades']).isNotEmpty
+        ? profileStringList(contractor['comodidades'])
+        : profileStringList(contractor['amenities']);
     final venueType = venueTypeLabel(venueTypeId);
     final amenityLabels = venueAmenityLabels(amenities);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);

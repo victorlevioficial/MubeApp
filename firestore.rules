@@ -17,6 +17,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    function isBlockedBetween(userA, userB) {
+      return request.auth != null && (
+        exists(/databases/$(database)/documents/users/$(userA)/blocked/$(userB)) ||
+        exists(/databases/$(database)/documents/users/$(userB)/blocked/$(userA))
+      );
+    }
+
     function isPublicContractorProfileData(data) {
       return data.tipo_perfil == 'contratante' &&
         data.contratante is map &&
@@ -41,6 +48,14 @@ service cloud.firestore {
 
     function gigExists(gigId) {
       return exists(/databases/$(database)/documents/gigs/$(gigId));
+    }
+
+    function storyDoc(storyId) {
+      return get(/databases/$(database)/documents/stories/$(storyId));
+    }
+
+    function storyExists(storyId) {
+      return exists(/databases/$(database)/documents/stories/$(storyId));
     }
 
     function isCompletedProfile(userId) {
@@ -139,7 +154,8 @@ service cloud.firestore {
           'favorites_count',
           'members',
           'private_stats',
-          'plan'
+          'plan',
+          'story_state'
         ]);
       
       // Only owner can delete their own account
@@ -165,7 +181,8 @@ service cloud.firestore {
           'favorites_count',
           'members',
           'private_stats',
-          'plan'
+          'plan',
+          'story_state'
         ]);
       
       // ================================================================
@@ -203,6 +220,51 @@ service cloud.firestore {
       // ================================================================
       match /notifications/{notificationId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ================================================================
+      // STORY SEEN AUTHORS - agregado por viewer
+      // ================================================================
+      match /story_seen_authors/{ownerUid} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    // ================================================================
+    // STORIES - stories efemeros
+    // ================================================================
+    match /stories/{storyId} {
+      allow read: if request.auth != null &&
+        (
+          resource.data.owner_uid == request.auth.uid ||
+          (
+            resource.data.status == 'active' &&
+            resource.data.expires_at > request.time &&
+            !isBlockedBetween(request.auth.uid, resource.data.owner_uid)
+          )
+        );
+
+      allow create, update, delete: if false;
+
+      match /views/{viewerUid} {
+        allow read: if request.auth != null &&
+          (
+            storyExists(storyId) &&
+            storyDoc(storyId).data.owner_uid == request.auth.uid
+          );
+
+        allow create: if request.auth != null &&
+          request.auth.uid == viewerUid &&
+          storyExists(storyId) &&
+          storyDoc(storyId).data.status == 'active' &&
+          storyDoc(storyId).data.owner_uid != request.auth.uid &&
+          storyDoc(storyId).data.expires_at > request.time &&
+          !isBlockedBetween(request.auth.uid, storyDoc(storyId).data.owner_uid) &&
+          request.resource.data.viewer_uid == request.auth.uid &&
+          request.resource.data.viewed_at is timestamp;
+
+        allow update, delete: if false;
       }
     }
 

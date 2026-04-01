@@ -102,6 +102,35 @@ void main() {
     expect(find.text('Candidatar-se'), findsOneWidget);
   });
 
+  testWidgets('shows refreshed apply dialog UI', (tester) async {
+    await tester.pumpWidget(
+      createSubject(
+        gigStream: Stream.value(sampleGig),
+        myApplicationStream: Stream.value(null),
+        authUserStream: Stream.value(candidateAuthUser),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('Candidatar-se'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Candidatar-se'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Candidatura rápida'), findsOneWidget);
+    expect(find.text('Vale incluir'), findsOneWidget);
+    expect(find.text('Mensagem para o contratante'), findsOneWidget);
+    expect(
+      find.text(
+        'Sua candidatura vai aparecer em Minhas candidaturas assim que for enviada.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Experiência'), findsOneWidget);
+    expect(find.text('Disponibilidade'), findsOneWidget);
+    expect(find.text('Repertório'), findsOneWidget);
+  });
+
   testWidgets('shows dynamic applicants label for creators', (tester) async {
     await tester.pumpWidget(
       createSubject(

@@ -20,7 +20,7 @@ void main() {
     SharedPreferences.setMockInitialValues(const <String, Object>{});
   });
 
-  testWidgets('manual rate app action opens Play Store fallback on Android', (
+  testWidgets('manual rate app action opens native Play Store listing on Android', (
     tester,
   ) async {
     final fakeAuthRepository = FakeAuthRepository();
@@ -34,6 +34,7 @@ void main() {
     );
 
     final launchedUris = <Uri>[];
+    final platformClient = _RecordingStoreReviewPlatformClient();
     final service = StoreReviewService(
       currentUserUidLoader: () => fakeAuthRepository.currentUser?.uid,
       analytics: FakeAnalyticsService(),
@@ -45,7 +46,7 @@ void main() {
         buildNumber: '43',
         buildSignature: '',
       ),
-      platformClient: _UnavailableStoreReviewPlatformClient(),
+      platformClient: platformClient,
       urlLauncher: (uri) async {
         launchedUris.add(uri);
         return true;
@@ -82,19 +83,22 @@ void main() {
     await tester.tap(find.text('Avaliar o app'));
     await tester.pumpAndSettle();
 
-    expect(launchedUris, <Uri>[
-      Uri.parse(
-        'https://play.google.com/store/apps/details?id=com.mube.mubeoficial',
-      ),
-    ]);
+    expect(platformClient.openStoreListingCalls, 1);
+    expect(launchedUris, isEmpty);
   });
 }
 
-class _UnavailableStoreReviewPlatformClient
-    implements StoreReviewPlatformClient {
+class _RecordingStoreReviewPlatformClient implements StoreReviewPlatformClient {
+  int openStoreListingCalls = 0;
+
   @override
-  Future<bool> isAvailable() async => false;
+  Future<bool> isAvailable() async => true;
 
   @override
   Future<void> requestReview() async {}
+
+  @override
+  Future<void> openStoreListing({String? appStoreId}) async {
+    openStoreListingCalls += 1;
+  }
 }

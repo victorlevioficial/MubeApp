@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 import '../../domain/media_item.dart';
 import 'gallery_video_player.dart';
 
@@ -72,6 +73,12 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
           cacheManager: ImageCacheConfig.optimizedCacheManager,
         ),
         context,
+        onError: (error, stackTrace) => AppLogger.logHandledImageError(
+          source: 'MediaViewerDialog.precacheItem',
+          url: url,
+          error: error,
+          stackTrace: stackTrace,
+        ),
       ),
     );
   }
@@ -176,6 +183,11 @@ class _MediaViewerDialogState extends State<MediaViewerDialog> {
               ),
               errorWidget: (context, url, error) =>
                   const Icon(Icons.error, color: AppColors.error),
+              errorListener: (error) => AppLogger.logHandledImageError(
+                source: 'MediaViewerDialog.viewerImage',
+                url: item.viewerUrl,
+                error: error,
+              ),
             ),
           ),
         ),

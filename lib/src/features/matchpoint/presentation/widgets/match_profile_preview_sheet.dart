@@ -10,6 +10,7 @@ import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../profile/domain/media_item.dart';
 import '../../../profile/presentation/widgets/public_gallery_grid.dart';
+import '../../domain/matchpoint_dynamic_fields.dart';
 
 /// BottomSheet scrollável que exibe o perfil detalhado de um candidato
 /// no Matchpoint, sem o botão "Iniciar Conversa".
@@ -253,7 +254,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     final mp = user.matchpointProfile;
     if (mp == null) return const SizedBox.shrink();
 
-    final hashtags = (mp['hashtags'] as List?)?.cast<String>() ?? [];
+    final hashtags = matchpointStringList(mp['hashtags']);
     if (hashtags.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -315,9 +316,9 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     final prof = user.dadosProfissional;
     if (prof == null) return const SizedBox.shrink();
 
-    final instrumentos = (prof['instrumentos'] as List?)?.cast<String>() ?? [];
-    final funcoes = (prof['funcoes'] as List?)?.cast<String>() ?? [];
-    final generos = (prof['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final instrumentos = matchpointStringList(prof['instrumentos']);
+    final funcoes = matchpointStringList(prof['funcoes']);
+    final generos = matchpointStringList(prof['generosMusicais']);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -334,7 +335,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     final banda = user.dadosBanda;
     if (banda == null) return const SizedBox.shrink();
 
-    final generos = (banda['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final generos = matchpointStringList(banda['generosMusicais']);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,10 +349,10 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     final estudio = user.dadosEstudio;
     if (estudio == null) return const SizedBox.shrink();
 
-    final services =
-        (estudio['services'] as List?)?.cast<String>() ??
-        (estudio['servicosOferecidos'] as List?)?.cast<String>() ??
-        [];
+    final services = {
+      ...matchpointStringList(estudio['services']),
+      ...matchpointStringList(estudio['servicosOferecidos']),
+    }.toList(growable: false);
     final studioType = estudio['studioType'] as String?;
 
     return Column(
@@ -439,9 +440,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     }
 
     final gallery =
-        galleryData
-            .map((item) => MediaItem.fromJson(item as Map<String, dynamic>))
-            .toList()
+        matchpointStringMapList(galleryData).map(MediaItem.fromJson).toList()
           ..sort((a, b) => a.order.compareTo(b.order));
 
     if (gallery.isEmpty) return const SizedBox.shrink();
@@ -460,8 +459,8 @@ class MatchProfilePreviewSheet extends StatelessWidget {
 
   String _getSubtitle() {
     if (user.tipoPerfil == AppUserType.professional) {
-      final roles = user.dadosProfissional?['funcoes'] as List?;
-      if (roles != null && roles.isNotEmpty) {
+      final roles = matchpointStringList(user.dadosProfissional?['funcoes']);
+      if (roles.isNotEmpty) {
         return roles.join(' • ');
       }
     }

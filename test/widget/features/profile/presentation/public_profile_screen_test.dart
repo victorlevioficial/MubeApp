@@ -251,6 +251,57 @@ void main() {
     expect(find.text('Gravação remota'), findsOneWidget);
   });
 
+  testWidgets('formats stored ids into readable profile chips', (tester) async {
+    const professional = AppUser(
+      uid: 'professional-formatted-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': ['bass_synth'],
+        'funcoes': ['roadie', 'audiovisual_motion_design'],
+        'generosMusicais': ['mpb', 'smooth_jazz'],
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Bass Synth'), findsOneWidget);
+    expect(find.text('Roadie'), findsOneWidget);
+    expect(find.text('Motion Design'), findsOneWidget);
+    expect(find.text('MPB'), findsOneWidget);
+    expect(find.text('Smooth Jazz'), findsOneWidget);
+
+    expect(find.text('bass_synth'), findsNothing);
+    expect(find.text('roadie'), findsNothing);
+    expect(find.text('audiovisual_motion_design'), findsNothing);
+    expect(find.text('smooth_jazz'), findsNothing);
+  });
+
+  testWidgets('renders legacy scalar public profile fields without crashing', (
+    tester,
+  ) async {
+    const professional = AppUser(
+      uid: 'professional-legacy-scalars-uid',
+      email: 'professional@example.com',
+      nome: 'Professional',
+      tipoPerfil: AppUserType.professional,
+      cadastroStatus: 'concluido',
+      dadosProfissional: {
+        'instrumentos': 'bass_synth',
+        'funcoes': 'audiovisual_motion_design',
+        'generosMusicais': 'mpb',
+      },
+    );
+
+    await pumpPublicProfile(tester, professional);
+
+    expect(find.text('Bass Synth'), findsOneWidget);
+    expect(find.text('Motion Design'), findsOneWidget);
+    expect(find.text('MPB'), findsOneWidget);
+  });
+
   testWidgets('does not show music links section when map is empty', (
     tester,
   ) async {

@@ -2,6 +2,7 @@ import '../../../constants/firestore_constants.dart';
 import '../../../utils/category_normalizer.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import 'matchpoint_dynamic_fields.dart';
 
 const Set<String> _supportOnlyProfessionalCategoryIds = <String>{
   'audiovisual',
@@ -95,20 +96,14 @@ bool isMatchpointAvailableForUser(AppUser? user) {
   final rawCategories = <String>[];
   final rawRoles = <String>[];
 
-  final categories = professional?['categorias'] as List?;
-  if (categories != null) {
-    rawCategories.addAll(categories.whereType<String>());
-  }
+  rawCategories.addAll(matchpointStringList(professional?['categorias']));
 
   final legacyCategory = professional?['categoria'];
   if (legacyCategory is String && legacyCategory.isNotEmpty) {
     rawCategories.add(legacyCategory);
   }
 
-  final roles = professional?['funcoes'] as List?;
-  if (roles != null) {
-    rawRoles.addAll(roles.whereType<String>());
-  }
+  rawRoles.addAll(matchpointStringList(professional?['funcoes']));
 
   return isMatchpointAvailableForType(
     user.tipoPerfil,

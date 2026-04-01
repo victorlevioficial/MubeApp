@@ -273,6 +273,39 @@ void main() {
       expect(find.byIcon(Icons.person), findsOneWidget);
     });
 
+    testWidgets('handles legacy scalar profile fields without crashing', (
+      WidgetTester tester,
+    ) async {
+      const legacyUser = AppUser(
+        uid: 'legacy-user',
+        email: 'legacy@example.com',
+        nome: 'Legacy User',
+        tipoPerfil: AppUserType.professional,
+        dadosProfissional: {
+          'nomeArtistico': 'Legacy Artist',
+          'funcoes': 'Guitarrista',
+          'generosMusicais': 'Rock',
+        },
+        matchpointProfile: {'musicalGenres': 'Rock'},
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MatchCard(
+              user: legacyUser,
+              onTap: () {},
+              currentUserGenres: const ['Rock'],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Legacy Artist'), findsOneWidget);
+      expect(find.text('Guitarrista'), findsOneWidget);
+      expect(find.text('1 gênero em comum'), findsOneWidget);
+    });
+
     testWidgets('handles null onTap gracefully', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(

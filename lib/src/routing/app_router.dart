@@ -45,6 +45,10 @@ import '../features/settings/presentation/privacy_settings_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/splash/providers/splash_provider.dart';
+import '../features/stories/domain/story_viewer_route_args.dart';
+import '../features/stories/presentation/screens/create_story_screen.dart';
+import '../features/stories/presentation/screens/story_viewer_route_loader.dart';
+import '../features/stories/presentation/screens/story_viewers_screen.dart';
 import '../features/support/domain/ticket_model.dart';
 import '../features/support/presentation/create_ticket_screen.dart';
 import '../features/support/presentation/dropdown_stability_comparison_screen.dart';
@@ -550,6 +554,34 @@ List<RouteBase> _buildRoutes(Ref ref) {
       pageBuilder: (context, state) => slideTransitionPage(
         key: state.pageKey,
         child: const NotificationListScreen(),
+      ),
+    ),
+    GoRoute(
+      path: RoutePaths.storyCreate,
+      pageBuilder: (context, state) => slideTransitionPage(
+        key: state.pageKey,
+        child: const CreateStoryScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '${RoutePaths.storyViewer}/:storyId',
+      pageBuilder: (context, state) {
+        final extra = state.extra;
+        final args = extra is StoryViewerRouteArgs ? extra : null;
+        final storyId = state.pathParameters['storyId'];
+        final child = storyId != null && storyId.isNotEmpty
+            ? StoryViewerRouteLoader(storyId: storyId, preloadedArgs: args)
+            : const Scaffold(
+                body: Center(child: Text('Story nao encontrado.')),
+              );
+        return fadeTransitionPage(key: state.pageKey, child: child);
+      },
+    ),
+    GoRoute(
+      path: '${RoutePaths.storyViewers}/:storyId',
+      pageBuilder: (context, state) => slideTransitionPage(
+        key: state.pageKey,
+        child: StoryViewersScreen(storyId: state.pathParameters['storyId']!),
       ),
     ),
     GoRoute(

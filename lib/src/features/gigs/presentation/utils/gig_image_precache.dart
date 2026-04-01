@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../../core/services/image_cache_config.dart';
+import '../../../../utils/app_logger.dart';
 
 class GigImagePrecache {
   const GigImagePrecache._();
@@ -38,6 +39,12 @@ class GigImagePrecache {
             maxHeight: avatarCacheDimension,
           ),
           context,
+          onError: (error, stackTrace) => AppLogger.logHandledImageError(
+            source: 'GigImagePrecache',
+            url: url,
+            error: error,
+            stackTrace: stackTrace,
+          ),
         ).catchError((_) {
           // Ignore individual avatar failures to keep the first paint stable.
         });

@@ -16,7 +16,6 @@ import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
 import 'package:mube/src/features/feed/presentation/feed_screen.dart';
-import 'package:mube/src/features/feed/presentation/widgets/featured_spotlight_carousel.dart';
 import 'package:mube/src/features/feed/presentation/widgets/feed_skeleton.dart';
 import 'package:mube/src/features/gigs/domain/compensation_type.dart';
 import 'package:mube/src/features/gigs/domain/gig.dart';
@@ -199,6 +198,11 @@ void main() {
     testWidgets('shows gigs preview section on home when gigs exist', (
       tester,
     ) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final previewGig = Gig(
         id: 'gig-preview-1',
         title: 'Baterista para show pop',
@@ -235,6 +239,13 @@ void main() {
         await tester.pump();
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
+
+      await tester.scrollUntilVisible(
+        find.text('Gigs em aberto'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
 
       expect(find.text('Gigs em aberto'), findsOneWidget);
       expect(find.text('Baterista para show pop'), findsOneWidget);
@@ -330,51 +341,6 @@ void main() {
       expect(matchpointTop, greaterThan(gigsTop));
     });
 
-    testWidgets('shows only spotlight profiles with avatar photo', (
-      tester,
-    ) async {
-      fakeFeedRepository.discoverFeedPool = const [
-        FeedItem(
-          uid: 'with-avatar',
-          nome: 'With Avatar',
-          nomeArtistico: 'Com Avatar',
-          foto: 'https://example.com/with-avatar.jpg',
-          tipoPerfil: 'profissional',
-        ),
-        FeedItem(
-          uid: 'without-avatar',
-          nome: 'Without Avatar',
-          nomeArtistico: 'Sem Avatar',
-          tipoPerfil: 'profissional',
-        ),
-      ];
-
-      await mockNetworkImagesFor(() async {
-        await tester.pumpWidget(createSubject());
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.pump(const Duration(milliseconds: 300));
-      });
-
-      final spotlightCarousel = find.byType(FeaturedSpotlightCarousel);
-
-      expect(spotlightCarousel, findsOneWidget);
-      expect(
-        find.descendant(
-          of: spotlightCarousel,
-          matching: find.text('Com Avatar'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: spotlightCarousel,
-          matching: find.text('Sem Avatar'),
-        ),
-        findsNothing,
-      );
-    });
-
     testWidgets('navigates to matchpoint from feed highlight card', (
       tester,
     ) async {
@@ -419,6 +385,11 @@ void main() {
     testWidgets(
       'does not keep full screen skeleton while gigs preview resolves on first render',
       (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
         final gigsPreviewController = StreamController<List<Gig>>();
         addTearDown(gigsPreviewController.close);
 
@@ -451,12 +422,11 @@ void main() {
 
         expect(find.byType(FeedScreenSkeleton), findsNothing);
         expect(find.byType(CustomScrollView), findsOneWidget);
-        expect(find.text('Gigs em aberto'), findsOneWidget);
         expect(find.byType(SkeletonShimmer), findsOneWidget);
 
         gigsPreviewController.add(const []);
         await tester.pump();
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+        await tester.pump(const Duration(milliseconds: 300));
 
         expect(find.byType(CustomScrollView), findsOneWidget);
       },

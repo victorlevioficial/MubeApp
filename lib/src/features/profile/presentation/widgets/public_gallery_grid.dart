@@ -8,6 +8,7 @@ import '../../../../design_system/components/loading/app_shimmer.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
+import '../../../../utils/app_logger.dart';
 import '../../domain/media_item.dart';
 
 /// Read-only gallery grid for public profile viewing.
@@ -74,6 +75,12 @@ class _PublicGalleryGridState extends State<PublicGalleryGrid> {
           maxHeight: _prefetchMaxDimension,
         ),
         context,
+        onError: (error, stackTrace) => AppLogger.logHandledImageError(
+          source: 'PublicGalleryGrid.prefetchVisibleThumbs',
+          url: effectiveUrl,
+          error: error,
+          stackTrace: stackTrace,
+        ),
       ).catchError((_) {
         // Best effort only. Visible widget load will handle failures.
       });
@@ -157,6 +164,12 @@ class _GalleryItem extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                           ),
+                          errorListener: (error) =>
+                              AppLogger.logHandledImageError(
+                                source: 'PublicGalleryGrid.item',
+                                url: imageUrl,
+                                error: error,
+                              ),
                         );
                       },
                     )

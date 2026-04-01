@@ -13,6 +13,7 @@ import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/category_normalizer.dart';
+import '../../../utils/professional_profile_utils.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -60,6 +61,12 @@ class ProfileScreen extends ConsumerWidget {
       precacheImage(
         CachedNetworkImageProvider(user.avatarPreviewUrl!),
         context,
+        onError: (error, stackTrace) => AppLogger.logHandledImageError(
+          source: 'ProfileScreen.avatarPrecache',
+          url: user.avatarPreviewUrl!,
+          error: error,
+          stackTrace: stackTrace,
+        ),
       );
     }
 
@@ -175,7 +182,7 @@ class ProfileScreen extends ConsumerWidget {
             // Actions
             AppButton.primary(
               text: 'Editar Perfil',
-              onPressed: () => context.go(RoutePaths.profileEdit),
+              onPressed: () => context.push(RoutePaths.profileEdit),
             ),
             const SizedBox(height: AppSpacing.s48),
             const SizedBox(height: AppSpacing.s40),
@@ -329,13 +336,16 @@ class ProfileScreen extends ConsumerWidget {
     String Function(String) formatter,
   ) {
     final profissional = user.dadosProfissional;
-    final categorias =
-        (profissional?['categorias'] as List?)?.cast<String>() ?? [];
-    final instrumentos =
-        (profissional?['instrumentos'] as List?)?.cast<String>() ?? [];
-    final generos =
-        (profissional?['generosMusicais'] as List?)?.cast<String>() ?? [];
-    final funcoes = (profissional?['funcoes'] as List?)?.cast<String>() ?? [];
+    final categorias = profileStringList(profissional?['categorias']);
+    final instrumentos = instrumentDisplayLabels(
+      profileStringList(profissional?['instrumentos']),
+    );
+    final generos = genreDisplayLabels(
+      profileStringList(profissional?['generosMusicais']),
+    );
+    final funcoes = professionalRoleDisplayLabels(
+      profileStringList(profissional?['funcoes']),
+    );
 
     final displayCategorias = categorias.map(formatter).toList();
 
@@ -354,7 +364,9 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildBandDetails(AppUser user) {
     final banda = user.dadosBanda;
-    final generos = (banda?['generosMusicais'] as List?)?.cast<String>() ?? [];
+    final generos = genreDisplayLabels(
+      profileStringList(banda?['generosMusicais']),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -366,8 +378,9 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildStudioDetails(AppUser user) {
     final estudio = user.dadosEstudio;
-    final servicos =
-        (estudio?['servicosOferecidos'] as List?)?.cast<String>() ?? [];
+    final servicos = studioServiceDisplayLabels(
+      profileStringList(estudio?['servicosOferecidos']),
+    );
     final type = estudio?['studioType'];
 
     return Column(

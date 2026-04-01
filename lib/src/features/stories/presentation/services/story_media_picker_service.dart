@@ -1,0 +1,278 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:video_compress/video_compress.dart';
+import 'package:video_player/video_player.dart';
+
+import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../utils/app_logger.dart';
+import '../../../profile/presentation/services/media_picker_service.dart';
+import '../../../storage/domain/upload_validator.dart';
+import '../../domain/story_constants.dart';
+import '../../domain/story_item.dart';
+import '../../domain/story_upload_media.dart';
+
+class StoryMediaSelection {
+  final File file;
+  final StoryMediaType mediaType;
+  final File? thumbnail;
+  final double? durationSeconds;
+  final double? aspectRatio;
+
+  const StoryMediaSelection({
+    required this.file,
+    required this.mediaType,
+    required this.thumbnail,
+    required this.durationSeconds,
+    required this.aspectRatio,
+  });
+}
+
+class StoryMediaPickerService {
+  static const int maxStoryVideoSeconds = 15;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<StoryUploadMedia?> pickImage(BuildContext context) async {
+    final source = await chooseSource(
+      context,
+      title: 'Escolha a origem da foto',
+    );
+    if (source == null) return null;
+    if (!context.mounted) return null;
+
+    final selection = await pickPhoto(context, source: source);
+    if (selection == null) return null;
+
+    return StoryUploadMedia(
+      file: selection.file,
+      mediaType: selection.mediaType,
+      aspectRatio: selection.aspectRatio ?? StoryConstants.targetAspectRatio,
+      fromCamera: source == ImageSource.camera,
+      durationSeconds: null,
+    );
+  }
+
+  Future<StoryUploadMedia?> pickVideo(BuildContext context) async {
+    final source = await chooseSource(
+      context,
+      title: 'Escolha a origem do video',
+    );
+    if (source == null) return null;
+    if (!context.mounted) return null;
+
+    final selection = await pickVideoFromSource(context, source: source);
+    if (selection == null) return null;
+
+    return StoryUploadMedia(
+      file: selection.file,
+      mediaType: selection.mediaType,
+      aspectRatio: selection.aspectRatio ?? StoryConstants.targetAspectRatio,
+      fromCamera: source == ImageSource.camera,
+      thumbnailFile: selection.thumbnail,
+      durationSeconds: selection.durationSeconds?.round(),
+    );
+  }
+
+  Future<StoryMediaSelection?> pickPhoto(
+    BuildContext context, {
+    required ImageSource source,
+  }) async {
+    final picked = await _picker.pickImage(
+      source: source,
+      maxWidth: 1440,
+      imageQuality: 90,
+    );
+    if (picked == null) return null;
+
+    final file = File(picked.path);
+    try {
+      await UploadValidator.validateImage(file);
+      final aspectRatio = await _readImageAspectRatio(file);
+      if (!StoryMediaPickerService.isSupportedStoryImageAspectRatio(
+        aspectRatio,
+      )) {
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'A foto precisa ser vertical no formato stories.',
+          );
+        }
+        return null;
+      }
+
+      return StoryMediaSelection(
+        file: file,
+        mediaType: StoryMediaType.image,
+        thumbnail: null,
+        durationSeconds: null,
+        aspectRatio: aspectRatio,
+      );
+    } on UploadValidationException catch (error) {
+      if (context.mounted) {
+        AppSnackBar.error(context, error.message);
+      }
+      return null;
+    }
+  }
+
+  Future<StoryMediaSelection?> pickVideoFromSource(
+    BuildContext context, {
+    required ImageSource source,
+  }) async {
+    final picked = await _picker.pickVideo(
+      source: source,
+      maxDuration: const Duration(seconds: maxStoryVideoSeconds),
+    );
+    if (picked == null) return null;
+
+    try {
+      var file = File(picked.path);
+      if (!await file.exists()) {
+        throw const UploadValidationException(
+          'Arquivo nao encontrado. Por favor, selecione outro arquivo.',
+        );
+      }
+
+      file = await _normalizeVideoIfNeeded(file);
+      await UploadValidator.validateVideo(file);
+
+      final metadata = await _readVideoMetadata(file);
+      if (metadata.durationSeconds > maxStoryVideoSeconds + 0.5) {
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'O video precisa ter no maximo 15 segundos.',
+          );
+        }
+        return null;
+      }
+
+      if (!StoryMediaPickerService.isSupportedStoryVideoAspectRatio(
+        metadata.aspectRatio,
+      )) {
+        if (context.mounted) {
+          AppSnackBar.error(
+            context,
+            'O video precisa ser vertical no formato stories.',
+          );
+        }
+        return null;
+      }
+
+      final thumbnail = await VideoCompress.getFileThumbnail(
+        file.path,
+        quality: 75,
+        position: 0,
+      );
+
+      return StoryMediaSelection(
+        file: file,
+        mediaType: StoryMediaType.video,
+        thumbnail: thumbnail,
+        durationSeconds: metadata.durationSeconds,
+        aspectRatio: metadata.aspectRatio,
+      );
+    } on UploadValidationException catch (error) {
+      if (context.mounted) {
+        AppSnackBar.error(context, error.message);
+      }
+      return null;
+    } catch (error, stackTrace) {
+      AppLogger.error('Falha ao preparar video de story', error, stackTrace);
+      if (context.mounted) {
+        AppSnackBar.error(context, 'Nao foi possivel preparar o video.');
+      }
+      return null;
+    }
+  }
+
+  Future<double?> _readImageAspectRatio(File file) async {
+    final bytes = await file.readAsBytes();
+    final image = await decodeImageFromList(bytes);
+    if (image.height == 0) return null;
+    return image.width / image.height;
+  }
+
+  Future<ImageSource?> chooseSource(
+    BuildContext context, {
+    required String title,
+  }) {
+    return MediaPickerService.showMediaSourcePicker(
+      context,
+      title: title,
+      cameraIcon: Icons.photo_camera_outlined,
+      cameraLabel: 'Camera',
+      galleryIcon: Icons.photo_library_outlined,
+      galleryLabel: 'Galeria',
+    );
+  }
+
+  Future<File> _normalizeVideoIfNeeded(File sourceFile) async {
+    final fileSizeBytes = await sourceFile.length();
+    final shouldNormalize = StoryMediaPickerService.requiresVideoNormalization(
+      videoPath: sourceFile.path,
+      fileSizeBytes: fileSizeBytes,
+    );
+    if (!shouldNormalize) return sourceFile;
+
+    final compressed = await VideoCompress.compressVideo(
+      sourceFile.path,
+      quality: VideoQuality.Res960x540Quality,
+      deleteOrigin: false,
+      includeAudio: true,
+    );
+    return compressed?.file ?? sourceFile;
+  }
+
+  @visibleForTesting
+  static bool requiresVideoNormalization({
+    required String videoPath,
+    required int fileSizeBytes,
+  }) {
+    return path.extension(videoPath).toLowerCase() != '.mp4' ||
+        fileSizeBytes > UploadLimits.maxVideoSizeBytes;
+  }
+
+  @visibleForTesting
+  static bool isSupportedStoryImageAspectRatio(double? aspectRatio) {
+    return aspectRatio != null &&
+        StoryConstants.isSupportedStoryAspectRatio(aspectRatio);
+  }
+
+  @visibleForTesting
+  static bool isSupportedStoryVideoAspectRatio(double? aspectRatio) {
+    return aspectRatio != null &&
+        StoryConstants.isSupportedStoryAspectRatio(aspectRatio);
+  }
+
+  Future<_VideoMetadata> _readVideoMetadata(File file) async {
+    final controller = VideoPlayerController.file(file);
+    try {
+      await controller.initialize();
+      final size = controller.value.size;
+      final aspectRatio = size.height > 0 ? size.width / size.height : null;
+      return _VideoMetadata(
+        durationSeconds: controller.value.duration.inMilliseconds / 1000,
+        aspectRatio: aspectRatio,
+      );
+    } finally {
+      await controller.dispose();
+    }
+  }
+
+  void dispose() {
+    VideoCompress.dispose();
+  }
+}
+
+class _VideoMetadata {
+  final double durationSeconds;
+  final double? aspectRatio;
+
+  const _VideoMetadata({
+    required this.durationSeconds,
+    required this.aspectRatio,
+  });
+}

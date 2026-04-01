@@ -51,6 +51,8 @@ abstract class StoreReviewPlatformClient {
   Future<bool> isAvailable();
 
   Future<void> requestReview();
+
+  Future<void> openStoreListing({String? appStoreId});
 }
 
 class InAppReviewPlatformClient implements StoreReviewPlatformClient {
@@ -63,6 +65,10 @@ class InAppReviewPlatformClient implements StoreReviewPlatformClient {
 
   @override
   Future<void> requestReview() => _inAppReview.requestReview();
+
+  @override
+  Future<void> openStoreListing({String? appStoreId}) =>
+      _inAppReview.openStoreListing(appStoreId: appStoreId);
 }
 
 @immutable
@@ -301,30 +307,21 @@ class StoreReviewService {
     );
 
     try {
-      final isAvailable = await _platformClient.isAvailable();
-      if (isAvailable) {
-        await _platformClient.requestReview();
-        if (uid != null && uid.isNotEmpty) {
-          final prefs = await _sharedPreferencesLoader();
-          await _writeState(
-            prefs,
-            uid,
-            state.copyWith(
-              lastPromptAt: now,
-              lastPromptedVersion: currentVersion,
-              promptCount: state.promptCount + 1,
-            ),
-          );
-        }
-        await _analytics.logEvent(
-          name: 'store_review_prompt_shown',
-          parameters: {'source': 'manual'},
+      final nativeAppStoreId = _nativeStoreListingAppStoreId();
+      if (_supportsManualStoreListing(nativeAppStoreId)) {
+        await _platformClient.openStoreListing(appStoreId: nativeAppStoreId);
+        await _persistManualReviewRequest(
+          uid: uid,
+          state: state,
+          now: now,
+          currentVersion: currentVersion,
         );
-        return StoreReviewManualRequestResult.promptRequested;
+        await _logStoreListingOpened(method: 'native_store_listing');
+        return StoreReviewManualRequestResult.fallbackOpened;
       }
     } catch (error, stackTrace) {
       AppLogger.warning(
-        'Failed to request manual store review',
+        'Failed to open native store listing for manual review',
         error,
         stackTrace,
       );
@@ -336,7 +333,22 @@ class StoreReviewService {
       return StoreReviewManualRequestResult.unavailable;
     }
 
-    final launched = await _urlLauncher(fallbackUri);
+    final bool launched;
+    try {
+      launched = await _urlLauncher(fallbackUri);
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to launch fallback store review URL',
+        error,
+        stackTrace,
+      );
+      await _logPromptSkipped(
+        reason: 'fallback_launch_failed',
+        source: 'manual',
+      );
+      return StoreReviewManualRequestResult.launchFailed;
+    }
+
     if (!launched) {
       await _logPromptSkipped(
         reason: 'fallback_launch_failed',
@@ -345,19 +357,13 @@ class StoreReviewService {
       return StoreReviewManualRequestResult.launchFailed;
     }
 
-    if (uid != null && uid.isNotEmpty) {
-      final prefs = await _sharedPreferencesLoader();
-      await _writeState(
-        prefs,
-        uid,
-        state.copyWith(lastPromptAt: now, lastPromptedVersion: currentVersion),
-      );
-    }
-
-    await _analytics.logEvent(
-      name: 'store_review_fallback_opened',
-      parameters: {'platform': _platformResolver().name, 'source': 'manual'},
+    await _persistManualReviewRequest(
+      uid: uid,
+      state: state,
+      now: now,
+      currentVersion: currentVersion,
     );
+    await _logStoreListingOpened(method: 'url_fallback');
     return StoreReviewManualRequestResult.fallbackOpened;
   }
 
@@ -390,6 +396,57 @@ class StoreReviewService {
       return version;
     }
     return '$version+$buildNumber';
+  }
+
+  Future<void> _persistManualReviewRequest({
+    required String? uid,
+    required StoreReviewState state,
+    required DateTime now,
+    required String currentVersion,
+  }) async {
+    if (uid == null || uid.isEmpty) {
+      return;
+    }
+
+    final prefs = await _sharedPreferencesLoader();
+    await _writeState(
+      prefs,
+      uid,
+      state.copyWith(lastPromptAt: now, lastPromptedVersion: currentVersion),
+    );
+  }
+
+  Future<void> _logStoreListingOpened({required String method}) {
+    return _analytics.logEvent(
+      name: 'store_review_fallback_opened',
+      parameters: {
+        'platform': _platformResolver().name,
+        'source': 'manual',
+        'method': method,
+      },
+    );
+  }
+
+  bool _supportsManualStoreListing(String? nativeAppStoreId) {
+    switch (_platformResolver()) {
+      case TargetPlatform.android:
+        return true;
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return nativeAppStoreId != null && nativeAppStoreId.isNotEmpty;
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        return false;
+    }
+  }
+
+  String? _nativeStoreListingAppStoreId() {
+    final appStoreId = _iosAppStoreId;
+    if (appStoreId == null || appStoreId.isEmpty) {
+      return null;
+    }
+    return appStoreId;
   }
 
   Uri? _fallbackStoreUri() {

@@ -10,6 +10,7 @@ import '../../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../../utils/app_logger.dart';
 import '../../../domain/media_item.dart';
 
 class GalleryGrid extends StatefulWidget {
@@ -475,6 +476,11 @@ class _FilledSlot extends StatelessWidget {
         color: AppColors.surface,
         child: const Icon(Icons.error, color: AppColors.error),
       ),
+      errorListener: (error) => AppLogger.logHandledImageError(
+        source: 'GalleryGrid.photoSlot',
+        url: item.previewUrl,
+        error: error,
+      ),
     );
   }
 }
@@ -605,6 +611,11 @@ class _VideoCard extends StatelessWidget {
         errorWidget: (context, url, error) => Container(
           color: AppColors.surface,
           child: const Icon(Icons.videocam_off, color: AppColors.textSecondary),
+        ),
+        errorListener: (error) => AppLogger.logHandledImageError(
+          source: 'GalleryGrid.videoSlot',
+          url: item.thumbnailUrl!,
+          error: error,
         ),
       );
     }

@@ -17,6 +17,7 @@ import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_tab
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_unavailable_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 
+import '../../helpers/test_fakes.dart';
 import '../features/matchpoint/matchpoint_test_fakes.dart';
 
 void main() {
@@ -127,6 +128,65 @@ void main() {
     expect(find.byTooltip('Filtros avancados'), findsOneWidget);
     expect(find.byTooltip('Historico de swipes'), findsOneWidget);
   });
+
+  testWidgets(
+    'renders active Matchpoint flow with legacy scalar candidate fields',
+    (tester) async {
+      const user = AppUser(
+        uid: 'user1',
+        email: 'test@example.com',
+        tipoPerfil: AppUserType.professional,
+        matchpointProfile: {'is_active': true, 'musicalGenres': 'rock'},
+      );
+      const candidate = AppUser(
+        uid: 'candidate-1',
+        email: 'candidate@example.com',
+        nome: 'Candidate',
+        tipoPerfil: AppUserType.professional,
+        dadosProfissional: {
+          'nomeArtistico': 'Legacy Candidate',
+          'funcoes': 'Guitarrista',
+          'generosMusicais': 'rock',
+        },
+      );
+
+      final fakeAuthRepository = FakeAuthRepository(
+        initialUser: FakeFirebaseUser(uid: user.uid, email: user.email),
+      )..appUser = user;
+
+      when(
+        mockRepo.fetchCandidates(
+          currentUser: anyNamed('currentUser'),
+          genres: anyNamed('genres'),
+          hashtags: anyNamed('hashtags'),
+          blockedUsers: anyNamed('blockedUsers'),
+          limit: anyNamed('limit'),
+        ),
+      ).thenAnswer(
+        (_) async => const Right<Failure, List<AppUser>>([candidate]),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWith(
+              (ref) => Stream.value(fakeAuthRepository.currentUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(const AsyncData(user)),
+            matchpointRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: const MaterialApp(home: MatchpointWrapperScreen()),
+        ),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MatchpointTabsScreen), findsOneWidget);
+      expect(find.text('Legacy Candidate'), findsOneWidget);
+      expect(find.text('Guitarrista'), findsOneWidget);
+    },
+  );
 
   testWidgets('renders Error message when profile loading fails', (
     tester,

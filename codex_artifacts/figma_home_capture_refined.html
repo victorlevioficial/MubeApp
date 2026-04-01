@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mube Home Capture Refined</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=Poppins:wght@600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,600,0,0&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <style>
+      :root {
+        --primary: #e8466c;
+        --primary-pressed: #d13f61;
+        --background: #0a0a0a;
+        --surface: #141414;
+        --surface-2: #1f1f1f;
+        --surface-highlight: #292929;
+        --border: #383838;
+        --text-primary: #ffffff;
+        --text-secondary: #b3b3b3;
+        --text-tertiary: #8a8a8a;
+        --info: #3b82f6;
+        --warning: #f59e0b;
+        --badge-band: #c026d3;
+        --badge-studio: #dc2626;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top center, rgba(232, 70, 108, 0.12), transparent 24%),
+          radial-gradient(circle at left top, rgba(232, 70, 108, 0.08), transparent 30%),
+          var(--background);
+        color: var(--text-primary);
+        font-family: "Inter", sans-serif;
+        padding: 32px;
+      }
+
+      .material-symbols-rounded {
+        font-family: "Material Symbols Rounded";
+        font-weight: 600;
+        font-style: normal;
+        font-size: 20px;
+        line-height: 1;
+        display: inline-block;
+        white-space: nowrap;
+        direction: ltr;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .capture-root {
+        width: 390px;
+        min-height: 1672px;
+        margin: 0 auto;
+        background: var(--background);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header {
+        padding: 20px 20px 24px;
+        background: linear-gradient(
+          135deg,
+          rgba(232, 70, 108, 0.15) 0%,
+          rgba(232, 70, 108, 0.08) 30%,
+          rgba(232, 70, 108, 0.02) 60%,
+          rgba(10, 10, 10, 1) 100%
+        );
+      }
+
+      .surface-row {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(20, 20, 20, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        display: flex;
+        align-items: center;
+      }
+
+      .surface-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        background: rgba(232, 70, 108, 0.16);
+        color: var(--primary);
+        flex: 0 0 auto;
+      }
+
+      .surface-copy {
+        margin-left: 12px;
+        min-width: 0;
+      }
+
+      .surface-label {
+        color: var(--text-secondary);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
+      .surface-title {
+        margin-top: 2px;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .chevron {
+        margin-left: auto;
+        color: rgba(179, 179, 179, 0.78);
+      }
+
+      .welcome-row {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .hero-avatar {
+        width: 68px;
+        height: 68px;
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.26), transparent 24%),
+          linear-gradient(135deg, #f472b6, #a78bfa);
+        display: grid;
+        place-items: center;
+        color: rgba(10, 10, 10, 0.66);
+        font-family: "Poppins", sans-serif;
+        font-size: 24px;
+        font-weight: 700;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.26);
+        flex: 0 0 auto;
+      }
+
+      .welcome-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .welcome-title {
+        font-family: "Poppins", sans-serif;
+        font-size: 22px;
+        line-height: 1.15;
+        font-weight: 700;
+      }
+
+      .welcome-subtitle {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .notification-button {
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--surface-highlight);
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+        box-shadow: 0 0 0 2px var(--background), 0 0 14px rgba(232, 70, 108, 0.5);
+        display: grid;
+        place-items: center;
+        color: var(--text-primary);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .favorites-row { margin-top: 14px; }
+      .favorites-row .surface-icon { width: 38px; height: 38px; }
+
+      .favorites-count {
+        margin-left: 12px;
+        color: var(--text-primary);
+        font-family: "Poppins", sans-serif;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .alert-row {
+        margin-top: 16px;
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(20, 20, 20, 0.94);
+        border: 1px solid rgba(59, 130, 246, 0.22);
+        display: flex;
+        align-items: center;
+      }
+
+      .alert-row .surface-icon {
+        background: rgba(59, 130, 246, 0.14);
+        color: var(--info);
+      }
+
+      .alert-pill {
+        margin-left: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.12);
+        color: var(--text-primary);
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .mini-action {
+        width: 30px;
+        height: 30px;
+        margin-left: 4px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        flex: 0 0 auto;
+      }
+
+      .profile-progress {
+        margin-top: 16px;
+        padding: 20px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(232, 70, 108, 0.95), var(--primary-pressed));
+        box-shadow: 0 10px 24px rgba(232, 70, 108, 0.32);
+      }
+
+      .profile-progress-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .profile-progress-copy {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .profile-progress-label {
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .profile-progress-title {
+        margin-top: 4px;
+        font-size: 16px;
+        line-height: 1.35;
+        font-weight: 700;
+      }
+
+      .percent-pill {
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .progress-arrow {
+        width: 32px;
+        height: 32px;
+        margin-top: 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.12);
+        display: grid;
+        place-items: center;
+      }
+
+      .missing-title {
+        margin-top: 16px;
+        color: rgba(255, 255, 255, 0.84);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .missing-list {
+        margin-top: 10px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .missing-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        line-height: 1.3;
+      }
+
+      .missing-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+      }
+
+      .progress-track {
+        margin-top: 14px;
+        width: 100%;
+        height: 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        width: 86%;
+        height: 100%;
+        background: var(--text-primary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="capture-root">
+      <div class="header">
+        <div class="surface-row">
+          <div class="surface-icon"><span class="material-symbols-rounded">location_on</span></div>
+          <div class="surface-copy">
+            <div class="surface-label">Endereço atual</div>
+            <div class="surface-title">Rua Augusta, Consolação</div>
+          </div>
+          <span class="material-symbols-rounded chevron">chevron_right</span>
+        </div>
+
+        <div class="welcome-row">
+          <div class="hero-avatar">VL</div>
+          <div class="welcome-copy">
+            <div class="welcome-title">Olá, Victor!</div>
+            <div class="welcome-subtitle">Perfil individual</div>
+          </div>
+          <div class="notification-button">
+            <span class="material-symbols-rounded">notifications</span>
+            <div class="notification-badge">3</div>
+          </div>
+        </div>
+
+        <div class="favorites-row">
+          <div class="surface-row">
+            <div class="surface-icon"><span class="material-symbols-rounded">favorite</span></div>
+            <div class="surface-copy">
+              <div class="surface-title">Favoritos</div>
+              <div class="surface-label">Ver quem curtiu você</div>
+            </div>
+            <div class="favorites-count">12</div>
+            <span class="material-symbols-rounded chevron">chevron_right</span>
+          </div>
+        </div>
+
+        <div class="alert-row">
+          <div class="surface-icon"><span class="material-symbols-rounded">mail</span></div>
+          <div class="surface-copy"><div class="surface-title">2 alertas ativos</div></div>
+          <div class="alert-pill">2</div>
+          <div class="mini-action"><span class="material-symbols-rounded" style="font-size:16px;">unfold_more</span></div>
+          <div class="mini-action"><span class="material-symbols-rounded" style="font-size:16px;">visibility_off</span></div>
+        </div>
+
+        <div class="profile-progress">
+          <div class="profile-progress-top">
+            <div class="profile-progress-copy">
+              <div class="profile-progress-label">Seu Perfil</div>
+              <div class="profile-progress-title">Profissional - Vocalista</div>
+            </div>
+            <div>
+              <div class="percent-pill">86%</div>
+              <div class="progress-arrow"><span class="material-symbols-rounded" style="font-size:14px;">chevron_right</span></div>
+            </div>
+          </div>
+          <div class="missing-title">Falta completar</div>
+          <div class="missing-list">
+            <div class="missing-item">
+              <div class="missing-dot"><span class="material-symbols-rounded" style="font-size:14px;">priority_high</span></div>
+              <div>Adicionar vídeo de apresentação</div>
+            </div>
+            <div class="missing-item">
+              <div class="missing-dot"><span class="material-symbols-rounded" style="font-size:14px;">priority_high</span></div>
+              <div>Completar disponibilidade para shows</div>
+            </div>
+          </div>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+      </div>
+      <style>
+        .stories {
+          padding: 12px 20px 0;
+          display: flex;
+          gap: 16px;
+          overflow: hidden;
+        }
+
+        .story { width: 82px; text-align: center; }
+
+        .story-ring {
+          width: 64px;
+          height: 64px;
+          margin: 0 auto;
+          padding: 3px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, var(--primary), var(--primary-pressed));
+          position: relative;
+        }
+
+        .story-ring.seen { background: var(--surface-highlight); }
+
+        .story-inner {
+          width: 100%;
+          height: 100%;
+          border-radius: 999px;
+          border: 2px solid var(--background);
+          background:
+            radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.2), transparent 24%),
+            linear-gradient(135deg, #60a5fa, #1f2937);
+          display: grid;
+          place-items: center;
+          color: rgba(10, 10, 10, 0.66);
+          font-family: "Poppins", sans-serif;
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .story-plus {
+          position: absolute;
+          right: -2px;
+          bottom: -2px;
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
+          background: var(--primary);
+          border: 2px solid var(--background);
+          display: grid;
+          place-items: center;
+          color: var(--text-primary);
+        }
+
+        .story-title {
+          margin-top: 8px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .story-subtitle {
+          margin-top: 2px;
+          color: var(--text-tertiary);
+          font-size: 11px;
+        }
+
+        .section { margin-top: 16px; }
+
+        .section-head {
+          padding: 0 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .section-head-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .section-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+        }
+
+        .section-icon.gradient {
+          background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+          color: var(--text-primary);
+        }
+
+        .section-icon.surface {
+          background: var(--surface);
+          border: 1px solid rgba(232, 70, 108, 0.18);
+          color: var(--primary);
+        }
+
+        .section-title {
+          font-family: "Poppins", sans-serif;
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .section-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 12px;
+          border-radius: 20px;
+          background: var(--surface);
+          border: 1px solid var(--surface-highlight);
+          color: var(--primary);
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .spotlight-card {
+          margin: 16px 20px 0;
+          height: 200px;
+          border-radius: 20px;
+          overflow: hidden;
+          position: relative;
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+          background:
+            radial-gradient(circle at 72% 18%, rgba(232, 70, 108, 0.42), transparent 20%),
+            linear-gradient(135deg, #642634 0%, #1a1a1a 55%, #121212 100%);
+        }
+
+        .spotlight-overlay {
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 24%),
+            linear-gradient(180deg, rgba(10, 10, 10, 0) 32%, rgba(10, 10, 10, 0.62) 72%, rgba(10, 10, 10, 0.95) 100%);
+        }
+
+        .spotlight-cta {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(10, 10, 10, 0.85);
+          border: 1px solid var(--surface-highlight);
+          color: var(--text-primary);
+          font-size: 11px;
+          font-weight: 600;
+        }
+
+        .spotlight-content {
+          position: absolute;
+          left: 20px;
+          right: 20px;
+          bottom: 20px;
+        }
+
+        .profile-type {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--text-secondary);
+          font-size: 12px;
+        }
+
+        .spotlight-name {
+          margin-top: 8px;
+          font-family: "Poppins", sans-serif;
+          font-size: 20px;
+          font-weight: 700;
+        }
+
+        .spotlight-meta {
+          margin-top: 4px;
+          color: var(--text-secondary);
+          font-size: 12px;
+        }
+
+        .indicators {
+          margin-top: 16px;
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: var(--surface-highlight);
+        }
+
+        .indicator.active {
+          width: 24px;
+          background: linear-gradient(180deg, var(--primary), var(--primary-pressed));
+        }
+
+        .gigs-row,
+        .compact-row {
+          margin-top: 16px;
+          padding: 0 20px;
+          display: flex;
+          gap: 12px;
+          overflow: hidden;
+        }
+
+        .gig-card {
+          min-width: 240px;
+          padding: 14px 12px 12px;
+          border-radius: 20px;
+          background: var(--surface);
+          border: 1px solid rgba(56, 56, 56, 0.75);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          position: relative;
+        }
+
+        .gig-accent {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 3px;
+          border-radius: 20px 20px 0 0;
+        }
+
+        .gig-top {
+          display: flex;
+          gap: 10px;
+        }
+
+        .gig-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: var(--surface-2);
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+        }
+
+        .gig-copy-wrap { min-width: 0; }
+
+        .gig-title {
+          font-size: 15px;
+          line-height: 1.15;
+          font-weight: 700;
+        }
+
+        .gig-subtitle,
+        .gig-copy {
+          color: var(--text-secondary);
+          font-size: 12px;
+          line-height: 1.4;
+        }
+
+        .gig-copy {
+          margin-top: 10px;
+          min-height: 34px;
+        }
+
+        .pill-row {
+          margin-top: 10px;
+          display: flex;
+          gap: 8px;
+        }
+
+        .pill {
+          flex: 1;
+          padding: 7px 10px;
+          border-radius: 999px;
+          background: var(--surface-highlight);
+          border: 1px solid rgba(56, 56, 56, 0.55);
+          color: var(--text-secondary);
+          font-size: 11px;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      </style>
+
+      <div class="stories">
+        <div class="story">
+          <div class="story-ring">
+            <div class="story-inner" style="background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.22), transparent 24%), linear-gradient(135deg, #f472b6, #a78bfa);">VL</div>
+            <div class="story-plus"><span class="material-symbols-rounded" style="font-size: 14px;">add</span></div>
+          </div>
+          <div class="story-title">Seu story</div>
+          <div class="story-subtitle">Publicar</div>
+        </div>
+        <div class="story">
+          <div class="story-ring"><div class="story-inner">AM</div></div>
+          <div class="story-title">Ana Mello</div>
+          <div class="story-subtitle">Stories</div>
+        </div>
+        <div class="story">
+          <div class="story-ring"><div class="story-inner" style="background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.2), transparent 24%), linear-gradient(135deg, #34d399, #1f2937);">BR</div></div>
+          <div class="story-title">Brava</div>
+          <div class="story-subtitle">Favorito</div>
+        </div>
+        <div class="story">
+          <div class="story-ring seen"><div class="story-inner" style="background: radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.18), transparent 24%), linear-gradient(135deg, #f87171, #1f2937);">E8</div></div>
+          <div class="story-title">Estúdio 88</div>
+          <div class="story-subtitle">Stories</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon gradient"><span class="material-symbols-rounded">stars</span></div>
+            <div class="section-title">Em Destaque</div>
+          </div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-overlay"></div>
+          <div class="spotlight-cta">Ver perfil</div>
+          <div class="spotlight-content">
+            <div class="profile-type">
+              <span>•</span>
+              <span class="material-symbols-rounded" style="font-size: 14px; color: var(--primary);">music_note</span>
+              <span>Músico</span>
+            </div>
+            <div class="spotlight-name">Ayla Monteiro</div>
+            <div class="spotlight-meta">Pinheiros, SP • Soul • Pop • 3 km</div>
+          </div>
+        </div>
+        <div class="indicators">
+          <div class="indicator active"></div>
+          <div class="indicator"></div>
+          <div class="indicator"></div>
+        </div>
+      </div>
+      <style>
+        .matchpoint {
+          margin: 16px 20px 0;
+          padding: 16px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, rgba(232, 70, 108, 0.18), var(--surface-2), var(--surface));
+          border: 1px solid rgba(232, 70, 108, 0.18);
+        }
+
+        .matchpoint-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .matchpoint-title {
+          font-family: "Poppins", sans-serif;
+          font-size: 24px;
+          font-weight: 700;
+        }
+
+        .bolt {
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
+          background: rgba(41, 41, 41, 0.42);
+          border: 1px solid rgba(232, 70, 108, 0.18);
+          display: grid;
+          place-items: center;
+          color: var(--primary);
+        }
+
+        .matchpoint-copy {
+          margin-top: 8px;
+          color: var(--text-secondary);
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        .matchpoint-button {
+          margin-top: 14px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          border-radius: 999px;
+          background: var(--surface-highlight);
+          color: var(--text-primary);
+          font-family: "Poppins", sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .compact-card { width: 110px; text-align: center; }
+
+        .compact-avatar {
+          width: 96px;
+          height: 96px;
+          margin: 0 auto;
+          border-radius: 999px;
+          background:
+            radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.26), transparent 24%),
+            linear-gradient(135deg, #f472b6, #a78bfa);
+        }
+
+        .compact-name {
+          margin-top: 8px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .compact-meta {
+          margin-top: 4px;
+          color: var(--text-secondary);
+          font-size: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+
+        .sticky-filter {
+          margin-top: 24px;
+          padding-top: 10px;
+          background: var(--background);
+        }
+
+        .filter-row {
+          padding: 0 16px;
+          display: flex;
+          gap: 8px;
+          overflow: hidden;
+        }
+
+        .filter-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 999px;
+          background: var(--surface-highlight);
+          color: var(--text-primary);
+          font-size: 13px;
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        .filter-chip.active {
+          background: rgba(232, 70, 108, 0.3);
+          border: 1px solid rgba(232, 70, 108, 0.5);
+          font-weight: 700;
+        }
+
+        .main-header {
+          padding: 24px 20px 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .main-header .section-title { font-size: 20px; }
+
+        .main-feed {
+          padding: 0 16px 140px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .feed-card {
+          padding: 12px;
+          border-radius: 16px;
+          background: var(--surface);
+          border: 1px solid rgba(56, 56, 56, 0.5);
+          display: flex;
+          gap: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+        }
+
+        .feed-avatar {
+          width: 80px;
+          height: 80px;
+          border-radius: 999px;
+          border: 2.5px solid var(--surface-highlight);
+          background:
+            radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.24), transparent 24%),
+            linear-gradient(135deg, #60a5fa, #34d399);
+          flex: 0 0 auto;
+        }
+
+        .feed-copy {
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+
+        .feed-title-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .feed-name {
+          font-family: "Poppins", sans-serif;
+          font-size: 16px;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+
+        .like-button {
+          width: 36px;
+          height: 36px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          display: grid;
+          place-items: center;
+          color: var(--text-secondary);
+          flex: 0 0 auto;
+        }
+
+        .feed-meta {
+          margin-top: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--text-secondary);
+          font-size: 12px;
+        }
+
+        .feed-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--text-secondary);
+          font-size: 12px;
+        }
+
+        .chip-row {
+          margin-top: 8px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+
+        .chip-skill,
+        .chip-genre,
+        .chip-remote {
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 600;
+        }
+
+        .chip-skill {
+          background: var(--surface-2);
+          color: var(--text-primary);
+        }
+
+        .chip-genre {
+          background: var(--surface-highlight);
+          color: var(--text-primary);
+        }
+
+        .chip-remote {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(232, 70, 108, 0.16);
+          border: 1px solid rgba(232, 70, 108, 0.32);
+          color: var(--primary);
+        }
+
+        .chip-remote .material-symbols-rounded { font-size: 12px; }
+
+        .bottom-nav {
+          position: absolute;
+          left: 16px;
+          right: 16px;
+          bottom: 16px;
+          padding: 12px 8px;
+          border-radius: 24px;
+          background: linear-gradient(180deg, var(--surface), rgba(20, 20, 20, 0.98));
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.6),
+            0 4px 16px rgba(232, 70, 108, 0.05);
+          display: flex;
+          justify-content: space-around;
+        }
+
+        .nav-item {
+          width: 66px;
+          text-align: center;
+          color: rgba(179, 179, 179, 0.6);
+          font-size: 11px;
+          font-weight: 500;
+          position: relative;
+        }
+
+        .nav-icon-wrap {
+          width: 56px;
+          height: 32px;
+          margin: 0 auto 4px;
+          border-radius: 16px;
+          display: grid;
+          place-items: center;
+        }
+
+        .nav-item.active {
+          color: var(--primary);
+          font-weight: 700;
+        }
+
+        .nav-item.active .nav-icon-wrap {
+          background: linear-gradient(135deg, rgba(232, 70, 108, 0.15), rgba(232, 70, 108, 0.08));
+          border: 1px solid rgba(232, 70, 108, 0.2);
+        }
+
+        .chat-badge {
+          position: absolute;
+          top: -2px;
+          right: 8px;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 4px;
+          border-radius: 999px;
+          border: 2px solid var(--background);
+          background: var(--primary);
+          display: grid;
+          place-items: center;
+          color: var(--text-primary);
+          font-size: 9px;
+          font-weight: 800;
+        }
+      </style>
+
+      <div class="matchpoint">
+        <div class="matchpoint-top">
+          <div class="matchpoint-title">MatchPoint</div>
+          <div class="bolt"><span class="material-symbols-rounded">bolt</span></div>
+        </div>
+        <div class="matchpoint-copy">Ative seu perfil para entrar no fluxo de descoberta por compatibilidade.</div>
+        <div class="matchpoint-button">
+          <span>Ativar MatchPoint</span>
+          <span class="material-symbols-rounded" style="font-size: 16px;">arrow_forward</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-head-left"><div class="section-title">Músicos próximos</div></div>
+          <div class="section-link">
+            <span>Ver todos</span>
+            <span class="material-symbols-rounded" style="font-size: 12px;">arrow_forward_ios</span>
+          </div>
+        </div>
+        <div class="compact-row">
+          <div class="compact-card">
+            <div class="compact-avatar"></div>
+            <div class="compact-name">Rafa Costa</div>
+            <div class="compact-meta">
+              <span class="material-symbols-rounded" style="font-size: 10px;">location_on</span>
+              <span>2 km</span>
+              <span class="material-symbols-rounded" style="font-size: 14px; color: var(--primary);">music_note</span>
+            </div>
+          </div>
+          <div class="compact-card">
+            <div class="compact-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 24%), linear-gradient(135deg, #a78bfa, #1f2937);"></div>
+            <div class="compact-name">Banda Atlas</div>
+            <div class="compact-meta">
+              <span class="material-symbols-rounded" style="font-size: 10px;">location_on</span>
+              <span>5 km</span>
+              <span class="material-symbols-rounded" style="font-size: 14px; color: var(--badge-band);">groups</span>
+            </div>
+          </div>
+          <div class="compact-card">
+            <div class="compact-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 24%), linear-gradient(135deg, #f87171, #1f2937);"></div>
+            <div class="compact-name">Estúdio Gama</div>
+            <div class="compact-meta">
+              <span class="material-symbols-rounded" style="font-size: 10px;">location_on</span>
+              <span>7 km</span>
+              <span class="material-symbols-rounded" style="font-size: 14px; color: var(--badge-studio);">headphones</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sticky-filter">
+        <div class="filter-row">
+          <div class="filter-chip active"><span class="material-symbols-rounded" style="font-size: 18px;">people</span><span>Todos</span></div>
+          <div class="filter-chip"><span class="material-symbols-rounded" style="font-size: 18px;">person</span><span>Profissionais</span></div>
+          <div class="filter-chip"><span class="material-symbols-rounded" style="font-size: 18px;">groups</span><span>Bandas</span></div>
+        </div>
+      </div>
+
+      <div class="main-header">
+        <div class="section-icon gradient"><span class="material-symbols-rounded">local_fire_department</span></div>
+        <div class="section-title">Principais Perfis</div>
+      </div>
+
+      <div class="main-feed">
+        <div class="feed-card">
+          <div class="feed-avatar"></div>
+          <div class="feed-copy">
+            <div class="feed-title-row"><div class="feed-name">Luna Prado</div></div>
+            <div class="feed-meta">
+              <span class="material-symbols-rounded" style="font-size: 14px;">location_on</span>
+              <span>4 km</span>
+              <span class="feed-badge"><span>•</span><span class="material-symbols-rounded" style="font-size: 14px; color: var(--primary);">music_note</span><span>Músico</span></span>
+            </div>
+            <div class="chip-row"><div class="chip-remote"><span class="material-symbols-rounded">radio_button_checked</span><span>Grava remoto</span></div></div>
+            <div class="chip-row"><div class="chip-skill">Voz</div><div class="chip-skill">Composição</div><div class="chip-skill">+1</div></div>
+            <div class="chip-row"><div class="chip-genre">Pop</div><div class="chip-genre">Soul</div></div>
+          </div>
+          <div class="like-button"><span class="material-symbols-rounded">favorite</span></div>
+        </div>
+
+        <div class="feed-card">
+          <div class="feed-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 24%), linear-gradient(135deg, #a78bfa, #1f2937);"></div>
+          <div class="feed-copy">
+            <div class="feed-title-row"><div class="feed-name">Banda Tropa</div></div>
+            <div class="feed-meta">
+              <span class="material-symbols-rounded" style="font-size: 14px;">location_on</span>
+              <span>9 km</span>
+              <span class="feed-badge"><span>•</span><span class="material-symbols-rounded" style="font-size: 14px; color: var(--badge-band);">groups</span><span>Banda</span></span>
+            </div>
+            <div class="chip-row"><div class="chip-skill">Quarteto</div><div class="chip-skill">Shows</div></div>
+            <div class="chip-row"><div class="chip-genre">Indie</div><div class="chip-genre">Rock</div><div class="chip-genre">Autoral</div></div>
+          </div>
+          <div class="like-button"><span class="material-symbols-rounded">favorite</span></div>
+        </div>
+
+        <div class="feed-card">
+          <div class="feed-avatar" style="background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.22), transparent 24%), linear-gradient(135deg, #f87171, #1f2937);"></div>
+          <div class="feed-copy">
+            <div class="feed-title-row"><div class="feed-name">Estúdio Gama</div></div>
+            <div class="feed-meta">
+              <span class="material-symbols-rounded" style="font-size: 14px;">location_on</span>
+              <span>6 km</span>
+              <span class="feed-badge"><span>•</span><span class="material-symbols-rounded" style="font-size: 14px; color: var(--badge-studio);">headphones</span><span>Estúdio</span></span>
+            </div>
+            <div class="chip-row"><div class="chip-skill">Captação</div><div class="chip-skill">Mix</div></div>
+            <div class="chip-row"><div class="chip-genre">Pop</div><div class="chip-genre">Ao vivo</div></div>
+          </div>
+          <div class="like-button"><span class="material-symbols-rounded">favorite</span></div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active">
+          <div class="nav-icon-wrap"><span class="material-symbols-rounded">home</span></div>
+          Feed
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap"><span class="material-symbols-rounded">search</span></div>
+          Busca
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap"><span class="material-symbols-rounded">work</span></div>
+          Gigs
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap"><span class="material-symbols-rounded">chat_bubble</span></div>
+          <div class="chat-badge">5</div>
+          Chat
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon-wrap"><span class="material-symbols-rounded">person</span></div>
+          Conta
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-head-left">
+            <div class="section-icon surface"><span class="material-symbols-rounded">work_outline</span></div>
+            <div class="section-title">Gigs em aberto</div>
+          </div>
+          <div class="section-link">
+            <span>Ver todos</span>
+            <span class="material-symbols-rounded" style="font-size: 12px;">arrow_forward_ios</span>
+          </div>
+        </div>
+        <div class="gigs-row">
+          <div class="gig-card">
+            <div class="gig-accent" style="background: rgba(232, 70, 108, 0.65);"></div>
+            <div class="gig-top">
+              <div class="gig-icon" style="border: 1px solid rgba(232, 70, 108, 0.18); color: var(--primary);"><span class="material-symbols-rounded">mic_external_on</span></div>
+              <div class="gig-copy-wrap">
+                <div class="gig-title">Vocal para show acústico</div>
+                <div class="gig-subtitle">Show • R$ 450</div>
+              </div>
+            </div>
+            <div class="gig-copy">Projeto intimista em bar de São Paulo com repertório pop e MPB.</div>
+            <div class="pill-row">
+              <div class="pill">14/04</div>
+              <div class="pill">Vila Madalena</div>
+            </div>
+          </div>
+          <div class="gig-card">
+            <div class="gig-accent" style="background: rgba(59, 130, 246, 0.65);"></div>
+            <div class="gig-top">
+              <div class="gig-icon" style="border: 1px solid rgba(59, 130, 246, 0.18); color: var(--info);"><span class="material-symbols-rounded">graphic_eq</span></div>
+              <div class="gig-copy-wrap">
+                <div class="gig-title">Captação para live session</div>
+                <div class="gig-subtitle">Gravação • R$ 900</div>
+              </div>
+            </div>
+            <div class="gig-copy">Sessão ao vivo com banda alternativa. Precisa de técnico e captação multicam.</div>
+            <div class="pill-row">
+              <div class="pill">A combinar</div>
+              <div class="pill">Remoto</div>
+            </div>
+          </div>
+        </div>
+      </div>

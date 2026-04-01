@@ -1,84 +1,93 @@
 # Instagram-like Stories Implementation Plan
 
 ## Goal
-Adicionar uma feature de stories efêmeros ao Mube com encaixe natural no feed atual, reaproveitando a stack Flutter + Firebase já existente e evitando reescrever discovery, navegação ou upload de mídia.
+Adicionar stories efemeros ao Mube com encaixe natural no feed atual, pipeline propria desde o inicio e escopo de MVP alinhado com o produto ja decidido.
+
+## Product contract locked
+Este plano assume as decisoes abaixo como fechadas:
+
+1. Todos os tipos de perfil podem publicar story.
+2. A bandeja de stories aparece logo abaixo do header do feed.
+3. O primeiro item da bandeja e o story do proprio usuario com CTA de publicacao.
+4. Depois do proprio usuario, os favoritos aparecem primeiro e os demais perfis elegiveis aparecem em seguida.
+5. O MVP inclui imagem e video.
+6. Video e obrigatoriamente vertical, em formato 9:16.
+7. Cada video pode ter no maximo 15 segundos.
+8. Cada usuario pode publicar no maximo 3 stories por dia.
+9. A lista de viewers entra no MVP.
+10. Bloqueios e elegibilidade valem na UI e no Firestore, mas o asset de midia nao tera bloqueio forte por URL direta no MVP.
+11. A feature tera pipeline propria de stories desde o primeiro dia.
+12. A qualidade inicial do video deve ser boa; compressao e reducao de custo entram como etapa posterior, se necessario.
+13. Foto e video podem ser publicados tanto por captura no app quanto por importacao da galeria do celular.
+
+Assuncao operacional recomendada:
+- "3 stories por dia" significa dia calendario no fuso `America/Sao_Paulo`, nao janela movel de 24h.
 
 ## Recommended rollout
 
 ### Release 1
-Stories de imagem com:
+MVP com:
 
-- publicação a partir da galeria/câmera
-- expiração em 24h
-- bandeja de stories no topo do feed
-- viewer full-screen com tap para avançar/voltar e hold para pausar
-- estado visto/não visto por autor
-- criação do próprio story
+- publicacao de imagem e video
+- video vertical de ate 15s
+- expiracao em 24h
+- bandeja de stories abaixo do header do feed
+- viewer full-screen com tap para avancar ou voltar e hold para pausar
+- estado visto ou nao visto por autor
+- lista de viewers para o autor
+- exclusao do proprio story
+- limite de 3 stories por dia
 
 ### Release 2
 Adicionar:
 
-- vídeo curto
-- lista de viewers para o autor
 - analytics de consumo
-- notificações opcionais
+- budget alerts e observabilidade de custo
+- ajuste fino de bitrate, resolucao e tamanho final
+- notificacoes opcionais de novos stories
 
 ### Release 3
-Somente se a métrica justificar:
+Somente se a metrica justificar:
 
 - respostas via chat
-- destaques (highlights)
-- menções, stickers, música, editor avançado
+- highlights
+- mencoes, stickers, musica, editor avancado
 
 ## Why this staged approach is recommended
-O projeto já tem boa base para mídia, Storage, Firebase Functions e navegação, mas ainda não tem:
+O projeto ja tem boa base para feed, Firebase, Storage, Functions e navegacao, mas stories ainda exigem:
 
-- grafo de seguidores
-- infraestrutura específica para conteúdo efêmero
-- moderação forte para vídeo
-- editor visual avançado estilo Instagram
+- contrato proprio de dados efemeros
+- pipeline propria de upload e transcode
+- agregados para bandeja e visto ou nao visto
+- cleanup de midia e expiracao
 
-Por isso, o caminho mais seguro é entregar um MVP forte primeiro, validando uso e custo antes de buscar paridade alta com Instagram.
+O caminho mais seguro e entregar um MVP forte, com video desde o inicio, mas sem tentar resolver agora tudo o que seria necessario para paridade alta com Instagram.
 
 ## Current state confirmed in code
-Os pontos abaixo já existem e reduzem bastante o risco técnico:
+Os pontos abaixo ja existem e reduzem risco tecnico:
 
-- `lib/src/features/feed/presentation/feed_screen.dart` já concentra a superfície natural para a bandeja de stories
-- `lib/src/features/profile/presentation/services/media_picker_service.dart` já trata foto, trim e compressão de vídeo
-- `lib/src/features/storage/data/storage_repository.dart` já faz upload de imagem, vídeo e thumbnail no Firebase Storage
-- `functions/src/video_transcode.ts` já implementa transcode de vídeos no backend
-- `lib/src/core/services/push_notification_service.dart` já suporta push e navegação por notificação
-- `functions/src/scheduled.ts` e `functions/src/index.ts` mostram que o projeto já usa Cloud Functions e jobs agendados
-- `firestore.rules` e `storage.rules` já estão organizados por recursos e ownership
+- `lib/src/features/feed/presentation/feed_screen.dart` e `lib/src/features/feed/presentation/feed_screen_ui.dart` ja concentram a superficie natural para a bandeja
+- `lib/src/features/profile/presentation/services/media_picker_service.dart` ja mostra que o app tem base para escolher e preparar midia
+- `lib/src/features/storage/data/storage_repository.dart` ja mostra experiencia previa com upload de imagem, video e thumbnail
+- `functions/src/video_transcode.ts` ja mostra que o app tem pipeline de transcode funcionando no backend
+- `functions/src/scheduled.ts` e `functions/src/index.ts` mostram uso real de Functions e jobs agendados
+- `lib/src/core/services/push_notification_service.dart` pode ser aproveitado depois para notificacoes de stories
 
-Conclusão prática:
-- não existe bloqueio estrutural para um MVP de stories
-- o maior risco está em escopo de produto, custo de mídia e regras de visibilidade
-
-## Product decisions assumed in this plan
-Para este plano ficar implementável sem abrir uma feature paralela de social graph, assumo:
-
-1. A bandeja de stories do feed mostrará:
-   - o story do próprio usuário
-   - stories de perfis já carregados pelo feed atual
-2. O story expira em 24 horas
-3. Apenas perfis concluídos e ativos podem publicar stories
-4. Respostas via chat ficam fora do MVP inicial
-5. Stories respeitam bloqueios entre usuários
-6. Editor avançado com stickers, música e desenho fica fora do MVP
-
-Se a decisão de produto for "stories de pessoas seguidas", então há dependência prévia de um modelo de relacionamento que hoje o app não tem.
+Conclusao pratica:
+- nao existe bloqueio estrutural para um MVP de stories
+- mas o app atual nao deve simplesmente reaproveitar a pipeline da galeria como esta
 
 ## Architecture recommendation
 
 ### 1. Firestore model
-Não recomendo embutir stories dentro do documento `users`. O volume de escrita, leitura e expiração é diferente do perfil.
+Nao recomendo embutir stories dentro do documento `users`. O volume de escrita, leitura, expiracao e views e diferente do perfil.
 
-Recomendação:
+Recomendacao:
 
-- coleção global `stories/{storyId}`
-- subcoleção `stories/{storyId}/views/{viewerUid}`
+- colecao global `stories/{storyId}`
+- subcolecao `stories/{storyId}/views/{viewerUid}`
 - resumo server-managed em `users/{uid}.story_state`
+- agregado por viewer e autor em `users/{viewerUid}/story_seen_authors/{ownerUid}`
 
 `stories/{storyId}`:
 
@@ -91,11 +100,13 @@ Recomendação:
 - `media_url`
 - `thumbnail_url`
 - `caption` opcional
-- `status` (`active` | `expired` | `deleted`)
+- `status` (`active` | `expired` | `deleted` | `processing`)
 - `created_at`
 - `expires_at`
+- `published_day_key`
+- `duration_seconds`
+- `aspect_ratio`
 - `viewers_count`
-- `allow_replies`
 
 `stories/{storyId}/views/{viewerUid}`:
 
@@ -107,54 +118,126 @@ Recomendação:
 `users/{uid}.story_state`:
 
 - `has_active_story`
+- `latest_story_id`
 - `latest_story_at`
 - `latest_story_thumbnail`
 - `active_story_count`
 
+`users/{viewerUid}/story_seen_authors/{ownerUid}`:
+
+- `last_seen_story_id`
+- `last_seen_at`
+
 Racional:
-- o feed já lê `users`, então `story_state` evita query global extra para desenhar a bandeja
-- a coleção `stories` concentra o conteúdo efêmero e facilita cleanup
-- a subcoleção `views` mantém ownership claro para a lista de viewers
+- `story_state` evita query global cara so para desenhar a bandeja
+- `story_seen_authors` resolve o lookup eficiente de visto ou nao visto por autor
+- a subcolecao `views` mantem ownership claro para a lista de viewers
 
 ### 2. Storage model
-Criar namespaces separados dos assets de galeria:
+Criar namespaces separados dos assets da galeria. Nao reaproveitar caminhos nem presets de encode da galeria.
 
-- `stories_images/{uid}/{storyId}/thumb.webp`
-- `stories_images/{uid}/{storyId}/full.webp`
-- `stories_videos/{uid}/{storyId}/source.mp4`
-- `stories_videos_transcoded/{uid}/{storyId}/master.mp4`
-- `stories_thumbnails/{uid}/{storyId}/thumb.jpg`
+Sugestao de estrutura:
 
-Isso evita misturar stories efêmeros com a galeria persistente do perfil.
+- `stories_images/{uid}/{storyId}/full.jpg`
+- `stories_images/{uid}/{storyId}/thumb.jpg`
+- `stories_videos_source/{uid}/{storyId}/source.mp4`
+- `stories_videos_master/{uid}/{storyId}/master.mp4`
+- `stories_videos_thumbs/{uid}/{storyId}/thumb.jpg`
 
-### 3. Backend / Cloud Functions
-Recomendação mínima:
+Diretrizes:
 
-- `onStoryCreatedOrUpdated`
-  - recalcula `users/{uid}.story_state`
+- pipeline propria desde o primeiro dia
+- sem reaproveitar automaticamente a pipeline atual da galeria
+- encode inicial priorizando boa qualidade, nao compressao agressiva
+- tuning de custo depois, baseado em uso real
+
+### 3. Video contract for MVP
+O video nao e fase posterior. Ele faz parte do contrato inicial.
+
+Contrato recomendado:
+
+- duracao maxima: `15s`
+- orientacao obrigatoria: vertical
+- formato alvo: `9:16`
+- transcode dedicado para stories
+- thumbnail obrigatoria para todos os videos
+- video fora do formato esperado deve ser recusado ou recortado antes da publicacao
+
+Recomendacao tecnica inicial:
+
+- manter qualidade boa no lancamento
+- evitar compressao muito forte no MVP
+- instrumentar tamanho final e bandwidth desde o inicio para ajustar depois
+
+### 4. Publish and view flow
+Para quota de `3 stories por dia` e consistencia dos dados, recomendo fluxo com mais responsabilidade no backend.
+
+Fluxo de publicacao:
+
+1. o cliente seleciona a midia em uma tela propria de compose
+2. o cliente valida contrato local basico:
+   - video vertical
+   - ate 15s
+   - usuario autenticado
+3. o cliente envia a midia para o namespace de stories
+4. uma Cloud Function de publicacao valida:
+   - elegibilidade do perfil
+   - limite de 3 stories no `published_day_key`
+   - campos normalizados do story
+5. a Function cria ou finaliza o documento em `stories/{storyId}`
+6. triggers atualizam `users.story_state`
+
+Fluxo de visualizacao:
+
+1. o cliente abre o viewer a partir da bandeja
+2. ao concluir a visualizacao de um story, o cliente grava `stories/{storyId}/views/{viewerUid}`
+3. uma trigger atualiza:
+   - `viewers_count`
+   - `users/{viewerUid}/story_seen_authors/{ownerUid}`
+
+### 5. Backend / Cloud Functions
+Recomendacao minima:
+
+- `publishStory`
+  - valida elegibilidade
+  - valida limite de 3 por dia
+  - cria ou finaliza o documento do story
+  - atualiza `users.story_state`
+- `deleteStory`
+  - marca story como deleted
+  - remove midia associada
+  - recalcula `users.story_state`
+- `onStoryViewed`
+  - atualiza `viewers_count`
+  - atualiza `story_seen_authors`
 - `expireStories`
   - marca stories vencidos
-  - remove mídia do Storage
+  - remove midia do Storage
   - recalcula `story_state`
 - `onStoryVideoUploaded`
-  - fase 2
-  - reaproveita a lógica existente de transcode com path dedicado
+  - transcode dedicado para stories
+  - gera `master.mp4` e thumbnail em caminhos proprios
 
-Inferência importante:
-- Firestore TTL sozinho não resolve o problema, porque apagar o documento não remove os arquivos do Cloud Storage
+Inferencia importante:
+- Firestore TTL sozinho nao resolve o cleanup completo, porque apagar o documento nao remove os arquivos do Cloud Storage
 
-### 4. Security rules
-Mudanças necessárias:
+### 6. Security rules
+Mudancas necessarias:
 
 - `firestore.rules`
-  - permitir create/update/delete em `stories/{storyId}` só para o autor
-  - permitir read de stories ativos para usuários autenticados elegíveis
-  - permitir create em `views/{viewerUid}` apenas para o viewer autenticado
-  - bloquear edição client-side de `users.story_state`
+  - permitir read de stories ativos para usuarios autenticados e elegiveis
+  - permitir write em `stories/{storyId}/views/{viewerUid}` apenas para o viewer autenticado
+  - bloquear edicao client-side de `users.story_state`
+  - bloquear edicao client-side de `story_seen_authors`
 - `storage.rules`
-  - criar regras para `stories_images`, `stories_videos`, `stories_videos_transcoded` e `stories_thumbnails`
+  - criar regras dedicadas para os namespaces de stories
+  - permitir upload apenas no namespace do usuario autenticado
 
-### 5. Flutter feature structure
+Observacao importante sobre privacidade do MVP:
+- o bloqueio forte do asset em URL direta nao faz parte do escopo inicial
+- a visibilidade sera aplicada na UI e no acesso aos documentos, nao no arquivo em si
+
+### 7. Flutter feature structure
 Criar `lib/src/features/stories/` com:
 
 - `domain/story_item.dart`
@@ -165,45 +248,70 @@ Criar `lib/src/features/stories/` com:
 - `presentation/controllers/story_compose_controller.dart`
 - `presentation/screens/story_viewer_screen.dart`
 - `presentation/screens/create_story_screen.dart`
+- `presentation/screens/story_viewers_screen.dart`
 - `presentation/widgets/story_tray.dart`
 - `presentation/widgets/story_ring_avatar.dart`
 - `presentation/widgets/story_progress_bar.dart`
 
-### 6. Routing
+### 8. Design system guardrails
+A feature deve seguir o design system real do app desde a primeira entrega.
+
+Guardrails:
+
+- reutilizar tokens de `AppColors`, `AppTypography`, `AppSpacing`, `AppRadius` e `AppMotion`
+- reutilizar componentes existentes sempre que fizer sentido, como `UserAvatar`, `OptimizedImage`, `AppButton`, `AppOverlay`, `AppSnackBar`, `AppLoading` e dialogs de confirmacao
+- evitar criar bottom sheet, loading, feedback, botoes ou paddings hardcoded sem antes checar o design system
+- manter a bandeja, o compose e o viewer visualmente consistentes com o feed atual
+
+Observacao:
+- `story_ring_avatar` e `story_progress_bar` podem ser widgets novos, mas devem nascer em cima dos tokens e componentes do design system atual
+
+### 9. Routing
 Adicionar em `lib/src/routing/route_paths.dart`:
 
 - `storyCreate`
 - `storyViewer`
+- `storyViewers`
 
 Adicionar em `lib/src/routing/app_router.dart`:
 
-- rota full-screen para criação
+- rota full-screen para criacao
 - rota full-screen para viewer
+- rota para lista de viewers do proprio story
 
-### 7. Feed integration
-O encaixe mais natural é no topo do feed.
+### 10. Feed integration
+O encaixe correto e no feed, logo abaixo do header.
 
-Recomendação:
-- inserir a bandeja de stories acima do conteúdo principal do `FeedScreen`
-- usar o próprio resultado do feed para montar a ordem dos autores elegíveis
-- incluir o avatar do usuário atual como primeiro item com CTA de publicação
+Recomendacao:
 
-Isso evita criar uma surface paralela de discovery só para stories.
+- inserir a bandeja em `lib/src/features/feed/presentation/feed_screen_ui.dart` logo depois de `FeedHeader`
+- nao prender a bandeja ao filtro rapido ou ao bloco de spotlight
+- manter o CTA do proprio usuario como primeiro item
+- ordenar os demais itens assim:
+  - favoritos com story ativo
+  - demais perfis elegiveis com story ativo
+- deduplicar autores entre favoritos e restante
+
+Observacao:
+- "mostrar todos" deve ser interpretado como "todos os elegiveis dentro da surface atual de discovery do app", nao todos os perfis do banco em uma query sem limite
 
 ## Implementation phases
 
-### Phase 0. Product lock
-Antes de codar, fechar:
+### Phase 0. Contract and infra lock
+Fechar e documentar no codigo:
 
-- quem aparece na bandeja
-- se contratantes podem publicar
-- se vídeo entra no MVP ou fica para fase 2
-- se replies entram agora ou depois
-- se viewers list é obrigatória no MVP
+- maximo de 15s para video
+- vertical only
+- maximo de 3 stories por dia
+- camera e galeria como fontes de foto e video
+- viewers list no MVP
+- ordem da bandeja
+- bandeja abaixo do header do feed
+- politica de privacidade do MVP sem bloqueio forte do asset
+- pipeline propria de stories
+- guardrails obrigatorios de design system
 
-Sem essas decisões, a implementação começa mas o contrato de dados fica instável.
-
-### Phase 1. Backend foundation
+### Phase 1. Backend and storage foundation
 Arquivos principais:
 
 - `firestore.rules`
@@ -214,250 +322,209 @@ Arquivos principais:
 
 Entregas:
 
-- coleção `stories`
-- cleanup de expiração
-- recálculo de `users.story_state`
+- colecao `stories`
+- subcolecao `views`
+- agregado `users.story_state`
+- agregado `story_seen_authors`
+- publicacao server-managed
+- cleanup de expiracao
 - regras de acesso
-- índices Firestore para:
-  - `owner_uid + expires_at + created_at`
+- indices Firestore para:
+  - `owner_uid + status + created_at`
   - `status + expires_at`
 
-### Phase 2. Flutter domain + repository
+### Phase 2. Dedicated media pipeline
 Arquivos principais:
 
-- novo `lib/src/features/stories/`
-- possível extensão em `lib/src/features/storage/data/storage_repository.dart`
+- novo fluxo de stories em `functions/src/stories.ts`
+- extensoes necessarias em `lib/src/features/storage/data/storage_repository.dart` ou repositorio proprio da feature
+- possivel utilitario proprio de video para stories
 
 Entregas:
 
-- modelos de domínio
-- repository com CRUD
-- upload de imagem
-- marcador de visualização
-- leitura paginada por autor
+- upload de imagem em namespace proprio
+- upload de video em namespace proprio
+- transcode dedicado para stories
+- thumbnail de video consistente
+- camera e galeria como origem suportada para foto e video
+- validacao de formato vertical
+- validacao de duracao maxima
 
-### Phase 3. Feed tray + viewer
+### Phase 3. Flutter domain, repository and routes
 Arquivos principais:
 
-- `lib/src/features/feed/presentation/feed_screen.dart`
-- possivelmente `lib/src/features/feed/presentation/widgets/feed_header.dart`
-- novas telas/widgets de stories
+- novo `lib/src/features/stories/`
 - `lib/src/routing/route_paths.dart`
 - `lib/src/routing/app_router.dart`
 
 Entregas:
 
-- bandeja de stories
-- ring visto/não visto
-- viewer full-screen
-- navegação entre stories do mesmo autor e autores seguintes
-- pause/resume e preload de imagem
+- modelos de dominio
+- repository com publish, delete, fetch e mark viewed
+- controllers Riverpod alinhados ao padrao da feature
+- rotas de compose, viewer e viewers list
 
-### Phase 4. Author flows
+### Phase 4. Feed tray and viewer
 Arquivos principais:
 
-- `lib/src/features/profile/presentation/profile_screen.dart`
-- nova `create_story_screen.dart`
+- `lib/src/features/feed/presentation/feed_screen_ui.dart`
+- novas telas e widgets de stories
 
 Entregas:
 
-- CTA para publicar story
-- seleção de mídia
+- bandeja de stories logo abaixo do `FeedHeader`
+- ring visto ou nao visto
+- viewer full-screen
+- navegacao entre stories do mesmo autor e autores seguintes
+- pause, resume e preload basico
+
+### Phase 5. Author flows and viewers list
+Arquivos principais:
+
+- `lib/src/features/stories/presentation/screens/create_story_screen.dart`
+- `lib/src/features/stories/presentation/screens/story_viewers_screen.dart`
+
+Entregas:
+
+- CTA de publicacao no primeiro item da bandeja
+- selecao de midia
 - preview antes de publicar
-- exclusão do próprio story
+- exclusao do proprio story
+- lista de viewers do proprio story
 
-### Phase 5. Video stories
-Dependências:
-
-- transcode dedicado ou reutilização segura do pipeline de galeria
-- thumbnail consistente
-- timeout/retry
-- definição de duração máxima
-
-Recomendação:
-- limitar a 15 segundos
-- adiar para depois de validar o MVP de imagem
-
-### Phase 6. Observability and hardening
+### Phase 6. Observability and cost tuning
 Entregas:
 
 - eventos de analytics
-- logging no `AppLogger`
-- budget alerts no Firebase/Google Cloud
-- métricas de erro e latência
-- rate limiting para publicação e views
+- logging com `AppLogger`
+- budget alerts no Firebase e Google Cloud
+- metricas de erro, latencia e tamanho medio de arquivo
+- rate limiting para publicacao e views
+- ajuste posterior de bitrate, resolucao e tamanho final se o custo ficar alto
 
 ## Test plan
 
 ### Flutter
 - unit tests do `story_repository`
-- unit tests de ordenação/expiração
-- widget tests da bandeja
-- widget tests do viewer com avanço automático e pause
-- widget tests do fluxo de criação
+- unit tests de ordenacao da bandeja
+- unit tests de expiracao e limite diario
+- widget tests da bandeja abaixo do header
+- widget tests do viewer com avanco automatico e pause
+- widget tests do fluxo de criacao
+- widget tests da lista de viewers
 
 ### Backend
-- tests de Functions para expiração e recálculo de `story_state`
-- tests de rules para leitura/escrita indevida
-- validação de cleanup de Storage
+- tests de Functions para publicacao e limite de 3 por dia
+- tests de Functions para expiracao e recalculo de `story_state`
+- tests de `onStoryViewed` e `story_seen_authors`
+- tests de rules para leitura e escrita indevida
+- validacao de cleanup de Storage
 
 ### Manual QA
 - publicar imagem
+- publicar video vertical de 15s
+- rejeitar video fora do contrato
 - expirar story
-- ver story bloqueado/não elegível
-- abrir viewer a partir do feed
+- abrir viewer a partir da bandeja
 - trocar de autor
+- validar favoritos primeiro
 - apagar story pelo autor
-- validar reconnect / app cold start
+- abrir lista de viewers
+- validar reconnect e app cold start
 
 ## Engineering effort estimate
 Estimativa para 1 dev com contexto no projeto:
 
-- MVP imagem-only: 8 a 12 dias úteis
-- MVP imagem + viewers list + cleanup robusto: 12 a 16 dias úteis
-- adicionar vídeo curto com transcode e thumbnail: +4 a 7 dias úteis
-- replies via chat + push + moderação adicional: +4 a 6 dias úteis
+- backend + pipeline propria: 5 a 7 dias uteis
+- Flutter feature + feed tray + viewer: 6 a 8 dias uteis
+- compose flow + viewers list + QA: 4 a 6 dias uteis
+- observabilidade e ajustes finais: 2 a 3 dias uteis
 
-Estimativa prática:
-- versão boa para produção sem vídeo: cerca de 2 a 3 semanas
-- versão com vídeo e mais paridade: cerca de 3 a 5 semanas
+Estimativa pratica:
+- MVP com imagem + video + viewers list + cleanup robusto: cerca de 15 a 22 dias uteis
+- tuning de custo e compressao fina: etapa adicional curta depois de medir uso real
 
 ## Infra cost assessment
-Custos checados em fontes oficiais em 2026-03-10.
+Custos checados em fontes oficiais em 2026-03-10 e ajustados para a decisao atual de qualidade boa no lancamento.
 
 ### 1. Billing plan requirement
-Cloud Storage for Firebase exige projeto no plano Blaze para manter acesso ao bucket a partir de 2026-02-03.
+Cloud Storage for Firebase exige projeto no plano Blaze para manter acesso ao bucket.
 
 Impacto:
-- se o projeto ainda não estiver em Blaze, isso vira pré-requisito para stories
-- se já estiver em Blaze por causa das Functions e uploads atuais, não é novo bloqueio
+- se o projeto ja estiver em Blaze, nao ha novo bloqueio
+- se nao estiver, stories dependem disso
 
 ### 2. Firestore cost profile
-O custo de metadata tende a ser baixo comparado à mídia.
+O custo de metadata continua baixo comparado a midia.
 
-Referências úteis:
-- free tier do Firestore: 50k reads/dia, 20k writes/dia, 20k deletes/dia
-- preço single-region visto na tabela oficial: aproximadamente
-  - `$0.03 / 100k reads`
-  - `$0.09 / 100k writes`
-  - `$0.01 / 100k deletes`
-
-Implicação:
-- se o app gravar uma view por story, Firestore continua barato na maioria dos cenários de MVP
-- viewers list é mais sensível a writes do que a reads
+Referencia pratica:
+- reads, writes e deletes do Firestore tendem a ser baratos no MVP
+- mesmo com viewers list, o centro do custo nao sera o Firestore
 
 ### 3. Storage cost profile
-Armazenamento parado tende a ser barato.
+Storage parado tende a continuar barato.
 
-Referência oficial observada:
-- Standard Storage single-region em grupo de regiões que inclui `us-central1` e `southamerica-east1`: cerca de `$0.02 / GiB-mês`
-
-Implicação:
-- manter stories por 24h quase não pesa em storage at-rest
-- o problema financeiro principal não é guardar o arquivo, e sim entregá-lo muitas vezes
+Implicacao:
+- guardar stories por 24h quase nao pesa
+- o problema financeiro principal e servir os arquivos muitas vezes
 
 ### 4. Egress / bandwidth
-Este é o principal driver de custo.
+Este continua sendo o principal driver de custo.
 
-Referência oficial observada:
-- outbound data transfer para usuários finais em destinos globais comuns: cerca de `$0.08 / GiB`
+Implicacao direta para este plano:
+- como a decisao e lancar com qualidade boa e sem compressao agressiva, o risco de custo fica mais concentrado em bandwidth
+- se o consumo crescer, o primeiro ajuste deve ser o perfil de encode do video
 
-Implicação:
-- histórias leves e bem comprimidas são decisivas
-- vídeo cresce custo muito mais rápido do que Firestore
+### 5. Video transcode
+Video continua sendo o segundo maior driver de custo, atras apenas de bandwidth.
 
-### 5. Cloud Functions / scheduler
-Referências oficiais observadas:
+Implicacao:
+- o MVP com video e viavel
+- mas a conta cresce bem mais rapido do que um MVP image-only
 
-- Cloud Run functions request-based tem free tier de `2 million requests/mês`
-- Cloud Scheduler custa `$0.10` por job/mês, com `3 jobs` grátis por billing account
+## Example monthly scenario for 1,000 active users
+Cenario de ordem de grandeza, nao orcamento fechado:
 
-Implicação:
-- cleanup agendado não pesa quase nada
-- Functions de sincronização/cleanup não devem ser o centro do custo no MVP
+- `1,000` usuarios ativos
+- `100` usuarios publicando `1` story de video por dia
+- `350` usuarios assistindo stories por dia
+- `8` stories vistos por viewer por dia
+- qualidade inicial boa, sem compressao agressiva
 
-### 6. Video transcode
-Referência oficial observada:
-
-- Transcoder API:
-  - SD: `$0.015/min`
-  - HD: `$0.030/min`
-
-Implicação:
-- vídeo é o segundo maior driver de custo depois de bandwidth
-- para MVP, imagem-only é muito mais previsível financeiramente
-
-## Example monthly scenarios
-Valores abaixo são aproximações de ordem de grandeza, não orçamento fechado.
-
-### Scenario A. Pilot image-only
-- `100` stories por dia
-- `5.000` views por dia
-- payload médio entregue: `0.3 MB`
-
-Estimativa:
-- egress: ~`45 GB/mês` -> ~`US$ 3.60/mês`
-- Firestore: tende a ficar dentro ou muito perto do free tier específico de stories
-- Storage at-rest: desprezível
-
-### Scenario B. Growing image usage
-- `500` stories por dia
-- `50.000` views por dia
-- payload médio entregue: `0.3 MB`
-
-Estimativa:
-- egress: ~`450 GB/mês` -> ~`US$ 36/mês`
-- Firestore writes extras de view continuam baixos perto do custo de mídia
-
-### Scenario C. Video-heavy rollout
-- `200` vídeo stories por dia
-- `20.000` views por dia
-- payload médio entregue: `2 MB`
-- duração média: `15 s`
-
-Estimativa:
-- egress: ~`1.2 TB/mês` -> ~`US$ 96/mês`
-- transcode HD: ~`1.500 min/mês` -> ~`US$ 45/mês`
-- total de stories passa fácil de `US$ 140/mês` sem contar outras features do app
-
-Conclusão:
-- stories de imagem são baratos
-- stories com vídeo podem ficar caros rápido
+Leitura pratica:
+- o custo deixa de ser "quase gratis"
+- o projeto pode entrar em algumas centenas de reais por mes so com stories se a feature for usada de verdade
+- isso nao inviabiliza o MVP, mas reforca a importancia de medir consumo desde o primeiro dia
 
 ## Blockers and risks
 
 ### No hard blocker for MVP
-Com o código atual, não vejo bloqueio estrutural para um MVP bem recortado.
+Com o codigo atual, nao vejo bloqueio estrutural para um MVP bem recortado.
 
-### Real blockers if unresolved
-1. Definição de audiência
-   - o app não tem follower graph
-   - sem decidir quem aparece na bandeja, o backend fica indefinido
-2. Plano Blaze / billing ativo
-   - obrigatório para continuar usando Cloud Storage
-3. Política de vídeo
-   - vídeo aumenta custo, complexidade de transcode e risco de moderação
-4. Regras de visibilidade
-   - precisa decidir como bloquear stories entre usuários bloqueados ou invisíveis
-5. Full Instagram parity
-   - stickers, música, menções, editor rico e highlights não cabem em um MVP curto
-
-### Recommended scope guardrails
-- lançar primeiro com imagem-only
-- replies via chat só na segunda etapa
-- viewers list pode entrar no MVP, mas sem analytics excessivo
-- usar o feed atual como origem da bandeja
+### Real risks if unresolved
+1. Bandeja sem agregado de visto ou nao visto
+   - sem `story_seen_authors`, a UI tende a virar join caro no cliente
+2. Quota diaria sem enforcement server-side
+   - sem backend, o limite de 3 por dia fica fragil
+3. Reuso acidental da pipeline da galeria
+   - isso contradiz a decisao de produto e tende a gerar custo ou qualidade inadequados
+4. Video com qualidade boa sem observabilidade
+   - sem medir tamanho final e bandwidth, o custo pode surpreender rapido
+5. Privacidade do asset
+   - no MVP, URL direta nao tera bloqueio forte; isso foi aceito como trade-off
 
 ## Final recommendation
-Se a meta for colocar stories no ar com risco controlado, o melhor caminho é:
+Se a meta for colocar stories no ar com contrato claro e sem retrabalho imediato, o melhor caminho agora e:
 
-1. MVP imagem-only
-2. bandeja baseada no feed atual
-3. cleanup server-side
-4. `story_state` resumido no documento do usuário
-5. vídeo só depois de medir uso e custo
+1. pipeline propria desde o primeiro dia
+2. video no MVP com boa qualidade inicial
+3. bandeja abaixo do header do feed
+4. favoritos primeiro e restantes depois
+5. agregados de `story_state` e `story_seen_authors`
+6. enforcement server-side do limite de 3 stories por dia
+7. tuning de custo so depois de medir uso real
 
-Esse caminho entrega uma experiência claramente "stories" sem transformar a feature em re-arquitetura social do app.
+Esse caminho entrega uma experiencia de stories coerente com o app e evita a armadilha de improvisar a feature em cima da galeria atual.
 
 ## Sources checked on 2026-03-10
 - Firebase Storage Blaze requirement: https://firebase.google.com/docs/storage/faqs-storage-changes-announced-sept-2024

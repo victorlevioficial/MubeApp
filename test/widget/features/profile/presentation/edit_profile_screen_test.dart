@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/core/domain/app_config.dart';
 import 'package:mube/src/core/providers/app_config_provider.dart';
 import 'package:mube/src/design_system/components/buttons/app_button.dart';
@@ -65,6 +67,28 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   }
 
+  Future<void> pumpRootEditScreen(WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(contractorUser),
+          ),
+          appConfigProvider.overrideWith((ref) async => const AppConfig()),
+        ],
+        child: MaterialApp(
+          theme: ThemeData.dark(),
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          home: const EditProfileScreen(),
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+
   testWidgets('blocks save when the typed username is already taken', (
     tester,
   ) async {
@@ -104,6 +128,18 @@ void main() {
 
     expect(find.text('@mube.oficial disponivel.'), findsOneWidget);
     expect(saveButton(tester).onPressed, isNotNull);
+  });
+
+  testWidgets('handles back safely when edit profile is the root route', (
+    tester,
+  ) async {
+    await pumpRootEditScreen(tester);
+
+    await tester.tap(find.byTooltip('Voltar'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(EditProfileScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

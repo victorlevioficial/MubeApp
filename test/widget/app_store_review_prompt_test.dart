@@ -184,6 +184,9 @@ class _FakeStoreReviewPlatformClient implements StoreReviewPlatformClient {
   Future<void> requestReview() async {
     requestReviewCalls += 1;
   }
+
+  @override
+  Future<void> openStoreListing({String? appStoreId}) async {}
 }
 
 class _StubFeedController extends FeedController {

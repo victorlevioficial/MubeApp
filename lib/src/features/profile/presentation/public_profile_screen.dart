@@ -427,6 +427,11 @@ class PublicProfileScreen extends ConsumerWidget {
                       size: 120,
                       color: AppColors.textSecondary,
                     ),
+                    errorListener: (error) => AppLogger.logHandledImageError(
+                      source: 'PublicProfileScreen.avatarViewer',
+                      url: user.avatarFullUrl!,
+                      error: error,
+                    ),
                   ),
                 ),
               ),
