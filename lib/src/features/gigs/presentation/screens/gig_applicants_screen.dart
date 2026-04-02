@@ -326,7 +326,7 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: const EdgeInsets.all(AppSpacing.s2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(

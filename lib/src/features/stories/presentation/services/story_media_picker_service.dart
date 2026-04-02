@@ -1,12 +1,16 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../utils/app_logger.dart';
 import '../../../profile/presentation/services/media_picker_service.dart';
 import '../../../storage/domain/upload_validator.dart';
@@ -32,6 +36,7 @@ class StoryMediaSelection {
 
 class StoryMediaPickerService {
   static const int maxStoryVideoSeconds = 15;
+  static const int _preferredStoryVideoSizeBytes = 18 * 1024 * 1024;
   final ImagePicker _picker = ImagePicker();
 
   Future<StoryUploadMedia?> pickImage(BuildContext context) async {
@@ -86,7 +91,10 @@ class StoryMediaPickerService {
     );
     if (picked == null) return null;
 
-    final file = File(picked.path);
+    final originalFile = File(picked.path);
+    final file = await _cropPhotoToStoryRatio(originalFile);
+    if (file == null) return null;
+
     try {
       await UploadValidator.validateImage(file);
       final aspectRatio = await _readImageAspectRatio(file);
@@ -195,6 +203,69 @@ class StoryMediaPickerService {
     return image.width / image.height;
   }
 
+  Future<File?> _cropPhotoToStoryRatio(File file) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: file.path,
+      aspectRatio: const CropAspectRatio(ratioX: 9, ratioY: 16),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Ajustar story',
+          toolbarColor: AppColors.background,
+          toolbarWidgetColor: AppColors.textPrimary,
+          backgroundColor: AppColors.background,
+          activeControlsWidgetColor: AppColors.primary,
+          dimmedLayerColor: AppColors.background.withValues(alpha: 0.92),
+          cropFrameColor: AppColors.primary.withValues(alpha: 0.7),
+          cropGridColor: AppColors.textPrimary.withValues(alpha: 0.12),
+          statusBarLight: false,
+          navBarLight: false,
+          lockAspectRatio: true,
+          hideBottomControls: true,
+        ),
+        IOSUiSettings(
+          title: 'Ajustar story',
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+        ),
+      ],
+    );
+
+    if (croppedFile == null) return null;
+    return File(croppedFile.path);
+  }
+
+  Future<File> mirrorImageHorizontally(File sourceFile) async {
+    final sourceBytes = await sourceFile.readAsBytes();
+    final sourceImage = await decodeImageFromList(sourceBytes);
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    canvas.translate(sourceImage.width.toDouble(), 0);
+    canvas.scale(-1, 1);
+    canvas.drawImage(sourceImage, Offset.zero, Paint());
+
+    final picture = recorder.endRecording();
+    final mirroredImage = await picture.toImage(
+      sourceImage.width,
+      sourceImage.height,
+    );
+    final byteData = await mirroredImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    if (byteData == null) {
+      throw Exception('Nao foi possivel espelhar a foto selecionada.');
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final outputPath = path.join(
+      tempDir.path,
+      'story_mirror_${DateTime.now().millisecondsSinceEpoch}.png',
+    );
+    final outputFile = File(outputPath);
+    await outputFile.writeAsBytes(byteData.buffer.asUint8List());
+    return outputFile;
+  }
+
   Future<ImageSource?> chooseSource(
     BuildContext context, {
     required String title,
@@ -232,13 +303,13 @@ class StoryMediaPickerService {
     required int fileSizeBytes,
   }) {
     return path.extension(videoPath).toLowerCase() != '.mp4' ||
-        fileSizeBytes > UploadLimits.maxVideoSizeBytes;
+        fileSizeBytes > _preferredStoryVideoSizeBytes;
   }
 
   @visibleForTesting
   static bool isSupportedStoryImageAspectRatio(double? aspectRatio) {
     return aspectRatio != null &&
-        StoryConstants.isSupportedStoryAspectRatio(aspectRatio);
+        StoryConstants.isExactStoryPhotoAspectRatio(aspectRatio);
   }
 
   @visibleForTesting

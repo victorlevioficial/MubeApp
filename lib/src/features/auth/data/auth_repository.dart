@@ -171,7 +171,7 @@ class AuthRepository {
       final user = await _dataSource.fetchUserProfileByUsername(username);
       return Right(user);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(ServerFailure(message: _readableErrorMessage(e)));
     }
   }
 
@@ -193,7 +193,7 @@ class AuthRepository {
           (excludingUid != null && existingUser.uid == excludingUid);
       return Right(isAvailable);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(ServerFailure(message: _readableErrorMessage(e)));
     }
   }
 
@@ -203,8 +203,36 @@ class AuthRepository {
         username,
       );
       return Right(normalizedUsername);
+    } on AppCheckRefreshException catch (e) {
+      return Left(
+        ServerFailure(
+          message: e.message,
+          debugMessage: e.debugMessage,
+          originalError: e,
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (_isTerminalSessionRefreshCode(e.code)) {
+        return Left(
+          AuthFailure(
+            message: 'Sua sessao expirou. Faca login novamente.',
+            debugMessage: e.code,
+            originalError: e,
+          ),
+        );
+      }
+
+      return Left(
+        AuthFailure(
+          message: AuthExceptionHandler.handleException(e),
+          debugMessage: e.code,
+          originalError: e,
+        ),
+      );
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(
+        ServerFailure(message: _readableErrorMessage(e), originalError: e),
+      );
     }
   }
 
@@ -213,7 +241,9 @@ class AuthRepository {
       await _dataSource.updateUserProfile(user);
       return const Right(unit);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(
+        ServerFailure(message: _readableErrorMessage(e), originalError: e),
+      );
     }
   }
 
@@ -396,7 +426,9 @@ class AuthRepository {
       await _ensureUserProfileExists(user);
       return const Right(unit);
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(
+        ServerFailure(message: _readableErrorMessage(e), originalError: e),
+      );
     }
   }
 
@@ -593,6 +625,25 @@ class AuthRepository {
       default:
         return false;
     }
+  }
+
+  String _readableErrorMessage(Object error) {
+    final rawMessage = error.toString().trim();
+    const exceptionPrefix = 'Exception: ';
+
+    final normalizedMessage = rawMessage.startsWith(exceptionPrefix)
+        ? rawMessage.substring(exceptionPrefix.length).trim()
+        : rawMessage;
+    final messageLower = normalizedMessage.toLowerCase();
+
+    if (messageLower == 'not_found' ||
+        messageLower == 'not-found' ||
+        messageLower.contains('[firebase_functions/not-found]') ||
+        messageLower.contains('firebase_functions/not-found')) {
+      return 'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.';
+    }
+
+    return normalizedMessage;
   }
 }
 

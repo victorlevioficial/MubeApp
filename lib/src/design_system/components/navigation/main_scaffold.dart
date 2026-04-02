@@ -356,7 +356,7 @@ class _NavBarItemState extends State<_NavBarItem>
                                 ],
                               )
                             : null,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadius.all16,
                         border: widget.isSelected
                             ? Border.all(
                                 color: activeColor.withValues(alpha: 0.2),
@@ -465,7 +465,10 @@ class _UnreadBadgeState extends State<_UnreadBadge>
     return ScaleTransition(
       scale: _pulseAnimation,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s8,
+          vertical: AppSpacing.s4,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -473,7 +476,7 @@ class _UnreadBadgeState extends State<_UnreadBadge>
               AppColors.primary.withValues(alpha: 0.9),
             ],
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: AppRadius.all12,
           border: Border.all(color: AppColors.background, width: 1.5),
           boxShadow: [
             BoxShadow(

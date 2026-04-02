@@ -109,7 +109,7 @@ class _BandMemberCard extends StatelessWidget {
                 ),
                 // Small arrow-forward indicator
                 Container(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(AppSpacing.s2),
                   decoration: BoxDecoration(
                     color: accentColor,
                     shape: BoxShape.circle,

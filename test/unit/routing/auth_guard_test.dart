@@ -5,6 +5,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
+import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'package:mube/src/features/splash/providers/splash_provider.dart';
 import 'package:mube/src/routing/auth_guard.dart';
@@ -258,6 +259,82 @@ void main() {
         );
 
         expect(resumedRedirect, gigPath);
+      },
+    );
+
+    test(
+      'redirects authenticated users from splash to feed while profile still loads',
+      () async {
+        final fakeUser = FakeFirebaseUser(
+          uid: 'user-1',
+          email: 'test@mube.app',
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              const AsyncValue<AppUser?>.loading(),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.splash),
+        );
+
+        expect(redirect, RoutePaths.feed);
+      },
+    );
+
+    test(
+      'keeps authenticated users on the current route while profile still loads',
+      () async {
+        final fakeUser = FakeFirebaseUser(
+          uid: 'user-1',
+          email: 'test@mube.app',
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              const AsyncValue<AppUser?>.loading(),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.feed),
+        );
+
+        expect(redirect, isNull);
       },
     );
 

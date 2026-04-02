@@ -159,7 +159,9 @@ class BandProfileTutorialDialog extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Padding(
-                                      padding: EdgeInsets.only(top: 1),
+                                      padding: EdgeInsets.only(
+                                        top: AppSpacing.s2,
+                                      ),
                                       child: Icon(
                                         Icons.visibility_off_outlined,
                                         size: 16,

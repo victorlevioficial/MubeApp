@@ -143,16 +143,23 @@ class AuthGuard {
     if (userProfileAsync.isLoading || !userProfileAsync.hasValue) {
       _startProfileWaitIfNeeded(currentPath);
       if (currentPath == RoutePaths.splash) {
-        _log('Profile loading - waiting on splash');
-        return null; // Stay on splash
+        final deferredPublicPath = _consumeDeferredPublicPathIfAny();
+        if (deferredPublicPath != null) {
+          _log(
+            'Profile loading on splash - redirecting to deferred public path',
+          );
+          return deferredPublicPath;
+        }
+        _log('Profile loading on splash - redirecting optimistically to feed');
+        return RoutePaths.feed;
       }
       // Keep auth-flow routes inline so signup/login doesn't bounce to splash.
       if (_isAuthFlowRoute(currentPath)) {
         _log('Profile loading on auth route - waiting inline');
         return null;
       }
-      // Outside auth-flow routes, keep previous behavior.
-      return RoutePaths.splash;
+      _log('Profile loading on current route - waiting inline');
+      return null;
     }
 
     // Recover from inconsistent state: Auth user exists but profile document

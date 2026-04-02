@@ -124,7 +124,7 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(AppSpacing.s8),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.primary, AppColors.primaryPressed],
@@ -374,7 +374,7 @@ class _PageIndicator extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
         width: isActive ? 24 : 8,
         height: 8,
         decoration: BoxDecoration(

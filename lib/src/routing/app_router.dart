@@ -558,6 +558,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
     ),
     GoRoute(
       path: RoutePaths.storyCreate,
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => slideTransitionPage(
         key: state.pageKey,
         child: const CreateStoryScreen(),
@@ -565,6 +566,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
     ),
     GoRoute(
       path: '${RoutePaths.storyViewer}/:storyId',
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final extra = state.extra;
         final args = extra is StoryViewerRouteArgs ? extra : null;
@@ -574,11 +576,12 @@ List<RouteBase> _buildRoutes(Ref ref) {
             : const Scaffold(
                 body: Center(child: Text('Story nao encontrado.')),
               );
-        return fadeTransitionPage(key: state.pageKey, child: child);
+        return NoTransitionPage(key: state.pageKey, child: child);
       },
     ),
     GoRoute(
       path: '${RoutePaths.storyViewers}/:storyId',
+      parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => slideTransitionPage(
         key: state.pageKey,
         child: StoryViewersScreen(storyId: state.pathParameters['storyId']!),

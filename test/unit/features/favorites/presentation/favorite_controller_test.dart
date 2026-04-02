@@ -329,6 +329,120 @@ void main() {
         // Rollback after failed server sync.
         expect(getState().likeCounts['target-1'], 0);
       });
+
+      test('sequential toggles on same target (add → remove → add)', () async {
+        fakeFavRepo.favorites = {};
+        await waitForUser();
+
+        final ctrl = getController();
+        await ctrl.loadFavorites();
+
+        ctrl.toggle('target-1');
+        expect(getState().localFavorites, contains('target-1'));
+
+        await pumpAsync();
+        expect(getState().serverFavorites, contains('target-1'));
+
+        ctrl.toggle('target-1');
+        expect(getState().localFavorites, isNot(contains('target-1')));
+
+        await pumpAsync();
+        expect(getState().serverFavorites, isNot(contains('target-1')));
+
+        ctrl.toggle('target-1');
+        expect(getState().localFavorites, contains('target-1'));
+
+        await pumpAsync();
+        expect(getState().serverFavorites, contains('target-1'));
+      });
+
+      test('like count clamps to zero on decrement', () async {
+        fakeFavRepo.favorites = {};
+        await waitForUser();
+
+        final ctrl = getController();
+        await ctrl.loadFavorites();
+
+        ctrl.ensureLikeCount('target-1', 0);
+        ctrl.toggle('target-1');
+        expect(getState().likeCounts['target-1'], 1);
+
+        ctrl.toggle('target-1');
+        expect(getState().likeCounts['target-1'], 0);
+
+        // Simulate double-unlike (should not go negative).
+        ctrl.toggle('target-1');
+        expect(getState().likeCounts['target-1'], 1);
+
+        ctrl.toggle('target-1');
+        expect(getState().likeCounts['target-1'], 0);
+
+        // Wait for all sync operations to settle.
+        await pumpAsync();
+        await pumpAsync();
+        await pumpAsync();
+      });
+
+      test('ensureLikeCount seeds count when null', () async {
+        fakeFavRepo.favorites = {};
+        await waitForUser();
+
+        final ctrl = getController();
+        await ctrl.loadFavorites();
+
+        expect(getState().likeCounts['target-1'], isNull);
+
+        ctrl.ensureLikeCount('target-1', 42);
+        expect(getState().likeCounts['target-1'], 42);
+      });
+
+      test('ensureLikeCount sanitizes negative values', () async {
+        fakeFavRepo.favorites = {};
+        await waitForUser();
+
+        final ctrl = getController();
+        await ctrl.loadFavorites();
+
+        ctrl.ensureLikeCount('target-1', -5);
+        expect(getState().likeCounts['target-1'], 0);
+      });
+
+      test(
+        'ensureLikeCount does not overwrite after local adjustment',
+        () async {
+          fakeFavRepo.favorites = {};
+          await waitForUser();
+
+          final ctrl = getController();
+          await ctrl.loadFavorites();
+
+          ctrl.ensureLikeCount('target-1', 10);
+          ctrl.toggle('target-1');
+          expect(getState().likeCounts['target-1'], 11);
+
+          // Stale server read should not overwrite.
+          ctrl.ensureLikeCount('target-1', 10);
+          expect(getState().likeCounts['target-1'], 11);
+        },
+      );
+
+      test(
+        'ensureLikeCount updates when value was never locally adjusted',
+        () async {
+          fakeFavRepo.favorites = {};
+          await waitForUser();
+
+          final ctrl = getController();
+          await ctrl.loadFavorites();
+
+          ctrl.ensureLikeCount('target-1', 10);
+          expect(getState().likeCounts['target-1'], 10);
+
+          // No toggle happened, so server refresh is allowed.
+          ctrl.ensureLikeCount('target-1', 15);
+          expect(getState().likeCounts['target-1'], 15);
+        },
+      );
     });
   });
 }

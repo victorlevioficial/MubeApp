@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/patterns/full_width_selection_card.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 
@@ -133,7 +134,7 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
           padding: const EdgeInsets.all(AppSpacing.s16),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: AppRadius.all20,
             border: Border.all(color: AppColors.border),
           ),
           child: Column(
@@ -162,7 +163,7 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: AppRadius.pill,
                 ),
                 child: Text(
                   '${_selected.length} de ${_categories.length} selecionadas',

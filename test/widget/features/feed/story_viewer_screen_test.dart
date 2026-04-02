@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/stories/data/story_repository.dart';
 import 'package:mube/src/features/stories/domain/story_item.dart';
+import 'package:mube/src/features/stories/domain/story_repository_exception.dart';
 import 'package:mube/src/features/stories/domain/story_tray_bundle.dart';
 import 'package:mube/src/features/stories/domain/story_view_receipt.dart';
 import 'package:mube/src/features/stories/domain/story_viewer_route_args.dart';
@@ -33,6 +34,7 @@ class _FakeStoryRepository extends Fake implements StoryRepository {
   @override
   Future<List<StoryTrayBundle>> loadTray({
     Iterable<String> discoveryOwnerIds = const <String>[],
+    bool includePublicOwners = true,
   }) async {
     return const [];
   }
@@ -40,7 +42,7 @@ class _FakeStoryRepository extends Fake implements StoryRepository {
   @override
   Future<StoryViewerRouteArgs> loadViewerRouteArgs(String storyId) async {
     if (routeArgs == null) {
-      throw Exception('Story nao encontrado.');
+      throw StoryRepositoryException.storyUnavailable();
     }
     return routeArgs!;
   }
@@ -203,6 +205,13 @@ void main() {
         StoryMediaPickerService.requiresVideoNormalization(
           videoPath: 'C:/tmp/story.mov',
           fileSizeBytes: 8 * 1024 * 1024,
+        ),
+        isTrue,
+      );
+      expect(
+        StoryMediaPickerService.requiresVideoNormalization(
+          videoPath: 'C:/tmp/story.mp4',
+          fileSizeBytes: 20 * 1024 * 1024,
         ),
         isTrue,
       );

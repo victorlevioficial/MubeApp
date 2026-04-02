@@ -25,7 +25,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Timer? _timeoutTimer;
   bool _showFallback = false;
   bool _isRetrying = false;
-  ProviderSubscription<AsyncValue<dynamic>>? _profileSub;
 
   @override
   void initState() {
@@ -39,7 +38,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void dispose() {
     _timeoutTimer?.cancel();
-    _profileSub?.close();
     super.dispose();
   }
 
@@ -66,46 +64,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _bootstrapApp() async {
     await ref.read(appBootstrapProvider.notifier).start();
     if (!mounted) return;
-
-    // Bootstrap done. Now the auth guard holds on splash while
-    // currentUserProfileProvider is still loading. We observe it
-    // so our existing timeout can catch profile-loading stalls too.
-    _observeProfileProvider();
-  }
-
-  /// Watches `currentUserProfileProvider`. When it resolves (data or error),
-  /// cancels the timeout and finishes the splash. If it is already resolved
-  /// when we start observing, finish immediately.
-  void _observeProfileProvider() {
-    // If auth says there's no user, profile will never load. Finish now.
-    final authState = ref.read(authStateChangesProvider);
-    if (authState.hasValue && authState.value == null) {
-      _finishSplash();
-      return;
-    }
-
-    final profileAsync = ref.read(currentUserProfileProvider);
-    if (!profileAsync.isLoading) {
-      _finishSplash();
-      return;
-    }
-
-    // Profile is still loading — subscribe and wait.
-    _profileSub?.close();
-    _profileSub = ref.listenManual<AsyncValue<dynamic>>(
-      currentUserProfileProvider,
-      (_, next) {
-        if (!next.isLoading) {
-          _finishSplash();
-        }
-      },
-    );
+    _finishSplash();
   }
 
   void _finishSplash() {
     _cancelTimeout();
-    _profileSub?.close();
-    _profileSub = null;
     if (!mounted) return;
     ref.read(splashFinishedProvider.notifier).finish();
   }
@@ -129,7 +92,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       // Only finish if bootstrap actually completed.
       final bootstrapState = ref.read(appBootstrapProvider);
       if (bootstrapState == AppBootstrapState.ready) {
-        _observeProfileProvider();
+        _finishSplash();
       }
       // If bootstrap is still running (start() was a no-op because
       // _isStarting was true), do NOT finish — let the timeout handle it.
@@ -145,7 +108,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   Future<void> _signOutAndExit() async {
     _cancelTimeout();
-    _profileSub?.close();
     await ref.read(authRepositoryProvider).signOut();
     if (!mounted) return;
     // After sign-out, the auth guard will redirect to login.

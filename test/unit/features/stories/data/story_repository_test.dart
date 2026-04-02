@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/features/stories/data/story_repository.dart';
 import 'package:mube/src/features/stories/domain/story_item.dart';
+import 'package:mube/src/features/stories/domain/story_repository_exception.dart';
 import 'package:mube/src/features/stories/domain/story_view_receipt.dart';
 
 import '../../../../helpers/firebase_mocks.dart';
@@ -94,6 +97,26 @@ void main() {
   }
 
   group('StoryRepository', () {
+    test('resolveImageUploadTarget preserves jpeg fallback metadata', () {
+      final target = StoryRepository.resolveImageUploadTarget(
+        file: File('story_photo.jpg'),
+        basePathWithoutExtension: 'stories_images/user/story/full',
+      );
+
+      expect(target.path, 'stories_images/user/story/full.jpg');
+      expect(target.contentType, 'image/jpeg');
+    });
+
+    test('resolveImageUploadTarget keeps webp uploads as webp', () {
+      final target = StoryRepository.resolveImageUploadTarget(
+        file: File('story_photo.webp'),
+        basePathWithoutExtension: 'stories_images/user/story/full',
+      );
+
+      expect(target.path, 'stories_images/user/story/full.webp');
+      expect(target.contentType, 'image/webp');
+    });
+
     test(
       'loadTray orders the current user first, then favorites, then other authors',
       () async {
@@ -184,7 +207,7 @@ void main() {
     );
 
     test(
-      'loadTray limits non-favorite authors to the current discovery surface',
+      'loadTray includes active public authors outside the discovery surface',
       () async {
         await seedUser(uid: 'current-user');
         await seedUser(uid: 'favorite-user', hasActiveStory: true);
@@ -226,8 +249,58 @@ void main() {
 
         expect(bundles.map((bundle) => bundle.ownerUid), [
           'favorite-user',
+          'outside-user',
           'discovered-user',
         ]);
+      },
+    );
+
+    test(
+      'loadTray keeps active public authors even when profile filters would hide them',
+      () async {
+        await seedUser(uid: 'current-user');
+        await fakeFirestore.collection('users').doc('outside-user').set({
+          'uid': 'outside-user',
+          'nome': 'outside-user',
+          'cadastro_status': 'pendente',
+          'status': 'ativo',
+          'blocked_users': const <String>[],
+          'story_state': {'has_active_story': false, 'active_story_count': 0},
+        }, SetOptions(merge: true));
+
+        await seedStory(
+          buildStory(
+            id: 'story-outside',
+            ownerUid: 'outside-user',
+            ownerName: 'Outside User',
+            createdAt: DateTime(2026, 4, 10, 10),
+            expiresAt: DateTime(2026, 4, 11, 10),
+          ),
+        );
+
+        final bundles = await repository.loadTray();
+
+        expect(bundles.map((bundle) => bundle.ownerUid), ['outside-user']);
+      },
+    );
+
+    test(
+      'loadTray keeps active public authors even when owner profile document is missing',
+      () async {
+        await seedUser(uid: 'current-user');
+        await seedStory(
+          buildStory(
+            id: 'story-missing-owner-doc',
+            ownerUid: 'missing-owner-doc',
+            ownerName: 'Missing Owner',
+            createdAt: DateTime(2026, 4, 10, 10),
+            expiresAt: DateTime(2026, 4, 11, 10),
+          ),
+        );
+
+        final bundles = await repository.loadTray();
+
+        expect(bundles.map((bundle) => bundle.ownerUid), ['missing-owner-doc']);
       },
     );
 
@@ -301,6 +374,22 @@ void main() {
     });
 
     test(
+      'loadViewerRouteArgs throws a typed unavailable error for missing stories',
+      () async {
+        expect(
+          repository.loadViewerRouteArgs('missing-story'),
+          throwsA(
+            isA<StoryRepositoryException>().having(
+              (error) => error.code,
+              'code',
+              StoryRepositoryExceptionCode.storyUnavailable,
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
       'markStoryViewed stores viewer metadata for another user story',
       () async {
         await fakeFirestore.collection('users').doc('current-user').set({
@@ -357,6 +446,62 @@ void main() {
 
       expect(viewDoc.exists, isFalse);
     });
+
+    test(
+      'loadCurrentUserProcessingStories returns only active processing docs',
+      () async {
+        await seedUser(uid: 'current-user', hasActiveStory: true);
+        await seedStory(
+          buildStory(
+            id: 'story-processing-newer',
+            ownerUid: 'current-user',
+            ownerName: 'Current User',
+            createdAt: DateTime(2026, 4, 10, 11),
+            expiresAt: DateTime(2026, 4, 11, 11),
+            mediaType: StoryMediaType.video,
+            status: StoryStatus.processing,
+          ),
+        );
+        await seedStory(
+          buildStory(
+            id: 'story-processing-older',
+            ownerUid: 'current-user',
+            ownerName: 'Current User',
+            createdAt: DateTime(2026, 4, 10, 10),
+            expiresAt: DateTime(2026, 4, 11, 10),
+            mediaType: StoryMediaType.video,
+            status: StoryStatus.processing,
+          ),
+        );
+        await seedStory(
+          buildStory(
+            id: 'story-active',
+            ownerUid: 'current-user',
+            ownerName: 'Current User',
+            createdAt: DateTime(2026, 4, 10, 9),
+            expiresAt: DateTime(2026, 4, 11, 9),
+          ),
+        );
+        await seedStory(
+          buildStory(
+            id: 'story-other-user',
+            ownerUid: 'other-user',
+            ownerName: 'Other User',
+            createdAt: DateTime(2026, 4, 10, 12),
+            expiresAt: DateTime(2026, 4, 11, 12),
+            mediaType: StoryMediaType.video,
+            status: StoryStatus.processing,
+          ),
+        );
+
+        final stories = await repository.loadCurrentUserProcessingStories();
+
+        expect(stories.map((story) => story.id), [
+          'story-processing-newer',
+          'story-processing-older',
+        ]);
+      },
+    );
 
     test('loadViewers returns the newest viewers first', () async {
       await fakeFirestore

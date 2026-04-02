@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../../constants/app_constants.dart' as app_constants;
+import '../../../../../core/errors/error_message_resolver.dart';
 import '../../../../../core/providers/firebase_providers.dart';
 import '../../../../../utils/app_logger.dart';
 import '../../../../../utils/category_normalizer.dart';
@@ -910,6 +911,11 @@ class EditProfileController extends _$EditProfileController {
     state = state.copyWith(isSaving: true);
 
     try {
+      final ensureProfileResult = await ref
+          .read(authRepositoryProvider)
+          .ensureCurrentUserProfileExists();
+      ensureProfileResult.fold((failure) => throw failure.message, (_) {});
+
       final Map<String, dynamic> updates = {'nome': nome, 'bio': bio};
       final gallery = await _galleryToJson(userId: user.uid);
       final normalizedUsername = normalizedPublicUsernameOrNull(username);
@@ -1035,9 +1041,9 @@ class EditProfileController extends _$EditProfileController {
 
       final profileUpdateState = ref.read(profileControllerProvider);
       if (profileUpdateState.hasError) {
-        final errorMessage =
-            profileUpdateState.error?.toString() ??
-            'Nao foi possivel salvar o perfil.';
+        final errorMessage = profileUpdateState.error != null
+            ? resolveErrorMessage(profileUpdateState.error!)
+            : 'Nao foi possivel salvar o perfil.';
         if (usernameUpdated) {
           throw 'O @usuario foi atualizado, mas nao foi possivel salvar o restante do perfil. $errorMessage';
         }

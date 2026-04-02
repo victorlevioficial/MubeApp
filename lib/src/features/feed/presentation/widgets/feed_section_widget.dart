@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../domain/feed_item.dart';
@@ -55,7 +56,7 @@ class FeedSectionWidget extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: AppRadius.all20,
                     border: Border.all(
                       color: AppColors.surfaceHighlight,
                       width: 1,

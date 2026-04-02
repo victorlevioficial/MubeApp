@@ -13,14 +13,18 @@ class StoryTray extends StatelessWidget {
     super.key,
     required this.currentUser,
     required this.storyBundles,
+    this.pendingProcessingCount = 0,
     required this.onCreateStory,
     required this.onOpenStoryBundle,
+    required this.onOpenCurrentUserStoryOptions,
   });
 
   final AppUser currentUser;
   final List<StoryTrayBundle> storyBundles;
+  final int pendingProcessingCount;
   final VoidCallback onCreateStory;
   final void Function(StoryTrayBundle bundle) onOpenStoryBundle;
+  final void Function(StoryTrayBundle bundle) onOpenCurrentUserStoryOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +44,22 @@ class StoryTray extends StatelessWidget {
         children: [
           _StoryTrayItem(
             title: 'Seu story',
-            subtitle: currentUserBundle == null ? 'Publicar' : 'Ver story',
+            subtitle: currentUserBundle != null
+                ? 'Ver ou publicar'
+                : pendingProcessingCount > 1
+                ? '$pendingProcessingCount processando'
+                : pendingProcessingCount == 1
+                ? 'Processando'
+                : 'Publicar',
             hasUnseen: currentUserBundle?.hasUnseen ?? false,
+            hasStory: currentUserBundle != null,
             showAddBadge: true,
             photoUrl: currentUser.foto,
             photoPreviewUrl: currentUser.fotoThumb,
             name: currentUser.appDisplayName,
             onTap: currentUserBundle == null
                 ? onCreateStory
-                : () => onOpenStoryBundle(currentUserBundle),
+                : () => onOpenCurrentUserStoryOptions(currentUserBundle),
             onLongPress: onCreateStory,
           ),
           ...others.map(
@@ -77,6 +88,7 @@ class _StoryTrayItem extends StatelessWidget {
     this.photoUrl,
     this.photoPreviewUrl,
     this.hasUnseen = false,
+    this.hasStory = false,
     this.showAddBadge = false,
     this.onLongPress,
   });
@@ -87,6 +99,7 @@ class _StoryTrayItem extends StatelessWidget {
   final String? photoUrl;
   final String? photoPreviewUrl;
   final bool hasUnseen;
+  final bool hasStory;
   final bool showAddBadge;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
@@ -112,6 +125,7 @@ class _StoryTrayItem extends StatelessWidget {
                   photoPreviewUrl: photoPreviewUrl,
                   size: 64,
                   hasUnseen: hasUnseen,
+                  hasStory: hasStory,
                   showAddBadge: showAddBadge,
                 ),
                 const SizedBox(height: AppSpacing.s8),

@@ -235,7 +235,7 @@ service cloud.firestore {
     // STORIES - stories efemeros
     // ================================================================
     match /stories/{storyId} {
-      allow read: if request.auth != null &&
+      allow get: if request.auth != null &&
         (
           resource.data.owner_uid == request.auth.uid ||
           (
@@ -243,6 +243,15 @@ service cloud.firestore {
             resource.data.expires_at > request.time &&
             !isBlockedBetween(request.auth.uid, resource.data.owner_uid)
           )
+        );
+
+      // Story tray queries must stay listable under Firestore query
+      // semantics. Client list queries already restrict by expiration and
+      // blocked owners are filtered in app code before querying.
+      allow list: if request.auth != null &&
+        (
+          resource.data.status == 'active' ||
+          resource.data.owner_uid == request.auth.uid
         );
 
       allow create, update, delete: if false;

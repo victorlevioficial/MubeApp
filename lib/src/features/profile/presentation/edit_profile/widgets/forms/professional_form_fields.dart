@@ -447,7 +447,7 @@ class _ProfessionalFormFieldsState
             padding: const EdgeInsets.all(AppSpacing.s16),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: AppRadius.all20,
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
@@ -475,7 +475,7 @@ class _ProfessionalFormFieldsState
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: AppRadius.pill,
                   ),
                   child: Text(
                     '${_selectedCategories.length} de ${_categories.length} selecionadas',

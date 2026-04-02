@@ -5,8 +5,10 @@ import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../domain/story_repository_exception.dart';
 import '../../domain/story_viewer_route_args.dart';
 import '../controllers/story_viewer_controller.dart';
+import '../widgets/story_viewer_fallback_state.dart';
 import 'story_viewer_screen.dart';
 
 class StoryViewerRouteLoader extends ConsumerWidget {
@@ -37,11 +39,11 @@ class StoryViewerRouteLoader extends ConsumerWidget {
         ),
       ),
       error: (error, stackTrace) {
-        final message = error.toString();
-        if (message.contains('Story nao encontrado.')) {
-          return const _StoryViewerFallbackState(
-            title: 'Story nao encontrado.',
-            subtitle: 'Esse story nao esta mais disponivel.',
+        final storyError = error is StoryRepositoryException ? error : null;
+        if (storyError?.showsViewerFallback == true) {
+          return StoryViewerFallbackState(
+            title: 'Story indisponivel.',
+            subtitle: storyError!.message,
           );
         }
 
@@ -80,48 +82,6 @@ class StoryViewerRouteLoader extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _StoryViewerFallbackState extends StatelessWidget {
-  const _StoryViewerFallbackState({
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Center(
-        child: Padding(
-          padding: AppSpacing.all24,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -11,6 +11,8 @@ import {
 
 const REGION = "southamerica-east1";
 const TRANSCODER_LOCATION = process.env.TRANSCODER_LOCATION || "us-central1";
+const STORY_VIDEO_TRIGGER_REGION =
+  process.env.STORY_VIDEO_TRIGGER_REGION || "us-central1";
 const STORY_TIMEZONE = "America/Sao_Paulo";
 const MAX_STORIES_PER_DAY = 3;
 const MAX_VIDEO_DURATION_SECONDS = 15;
@@ -686,7 +688,10 @@ export const expireStories = onSchedule(
 
 export const onStoryVideoUploaded = onObjectFinalized(
   {
-    region: REGION,
+    // Keep the story video worker close to the default bucket/event region.
+    // This avoids exhausting Cloud Run CPU quota in southamerica-east1 and
+    // matches the region already used by the gallery video transcode worker.
+    region: STORY_VIDEO_TRIGGER_REGION,
     memory: "512MiB",
     timeoutSeconds: 540,
     maxInstances: 1,

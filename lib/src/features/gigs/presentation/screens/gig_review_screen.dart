@@ -276,7 +276,7 @@ class _UserHeroSection extends StatelessWidget {
         children: [
           // Avatar with primary ring
           Container(
-            padding: const EdgeInsets.all(3),
+            padding: const EdgeInsets.all(AppSpacing.s4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(

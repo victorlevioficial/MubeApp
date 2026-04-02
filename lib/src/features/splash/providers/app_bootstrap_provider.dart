@@ -50,7 +50,7 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     state = AppBootstrapState.running;
 
     try {
-      await _ensureAppCheckActivation();
+      unawaited(_ensureAppCheckActivation());
       unawaited(_warmNotificationPermissionPromptState());
     } catch (error, stack) {
       bootstrapStatus = 'error';

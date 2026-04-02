@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_motion.dart';
+import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
@@ -18,6 +19,7 @@ import '../../domain/story_viewer_route_args.dart';
 import '../controllers/story_viewer_controller.dart';
 import '../widgets/story_progress_bar.dart';
 import '../widgets/story_ring_avatar.dart';
+import '../widgets/story_viewer_fallback_state.dart';
 
 class StoryViewerScreen extends ConsumerStatefulWidget {
   const StoryViewerScreen({super.key, required this.args});
@@ -268,8 +270,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   @override
   Widget build(BuildContext context) {
     if (_bundles.isEmpty) {
-      return const _StoryViewerFallbackState(
-        backgroundColor: AppColors.background,
+      return const StoryViewerFallbackState(
         title: 'Story nao encontrado.',
         subtitle: 'Esse story nao esta mais disponivel.',
       );
@@ -404,7 +405,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                               color: AppColors.background.withValues(
                                 alpha: 0.5,
                               ),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: AppRadius.all16,
                             ),
                             child: Text(
                               currentStory.caption!.trim(),
@@ -430,50 +431,6 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     if (difference.inMinutes < 1) return 'Agora';
     if (difference.inHours < 1) return '${difference.inMinutes} min';
     return '${difference.inHours} h';
-  }
-}
-
-class _StoryViewerFallbackState extends StatelessWidget {
-  const _StoryViewerFallbackState({
-    required this.backgroundColor,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final Color backgroundColor;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Center(
-        child: Padding(
-          padding: AppSpacing.all24,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -616,11 +573,19 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
 
     return AnimatedSwitcher(
       duration: AppMotion.medium,
-      child: Center(
+      child: ColoredBox(
         key: ValueKey(widget.story.id),
-        child: AspectRatio(
-          aspectRatio: controller.value.aspectRatio,
-          child: VideoPlayer(controller),
+        color: AppColors.background,
+        child: SizedBox.expand(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            clipBehavior: Clip.hardEdge,
+            child: SizedBox(
+              width: controller.value.size.width,
+              height: controller.value.size.height,
+              child: VideoPlayer(controller),
+            ),
+          ),
         ),
       ),
     );

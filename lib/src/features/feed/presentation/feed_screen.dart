@@ -9,9 +9,11 @@ import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/services/image_cache_config.dart';
 import '../../../design_system/components/buttons/app_button.dart';
+import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_refresh_indicator.dart';
 import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
+import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -22,6 +24,7 @@ import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
 import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import '../../splash/presentation/splash_feed_render_tracking.dart';
+import '../../stories/domain/story_item.dart';
 import '../../stories/domain/story_tray_bundle.dart';
 import '../../stories/domain/story_viewer_route_args.dart';
 import '../../stories/presentation/controllers/story_tray_controller.dart';
@@ -54,6 +57,8 @@ abstract final class FeedConstants {
   static const Duration deferredPrecacheDelay = Duration(milliseconds: 1400);
   static const double initialCacheExtent = 400.0;
 }
+
+enum _CurrentUserStoryAction { view, create }
 
 class FeedScreen extends ConsumerStatefulWidget {
   const FeedScreen({super.key});
@@ -136,11 +141,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     context.push(RoutePaths.feedList, extra: {'type': type});
   }
 
-  void _openStoryCreator() {
-    context.push(RoutePaths.storyCreate);
+  Future<void> _openStoryCreator() async {
+    await context.push(RoutePaths.storyCreate);
+    if (!mounted) return;
+    ref.invalidate(currentUserPendingStoriesProvider);
+    await ref.read(storyTrayControllerProvider.notifier).refresh();
   }
 
-  void _openStoryViewer(StoryTrayBundle bundle) {
+  Future<void> _openStoryViewer(StoryTrayBundle bundle) async {
     final initialStory = bundle.stories.isEmpty
         ? bundle.latestStory
         : bundle.stories.first;
@@ -148,22 +156,139 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return;
     }
 
-    final bundles = ref.read(storyTrayControllerProvider).asData?.value;
-    final viewerBundles = bundles == null || bundles.isEmpty
-        ? <StoryTrayBundle>[bundle]
-        : bundles;
+    if (bundle.isCurrentUser) {
+      await context.push(RoutePaths.storyViewerById(initialStory.id));
+    } else {
+      final bundles = ref.read(storyTrayControllerProvider).asData?.value;
+      final viewerBundles = bundles == null || bundles.isEmpty
+          ? <StoryTrayBundle>[bundle]
+          : bundles;
 
-    context.push(
-      RoutePaths.storyViewerById(initialStory.id),
-      extra: StoryViewerRouteArgs(
-        bundles: viewerBundles,
-        initialOwnerUid: bundle.ownerUid,
-        initialStoryId: initialStory.id,
-      ),
+      await context.push(
+        RoutePaths.storyViewerById(initialStory.id),
+        extra: StoryViewerRouteArgs(
+          bundles: viewerBundles,
+          initialOwnerUid: bundle.ownerUid,
+          initialStoryId: initialStory.id,
+        ),
+      );
+    }
+
+    if (!mounted) return;
+    ref.invalidate(currentUserPendingStoriesProvider);
+    await ref.read(storyTrayControllerProvider.notifier).refresh();
+  }
+
+  void _runCurrentUserStoryAction(
+    _CurrentUserStoryAction action,
+    StoryTrayBundle bundle,
+  ) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      switch (action) {
+        case _CurrentUserStoryAction.view:
+          unawaited(_openStoryViewer(bundle));
+        case _CurrentUserStoryAction.create:
+          unawaited(_openStoryCreator());
+      }
+    });
+  }
+
+  Future<void> _openCurrentUserStoryActions(StoryTrayBundle bundle) async {
+    final action = await AppOverlay.bottomSheet<_CurrentUserStoryAction>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s16,
+              0,
+              AppSpacing.s16,
+              AppSpacing.s24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Seu story',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  'Escolha o que deseja fazer com seus stories publicados.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.play_circle_fill_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    'Ver story',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Abrir seus stories ativos na visualizacao.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  onTap: () =>
+                      Navigator.of(context).pop(_CurrentUserStoryAction.view),
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.add_circle_rounded,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    'Publicar novo',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Criar outro story sem sair da bandeja.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  onTap: () =>
+                      Navigator.of(context).pop(_CurrentUserStoryAction.create),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+
+    if (!mounted || action == null) {
+      return;
+    }
+
+    _runCurrentUserStoryAction(action, bundle);
   }
 
   Future<void> _refreshFeedSurface() async {
+    ref.invalidate(currentUserPendingStoriesProvider);
     await Future.wait<void>([
       ref.read(feedControllerProvider.notifier).refresh(),
       ref.read(storyTrayControllerProvider.notifier).refresh(),
@@ -411,10 +536,15 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final currentUserAsync = ref.watch(currentUserProfileProvider);
     final gigsPreviewAsync = ref.watch(homeGigsPreviewProvider);
     final storyTrayAsync = ref.watch(storyTrayControllerProvider);
+    final hasRenderableFeedContent =
+        state.items.isNotEmpty ||
+        state.sectionItems.values.any((items) => items.isNotEmpty) ||
+        state.featuredItems.isNotEmpty;
     final shouldHoldForInitialDependencies =
         !_hasReleasedInitialLayout &&
         !stateAsync.hasError &&
         state.status != PaginationStatus.error &&
+        !hasRenderableFeedContent &&
         (currentUserAsync.asData == null && currentUserAsync.isLoading);
 
     if (state.isInitialLoading || shouldHoldForInitialDependencies) {

@@ -352,7 +352,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Padding(
-                padding: EdgeInsets.only(top: 1),
+                padding: EdgeInsets.only(top: AppSpacing.s2),
                 child: Icon(
                   Icons.info_outline_rounded,
                   size: 16,

@@ -8,6 +8,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../constants/app_constants.dart';
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/providers/app_config_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
@@ -519,7 +520,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: AppSpacing.s2),
             child: Icon(icon, size: 16, color: color),
           ),
           const SizedBox(width: AppSpacing.s8),
@@ -684,7 +685,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
       }
     } catch (e) {
       if (mounted) {
-        AppSnackBar.error(context, e.toString());
+        AppSnackBar.error(context, resolveErrorMessage(e));
       }
     }
   }

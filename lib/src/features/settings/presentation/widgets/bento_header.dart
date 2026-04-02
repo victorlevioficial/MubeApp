@@ -326,7 +326,7 @@ class _StatCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.s8),
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: AppRadius.all12,
             ),
             child: Icon(icon, color: iconColor, size: 16),
           ),

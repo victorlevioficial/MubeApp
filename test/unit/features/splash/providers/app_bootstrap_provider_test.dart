@@ -4,8 +4,11 @@ import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 // ignore: depend_on_referenced_packages
 import 'package:firebase_app_check_platform_interface/firebase_app_check_platform_interface.dart'
     show WebProvider;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/features/splash/providers/app_bootstrap_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _RecordingFirebaseAppCheck extends Fake
     implements app_check.FirebaseAppCheck {
@@ -48,6 +51,8 @@ class _RecordingFirebaseAppCheck extends Fake
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('initializeAppCheck', () {
     setUp(resetAppCheckActivationState);
     tearDown(resetAppCheckActivationState);
@@ -90,6 +95,41 @@ void main() {
 
         expect(appCheck.activateCalls, 1);
         expect(appCheck.tokenAutoRefreshEnabled, isTrue);
+      },
+    );
+  });
+
+  group('AppBootstrapNotifier', () {
+    setUp(resetAppCheckActivationState);
+    tearDown(resetAppCheckActivationState);
+
+    test(
+      'marks bootstrap as ready without waiting for app check activation',
+      () async {
+        SharedPreferences.setMockInitialValues(const <String, Object>{});
+        final activationCompleter = Completer<void>();
+        final container = ProviderContainer(
+          overrides: [
+            appCheckBootstrapperProvider.overrideWithValue(
+              () => activationCompleter.future,
+            ),
+            sharedPreferencesLoaderProvider.overrideWithValue(
+              SharedPreferences.getInstance,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(appBootstrapProvider.notifier)
+            .start()
+            .timeout(const Duration(milliseconds: 100));
+
+        expect(container.read(appBootstrapProvider), AppBootstrapState.ready);
+        expect(activationCompleter.isCompleted, isFalse);
+
+        activationCompleter.complete();
+        await Future<void>.delayed(Duration.zero);
       },
     );
   });

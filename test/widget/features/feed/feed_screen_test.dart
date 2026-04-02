@@ -189,7 +189,13 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -1200));
+      final emptyStateFinder = find.byType(
+        EmptyStateWidget,
+        skipOffstage: false,
+      );
+
+      expect(emptyStateFinder, findsOneWidget);
+      await tester.ensureVisible(emptyStateFinder);
       await tester.pumpAndSettle();
 
       expect(find.byType(EmptyStateWidget), findsOneWidget);
@@ -240,11 +246,21 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      await tester.scrollUntilVisible(
-        find.text('Gigs em aberto'),
-        200,
-        scrollable: find.byType(Scrollable).first,
+      final gigsHeaderFinder = find.text(
+        'Gigs em aberto',
+        skipOffstage: false,
       );
+      final previewGigFinder = find.text(
+        'Baterista para show pop',
+        skipOffstage: false,
+      );
+      final seeAllFinder = find.text('Ver todos', skipOffstage: false);
+
+      expect(gigsHeaderFinder, findsOneWidget);
+      expect(previewGigFinder, findsOneWidget);
+      expect(seeAllFinder, findsOneWidget);
+
+      await tester.ensureVisible(gigsHeaderFinder);
       await tester.pumpAndSettle();
 
       expect(find.text('Gigs em aberto'), findsOneWidget);
@@ -272,10 +288,11 @@ void main() {
       });
 
       await tester.scrollUntilVisible(
-        find.text('Locais pr\u00F3ximos'),
+        find.text('Casa Azul'),
         250,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Locais pr\u00F3ximos'), findsOneWidget);
       expect(find.text('Casa Azul'), findsWidgets);
@@ -284,7 +301,7 @@ void main() {
     testWidgets('renders matchpoint highlight below gigs preview', (
       tester,
     ) async {
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 2200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -332,6 +349,21 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
+      final gigsHeaderFinder = find.text(
+        'Gigs em aberto',
+        skipOffstage: false,
+      );
+      final matchpointFinder = find.byType(
+        MatchpointHighlightCard,
+        skipOffstage: false,
+      );
+
+      expect(gigsHeaderFinder, findsOneWidget);
+      expect(matchpointFinder, findsOneWidget);
+
+      await tester.ensureVisible(gigsHeaderFinder);
+      await tester.pumpAndSettle();
+
       final gigsTop = tester.getTopLeft(find.text('Gigs em aberto')).dy;
       final matchpointTop = tester
           .getTopLeft(find.byType(MatchpointHighlightCard))
@@ -369,11 +401,11 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      await tester.scrollUntilVisible(
-        find.text('Ativar MatchPoint'),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
+      final ctaFinder = find.text('Ativar MatchPoint', skipOffstage: false);
+
+      expect(ctaFinder, findsOneWidget);
+
+      await tester.ensureVisible(ctaFinder);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Ativar MatchPoint'));
@@ -422,7 +454,10 @@ void main() {
 
         expect(find.byType(FeedScreenSkeleton), findsNothing);
         expect(find.byType(CustomScrollView), findsOneWidget);
-        expect(find.byType(SkeletonShimmer), findsOneWidget);
+        expect(
+          find.byType(SkeletonShimmer, skipOffstage: false),
+          findsOneWidget,
+        );
 
         gigsPreviewController.add(const []);
         await tester.pump();

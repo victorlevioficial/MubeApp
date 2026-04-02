@@ -57,6 +57,37 @@ void main() {
     });
 
     test(
+      'loadAllData uses authenticated user fallback while profile is still loading',
+      () async {
+        fakeAuthRepository.emitUser(
+          FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+        );
+
+        fakeFeedRepository.discoverFeedPool = const [
+          FeedItem(
+            uid: 'artist-1',
+            nome: 'Artist 1',
+            nomeArtistico: 'Artist 1',
+            tipoPerfil: ProfileType.professional,
+            subCategories: ['singer'],
+            distanceKm: 2.0,
+          ),
+        ];
+        fakeFeedRepository.technicians = const [];
+        fakeFeedRepository.bands = const [];
+        fakeFeedRepository.studios = const [];
+        fakeFeedRepository.venues = const [];
+
+        final controller = container.read(feedControllerProvider.notifier);
+        await controller.loadAllData();
+
+        final state = container.read(feedControllerProvider).value!;
+        expect(state.status, PaginationStatus.noMoreData);
+        expect(state.items.map((item) => item.uid), ['artist-1']);
+      },
+    );
+
+    test(
       'loadAllData builds sections and first page from deterministic pool',
       () async {
         final user = TestData.user(uid: 'user-1');

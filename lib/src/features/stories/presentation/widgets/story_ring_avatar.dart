@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
+import '../../../../design_system/foundations/tokens/app_spacing.dart';
 
 class StoryRingAvatar extends StatelessWidget {
   const StoryRingAvatar({
@@ -12,6 +13,7 @@ class StoryRingAvatar extends StatelessWidget {
     this.photoPreviewUrl,
     this.size = 72,
     this.hasUnseen = false,
+    this.hasStory = false,
     this.showAddBadge = false,
   });
 
@@ -20,12 +22,34 @@ class StoryRingAvatar extends StatelessWidget {
   final String? photoPreviewUrl;
   final double size;
   final bool hasUnseen;
+  final bool hasStory;
   final bool showAddBadge;
 
   @override
   Widget build(BuildContext context) {
-    final ringWidth = hasUnseen ? 3.0 : 2.0;
+    final shouldShowStoryRing = hasUnseen || hasStory;
+    final ringWidth = hasUnseen
+        ? 3.0
+        : shouldShowStoryRing
+        ? 2.5
+        : 2.0;
     final innerSize = size - (ringWidth * 2) - 4;
+    final ringGradient = hasUnseen
+        ? const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryPressed],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : hasStory
+        ? LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.82),
+              AppColors.primaryPressed.withValues(alpha: 0.82),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : null;
 
     return SizedBox(
       width: size,
@@ -36,14 +60,8 @@ class StoryRingAvatar extends StatelessWidget {
           DecoratedBox(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: hasUnseen
-                  ? const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryPressed],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-              color: hasUnseen ? null : AppColors.surfaceHighlight,
+              gradient: ringGradient,
+              color: ringGradient == null ? AppColors.surfaceHighlight : null,
             ),
             child: Padding(
               padding: EdgeInsets.all(ringWidth),
@@ -52,7 +70,7 @@ class StoryRingAvatar extends StatelessWidget {
                   color: AppColors.background,
                   shape: BoxShape.circle,
                 ),
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.all(AppSpacing.s2),
                 child: UserAvatar(
                   photoUrl: photoUrl,
                   photoPreviewUrl: photoPreviewUrl,

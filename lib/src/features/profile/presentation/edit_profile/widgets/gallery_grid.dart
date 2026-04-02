@@ -295,12 +295,12 @@ class _EmptySlot extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                padding: const EdgeInsets.all(8),
+                padding: AppSpacing.all8,
                 decoration: BoxDecoration(
                   color: isLoading
                       ? AppColors.primary.withValues(alpha: 0.12)
                       : AppColors.surfaceHighlight,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.all8,
                 ),
                 child: isLoading
                     ? const SizedBox(
@@ -546,7 +546,7 @@ class _VideoCard extends StatelessWidget {
           else
             Center(
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: AppSpacing.all8,
                 decoration: BoxDecoration(
                   color: AppColors.background.withValues(alpha: 0.6),
                   shape: BoxShape.circle,

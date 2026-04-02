@@ -249,7 +249,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
                           child: GestureDetector(
                             onTap: () => _removeAttachment(index),
                             child: Container(
-                              padding: const EdgeInsets.all(4),
+                              padding: AppSpacing.all4,
                               decoration: const BoxDecoration(
                                 color: AppColors.error,
                                 shape: BoxShape.circle,

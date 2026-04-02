@@ -372,11 +372,10 @@ export const backfillContractorDisplayNames = onRequest(
  */
 export const setPublicUsername = onCall(
   {
-    region: "us-central1",
+    region: "southamerica-east1",
     memory: "256MiB",
     maxInstances: 1,
     cpu: "gcf_gen1",
-    enforceAppCheck: true,
     invoker: "public",
   },
   async (request) => {
@@ -401,10 +400,6 @@ export const setPublicUsername = onCall(
 
     const transactionResult = await db.runTransaction(async (transaction) => {
       const userSnapshot = await transaction.get(userRef);
-      if (!userSnapshot.exists) {
-        throw new HttpsError("not-found", "Perfil do usuario nao encontrado.");
-      }
-
       const userData = asRecord(userSnapshot.data());
       const currentUsername = normalizedPublicUsername(userData.username);
       const targetUsernameSnapshot = await transaction.get(targetUsernameRef);

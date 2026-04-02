@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
@@ -16,41 +15,29 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../../moderation/data/blocked_users_provider.dart';
-import '../data/featured_profiles_repository.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
 import '../domain/paginated_feed_response.dart';
 import '../domain/spotlight_rotation.dart';
-import 'controllers/feed_main_controller.dart';
-import 'controllers/featured_profiles_controller.dart';
 import 'feed_state.dart';
+import 'providers/feed_main_provider.dart';
+import 'providers/featured_profiles_provider.dart';
 
 export 'feed_state.dart';
 
 part 'feed_controller.g.dart';
-
-/// Constants for feed data fetching.
-abstract final class FeedDataConstants {
-  static const int sectionLimit = 10;
-  static const int mainFeedBatchSize = 20;
-}
 
 @Riverpod(keepAlive: true)
 class FeedController extends _$FeedController {
   List<FeedItem> _manualFeaturedItems = [];
   List<FeedItem> _spotlightItems = [];
   bool _blockedUsersListenerRegistered = false;
+  bool _profileHydrationListenerRegistered = false;
+  bool _pendingProfileHydrationRefresh = false;
   Timer? _favoritesSyncTimer;
-  Future<void>? _featuredProfilesLoad;
   Future<void>? _activeLoadAllData;
   Future<void>? _activeRefresh;
-
-  FeaturedProfilesController? _featuredProfilesController;
-  FeedMainController? _mainFeedController;
-  final FeedMainRuntime _mainFeedRuntime = FeedMainRuntime();
-  String? _mainFeedPoolUserId;
-  String _mainFeedPoolBlockedKey = '';
 
   FeedState _withSpotlightItems(FeedState currentState) {
     _spotlightItems = SpotlightRotation.build(
@@ -73,18 +60,6 @@ class FeedController extends _$FeedController {
     return uniqueItems.values.toList(growable: false);
   }
 
-  FeaturedProfilesController _getFeaturedProfilesController() {
-    return _featuredProfilesController ??= FeaturedProfilesController(
-      repository: ref.read(featuredProfilesRepositoryProvider),
-    );
-  }
-
-  FeedMainController _getMainFeedController() {
-    return _mainFeedController ??= FeedMainController(
-      feedRepository: ref.read(feedRepositoryProvider),
-    );
-  }
-
   void _registerBlockedUsersListener() {
     if (_blockedUsersListenerRegistered) return;
     _blockedUsersListenerRegistered = true;
@@ -99,9 +74,27 @@ class FeedController extends _$FeedController {
     });
   }
 
+  void _registerProfileHydrationListener() {
+    if (_profileHydrationListenerRegistered) return;
+    _profileHydrationListenerRegistered = true;
+    ref.listen<AsyncValue<AppUser?>>(currentUserProfileProvider, (
+      previous,
+      next,
+    ) {
+      final profile = next.asData?.value;
+      if (!_pendingProfileHydrationRefresh || profile == null) {
+        return;
+      }
+
+      _pendingProfileHydrationRefresh = false;
+      unawaited(_refreshWithHydratedProfile());
+    });
+  }
+
   @override
   FutureOr<FeedState> build() {
     _registerBlockedUsersListener();
+    _registerProfileHydrationListener();
     ref.onDispose(() {
       _favoritesSyncTimer?.cancel();
     });
@@ -171,10 +164,10 @@ class FeedController extends _$FeedController {
     _loadFeaturedProfilesInBackground();
 
     try {
-      final user = await _resolveCurrentUserProfile();
+      final resolvedUser = await _resolveFeedUser();
       if (!ref.mounted) return;
 
-      if (user == null) {
+      if (resolvedUser == null) {
         state = AsyncValue.data(
           currentState.copyWithFeed(
             isInitialLoading: false,
@@ -187,6 +180,9 @@ class FeedController extends _$FeedController {
         return;
       }
 
+      final user = resolvedUser.user;
+      _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
+
       final blockedIds = await _resolveBlockedIds(user: user);
       if (!ref.mounted) return;
 
@@ -194,14 +190,38 @@ class FeedController extends _$FeedController {
         user: user,
         blockedIds: blockedIds,
       );
-      final mainFeedState = await _fetchMainFeedState(
-        currentState: currentState,
-        user: user,
-        blockedIds: blockedIds,
-        reset: true,
-        forceInvalidatePool: true,
-      );
+      final mainFeedFuture = ref
+          .read(feedMainProvider.notifier)
+          .fetch(
+            currentState: currentState,
+            user: user,
+            blockedIds: blockedIds,
+            reset: true,
+            forceInvalidatePool: true,
+            batchSize: FeedDataConstants.mainFeedBatchSize,
+          );
       final sections = await sectionsFuture;
+      if (!ref.mounted) return;
+
+      final canRenderSectionsEarly =
+          showFullSkeleton &&
+          currentState.items.isEmpty &&
+          !currentState.sectionItems.values.any((items) => items.isNotEmpty);
+      if (canRenderSectionsEarly) {
+        state = AsyncValue.data(
+          _withSpotlightItems(
+            currentState.copyWithFeed(
+              sectionItems: sections,
+              isInitialLoading: false,
+              status: PaginationStatus.loading,
+              clearError: true,
+              clearLastDocument: true,
+            ),
+          ),
+        );
+      }
+
+      final mainFeedState = await mainFeedFuture;
       if (!ref.mounted) return;
 
       if (mainFeedState.status == PaginationStatus.error) {
@@ -347,47 +367,27 @@ class FeedController extends _$FeedController {
   }
 
   void _loadFeaturedProfilesInBackground() {
-    _featuredProfilesLoad ??= _loadFeaturedProfiles();
-  }
-
-  Future<void> _loadFeaturedProfiles() async {
-    final featuredStopwatch = AppPerformanceTracker.startSpan(
-      'feed.featured_profiles',
-    );
-    var featuredStatus = 'done';
-    try {
-      if (Firebase.apps.isEmpty) {
-        featuredStatus = 'skipped';
-        return;
-      }
-
-      final featured = await _getFeaturedProfilesController()
-          .loadFeaturedProfiles();
-      if (!ref.mounted) return;
-      _manualFeaturedItems = featured;
-      AppLogger.debug(
-        'FeedController: featured profiles carregados: ${featured.length}',
-      );
-      final currentState = state.value ?? const FeedState();
-      state = AsyncValue.data(_withSpotlightItems(currentState));
-      AppLogger.debug(
-        'FeedController: state atualizado com ${_spotlightItems.length} destaques',
-      );
-    } catch (error, stack) {
-      featuredStatus = 'error';
-      AppLogger.error(
-        'FeedController: featured profiles indisponiveis no ambiente atual',
-        error,
-        stack,
-      );
-    } finally {
-      AppPerformanceTracker.finishSpan(
-        'feed.featured_profiles',
-        featuredStopwatch,
-        data: {'status': featuredStatus, 'items': _spotlightItems.length},
-      );
-      _featuredProfilesLoad = null;
-    }
+    ref
+        .read(featuredProfilesProvider.future)
+        .then((featured) {
+          if (!ref.mounted) return;
+          _manualFeaturedItems = featured;
+          AppLogger.debug(
+            'FeedController: featured profiles carregados: ${featured.length}',
+          );
+          final currentState = state.value ?? const FeedState();
+          state = AsyncValue.data(_withSpotlightItems(currentState));
+          AppLogger.debug(
+            'FeedController: state atualizado com ${_spotlightItems.length} destaques',
+          );
+        })
+        .catchError((error, stack) {
+          AppLogger.error(
+            'FeedController: featured profiles indisponiveis no ambiente atual',
+            error,
+            stack,
+          );
+        });
   }
 
   void _scheduleFavoritesSync() {
@@ -404,48 +404,6 @@ class FeedController extends _$FeedController {
         );
       }
     });
-  }
-
-  Future<FeedState> _fetchMainFeedState({
-    required FeedState currentState,
-    required AppUser user,
-    required List<String> blockedIds,
-    required bool reset,
-    required bool forceInvalidatePool,
-  }) async {
-    final userLat = (user.location?['lat'] as num?)?.toDouble();
-    final userLong = (user.location?['lng'] as num?)?.toDouble();
-    final nextBlockedKey = _buildBlockedIdsKey(blockedIds);
-    final shouldInvalidatePool =
-        forceInvalidatePool ||
-        !_mainFeedRuntime.hasLoadedPool ||
-        _mainFeedPoolUserId != user.uid ||
-        _mainFeedRuntime.userLat != userLat ||
-        _mainFeedRuntime.userLong != userLong ||
-        _mainFeedPoolBlockedKey != nextBlockedKey;
-
-    _mainFeedPoolUserId = user.uid;
-    _mainFeedPoolBlockedKey = nextBlockedKey;
-    _mainFeedRuntime.userLat = userLat;
-    _mainFeedRuntime.userLong = userLong;
-
-    final nextState = await _getMainFeedController().fetchMainFeed(
-      currentState: currentState,
-      user: user,
-      blockedIds: blockedIds,
-      runtime: _mainFeedRuntime,
-      reset: reset,
-      invalidatePool: shouldInvalidatePool,
-      batchSize: FeedDataConstants.mainFeedBatchSize,
-    );
-
-    return nextState.copyWithFeed(clearLastDocument: true);
-  }
-
-  String _buildBlockedIdsKey(List<String> blockedIds) {
-    if (blockedIds.isEmpty) return '';
-    final sortedIds = [...blockedIds]..sort();
-    return sortedIds.join('|');
   }
 
   // ignore: unused_element
@@ -519,9 +477,9 @@ class FeedController extends _$FeedController {
       ),
     );
 
-    final user = await _resolveCurrentUserProfile();
+    final resolvedUser = await _resolveFeedUser();
     if (!ref.mounted) return;
-    if (user == null) {
+    if (resolvedUser == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
           status: PaginationStatus.error,
@@ -531,16 +489,21 @@ class FeedController extends _$FeedController {
       return;
     }
 
+    final user = resolvedUser.user;
+    _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
     final blockedIds = await _resolveBlockedIds(user: user);
     if (!ref.mounted) return;
 
-    final nextState = await _fetchMainFeedState(
-      currentState: currentState,
-      user: user,
-      blockedIds: blockedIds,
-      reset: false,
-      forceInvalidatePool: false,
-    );
+    final nextState = await ref
+        .read(feedMainProvider.notifier)
+        .fetch(
+          currentState: currentState,
+          user: user,
+          blockedIds: blockedIds,
+          reset: false,
+          forceInvalidatePool: false,
+          batchSize: FeedDataConstants.mainFeedBatchSize,
+        );
     if (!ref.mounted) return;
 
     state = AsyncValue.data(
@@ -591,9 +554,9 @@ class FeedController extends _$FeedController {
       ),
     );
 
-    final user = await _resolveCurrentUserProfile();
+    final resolvedUser = await _resolveFeedUser();
     if (!ref.mounted) return;
-    if (user == null) {
+    if (resolvedUser == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
           currentFilter: filter,
@@ -607,6 +570,8 @@ class FeedController extends _$FeedController {
       return;
     }
 
+    final user = resolvedUser.user;
+    _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
     final blockedIds = await _resolveBlockedIds(user: user);
     if (!ref.mounted) return;
 
@@ -619,13 +584,16 @@ class FeedController extends _$FeedController {
       clearError: true,
       clearLastDocument: true,
     );
-    final nextState = await _fetchMainFeedState(
-      currentState: baseState,
-      user: user,
-      blockedIds: blockedIds,
-      reset: true,
-      forceInvalidatePool: false,
-    );
+    final nextState = await ref
+        .read(feedMainProvider.notifier)
+        .fetch(
+          currentState: baseState,
+          user: user,
+          blockedIds: blockedIds,
+          reset: true,
+          forceInvalidatePool: false,
+          batchSize: FeedDataConstants.mainFeedBatchSize,
+        );
     if (!ref.mounted) return;
 
     state = AsyncValue.data(
@@ -710,13 +678,12 @@ class FeedController extends _$FeedController {
     return currentState.isLoadingMore;
   }
 
-  Future<AppUser?> _resolveCurrentUserProfile({
-    Duration timeout = const Duration(seconds: 3),
-  }) async {
+  Future<_ResolvedFeedUser?> _resolveFeedUser() async {
     final profileResolveStopwatch = AppPerformanceTracker.startSpan(
       'feed.resolve_current_user_profile',
     );
     if (!ref.mounted) return null;
+
     final immediate = ref.read(currentUserProfileProvider).value;
     if (immediate != null) {
       AppPerformanceTracker.finishSpan(
@@ -724,11 +691,11 @@ class FeedController extends _$FeedController {
         profileResolveStopwatch,
         data: {'source': 'cached', 'has_profile': true},
       );
-      return immediate;
+      return _ResolvedFeedUser(user: immediate, usedAuthFallback: false);
     }
 
-    final uid = ref.read(authRepositoryProvider).currentUser?.uid;
-    if (uid == null) {
+    final authUser = ref.read(authRepositoryProvider).currentUser;
+    if (authUser == null) {
       AppPerformanceTracker.finishSpan(
         'feed.resolve_current_user_profile',
         profileResolveStopwatch,
@@ -737,29 +704,42 @@ class FeedController extends _$FeedController {
       return null;
     }
 
-    try {
-      final profile = await ref
-          .read(authRepositoryProvider)
-          .watchUser(uid)
-          .where((user) => user != null)
-          .cast<AppUser>()
-          .first
-          .timeout(timeout);
-      AppPerformanceTracker.finishSpan(
-        'feed.resolve_current_user_profile',
-        profileResolveStopwatch,
-        data: {'source': 'stream', 'has_profile': true},
-      );
-      return profile;
-    } catch (_) {
-      final fallback = ref.read(currentUserProfileProvider).value;
-      AppPerformanceTracker.finishSpan(
-        'feed.resolve_current_user_profile',
-        profileResolveStopwatch,
-        data: {'source': 'fallback', 'has_profile': fallback != null},
-      );
-      return fallback;
+    final fallbackUser = AppUser(
+      uid: authUser.uid,
+      email: authUser.email ?? '',
+      nome: authUser.displayName,
+      foto: authUser.photoURL,
+    );
+    AppPerformanceTracker.finishSpan(
+      'feed.resolve_current_user_profile',
+      profileResolveStopwatch,
+      data: {'source': 'auth_fallback', 'has_profile': false},
+    );
+    return _ResolvedFeedUser(user: fallbackUser, usedAuthFallback: true);
+  }
+
+  Future<void> _refreshWithHydratedProfile() async {
+    final activeLoad = _activeLoadAllData;
+    if (activeLoad != null) {
+      await activeLoad;
     }
+
+    if (!ref.mounted) return;
+    if (_activeRefresh != null) return;
+
+    final currentState = state.value;
+    final hasAnyContent =
+        currentState != null &&
+        (currentState.items.isNotEmpty ||
+            currentState.sectionItems.values.any((items) => items.isNotEmpty) ||
+            currentState.featuredItems.isNotEmpty);
+
+    if (!hasAnyContent) {
+      await loadAllData();
+      return;
+    }
+
+    await refresh();
   }
 
   Future<List<String>> _resolveBlockedIds({
@@ -793,4 +773,14 @@ class _HomeSectionResult {
 
   final FeedSectionType type;
   final List<FeedItem> items;
+}
+
+class _ResolvedFeedUser {
+  const _ResolvedFeedUser({
+    required this.user,
+    required this.usedAuthFallback,
+  });
+
+  final AppUser user;
+  final bool usedAuthFallback;
 }

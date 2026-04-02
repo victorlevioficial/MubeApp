@@ -656,7 +656,7 @@ extension _FeedHeaderUi on _FeedHeaderState {
           Container(
             width: 20,
             height: 20,
-            margin: const EdgeInsets.only(top: 1),
+            margin: const EdgeInsets.only(top: AppSpacing.s2),
             decoration: BoxDecoration(
               color: AppColors.textPrimary.withValues(alpha: 0.16),
               shape: BoxShape.circle,
@@ -890,7 +890,10 @@ class _NotificationButton extends StatelessWidget {
               top: -4,
               right: -4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s8,
+                  vertical: AppSpacing.s4,
+                ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [AppColors.primary, AppColors.primaryPressed],

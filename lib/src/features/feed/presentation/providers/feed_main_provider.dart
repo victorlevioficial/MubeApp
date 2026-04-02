@@ -1,3 +1,5 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../../../../core/errors/error_message_resolver.dart';
 import '../../../../core/mixins/pagination_mixin.dart';
 import '../../../../utils/app_performance_tracker.dart';
@@ -8,31 +10,37 @@ import '../../domain/feed_discovery.dart';
 import '../../domain/feed_item.dart';
 import '../feed_state.dart';
 
-/// Runtime cache for the fully sorted discovery pool.
-class FeedMainRuntime {
-  List<FeedItem> allSortedUsers = [];
-  bool hasLoadedPool = false;
-  bool isPoolExhaustive = false;
-  int loadedPoolTarget = 0;
-  double? userLat;
-  double? userLong;
-}
+part 'feed_main_provider.g.dart';
 
-/// Controller responsible for deterministic main feed pagination.
-class FeedMainController {
+/// Provider que gerencia o feed principal com paginação determinística.
+///
+/// Substitui o antigo `FeedMainController` + `FeedMainRuntime` por um
+/// Notifier Riverpod gerenciado, permitindo testes e reuso sem
+/// instanciação manual.
+@Riverpod(keepAlive: true)
+class FeedMain extends _$FeedMain {
   static const int _initialPoolPages = 2;
-  final FeedRepository _feedRepository;
 
-  const FeedMainController({required FeedRepository feedRepository})
-    : _feedRepository = feedRepository;
+  final List<FeedItem> _allSortedUsers = [];
+  bool _hasLoadedPool = false;
+  bool _isPoolExhaustive = false;
+  int _loadedPoolTarget = 0;
+  double? _userLat;
+  double? _userLong;
+  String? _poolUserId;
+  String _poolBlockedKey = '';
 
-  Future<FeedState> fetchMainFeed({
+  @override
+  FeedState build() {
+    return const FeedState();
+  }
+
+  Future<FeedState> fetch({
     required FeedState currentState,
     required AppUser user,
     required List<String> blockedIds,
-    required FeedMainRuntime runtime,
     required bool reset,
-    required bool invalidatePool,
+    required bool forceInvalidatePool,
     required int batchSize,
   }) async {
     final mainFeedStopwatch = AppPerformanceTracker.startSpan(
@@ -40,20 +48,42 @@ class FeedMainController {
       data: {'reset': reset, 'filter': currentState.currentFilter},
     );
 
-    if (reset && invalidatePool) {
-      runtime.allSortedUsers = [];
-      runtime.hasLoadedPool = false;
-      runtime.isPoolExhaustive = false;
-      runtime.loadedPoolTarget = 0;
+    if (reset && forceInvalidatePool) {
+      _allSortedUsers.clear();
+      _hasLoadedPool = false;
+      _isPoolExhaustive = false;
+      _loadedPoolTarget = 0;
+    }
+
+    final nextUserLat = (user.location?['lat'] as num?)?.toDouble();
+    final nextUserLong = (user.location?['lng'] as num?)?.toDouble();
+    final nextBlockedKey = _buildBlockedIdsKey(blockedIds);
+    final shouldInvalidatePool =
+        forceInvalidatePool ||
+        !_hasLoadedPool ||
+        _poolUserId != user.uid ||
+        _poolBlockedKey != nextBlockedKey ||
+        _userLat != nextUserLat ||
+        _userLong != nextUserLong;
+
+    _poolUserId = user.uid;
+    _poolBlockedKey = nextBlockedKey;
+    _userLat = nextUserLat;
+    _userLong = nextUserLong;
+
+    if (shouldInvalidatePool) {
+      _allSortedUsers.clear();
+      _hasLoadedPool = false;
+      _isPoolExhaustive = false;
+      _loadedPoolTarget = 0;
     }
 
     try {
       var expandedPoolDuringFetch = false;
-      if (!runtime.hasLoadedPool) {
-        final failureMessage = await _loadDiscoveryPoolIntoRuntime(
+      if (!_hasLoadedPool) {
+        final failureMessage = await _loadDiscoveryPool(
           user: user,
           blockedIds: blockedIds,
-          runtime: runtime,
           targetResults: _initialPoolTarget(batchSize),
           fastPartialThreshold: batchSize,
           markName: 'feed.main_pool.ready',
@@ -73,7 +103,7 @@ class FeedMainController {
       }
 
       var filteredItems = _applyCurrentFilter(
-        runtime.allSortedUsers,
+        _allSortedUsers,
         currentState.currentFilter,
       );
       final page = reset ? 0 : currentState.currentPage;
@@ -83,14 +113,12 @@ class FeedMainController {
         filteredLength: filteredItems.length,
         startIndex: startIndex,
         batchSize: batchSize,
-        runtime: runtime,
       )) {
         expandedPoolDuringFetch = true;
-        final nextTarget = _nextPoolTarget(runtime, batchSize);
-        final failureMessage = await _loadDiscoveryPoolIntoRuntime(
+        final nextTarget = _nextPoolTarget();
+        final failureMessage = await _loadDiscoveryPool(
           user: user,
           blockedIds: blockedIds,
-          runtime: runtime,
           targetResults: nextTarget,
           markName: 'feed.main_pool.expanded',
         );
@@ -106,7 +134,7 @@ class FeedMainController {
           );
         }
         filteredItems = _applyCurrentFilter(
-          runtime.allSortedUsers,
+          _allSortedUsers,
           currentState.currentFilter,
         );
       }
@@ -121,7 +149,7 @@ class FeedMainController {
           data: {
             'status': 'no_more_data',
             'items': baseState.items.length,
-            'pool_items': runtime.allSortedUsers.length,
+            'pool_items': _allSortedUsers.length,
             'filtered_items': filteredItems.length,
             ..._diagnosticCounts(filteredItems, prefix: 'filtered'),
           },
@@ -139,8 +167,7 @@ class FeedMainController {
           : expandedPoolDuringFetch
           ? filteredItems.sublist(0, endIndex)
           : [...currentState.items, ...nextSlice];
-      final hasMore =
-          endIndex < filteredItems.length || _canExpandPool(runtime);
+      final hasMore = endIndex < filteredItems.length || _canExpandPool();
 
       AppPerformanceTracker.finishSpan(
         'feed.main_fetch',
@@ -149,7 +176,7 @@ class FeedMainController {
           'status': hasMore ? 'loaded' : 'no_more_data',
           'items': pagedItems.length,
           'batch_items': nextSlice.length,
-          'pool_items': runtime.allSortedUsers.length,
+          'pool_items': _allSortedUsers.length,
           'filtered_items': filteredItems.length,
           'expanded_pool': expandedPoolDuringFetch,
           ..._diagnosticCounts(filteredItems, prefix: 'filtered'),
@@ -183,14 +210,14 @@ class FeedMainController {
     );
   }
 
-  int _nextPoolTarget(FeedMainRuntime runtime, int batchSize) {
-    if (!_canExpandPool(runtime)) {
-      return runtime.loadedPoolTarget;
+  int _nextPoolTarget() {
+    if (!_canExpandPool()) {
+      return _loadedPoolTarget;
     }
 
-    final currentTarget = runtime.loadedPoolTarget > 0
-        ? runtime.loadedPoolTarget
-        : _initialPoolTarget(batchSize);
+    final currentTarget = _loadedPoolTarget > 0
+        ? _loadedPoolTarget
+        : _initialPoolTarget(FeedDataConstants.mainFeedBatchSize);
     final doubledTarget = currentTarget * 2;
     return doubledTarget.clamp(
       currentTarget,
@@ -198,34 +225,32 @@ class FeedMainController {
     );
   }
 
-  bool _canExpandPool(FeedMainRuntime runtime) {
-    return !runtime.isPoolExhaustive &&
-        runtime.loadedPoolTarget <
-            FeedRepository.defaultDiscoverPoolTargetResults;
+  bool _canExpandPool() {
+    return !_isPoolExhaustive &&
+        _loadedPoolTarget < FeedRepository.defaultDiscoverPoolTargetResults;
   }
 
   bool _shouldExpandPool({
     required int filteredLength,
     required int startIndex,
     required int batchSize,
-    required FeedMainRuntime runtime,
   }) {
-    if (!_canExpandPool(runtime)) return false;
+    if (!_canExpandPool()) return false;
     return (filteredLength - startIndex) < batchSize;
   }
 
-  Future<String?> _loadDiscoveryPoolIntoRuntime({
+  Future<String?> _loadDiscoveryPool({
     required AppUser user,
     required List<String> blockedIds,
-    required FeedMainRuntime runtime,
     required int targetResults,
     required String markName,
     int? fastPartialThreshold,
   }) async {
-    final poolResult = await _feedRepository.getDiscoverFeedPool(
+    final repository = ref.read(feedRepositoryProvider);
+    final poolResult = await repository.getDiscoverFeedPool(
       currentUserId: user.uid,
-      userLat: runtime.userLat,
-      userLong: runtime.userLong,
+      userLat: _userLat,
+      userLong: _userLong,
       excludedIds: blockedIds,
       targetResults: targetResults,
       fastPartialThreshold: fastPartialThreshold,
@@ -233,18 +258,19 @@ class FeedMainController {
 
     String? failureMessage;
     poolResult.fold((error) => failureMessage = error.message, (pool) {
-      runtime.allSortedUsers = _filterMainDiscoveryItems(pool.items);
-      runtime.hasLoadedPool = true;
-      runtime.isPoolExhaustive = pool.isExhaustive;
-      runtime.loadedPoolTarget = targetResults;
+      _allSortedUsers.clear();
+      _allSortedUsers.addAll(_filterMainDiscoveryItems(pool.items));
+      _hasLoadedPool = true;
+      _isPoolExhaustive = pool.isExhaustive;
+      _loadedPoolTarget = targetResults;
       AppPerformanceTracker.mark(
         markName,
         data: {
-          'pool_items': runtime.allSortedUsers.length,
+          'pool_items': _allSortedUsers.length,
           'target_results': targetResults,
-          'is_exhaustive': runtime.isPoolExhaustive,
-          'can_expand_more': _canExpandPool(runtime),
-          ..._diagnosticCounts(runtime.allSortedUsers, prefix: 'pool'),
+          'is_exhaustive': _isPoolExhaustive,
+          'can_expand_more': _canExpandPool(),
+          ..._diagnosticCounts(_allSortedUsers, prefix: 'pool'),
         },
       );
     });
@@ -326,4 +352,16 @@ class FeedMainController {
       '${prefix}_without_distance': withoutDistance,
     };
   }
+
+  String _buildBlockedIdsKey(List<String> blockedIds) {
+    if (blockedIds.isEmpty) return '';
+    final sortedIds = [...blockedIds]..sort();
+    return sortedIds.join('|');
+  }
+}
+
+/// Constants for feed data fetching.
+abstract final class FeedDataConstants {
+  static const int sectionLimit = 10;
+  static const int mainFeedBatchSize = 20;
 }

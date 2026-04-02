@@ -1,7 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../utils/app_logger.dart';
+import '../../../feed/domain/feed_item.dart';
 import '../../../feed/presentation/feed_controller.dart';
 import '../../data/story_repository.dart';
+import '../../domain/story_item.dart';
+import '../../domain/story_repository_exception.dart';
 import '../../domain/story_tray_bundle.dart';
 
 final storyTrayControllerProvider =
@@ -9,18 +14,34 @@ final storyTrayControllerProvider =
       StoryTrayController.new,
     );
 
+final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
+  ref,
+) async {
+  try {
+    return await ref
+        .read(storyRepositoryProvider)
+        .loadCurrentUserProcessingStories();
+  } catch (error, stackTrace) {
+    AppLogger.warning(
+      'Falha ao carregar stories pendentes do usuario atual',
+      error,
+      stackTrace,
+    );
+    return const <StoryItem>[];
+  }
+});
+
 class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
   @override
-  Future<List<StoryTrayBundle>> build() {
+  Future<List<StoryTrayBundle>> build() async {
     final discoveryOwnerIds = ref.watch(
       feedControllerProvider.select(_discoveryOwnerFingerprint),
     );
     final ownerIds = discoveryOwnerIds.isEmpty
         ? const <String>[]
         : discoveryOwnerIds.split('|');
-    return ref
-        .read(storyRepositoryProvider)
-        .loadTray(discoveryOwnerIds: ownerIds);
+
+    return _loadTray(ownerIds);
   }
 
   Future<void> refresh() async {
@@ -31,31 +52,90 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
         ? const <String>[]
         : discoveryOwnerIds.split('|');
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => ref
+    state = await AsyncValue.guard(() => _loadTray(ownerIds));
+  }
+
+  Future<List<StoryTrayBundle>> _loadTray(List<String> ownerIds) async {
+    try {
+      return await ref
           .read(storyRepositoryProvider)
-          .loadTray(discoveryOwnerIds: ownerIds),
-    );
+          .loadTray(discoveryOwnerIds: ownerIds);
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao carregar a bandeja ampla de stories, tentando fallback',
+        error,
+        stackTrace,
+      );
+
+      try {
+        return await ref.read(storyRepositoryProvider).loadTray(
+          includePublicOwners: false,
+        );
+      } catch (fallbackError, fallbackStackTrace) {
+        AppLogger.error(
+          'Falha ao carregar a bandeja de stories',
+          fallbackError,
+          fallbackStackTrace,
+        );
+        if (fallbackError is StoryRepositoryException) {
+          rethrow;
+        }
+        throw StoryRepositoryException.loadTrayFailed();
+      }
+    }
   }
 }
 
 String _discoveryOwnerFingerprint(AsyncValue<FeedState> feedStateAsync) {
-  final ownerIds = <String>{};
-  final feedState = feedStateAsync.value;
+  return buildStoryTrayDiscoveryFingerprint(feedStateAsync.value);
+}
+
+const int _maxStoryTrayFeaturedOwners = 4;
+const int _maxStoryTraySectionOwnersPerSection = 2;
+const int _maxStoryTrayMainFeedOwners = 8;
+const int _maxStoryTrayDiscoveryOwners = 16;
+
+@visibleForTesting
+String buildStoryTrayDiscoveryFingerprint(FeedState? feedState) {
   if (feedState == null) {
     return '';
   }
 
-  for (final item in feedState.featuredItems) {
-    ownerIds.add(item.uid);
-  }
-  for (final item in feedState.items) {
-    ownerIds.add(item.uid);
-  }
-  for (final sectionItems in feedState.sectionItems.values) {
-    for (final item in sectionItems) {
+  final ownerIds = <String>{};
+
+  void collectOwnerIds(Iterable<FeedItem> items, {required int maxItems}) {
+    var collected = 0;
+    for (final item in items) {
+      if (item.uid.isEmpty || ownerIds.contains(item.uid)) {
+        continue;
+      }
+
       ownerIds.add(item.uid);
+      collected++;
+      if (collected >= maxItems ||
+          ownerIds.length >= _maxStoryTrayDiscoveryOwners) {
+        return;
+      }
     }
+  }
+
+  collectOwnerIds(
+    feedState.featuredItems,
+    maxItems: _maxStoryTrayFeaturedOwners,
+  );
+
+  for (final sectionItems in feedState.sectionItems.values) {
+    if (ownerIds.length >= _maxStoryTrayDiscoveryOwners) {
+      break;
+    }
+    collectOwnerIds(
+      sectionItems,
+      maxItems: _maxStoryTraySectionOwnersPerSection,
+    );
+  }
+
+  if (ownerIds.length < _maxStoryTrayDiscoveryOwners) {
+    collectOwnerIds(feedState.items, maxItems: _maxStoryTrayMainFeedOwners);
   }
 
   if (ownerIds.isEmpty) {

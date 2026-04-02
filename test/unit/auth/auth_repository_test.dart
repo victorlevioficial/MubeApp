@@ -6,6 +6,7 @@ import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_remote_data_source.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/utils/app_check_refresh_coordinator.dart';
 
 @GenerateNiceMocks([MockSpec<AuthRemoteDataSource>()])
 import 'auth_repository_test.mocks.dart';
@@ -426,6 +427,23 @@ void main() {
           expect(failure.message, contains('Update failed'));
         }, (_) => fail('Expected Left'));
       });
+
+      test('should sanitize raw not_found messages on update', () async {
+        when(
+          mockDataSource.updateUserProfile(any),
+        ).thenThrow(Exception('not_found'));
+
+        final result = await repository.updateUser(testUser);
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(
+            failure.message,
+            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+          );
+        }, (_) => fail('Expected Left'));
+      });
     });
 
     group('updatePublicUsername', () {
@@ -453,7 +471,112 @@ void main() {
         expect(result.isLeft(), true);
         result.fold((failure) {
           expect(failure, isA<ServerFailure>());
-          expect(failure.message, contains('Username update failed'));
+          expect(failure.message, 'Username update failed');
+        }, (_) => fail('Expected Left'));
+      });
+
+      test(
+        'should return Left(AuthFailure) when session refresh expires',
+        () async {
+          when(mockDataSource.updatePublicUsername('mube.oficial')).thenThrow(
+            FirebaseAuthException(
+              code: 'session-expired',
+              message: 'Auth token expired',
+            ),
+          );
+
+          final result = await repository.updatePublicUsername('mube.oficial');
+
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<AuthFailure>());
+            expect(
+              failure.message,
+              'Sua sessao expirou. Faca login novamente.',
+            );
+          }, (_) => fail('Expected Left'));
+        },
+      );
+
+      test(
+        'should return Left(ServerFailure) for App Check refresh errors',
+        () async {
+          when(mockDataSource.updatePublicUsername('mube.oficial')).thenThrow(
+            const AppCheckRefreshException(
+              status: AppCheckRefreshStatus.failed,
+              operationLabel: 'refresh de sessao',
+            ),
+          );
+
+          final result = await repository.updatePublicUsername('mube.oficial');
+
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<ServerFailure>());
+            expect(
+              failure.message,
+              contains('Falha na validacao de seguranca do app'),
+            );
+          }, (_) => fail('Expected Left'));
+        },
+      );
+
+      test('should sanitize raw not_found messages from the data source', () async {
+        when(
+          mockDataSource.updatePublicUsername('mube.oficial'),
+        ).thenThrow(Exception('not_found'));
+
+        final result = await repository.updatePublicUsername('mube.oficial');
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(
+            failure.message,
+            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+          );
+        }, (_) => fail('Expected Left'));
+      });
+    });
+
+    group('isPublicUsernameAvailable', () {
+      test('should sanitize raw not_found messages during username lookup', () async {
+        when(
+          mockDataSource.fetchUserProfileByUsername('mube.oficial'),
+        ).thenThrow(Exception('not_found'));
+
+        final result = await repository.isPublicUsernameAvailable(
+          'mube.oficial',
+        );
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(
+            failure.message,
+            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+          );
+        }, (_) => fail('Expected Left'));
+      });
+    });
+
+    group('ensureCurrentUserProfileExists', () {
+      test('should sanitize raw not_found messages while self-healing profile', () async {
+        final mockUser = _MockUser(uid: 'test-uid');
+        when(mockDataSource.currentUser).thenReturn(mockUser);
+        when(
+          mockDataSource.fetchUserProfile('test-uid'),
+        ).thenThrow(Exception('not_found'));
+
+        final result = await repository.ensureCurrentUserProfileExists();
+
+        expect(result.isLeft(), true);
+        result.fold((failure) {
+          expect(failure, isA<ServerFailure>());
+          expect(
+            failure.message,
+            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+          );
         }, (_) => fail('Expected Left'));
       });
     });

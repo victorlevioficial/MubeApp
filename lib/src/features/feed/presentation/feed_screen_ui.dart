@@ -25,6 +25,7 @@ extension _FeedScreenUi on _FeedScreenState {
     final showGigsPreview =
         gigsPreviewAsync.isLoading ||
         gigsPreviewAsync.asData?.value.isNotEmpty == true;
+    final pendingStoriesAsync = ref.watch(currentUserPendingStoriesProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,14 +45,10 @@ extension _FeedScreenUi on _FeedScreenState {
             ),
             if (currentUser != null)
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s12),
-                  child: StoryTray(
-                    currentUser: currentUser,
-                    storyBundles: storyTrayAsync.asData?.value ?? const [],
-                    onCreateStory: _openStoryCreator,
-                    onOpenStoryBundle: _openStoryViewer,
-                  ),
+                child: _buildStoryTraySection(
+                  currentUser: currentUser,
+                  storyTrayAsync: storyTrayAsync,
+                  pendingStoriesAsync: pendingStoriesAsync,
                 ),
               ),
             if (spotlightItems.isNotEmpty)
@@ -155,6 +152,165 @@ extension _FeedScreenUi on _FeedScreenState {
     );
   }
 
+  Widget _buildStoryTraySection({
+    required AppUser currentUser,
+    required AsyncValue<List<StoryTrayBundle>> storyTrayAsync,
+    required AsyncValue<List<StoryItem>> pendingStoriesAsync,
+  }) {
+    final storyBundles =
+        storyTrayAsync.asData?.value ?? const <StoryTrayBundle>[];
+    final pendingStories =
+        pendingStoriesAsync.asData?.value ?? const <StoryItem>[];
+    final trayErrorMessage = storyTrayAsync.hasError
+        ? resolveErrorMessage(storyTrayAsync.error!)
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          StoryTray(
+            currentUser: currentUser,
+            storyBundles: storyBundles,
+            pendingProcessingCount: pendingStories.length,
+            onCreateStory: () => unawaited(_openStoryCreator()),
+            onOpenStoryBundle: (bundle) => unawaited(_openStoryViewer(bundle)),
+            onOpenCurrentUserStoryOptions: (bundle) =>
+                unawaited(_openCurrentUserStoryActions(bundle)),
+          ),
+          if (pendingStories.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s20,
+                0,
+                AppSpacing.s20,
+                0,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: AppSpacing.all12,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: AppRadius.all12,
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.hourglass_top_rounded,
+                        color: AppColors.textSecondary,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            pendingStories.length == 1
+                                ? 'Seu video esta sendo processado'
+                                : '${pendingStories.length} stories estao sendo processados',
+                            style: AppTypography.labelLarge.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s4),
+                          Text(
+                            'Ele vai aparecer na bandeja assim que o processamento terminar.',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s12),
+                    AppButton.ghost(
+                      text: 'Atualizar',
+                      size: AppButtonSize.small,
+                      onPressed: () async {
+                        ref.invalidate(currentUserPendingStoriesProvider);
+                        await ref
+                            .read(storyTrayControllerProvider.notifier)
+                            .refresh();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (trayErrorMessage != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.s20,
+                0,
+                AppSpacing.s20,
+                0,
+              ),
+              child: Container(
+                width: double.infinity,
+                padding: AppSpacing.all12,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: AppRadius.all12,
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.textSecondary,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nao foi possivel carregar os stories',
+                            style: AppTypography.labelLarge.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.s4),
+                          Text(
+                            trayErrorMessage,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s12),
+                    AppButton.ghost(
+                      text: 'Tentar novamente',
+                      size: AppButtonSize.small,
+                      onPressed: () => ref
+                          .read(storyTrayControllerProvider.notifier)
+                          .refresh(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildErrorState(FeedController controller, String errorMessage) {
     return Scaffold(
       body: AppRefreshIndicator(
@@ -211,12 +367,12 @@ class _FeedMainSectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
+            padding: const EdgeInsets.all(AppSpacing.s8),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
                 colors: [AppColors.primary, AppColors.primaryPressed],
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.all8,
             ),
             child: const Icon(
               Icons.local_fire_department_rounded,

@@ -4,6 +4,7 @@ abstract final class StoryConstants {
   static const Duration storyLifetime = Duration(hours: 24);
   static const Duration imageDisplayDuration = Duration(seconds: 5);
   static const double targetAspectRatio = 9 / 16;
+  static const double targetAspectRatioTolerance = 0.02;
   static const double maxVerticalAspectRatio = 0.75;
   static const String storiesCollection = 'stories';
   static const String viewsSubcollection = 'views';
@@ -15,6 +16,11 @@ abstract final class StoryConstants {
 
   static bool isSupportedStoryAspectRatio(double aspectRatio) {
     return aspectRatio > 0 && aspectRatio <= maxVerticalAspectRatio;
+  }
+
+  static bool isExactStoryPhotoAspectRatio(double aspectRatio) {
+    return aspectRatio > 0 &&
+        (aspectRatio - targetAspectRatio).abs() <= targetAspectRatioTolerance;
   }
 
   static bool isSupportedVideoAspectRatio(double aspectRatio) {

@@ -54,7 +54,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void>? _inFlightSecurityContextRefresh;
   bool _googleSignInInitialized = false;
   static const String _functionsRegion = 'southamerica-east1';
-  static const String _publicUsernameFunctionsRegion = 'us-central1';
   static const Set<String> _blockedClientUpdateKeys = {
     'status',
     'report_count',
@@ -82,11 +81,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     FirebaseFunctions? publicUsernameFunctions,
     required app_check.FirebaseAppCheck appCheck,
   }) : _functions = functions,
-       _publicUsernameFunctions =
-           publicUsernameFunctions ??
-           FirebaseFunctions.instanceFor(
-             region: _publicUsernameFunctionsRegion,
-           ),
+       _publicUsernameFunctions = publicUsernameFunctions ?? functions,
        _appCheck = appCheck;
 
   @override
@@ -238,6 +233,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     try {
+      try {
+        await refreshSecurityContext();
+      } catch (e) {
+        // Best-effort: setPublicUsername does not enforce App Check on the
+        // server, so proceed even when the local token refresh fails.
+        AppLogger.warning(
+          'Security context refresh failed before setPublicUsername – proceeding anyway',
+          e,
+        );
+      }
+
       final result = await _callFunctionWithRecovery(
         'setPublicUsername',
         data: {'username': normalizedUsername},
@@ -262,6 +268,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         stack,
       );
       throw _mapPublicUsernameFunctionError(error);
+    } on FirebaseException catch (error, stack) {
+      AppLogger.error(
+        'Error calling setPublicUsername function in $_functionsRegion:',
+        error,
+        stack,
+      );
+      throw _mapPublicUsernameUnexpectedError(error);
+    } catch (error, stack) {
+      AppLogger.error(
+        'Unexpected error calling setPublicUsername function in $_functionsRegion:',
+        error,
+        stack,
+      );
+      throw _mapPublicUsernameUnexpectedError(error);
     }
   }
 
@@ -399,27 +419,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   Future<void> _refreshFunctionSecurityContext() async {
-    final currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      try {
-        await currentUser.getIdToken(true);
-        await currentUser.reload();
-      } catch (error, stack) {
-        AppLogger.warning(
-          'Falha ao atualizar token do FirebaseAuth antes do retry da Cloud Function',
-          error,
-          stack,
-          false,
-        );
-      }
-    }
+    await refreshSecurityContext();
+  }
 
-    await AppCheckRefreshCoordinator.ensureValidToken(
-      _appCheck,
-      operationLabel: 'retry de Cloud Function de auth',
-      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
-      throttledBackoff: _throttledAppCheckBackoff,
-    );
+  Future<HttpsCallableResult<dynamic>> _invokeCallable(
+    FirebaseFunctions functions,
+    String functionName, {
+    Object? data,
+  }) {
+    final callable = functions.httpsCallable(functionName);
+    return callable.call(data);
   }
 
   Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
@@ -427,10 +436,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     Object? data,
     FirebaseFunctions? functions,
   }) async {
-    final callable = (functions ?? _functions).httpsCallable(functionName);
+    final targetFunctions = functions ?? _functions;
 
     try {
-      return await callable.call(data);
+      return await _invokeCallable(targetFunctions, functionName, data: data);
     } on FirebaseFunctionsException catch (error) {
       if (!_isRecoverableFunctionsError(error)) rethrow;
 
@@ -438,7 +447,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '$functionName retornou ${error.code}. Atualizando contexto de seguranca e tentando novamente.',
       );
       await _refreshFunctionSecurityContext();
-      return await callable.call(data);
+      return await _invokeCallable(targetFunctions, functionName, data: data);
     }
   }
 
@@ -477,6 +486,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   Exception _mapPublicUsernameFunctionError(FirebaseFunctionsException error) {
     final message = error.message?.trim();
+    final messageLower = (error.message ?? '').toLowerCase();
+
+    if (messageLower.contains('app check') ||
+        messageLower.contains('appcheck')) {
+      return Exception(
+        'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+      );
+    }
 
     switch (error.code.toLowerCase()) {
       case 'invalid-argument':
@@ -493,11 +510,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       case 'permission-denied':
       case 'failed-precondition':
-        if ((error.message ?? '').toLowerCase().contains('app check')) {
-          return Exception(
-            'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
-          );
-        }
         return Exception(
           'A alteracao do @usuario foi bloqueada pelo servidor. Tente novamente em instantes.',
         );
@@ -508,6 +520,34 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               : 'Erro inesperado ao atualizar o @usuario.',
         );
     }
+  }
+
+  Exception _mapPublicUsernameUnexpectedError(Object error) {
+    final rawMessage = error.toString().trim();
+    final message = rawMessage.replaceFirst('Exception: ', '').trim();
+    final messageLower = message.toLowerCase();
+
+    if (messageLower.contains('app check') ||
+        messageLower.contains('appcheck')) {
+      return Exception(
+        'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+      );
+    }
+
+    if (messageLower == 'not_found' ||
+        messageLower == 'not-found' ||
+        messageLower.contains('[firebase_functions/not-found]') ||
+        messageLower.contains('firebase_functions/not-found')) {
+      return Exception(
+        'Servico de @usuario indisponivel. Verifique a Cloud Function setPublicUsername em $_functionsRegion.',
+      );
+    }
+
+    return Exception(
+      message.isNotEmpty
+          ? message
+          : 'Erro inesperado ao atualizar o @usuario.',
+    );
   }
 
   @override
