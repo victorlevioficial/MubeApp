@@ -521,64 +521,73 @@ void main() {
         },
       );
 
-      test('should sanitize raw not_found messages from the data source', () async {
-        when(
-          mockDataSource.updatePublicUsername('mube.oficial'),
-        ).thenThrow(Exception('not_found'));
+      test(
+        'should sanitize raw not_found messages from the data source',
+        () async {
+          when(
+            mockDataSource.updatePublicUsername('mube.oficial'),
+          ).thenThrow(Exception('not_found'));
 
-        final result = await repository.updatePublicUsername('mube.oficial');
+          final result = await repository.updatePublicUsername('mube.oficial');
 
-        expect(result.isLeft(), true);
-        result.fold((failure) {
-          expect(failure, isA<ServerFailure>());
-          expect(
-            failure.message,
-            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
-          );
-        }, (_) => fail('Expected Left'));
-      });
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<ServerFailure>());
+            expect(
+              failure.message,
+              'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+            );
+          }, (_) => fail('Expected Left'));
+        },
+      );
     });
 
     group('isPublicUsernameAvailable', () {
-      test('should sanitize raw not_found messages during username lookup', () async {
-        when(
-          mockDataSource.fetchUserProfileByUsername('mube.oficial'),
-        ).thenThrow(Exception('not_found'));
+      test(
+        'should sanitize raw not_found messages during username lookup',
+        () async {
+          when(
+            mockDataSource.fetchUserProfileByUsername('mube.oficial'),
+          ).thenThrow(Exception('not_found'));
 
-        final result = await repository.isPublicUsernameAvailable(
-          'mube.oficial',
-        );
-
-        expect(result.isLeft(), true);
-        result.fold((failure) {
-          expect(failure, isA<ServerFailure>());
-          expect(
-            failure.message,
-            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+          final result = await repository.isPublicUsernameAvailable(
+            'mube.oficial',
           );
-        }, (_) => fail('Expected Left'));
-      });
+
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<ServerFailure>());
+            expect(
+              failure.message,
+              'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+            );
+          }, (_) => fail('Expected Left'));
+        },
+      );
     });
 
     group('ensureCurrentUserProfileExists', () {
-      test('should sanitize raw not_found messages while self-healing profile', () async {
-        final mockUser = _MockUser(uid: 'test-uid');
-        when(mockDataSource.currentUser).thenReturn(mockUser);
-        when(
-          mockDataSource.fetchUserProfile('test-uid'),
-        ).thenThrow(Exception('not_found'));
+      test(
+        'should sanitize raw not_found messages while self-healing profile',
+        () async {
+          final mockUser = _MockUser(uid: 'test-uid');
+          when(mockDataSource.currentUser).thenReturn(mockUser);
+          when(
+            mockDataSource.fetchUserProfile('test-uid'),
+          ).thenThrow(Exception('not_found'));
 
-        final result = await repository.ensureCurrentUserProfileExists();
+          final result = await repository.ensureCurrentUserProfileExists();
 
-        expect(result.isLeft(), true);
-        result.fold((failure) {
-          expect(failure, isA<ServerFailure>());
-          expect(
-            failure.message,
-            'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
-          );
-        }, (_) => fail('Expected Left'));
-      });
+          expect(result.isLeft(), true);
+          result.fold((failure) {
+            expect(failure, isA<ServerFailure>());
+            expect(
+              failure.message,
+              'Servico solicitado indisponivel no servidor. Atualize o aplicativo e tente novamente.',
+            );
+          }, (_) => fail('Expected Left'));
+        },
+      );
     });
 
     group('getUsersByIds', () {

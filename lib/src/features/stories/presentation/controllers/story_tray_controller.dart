@@ -68,9 +68,9 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
       );
 
       try {
-        return await ref.read(storyRepositoryProvider).loadTray(
-          includePublicOwners: false,
-        );
+        return await ref
+            .read(storyRepositoryProvider)
+            .loadTray(includePublicOwners: false);
       } catch (fallbackError, fallbackStackTrace) {
         AppLogger.error(
           'Falha ao carregar a bandeja de stories',

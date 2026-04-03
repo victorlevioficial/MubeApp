@@ -544,9 +544,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
 
     return Exception(
-      message.isNotEmpty
-          ? message
-          : 'Erro inesperado ao atualizar o @usuario.',
+      message.isNotEmpty ? message : 'Erro inesperado ao atualizar o @usuario.',
     );
   }
 

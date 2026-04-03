@@ -776,10 +776,7 @@ class _HomeSectionResult {
 }
 
 class _ResolvedFeedUser {
-  const _ResolvedFeedUser({
-    required this.user,
-    required this.usedAuthFallback,
-  });
+  const _ResolvedFeedUser({required this.user, required this.usedAuthFallback});
 
   final AppUser user;
   final bool usedAuthFallback;

@@ -548,25 +548,27 @@ class StoryRepository {
           .limit(_publicTrayOwnerLimit * 3)
           .get();
 
-      final rankedOwners = snapshot.docs
-          .map((doc) {
-            final data = doc.data();
-            final ownerUid = doc.id.trim();
-            final accountStatus = (data['status'] as String?)?.trim() ?? '';
-            final latestStoryAt = _parseStoryStateTimestamp(
-              (data['story_state'] as Map?)?['latest_story_at'],
-            );
-            return (
-              ownerUid: ownerUid,
-              isActiveAccount: accountStatus.isEmpty || accountStatus == 'ativo',
-              latestStoryAt: latestStoryAt,
-            );
-          })
-          .where(
-            (entry) => entry.ownerUid.isNotEmpty && entry.isActiveAccount,
-          )
-          .toList(growable: false)
-        ..sort((a, b) => b.latestStoryAt.compareTo(a.latestStoryAt));
+      final rankedOwners =
+          snapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                final ownerUid = doc.id.trim();
+                final accountStatus = (data['status'] as String?)?.trim() ?? '';
+                final latestStoryAt = _parseStoryStateTimestamp(
+                  (data['story_state'] as Map?)?['latest_story_at'],
+                );
+                return (
+                  ownerUid: ownerUid,
+                  isActiveAccount:
+                      accountStatus.isEmpty || accountStatus == 'ativo',
+                  latestStoryAt: latestStoryAt,
+                );
+              })
+              .where(
+                (entry) => entry.ownerUid.isNotEmpty && entry.isActiveAccount,
+              )
+              .toList(growable: false)
+            ..sort((a, b) => b.latestStoryAt.compareTo(a.latestStoryAt));
 
       final ownerIds = <String>{};
       for (final entry in rankedOwners) {
@@ -602,7 +604,8 @@ class StoryRepository {
       return rawValue;
     }
     if (rawValue is String) {
-      return DateTime.tryParse(rawValue) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return DateTime.tryParse(rawValue) ??
+          DateTime.fromMillisecondsSinceEpoch(0);
     }
     return DateTime.fromMillisecondsSinceEpoch(0);
   }

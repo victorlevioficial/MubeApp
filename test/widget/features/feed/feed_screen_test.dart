@@ -246,10 +246,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      final gigsHeaderFinder = find.text(
-        'Gigs em aberto',
-        skipOffstage: false,
-      );
+      final gigsHeaderFinder = find.text('Gigs em aberto', skipOffstage: false);
       final previewGigFinder = find.text(
         'Baterista para show pop',
         skipOffstage: false,
@@ -349,10 +346,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
       });
 
-      final gigsHeaderFinder = find.text(
-        'Gigs em aberto',
-        skipOffstage: false,
-      );
+      final gigsHeaderFinder = find.text('Gigs em aberto', skipOffstage: false);
       final matchpointFinder = find.byType(
         MatchpointHighlightCard,
         skipOffstage: false,
