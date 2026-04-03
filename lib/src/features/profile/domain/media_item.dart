@@ -61,7 +61,11 @@ class MediaItem {
   });
 
   /// Whether this item has a local preview available.
-  bool get hasLocalPreview => localPath != null && localPath!.isNotEmpty;
+  bool get hasLocalPreview {
+    final path = localPath;
+    return path != null && path.isNotEmpty;
+  }
+
   bool get isProcessing => isUploading || isDeleting;
 
   /// Best image URL for grid/list previews.
@@ -122,8 +126,8 @@ class MediaItem {
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     return MediaItem(
-      id: json['id'] as String,
-      url: json['url'] as String,
+      id: (json['id'] as String?) ?? '',
+      url: (json['url'] as String?) ?? '',
       type: json['type'] == 'video' ? MediaType.video : MediaType.photo,
       thumbnailUrl: json['thumbnailUrl'] as String?,
       mediumUrl: json['mediumUrl'] as String?,

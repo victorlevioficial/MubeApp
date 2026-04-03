@@ -161,8 +161,9 @@ extension _FeedScreenUi on _FeedScreenState {
         storyTrayAsync.asData?.value ?? const <StoryTrayBundle>[];
     final pendingStories =
         pendingStoriesAsync.asData?.value ?? const <StoryItem>[];
-    final trayErrorMessage = storyTrayAsync.hasError
-        ? resolveErrorMessage(storyTrayAsync.error!)
+    final trayError = storyTrayAsync.error;
+    final trayErrorMessage = storyTrayAsync.hasError && trayError != null
+        ? resolveErrorMessage(trayError)
         : null;
 
     return Padding(

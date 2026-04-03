@@ -122,6 +122,30 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     final initializationToken = ++_initializationToken;
     final sourceUrl = widget.videoUrl;
 
+    // Validação preventiva: URLs vazias ou sem scheme causam crash nativo
+    // no iOS (SIGABRT) que não é capturável pelo try/catch do Dart.
+    if (sourceUrl.isEmpty) {
+      AppLogger.warning(
+        'GalleryVideoPlayer: URL de vídeo vazia, abortando inicialização.',
+      );
+      if (mounted) {
+        setState(() => _hasError = true);
+      }
+      return;
+    }
+
+    final uri = Uri.tryParse(sourceUrl);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      AppLogger.warning(
+        'GalleryVideoPlayer: URL de vídeo inválida ($sourceUrl), '
+        'abortando inicialização.',
+      );
+      if (mounted) {
+        setState(() => _hasError = true);
+      }
+      return;
+    }
+
     final initialized = await _tryInitializeController(
       videoUrl: sourceUrl,
       initializationToken: initializationToken,

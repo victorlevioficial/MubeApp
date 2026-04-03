@@ -115,7 +115,8 @@ class MatchProfilePreviewSheet extends StatelessWidget {
 
   /// Foto grande do candidato com bordas arredondadas.
   Widget _buildPhotoSection() {
-    if (user.foto == null || user.foto!.isEmpty) {
+    final fotoUrl = user.foto;
+    if (fotoUrl == null || fotoUrl.isEmpty) {
       return Container(
         height: 320,
         decoration: const BoxDecoration(
@@ -131,7 +132,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     return ClipRRect(
       borderRadius: AppRadius.all16,
       child: CachedNetworkImage(
-        imageUrl: user.foto!,
+        imageUrl: fotoUrl,
         height: 320,
         width: double.infinity,
         fit: BoxFit.cover,

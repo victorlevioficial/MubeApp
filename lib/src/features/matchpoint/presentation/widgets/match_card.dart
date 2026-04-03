@@ -40,9 +40,9 @@ class MatchCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // 1. Background Image
-              if (user.foto != null && user.foto!.isNotEmpty)
+              if (user.foto case final fotoUrl? when fotoUrl.isNotEmpty)
                 CachedNetworkImage(
-                  imageUrl: user.foto!,
+                  imageUrl: fotoUrl,
                   fit: BoxFit.cover,
                   fadeInDuration: Duration.zero,
                   fadeOutDuration: Duration.zero,
@@ -334,14 +334,15 @@ class MatchCard extends StatelessWidget {
 
   /// Calcula quantos gêneros em comum entre o usuário atual e o candidato
   int _getGenreCompatibility() {
-    if (currentUserGenres == null || currentUserGenres!.isEmpty) return 0;
+    final userGenres = currentUserGenres;
+    if (userGenres == null || userGenres.isEmpty) return 0;
 
     final candidateGenres = _getTags();
     if (candidateGenres.isEmpty) return 0;
 
     // Conta quantos gêneros do candidato estão na lista do usuário atual
     final commonGenres = candidateGenres
-        .where((g) => currentUserGenres!.contains(g))
+        .where((g) => userGenres.contains(g))
         .length;
 
     return commonGenres;
