@@ -177,12 +177,20 @@ class AppLogger {
       details.stack?.toString() ?? '',
     ].join(' ').toLowerCase();
 
-    final matchesImageContext = _handledImageFlutterErrorContextPatterns.any(
+    final matchesCause = _handledImageFlutterErrorCausePatterns.any(
       (pattern) => normalized.contains(pattern),
     );
-    if (!matchesImageContext) return false;
+    if (!matchesCause) return false;
 
-    return _handledImageFlutterErrorCausePatterns.any(
+    // If the cause is an HTTP 404 specifically, treat it as handled regardless
+    // of context — these are always missing-resource errors (deleted Storage
+    // files, expired URLs) and should never be reported as crashes.
+    if (normalized.contains('invalid statuscode: 404') ||
+        normalized.contains('404') && normalized.contains('httpexception')) {
+      return true;
+    }
+
+    return _handledImageFlutterErrorContextPatterns.any(
       (pattern) => normalized.contains(pattern),
     );
   }

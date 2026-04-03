@@ -38,6 +38,7 @@ class _MatchpointExploreScreenState
   bool _allCandidatesViewed = false;
   String _lastCandidatesSignature = '';
   int _lastHandledSwipeFeedbackId = -1;
+  ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
 
   @override
   void initState() {
@@ -46,7 +47,18 @@ class _MatchpointExploreScreenState
 
     // Force refresh when entering screen to avoid stale keepAlive cache.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.invalidate(matchpointCandidatesProvider);
+
+      _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
+        matchpointSwipeFeedbackProvider,
+        (previous, next) {
+          if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
+          _lastHandledSwipeFeedbackId = next.id;
+          ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
+          unawaited(_handleSwipeFeedback(next));
+        },
+      );
     });
   }
 
@@ -72,22 +84,13 @@ class _MatchpointExploreScreenState
 
   @override
   void dispose() {
+    _feedbackSubscription?.close();
     _swiperController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<MatchpointSwipeFeedbackEvent?>(matchpointSwipeFeedbackProvider, (
-      previous,
-      next,
-    ) {
-      if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
-      _lastHandledSwipeFeedbackId = next.id;
-      ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
-      unawaited(_handleSwipeFeedback(next));
-    });
-
     final candidatesAsync = ref.watch(matchpointCandidatesProvider);
 
     return Stack(
@@ -247,8 +250,7 @@ class _MatchpointExploreScreenState
     final bestUser = fullProfile ?? minimalUser;
     if (!mounted) return;
 
-    final navigator = Navigator.of(context);
-    await navigator.push(
+    final result = await Navigator.of(context).push<MatchSuccessNavIntent>(
       PageRouteBuilder(
         opaque: false,
         pageBuilder: (context, animation, secondaryAnimation) =>
@@ -259,6 +261,22 @@ class _MatchpointExploreScreenState
             ),
       ),
     );
+
+    // Handle navigation intent from the match overlay. The overlay cannot
+    // use GoRouter directly because it was pushed via Navigator.push.
+    if (result != null && mounted) {
+      unawaited(
+        context.push(
+          RoutePaths.conversationById(result.conversationId),
+          extra: {
+            'otherUserId': result.otherUserId,
+            'otherUserName': result.otherUserName,
+            'otherUserPhoto': result.otherUserPhoto,
+            'conversationType': 'matchpoint',
+          },
+        ),
+      );
+    }
   }
 
   List<String>? _getCurrentUserGenres() {

@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
 import '../../../../core/services/image_cache_config.dart';
@@ -10,9 +9,23 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../../routing/route_paths.dart';
 import '../../../chat/data/chat_repository.dart';
 import '../widgets/confetti_overlay.dart';
+
+/// Result returned when the user taps "Mandar Mensagem" on the match overlay.
+class MatchSuccessNavIntent {
+  final String conversationId;
+  final String otherUserId;
+  final String otherUserName;
+  final String? otherUserPhoto;
+
+  const MatchSuccessNavIntent({
+    required this.conversationId,
+    required this.otherUserId,
+    required this.otherUserName,
+    this.otherUserPhoto,
+  });
+}
 
 class MatchSuccessScreen extends ConsumerStatefulWidget {
   final AppUser currentUser;
@@ -150,16 +163,15 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                           widget.currentUser.uid,
                           widget.matchUser.uid,
                         );
-                    final router = GoRouter.of(context);
-                    router.pop();
-                    router.push(
-                      RoutePaths.conversationById(conversationId),
-                      extra: {
-                        'otherUserId': widget.matchUser.uid,
-                        'otherUserName': matchUserName,
-                        'otherUserPhoto': widget.matchUser.foto,
-                        'conversationType': 'matchpoint',
-                      },
+                    // Pop with a navigation intent so the parent (which has
+                    // a valid GoRouter context) handles the push.
+                    Navigator.of(context).pop(
+                      MatchSuccessNavIntent(
+                        conversationId: conversationId,
+                        otherUserId: widget.matchUser.uid,
+                        otherUserName: matchUserName,
+                        otherUserPhoto: widget.matchUser.foto,
+                      ),
                     );
                   },
                 ),
@@ -168,7 +180,7 @@ class _MatchSuccessScreenState extends ConsumerState<MatchSuccessScreen>
                   width: double.infinity,
                   child: AppButton.secondary(
                     text: 'Continuar Deslizando',
-                    onPressed: () => context.pop(),
+                    onPressed: () => Navigator.of(context).pop(),
                     isFullWidth: true,
                   ),
                 ),

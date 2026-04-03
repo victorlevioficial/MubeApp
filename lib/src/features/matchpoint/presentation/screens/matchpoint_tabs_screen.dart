@@ -24,11 +24,12 @@ class MatchpointTabsScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
-  final List<Widget> _screens = [
-    const MatchpointExploreScreen(),
-    const MatchpointMatchesScreen(),
-    const HashtagRankingScreen(),
-  ];
+  static const _tabCount = 3;
+
+  /// Tracks which tabs have been visited so we keep their state alive once
+  /// built, but avoid building all three on first frame (the root cause of
+  /// the iOS Swift-concurrency crash – too many Firebase operations at once).
+  final Set<int> _initializedTabs = {0};
 
   @override
   void initState() {
@@ -40,12 +41,29 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
     });
   }
 
+  Widget _buildTab(int index) {
+    switch (index) {
+      case 0:
+        return const MatchpointExploreScreen();
+      case 1:
+        return const MatchpointMatchesScreen();
+      case 2:
+        return const HashtagRankingScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: matchpointSelectedTabNotifier,
       builder: (context, rawIndex, child) {
-        final selectedIndex = rawIndex.clamp(0, _screens.length - 1);
+        final selectedIndex = rawIndex.clamp(0, _tabCount - 1);
+
+        // Mark tab as visited so it stays alive on future switches.
+        _initializedTabs.add(selectedIndex);
+
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppAppBar(
@@ -129,7 +147,14 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
               const SizedBox(height: AppSpacing.s8),
 
               Expanded(
-                child: IndexedStack(index: selectedIndex, children: _screens),
+                child: IndexedStack(
+                  index: selectedIndex,
+                  children: List.generate(_tabCount, (i) {
+                    if (_initializedTabs.contains(i)) return _buildTab(i);
+                    // Placeholder for tabs that haven't been visited yet.
+                    return const SizedBox.shrink();
+                  }),
+                ),
               ),
             ],
           ),

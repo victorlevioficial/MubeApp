@@ -1,0 +1,13 @@
+build/
+.dart_tool/
+ios/Pods/
+macos/Pods/
+android/.gradle/
+android/app/build/
+*.log
+*.txt
+*.png
+*.jpg
+*.jpeg
+*.svg
+node_modules/
