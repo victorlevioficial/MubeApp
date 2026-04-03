@@ -55,7 +55,7 @@ final class FeedMainProvider extends $NotifierProvider<FeedMain, FeedState> {
   }
 }
 
-String _$feedMainHash() => r'20afa71a40ca0f307c274cc4a75df8974f938fbf';
+String _$feedMainHash() => r'bdedeb0303fc5b1a83ff8050adcdbe208af30b2b';
 
 /// Provider que gerencia o feed principal com paginação determinística.
 ///

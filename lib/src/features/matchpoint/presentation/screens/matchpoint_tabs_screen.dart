@@ -44,94 +44,97 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: matchpointSelectedTabNotifier,
-      builder: (context, selectedIndex, child) => Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppAppBar(
-          title: 'Matchpoint',
-          showBackButton: true,
-          onBackPressed: () => handleMatchpointBack(context),
-          actions: [
-            IconButton(
-              tooltip: 'Filtros avancados',
-              onPressed: () => context.push(RoutePaths.matchpointWizard),
-              icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
-            ),
-            IconButton(
-              tooltip: 'Historico de swipes',
-              onPressed: () => context.push(RoutePaths.matchpointHistory),
-              icon: const Icon(
-                Icons.history_rounded,
-                color: AppColors.textSecondary,
+      builder: (context, rawIndex, child) {
+        final selectedIndex = rawIndex.clamp(0, _screens.length - 1);
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppAppBar(
+            title: 'Matchpoint',
+            showBackButton: true,
+            onBackPressed: () => handleMatchpointBack(context),
+            actions: [
+              IconButton(
+                tooltip: 'Filtros avancados',
+                onPressed: () => context.push(RoutePaths.matchpointWizard),
+                icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
               ),
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            // Custom Google Nav Bar (top menu)
-            Container(
-              margin: const EdgeInsets.fromLTRB(
-                AppSpacing.s16,
-                AppSpacing.s8,
-                AppSpacing.s16,
-                AppSpacing.s8,
-              ),
-              padding: AppSpacing.all4,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
-                borderRadius: AppRadius.pill,
-                border: Border.all(
-                  color: AppColors.textPrimary.withValues(alpha: 0.05),
+              IconButton(
+                tooltip: 'Historico de swipes',
+                onPressed: () => context.push(RoutePaths.matchpointHistory),
+                icon: const Icon(
+                  Icons.history_rounded,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              child: GNav(
-                gap: AppSpacing.s8,
-                backgroundColor: AppColors.transparent,
-                color: AppColors.textSecondary,
-                activeColor: AppColors.textPrimary,
-                tabBackgroundColor: AppColors.primary,
-                padding: AppSpacing.h16v12,
-                duration: const Duration(milliseconds: 300),
-                selectedIndex: selectedIndex,
-                onTabChange: (index) {
-                  matchpointSelectedTabNotifier.value = index;
-                },
-                tabs: [
-                  GButton(
-                    icon: Icons.explore_rounded,
-                    text: 'Explorar',
-                    textStyle: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: AppTypography.buttonPrimary.fontWeight,
-                    ),
+            ],
+          ),
+          body: Column(
+            children: [
+              // Custom Google Nav Bar (top menu)
+              Container(
+                margin: const EdgeInsets.fromLTRB(
+                  AppSpacing.s16,
+                  AppSpacing.s8,
+                  AppSpacing.s16,
+                  AppSpacing.s8,
+                ),
+                padding: AppSpacing.all4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceHighlight.withValues(alpha: 0.3),
+                  borderRadius: AppRadius.pill,
+                  border: Border.all(
+                    color: AppColors.textPrimary.withValues(alpha: 0.05),
                   ),
-                  GButton(
-                    icon: Icons.bolt_rounded,
-                    text: 'Matches',
-                    textStyle: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                ),
+                child: GNav(
+                  gap: AppSpacing.s8,
+                  backgroundColor: AppColors.transparent,
+                  color: AppColors.textSecondary,
+                  activeColor: AppColors.textPrimary,
+                  tabBackgroundColor: AppColors.primary,
+                  padding: AppSpacing.h16v12,
+                  duration: const Duration(milliseconds: 300),
+                  selectedIndex: selectedIndex,
+                  onTabChange: (index) {
+                    matchpointSelectedTabNotifier.value = index;
+                  },
+                  tabs: [
+                    GButton(
+                      icon: Icons.explore_rounded,
+                      text: 'Explorar',
+                      textStyle: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
+                      ),
                     ),
-                  ),
-                  GButton(
-                    icon: Icons.trending_up_rounded,
-                    text: 'Trending',
-                    textStyle: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: AppTypography.buttonPrimary.fontWeight,
+                    GButton(
+                      icon: Icons.bolt_rounded,
+                      text: 'Matches',
+                      textStyle: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
+                      ),
                     ),
-                  ),
-                ],
+                    GButton(
+                      icon: Icons.trending_up_rounded,
+                      text: 'Trending',
+                      textStyle: AppTypography.labelLarge.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: AppTypography.buttonPrimary.fontWeight,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.s8),
+              const SizedBox(height: AppSpacing.s8),
 
-            Expanded(
-              child: IndexedStack(index: selectedIndex, children: _screens),
-            ),
-          ],
-        ),
-      ),
+              Expanded(
+                child: IndexedStack(index: selectedIndex, children: _screens),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

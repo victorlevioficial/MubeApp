@@ -18,64 +18,61 @@ class MatchpointMatchesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final matchesAsync = ref.watch(matchesProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: matchesAsync.when(
-        data: (matches) {
-          if (matches.isEmpty) {
-            return _buildEmptyState(ref);
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.s16),
-            itemCount: matches.length,
-            separatorBuilder: (context, index) =>
-                const SizedBox(height: AppSpacing.s12),
-            itemBuilder: (context, index) {
-              final match = matches[index];
-              final otherUser = match.otherUser;
-              final otherUserName = otherUser?.appDisplayName ?? 'Usuario';
+    return matchesAsync.when(
+      data: (matches) {
+        if (matches.isEmpty) {
+          return _buildEmptyState(ref);
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(AppSpacing.s16),
+          itemCount: matches.length,
+          separatorBuilder: (context, index) =>
+              const SizedBox(height: AppSpacing.s12),
+          itemBuilder: (context, index) {
+            final match = matches[index];
+            final otherUser = match.otherUser;
+            final otherUserName = otherUser?.appDisplayName ?? 'Usuario';
 
-              return FadeInSlide(
-                duration: const Duration(milliseconds: 400),
-                child: _MatchTile(
-                  userName: otherUserName,
-                  userPhoto: otherUser?.foto,
-                  userId: match.otherUserId,
-                  conversationId: match.conversationId,
-                  onTap: () {
-                    if (match.conversationId != null) {
-                      context.push(
-                        RoutePaths.conversationById(match.conversationId!),
-                        extra: {
-                          'otherUserId': match.otherUserId,
-                          'otherUserName': otherUserName,
-                          'otherUserPhoto': otherUser?.foto,
-                          'conversationType': 'matchpoint',
-                        },
-                      );
-                    }
-                  },
-                  onUnmatch: () => _confirmUnmatch(
-                    context,
-                    ref,
-                    match.otherUserId,
-                    otherUserName,
-                  ),
+            return FadeInSlide(
+              duration: const Duration(milliseconds: 400),
+              child: _MatchTile(
+                userName: otherUserName,
+                userPhoto: otherUser?.foto,
+                userId: match.otherUserId,
+                conversationId: match.conversationId,
+                onTap: () {
+                  if (match.conversationId != null) {
+                    context.push(
+                      RoutePaths.conversationById(match.conversationId!),
+                      extra: {
+                        'otherUserId': match.otherUserId,
+                        'otherUserName': otherUserName,
+                        'otherUserPhoto': otherUser?.foto,
+                        'conversationType': 'matchpoint',
+                      },
+                    );
+                  }
+                },
+                onUnmatch: () => _confirmUnmatch(
+                  context,
+                  ref,
+                  match.otherUserId,
+                  otherUserName,
                 ),
-              );
-            },
-          );
-        },
-        loading: () =>
-            const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
-        error: (error, stack) => EmptyStateWidget(
-          title: 'Erro ao carregar',
-          subtitle: 'Não foi possível carregar seus matches.',
-          icon: Icons.error_outline,
-          actionButton: AppButton.secondary(
-            text: 'Tentar novamente',
-            onPressed: () => ref.refresh(matchesProvider),
-          ),
+              ),
+            );
+          },
+        );
+      },
+      loading: () =>
+          const SkeletonShimmer(child: UserListSkeleton(itemCount: 5)),
+      error: (error, stack) => EmptyStateWidget(
+        title: 'Erro ao carregar',
+        subtitle: 'Não foi possível carregar seus matches.',
+        icon: Icons.error_outline,
+        actionButton: AppButton.secondary(
+          text: 'Tentar novamente',
+          onPressed: () => ref.refresh(matchesProvider),
         ),
       ),
     );
