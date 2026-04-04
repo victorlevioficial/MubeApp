@@ -268,19 +268,25 @@ class MatchpointRepository {
           .map((m) => m['_other_user_id'] as String)
           .toList();
 
+      // Fetch each matched user individually so a single failure doesn't
+      // crash the entire list. On iOS, parallel platform-channel calls can
+      // overwhelm Swift Concurrency; catching per-user errors also prevents
+      // Future.wait from propagating a single timeout as a full crash.
       final userFutures = otherUserIds.map(
-        (id) => _dataSource.fetchUserById(id),
+        (id) => _dataSource.fetchUserById(id).catchError((Object _) => null),
       );
       final users = await Future.wait(userFutures);
 
       final matches = <MatchInfo>[];
       for (int i = 0; i < normalizedMatches.length; i++) {
         final matchData = normalizedMatches[i];
+        // Skip matches where the user fetch failed.
+        final otherUser = users[i];
         matches.add(
           MatchInfo(
             id: matchData['id'] as String,
             otherUserId: otherUserIds[i],
-            otherUser: users[i],
+            otherUser: otherUser,
             conversationId: matchData['conversation_id'] as String?,
             createdAt:
                 (matchData['created_at'] as Timestamp?)?.toDate() ??

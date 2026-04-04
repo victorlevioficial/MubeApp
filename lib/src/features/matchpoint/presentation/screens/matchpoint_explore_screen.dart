@@ -40,14 +40,23 @@ class _MatchpointExploreScreenState
   int _lastHandledSwipeFeedbackId = -1;
   ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
 
+  bool _hasFetchedLikesQuota = false;
+
   @override
   void initState() {
     super.initState();
     _checkTutorialStatus();
 
-    // Force refresh when entering screen to avoid stale keepAlive cache.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Stagger the initial Firebase operations to avoid overwhelming the iOS
+    // Swift Concurrency cooperative thread pool (cause of SIGABRT crash).
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+
+      // Small delay so the profile provider can settle before we fire
+      // the candidates Firestore query via a new platform-channel call.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
+
       ref.invalidate(matchpointCandidatesProvider);
 
       _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
@@ -56,7 +65,14 @@ class _MatchpointExploreScreenState
           if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
           _lastHandledSwipeFeedbackId = next.id;
           ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
-          unawaited(_handleSwipeFeedback(next));
+          unawaited(
+            _handleSwipeFeedback(next).catchError((
+              Object error,
+              StackTrace stack,
+            ) {
+              AppLogger.warning('Swipe feedback handler failed', error, stack);
+            }),
+          );
         },
       );
     });
@@ -97,6 +113,18 @@ class _MatchpointExploreScreenState
       children: [
         candidatesAsync.when(
           data: (candidates) {
+            // Fetch likes quota only once, after candidates have loaded, to
+            // avoid concurrent Firebase platform-channel calls on iOS.
+            if (!_hasFetchedLikesQuota) {
+              _hasFetchedLikesQuota = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref
+                    .read(matchpointControllerProvider.notifier)
+                    .fetchRemainingLikes();
+              });
+            }
+
             final signature = candidates.map((c) => c.uid).join('|');
             if (signature != _lastCandidatesSignature) {
               _lastCandidatesSignature = signature;

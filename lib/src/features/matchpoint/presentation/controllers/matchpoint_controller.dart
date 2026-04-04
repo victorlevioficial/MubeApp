@@ -539,7 +539,11 @@ class MatchpointController extends _$MatchpointController {
     }
 
     try {
-      final idToken = await currentUser.getIdToken();
+      // Timeout prevents the platform-channel call from hanging
+      // indefinitely on iOS, which contributes to Swift Concurrency crashes.
+      final idToken = await currentUser.getIdToken().timeout(
+        const Duration(seconds: 10),
+      );
       if (idToken != null && idToken.isNotEmpty) {
         _markSwipeSecurityContextValidated(currentUser.uid);
         return true;
@@ -583,7 +587,9 @@ class MatchpointController extends _$MatchpointController {
     }
 
     try {
-      final refreshedToken = await refreshedUser.getIdToken();
+      final refreshedToken = await refreshedUser.getIdToken().timeout(
+        const Duration(seconds: 10),
+      );
       if (refreshedToken != null && refreshedToken.isNotEmpty) {
         _markSwipeSecurityContextValidated(refreshedUser.uid);
         return true;
@@ -853,8 +859,13 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     final rawGenres = _resolveGenres(userProfile);
     final hashtags = _resolveHashtags(userProfile);
+    // Use ref.read (not ref.watch) for appConfig and blockedUsers to avoid
+    // opening extra Firestore listeners on the same frame. These values are
+    // stable during a matchpoint session and don't need reactive rebuilds.
+    // This reduces concurrent platform-channel calls that crash the iOS
+    // Swift Concurrency runtime (swift_Concurrency_fatalError / SIGABRT).
     final appConfig = ref
-        .watch(appConfigProvider)
+        .read(appConfigProvider)
         .maybeWhen(data: (config) => config, orElse: () => null);
     final genres = _buildQueryGenres(rawGenres, appConfig?.genres ?? const []);
 
@@ -862,7 +873,7 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       'MatchPoint filters: rawGenres=$rawGenres queryGenres=$genres hashtags=$hashtags',
     );
 
-    final blockedState = ref.watch(blockedUsersProvider);
+    final blockedState = ref.read(blockedUsersProvider);
     final blockedFromCollection = blockedState.when(
       data: (value) => value,
       loading: () => const <String>[],

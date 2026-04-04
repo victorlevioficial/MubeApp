@@ -647,6 +647,24 @@
                                    ]
                     },
                     {
+                        "collectionGroup":  "stories",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "expires_at",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "__name__",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
                         "collectionGroup":  "tickets",
                         "queryScope":  "COLLECTION",
                         "fields":  [
