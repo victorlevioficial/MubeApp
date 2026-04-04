@@ -164,24 +164,47 @@ ensure_cocoapods() {
   fi
 }
 
+wait_for_network() {
+  local host="${1:-dl.google.com}"
+  local max_attempts=10
+  local sleep_seconds=15
+  local attempt=1
+
+  log "Checking network connectivity to $host"
+  while (( attempt <= max_attempts )); do
+    if curl -s --head --max-time 10 "https://$host" >/dev/null 2>&1; then
+      log "Network connectivity confirmed (attempt $attempt)"
+      return 0
+    fi
+    if (( attempt == max_attempts )); then
+      log "Warning: Could not reach $host after $max_attempts attempts. Proceeding anyway."
+      return 0
+    fi
+    log "Cannot reach $host. Waiting ${sleep_seconds}s (attempt ${attempt}/${max_attempts})"
+    sleep "$sleep_seconds"
+    attempt=$((attempt + 1))
+  done
+}
+
 prepare_cocoapods_workspace() {
   if [[ ! -f "$REPO_ROOT/ios/Podfile" ]]; then
     return 0
   fi
 
   ensure_cocoapods
+  wait_for_network "dl.google.com"
 
   cd "$REPO_ROOT/ios"
   log "Running pod install --deployment"
   pod --version
 
-  if run_with_retry 3 20 pod install --deployment; then
+  if run_with_retry 5 30 pod install --deployment; then
     cd "$REPO_ROOT"
     return 0
   fi
 
   log "pod install --deployment failed. Retrying without deployment mode."
-  run_with_retry 2 30 pod install
+  run_with_retry 3 45 pod install
   cd "$REPO_ROOT"
 }
 
