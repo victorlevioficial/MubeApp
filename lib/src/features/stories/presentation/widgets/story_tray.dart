@@ -183,10 +183,7 @@ class StoryTraySkeleton extends StatelessWidget {
                     children: [
                       const SkeletonCircle(size: 64),
                       const SizedBox(height: AppSpacing.s8),
-                      SkeletonText(
-                        width: index == 0 ? 60 : 50,
-                        height: 12,
-                      ),
+                      SkeletonText(width: index == 0 ? 60 : 50, height: 12),
                       const SizedBox(height: AppSpacing.s4),
                       const SkeletonText(width: 40, height: 10),
                     ],

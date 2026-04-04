@@ -670,8 +670,7 @@ class StoryRepository {
     }
 
     const batchSize = 10;
-    final batchFutures =
-        <Future<QuerySnapshot<Map<String, dynamic>>>>[];
+    final batchFutures = <Future<QuerySnapshot<Map<String, dynamic>>>>[];
     for (var i = 0; i < ids.length; i += batchSize) {
       final end = (i + batchSize).clamp(0, ids.length);
       final batchIds = ids.sublist(i, end);

@@ -72,7 +72,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   Timer? _deferredPrecacheTimer;
   ProviderSubscription<AsyncValue<FeedState>>? _feedSubscription;
   ProviderSubscription<AsyncValue<List<StoryTrayBundle>>>?
-      _storyTraySubscription;
+  _storyTraySubscription;
   bool _isScrolled = false;
   int _precacheFingerprint = 0;
   int _storyPrecacheFingerprint = 0;
@@ -325,38 +325,38 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   void _setupStoryPrecacheListener() {
-    _storyTraySubscription =
-        ref.listenManual<AsyncValue<List<StoryTrayBundle>>>(
-      storyTrayControllerProvider,
-      (previous, next) {
-        final bundles = next.value;
-        if (bundles == null || bundles.isEmpty || !context.mounted) return;
-        final fingerprint = Object.hashAll(
-          bundles.map((b) => b.ownerUid),
-        );
-        if (fingerprint == _storyPrecacheFingerprint) return;
-        _storyPrecacheFingerprint = fingerprint;
+    _storyTraySubscription = ref
+        .listenManual<AsyncValue<List<StoryTrayBundle>>>(
+          storyTrayControllerProvider,
+          (previous, next) {
+            final bundles = next.value;
+            if (bundles == null || bundles.isEmpty || !context.mounted) return;
+            final fingerprint = Object.hashAll(bundles.map((b) => b.ownerUid));
+            if (fingerprint == _storyPrecacheFingerprint) return;
+            _storyPrecacheFingerprint = fingerprint;
 
-        for (final bundle in bundles.take(6)) {
-          final firstStory = bundle.stories.isEmpty ? null : bundle.stories.first;
-          if (firstStory != null && !firstStory.isVideo) {
-            precacheImage(
-              NetworkImage(firstStory.mediaUrl),
-              context,
-              onError: (_, _) {},
-            ).ignore();
-          }
-          final thumb = firstStory?.thumbnailUrl;
-          if (thumb != null && thumb.isNotEmpty) {
-            precacheImage(
-              NetworkImage(thumb),
-              context,
-              onError: (_, _) {},
-            ).ignore();
-          }
-        }
-      },
-    );
+            for (final bundle in bundles.take(6)) {
+              final firstStory = bundle.stories.isEmpty
+                  ? null
+                  : bundle.stories.first;
+              if (firstStory != null && !firstStory.isVideo) {
+                precacheImage(
+                  NetworkImage(firstStory.mediaUrl),
+                  context,
+                  onError: (_, _) {},
+                ).ignore();
+              }
+              final thumb = firstStory?.thumbnailUrl;
+              if (thumb != null && thumb.isNotEmpty) {
+                precacheImage(
+                  NetworkImage(thumb),
+                  context,
+                  onError: (_, _) {},
+                ).ignore();
+              }
+            }
+          },
+        );
   }
 
   void _setupPrecacheListener() {

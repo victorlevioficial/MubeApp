@@ -575,7 +575,9 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (thumbnailUrl != null && thumbnailUrl.isNotEmpty && !_imageLoaded)
+            if (thumbnailUrl != null &&
+                thumbnailUrl.isNotEmpty &&
+                !_imageLoaded)
               Image.network(
                 thumbnailUrl,
                 fit: BoxFit.cover,

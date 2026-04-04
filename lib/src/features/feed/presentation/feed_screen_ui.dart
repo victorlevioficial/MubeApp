@@ -157,8 +157,7 @@ extension _FeedScreenUi on _FeedScreenState {
     required AsyncValue<List<StoryTrayBundle>> storyTrayAsync,
     required AsyncValue<List<StoryItem>> pendingStoriesAsync,
   }) {
-    final storyBundles =
-        storyTrayAsync.value ?? const <StoryTrayBundle>[];
+    final storyBundles = storyTrayAsync.value ?? const <StoryTrayBundle>[];
     final pendingStories =
         pendingStoriesAsync.asData?.value ?? const <StoryItem>[];
     final trayError = storyTrayAsync.error;
