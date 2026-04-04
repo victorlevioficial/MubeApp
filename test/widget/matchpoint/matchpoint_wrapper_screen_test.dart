@@ -121,6 +121,8 @@ void main() {
 
     await tester.pumpWidget(createTestWidget(const AsyncData(user)));
     await tester.pump();
+    // Advance past the 100ms stagger delay in MatchpointExploreScreen.initState
+    await tester.pump(const Duration(milliseconds: 150));
 
     expect(find.byType(MatchpointTabsScreen), findsOneWidget);
     expect(find.byType(MatchpointIntroScreen), findsNothing);
