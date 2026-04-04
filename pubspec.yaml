@@ -1,5 +1,5 @@
 name: mube
-description: "Mube - Conectando Músicos"
+description: "Mube - Conectando Músicos" # matchpoint iOS crash fix
 publish_to: 'none'
 version: 1.6.9+145
 
