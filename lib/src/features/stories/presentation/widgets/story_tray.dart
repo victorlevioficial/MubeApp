@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../design_system/components/loading/app_skeleton.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
@@ -152,6 +153,48 @@ class _StoryTrayItem extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class StoryTraySkeleton extends StatelessWidget {
+  const StoryTraySkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 132,
+      child: SkeletonShimmer(
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
+          children: List.generate(5, (index) {
+            return Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.s16),
+              child: SizedBox(
+                width: 82,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SkeletonCircle(size: 64),
+                      const SizedBox(height: AppSpacing.s8),
+                      SkeletonText(
+                        width: index == 0 ? 60 : 50,
+                        height: 12,
+                      ),
+                      const SizedBox(height: AppSpacing.s4),
+                      const SkeletonText(width: 40, height: 10),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );

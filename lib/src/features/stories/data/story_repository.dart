@@ -480,18 +480,19 @@ class StoryRepository {
     required Set<String> ownerIds,
     required Timestamp now,
   }) async {
-    final snapshots = <QuerySnapshot<Map<String, dynamic>>>[];
     final ownerIdList = ownerIds.toList(growable: false)..sort();
+    final batchFutures = <Future<List<QuerySnapshot<Map<String, dynamic>>>>>[];
 
     for (var i = 0; i < ownerIdList.length; i += _ownerQueryBatchSize) {
       final end = (i + _ownerQueryBatchSize).clamp(0, ownerIdList.length);
       final batchOwnerIds = ownerIdList.sublist(i, end);
-      snapshots.addAll(
-        await _loadActiveStorySnapshotBatch(ownerIds: batchOwnerIds, now: now),
+      batchFutures.add(
+        _loadActiveStorySnapshotBatch(ownerIds: batchOwnerIds, now: now),
       );
     }
 
-    return snapshots;
+    final results = await Future.wait(batchFutures);
+    return results.expand((batch) => batch).toList(growable: false);
   }
 
   Future<Set<String>> _loadPublicOwnerIds({required Timestamp now}) async {
@@ -505,12 +506,12 @@ class StoryRepository {
           .collection(StoryConstants.storiesCollection)
           .where('status', isEqualTo: StoryConstants.statusActive)
           .where('expires_at', isGreaterThan: now)
-          .orderBy('expires_at')
-          .limitToLast(_publicStorySnapshotLimit)
+          .orderBy('expires_at', descending: true)
+          .limit(_publicStorySnapshotLimit)
           .get();
 
       final ownerIds = <String>{};
-      for (final doc in snapshot.docs.reversed) {
+      for (final doc in snapshot.docs) {
         final ownerUid = (doc.data()['owner_uid'] as String?)?.trim();
         if (ownerUid == null || ownerUid.isEmpty) {
           continue;
@@ -669,18 +670,21 @@ class StoryRepository {
     }
 
     const batchSize = 10;
-    final docs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+    final batchFutures =
+        <Future<QuerySnapshot<Map<String, dynamic>>>>[];
     for (var i = 0; i < ids.length; i += batchSize) {
       final end = (i + batchSize).clamp(0, ids.length);
       final batchIds = ids.sublist(i, end);
-      final snapshot = await _firestore
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: batchIds)
-          .get();
-      docs.addAll(snapshot.docs);
+      batchFutures.add(
+        _firestore
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batchIds)
+            .get(),
+      );
     }
 
-    return docs;
+    final results = await Future.wait(batchFutures);
+    return results.expand((snapshot) => snapshot.docs).toList(growable: false);
   }
 
   Future<Map<String, DateTime>> _loadSeenAuthorTimestamps(String uid) async {

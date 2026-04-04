@@ -51,7 +51,9 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
     final ownerIds = discoveryOwnerIds.isEmpty
         ? const <String>[]
         : discoveryOwnerIds.split('|');
-    state = const AsyncLoading();
+    if (!state.hasValue) {
+      state = const AsyncLoading();
+    }
     state = await AsyncValue.guard(() => _loadTray(ownerIds));
   }
 

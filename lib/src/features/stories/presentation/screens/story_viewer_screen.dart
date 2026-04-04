@@ -95,6 +95,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   void _activateCurrentStory() {
     final story = _currentStory;
     _markViewed(story);
+    _precacheNextStory();
 
     if (story.isVideo) {
       _imageProgressController.stop();
@@ -108,6 +109,25 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
     if (!_isPaused) {
       _imageProgressController.forward();
+    }
+  }
+
+  void _precacheNextStory() {
+    StoryItem? nextStory;
+    if (_storyIndex < _currentBundle.stories.length - 1) {
+      nextStory = _currentBundle.stories[_storyIndex + 1];
+    } else if (_bundleIndex < _bundles.length - 1) {
+      final nextBundle = _bundles[_bundleIndex + 1];
+      if (nextBundle.stories.isNotEmpty) {
+        nextStory = nextBundle.stories.first;
+      }
+    }
+    if (nextStory != null && !nextStory.isVideo) {
+      precacheImage(
+        NetworkImage(nextStory.mediaUrl),
+        context,
+        onError: (_, _) {},
+      ).ignore();
     }
   }
 
@@ -455,6 +475,7 @@ class _StoryMediaStage extends StatefulWidget {
 class _StoryMediaStageState extends State<_StoryMediaStage> {
   VideoPlayerController? _controller;
   bool _hasCompleted = false;
+  bool _imageLoaded = false;
 
   @override
   void initState() {
@@ -462,6 +483,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
     if (widget.story.isVideo) {
       _initializeVideo();
     } else {
+      _imageLoaded = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.onProgressChanged(0);
       });
@@ -473,6 +495,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.story.id != widget.story.id) {
       _hasCompleted = false;
+      _imageLoaded = false;
       unawaited(_disposeController());
       if (widget.story.isVideo) {
         _initializeVideo();
@@ -547,27 +570,66 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
   @override
   Widget build(BuildContext context) {
     if (!widget.story.isVideo) {
+      final thumbnailUrl = widget.story.thumbnailUrl;
       return SizedBox.expand(
-        child: Image.network(
-          widget.story.mediaUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Icon(
-                Icons.broken_image_outlined,
-                color: AppColors.textPrimary,
-                size: 52,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (thumbnailUrl != null && thumbnailUrl.isNotEmpty && !_imageLoaded)
+              Image.network(
+                thumbnailUrl,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.low,
               ),
-            );
-          },
+            AnimatedOpacity(
+              opacity: _imageLoaded ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Image.network(
+                widget.story.mediaUrl,
+                fit: BoxFit.cover,
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded || frame != null) {
+                    if (!_imageLoaded) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) setState(() => _imageLoaded = true);
+                      });
+                    }
+                    return child;
+                  }
+                  return child;
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.textPrimary,
+                      size: 52,
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (!_imageLoaded && (thumbnailUrl == null || thumbnailUrl.isEmpty))
+              const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+          ],
         ),
       );
     }
 
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+      final thumbnailUrl = widget.story.thumbnailUrl;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
+            Image.network(thumbnailUrl, fit: BoxFit.cover),
+          const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ],
       );
     }
 

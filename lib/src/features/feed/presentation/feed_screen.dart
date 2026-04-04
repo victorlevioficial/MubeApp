@@ -71,8 +71,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
   Timer? _deferredPrecacheTimer;
   ProviderSubscription<AsyncValue<FeedState>>? _feedSubscription;
+  ProviderSubscription<AsyncValue<List<StoryTrayBundle>>>?
+      _storyTraySubscription;
   bool _isScrolled = false;
   int _precacheFingerprint = 0;
+  int _storyPrecacheFingerprint = 0;
   int _lastKnownMainItemCount = 0;
   int _lastWarmupAnchor = -1;
   int _criticalWarmupFingerprint = 0;
@@ -87,6 +90,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     super.initState();
     _scrollController.addListener(_onScroll);
     _setupPrecacheListener();
+    _setupStoryPrecacheListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(feedControllerProvider.notifier).ensureLoaded();
     });
@@ -96,6 +100,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   void dispose() {
     _finishInitialDependenciesHold(status: 'disposed');
     _feedSubscription?.close();
+    _storyTraySubscription?.close();
     _deferredPrecacheTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -317,6 +322,41 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final sortedItems = uniqueItems.values.toList();
     sortedItems.sort((a, b) => b.likeCount.compareTo(a.likeCount));
     return sortedItems.take(5).toList();
+  }
+
+  void _setupStoryPrecacheListener() {
+    _storyTraySubscription =
+        ref.listenManual<AsyncValue<List<StoryTrayBundle>>>(
+      storyTrayControllerProvider,
+      (previous, next) {
+        final bundles = next.value;
+        if (bundles == null || bundles.isEmpty || !context.mounted) return;
+        final fingerprint = Object.hashAll(
+          bundles.map((b) => b.ownerUid),
+        );
+        if (fingerprint == _storyPrecacheFingerprint) return;
+        _storyPrecacheFingerprint = fingerprint;
+
+        for (final bundle in bundles.take(6)) {
+          final firstStory = bundle.stories.isEmpty ? null : bundle.stories.first;
+          if (firstStory != null && !firstStory.isVideo) {
+            precacheImage(
+              NetworkImage(firstStory.mediaUrl),
+              context,
+              onError: (_, _) {},
+            ).ignore();
+          }
+          final thumb = firstStory?.thumbnailUrl;
+          if (thumb != null && thumb.isNotEmpty) {
+            precacheImage(
+              NetworkImage(thumb),
+              context,
+              onError: (_, _) {},
+            ).ignore();
+          }
+        }
+      },
+    );
   }
 
   void _setupPrecacheListener() {
