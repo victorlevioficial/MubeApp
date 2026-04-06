@@ -167,9 +167,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
     }
 
-    throw StateError(
-      'Expected cloud function payload to be a map, got ${value.runtimeType}.',
+    AppLogger.warning(
+      'Expected cloud function payload to be a map, got ${value.runtimeType}. Returning empty map.',
     );
+    return const <String, dynamic>{};
   }
 
   List<Map<String, dynamic>> _normalizeCloudFunctionMapList(Object? value) {
@@ -349,10 +350,21 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       userData,
     ).map(_normalizeGenreToken).where(targetGenres.contains).length;
 
-    final user = AppUser.fromJson({
-      ...userData,
-      'uid': userData['uid'] ?? docId,
-    });
+    final AppUser user;
+    try {
+      user = AppUser.fromJson({
+        ...userData,
+        'uid': userData['uid'] ?? docId,
+      });
+    } catch (e, stack) {
+      AppLogger.warning(
+        'MatchPoint: skipping candidate $docId due to deserialization error',
+        e,
+        stack,
+        false,
+      );
+      return null;
+    }
 
     return _ScoredCandidate(
       user: user,
@@ -485,9 +497,11 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   _Coordinates? _extractCoordinatesFromMap(dynamic rawLocation) {
     if (rawLocation is! Map) return null;
 
-    final lat = (rawLocation['lat'] as num?)?.toDouble();
-    final lng = ((rawLocation['lng'] ?? rawLocation['long']) as num?)
-        ?.toDouble();
+    final rawLat = rawLocation['lat'];
+    final rawLng = rawLocation['lng'] ?? rawLocation['long'];
+
+    final lat = rawLat is num ? rawLat.toDouble() : null;
+    final lng = rawLng is num ? rawLng.toDouble() : null;
     if (lat == null || lng == null) return null;
 
     return _Coordinates(lat, lng);
@@ -687,19 +701,27 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     final now = Timestamp.now();
 
-    return snapshot.docs
-        .where((doc) {
-          final data = doc.data();
-          final type = data['type'] as String?;
-          if (type == 'like') return true;
-          if (type != 'dislike') return false;
+    final result = <String>[];
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final type = data['type'] as String?;
+      final targetUserId = data['target_user_id'];
 
-          final expiresAt = data['expires_at'];
-          if (expiresAt is! Timestamp) return false;
-          return expiresAt.compareTo(now) > 0;
-        })
-        .map((doc) => doc.data()['target_user_id'] as String)
-        .toList();
+      if (targetUserId is! String || targetUserId.isEmpty) continue;
+
+      if (type == 'like') {
+        result.add(targetUserId);
+        continue;
+      }
+      if (type != 'dislike') continue;
+
+      final expiresAt = data['expires_at'];
+      if (expiresAt is! Timestamp) continue;
+      if (expiresAt.compareTo(now) > 0) {
+        result.add(targetUserId);
+      }
+    }
+    return result;
   }
 
   @override
@@ -737,7 +759,20 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     if (!doc.exists) return null;
 
-    return AppUser.fromJson(doc.data() as Map<String, dynamic>);
+    final data = doc.data();
+    if (data is! Map<String, dynamic>) return null;
+
+    try {
+      return AppUser.fromJson(data);
+    } catch (e, stack) {
+      AppLogger.warning(
+        'MatchPoint: failed to parse user $userId',
+        e,
+        stack,
+        false,
+      );
+      return null;
+    }
   }
 
   @override
