@@ -136,3 +136,24 @@ GitHub Actions (`.github/workflows/ci.yml`):
 - Default Play Store track: `alpha`
 
 Release scripts: `scripts/release_android.sh`, `scripts/release_ios.sh`, `scripts/upload_play_store_release.mjs`
+
+### Release Process (IMPORTANT)
+
+To trigger a build for the stores, the commit message on `main` **must** start with `chore(release):`. The CI checks `HEAD_COMMIT_MESSAGE` — merge commits from PRs use "Merge pull request #N..." which does NOT match.
+
+**Correct workflow for releases:**
+
+```bash
+# 1. Develop and test on a feature branch, merge PR normally
+# 2. After merge, bump version on main and commit with the right prefix:
+git checkout main && git pull
+# Edit pubspec.yaml: bump version (e.g. 1.6.11+147 → 1.6.12+148)
+git add pubspec.yaml
+git commit -m "chore(release): X.Y.Z+BUILD description"
+git push origin main
+# 3. CI detects chore(release): prefix → builds APK/AAB → publishes to Play Store alpha
+```
+
+**Alternative:** Trigger manually via GitHub Actions → Flutter CI → Run workflow → check "Publicar Android na Play Console".
+
+**Common mistake:** Merging a PR with `--merge` (default) creates a merge commit that does NOT carry the `chore(release):` prefix. Always create a separate version bump commit on main after merging.
