@@ -9,14 +9,14 @@ import 'chat_repository.dart';
 /// Stream de todas as conversas do usuário logado.
 final userConversationsProvider =
     StreamProvider.autoDispose<List<ConversationPreview>>((ref) {
-  final userId =
-      ref.watch(currentUserIdProvider) ??
-      ref.read(authRepositoryProvider).currentUser?.uid;
-  if (userId == null || userId.isEmpty) return Stream.value([]);
+      final userId =
+          ref.watch(currentUserIdProvider) ??
+          ref.read(authRepositoryProvider).currentUser?.uid;
+      if (userId == null || userId.isEmpty) return Stream.value([]);
 
-  final repository = ref.read(chatRepositoryProvider);
-  return repository.getUserConversations(userId);
-});
+      final repository = ref.read(chatRepositoryProvider);
+      return repository.getUserConversations(userId);
+    });
 
 final userAcceptedConversationsProvider =
     StreamProvider.autoDispose<List<ConversationPreview>>((ref) {

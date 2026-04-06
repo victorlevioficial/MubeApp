@@ -260,7 +260,10 @@ class SearchController extends Notifier<SearchPaginationState> {
     final baseFilters = instruments.isEmpty
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(instruments: instruments), debounced: true);
+    _setFilters(
+      baseFilters.copyWith(instruments: instruments),
+      debounced: true,
+    );
   }
 
   void setRoles(List<String> roles) {
