@@ -234,11 +234,15 @@ class EditProfileController extends _$EditProfileController {
 
   List<MediaItem> _parseGallery(dynamic galleryData) {
     if (galleryData == null) return [];
-    final List<dynamic> items = galleryData as List<dynamic>;
-    final parsed = items
-        .whereType<Map>()
-        .map((item) => MediaItem.fromJson(Map<String, dynamic>.from(item)))
-        .toList();
+    if (galleryData is! List<dynamic>) return [];
+    final parsed = <MediaItem>[];
+    for (final item in galleryData.whereType<Map>()) {
+      try {
+        parsed.add(MediaItem.fromJson(Map<String, dynamic>.from(item)));
+      } catch (e, stack) {
+        AppLogger.warning('Skipping malformed gallery item', e, stack);
+      }
+    }
     parsed.sort((a, b) => a.order.compareTo(b.order));
     return parsed;
   }

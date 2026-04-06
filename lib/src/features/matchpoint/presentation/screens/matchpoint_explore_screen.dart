@@ -120,10 +120,9 @@ class _MatchpointExploreScreenState
   void dispose() {
     _feedbackSubscription?.close();
     _swiperController.dispose();
-    // Clear cached candidates so the next session starts fresh (no stale
-    // profile flash). The provider is keepAlive, so without this explicit
-    // invalidation the old list would be served synchronously on re-entry.
-    ref.invalidate(matchpointCandidatesProvider);
+    // Note: do NOT call ref.invalidate() here — using ref after the widget
+    // is unmounted causes a fatal "Bad state" crash (Crashlytics #de9982a4).
+    // The stale-data guard is handled by initState() on re-entry instead.
     super.dispose();
   }
 

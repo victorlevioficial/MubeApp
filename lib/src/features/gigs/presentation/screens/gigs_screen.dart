@@ -73,8 +73,7 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
     final isCompactWidth = MediaQuery.sizeOf(context).width < 380;
     final gigsAsync = ref.watch(gigsStreamProvider);
     final filters = ref.watch(gigFiltersControllerProvider);
-    final profile = ref.watch(currentUserProfileProvider).value;
-    final canCreateGig = profile?.isCadastroConcluido == true;
+    final canCreateGig = ref.watch(currentUserIsCadastroConcluidoProvider);
     final showCreateFab =
         canCreateGig && gigsAsync.asData?.value.isNotEmpty == true;
     final shouldDeferInitialContent = !_isRunningWidgetTest;
@@ -187,7 +186,7 @@ class _GigsScreenState extends ConsumerState<GigsScreen> {
               title: 'Nenhuma gig encontrada',
               subtitle:
                   'Ajuste seus filtros ou publique a primeira oportunidade.',
-              actionButton: profile == null || !profile.isCadastroConcluido
+              actionButton: !canCreateGig
                   ? null
                   : AppButton.primary(
                       text: 'Criar gig',

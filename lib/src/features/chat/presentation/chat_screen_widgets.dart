@@ -279,8 +279,7 @@ extension _ChatScreenWidgets on _ChatScreenState {
 
   Widget _buildInputField() {
     final currentUserId =
-        ref.watch(currentUserProfileProvider).value?.uid ??
-        ref.watch(authStateChangesProvider).value?.uid ??
+        ref.watch(currentUserIdProvider) ??
         ref.read(authRepositoryProvider).currentUser?.uid ??
         '';
     final canInteract =

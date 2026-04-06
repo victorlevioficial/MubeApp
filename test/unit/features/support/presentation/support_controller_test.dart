@@ -122,7 +122,7 @@ void main() {
         expect(container.read(supportControllerProvider), isA<AsyncError>());
       });
 
-      test('sets state to AsyncError on storage upload failure', () async {
+      test('creates ticket without images when storage upload fails', () async {
         final user = TestData.user(uid: 'user-1');
         fakeAuthRepository.emitUser(
           FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
@@ -143,9 +143,10 @@ void main() {
           attachments: [file],
         );
 
-        expect(container.read(supportControllerProvider), isA<AsyncError>());
-        // Verify no ticket created
-        expect(fakeSupportRepository.tickets.isEmpty, true);
+        // Ticket is still created — failed attachments are skipped gracefully
+        expect(container.read(supportControllerProvider), isA<AsyncData>());
+        expect(fakeSupportRepository.tickets.length, 1);
+        expect(fakeSupportRepository.tickets.first.imageUrls, isEmpty);
       });
 
       test('sets state to AsyncError on ticket creation failure', () async {

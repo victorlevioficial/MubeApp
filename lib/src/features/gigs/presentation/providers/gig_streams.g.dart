@@ -262,7 +262,7 @@ final class MyApplicationsProvider
   }
 }
 
-String _$myApplicationsHash() => r'0288b295c4933699e2ae567e3ac75a0d879d494e';
+String _$myApplicationsHash() => r'e95eb06011b72c09c316109ebc035d06d81ddaaf';
 
 @ProviderFor(hasApplied)
 const hasAppliedProvider = HasAppliedFamily._();

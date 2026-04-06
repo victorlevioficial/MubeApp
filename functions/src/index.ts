@@ -455,8 +455,13 @@ export const onMessageCreated = onDocumentCreated(
         },
       };
 
-      await admin.messaging().send(payload);
-      console.log(`🚀 Push sent to ${recipientId} (${messageCount} msgs)`);
+      try {
+        await admin.messaging().send(payload);
+        console.log(`🚀 Push sent to ${recipientId} (${messageCount} msgs)`);
+      } catch (fcmError: unknown) {
+        // Don't fail the function when FCM delivery fails (stale token, etc.)
+        console.warn(`⚠️ FCM send failed for ${recipientId}:`, fcmError);
+      }
 
       // 5. Update cooldown timestamp + reset message count
       await cooldownRef.set({

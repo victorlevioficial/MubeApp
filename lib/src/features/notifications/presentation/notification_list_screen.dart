@@ -28,7 +28,7 @@ class NotificationListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsStreamProvider);
-    final user = ref.watch(currentUserProfileProvider).value;
+    final userId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       appBar: AppAppBar(
@@ -36,7 +36,7 @@ class NotificationListScreen extends ConsumerWidget {
         actions: [
           if (notificationsAsync.value?.isNotEmpty == true)
             TextButton(
-              onPressed: () => _clearAllNotifications(context, ref, user?.uid),
+              onPressed: () => _clearAllNotifications(context, ref, userId),
               child: Text(
                 'Limpar',
                 style: AppTypography.bodyMedium.copyWith(
@@ -82,12 +82,12 @@ class NotificationListScreen extends ConsumerWidget {
                   child: const Icon(Icons.delete, color: AppColors.textPrimary),
                 ),
                 onDismissed: (_) {
-                  if (user != null) {
+                  if (userId != null) {
                     unawaited(
                       _deleteNotification(
                         context,
                         ref,
-                        user.uid,
+                        userId,
                         notification.id,
                       ),
                     );
@@ -96,12 +96,7 @@ class NotificationListScreen extends ConsumerWidget {
                 child: _NotificationTile(
                   notification: notification,
                   onTap: () => unawaited(
-                    _handleNotificationTap(
-                      context,
-                      ref,
-                      notification,
-                      user?.uid,
-                    ),
+                    _handleNotificationTap(context, ref, notification, userId),
                   ),
                 ),
               );

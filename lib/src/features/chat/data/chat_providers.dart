@@ -10,40 +10,34 @@ import 'chat_repository.dart';
 final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   ref,
 ) {
-  final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-  final authUid =
-      ref.watch(authStateChangesProvider).value?.uid ??
+  final userId =
+      ref.watch(currentUserIdProvider) ??
       ref.read(authRepositoryProvider).currentUser?.uid;
-  final userId = profileUid ?? authUid;
   if (userId == null || userId.isEmpty) return Stream.value([]);
 
-  final repository = ref.watch(chatRepositoryProvider);
+  final repository = ref.read(chatRepositoryProvider);
   return repository.getUserConversations(userId);
 });
 
 final userAcceptedConversationsProvider =
     StreamProvider<List<ConversationPreview>>((ref) {
-      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-      final authUid =
-          ref.watch(authStateChangesProvider).value?.uid ??
+      final userId =
+          ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
-      final userId = profileUid ?? authUid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getUserAcceptedConversations(userId);
     });
 
 final userPendingConversationsProvider =
     StreamProvider<List<ConversationPreview>>((ref) {
-      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-      final authUid =
-          ref.watch(authStateChangesProvider).value?.uid ??
+      final userId =
+          ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
-      final userId = profileUid ?? authUid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getUserPendingConversations(userId);
     });
 
@@ -68,18 +62,18 @@ final directConversationsProvider =
 /// Stream de mensagens de uma conversa específica.
 final conversationMessagesProvider = StreamProvider.autoDispose
     .family<List<Message>, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getMessages(id);
     });
 
 final conversationMessagesSnapshotProvider = StreamProvider.autoDispose
     .family<QuerySnapshot<Map<String, dynamic>>, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getMessagesSnapshot(id);
     });
 
 final conversationStreamProvider = StreamProvider.autoDispose
     .family<DocumentSnapshot, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getConversationStream(id);
     });

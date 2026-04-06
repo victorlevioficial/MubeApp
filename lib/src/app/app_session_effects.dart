@@ -15,7 +15,12 @@ extension _MubeAppSessionEffects on _MubeAppState {
     _pushBootstrapTimer?.cancel();
     _authStateSubscription?.close();
     _profileSubscription?.close();
-    _goRouter.routerDelegate.removeListener(_handleRouterStateChanged);
+    try {
+      _goRouter.routerDelegate.removeListener(_handleRouterStateChanged);
+    } catch (_) {
+      // Router may already be disposed.
+    }
+    PushNotificationEventBus.instance.dispose();
   }
 
   void _setupAuthStateListener() {

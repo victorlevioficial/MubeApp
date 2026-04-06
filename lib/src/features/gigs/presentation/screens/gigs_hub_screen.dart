@@ -60,8 +60,7 @@ class _GigsHubScreenState extends ConsumerState<GigsHubScreen> {
   @override
   Widget build(BuildContext context) {
     final filters = ref.watch(gigFiltersControllerProvider);
-    final profile = ref.watch(currentUserProfileProvider).value;
-    final canCreateGig = profile?.isCadastroConcluido == true;
+    final canCreateGig = ref.watch(currentUserIsCadastroConcluidoProvider);
     final showCreateFab =
         canCreateGig && _selectedIndex != GigsTab.myApplications.index;
     final applicationsLabel = MediaQuery.sizeOf(context).width >= 390

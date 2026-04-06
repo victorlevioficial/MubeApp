@@ -186,8 +186,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         );
     final currentUserId =
-        ref.read(currentUserProfileProvider).value?.uid ??
-        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(currentUserIdProvider) ??
         ref.read(authRepositoryProvider).currentUser?.uid;
 
     _otherUserName =
@@ -313,8 +312,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_isPreparingConversation) return;
     _isPreparingConversation = true;
     final currentUserId =
-        ref.read(currentUserProfileProvider).value?.uid ??
-        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(currentUserIdProvider) ??
         ref.read(authRepositoryProvider).currentUser?.uid;
     if (currentUserId == null) {
       _isPreparingConversation = false;
@@ -1183,8 +1181,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     final myUid =
-        ref.read(currentUserProfileProvider).value?.uid ??
-        ref.read(authStateChangesProvider).value?.uid ??
+        ref.read(currentUserIdProvider) ??
         ref.read(authRepositoryProvider).currentUser?.uid;
     if (myUid == null) return;
 

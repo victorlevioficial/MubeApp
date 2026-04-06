@@ -283,6 +283,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
     // In grid mode, we remove the horizontal margin of the card
     // since the grid handles spacing.
     final card = FeedCardVertical(
+      key: ValueKey<String>(item.uid),
       item: item,
       onTap: () => _onItemTap(item, avatarHeroTag: avatarHeroTag),
       avatarHeroTag: avatarHeroTag,
@@ -293,6 +294,7 @@ class _VerticalFeedListState extends ConsumerState<VerticalFeedList> {
 
     if (index < 6) {
       return FadeInSlide(
+        key: ValueKey<String>('fade_${item.uid}'),
         duration: const Duration(milliseconds: 300),
         delay: Duration(milliseconds: index * 50),
         direction: isGrid ? FadeInSlideDirection.btt : FadeInSlideDirection.rtl,

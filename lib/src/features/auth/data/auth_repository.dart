@@ -780,3 +780,24 @@ Future<List<AppUser>> membersList(Ref ref, List<String> uids) async {
   final result = await ref.watch(authRepositoryProvider).getUsersByIds(uids);
   return result.fold((l) => throw l, (r) => r);
 }
+
+// ---------------------------------------------------------------------------
+// Derived providers — lightweight selectors to reduce widget rebuilds.
+// Prefer these over watching currentUserProfileProvider when only a single
+// field is needed.
+// ---------------------------------------------------------------------------
+
+/// UID of the currently authenticated user, derived from the profile stream.
+/// Rebuilds only when the uid itself changes, not on every profile update.
+@riverpod
+String? currentUserId(Ref ref) {
+  return ref.watch(currentUserProfileProvider).value?.uid;
+}
+
+/// Whether the current user has completed the onboarding flow.
+/// Rebuilds only when [isCadastroConcluido] changes.
+@riverpod
+bool currentUserIsCadastroConcluido(Ref ref) {
+  return ref.watch(currentUserProfileProvider).value?.isCadastroConcluido ??
+      false;
+}
