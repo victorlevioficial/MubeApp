@@ -418,6 +418,7 @@ export function buildChatSafetyEventId(
 export async function logChatSafetyEvent(
   input: ChatSafetyEventInput
 ): Promise<boolean> {
+  if (!input.text || typeof input.text !== "string") return false;
   const trimmedText = input.text.trim();
   if (!trimmedText) return false;
 

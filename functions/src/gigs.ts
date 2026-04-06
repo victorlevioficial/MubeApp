@@ -685,10 +685,15 @@ export const onGigCreated = onDocumentCreated(
 
     const gigData = snapshot.data() || {};
     const creatorId = firstNonEmptyString([gigData.creator_id]);
-    await Promise.all([
+    const results = await Promise.allSettled([
       syncCreatorOpenGigCount(creatorId),
       notifyGigOpportunities(event.params.gigId as string, gigData),
     ]);
+    for (const r of results) {
+      if (r.status === "rejected") {
+        console.error("onGigCreated sub-task failed:", r.reason);
+      }
+    }
   }
 );
 

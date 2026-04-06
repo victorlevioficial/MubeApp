@@ -290,6 +290,11 @@ class GigRepository {
       query = query.where(GigFields.creatorId, isEqualTo: _uid);
     }
 
+    // Limit server-side fetch to avoid downloading unbounded collections.
+    // Client-side _matchesFilters handles criteria that Firestore cannot
+    // express (full-text search, array-contains across multiple fields).
+    query = query.limit(200);
+
     return _watchQuery(query, operationLabel: 'watch_gigs').map((snapshot) {
       final gigs = snapshot.docs.map(Gig.fromFirestore).toList(growable: false);
       return gigs

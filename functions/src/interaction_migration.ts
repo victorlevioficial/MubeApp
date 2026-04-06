@@ -73,8 +73,9 @@ export const migrateinteractions = onRequest(
 
       let batch = db.batch();
       let batchCount = 0;
-      // limit is 500 ops per batch, we use 400 safely
-      const BATCH_SIZE = 400;
+      // Firestore hard limit is 500 ops per batch.
+      // Each interaction uses 2 ops (set + delete), so flush before exceeding.
+      const BATCH_SIZE = 498;
 
       for (const doc of snapshot.docs) {
         const senderId = doc.id;

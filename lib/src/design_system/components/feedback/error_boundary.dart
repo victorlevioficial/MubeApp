@@ -39,18 +39,20 @@ class ErrorBoundary extends StatefulWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.s32),
-              ElevatedButton(
-                onPressed: () {
-                  // In a real app, strict navigation reset might be needed
-                  // But usually we just hope a hot restart or navigating back works
-                  // For now, we don't have a reliable "retry" mechanism for the whole tree
-                  // without causing loops.
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textPrimary,
+              Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () {
+                    final navigator = Navigator.maybeOf(ctx);
+                    if (navigator != null && navigator.canPop()) {
+                      navigator.pop();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                  ),
+                  child: const Text('Tentar Novamente'),
                 ),
-                child: const Text('Tentar Novamente'),
               ),
             ],
           ),

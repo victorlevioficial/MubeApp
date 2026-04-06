@@ -52,7 +52,7 @@ export const submitSupportTicket = onCall(
       throw new HttpsError("invalid-argument", "Informe um e-mail válido.");
     }
 
-    if (!PUBLIC_SUPPORT_CATEGORIES.has(category)) {
+    if (!PUBLIC_SUPPORT_CATEGORIES.has(category.toLowerCase())) {
       throw new HttpsError("invalid-argument", "Categoria inválida.");
     }
 

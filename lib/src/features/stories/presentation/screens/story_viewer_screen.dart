@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -578,29 +579,26 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
             if (thumbnailUrl != null &&
                 thumbnailUrl.isNotEmpty &&
                 !_imageLoaded)
-              Image.network(
-                thumbnailUrl,
+              CachedNetworkImage(
+                imageUrl: thumbnailUrl,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.low,
               ),
             AnimatedOpacity(
               opacity: _imageLoaded ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
-              child: Image.network(
-                widget.story.mediaUrl,
+              child: CachedNetworkImage(
+                imageUrl: widget.story.mediaUrl,
                 fit: BoxFit.cover,
-                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                  if (wasSynchronouslyLoaded || frame != null) {
-                    if (!_imageLoaded) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _imageLoaded = true);
-                      });
-                    }
-                    return child;
+                imageBuilder: (context, imageProvider) {
+                  if (!_imageLoaded) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) setState(() => _imageLoaded = true);
+                    });
                   }
-                  return child;
+                  return Image(image: imageProvider, fit: BoxFit.cover);
                 },
-                errorBuilder: (context, error, stackTrace) {
+                errorWidget: (context, url, error) {
                   return const Center(
                     child: Icon(
                       Icons.broken_image_outlined,
@@ -609,6 +607,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
                     ),
                   );
                 },
+                placeholder: (context, url) => const SizedBox.shrink(),
               ),
             ),
             if (!_imageLoaded && (thumbnailUrl == null || thumbnailUrl.isEmpty))
@@ -627,7 +626,10 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
         fit: StackFit.expand,
         children: [
           if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
-            Image.network(thumbnailUrl, fit: BoxFit.cover),
+            CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              fit: BoxFit.cover,
+            ),
           const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
