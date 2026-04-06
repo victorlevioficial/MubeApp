@@ -45,7 +45,7 @@ class PrivacySettingsScreen extends ConsumerWidget {
 
           final totalBlockedCount = {
             ...user.blockedUsers,
-            ...?ref.watch(blockedUsersProvider).value,
+            ...?ref.read(blockedUsersProvider).value,
           }.length;
 
           return ListView(
