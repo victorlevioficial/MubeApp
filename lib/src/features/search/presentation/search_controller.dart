@@ -239,32 +239,35 @@ class SearchController extends Notifier<SearchPaginationState> {
   }
 
   void setCategory(SearchCategory category) {
-    _setFilters(state.filters.sanitizeForCategory(category));
+    _setFilters(state.filters.sanitizeForCategory(category), debounced: true);
   }
 
   void setProfessionalSubcategory(ProfessionalSubcategory? subcategory) {
     final baseFilters = subcategory == null
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.sanitizeForProfessionalSubcategory(subcategory));
+    _setFilters(
+      baseFilters.sanitizeForProfessionalSubcategory(subcategory),
+      debounced: true,
+    );
   }
 
   void setGenres(List<String> genres) {
-    _setFilters(state.filters.copyWith(genres: genres));
+    _setFilters(state.filters.copyWith(genres: genres), debounced: true);
   }
 
   void setInstruments(List<String> instruments) {
     final baseFilters = instruments.isEmpty
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(instruments: instruments));
+    _setFilters(baseFilters.copyWith(instruments: instruments), debounced: true);
   }
 
   void setRoles(List<String> roles) {
     final baseFilters = roles.isEmpty
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(roles: roles));
+    _setFilters(baseFilters.copyWith(roles: roles), debounced: true);
   }
 
   void setOffersRemoteRecording(bool? offersRemoteRecording) {
@@ -273,6 +276,7 @@ class SearchController extends Notifier<SearchPaginationState> {
         : _ensureProfessionalCompatibleFilters(state.filters);
     _setFilters(
       baseFilters.copyWith(offersRemoteRecording: offersRemoteRecording),
+      debounced: true,
     );
   }
 
@@ -280,21 +284,24 @@ class SearchController extends Notifier<SearchPaginationState> {
     final baseFilters = services.isEmpty
         ? state.filters
         : _ensureStudioCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(services: services));
+    _setFilters(baseFilters.copyWith(services: services), debounced: true);
   }
 
   void setStudioType(String? type) {
     final baseFilters = type == null
         ? state.filters
         : _ensureStudioCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(studioType: type));
+    _setFilters(baseFilters.copyWith(studioType: type), debounced: true);
   }
 
   void setBackingVocalFilter(bool? canDoBacking) {
     final baseFilters = canDoBacking == null
         ? state.filters
         : _ensureProfessionalCompatibleFilters(state.filters);
-    _setFilters(baseFilters.copyWith(canDoBackingVocal: canDoBacking));
+    _setFilters(
+      baseFilters.copyWith(canDoBackingVocal: canDoBacking),
+      debounced: true,
+    );
   }
 
   void applyFilters(SearchFilters filters) {

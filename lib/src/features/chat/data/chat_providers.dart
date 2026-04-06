@@ -7,9 +7,8 @@ import '../domain/message.dart';
 import 'chat_repository.dart';
 
 /// Stream de todas as conversas do usuário logado.
-final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
-  ref,
-) {
+final userConversationsProvider =
+    StreamProvider.autoDispose<List<ConversationPreview>>((ref) {
   final userId =
       ref.watch(currentUserIdProvider) ??
       ref.read(authRepositoryProvider).currentUser?.uid;
@@ -20,7 +19,7 @@ final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
 });
 
 final userAcceptedConversationsProvider =
-    StreamProvider<List<ConversationPreview>>((ref) {
+    StreamProvider.autoDispose<List<ConversationPreview>>((ref) {
       final userId =
           ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
@@ -31,7 +30,7 @@ final userAcceptedConversationsProvider =
     });
 
 final userPendingConversationsProvider =
-    StreamProvider<List<ConversationPreview>>((ref) {
+    StreamProvider.autoDispose<List<ConversationPreview>>((ref) {
       final userId =
           ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
@@ -43,7 +42,7 @@ final userPendingConversationsProvider =
 
 /// Conversas filtradas: Apenas MatchPoint
 final matchConversationsProvider =
-    Provider<AsyncValue<List<ConversationPreview>>>((ref) {
+    Provider.autoDispose<AsyncValue<List<ConversationPreview>>>((ref) {
       final allAsync = ref.watch(userConversationsProvider);
       return allAsync.whenData((list) {
         return list.where((c) => c.type == 'matchpoint').toList();
@@ -52,7 +51,7 @@ final matchConversationsProvider =
 
 /// Conversas filtradas: Apenas Diretas (não-matchpoint)
 final directConversationsProvider =
-    Provider<AsyncValue<List<ConversationPreview>>>((ref) {
+    Provider.autoDispose<AsyncValue<List<ConversationPreview>>>((ref) {
       final allAsync = ref.watch(userConversationsProvider);
       return allAsync.whenData((list) {
         return list.where((c) => c.type != 'matchpoint').toList();

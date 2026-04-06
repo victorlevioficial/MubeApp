@@ -148,7 +148,9 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
   int _getPendingInviteCount() {
     final user = widget.currentUser;
     if (user == null || user.tipoPerfil != AppUserType.professional) return 0;
-    return ref.watch(pendingInviteCountProvider(user.uid)).value ?? 0;
+    return ref.watch(
+      pendingInviteCountProvider(user.uid).select((async) => async.value ?? 0),
+    );
   }
 
   SavedAddress? _getPrimaryAddress() {

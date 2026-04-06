@@ -12,6 +12,7 @@ import '../../domain/gig.dart';
 import '../../domain/gig_application.dart';
 import '../../domain/gig_review.dart';
 import '../../domain/gig_review_opportunity.dart';
+import '../../../../utils/app_logger.dart';
 import '../../../../utils/app_performance_tracker.dart';
 import 'gig_filters_controller.dart';
 
@@ -94,6 +95,9 @@ Stream<List<Gig>> gigsStream(Ref ref) {
 
 @Riverpod(keepAlive: true)
 Stream<List<Gig>> myGigsStream(Ref ref) {
+  ref.onDispose(() {
+    AppLogger.debug('myGigsStream disposed');
+  });
   return ref.watch(gigRepositoryProvider).watchMyGigs();
 }
 
@@ -109,6 +113,9 @@ Stream<List<GigApplication>> gigApplications(Ref ref, String gigId) {
 
 @Riverpod(keepAlive: true)
 Stream<List<GigApplication>> myApplications(Ref ref) {
+  ref.onDispose(() {
+    AppLogger.debug('myApplications disposed');
+  });
   final uid =
       ref.watch(currentUserIdProvider) ??
       ref.read(authRepositoryProvider).currentUser?.uid;

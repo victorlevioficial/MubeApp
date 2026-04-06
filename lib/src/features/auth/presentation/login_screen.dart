@@ -26,13 +26,19 @@ part 'login_screen.g.dart';
 
 @riverpod
 class LoginController extends _$LoginController {
+  /// Identifies which auth method is currently executing.
+  /// Values: 'email', 'google', 'apple', or null when idle.
+  String? get activeMethod => _activeMethod;
+  String? _activeMethod;
+
   @override
   FutureOr<void> build() {
-    // initial state is void (null)
+    _activeMethod = null;
   }
 
   Future<void> login({required String email, required String password}) async {
     await _runAuthAction(
+      method: 'email',
       action: () => ref
           .read(authRepositoryProvider)
           .signInWithEmailAndPassword(email, password),
@@ -41,19 +47,23 @@ class LoginController extends _$LoginController {
 
   Future<void> signInWithGoogle() async {
     await _runAuthAction(
+      method: 'google',
       action: () => ref.read(authRepositoryProvider).signInWithGoogle(),
     );
   }
 
   Future<void> signInWithApple() async {
     await _runAuthAction(
+      method: 'apple',
       action: () => ref.read(authRepositoryProvider).signInWithApple(),
     );
   }
 
   Future<void> _runAuthAction({
+    required String method,
     required FutureResult<Unit> Function() action,
   }) async {
+    _activeMethod = method;
     state = const AsyncLoading();
     final result = await action();
     if (!ref.mounted) return;
@@ -61,10 +71,12 @@ class LoginController extends _$LoginController {
     result.fold(
       (failure) {
         if (!ref.mounted) return;
+        _activeMethod = null;
         state = AsyncError(failure.message, StackTrace.current);
       },
       (success) {
         if (!ref.mounted) return;
+        _activeMethod = null;
         state = const AsyncData(null);
       },
     );
