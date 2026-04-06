@@ -15,7 +15,7 @@ final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
       ref.read(authRepositoryProvider).currentUser?.uid;
   if (userId == null || userId.isEmpty) return Stream.value([]);
 
-  final repository = ref.watch(chatRepositoryProvider);
+  final repository = ref.read(chatRepositoryProvider);
   return repository.getUserConversations(userId);
 });
 
@@ -26,7 +26,7 @@ final userAcceptedConversationsProvider =
           ref.read(authRepositoryProvider).currentUser?.uid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getUserAcceptedConversations(userId);
     });
 
@@ -37,7 +37,7 @@ final userPendingConversationsProvider =
           ref.read(authRepositoryProvider).currentUser?.uid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getUserPendingConversations(userId);
     });
 
@@ -62,18 +62,18 @@ final directConversationsProvider =
 /// Stream de mensagens de uma conversa específica.
 final conversationMessagesProvider = StreamProvider.autoDispose
     .family<List<Message>, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getMessages(id);
     });
 
 final conversationMessagesSnapshotProvider = StreamProvider.autoDispose
     .family<QuerySnapshot<Map<String, dynamic>>, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getMessagesSnapshot(id);
     });
 
 final conversationStreamProvider = StreamProvider.autoDispose
     .family<DocumentSnapshot, String>((ref, id) {
-      final repository = ref.watch(chatRepositoryProvider);
+      final repository = ref.read(chatRepositoryProvider);
       return repository.getConversationStream(id);
     });

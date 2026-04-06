@@ -34,7 +34,7 @@ final class MatchpointControllerProvider
 }
 
 String _$matchpointControllerHash() =>
-    r'5782b659da6a87fc1529c775c8414a5970855192';
+    r'e78531b0708e4211db1c03745996f257f89cb431';
 
 abstract class _$MatchpointController extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -133,7 +133,7 @@ final class MatchpointCandidatesProvider
 }
 
 String _$matchpointCandidatesHash() =>
-    r'06d3150b2a9e6397aafc7d8d7dcfe5f925e4390c';
+    r'53b16a651a33c8743dd1909bba143de9f2dcabff';
 
 abstract class _$MatchpointCandidates extends $AsyncNotifier<List<AppUser>> {
   FutureOr<List<AppUser>> build();

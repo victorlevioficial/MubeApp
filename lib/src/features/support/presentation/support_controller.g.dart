@@ -91,4 +91,4 @@ final class UserTicketsProvider
   }
 }
 
-String _$userTicketsHash() => r'828d95a99fe27fe42becc515ab7d83bfeb530d10';
+String _$userTicketsHash() => r'5832c4d448027594604f669a595069b39ffd8f84';

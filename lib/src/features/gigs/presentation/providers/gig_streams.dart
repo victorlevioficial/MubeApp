@@ -20,13 +20,13 @@ part 'gig_streams.g.dart';
 final gigUsersByStableIdsProvider =
     FutureProvider.family<Map<String, AppUser>, String>((ref, idsKey) {
       return ref
-          .watch(gigRepositoryProvider)
+          .read(gigRepositoryProvider)
           .getUsersByIds(_decodeGigUserIdsKey(idsKey));
     });
 
 final myGigApplicationProvider = StreamProvider.autoDispose
     .family<GigApplication?, String>((ref, gigId) {
-      return ref.watch(gigRepositoryProvider).watchMyApplicationForGig(gigId);
+      return ref.read(gigRepositoryProvider).watchMyApplicationForGig(gigId);
     });
 
 final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
@@ -64,7 +64,7 @@ final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
     }
   });
 
-  final source = ref.watch(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
+  final source = ref.read(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
   return source.transform(
     StreamTransformer.fromHandlers(
       handleData: (gigs, sink) {
@@ -82,7 +82,7 @@ final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
 final publicCreatorOpenGigsProvider = StreamProvider.autoDispose
     .family<List<Gig>, String>((ref, creatorId) {
       return ref
-          .watch(gigRepositoryProvider)
+          .read(gigRepositoryProvider)
           .watchPublicOpenGigsByCreator(creatorId, limit: 3);
     });
 
@@ -109,18 +109,12 @@ Stream<List<GigApplication>> gigApplications(Ref ref, String gigId) {
 
 @Riverpod(keepAlive: true)
 Stream<List<GigApplication>> myApplications(Ref ref) {
-  final authAsync = ref.watch(authStateChangesProvider);
-  final fallbackUser = ref.read(authRepositoryProvider).currentUser;
-  final currentUser = authAsync.asData?.value ?? fallbackUser;
+  final uid =
+      ref.watch(currentUserIdProvider) ??
+      ref.read(authRepositoryProvider).currentUser?.uid;
+  if (uid == null) return Stream.value(const <GigApplication>[]);
 
-  if (currentUser == null) {
-    if (authAsync.hasError) {
-      return Stream.error(authAsync.error!, authAsync.stackTrace);
-    }
-    return Stream.value(const <GigApplication>[]);
-  }
-
-  return ref.watch(gigRepositoryProvider).watchMyApplications();
+  return ref.read(gigRepositoryProvider).watchMyApplications();
 }
 
 @riverpod

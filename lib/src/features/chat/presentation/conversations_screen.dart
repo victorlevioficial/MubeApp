@@ -324,8 +324,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
   Widget build(BuildContext context) {
     final acceptedAsync = ref.watch(userAcceptedConversationsProvider);
     final pendingAsync = ref.watch(userPendingConversationsProvider);
-    final currentUserId =
-        ref.watch(currentUserProfileProvider).value?.uid ?? '';
+    final currentUserId = ref.watch(currentUserIdProvider) ?? '';
     final pendingCount =
         pendingAsync.value
             ?.where(

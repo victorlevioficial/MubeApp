@@ -62,8 +62,8 @@ class SupportController extends _$SupportController {
 
 @riverpod
 Stream<List<Ticket>> userTickets(Ref ref) {
-  final user = ref.watch(currentUserProfileProvider).value;
-  if (user == null) return Stream.value([]);
+  final uid = ref.watch(currentUserIdProvider);
+  if (uid == null) return Stream.value([]);
 
-  return ref.watch(supportRepositoryProvider).watchUserTickets(user.uid);
+  return ref.read(supportRepositoryProvider).watchUserTickets(uid);
 }
