@@ -626,10 +626,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
         fit: StackFit.expand,
         children: [
           if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: thumbnailUrl,
-              fit: BoxFit.cover,
-            ),
+            CachedNetworkImage(imageUrl: thumbnailUrl, fit: BoxFit.cover),
           const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),

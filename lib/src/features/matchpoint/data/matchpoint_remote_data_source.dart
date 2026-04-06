@@ -352,10 +352,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     final AppUser user;
     try {
-      user = AppUser.fromJson({
-        ...userData,
-        'uid': userData['uid'] ?? docId,
-      });
+      user = AppUser.fromJson({...userData, 'uid': userData['uid'] ?? docId});
     } catch (e, stack) {
       AppLogger.warning(
         'MatchPoint: skipping candidate $docId due to deserialization error',
