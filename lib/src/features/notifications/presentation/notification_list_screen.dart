@@ -165,9 +165,20 @@ class NotificationListScreen extends ConsumerWidget {
       case NotificationType.gigCancelled:
       case NotificationType.gigReviewReminder:
       case NotificationType.gigOpportunity:
+        _navigateToTarget(router, RoutePaths.gigs);
+        break;
       case NotificationType.like:
+        final likerId = notification.senderId;
+        if (likerId != null && likerId.trim().isNotEmpty) {
+          _navigateToTarget(
+            router,
+            RoutePaths.publicProfileById(likerId.trim()),
+          );
+        } else {
+          _navigateToTarget(router, RoutePaths.receivedFavorites);
+        }
+        break;
       case NotificationType.system:
-        // No specific navigation for now
         break;
     }
   }

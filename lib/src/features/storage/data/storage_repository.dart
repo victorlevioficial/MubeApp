@@ -212,11 +212,6 @@ class StorageRepository {
       );
     }
 
-    // DEBUG: Log informações de autenticação
-    AppLogger.info(
-      '🔐 DEBUG Storage Upload: Type=${isVideo ? "Video" : "Photo"}, User=$userId, Auth=${currentUser.email}',
-    );
-
     // Validar arquivo antes do upload
     await UploadValidator.validateMedia(file, isVideo: isVideo);
 
@@ -420,11 +415,6 @@ class StorageRepository {
         'ao perfil. Tente fazer logout e login novamente.',
       );
     }
-
-    // DEBUG: Log informações de autenticação
-    AppLogger.info(
-      '🔐 DEBUG Storage Upload: Type=${isVideo ? "Video" : "Photo"}, User=$userId, Auth=${currentUser.email}',
-    );
 
     // Validar arquivo antes do upload
     await UploadValidator.validateMedia(file, isVideo: isVideo);

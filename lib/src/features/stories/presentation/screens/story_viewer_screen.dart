@@ -94,6 +94,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   void _activateCurrentStory() {
+    if (_bundles.isEmpty) return;
     final story = _currentStory;
     _markViewed(story);
     _precacheNextStory();
@@ -138,14 +139,14 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   void _pauseStory() {
-    if (_isPaused) return;
+    if (_isPaused || _bundles.isEmpty) return;
     setState(() => _isPaused = true);
     if (_currentStory.isVideo) return;
     _imageProgressController.stop();
   }
 
   void _resumeStory() {
-    if (!_isPaused) return;
+    if (!_isPaused || _bundles.isEmpty) return;
     setState(() => _isPaused = false);
     if (_currentStory.isVideo) return;
     _imageProgressController.forward();
