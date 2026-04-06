@@ -208,3 +208,103 @@ final class MembersListFamily extends $Family
   @override
   String toString() => r'membersListProvider';
 }
+
+/// UID of the currently authenticated user, derived from the profile stream.
+/// Rebuilds only when the uid itself changes, not on every profile update.
+
+@ProviderFor(currentUserId)
+const currentUserIdProvider = CurrentUserIdProvider._();
+
+/// UID of the currently authenticated user, derived from the profile stream.
+/// Rebuilds only when the uid itself changes, not on every profile update.
+
+final class CurrentUserIdProvider
+    extends $FunctionalProvider<String?, String?, String?>
+    with $Provider<String?> {
+  /// UID of the currently authenticated user, derived from the profile stream.
+  /// Rebuilds only when the uid itself changes, not on every profile update.
+  const CurrentUserIdProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentUserIdProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentUserIdHash();
+
+  @$internal
+  @override
+  $ProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String? create(Ref ref) {
+    return currentUserId(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$currentUserIdHash() => r'195113078842308a47c25f8329c889d809e3d5d7';
+
+/// Whether the current user has completed the onboarding flow.
+/// Rebuilds only when [isCadastroConcluido] changes.
+
+@ProviderFor(currentUserIsCadastroConcluido)
+const currentUserIsCadastroConcluidoProvider =
+    CurrentUserIsCadastroConcluidoProvider._();
+
+/// Whether the current user has completed the onboarding flow.
+/// Rebuilds only when [isCadastroConcluido] changes.
+
+final class CurrentUserIsCadastroConcluidoProvider
+    extends $FunctionalProvider<bool, bool, bool>
+    with $Provider<bool> {
+  /// Whether the current user has completed the onboarding flow.
+  /// Rebuilds only when [isCadastroConcluido] changes.
+  const CurrentUserIsCadastroConcluidoProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentUserIsCadastroConcluidoProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentUserIsCadastroConcluidoHash();
+
+  @$internal
+  @override
+  $ProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  bool create(Ref ref) {
+    return currentUserIsCadastroConcluido(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$currentUserIsCadastroConcluidoHash() =>
+    r'0502f2c4abfd60c758670f6a9160044d96c9db32';

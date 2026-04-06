@@ -10,24 +10,22 @@ export 'notification_repository.dart';
 /// Retorna lista vazia se não estiver logado.
 final notificationsStreamProvider =
     StreamProvider.autoDispose<List<AppNotification>>((ref) {
-      final user = ref.watch(currentUserProfileProvider).value;
-      if (user == null) return Stream.value([]);
+      final uid = ref.watch(currentUserIdProvider);
+      if (uid == null) return Stream.value([]);
 
-      return ref
-          .read(notificationRepositoryProvider)
-          .watchNotifications(user.uid);
+      return ref.read(notificationRepositoryProvider).watchNotifications(uid);
     });
 
 /// Stream da contagem exata de notificações não lidas.
 final unreadNotificationCountStreamProvider = StreamProvider.autoDispose<int>((
   ref,
 ) {
-  final user = ref.watch(currentUserProfileProvider).value;
-  if (user == null) return Stream.value(0);
+  final uid = ref.watch(currentUserIdProvider);
+  if (uid == null) return Stream.value(0);
 
   return ref
       .read(notificationRepositoryProvider)
-      .watchUnreadNotificationCount(user.uid);
+      .watchUnreadNotificationCount(uid);
 });
 
 /// Contagem de notificações não lidas baseada no Firestore.

@@ -10,11 +10,9 @@ import 'chat_repository.dart';
 final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
   ref,
 ) {
-  final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-  final authUid =
-      ref.watch(authStateChangesProvider).value?.uid ??
+  final userId =
+      ref.watch(currentUserIdProvider) ??
       ref.read(authRepositoryProvider).currentUser?.uid;
-  final userId = profileUid ?? authUid;
   if (userId == null || userId.isEmpty) return Stream.value([]);
 
   final repository = ref.watch(chatRepositoryProvider);
@@ -23,11 +21,9 @@ final userConversationsProvider = StreamProvider<List<ConversationPreview>>((
 
 final userAcceptedConversationsProvider =
     StreamProvider<List<ConversationPreview>>((ref) {
-      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-      final authUid =
-          ref.watch(authStateChangesProvider).value?.uid ??
+      final userId =
+          ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
-      final userId = profileUid ?? authUid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
       final repository = ref.watch(chatRepositoryProvider);
@@ -36,11 +32,9 @@ final userAcceptedConversationsProvider =
 
 final userPendingConversationsProvider =
     StreamProvider<List<ConversationPreview>>((ref) {
-      final profileUid = ref.watch(currentUserProfileProvider).value?.uid;
-      final authUid =
-          ref.watch(authStateChangesProvider).value?.uid ??
+      final userId =
+          ref.watch(currentUserIdProvider) ??
           ref.read(authRepositoryProvider).currentUser?.uid;
-      final userId = profileUid ?? authUid;
       if (userId == null || userId.isEmpty) return Stream.value([]);
 
       final repository = ref.watch(chatRepositoryProvider);
