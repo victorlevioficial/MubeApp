@@ -42,10 +42,20 @@ class _MatchpointExploreScreenState
 
   bool _hasFetchedLikesQuota = false;
 
+  /// True until fresh candidates arrive, so the UI shows the loading skeleton
+  /// instead of stale cached data from a previous session.
+  bool _awaitingFreshCandidates = true;
+
   @override
   void initState() {
     super.initState();
     _checkTutorialStatus();
+
+    // Eagerly clear the cached candidate list so the first build() after
+    // the guard drops sees AsyncLoading instead of stale data.  This call
+    // only marks the provider as needing a rebuild — the actual Firestore
+    // query is deferred to the postFrameCallback below.
+    ref.invalidate(matchpointCandidatesProvider);
 
     // Stagger the initial Firebase operations to avoid overwhelming the iOS
     // Swift Concurrency cooperative thread pool (cause of SIGABRT crash).
@@ -58,6 +68,14 @@ class _MatchpointExploreScreenState
       if (!mounted) return;
 
       ref.invalidate(matchpointCandidatesProvider);
+
+      // The cached state has been destroyed by invalidate(); safe to let
+      // build() render normally — it will see AsyncLoading (no stale data).
+      if (mounted) {
+        setState(() {
+          _awaitingFreshCandidates = false;
+        });
+      }
 
       _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
         matchpointSwipeFeedbackProvider,
@@ -102,12 +120,30 @@ class _MatchpointExploreScreenState
   void dispose() {
     _feedbackSubscription?.close();
     _swiperController.dispose();
+    // Clear cached candidates so the next session starts fresh (no stale
+    // profile flash). The provider is keepAlive, so without this explicit
+    // invalidation the old list would be served synchronously on re-entry.
+    ref.invalidate(matchpointCandidatesProvider);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final candidatesAsync = ref.watch(matchpointCandidatesProvider);
+
+    // Show skeleton while waiting for the postFrameCallback invalidation to
+    // fire, so stale cached profiles from a previous session are never shown.
+    if (_awaitingFreshCandidates) {
+      return Stack(
+        children: [
+          _buildLoadingState(),
+          if (_showTutorial)
+            Positioned.fill(
+              child: MatchpointTutorialOverlay(onDismiss: _dismissTutorial),
+            ),
+        ],
+      );
+    }
 
     return Stack(
       children: [

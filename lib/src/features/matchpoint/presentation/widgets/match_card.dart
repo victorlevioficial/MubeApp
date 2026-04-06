@@ -46,7 +46,7 @@ class MatchCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   fadeInDuration: Duration.zero,
                   fadeOutDuration: Duration.zero,
-                  useOldImageOnUrlChange: true,
+                  useOldImageOnUrlChange: false,
                   cacheManager: ImageCacheConfig.profileCacheManager,
                   placeholder: (context, url) => Container(
                     color: AppColors.surfaceHighlight,
