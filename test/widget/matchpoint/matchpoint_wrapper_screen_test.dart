@@ -12,10 +12,10 @@ import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
+import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_intro_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_tabs_screen.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_unavailable_screen.dart';
-import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 
 import '../../helpers/test_fakes.dart';
