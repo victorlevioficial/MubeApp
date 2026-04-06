@@ -63,16 +63,20 @@ abstract class HashtagRanking with _$HashtagRanking {
   }
 
   static DateTime _parseCloudFunctionDate(dynamic value) {
-    if (value is String && value.isNotEmpty) {
-      return DateTime.tryParse(value) ?? DateTime.now();
-    }
+    try {
+      if (value is String && value.isNotEmpty) {
+        return DateTime.tryParse(value) ?? DateTime.now();
+      }
 
-    if (value is Timestamp) {
-      return value.toDate();
-    }
+      if (value is Timestamp) {
+        return value.toDate();
+      }
 
-    if (value is int) {
-      return DateTime.fromMillisecondsSinceEpoch(value);
+      if (value is num) {
+        return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+      }
+    } catch (_) {
+      // Fallback to now on any parsing error (e.g. AOT type mismatch).
     }
 
     return DateTime.now();

@@ -125,6 +125,9 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
         Positioned.fill(
           bottom: 100, // Leave space for buttons
           child: CardSwiper(
+            // Force widget recreation when candidate list changes, so the
+            // swiper never shows stale cards from a previous session.
+            key: ValueKey(widget.candidates.map((c) => c.uid).join(',')),
             controller: widget.controller,
             isDisabled: _isInteractionLocked,
             cardsCount: widget.candidates.length,
