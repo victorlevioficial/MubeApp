@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../storage/data/storage_repository.dart';
 import '../data/support_repository.dart';
@@ -31,15 +32,24 @@ class SupportController extends _$SupportController {
       final ticketId = const Uuid().v4();
       final List<String> imageUrls = [];
 
-      // Upload attachments
+      // Upload attachments — skip individual failures so the ticket is
+      // created with whichever images succeed.
       if (attachments.isNotEmpty) {
         final storage = ref.read(storageRepositoryProvider);
         for (final file in attachments) {
-          final url = await storage.uploadSupportAttachment(
-            ticketId: ticketId,
-            file: file,
-          );
-          imageUrls.add(url);
+          try {
+            final url = await storage.uploadSupportAttachment(
+              ticketId: ticketId,
+              file: file,
+            );
+            imageUrls.add(url);
+          } catch (e, stack) {
+            AppLogger.warning(
+              'Failed to upload support attachment, skipping',
+              e,
+              stack,
+            );
+          }
         }
       }
 
