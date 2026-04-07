@@ -108,6 +108,60 @@ abstract class _$LikesQuota extends $Notifier<LikesQuotaState> {
   }
 }
 
+@ProviderFor(MatchpointInit)
+const matchpointInitProvider = MatchpointInitProvider._();
+
+final class MatchpointInitProvider
+    extends $NotifierProvider<MatchpointInit, MatchpointInitPhase> {
+  const MatchpointInitProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'matchpointInitProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$matchpointInitHash();
+
+  @$internal
+  @override
+  MatchpointInit create() => MatchpointInit();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MatchpointInitPhase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MatchpointInitPhase>(value),
+    );
+  }
+}
+
+String _$matchpointInitHash() => r'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+
+abstract class _$MatchpointInit extends $Notifier<MatchpointInitPhase> {
+  MatchpointInitPhase build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref =
+        this.ref as $Ref<MatchpointInitPhase, MatchpointInitPhase>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<MatchpointInitPhase, MatchpointInitPhase>,
+              MatchpointInitPhase,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
+}
+
 @ProviderFor(MatchpointCandidates)
 const matchpointCandidatesProvider = MatchpointCandidatesProvider._();
 
