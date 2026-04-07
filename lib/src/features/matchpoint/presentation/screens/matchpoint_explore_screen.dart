@@ -142,10 +142,16 @@ class _MatchpointExploreScreenState
 
   @override
   Widget build(BuildContext context) {
-    final candidatesAsync = ref.watch(matchpointCandidatesProvider);
-
-    // Show skeleton while waiting for the postFrameCallback invalidation to
-    // fire, so stale cached profiles from a previous session are never shown.
+    // CRITICAL: Do NOT call ref.watch(matchpointCandidatesProvider) before
+    // the staggered invalidation has fired. The first watch implicitly
+    // triggers the provider's build() if its keep-alive cache is empty
+    // (cold entry into the screen). When the _initStaggerTimer subsequently
+    // fires ref.invalidate(matchpointCandidatesProvider), it triggers a
+    // SECOND build() within ~500ms — two consecutive fetchCandidates()
+    // calls overlap their unawaited analytics.logEvent Pigeon calls on the
+    // iOS Swift Concurrency cooperative pool, causing swift_task_dealloc /
+    // SIGABRT (Crashlytics issue a37e597a, confirmed in 1.6.15+162 with
+    // duplicate `matchpoint_ranking_audit` breadcrumbs ~440ms apart).
     if (_awaitingFreshCandidates) {
       return Stack(
         children: [
@@ -157,6 +163,8 @@ class _MatchpointExploreScreenState
         ],
       );
     }
+
+    final candidatesAsync = ref.watch(matchpointCandidatesProvider);
 
     return Stack(
       children: [

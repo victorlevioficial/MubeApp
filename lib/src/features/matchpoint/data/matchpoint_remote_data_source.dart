@@ -310,6 +310,13 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     }
 
     if (docs.length < poolLimit) {
+      // Brief gap so the iOS Swift Concurrency cooperative pool can drain
+      // the previous Pigeon call (FirebaseFirestoreHostApi.queryGet) before
+      // we issue the next .get(). Without this, two back-to-back queries
+      // can stack `async let` child tasks on the same worker, contributing
+      // to the SIGABRT crash on Matchpoint entry.
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+
       final fallbackSnapshot = await _firestore
           .collection(FirestoreCollections.users)
           .where(
@@ -587,32 +594,45 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     final analytics = _analytics;
     if (analytics != null) {
-      unawaited(
-        analytics.logEvent(
-          name: 'matchpoint_ranking_audit',
-          parameters: {
-            'pool_total': pool.length,
-            'returned_total': returned.length,
-            'pool_proximity': poolStats.proximity,
-            'pool_hashtag': poolStats.hashtag,
-            'pool_genre': poolStats.genre,
-            'pool_fallback': poolStats.fallback,
-            'ret_proximity': returnedStats.proximity,
-            'ret_hashtag': returnedStats.hashtag,
-            'ret_genre': returnedStats.genre,
-            'ret_fallback': returnedStats.fallback,
-            'pool_local_total': poolStats.localTotal,
-            'pool_local_hashtag': poolStats.localHashtag,
-            'pool_local_genre': poolStats.localGenre,
-            'ret_local_total': returnedStats.localTotal,
-            'ret_local_hashtag': returnedStats.localHashtag,
-            'ret_local_genre': returnedStats.localGenre,
-            'query_genres': queryGenresCount,
-            'query_tags': queryHashtagsCount,
-            'used_geohash': currentUserGeohash != null,
-          },
-        ),
-      );
+      // Defer the analytics Pigeon call so it does NOT overlap with the
+      // continuation of fetchCandidates() and the swipe deck's image loads
+      // / additional Firebase ops on the same frame. The audit event is
+      // non-critical telemetry and can land 250ms later without consequence.
+      // Firing it inline (even via unawaited) means the firebase_analytics
+      // iOS plugin's Swift Task launches on the cooperative pool exactly
+      // when the next Firestore query is also being scheduled, which
+      // saturates the executor and triggers swift_task_dealloc / SIGABRT
+      // (Crashlytics issue a37e597a, last seen 1.6.15+162).
+      Future<void>.delayed(const Duration(milliseconds: 250), () {
+        unawaited(
+          analytics
+              .logEvent(
+                name: 'matchpoint_ranking_audit',
+                parameters: {
+                  'pool_total': pool.length,
+                  'returned_total': returned.length,
+                  'pool_proximity': poolStats.proximity,
+                  'pool_hashtag': poolStats.hashtag,
+                  'pool_genre': poolStats.genre,
+                  'pool_fallback': poolStats.fallback,
+                  'ret_proximity': returnedStats.proximity,
+                  'ret_hashtag': returnedStats.hashtag,
+                  'ret_genre': returnedStats.genre,
+                  'ret_fallback': returnedStats.fallback,
+                  'pool_local_total': poolStats.localTotal,
+                  'pool_local_hashtag': poolStats.localHashtag,
+                  'pool_local_genre': poolStats.localGenre,
+                  'ret_local_total': returnedStats.localTotal,
+                  'ret_local_hashtag': returnedStats.localHashtag,
+                  'ret_local_genre': returnedStats.localGenre,
+                  'query_genres': queryGenresCount,
+                  'query_tags': queryHashtagsCount,
+                  'used_geohash': currentUserGeohash != null,
+                },
+              )
+              .catchError((Object _) {}),
+        );
+      });
     }
 
     // The Cloud Function mirror (recordMatchpointRankingAudit) was removed

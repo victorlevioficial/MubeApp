@@ -438,6 +438,13 @@ void main() {
         limit: 10,
       );
 
+      // The matchpoint_ranking_audit analytics event is intentionally
+      // deferred ~250ms inside _logRankingAudit so its Pigeon call does
+      // not overlap with the continuation of fetchCandidates() on iOS
+      // (Crashlytics issue a37e597a SIGABRT mitigation). Wait long
+      // enough for the deferred call to land before asserting.
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+
       expect(analytics.eventNames, contains('matchpoint_ranking_audit'));
       final params = analytics.eventParameters.last!;
       expect(params['pool_proximity'], 1);
