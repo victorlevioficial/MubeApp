@@ -100,10 +100,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }
 
   Future<void> _refreshSecurityTokensInternal() async {
+    // Serialize token refreshes to avoid concurrent platform-channel calls
+    // that crash the iOS Swift Concurrency runtime in release builds.
     final currentUser = _firebaseAuth.currentUser;
     if (currentUser != null) {
       try {
-        await currentUser.getIdToken(true);
+        await currentUser.getIdToken(true).timeout(const Duration(seconds: 10));
       } catch (e, stack) {
         AppLogger.warning(
           'Failed to refresh FirebaseAuth token before retry.',
@@ -112,6 +114,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         );
       }
     }
+
+    // Small gap between platform-channel calls to let the cooperative
+    // executor drain completed tasks before queuing the next one.
+    await Future<void>.delayed(const Duration(milliseconds: 200));
 
     await AppCheckRefreshCoordinator.ensureValidTokenOrThrow(
       _firebaseAppCheck,
@@ -609,61 +615,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
     }
 
-    unawaited(
-      _mirrorRankingAudit(
-        currentUserGeohash: currentUserGeohash,
-        queryGenresCount: queryGenresCount,
-        queryHashtagsCount: queryHashtagsCount,
-        poolStats: poolStats,
-        returnedStats: returnedStats,
-        poolTotal: pool.length,
-        returnedTotal: returned.length,
-      ),
-    );
-  }
-
-  Future<void> _mirrorRankingAudit({
-    required String? currentUserGeohash,
-    required int queryGenresCount,
-    required int queryHashtagsCount,
-    required _RankingAuditStats poolStats,
-    required _RankingAuditStats returnedStats,
-    required int poolTotal,
-    required int returnedTotal,
-  }) async {
-    try {
-      await _callWithRecovery(
-        'recordMatchpointRankingAudit',
-        data: {
-          'poolTotal': poolTotal,
-          'returnedTotal': returnedTotal,
-          'poolProximity': poolStats.proximity,
-          'poolHashtag': poolStats.hashtag,
-          'poolGenre': poolStats.genre,
-          'poolFallback': poolStats.fallback,
-          'poolLocalTotal': poolStats.localTotal,
-          'poolLocalHashtag': poolStats.localHashtag,
-          'poolLocalGenre': poolStats.localGenre,
-          'returnedProximity': returnedStats.proximity,
-          'returnedHashtag': returnedStats.hashtag,
-          'returnedGenre': returnedStats.genre,
-          'returnedFallback': returnedStats.fallback,
-          'returnedLocalTotal': returnedStats.localTotal,
-          'returnedLocalHashtag': returnedStats.localHashtag,
-          'returnedLocalGenre': returnedStats.localGenre,
-          'queryGenres': queryGenresCount,
-          'queryHashtags': queryHashtagsCount,
-          'usedGeohash': currentUserGeohash != null,
-        },
-      );
-    } catch (error, stackTrace) {
-      AppLogger.warning(
-        'MatchPoint: failed to mirror ranking audit to backend.',
-        error,
-        stackTrace,
-        false,
-      );
-    }
+    // The Cloud Function mirror (recordMatchpointRankingAudit) was removed
+    // because it fired a platform-channel call (+ potential auth/AppCheck
+    // recovery) simultaneously with the analytics event and Firestore
+    // listeners, overwhelming the iOS Swift Concurrency cooperative thread
+    // pool and causing SIGABRT crashes in release builds. The same audit data
+    // is already captured by the analytics.logEvent call above.
   }
 
   @override

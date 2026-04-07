@@ -46,53 +46,65 @@ class _MatchpointExploreScreenState
   /// instead of stale cached data from a previous session.
   bool _awaitingFreshCandidates = true;
 
+  /// Pending timers from the staggered initialization sequence. Cancelled
+  /// in dispose() so navigating away during the 500ms / 2s delays does not
+  /// leak timers (also keeps widget tests deterministic).
+  Timer? _initStaggerTimer;
+  Timer? _likesQuotaTimer;
+
   @override
   void initState() {
     super.initState();
     _checkTutorialStatus();
 
-    // Eagerly clear the cached candidate list so the first build() after
-    // the guard drops sees AsyncLoading instead of stale data.  This call
-    // only marks the provider as needing a rebuild — the actual Firestore
-    // query is deferred to the postFrameCallback below.
-    ref.invalidate(matchpointCandidatesProvider);
-
     // Stagger the initial Firebase operations to avoid overwhelming the iOS
-    // Swift Concurrency cooperative thread pool (cause of SIGABRT crash).
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // Swift Concurrency cooperative thread pool. In release builds (AOT),
+    // Dart dispatches platform-channel calls faster than the cooperative
+    // executor can drain, causing swift_task_dealloc / SIGABRT crashes.
+    // A 500ms delay lets the profile stream listener and any pending
+    // App Check / Auth token operations settle before we fire the
+    // candidates Firestore query.
+    //
+    // We invalidate ONCE inside the postFrameCallback (not twice as before)
+    // because firing two invalidations causes the provider's build() to
+    // execute twice in quick succession, doubling the platform-channel
+    // pressure on iOS during screen entry — the exact condition that
+    // triggers the SIGABRT crash from the highlight card navigation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      // Small delay so the profile provider can settle before we fire
-      // the candidates Firestore query via a new platform-channel call.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
+      _initStaggerTimer = Timer(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
 
-      ref.invalidate(matchpointCandidatesProvider);
+        ref.invalidate(matchpointCandidatesProvider);
 
-      // The cached state has been destroyed by invalidate(); safe to let
-      // build() render normally — it will see AsyncLoading (no stale data).
-      if (mounted) {
+        // The cached state has been destroyed by invalidate(); safe to let
+        // build() render normally — it will see AsyncLoading (no stale data).
         setState(() {
           _awaitingFreshCandidates = false;
         });
-      }
 
-      _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
-        matchpointSwipeFeedbackProvider,
-        (previous, next) {
-          if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
-          _lastHandledSwipeFeedbackId = next.id;
-          ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
-          unawaited(
-            _handleSwipeFeedback(next).catchError((
-              Object error,
-              StackTrace stack,
-            ) {
-              AppLogger.warning('Swipe feedback handler failed', error, stack);
-            }),
-          );
-        },
-      );
+        _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
+          matchpointSwipeFeedbackProvider,
+          (previous, next) {
+            if (next == null || next.id == _lastHandledSwipeFeedbackId) return;
+            _lastHandledSwipeFeedbackId = next.id;
+            ref.read(matchpointSwipeFeedbackProvider.notifier).clear();
+            unawaited(
+              _handleSwipeFeedback(next).catchError((
+                Object error,
+                StackTrace stack,
+              ) {
+                AppLogger.warning(
+                  'Swipe feedback handler failed',
+                  error,
+                  stack,
+                );
+              }),
+            );
+          },
+        );
+      });
     });
   }
 
@@ -118,6 +130,8 @@ class _MatchpointExploreScreenState
 
   @override
   void dispose() {
+    _initStaggerTimer?.cancel();
+    _likesQuotaTimer?.cancel();
     _feedbackSubscription?.close();
     _swiperController.dispose();
     // Note: do NOT call ref.invalidate() here — using ref after the widget
@@ -148,11 +162,15 @@ class _MatchpointExploreScreenState
       children: [
         candidatesAsync.when(
           data: (candidates) {
-            // Fetch likes quota only once, after candidates have loaded, to
-            // avoid concurrent Firebase platform-channel calls on iOS.
+            // Fetch likes quota only once, after candidates have loaded.
+            // Delay by 2s to avoid concurrent Firebase platform-channel calls
+            // that crash the iOS Swift Concurrency runtime (SIGABRT).
+            // The ranking audit analytics + Firestore listeners are still
+            // settling at this point; the extra gap prevents task contention
+            // on the cooperative executor.
             if (!_hasFetchedLikesQuota) {
               _hasFetchedLikesQuota = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
+              _likesQuotaTimer = Timer(const Duration(seconds: 2), () {
                 if (!mounted) return;
                 ref
                     .read(matchpointControllerProvider.notifier)

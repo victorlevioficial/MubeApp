@@ -847,7 +847,13 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     final currentUser = authRepo.currentUser;
     if (currentUser == null) return [];
 
-    final profileAsync = ref.watch(currentUserProfileProvider);
+    // Use ref.read (not ref.watch) for the profile to avoid the candidates
+    // provider rebuilding every time the Firestore profile stream emits.
+    // Each rebuild fires a fresh fetchCandidates() — multiple in-flight
+    // fetches stack platform-channel calls that crash the iOS Swift
+    // Concurrency runtime (SIGABRT). Manual refresh via initState's
+    // explicit invalidate() is the trigger for fresh data instead.
+    final profileAsync = ref.read(currentUserProfileProvider);
     final userProfile = profileAsync.value;
 
     if (profileAsync.isLoading && userProfile == null) {
