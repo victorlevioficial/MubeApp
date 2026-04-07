@@ -35,9 +35,8 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   void initState() {
     super.initState();
     matchpointSelectedTabNotifier.value = 0;
-    // fetchRemainingLikes() is now triggered from MatchpointExploreScreen
-    // after candidates load, to avoid concurrent Firebase platform-channel
-    // calls that crash the iOS Swift Concurrency runtime (SIGABRT).
+    // Firebase initialization (candidates + likes quota) is serialized by
+    // the MatchpointInit orchestrator in MatchpointExploreScreen.
   }
 
   Widget _buildTab(int index) {

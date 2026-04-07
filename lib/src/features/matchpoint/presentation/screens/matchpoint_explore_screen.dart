@@ -40,42 +40,21 @@ class _MatchpointExploreScreenState
   int _lastHandledSwipeFeedbackId = -1;
   ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
 
-  bool _hasFetchedLikesQuota = false;
-
-  /// True until fresh candidates arrive, so the UI shows the loading skeleton
-  /// instead of stale cached data from a previous session.
-  bool _awaitingFreshCandidates = true;
-
   @override
   void initState() {
     super.initState();
     _checkTutorialStatus();
 
-    // Eagerly clear the cached candidate list so the first build() after
-    // the guard drops sees AsyncLoading instead of stale data.  This call
-    // only marks the provider as needing a rebuild — the actual Firestore
-    // query is deferred to the postFrameCallback below.
-    ref.invalidate(matchpointCandidatesProvider);
-
-    // Stagger the initial Firebase operations to avoid overwhelming the iOS
-    // Swift Concurrency cooperative thread pool (cause of SIGABRT crash).
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // Use the orchestrator to serialize Firebase operations sequentially,
+    // preventing the iOS Swift Concurrency SIGABRT crash caused by flooding
+    // the platform-channel thread pool with concurrent calls.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      // Small delay so the profile provider can settle before we fire
-      // the candidates Firestore query via a new platform-channel call.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
-
-      ref.invalidate(matchpointCandidatesProvider);
-
-      // The cached state has been destroyed by invalidate(); safe to let
-      // build() render normally — it will see AsyncLoading (no stale data).
-      if (mounted) {
-        setState(() {
-          _awaitingFreshCandidates = false;
-        });
-      }
+      // Reset orchestrator so re-entry always triggers a fresh init sequence.
+      final initNotifier = ref.read(matchpointInitProvider.notifier);
+      initNotifier.reset();
+      unawaited(initNotifier.initialize());
 
       _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
         matchpointSwipeFeedbackProvider,
@@ -130,36 +109,10 @@ class _MatchpointExploreScreenState
   Widget build(BuildContext context) {
     final candidatesAsync = ref.watch(matchpointCandidatesProvider);
 
-    // Show skeleton while waiting for the postFrameCallback invalidation to
-    // fire, so stale cached profiles from a previous session are never shown.
-    if (_awaitingFreshCandidates) {
-      return Stack(
-        children: [
-          _buildLoadingState(),
-          if (_showTutorial)
-            Positioned.fill(
-              child: MatchpointTutorialOverlay(onDismiss: _dismissTutorial),
-            ),
-        ],
-      );
-    }
-
     return Stack(
       children: [
         candidatesAsync.when(
           data: (candidates) {
-            // Fetch likes quota only once, after candidates have loaded, to
-            // avoid concurrent Firebase platform-channel calls on iOS.
-            if (!_hasFetchedLikesQuota) {
-              _hasFetchedLikesQuota = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                ref
-                    .read(matchpointControllerProvider.notifier)
-                    .fetchRemainingLikes();
-              });
-            }
-
             final signature = candidates.map((c) => c.uid).join('|');
             if (signature != _lastCandidatesSignature) {
               _lastCandidatesSignature = signature;
@@ -313,17 +266,27 @@ class _MatchpointExploreScreenState
     final bestUser = fullProfile ?? minimalUser;
     if (!mounted) return;
 
-    final result = await Navigator.of(context).push<MatchSuccessNavIntent>(
-      PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            MatchSuccessScreen(
-              currentUser: bestUser,
-              matchUser: event.targetUser,
-              conversationId: event.conversationId,
-            ),
-      ),
-    );
+    MatchSuccessNavIntent? result;
+    try {
+      result = await Navigator.of(context).push<MatchSuccessNavIntent>(
+        PageRouteBuilder(
+          opaque: false,
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              MatchSuccessScreen(
+                currentUser: bestUser,
+                matchUser: event.targetUser,
+                conversationId: event.conversationId,
+              ),
+        ),
+      );
+    } catch (e, stack) {
+      AppLogger.warning(
+        'Match success overlay dismissed unexpectedly',
+        e,
+        stack,
+      );
+      return;
+    }
 
     // Handle navigation intent from the match overlay. The overlay cannot
     // use GoRouter directly because it was pushed via Navigator.push.

@@ -839,6 +839,58 @@ class LikesQuota extends _$LikesQuota {
   }
 }
 
+/// Orchestrates MatchPoint initialization in sequential phases to prevent
+/// flooding the iOS Swift Concurrency thread pool with concurrent Firebase
+/// platform-channel calls (root cause of SIGABRT crashes on iPhone).
+enum MatchpointInitPhase { idle, loadingCandidates, loadingQuota, ready, error }
+
+@Riverpod(keepAlive: true)
+class MatchpointInit extends _$MatchpointInit {
+  @override
+  MatchpointInitPhase build() => MatchpointInitPhase.idle;
+
+  /// Runs the MatchPoint startup sequence. Each phase completes before the
+  /// next one starts, keeping concurrent platform-channel calls to a safe
+  /// level (~2-3 at most).
+  Future<void> initialize() async {
+    // Avoid re-running if already in progress or completed.
+    if (state == MatchpointInitPhase.loadingCandidates ||
+        state == MatchpointInitPhase.loadingQuota) {
+      return;
+    }
+
+    state = MatchpointInitPhase.loadingCandidates;
+
+    try {
+      // Phase 1: Load candidates (Firestore queries for interactions +
+      // candidate documents). This invalidates first to clear stale data.
+      ref.invalidate(matchpointCandidatesProvider);
+      await ref.read(matchpointCandidatesProvider.future);
+      if (!ref.mounted) return;
+
+      // Phase 2: Load likes quota AFTER candidates are done, so the Cloud
+      // Function call doesn't compete with Firestore queries.
+      state = MatchpointInitPhase.loadingQuota;
+      await ref
+          .read(matchpointControllerProvider.notifier)
+          .fetchRemainingLikes();
+      if (!ref.mounted) return;
+
+      state = MatchpointInitPhase.ready;
+    } catch (error, stack) {
+      AppLogger.warning('MatchPoint init failed', error, stack);
+      if (ref.mounted) {
+        state = MatchpointInitPhase.error;
+      }
+    }
+  }
+
+  /// Resets the orchestrator so the next screen entry triggers a fresh init.
+  void reset() {
+    state = MatchpointInitPhase.idle;
+  }
+}
+
 @Riverpod(keepAlive: true)
 class MatchpointCandidates extends _$MatchpointCandidates {
   @override
@@ -847,7 +899,10 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     final currentUser = authRepo.currentUser;
     if (currentUser == null) return [];
 
-    final profileAsync = ref.watch(currentUserProfileProvider);
+    // Use ref.read (not ref.watch) to avoid reactive rebuilds that re-fire
+    // all Firestore queries when the profile stream emits during loading.
+    // Candidates are fetched on-demand via invalidate(), not reactively.
+    final profileAsync = ref.read(currentUserProfileProvider);
     final userProfile = profileAsync.value;
 
     if (profileAsync.isLoading && userProfile == null) {
