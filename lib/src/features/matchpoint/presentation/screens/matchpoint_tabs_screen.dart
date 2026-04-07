@@ -37,10 +37,24 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
     super.initState();
     AppLogger.breadcrumb('mp:tabs:init');
     AppLogger.setCustomKey('mp_step', 'tabs:init');
+
+    // Free the global image cache before the swipe deck mounts. The user
+    // typically arrives here from the feed, which keeps dozens of images
+    // resident — Crashlytics events for issue a37e597a consistently show
+    // 86-200 MB free on a 6 GB iPhone 14 Pro Max, putting the iOS Swift
+    // Concurrency cooperative pool under enough memory pressure to abort
+    // tasks mid-flight (swift_task_dealloc → SIGABRT). Releasing the cache
+    // here gives the matchpoint flow ~50-200 MB of headroom before it
+    // starts loading 12 fresh card images and issuing Pigeon calls.
+    AppLogger.breadcrumb('mp:tabs:image_cache_clear');
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+
     matchpointSelectedTabNotifier.value = 0;
-    // fetchRemainingLikes() is now triggered from MatchpointExploreScreen
-    // after candidates load, to avoid concurrent Firebase platform-channel
-    // calls that crash the iOS Swift Concurrency runtime (SIGABRT).
+    // The likes quota fetch is now lazy: it runs on the first like swipe
+    // (see MatchpointController._enqueueSwipe) instead of being triggered
+    // automatically here, eliminating the Cloud Function Pigeon call that
+    // collided with the Firestore queries on iOS Swift Concurrency.
   }
 
   Widget _buildTab(int index) {

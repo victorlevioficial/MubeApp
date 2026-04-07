@@ -568,9 +568,16 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }
 
   int _resolvePoolLimit(int limit) {
-    if (limit <= 0) return 80;
-    final scaled = limit * 5;
-    return scaled < 80 ? 80 : scaled;
+    // Was: max(limit * 5, 80) — pulled 100 documents for the default
+    // limit=20, parsed all 100 into AppUser, then ranked locally and
+    // returned 12. That much memory + parsing was a meaningful contributor
+    // to the iOS memory pressure that triggered SIGABRT crashes on entry
+    // (Crashlytics issue a37e597a). 30 documents is still ~2.5x the
+    // returned count, which keeps enough diversity for the proximity /
+    // hashtag / genre ranking buckets to be meaningful.
+    if (limit <= 0) return 30;
+    final scaled = limit + 10;
+    return scaled < 25 ? 25 : scaled;
   }
 
   double _resolveSearchRadius(Map<String, dynamic>? matchpointProfile) {

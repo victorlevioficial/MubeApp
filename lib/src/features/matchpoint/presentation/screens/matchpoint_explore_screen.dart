@@ -40,17 +40,14 @@ class _MatchpointExploreScreenState
   int _lastHandledSwipeFeedbackId = -1;
   ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
 
-  bool _hasFetchedLikesQuota = false;
-
   /// True until fresh candidates arrive, so the UI shows the loading skeleton
   /// instead of stale cached data from a previous session.
   bool _awaitingFreshCandidates = true;
 
-  /// Pending timers from the staggered initialization sequence. Cancelled
-  /// in dispose() so navigating away during the 500ms / 2s delays does not
+  /// Pending timer from the staggered initialization sequence. Cancelled
+  /// in dispose() so navigating away during the 500ms delay does not
   /// leak timers (also keeps widget tests deterministic).
   Timer? _initStaggerTimer;
-  Timer? _likesQuotaTimer;
 
   @override
   void initState() {
@@ -138,7 +135,6 @@ class _MatchpointExploreScreenState
   @override
   void dispose() {
     _initStaggerTimer?.cancel();
-    _likesQuotaTimer?.cancel();
     _feedbackSubscription?.close();
     _swiperController.dispose();
     // Note: do NOT call ref.invalidate() here — using ref after the widget
@@ -182,22 +178,18 @@ class _MatchpointExploreScreenState
               'mp:explore:async_data count=${candidates.length}',
             );
             AppLogger.setCustomKey('mp_candidates_count', candidates.length);
-            // Fetch likes quota only once, after candidates have loaded.
-            // Delay by 2s to avoid concurrent Firebase platform-channel calls
-            // that crash the iOS Swift Concurrency runtime (SIGABRT).
-            // The ranking audit analytics + Firestore listeners are still
-            // settling at this point; the extra gap prevents task contention
-            // on the cooperative executor.
-            if (!_hasFetchedLikesQuota) {
-              _hasFetchedLikesQuota = true;
-              _likesQuotaTimer = Timer(const Duration(seconds: 2), () {
-                AppLogger.breadcrumb('mp:explore:likes_quota_timer_fire');
-                if (!mounted) return;
-                ref
-                    .read(matchpointControllerProvider.notifier)
-                    .fetchRemainingLikes();
-              });
-            }
+            // The likes quota fetch was previously triggered here via a 2s
+            // timer. It was the smoking-gun trigger for Crashlytics issue
+            // a37e597a Crash 2 (last seen 1.6.17+164): the Cloud Function
+            // Pigeon call landed exactly when the iOS Swift Concurrency
+            // cooperative pool was still draining tasks from the Firestore
+            // candidate queries, causing swift_task_dealloc / SIGABRT.
+            //
+            // The fetch is now lazy: it runs the FIRST time the user
+            // attempts a like swipe (see MatchpointController._enqueueSwipe).
+            // The submitMatchpointAction Cloud Function returns the updated
+            // remaining_likes anyway, so each subsequent like keeps the
+            // local quota in sync without needing a separate fetch.
 
             final signature = candidates.map((c) => c.uid).join('|');
             if (signature != _lastCandidatesSignature) {

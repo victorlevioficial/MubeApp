@@ -198,6 +198,14 @@ class MatchpointController extends _$MatchpointController {
   String? _lastValidatedSwipeUserId;
   DateTime? _lastSwipeSecurityValidationAt;
 
+  /// True after we've fetched the user's remaining likes quota at least
+  /// once in this session. The fetch is lazy and runs on the first like
+  /// swipe (see _enqueueSwipe), NOT on screen entry — firing it on entry
+  /// caused the iOS SIGABRT crash on the matchpoint card (Crashlytics
+  /// issue a37e597a Crash 2: the Cloud Function Pigeon call collided with
+  /// the Firestore queries still settling on the Swift cooperative pool).
+  bool _hasFetchedLikesQuotaThisSession = false;
+
   @override
   FutureOr<void> build() {}
 
@@ -303,6 +311,16 @@ class MatchpointController extends _$MatchpointController {
         StackTrace.empty,
       );
       return false;
+    }
+
+    // Lazy quota fetch: only the first time the user actually attempts a
+    // like in this session. Runs in the background (unawaited) so it does
+    // not block the swipe UX. Subsequent swipes don't need this — the
+    // submitMatchpointAction Cloud Function returns the updated quota in
+    // its response (see _buildSwipeSuccessResult).
+    if (type == 'like' && !_hasFetchedLikesQuotaThisSession) {
+      _hasFetchedLikesQuotaThisSession = true;
+      unawaited(fetchRemainingLikes());
     }
 
     var reservedLikeQuota = false;
