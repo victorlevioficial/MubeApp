@@ -843,9 +843,14 @@ class LikesQuota extends _$LikesQuota {
 class MatchpointCandidates extends _$MatchpointCandidates {
   @override
   Future<List<AppUser>> build() async {
+    AppLogger.breadcrumb('mp:cand:build');
+    AppLogger.setCustomKey('mp_step', 'cand:build');
     final authRepo = ref.read(authRepositoryProvider);
     final currentUser = authRepo.currentUser;
-    if (currentUser == null) return [];
+    if (currentUser == null) {
+      AppLogger.breadcrumb('mp:cand:no_auth');
+      return [];
+    }
 
     // Use ref.read (not ref.watch) for the profile to avoid the candidates
     // provider rebuilding every time the Firestore profile stream emits.
@@ -858,10 +863,14 @@ class MatchpointCandidates extends _$MatchpointCandidates {
 
     if (profileAsync.isLoading && userProfile == null) {
       AppLogger.info('MatchPoint: waiting for current profile...');
+      AppLogger.breadcrumb('mp:cand:profile_loading');
       return [];
     }
 
-    if (userProfile == null) return [];
+    if (userProfile == null) {
+      AppLogger.breadcrumb('mp:cand:no_profile');
+      return [];
+    }
 
     final rawGenres = _resolveGenres(userProfile);
     final hashtags = _resolveHashtags(userProfile);
@@ -892,22 +901,27 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     }.toList();
 
     final repo = ref.read(matchpointRepositoryProvider);
+    AppLogger.breadcrumb('mp:cand:repo_call');
     final result = await repo.fetchCandidates(
       currentUser: userProfile,
       genres: genres,
       hashtags: hashtags,
       blockedUsers: blockedUsers,
     );
+    AppLogger.breadcrumb('mp:cand:repo_returned');
 
     return result.fold(
       (failure) {
         AppLogger.error('MatchPoint query error: ${failure.message}');
+        AppLogger.breadcrumb('mp:cand:fail ${failure.message}');
         throw failure.message;
       },
       (candidates) {
         AppLogger.info(
           'MatchPoint query success: found ${candidates.length} candidates',
         );
+        AppLogger.breadcrumb('mp:cand:success count=${candidates.length}');
+        AppLogger.setCustomKey('mp_step', 'cand:success');
         return candidates;
       },
     );

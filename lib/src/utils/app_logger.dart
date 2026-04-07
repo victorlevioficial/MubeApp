@@ -341,6 +341,22 @@ class AppLogger {
     }
   }
 
+  /// Breadcrumb: log lightweight progress markers to Crashlytics WITHOUT
+  /// reporting an error. These appear in the Crashlytics event timeline if
+  /// (and only if) the session crashes — invaluable for diagnosing crashes
+  /// inside platform plugins where the Dart stack is invisible.
+  ///
+  /// Use sparingly (the breadcrumb buffer is bounded) and only on hot paths
+  /// where you need to know the last Dart step that executed before a crash.
+  static void breadcrumb(String message) {
+    if (kDebugMode && verboseLoggingEnabled) {
+      _mirrorToFlutterConsole('MubeApp BREAD', message);
+    }
+    if (_isCrashlyticsEnabled) {
+      _crashlytics.log(message);
+    }
+  }
+
   /// Limpa o user ID (logout)
   static void clearUserIdentifier() {
     if (_isCrashlyticsEnabled) {

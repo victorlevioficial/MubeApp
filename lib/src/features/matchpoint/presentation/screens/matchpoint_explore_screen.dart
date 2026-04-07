@@ -55,6 +55,8 @@ class _MatchpointExploreScreenState
   @override
   void initState() {
     super.initState();
+    AppLogger.breadcrumb('mp:explore:init');
+    AppLogger.setCustomKey('mp_step', 'explore:init');
     _checkTutorialStatus();
 
     // Stagger the initial Firebase operations to avoid overwhelming the iOS
@@ -71,18 +73,23 @@ class _MatchpointExploreScreenState
     // pressure on iOS during screen entry — the exact condition that
     // triggers the SIGABRT crash from the highlight card navigation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppLogger.breadcrumb('mp:explore:postframe');
       if (!mounted) return;
 
       _initStaggerTimer = Timer(const Duration(milliseconds: 500), () {
+        AppLogger.breadcrumb('mp:explore:stagger_fire');
+        AppLogger.setCustomKey('mp_step', 'explore:stagger_fire');
         if (!mounted) return;
 
         ref.invalidate(matchpointCandidatesProvider);
+        AppLogger.breadcrumb('mp:explore:invalidated');
 
         // The cached state has been destroyed by invalidate(); safe to let
         // build() render normally — it will see AsyncLoading (no stale data).
         setState(() {
           _awaitingFreshCandidates = false;
         });
+        AppLogger.breadcrumb('mp:explore:awaiting_false');
 
         _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
           matchpointSwipeFeedbackProvider,
@@ -164,12 +171,17 @@ class _MatchpointExploreScreenState
       );
     }
 
+    AppLogger.breadcrumb('mp:explore:build_post_guard');
     final candidatesAsync = ref.watch(matchpointCandidatesProvider);
 
     return Stack(
       children: [
         candidatesAsync.when(
           data: (candidates) {
+            AppLogger.breadcrumb(
+              'mp:explore:async_data count=${candidates.length}',
+            );
+            AppLogger.setCustomKey('mp_candidates_count', candidates.length);
             // Fetch likes quota only once, after candidates have loaded.
             // Delay by 2s to avoid concurrent Firebase platform-channel calls
             // that crash the iOS Swift Concurrency runtime (SIGABRT).
@@ -179,6 +191,7 @@ class _MatchpointExploreScreenState
             if (!_hasFetchedLikesQuota) {
               _hasFetchedLikesQuota = true;
               _likesQuotaTimer = Timer(const Duration(seconds: 2), () {
+                AppLogger.breadcrumb('mp:explore:likes_quota_timer_fire');
                 if (!mounted) return;
                 ref
                     .read(matchpointControllerProvider.notifier)
@@ -200,7 +213,13 @@ class _MatchpointExploreScreenState
             }
 
             if (_allCandidatesViewed) return _buildAllViewedState();
-            if (candidates.isNotEmpty) return _buildSwipeDeck(candidates);
+            if (candidates.isNotEmpty) {
+              AppLogger.breadcrumb('mp:explore:building_deck');
+              AppLogger.setCustomKey('mp_step', 'explore:building_deck');
+              final deck = _buildSwipeDeck(candidates);
+              AppLogger.breadcrumb('mp:explore:deck_built');
+              return deck;
+            }
             return _buildEmptyState();
           },
           loading: _buildLoadingState,

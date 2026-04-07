@@ -19,10 +19,14 @@ class MatchpointWrapperScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    AppLogger.breadcrumb('mp:wrapper:build');
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return userAsync.when(
       data: (user) {
+        AppLogger.breadcrumb(
+          'mp:wrapper:profile_data uid=${user?.uid ?? "null"}',
+        );
         if (user == null) {
           return _buildFallbackScaffold(
             context,
@@ -58,13 +62,16 @@ class MatchpointWrapperScreen extends ConsumerWidget {
 
   Widget _buildResolvedState(AppUser user) {
     if (!isMatchpointAvailableForUser(user)) {
+      AppLogger.breadcrumb('mp:wrapper:unavailable');
       return const MatchpointUnavailableScreen(showBackButton: true);
     }
 
     final profile = user.matchpointProfile;
     final isActive = profile != null && profile['is_active'] == true;
+    AppLogger.breadcrumb('mp:wrapper:resolve isActive=$isActive');
 
     if (isActive) {
+      AppLogger.setCustomKey('mp_step', 'wrapper:returning_tabs');
       return const MatchpointTabsScreen();
     }
     return const MatchpointIntroScreen();

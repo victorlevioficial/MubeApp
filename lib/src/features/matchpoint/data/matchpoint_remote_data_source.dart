@@ -204,6 +204,8 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     required List<String> excludedUserIds,
     int limit = 20,
   }) async {
+    AppLogger.breadcrumb('mp:fetch:start');
+    AppLogger.setCustomKey('mp_step', 'fetch:start');
     final excludedIds = {...excludedUserIds, currentUser.uid};
     final currentLocation = _extractUserCoordinates(currentUser);
     final currentGeohash = _resolveCurrentUserGeohash(
@@ -221,10 +223,13 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         .toSet();
     final poolLimit = _resolvePoolLimit(limit);
 
+    AppLogger.breadcrumb('mp:fetch:docs_call');
     final candidateDocs = await _fetchCandidateDocuments(
       currentUserGeohash: currentGeohash,
       poolLimit: poolLimit,
     );
+    AppLogger.breadcrumb('mp:fetch:docs_done count=${candidateDocs.length}');
+    AppLogger.setCustomKey('mp_pool_docs', candidateDocs.length);
 
     final scoredCandidates =
         candidateDocs
@@ -252,12 +257,16 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         returned: const [],
       );
       AppLogger.info('MatchPoint: no eligible candidates found after ranking.');
+      AppLogger.breadcrumb('mp:fetch:return_empty');
       return const [];
     }
 
     final returnedCandidates = scoredCandidates
         .take(limit)
         .toList(growable: false);
+    AppLogger.breadcrumb(
+      'mp:fetch:audit_call pool=${scoredCandidates.length} ret=${returnedCandidates.length}',
+    );
     _logRankingAudit(
       currentUserGeohash: currentGeohash,
       queryGenresCount: targetGenres.length,
@@ -265,8 +274,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       pool: scoredCandidates,
       returned: returnedCandidates,
     );
+    AppLogger.breadcrumb('mp:fetch:audit_done');
 
-    return returnedCandidates.map((item) => item.user).toList();
+    final result = returnedCandidates.map((item) => item.user).toList();
+    AppLogger.breadcrumb('mp:fetch:return count=${result.length}');
+    AppLogger.setCustomKey('mp_step', 'fetch:return');
+    return result;
   }
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
@@ -287,6 +300,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
     if (currentUserGeohash != null && currentUserGeohash.isNotEmpty) {
       try {
+        AppLogger.breadcrumb('mp:fetch:geohash_q');
         final nearbySnapshot = await _firestore
             .collection(FirestoreCollections.users)
             .where(
@@ -299,8 +313,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
             )
             .limit(poolLimit)
             .get();
+        AppLogger.breadcrumb(
+          'mp:fetch:geohash_done count=${nearbySnapshot.size}',
+        );
         appendSnapshot(nearbySnapshot);
       } catch (e, stack) {
+        AppLogger.breadcrumb('mp:fetch:geohash_err');
         AppLogger.warning(
           'MatchPoint: geohash query failed, falling back to global pool.',
           e,
@@ -317,6 +335,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       // to the SIGABRT crash on Matchpoint entry.
       await Future<void>.delayed(const Duration(milliseconds: 80));
 
+      AppLogger.breadcrumb('mp:fetch:fallback_q');
       final fallbackSnapshot = await _firestore
           .collection(FirestoreCollections.users)
           .where(
@@ -325,6 +344,9 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           )
           .limit(poolLimit)
           .get();
+      AppLogger.breadcrumb(
+        'mp:fetch:fallback_done count=${fallbackSnapshot.size}',
+      );
       appendSnapshot(fallbackSnapshot);
     }
 
@@ -603,7 +625,10 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       // when the next Firestore query is also being scheduled, which
       // saturates the executor and triggers swift_task_dealloc / SIGABRT
       // (Crashlytics issue a37e597a, last seen 1.6.15+162).
+      AppLogger.breadcrumb('mp:audit:scheduled');
       Future<void>.delayed(const Duration(milliseconds: 250), () {
+        AppLogger.breadcrumb('mp:audit:fire');
+        AppLogger.setCustomKey('mp_step', 'audit:fire');
         unawaited(
           analytics
               .logEvent(
@@ -630,7 +655,12 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
                   'used_geohash': currentUserGeohash != null,
                 },
               )
-              .catchError((Object _) {}),
+              .then((_) {
+                AppLogger.breadcrumb('mp:audit:done');
+              })
+              .catchError((Object error) {
+                AppLogger.breadcrumb('mp:audit:err $error');
+              }),
         );
       });
     }

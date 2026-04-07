@@ -9,6 +9,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/app_logger.dart';
 import '../controllers/matchpoint_controller.dart';
 import '../matchpoint_navigation.dart';
 import '../screens/matchpoint_matches_screen.dart';
@@ -34,6 +35,8 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
   @override
   void initState() {
     super.initState();
+    AppLogger.breadcrumb('mp:tabs:init');
+    AppLogger.setCustomKey('mp_step', 'tabs:init');
     matchpointSelectedTabNotifier.value = 0;
     // fetchRemainingLikes() is now triggered from MatchpointExploreScreen
     // after candidates load, to avoid concurrent Firebase platform-channel
