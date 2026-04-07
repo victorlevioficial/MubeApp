@@ -452,24 +452,16 @@ void main() {
       expect(params['ret_local_genre'], 1);
       expect(params['returned_total'], 4);
 
-      await Future<void>.delayed(Duration.zero);
-
-      final auditInvocation = functions.invocations.singleWhere(
-        (call) => call.name == 'recordMatchpointRankingAudit',
+      // The recordMatchpointRankingAudit Cloud Function mirror was removed
+      // because it triggered concurrent platform-channel calls that crash
+      // the iOS Swift Concurrency runtime (SIGABRT). The audit data is now
+      // captured exclusively via the analytics event above.
+      expect(
+        functions.invocations.where(
+          (call) => call.name == 'recordMatchpointRankingAudit',
+        ),
+        isEmpty,
       );
-      final payload = auditInvocation.parameters! as Map<String, dynamic>;
-      expect(payload['poolTotal'], 4);
-      expect(payload['returnedTotal'], 4);
-      expect(payload['poolProximity'], 1);
-      expect(payload['poolHashtag'], 1);
-      expect(payload['poolGenre'], 1);
-      expect(payload['poolFallback'], 1);
-      expect(payload['poolLocalTotal'], 1);
-      expect(payload['poolLocalHashtag'], 1);
-      expect(payload['poolLocalGenre'], 1);
-      expect(payload['returnedLocalTotal'], 1);
-      expect(payload['returnedLocalHashtag'], 1);
-      expect(payload['returnedLocalGenre'], 1);
     });
   });
 
