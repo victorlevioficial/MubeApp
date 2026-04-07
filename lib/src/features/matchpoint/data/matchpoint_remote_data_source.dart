@@ -44,6 +44,14 @@ abstract class MatchpointRemoteDataSource {
 
   Future<AppUser?> fetchUserById(String userId);
 
+  /// Fetch many users in a single (or few) batched Firestore queries using
+  /// `whereIn` on `FieldPath.documentId`. Returns a map keyed by uid for
+  /// O(1) lookup. Missing or unparseable users are simply absent from the
+  /// map. Consolidating N parallel `fetchUserById` calls into 1-2 batched
+  /// queries dramatically reduces the iOS Swift Concurrency Pigeon load
+  /// (Crashlytics issue a37e597a).
+  Future<Map<String, AppUser>> fetchUsersByIds(List<String> ids);
+
   Future<List<HashtagRanking>> fetchHashtagRanking({int limit = 20});
 
   Future<List<HashtagRanking>> searchHashtags(String query, {int limit = 20});
@@ -777,6 +785,62 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
       return null;
     }
+  }
+
+  @override
+  Future<Map<String, AppUser>> fetchUsersByIds(List<String> ids) async {
+    if (ids.isEmpty) return const <String, AppUser>{};
+
+    AppLogger.breadcrumb('mp:users_by_ids:start count=${ids.length}');
+    final result = <String, AppUser>{};
+
+    // Firestore `whereIn` allows up to 30 values per query.
+    const batchSize = 30;
+    final uniqueIds = ids.toSet().toList(growable: false);
+
+    for (var offset = 0; offset < uniqueIds.length; offset += batchSize) {
+      final end = (offset + batchSize) > uniqueIds.length
+          ? uniqueIds.length
+          : (offset + batchSize);
+      final batch = uniqueIds.sublist(offset, end);
+
+      AppLogger.breadcrumb(
+        'mp:users_by_ids:batch_q offset=$offset size=${batch.length}',
+      );
+      final snapshot = await _firestore
+          .collection(FirestoreCollections.users)
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+      AppLogger.breadcrumb(
+        'mp:users_by_ids:batch_done offset=$offset count=${snapshot.size}',
+      );
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        try {
+          result[doc.id] = AppUser.fromJson({
+            ...data,
+            'uid': data['uid'] ?? doc.id,
+          });
+        } catch (e, stack) {
+          AppLogger.warning(
+            'MatchPoint: failed to parse user ${doc.id}',
+            e,
+            stack,
+            false,
+          );
+        }
+      }
+
+      // Brief pause between batches to let the iOS Swift Concurrency
+      // cooperative pool drain the previous Pigeon call.
+      if (end < uniqueIds.length) {
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      }
+    }
+
+    AppLogger.breadcrumb('mp:users_by_ids:done count=${result.length}');
+    return result;
   }
 
   @override

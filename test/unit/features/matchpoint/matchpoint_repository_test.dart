@@ -57,6 +57,11 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }
 
   @override
+  Future<Map<String, AppUser>> fetchUsersByIds(List<String> ids) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<LikesQuotaInfo> getRemainingLikes() {
     throw UnimplementedError();
   }

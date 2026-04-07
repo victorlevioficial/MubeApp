@@ -247,8 +247,14 @@ class MatchpointRepository {
     }
   }
 
-  /// Busca matches do usuario com dados completos
-  /// Usa Future.wait para paralelizar busca de usuarios
+  /// Busca matches do usuario com dados completos.
+  ///
+  /// Usa um único lote de queries Firestore (`whereIn` em batches de 30)
+  /// para hidratar todos os usuarios de uma vez, em vez de N chamadas
+  /// `fetchUserById` paralelas. Essa consolidação reduziu drasticamente
+  /// a pressão sobre o Swift Concurrency cooperative pool no iOS, que
+  /// causava o crash SIGABRT em swift_task_dealloc /
+  /// asyncLet_finish_after_task_completion (Crashlytics issue a37e597a).
   FutureResult<List<MatchInfo>> fetchMatches(String currentUserId) async {
     try {
       final matchesData = await _dataSource.fetchMatches(currentUserId);
@@ -263,29 +269,21 @@ class MatchpointRepository {
 
       if (normalizedMatches.isEmpty) return const Right([]);
 
-      // Paralelizar busca de usuarios (ao inves de sequencial N+1)
       final otherUserIds = normalizedMatches
           .map((m) => m['_other_user_id'] as String)
           .toList();
 
-      // Fetch each matched user individually so a single failure doesn't
-      // crash the entire list. On iOS, parallel platform-channel calls can
-      // overwhelm Swift Concurrency; catching per-user errors also prevents
-      // Future.wait from propagating a single timeout as a full crash.
-      final userFutures = otherUserIds.map(
-        (id) => _dataSource.fetchUserById(id).catchError((Object _) => null),
-      );
-      final users = await Future.wait(userFutures);
+      final usersById = await _dataSource.fetchUsersByIds(otherUserIds);
 
       final matches = <MatchInfo>[];
       for (int i = 0; i < normalizedMatches.length; i++) {
         final matchData = normalizedMatches[i];
-        // Skip matches where the user fetch failed.
-        final otherUser = users[i];
+        final otherUserId = otherUserIds[i];
+        final otherUser = usersById[otherUserId];
         matches.add(
           MatchInfo(
             id: matchData['id'] as String,
-            otherUserId: otherUserIds[i],
+            otherUserId: otherUserId,
             otherUser: otherUser,
             conversationId: matchData['conversation_id'] as String?,
             createdAt:
