@@ -185,11 +185,11 @@ class _MatchpointExploreScreenState
             // cooperative pool was still draining tasks from the Firestore
             // candidate queries, causing swift_task_dealloc / SIGABRT.
             //
-            // The fetch is now lazy: it runs the FIRST time the user
-            // attempts a like swipe (see MatchpointController._enqueueSwipe).
-            // The submitMatchpointAction Cloud Function returns the updated
-            // remaining_likes anyway, so each subsequent like keeps the
-            // local quota in sync without needing a separate fetch.
+            // It has been removed entirely. The submitMatchpointAction
+            // Cloud Function returns the updated remaining_likes in its
+            // response, so the local quota converges to the server value
+            // after the first like — see MatchpointController.
+            // _buildSwipeSuccessResult.
 
             final signature = candidates.map((c) => c.uid).join('|');
             if (signature != _lastCandidatesSignature) {

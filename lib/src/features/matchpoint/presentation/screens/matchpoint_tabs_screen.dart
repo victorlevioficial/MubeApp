@@ -51,10 +51,10 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
     PaintingBinding.instance.imageCache.clearLiveImages();
 
     matchpointSelectedTabNotifier.value = 0;
-    // The likes quota fetch is now lazy: it runs on the first like swipe
-    // (see MatchpointController._enqueueSwipe) instead of being triggered
-    // automatically here, eliminating the Cloud Function Pigeon call that
-    // collided with the Firestore queries on iOS Swift Concurrency.
+    // The standalone fetchRemainingLikes() call has been removed entirely.
+    // The submitMatchpointAction Cloud Function returns the updated quota
+    // in its response, so the local likesQuotaProvider converges to the
+    // server value after the first like — no separate Pigeon call needed.
   }
 
   Widget _buildTab(int index) {
