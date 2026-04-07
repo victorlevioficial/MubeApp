@@ -52,8 +52,9 @@ class _MatchpointExploreScreenState
       if (!mounted) return;
 
       // Reset orchestrator so re-entry always triggers a fresh init sequence.
-      ref.read(matchpointInitProvider.notifier).reset();
-      ref.read(matchpointInitProvider.notifier).initialize();
+      final initNotifier = ref.read(matchpointInitProvider.notifier);
+      initNotifier.reset();
+      unawaited(initNotifier.initialize());
 
       _feedbackSubscription = ref.listenManual<MatchpointSwipeFeedbackEvent?>(
         matchpointSwipeFeedbackProvider,

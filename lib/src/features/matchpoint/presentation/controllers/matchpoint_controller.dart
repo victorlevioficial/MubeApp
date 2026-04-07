@@ -871,7 +871,9 @@ class MatchpointInit extends _$MatchpointInit {
       // Phase 2: Load likes quota AFTER candidates are done, so the Cloud
       // Function call doesn't compete with Firestore queries.
       state = MatchpointInitPhase.loadingQuota;
-      await ref.read(matchpointControllerProvider.notifier).fetchRemainingLikes();
+      await ref
+          .read(matchpointControllerProvider.notifier)
+          .fetchRemainingLikes();
       if (!ref.mounted) return;
 
       state = MatchpointInitPhase.ready;
