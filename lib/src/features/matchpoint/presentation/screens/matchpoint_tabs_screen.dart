@@ -130,6 +130,8 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
                   duration: const Duration(milliseconds: 300),
                   selectedIndex: selectedIndex,
                   onTabChange: (index) {
+                    AppLogger.breadcrumb('mp:tabs:change_to_$index');
+                    AppLogger.setCustomKey('mp_step', 'tabs:change_$index');
                     matchpointSelectedTabNotifier.value = index;
                   },
                   tabs: [

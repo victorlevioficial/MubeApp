@@ -10,6 +10,7 @@ import '../../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 import '../controllers/matchpoint_controller.dart';
 
 class HashtagRankingScreen extends ConsumerWidget {
@@ -42,6 +43,8 @@ class HashtagRankingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    AppLogger.breadcrumb('mp:hashtag_screen:build');
+    AppLogger.setCustomKey('mp_step', 'hashtag_screen:build');
     final rankingAsync = ref.watch(hashtagRankingProvider(50));
 
     return rankingAsync.when(

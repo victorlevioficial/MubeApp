@@ -179,13 +179,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     return const <String, dynamic>{};
   }
 
-  List<Map<String, dynamic>> _normalizeCloudFunctionMapList(Object? value) {
-    if (value is! List) return const [];
-    return value
-        .map<Map<String, dynamic>>((item) => _normalizeCloudFunctionMap(item))
-        .toList(growable: false);
-  }
-
   Object? _normalizeCloudFunctionValue(Object? value) {
     if (value is Map) return _normalizeCloudFunctionMap(value);
     if (value is List) {
@@ -788,28 +781,28 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   @override
   Future<List<HashtagRanking>> fetchHashtagRanking({int limit = 20}) async {
-    try {
-      final callable = _functions.httpsCallable('getTrendingHashtags');
+    // Direct Firestore read instead of getTrendingHashtags Cloud Function.
+    // The Cloud Function call (cloud_functions Pigeon to Swift plugin) was
+    // the smoking-gun trigger for the SIGABRT crash on iOS when the user
+    // tapped the "Trending" tab in the matchpoint tabs (Crashlytics issue
+    // a37e597a, last seen 1.6.19+166). Same family of failure as the
+    // _likesQuotaTimer fetchRemainingLikes() call we removed: another
+    // Cloud Functions Pigeon landing on the Swift cooperative pool while
+    // earlier tasks were still draining.
+    //
+    // The Firestore fallback path was already implemented as the catch
+    // branch and uses HashtagRanking.fromFirestore which has all the
+    // same fields the UI consumes. Promoting it to the primary path
+    // eliminates the Cloud Function Pigeon call entirely.
+    AppLogger.breadcrumb('mp:hashtag_rank:fetch_start');
+    final snapshot = await _firestore
+        .collection('hashtagRanking')
+        .orderBy('use_count', descending: true)
+        .limit(limit)
+        .get();
+    AppLogger.breadcrumb('mp:hashtag_rank:fetch_done count=${snapshot.size}');
 
-      final result = await callable.call({'limit': limit, 'includeAll': false});
-
-      final data = _normalizeCloudFunctionMap(result.data);
-      final hashtags = _normalizeCloudFunctionMapList(data['hashtags']);
-
-      return hashtags.map(HashtagRanking.fromCloudFunction).toList();
-    } catch (e) {
-      AppLogger.warning(
-        'Failed to load trending hashtags from Function. Falling back to Firestore: $e',
-      );
-
-      final snapshot = await _firestore
-          .collection('hashtagRanking')
-          .orderBy('use_count', descending: true)
-          .limit(limit)
-          .get();
-
-      return snapshot.docs.map(HashtagRanking.fromFirestore).toList();
-    }
+    return snapshot.docs.map(HashtagRanking.fromFirestore).toList();
   }
 
   @override
@@ -817,36 +810,26 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     String query, {
     int limit = 20,
   }) async {
-    try {
-      final callable = _functions.httpsCallable('searchHashtags');
+    // Direct Firestore read instead of searchHashtags Cloud Function — same
+    // reasoning as fetchHashtagRanking above. Eliminates a cloud_functions
+    // Pigeon call that can trigger the iOS Swift Concurrency SIGABRT.
+    AppLogger.breadcrumb('mp:hashtag_search:fetch_start');
+    final normalized = query.toLowerCase().trim();
+    if (normalized.length < 2) return [];
 
-      final result = await callable.call({'query': query, 'limit': limit});
+    final snapshot = await _firestore
+        .collection('hashtagRanking')
+        .where('hashtag', isGreaterThanOrEqualTo: normalized)
+        .where('hashtag', isLessThanOrEqualTo: '$normalized\uf8ff')
+        .orderBy('hashtag')
+        .limit(limit)
+        .get();
+    AppLogger.breadcrumb('mp:hashtag_search:fetch_done count=${snapshot.size}');
 
-      final data = _normalizeCloudFunctionMap(result.data);
-      final hashtags = _normalizeCloudFunctionMapList(data['hashtags']);
+    final results = snapshot.docs.map(HashtagRanking.fromFirestore).toList();
+    results.sort((a, b) => b.useCount.compareTo(a.useCount));
 
-      return hashtags.map(HashtagRanking.fromCloudFunction).toList();
-    } catch (e) {
-      AppLogger.warning(
-        'Failed to search hashtags via Function. Falling back to Firestore: $e',
-      );
-
-      final normalized = query.toLowerCase().trim();
-      if (normalized.length < 2) return [];
-
-      final snapshot = await _firestore
-          .collection('hashtagRanking')
-          .where('hashtag', isGreaterThanOrEqualTo: normalized)
-          .where('hashtag', isLessThanOrEqualTo: '$normalized\uf8ff')
-          .orderBy('hashtag')
-          .limit(limit)
-          .get();
-
-      final results = snapshot.docs.map(HashtagRanking.fromFirestore).toList();
-      results.sort((a, b) => b.useCount.compareTo(a.useCount));
-
-      return results;
-    }
+    return results;
   }
 
   @override

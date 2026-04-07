@@ -10,12 +10,15 @@ import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart'; // ignore: unused_import
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/routing/route_paths.dart';
+import 'package:mube/src/utils/app_logger.dart';
 
 class MatchpointMatchesScreen extends ConsumerWidget {
   const MatchpointMatchesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    AppLogger.breadcrumb('mp:matches_screen:build');
+    AppLogger.setCustomKey('mp_step', 'matches_screen:build');
     final matchesAsync = ref.watch(matchesProvider);
 
     return matchesAsync.when(

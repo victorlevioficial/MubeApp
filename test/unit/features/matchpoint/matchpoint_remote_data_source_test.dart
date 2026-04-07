@@ -639,75 +639,59 @@ void main() {
     );
   });
 
-  group('MatchpointRemoteDataSource hashtag call payloads', () {
-    test(
-      'normalizes cloud function hashtag payloads with non-string map keys',
-      () async {
-        final firestore = FakeFirebaseFirestore();
-        final functions = _FakeFunctions(
-          handlers: {
-            'getTrendingHashtags': (_) async =>
-                _FakeHttpsCallableResult(<Object?, Object?>{
-                  'hashtags': <Object?>[
-                    <Object?, Object?>{
-                      'id': 'rank-1',
-                      'hashtag': '#rock',
-                      'display_name': '#rock',
-                      'use_count': 42,
-                      'current_position': 1,
-                      'previous_position': 2,
-                      'trend': 'up',
-                      'trend_delta': 1,
-                      'is_trending': true,
-                      'last_updated': '2026-03-13T00:00:00.000Z',
-                    },
-                  ],
-                }),
-          },
-        );
-        final dataSource = _buildDataSource(firestore, functions);
+  group('MatchpointRemoteDataSource hashtag firestore reads', () {
+    // The Cloud Function path (getTrendingHashtags / searchHashtags) was
+    // removed in 1.6.20+156 because it triggered the iOS Swift Concurrency
+    // SIGABRT crash on the matchpoint Trending tab (Crashlytics issue
+    // a37e597a). The data source now reads directly from the
+    // hashtagRanking Firestore collection. These tests reflect the new
+    // behavior.
+    test('fetchHashtagRanking reads from Firestore ordered by use_count',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      await firestore.collection('hashtagRanking').doc('rank-1').set({
+        'hashtag': '#rock',
+        'display_name': '#rock',
+        'use_count': 42,
+        'current_position': 1,
+        'previous_position': 2,
+        'trend': 'up',
+        'trend_delta': 1,
+        'is_trending': true,
+        'updated_at': Timestamp.fromDate(DateTime(2026, 3, 13)),
+      });
+      final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
-        final result = await dataSource.fetchHashtagRanking(limit: 5);
+      final result = await dataSource.fetchHashtagRanking(limit: 5);
 
-        expect(result, hasLength(1));
-        expect(result.first.id, 'rank-1');
-        expect(result.first.hashtag, '#rock');
-        expect(result.first.useCount, 42);
-      },
-    );
+      expect(result, hasLength(1));
+      expect(result.first.id, 'rank-1');
+      expect(result.first.hashtag, '#rock');
+      expect(result.first.useCount, 42);
+    });
 
     test(
-      'normalizes cloud function search payloads with non-string map keys',
+      'searchHashtags reads from Firestore matching the query prefix',
       () async {
         final firestore = FakeFirebaseFirestore();
-        final functions = _FakeFunctions(
-          handlers: {
-            'searchHashtags': (_) async =>
-                _FakeHttpsCallableResult(<Object?, Object?>{
-                  'hashtags': <Object?>[
-                    <Object?, Object?>{
-                      'id': 'rank-2',
-                      'hashtag': '#cover',
-                      'display_name': '#cover',
-                      'use_count': 7,
-                      'current_position': 5,
-                      'previous_position': 5,
-                      'trend': 'stable',
-                      'trend_delta': 0,
-                      'is_trending': false,
-                      'last_updated': '2026-03-13T00:00:00.000Z',
-                    },
-                  ],
-                }),
-          },
-        );
-        final dataSource = _buildDataSource(firestore, functions);
+        await firestore.collection('hashtagRanking').doc('rank-2').set({
+          'hashtag': 'cover',
+          'display_name': '#cover',
+          'use_count': 7,
+          'current_position': 5,
+          'previous_position': 5,
+          'trend': 'stable',
+          'trend_delta': 0,
+          'is_trending': false,
+          'updated_at': Timestamp.fromDate(DateTime(2026, 3, 13)),
+        });
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
         final result = await dataSource.searchHashtags('co', limit: 5);
 
         expect(result, hasLength(1));
         expect(result.first.id, 'rank-2');
-        expect(result.first.hashtag, '#cover');
+        expect(result.first.hashtag, 'cover');
         expect(result.first.useCount, 7);
       },
     );
