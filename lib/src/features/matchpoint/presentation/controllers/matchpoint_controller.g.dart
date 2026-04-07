@@ -148,8 +148,7 @@ abstract class _$MatchpointInit extends $Notifier<MatchpointInitPhase> {
   @override
   void runBuild() {
     final created = build();
-    final ref =
-        this.ref as $Ref<MatchpointInitPhase, MatchpointInitPhase>;
+    final ref = this.ref as $Ref<MatchpointInitPhase, MatchpointInitPhase>;
     final element =
         ref.element
             as $ClassProviderElement<
