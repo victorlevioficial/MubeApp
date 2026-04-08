@@ -40,11 +40,16 @@ class _FakeLegacyRepository extends Fake implements MatchpointRepository {
 
 class _FakeRemoteDataSource extends Fake implements MatchpointRemoteDataSource {
   final Map<String, AppUser> usersById;
+  Object? fetchUsersError;
 
   _FakeRemoteDataSource(this.usersById);
 
   @override
   Future<Map<String, AppUser>> fetchUsersByIds(List<String> ids) async {
+    final fetchUsersError = this.fetchUsersError;
+    if (fetchUsersError != null) {
+      throw fetchUsersError;
+    }
     return {
       for (final id in ids)
         if (usersById.containsKey(id)) id: usersById[id]!,
@@ -169,5 +174,35 @@ void main() {
           .get();
       expect(refreshRequests.docs, hasLength(1));
     });
+
+    test(
+      'falls back to legacy when projected feed hydration throws FirebaseException',
+      () async {
+        await firestore
+            .collection(FirestoreCollections.matchpointFeeds)
+            .doc(currentUser.uid)
+            .set({
+              'candidate_ids': ['target-1'],
+              'generated_at': Timestamp.fromDate(DateTime(2026, 4, 8, 14)),
+              'expires_at': Timestamp.fromDate(DateTime(2099, 1, 1)),
+            });
+        remoteDataSource.fetchUsersError = FirebaseException(
+          plugin: 'cloud_firestore',
+          code: 'permission-denied',
+        );
+
+        final result = await repository.fetchExploreFeed(
+          currentUser: currentUser,
+          genres: const ['rock'],
+          hashtags: const ['#indie'],
+          blockedUsers: const [],
+        );
+
+        expect(result.isRight(), isTrue);
+        final snapshot = result.getRight().toNullable()!;
+        expect(snapshot.source, MatchpointFeedSource.legacyQuery);
+        expect(snapshot.candidates.single.uid, 'legacy-1');
+      },
+    );
   });
 }

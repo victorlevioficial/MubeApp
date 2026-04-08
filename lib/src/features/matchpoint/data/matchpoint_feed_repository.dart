@@ -81,19 +81,33 @@ class ProjectedMatchpointFeedRepository implements MatchpointFeedRepository {
     required List<String> blockedUsers,
     int limit = 20,
   }) async {
+    _ProjectedFeedDocument? projectedFeed;
+    var refreshReason = 'projection_missing';
+
     try {
-      final projectedFeed = await _readProjectedFeed(
+      projectedFeed = await _readProjectedFeed(
         userId: currentUser.uid,
         limit: limit,
       );
+    } on FirebaseException catch (error, stackTrace) {
+      refreshReason = 'projection_read_failed';
+      AppLogger.warning(
+        'Failed to read projected MatchPoint feed. Falling back to legacy query.',
+        error,
+        stackTrace,
+        false,
+      );
+    }
 
-      if (projectedFeed != null) {
-        if (projectedFeed.isExpired) {
-          unawaited(
-            _requestFeedRefresh(currentUser.uid, reason: 'projection_expired'),
-          );
-        }
+    if (projectedFeed != null) {
+      if (projectedFeed.isExpired) {
+        refreshReason = 'projection_stale';
+        unawaited(
+          _requestFeedRefresh(currentUser.uid, reason: 'projection_expired'),
+        );
+      }
 
+      try {
         if (projectedFeed.candidateIds.isEmpty && !projectedFeed.isExpired) {
           return Right(
             MatchpointFeedSnapshot(
@@ -126,17 +140,21 @@ class ProjectedMatchpointFeedRepository implements MatchpointFeedRepository {
             ),
           );
         }
+      } on FirebaseException catch (error, stackTrace) {
+        refreshReason = 'projection_hydration_failed';
+        AppLogger.warning(
+          'Failed to hydrate projected MatchPoint feed. Falling back to legacy query.',
+          error,
+          stackTrace,
+          false,
+        );
       }
+    }
 
-      unawaited(
-        _requestFeedRefresh(
-          currentUser.uid,
-          reason: projectedFeed == null
-              ? 'projection_missing'
-              : 'projection_stale',
-        ),
-      );
-      return _legacyRepository.fetchExploreFeed(
+    unawaited(_requestFeedRefresh(currentUser.uid, reason: refreshReason));
+
+    try {
+      return await _legacyRepository.fetchExploreFeed(
         currentUser: currentUser,
         genres: genres,
         hashtags: hashtags,
@@ -152,8 +170,6 @@ class ProjectedMatchpointFeedRepository implements MatchpointFeedRepository {
           originalError: error,
         ),
       );
-    } catch (error) {
-      return Left(ServerFailure(message: error.toString()));
     }
   }
 
