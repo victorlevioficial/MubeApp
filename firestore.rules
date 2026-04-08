@@ -96,6 +96,10 @@ service cloud.firestore {
       return ['fixed', 'negotiable', 'volunteer', 'tbd'].hasAny([value]);
     }
 
+    function isAllowedMatchpointSwipeAction(value) {
+      return ['like', 'dislike'].hasAny([value]);
+    }
+
     function isValidGigStatusTransition(current, next) {
       return next == current ||
         (current == 'open' && ['closed', 'cancelled'].hasAny([next]));
@@ -286,6 +290,26 @@ service cloud.firestore {
         (resource.data.source_user_id == request.auth.uid || 
          resource.data.target_user_id == request.auth.uid);
       allow create, update, delete: if false;
+    }
+
+    // ================================================================
+    // MATCHPOINT COMMANDS - fila assíncrona de likes/dislikes
+    // ================================================================
+    match /matchpointCommands/{commandId} {
+      allow read: if request.auth != null &&
+        resource.data.user_id == request.auth.uid;
+
+      allow create: if request.auth != null &&
+        request.resource.data.user_id == request.auth.uid &&
+        request.resource.data.target_user_id is string &&
+        request.resource.data.target_user_id != request.auth.uid &&
+        request.resource.data.action is string &&
+        isAllowedMatchpointSwipeAction(request.resource.data.action) &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.client_created_at is timestamp &&
+        request.resource.data.idempotency_key is string;
+
+      allow update, delete: if false;
     }
 
     // ================================================================

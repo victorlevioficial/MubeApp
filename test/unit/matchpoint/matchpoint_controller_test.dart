@@ -6,6 +6,7 @@ import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_command_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
@@ -75,6 +76,9 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         matchpointRepositoryProvider.overrideWithValue(
           fakeMatchpointRepository,
+        ),
+        matchpointSwipeCommandRepositoryProvider.overrideWithValue(
+          LegacyMatchpointSwipeCommandRepository(fakeMatchpointRepository),
         ),
         analyticsServiceProvider.overrideWithValue(fakeAnalyticsService),
         currentUserProfileProvider.overrideWithValue(

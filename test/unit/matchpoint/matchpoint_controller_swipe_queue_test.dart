@@ -11,6 +11,7 @@ import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_command_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
@@ -193,6 +194,9 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepository),
         analyticsServiceProvider.overrideWithValue(analyticsService),
         matchpointRepositoryProvider.overrideWithValue(repository),
+        matchpointSwipeCommandRepositoryProvider.overrideWithValue(
+          LegacyMatchpointSwipeCommandRepository(repository),
+        ),
         currentUserProfileProvider.overrideWithValue(
           AsyncValue.data(currentUserProfile),
         ),

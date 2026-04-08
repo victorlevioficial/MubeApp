@@ -418,10 +418,12 @@ class MatchpointController extends _$MatchpointController {
 
   Future<SwipeActionResult> _handleSwipe(
     AppUser targetUser,
-    String type,
-  ) async {
+    String type, {
+    bool reservedLikeQuota = false,
+  }) async {
     final authRepo = ref.read(authRepositoryProvider);
-    if (authRepo.currentUser == null) {
+    final currentUser = authRepo.currentUser;
+    if (currentUser == null) {
       state = const AsyncError(
         'Sua sessão expirou. Faça login novamente.',
         StackTrace.empty,
@@ -434,6 +436,7 @@ class MatchpointController extends _$MatchpointController {
     );
     final result = await commandRepository.submit(
       MatchpointSwipeCommand(
+        sourceUserId: currentUser.uid,
         targetUserId: targetUser.uid,
         action: _swipeActionFromType(type),
         createdAt: DateTime.now(),
@@ -455,11 +458,90 @@ class MatchpointController extends _$MatchpointController {
       (_) => throw StateError('Expected swipe success'),
       (success) => success,
     );
+    if (actionResult.isQueued && actionResult.commandId != null) {
+      unawaited(
+        _awaitSwipeCommandCompletion(
+          commandId: actionResult.commandId!,
+          targetUser: targetUser,
+          type: type,
+          reservedLikeQuota: reservedLikeQuota,
+        ),
+      );
+    }
     return _buildSwipeSuccessResult(
       targetUser: targetUser,
       type: type,
       actionResult: actionResult,
     );
+  }
+
+  Future<void> _awaitSwipeCommandCompletion({
+    required String commandId,
+    required AppUser targetUser,
+    required String type,
+    required bool reservedLikeQuota,
+  }) async {
+    final commandRepository = ref.read(
+      matchpointSwipeCommandRepositoryProvider,
+    );
+    final command = MatchpointSwipeCommand(
+      sourceUserId: ref.read(authRepositoryProvider).currentUser?.uid ?? '',
+      targetUserId: targetUser.uid,
+      action: _swipeActionFromType(type),
+      createdAt: DateTime.now(),
+      idempotencyKey: commandId,
+    );
+
+    final result = await commandRepository.awaitResult(
+      command,
+      commandId: commandId,
+    );
+    if (!ref.mounted) return;
+
+    if (result.isLeft()) {
+      final failure = result.fold(
+        (failure) => failure,
+        (_) => throw StateError('Expected deferred swipe failure'),
+      );
+      if (reservedLikeQuota) {
+        ref.read(likesQuotaProvider.notifier).incrementOptimistically();
+      }
+      AppLogger.error('Deferred MatchPoint swipe command failed: $failure');
+      state = AsyncError(failure.message, StackTrace.current);
+      _emitSwipeFeedback(
+        MatchpointSwipeFeedbackEvent.failure(
+          id: _nextSwipeFeedbackId++,
+          targetUser: targetUser,
+          action: type,
+          message: failure.message,
+        ),
+      );
+      await _refreshCandidatesAfterQueueFailure();
+      return;
+    }
+
+    final completion = result.fold(
+      (_) => throw StateError('Expected deferred swipe success'),
+      (completion) => completion,
+    );
+    if (!completion.isProcessed) return;
+    final swipeResult = _buildSwipeSuccessResult(
+      targetUser: targetUser,
+      type: type,
+      actionResult: completion,
+      recordHistory: false,
+      logSubmission: false,
+    );
+    if (swipeResult.matchedUser != null) {
+      _emitSwipeFeedback(
+        MatchpointSwipeFeedbackEvent.match(
+          id: _nextSwipeFeedbackId++,
+          targetUser: swipeResult.matchedUser!,
+          action: type,
+          conversationId: swipeResult.conversationId,
+        ),
+      );
+    }
   }
 
   Future<void> _drainQueuedSwipes() async {
@@ -478,6 +560,7 @@ class MatchpointController extends _$MatchpointController {
         final result = await _handleSwipe(
           nextAction.targetUser,
           nextAction.type,
+          reservedLikeQuota: nextAction.reservedLikeQuota,
         );
         if (!result.success) {
           if (nextAction.reservedLikeQuota) {
@@ -566,6 +649,8 @@ class MatchpointController extends _$MatchpointController {
     required AppUser targetUser,
     required String type,
     required MatchpointSwipeCommandResult actionResult,
+    bool recordHistory = true,
+    bool logSubmission = true,
   }) {
     if (actionResult.remainingLikes != null) {
       ref
@@ -573,13 +658,17 @@ class MatchpointController extends _$MatchpointController {
           .updateRemaining(actionResult.remainingLikes!);
     }
 
-    ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
-    AppLogger.info(
-      'MatchPoint swipe submitted: action=$type target=${targetUser.uid} '
-      'status=${actionResult.status.name} '
-      'match=${actionResult.isMatch} '
-      'remainingLikes=${actionResult.remainingLikes ?? 'unknown'}',
-    );
+    if (recordHistory) {
+      ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
+    }
+    if (logSubmission) {
+      AppLogger.info(
+        'MatchPoint swipe submitted: action=$type target=${targetUser.uid} '
+        'status=${actionResult.status.name} '
+        'match=${actionResult.isMatch} '
+        'remainingLikes=${actionResult.remainingLikes ?? 'unknown'}',
+      );
+    }
 
     if (!actionResult.isProcessed) {
       return const SwipeActionResult(success: true);
@@ -637,6 +726,7 @@ class MatchpointController extends _$MatchpointController {
     );
     final result = await commandRepository.submit(
       MatchpointSwipeCommand(
+        sourceUserId: currentUser.uid,
         targetUserId: targetUserId,
         action: MatchpointSwipeAction.dislike,
         createdAt: DateTime.now(),

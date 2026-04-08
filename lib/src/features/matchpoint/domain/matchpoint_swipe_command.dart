@@ -15,12 +15,14 @@ extension MatchpointSwipeActionX on MatchpointSwipeAction {
 
 @immutable
 class MatchpointSwipeCommand {
+  final String sourceUserId;
   final String targetUserId;
   final MatchpointSwipeAction action;
   final DateTime createdAt;
   final String? idempotencyKey;
 
   const MatchpointSwipeCommand({
+    required this.sourceUserId,
     required this.targetUserId,
     required this.action,
     required this.createdAt,

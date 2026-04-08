@@ -12,6 +12,7 @@ export {migrateinteractions} from "./interaction_migration";
 // Export Matchpoint functions
 export {
   submitMatchpointAction,
+  onMatchpointCommandCreated,
   recordMatchpointRankingAudit,
   getRemainingLikes,
   onMatchCreated,

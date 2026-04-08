@@ -113,18 +113,12 @@ void main() {
                 ),
               );
 
-        final container = ProviderContainer(
-          overrides: [
-            matchpointRepositoryProvider.overrideWithValue(legacyRepository),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        final repository = container.read(
-          matchpointSwipeCommandRepositoryProvider,
+        final repository = LegacyMatchpointSwipeCommandRepository(
+          legacyRepository,
         );
         final result = await repository.submit(
           MatchpointSwipeCommand(
+            sourceUserId: 'user-1',
             targetUserId: 'target-1',
             action: MatchpointSwipeAction.like,
             createdAt: DateTime(2026, 4, 8, 10),
@@ -148,18 +142,12 @@ void main() {
         ..onSubmitAction = ({required targetUserId, required type}) async =>
             const Left(ServerFailure(message: 'Submit falhou'));
 
-      final container = ProviderContainer(
-        overrides: [
-          matchpointRepositoryProvider.overrideWithValue(legacyRepository),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final repository = container.read(
-        matchpointSwipeCommandRepositoryProvider,
+      final repository = LegacyMatchpointSwipeCommandRepository(
+        legacyRepository,
       );
       final result = await repository.submit(
         MatchpointSwipeCommand(
+          sourceUserId: 'user-1',
           targetUserId: 'target-1',
           action: MatchpointSwipeAction.dislike,
           createdAt: DateTime(2026, 4, 8, 11),

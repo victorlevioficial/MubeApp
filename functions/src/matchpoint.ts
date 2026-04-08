@@ -24,13 +24,17 @@ const DAILY_SWIPE_LIMIT = 50;
 const INTERACTION_EXPIRY_DAYS = 30;
 const MATCH_NOTIFICATION_TYPE = "system";
 const MATCH_NOTIFICATION_ROUTE_PREFIX = "/conversation/";
+const MATCHPOINT_COMMANDS_COLLECTION = "matchpointCommands";
+
+type MatchpointSwipeAction = "like" | "dislike";
+type MatchpointCommandStatus = "pending" | "processing" | "completed" | "failed";
 
 /**
  * Estrutura do request para submitMatchpointAction.
  */
 interface MatchpointActionRequest {
   targetUserId: string;
-  action: "like" | "dislike";
+  action: MatchpointSwipeAction;
 }
 
 /**
@@ -43,6 +47,18 @@ interface MatchpointActionResponse {
   conversationId?: string;
   remainingLikes?: number;
   message?: string;
+}
+
+interface MatchpointCommandRequest {
+  userId: string;
+  targetUserId: string;
+  action: MatchpointSwipeAction;
+  idempotencyKey: string;
+}
+
+interface MatchpointCommandError {
+  code: string;
+  message: string;
 }
 
 interface RemainingLikesResponse {
@@ -110,12 +126,22 @@ function readMatchpointActionRequest(
 ): MatchpointActionRequest {
   const payload = asRecord(rawData);
   const targetUserId = firstNonEmptyString([payload.targetUserId]);
-  const rawAction = firstNonEmptyString([payload.action]).toLowerCase();
+  const rawAction = readMatchpointSwipeAction(payload.action);
 
   if (!targetUserId) {
     throw new HttpsError("invalid-argument", "targetUserId é obrigatório");
   }
 
+  return {
+    targetUserId,
+    action: rawAction,
+  };
+}
+
+export function readMatchpointSwipeAction(
+  value: unknown
+): MatchpointSwipeAction {
+  const rawAction = firstNonEmptyString([value]).toLowerCase();
   if (rawAction !== "like" && rawAction !== "dislike") {
     throw new HttpsError(
       "invalid-argument",
@@ -123,9 +149,73 @@ function readMatchpointActionRequest(
     );
   }
 
+  return rawAction;
+}
+
+export function readMatchpointCommandRequest(
+  rawData: unknown,
+  commandId: string
+): MatchpointCommandRequest {
+  const payload = asRecord(rawData);
+  const userId = firstNonEmptyString([payload.user_id, payload.userId]);
+  const targetUserId = firstNonEmptyString([
+    payload.target_user_id,
+    payload.targetUserId,
+  ]);
+  const idempotencyKey = firstNonEmptyString([
+    payload.idempotency_key,
+    payload.idempotencyKey,
+  ], commandId);
+
+  if (!userId) {
+    throw new HttpsError("invalid-argument", "user_id é obrigatório");
+  }
+
+  if (!targetUserId) {
+    throw new HttpsError("invalid-argument", "target_user_id é obrigatório");
+  }
+
+  if (userId === targetUserId) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Não pode interagir consigo mesmo"
+    );
+  }
+
   return {
+    userId,
     targetUserId,
-    action: rawAction as MatchpointActionRequest["action"],
+    action: readMatchpointSwipeAction(payload.action),
+    idempotencyKey,
+  };
+}
+
+export function buildMatchpointCommandResult(
+  request: MatchpointCommandRequest,
+  response: MatchpointActionResponse
+): Record<string, unknown> {
+  return {
+    targetUserId: request.targetUserId,
+    action: request.action,
+    isMatch: response.isMatch === true,
+    matchId: response.matchId ?? null,
+    conversationId: response.conversationId ?? null,
+    remainingLikes: response.remainingLikes ?? null,
+    message: response.message ?? null,
+  };
+}
+
+function buildMatchpointCommandError(error: unknown): MatchpointCommandError {
+  if (error instanceof HttpsError) {
+    return {
+      code: error.code,
+      message: error.message || "Erro ao processar comando do MatchPoint.",
+    };
+  }
+
+  return {
+    code: "internal",
+    message: "Erro interno ao processar comando do MatchPoint.",
   };
 }
 
@@ -351,12 +441,204 @@ async function notifyMatchCreated(
 }
 
 /**
+ * Núcleo compartilhado de processamento de swipe do MatchPoint.
+ *
+ * Mantém a regra de negócio central em um único lugar para o callable legado
+ * e para o novo pipeline assíncrono por documento em `matchpointCommands`.
+ *
+ * @param {string} currentUserId - UID do usuário que executou a ação.
+ * @param {string} targetUserId - UID do perfil alvo do swipe.
+ * @param {MatchpointSwipeAction} action - Ação solicitada pelo usuário.
+ * @return {Promise<MatchpointActionResponse>} Resultado autoritativo do swipe.
+ */
+async function processMatchpointAction(
+  currentUserId: string,
+  targetUserId: string,
+  action: MatchpointSwipeAction
+): Promise<MatchpointActionResponse> {
+  let stage = "load_current_user";
+
+  try {
+    const userRef = db.collection("users").doc(currentUserId);
+    const interactionsRef = db.collection("interactions");
+    const existingInteractionPromise = interactionsRef
+      .where("source_user_id", "==", currentUserId)
+      .where("target_user_id", "==", targetUserId)
+      .where("type", "in", ["like", "dislike"])
+      .limit(1)
+      .get();
+    const mutualLikePromise = action === "like" ?
+      interactionsRef
+        .where("source_user_id", "==", targetUserId)
+        .where("target_user_id", "==", currentUserId)
+        .where("type", "==", "like")
+        .limit(1)
+        .get() :
+      Promise.resolve(null);
+
+    const [userDoc, existingInteractionQuery, mutualLikeQuery] =
+      await Promise.all([
+        userRef.get(),
+        existingInteractionPromise,
+        mutualLikePromise,
+      ]);
+
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "Usuário não encontrado");
+    }
+
+    const userData = userDoc.data() || {};
+    const remainingLikesSnapshot = getRemainingLikesSnapshot(userData);
+
+    const existingInteraction = existingInteractionQuery.empty ?
+      null :
+      existingInteractionQuery.docs[0];
+    const existingData = existingInteraction?.data() || {};
+    const existingType = existingData.type as string | undefined;
+
+    let remainingQuota = remainingLikesSnapshot.remainingLikes;
+
+    if (!existingInteraction) {
+      stage = "check_rate_limit";
+      const rateLimitResult = await checkAndUpdateRateLimit(currentUserId);
+      if (!rateLimitResult.allowed) {
+        throw new HttpsError(
+          "resource-exhausted",
+          `Limite diário de ${DAILY_SWIPE_LIMIT} swipes atingido. ` +
+          "Tente novamente amanhã."
+        );
+      }
+      remainingQuota = rateLimitResult.remainingLikes;
+    }
+
+    if (action === "dislike") {
+      const now = Timestamp.now();
+      const expiresAt = Timestamp.fromDate(
+        new Date(Date.now() + INTERACTION_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
+      );
+
+      if (existingInteraction) {
+        if (existingType !== "dislike") {
+          stage = "persist_dislike_existing";
+          await existingInteraction.ref.update({
+            type: "dislike",
+            updated_at: now,
+            expires_at: expiresAt,
+            resulted_in_match: FieldValue.delete(),
+          });
+        }
+      } else {
+        stage = "persist_dislike_new";
+        const interactionRef = db.collection("interactions").doc();
+        await interactionRef.set({
+          source_user_id: currentUserId,
+          target_user_id: targetUserId,
+          type: "dislike",
+          created_at: now,
+          updated_at: now,
+          expires_at: expiresAt,
+        });
+      }
+
+      stage = "remove_match";
+      const removedMatch = await removeMatch(currentUserId, targetUserId);
+
+      return {
+        success: true,
+        remainingLikes: remainingQuota,
+        message: removedMatch ? "Match desfeito" : "Dislike registrado",
+      };
+    }
+
+    const now = Timestamp.now();
+    let interactionRef = existingInteraction?.ref;
+
+    if (existingInteraction && existingType === "like") {
+      return {
+        success: true,
+        remainingLikes: remainingQuota,
+        message: "Interação já registrada",
+      };
+    }
+
+    if (existingInteraction) {
+      stage = "persist_like_existing";
+      await existingInteraction.ref.update({
+        type: "like",
+        updated_at: now,
+        expires_at: FieldValue.delete(),
+        resulted_in_match: FieldValue.delete(),
+      });
+      interactionRef = existingInteraction.ref;
+    } else {
+      stage = "persist_like_new";
+      interactionRef = interactionsRef.doc();
+      await interactionRef.set({
+        source_user_id: currentUserId,
+        target_user_id: targetUserId,
+        type: "like",
+        created_at: now,
+        updated_at: now,
+      });
+    }
+
+    const isMatch = mutualLikeQuery !== null && !mutualLikeQuery.empty;
+
+    if (!isMatch) {
+      return {
+        success: true,
+        isMatch: false,
+        remainingLikes: remainingQuota,
+        message: "Like registrado",
+      };
+    }
+
+    stage = "finalize_match";
+    const matchResult = await createMatch(
+      currentUserId,
+      targetUserId,
+      interactionRef,
+      mutualLikeQuery.docs[0].ref
+    );
+
+    if (matchResult === null) {
+      return {
+        success: true,
+        isMatch: false,
+        remainingLikes: remainingQuota,
+        message: "Like registrado",
+      };
+    }
+
+    return {
+      success: true,
+      isMatch: true,
+      matchId: matchResult.matchId,
+      conversationId: matchResult.conversationId,
+      remainingLikes: remainingQuota,
+      message: "Match! Vocês podem conversar agora",
+    };
+  } catch (error) {
+    console.error("Erro ao processar ação do MatchPoint:", {
+      currentUserId,
+      targetUserId,
+      action,
+      stage,
+      error,
+    });
+
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+
+    throw new HttpsError("internal", "Erro interno ao processar ação");
+  }
+}
+
+/**
  * Cloud Function: submitMatchpointAction.
  *
- * Processa ações de like/dislike com:
- * - Rate limit diário de swipes
- * - Verificação de match mútuo
- * - Criação de match e reserva do conversationId do chat
+ * Compatibilidade do fluxo legado por callable.
  */
 export const submitMatchpointAction = onCall(
   {
@@ -384,182 +666,67 @@ export const submitMatchpointAction = onCall(
       );
     }
 
-    let stage = "load_current_user";
+    return processMatchpointAction(currentUserId, targetUserId, action);
+  }
+);
+
+/**
+ * Trigger: processa comandos assíncronos de swipe criados pelo app.
+ *
+ * Caminho: matchpointCommands/{commandId}
+ */
+export const onMatchpointCommandCreated = onDocumentCreated(
+  {
+    document: `${MATCHPOINT_COMMANDS_COLLECTION}/{commandId}`,
+    region: "southamerica-east1",
+    memory: "256MiB",
+    concurrency: 1,
+    maxInstances: 10,
+    timeoutSeconds: 20,
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const commandId = event.params.commandId;
+    const commandRef = snapshot.ref;
 
     try {
-      const userRef = db.collection("users").doc(currentUserId);
-      const interactionsRef = db.collection("interactions");
-      const existingInteractionPromise = interactionsRef
-        .where("source_user_id", "==", currentUserId)
-        .where("target_user_id", "==", targetUserId)
-        .where("type", "in", ["like", "dislike"])
-        .limit(1)
-        .get();
-      const mutualLikePromise = action === "like" ?
-        interactionsRef
-          .where("source_user_id", "==", targetUserId)
-          .where("target_user_id", "==", currentUserId)
-          .where("type", "==", "like")
-          .limit(1)
-          .get() :
-        Promise.resolve(null);
+      const request = readMatchpointCommandRequest(snapshot.data(), commandId);
+      const processingStatus: MatchpointCommandStatus = "processing";
+      await commandRef.set({
+        status: processingStatus,
+        processing_started_at: FieldValue.serverTimestamp(),
+        updated_at: FieldValue.serverTimestamp(),
+      }, {merge: true});
 
-      const [userDoc, existingInteractionQuery, mutualLikeQuery] =
-        await Promise.all([
-          userRef.get(),
-          existingInteractionPromise,
-          mutualLikePromise,
-        ]);
-
-      if (!userDoc.exists) {
-        throw new HttpsError("not-found", "Usuário não encontrado");
-      }
-
-      const userData = userDoc.data() || {};
-      const remainingLikesSnapshot = getRemainingLikesSnapshot(userData);
-
-      const existingInteraction = existingInteractionQuery.empty ?
-        null :
-        existingInteractionQuery.docs[0];
-      const existingData = existingInteraction?.data() || {};
-      const existingType = existingData.type as string | undefined;
-
-      let remainingQuota = remainingLikesSnapshot.remainingLikes;
-
-      if (!existingInteraction) {
-        stage = "check_rate_limit";
-        const rateLimitResult = await checkAndUpdateRateLimit(currentUserId);
-        if (!rateLimitResult.allowed) {
-          throw new HttpsError(
-            "resource-exhausted",
-            `Limite diário de ${DAILY_SWIPE_LIMIT} swipes atingido. ` +
-            "Tente novamente amanhã."
-          );
-        }
-        remainingQuota = rateLimitResult.remainingLikes;
-      }
-
-      if (action === "dislike") {
-        const now = Timestamp.now();
-        const expiresAt = Timestamp.fromDate(
-          new Date(Date.now() + INTERACTION_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
-        );
-
-        if (existingInteraction) {
-          if (existingType !== "dislike") {
-            stage = "persist_dislike_existing";
-            await existingInteraction.ref.update({
-              type: "dislike",
-              updated_at: now,
-              expires_at: expiresAt,
-              resulted_in_match: FieldValue.delete(),
-            });
-          }
-        } else {
-          stage = "persist_dislike_new";
-          const interactionRef = db.collection("interactions").doc();
-          await interactionRef.set({
-            source_user_id: currentUserId,
-            target_user_id: targetUserId,
-            type: "dislike",
-            created_at: now,
-            updated_at: now,
-            expires_at: expiresAt,
-          });
-        }
-
-        stage = "remove_match";
-        const removedMatch = await removeMatch(currentUserId, targetUserId);
-
-        return {
-          success: true,
-          remainingLikes: remainingQuota,
-          message: removedMatch ? "Match desfeito" : "Dislike registrado",
-        };
-      }
-
-      const now = Timestamp.now();
-      let interactionRef = existingInteraction?.ref;
-
-      if (existingInteraction && existingType === "like") {
-        return {
-          success: true,
-          remainingLikes: remainingQuota,
-          message: "Interação já registrada",
-        };
-      }
-
-      if (existingInteraction) {
-        stage = "persist_like_existing";
-        await existingInteraction.ref.update({
-          type: "like",
-          updated_at: now,
-          expires_at: FieldValue.delete(),
-          resulted_in_match: FieldValue.delete(),
-        });
-        interactionRef = existingInteraction.ref;
-      } else {
-        stage = "persist_like_new";
-        interactionRef = interactionsRef.doc();
-        await interactionRef.set({
-          source_user_id: currentUserId,
-          target_user_id: targetUserId,
-          type: "like",
-          created_at: now,
-          updated_at: now,
-        });
-      }
-
-      const isMatch = mutualLikeQuery !== null && !mutualLikeQuery.empty;
-
-      if (!isMatch) {
-        return {
-          success: true,
-          isMatch: false,
-          remainingLikes: remainingQuota,
-          message: "Like registrado",
-        };
-      }
-
-      stage = "finalize_match";
-      const matchResult = await createMatch(
-        currentUserId,
-        targetUserId,
-        interactionRef,
-        mutualLikeQuery.docs[0].ref
+      const result = await processMatchpointAction(
+        request.userId,
+        request.targetUserId,
+        request.action
       );
 
-      if (matchResult === null) {
-        return {
-          success: true,
-          isMatch: false,
-          remainingLikes: remainingQuota,
-          message: "Like registrado",
-        };
-      }
-
-      return {
-        success: true,
-        isMatch: true,
-        matchId: matchResult.matchId,
-        conversationId: matchResult.conversationId,
-        remainingLikes: remainingQuota,
-        message: "Match! Vocês podem conversar agora",
-      };
+      const completedStatus: MatchpointCommandStatus = "completed";
+      await commandRef.set({
+        status: completedStatus,
+        processed_at: FieldValue.serverTimestamp(),
+        updated_at: FieldValue.serverTimestamp(),
+        result: buildMatchpointCommandResult(request, result),
+        error: FieldValue.delete(),
+      }, {merge: true});
     } catch (error) {
-      console.error("Erro em submitMatchpointAction:", {
-        currentUserId,
-        targetUserId,
-        action,
-        stage,
+      const failedStatus: MatchpointCommandStatus = "failed";
+      const commandError = buildMatchpointCommandError(error);
+      console.error("Erro ao processar matchpoint command:", {
+        commandId,
         error,
       });
-
-      if (error instanceof HttpsError) {
-        throw error;
-      }
-
-      throw new HttpsError("internal", "Erro interno ao processar ação");
+      await commandRef.set({
+        status: failedStatus,
+        processed_at: FieldValue.serverTimestamp(),
+        updated_at: FieldValue.serverTimestamp(),
+        error: commandError,
+      }, {merge: true});
     }
   }
 );

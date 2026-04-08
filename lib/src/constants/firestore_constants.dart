@@ -3,6 +3,7 @@ class FirestoreCollections {
   static const String deletedUsers = 'deletedUsers';
   static const String matches = 'matches';
   static const String interactions = 'interactions';
+  static const String matchpointCommands = 'matchpointCommands';
   static const String reports = 'reports';
   static const String blocked = 'blocked';
   static const String gigs = 'gigs';
