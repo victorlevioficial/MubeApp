@@ -13,10 +13,13 @@ import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_feed_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_command_repository.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
-import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_swipe_command.dart';
+import 'package:mube/src/features/matchpoint/domain/matchpoint_swipe_command_result.dart';
 import 'package:mube/src/features/matchpoint/domain/swipe_history_entry.dart';
 import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/utils/app_logger.dart';
@@ -426,10 +429,15 @@ class MatchpointController extends _$MatchpointController {
       return const SwipeActionResult(success: false);
     }
 
-    final repo = ref.read(matchpointRepositoryProvider);
-    final result = await repo.submitAction(
-      targetUserId: targetUser.uid,
-      type: type,
+    final commandRepository = ref.read(
+      matchpointSwipeCommandRepositoryProvider,
+    );
+    final result = await commandRepository.submit(
+      MatchpointSwipeCommand(
+        targetUserId: targetUser.uid,
+        action: _swipeActionFromType(type),
+        createdAt: DateTime.now(),
+      ),
     );
 
     if (result.isLeft()) {
@@ -557,7 +565,7 @@ class MatchpointController extends _$MatchpointController {
   SwipeActionResult _buildSwipeSuccessResult({
     required AppUser targetUser,
     required String type,
-    required MatchpointActionResult actionResult,
+    required MatchpointSwipeCommandResult actionResult,
   }) {
     if (actionResult.remainingLikes != null) {
       ref
@@ -567,12 +575,17 @@ class MatchpointController extends _$MatchpointController {
 
     ref.read(swipeHistoryProvider.notifier).addSwipe(targetUser, type);
     AppLogger.info(
-      'MatchPoint swipe committed: action=$type target=${targetUser.uid} '
+      'MatchPoint swipe submitted: action=$type target=${targetUser.uid} '
+      'status=${actionResult.status.name} '
       'match=${actionResult.isMatch} '
       'remainingLikes=${actionResult.remainingLikes ?? 'unknown'}',
     );
 
-    if (actionResult.isMatch == true) {
+    if (!actionResult.isProcessed) {
+      return const SwipeActionResult(success: true);
+    }
+
+    if (actionResult.isMatch) {
       AppLogger.info("IT'S A MATCH!");
       ref.invalidate(matchesProvider);
       final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
@@ -619,10 +632,15 @@ class MatchpointController extends _$MatchpointController {
     final currentUser = authRepo.currentUser;
     if (currentUser == null) return;
 
-    final repo = ref.read(matchpointRepositoryProvider);
-    final result = await repo.submitAction(
-      targetUserId: targetUserId,
-      type: 'dislike',
+    final commandRepository = ref.read(
+      matchpointSwipeCommandRepositoryProvider,
+    );
+    final result = await commandRepository.submit(
+      MatchpointSwipeCommand(
+        targetUserId: targetUserId,
+        action: MatchpointSwipeAction.dislike,
+        createdAt: DateTime.now(),
+      ),
     );
 
     result.fold(
@@ -654,6 +672,17 @@ class MatchpointController extends _$MatchpointController {
             );
       },
     );
+  }
+}
+
+MatchpointSwipeAction _swipeActionFromType(String type) {
+  switch (type) {
+    case 'like':
+      return MatchpointSwipeAction.like;
+    case 'dislike':
+      return MatchpointSwipeAction.dislike;
+    default:
+      throw ArgumentError.value(type, 'type', 'Unsupported swipe action');
   }
 }
 
@@ -758,9 +787,9 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       ...blockedFromCollection,
     }.toList();
 
-    final repo = ref.read(matchpointRepositoryProvider);
+    final repo = ref.read(matchpointFeedRepositoryProvider);
     AppLogger.breadcrumb('mp:cand:repo_call');
-    final result = await repo.fetchCandidates(
+    final result = await repo.fetchExploreFeed(
       currentUser: userProfile,
       genres: genres,
       hashtags: hashtags,
@@ -774,13 +803,14 @@ class MatchpointCandidates extends _$MatchpointCandidates {
         AppLogger.breadcrumb('mp:cand:fail ${failure.message}');
         throw failure.message;
       },
-      (candidates) {
+      (snapshot) {
         AppLogger.info(
-          'MatchPoint query success: found ${candidates.length} candidates',
+          'MatchPoint query success: found ${snapshot.count} candidates '
+          'source=${snapshot.source.name}',
         );
-        AppLogger.breadcrumb('mp:cand:success count=${candidates.length}');
+        AppLogger.breadcrumb('mp:cand:success count=${snapshot.count}');
         AppLogger.setCustomKey('mp_step', 'cand:success');
-        return candidates;
+        return snapshot.candidates;
       },
     );
   }
