@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
@@ -73,15 +74,30 @@ class FirestoreMatchpointSwipeCommandRepository
   final FirebaseFirestore _firestore;
   final LegacyMatchpointSwipeCommandRepository _fallbackRepository;
   final Uuid _uuid;
+  final bool? _enableCompletionListenerOverride;
 
   FirestoreMatchpointSwipeCommandRepository(
     this._firestore,
     this._fallbackRepository, {
     Uuid? uuid,
-  }) : _uuid = uuid ?? const Uuid();
+    bool? enableCompletionListenerOverride,
+  }) : _uuid = uuid ?? const Uuid(),
+       _enableCompletionListenerOverride = enableCompletionListenerOverride;
 
   CollectionReference<Map<String, dynamic>> get _commands =>
       _firestore.collection(FirestoreCollections.matchpointCommands);
+
+  static bool shouldListenForCommandCompletion({
+    bool isReleaseMode = kReleaseMode,
+    bool isWeb = kIsWeb,
+    TargetPlatform? platform,
+  }) {
+    final resolvedPlatform = platform ?? defaultTargetPlatform;
+    return !(isReleaseMode && !isWeb && resolvedPlatform == TargetPlatform.iOS);
+  }
+
+  bool get _shouldListenForCommandCompletion =>
+      _enableCompletionListenerOverride ?? shouldListenForCommandCompletion();
 
   @override
   FutureResult<MatchpointSwipeCommandResult> submit(
@@ -133,6 +149,17 @@ class FirestoreMatchpointSwipeCommandRepository
     required String commandId,
     Duration timeout = _defaultTimeout,
   }) async {
+    if (!_shouldListenForCommandCompletion) {
+      return Right(
+        MatchpointSwipeCommandResult(
+          targetUserId: command.targetUserId,
+          action: command.action,
+          status: MatchpointSwipeCommandStatus.accepted,
+          commandId: commandId,
+        ),
+      );
+    }
+
     final docRef = _commands.doc(commandId);
 
     try {

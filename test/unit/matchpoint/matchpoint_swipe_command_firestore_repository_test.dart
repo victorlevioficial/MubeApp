@@ -177,5 +177,44 @@ void main() {
       expect(result.isLeft(), isTrue);
       expect(result.getLeft().toNullable(), isA<QuotaExceededFailure>());
     });
+
+    test(
+      'awaitResult returns accepted immediately when completion listener is disabled',
+      () async {
+        const commandId = 'cmd-4';
+        final repository = FirestoreMatchpointSwipeCommandRepository(
+          firestore,
+          LegacyMatchpointSwipeCommandRepository(legacyRepository),
+          enableCompletionListenerOverride: false,
+        );
+        final command = MatchpointSwipeCommand(
+          sourceUserId: 'user-1',
+          targetUserId: 'target-4',
+          action: MatchpointSwipeAction.like,
+          createdAt: DateTime(2026, 4, 8, 12, 20),
+          idempotencyKey: commandId,
+        );
+        await firestore
+            .collection(FirestoreCollections.matchpointCommands)
+            .doc(commandId)
+            .set({
+              'user_id': 'user-1',
+              'target_user_id': 'target-4',
+              'action': 'like',
+              'status': 'processing',
+            });
+
+        final result = await repository.awaitResult(
+          command,
+          commandId: commandId,
+        );
+
+        expect(result.isRight(), isTrue);
+        final commandResult = result.getRight().toNullable()!;
+        expect(commandResult.status, MatchpointSwipeCommandStatus.accepted);
+        expect(commandResult.commandId, commandId);
+        expect(commandResult.isProcessed, isFalse);
+      },
+    );
   });
 }
