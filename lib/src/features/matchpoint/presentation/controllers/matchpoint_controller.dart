@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/domain/app_config.dart';
-import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/providers/app_config_provider.dart';
 import 'package:mube/src/core/providers/firebase_providers.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
@@ -189,17 +188,53 @@ class _QueuedSwipeAction {
 
 @Riverpod(keepAlive: true)
 class MatchpointController extends _$MatchpointController {
-  static const Duration _swipeSecurityValidationTtl = Duration(seconds: 30);
+  static const Duration _deferredQueuedSwipeDrainDelay = Duration(
+    milliseconds: 750,
+  );
+
+  @visibleForTesting
+  static bool? debugForceDeferredQueuedSwipeDrain;
+
+  @visibleForTesting
+  static Duration debugDeferredQueuedSwipeDrainDelay =
+      _deferredQueuedSwipeDrainDelay;
 
   final Queue<_QueuedSwipeAction> _queuedSwipes = Queue<_QueuedSwipeAction>();
+  Timer? _queuedSwipeDrainTimer;
   bool _isProcessingQueuedSwipes = false;
   bool _shouldRefreshCandidatesAfterFailure = false;
   int _nextSwipeFeedbackId = 0;
-  String? _lastValidatedSwipeUserId;
-  DateTime? _lastSwipeSecurityValidationAt;
 
   @override
-  FutureOr<void> build() {}
+  FutureOr<void> build() {
+    ref.onDispose(() {
+      _queuedSwipeDrainTimer?.cancel();
+      _queuedSwipeDrainTimer = null;
+    });
+  }
+
+  @visibleForTesting
+  static bool shouldDeferQueuedSwipeDrain({
+    bool isReleaseMode = kReleaseMode,
+    bool isWeb = kIsWeb,
+    TargetPlatform? platform,
+  }) {
+    final resolvedPlatform = platform ?? defaultTargetPlatform;
+    return isReleaseMode && !isWeb && resolvedPlatform == TargetPlatform.iOS;
+  }
+
+  bool get _shouldDeferQueuedSwipeDrain {
+    final debugOverride = debugForceDeferredQueuedSwipeDrain;
+    if (debugOverride != null) return debugOverride;
+    return shouldDeferQueuedSwipeDrain();
+  }
+
+  Duration get _queuedSwipeDrainDelay {
+    if (debugForceDeferredQueuedSwipeDrain != null) {
+      return debugDeferredQueuedSwipeDrainDelay;
+    }
+    return _deferredQueuedSwipeDrainDelay;
+  }
 
   Future<void> saveMatchpointProfile({
     required String intent,
@@ -343,11 +378,39 @@ class MatchpointController extends _$MatchpointController {
       'pending=${_queuedSwipes.length}',
     );
 
-    if (!_isProcessingQueuedSwipes) {
-      unawaited(_drainQueuedSwipes());
-    }
+    _scheduleQueuedSwipeDrain();
 
     return true;
+  }
+
+  void _scheduleQueuedSwipeDrain() {
+    if (_isProcessingQueuedSwipes || _queuedSwipes.isEmpty || !ref.mounted) {
+      return;
+    }
+
+    _queuedSwipeDrainTimer?.cancel();
+    if (_shouldDeferQueuedSwipeDrain) {
+      // Avoid stacking Firebase Auth/App Check/Functions calls on the same
+      // gesture frame in iOS release builds, where the swipe animation and the
+      // native Firebase work were racing inside Swift Concurrency.
+      _queuedSwipeDrainTimer = Timer(
+        _queuedSwipeDrainDelay,
+        _startQueuedSwipeDrain,
+      );
+      return;
+    }
+
+    _startQueuedSwipeDrain();
+  }
+
+  void _startQueuedSwipeDrain() {
+    if (_isProcessingQueuedSwipes || _queuedSwipes.isEmpty || !ref.mounted) {
+      return;
+    }
+
+    _queuedSwipeDrainTimer?.cancel();
+    _queuedSwipeDrainTimer = null;
+    unawaited(_drainQueuedSwipes());
   }
 
   Future<SwipeActionResult> _handleSwipe(
@@ -355,66 +418,25 @@ class MatchpointController extends _$MatchpointController {
     String type,
   ) async {
     final authRepo = ref.read(authRepositoryProvider);
-    final hasValidSecurityContext = await _ensureSwipeSecurityContext(authRepo);
-    if (!hasValidSecurityContext) {
+    if (authRepo.currentUser == null) {
+      state = const AsyncError(
+        'Sua sessão expirou. Faça login novamente.',
+        StackTrace.empty,
+      );
       return const SwipeActionResult(success: false);
     }
 
     final repo = ref.read(matchpointRepositoryProvider);
-    var result = await repo.submitAction(
+    final result = await repo.submitAction(
       targetUserId: targetUser.uid,
       type: type,
     );
 
     if (result.isLeft()) {
-      var failure = result.fold(
+      final failure = result.fold(
         (failure) => failure,
         (_) => throw StateError('Expected swipe failure'),
       );
-
-      if (_isSessionFailure(failure)) {
-        AppLogger.warning(
-          'Swipe failed with session/auth error. '
-          'Refreshing context and retrying once.',
-        );
-
-        final refreshed = await _refreshSwipeSecurityContext(
-          authRepo,
-          reason: 'submit_action',
-        );
-        if (!refreshed) {
-          return const SwipeActionResult(success: false);
-        }
-
-        result = await repo.submitAction(
-          targetUserId: targetUser.uid,
-          type: type,
-        );
-        if (result.isRight()) {
-          final actionResult = result.fold(
-            (_) => throw StateError('Expected swipe retry success'),
-            (success) => success,
-          );
-          _trackSwipeSessionRecovery(
-            stage: 'submit_action',
-            outcome: 'retry_succeeded',
-          );
-          return _buildSwipeSuccessResult(
-            targetUser: targetUser,
-            type: type,
-            actionResult: actionResult,
-          );
-        }
-        failure = result.fold(
-          (failure) => failure,
-          (_) => throw StateError('Expected swipe retry failure'),
-        );
-        _trackSwipeSessionRecovery(
-          stage: 'submit_action',
-          outcome: 'retry_failed',
-          failure: failure,
-        );
-      }
 
       AppLogger.error('Failed to process swipe: $failure');
       state = AsyncError(failure.message, StackTrace.current);
@@ -435,6 +457,8 @@ class MatchpointController extends _$MatchpointController {
   Future<void> _drainQueuedSwipes() async {
     if (_isProcessingQueuedSwipes) return;
 
+    _queuedSwipeDrainTimer?.cancel();
+    _queuedSwipeDrainTimer = null;
     _isProcessingQueuedSwipes = true;
     _syncQueuedSwipeState();
 
@@ -528,183 +552,6 @@ class MatchpointController extends _$MatchpointController {
       return 'Não foi possível registrar seu like agora. Tente novamente.';
     }
     return 'Não foi possível registrar seu dislike agora. Tente novamente.';
-  }
-
-  Future<bool> _ensureSwipeSecurityContext(AuthRepository authRepo) async {
-    final currentUser = authRepo.currentUser;
-    if (currentUser == null) {
-      _clearSwipeSecurityValidationCache();
-      AppLogger.warning(
-        'Swipe precheck: no FirebaseAuth user. Attempting security refresh.',
-      );
-      final refreshed = await _refreshSwipeSecurityContext(
-        authRepo,
-        reason: 'missing_user',
-      );
-      if (!refreshed) return false;
-      return _validateCurrentUserToken(authRepo);
-    }
-
-    if (_hasFreshSwipeSecurityValidation(currentUser.uid)) {
-      return true;
-    }
-
-    try {
-      // Timeout prevents the platform-channel call from hanging
-      // indefinitely on iOS, which contributes to Swift Concurrency crashes.
-      final idToken = await currentUser.getIdToken().timeout(
-        const Duration(seconds: 10),
-      );
-      if (idToken != null && idToken.isNotEmpty) {
-        _markSwipeSecurityContextValidated(currentUser.uid);
-        return true;
-      }
-
-      AppLogger.warning(
-        'Swipe precheck: empty FirebaseAuth token. Attempting security refresh.',
-      );
-      final refreshed = await _refreshSwipeSecurityContext(
-        authRepo,
-        reason: 'empty_token',
-      );
-      if (!refreshed) return false;
-      return _validateCurrentUserToken(authRepo);
-    } catch (error, stack) {
-      _clearSwipeSecurityValidationCache();
-      AppLogger.warning(
-        'Swipe precheck: failed to read FirebaseAuth token. '
-        'Attempting security refresh.',
-        error,
-        stack,
-      );
-      final refreshed = await _refreshSwipeSecurityContext(
-        authRepo,
-        reason: 'token_read_failure',
-      );
-      if (!refreshed) return false;
-      return _validateCurrentUserToken(authRepo);
-    }
-  }
-
-  Future<bool> _validateCurrentUserToken(AuthRepository authRepo) async {
-    final refreshedUser = authRepo.currentUser;
-    if (refreshedUser == null) {
-      _clearSwipeSecurityValidationCache();
-      state = const AsyncError(
-        'Sua sessão expirou. Faça login novamente.',
-        StackTrace.empty,
-      );
-      return false;
-    }
-
-    try {
-      final refreshedToken = await refreshedUser.getIdToken().timeout(
-        const Duration(seconds: 10),
-      );
-      if (refreshedToken != null && refreshedToken.isNotEmpty) {
-        _markSwipeSecurityContextValidated(refreshedUser.uid);
-        return true;
-      }
-      _clearSwipeSecurityValidationCache();
-      state = const AsyncError(
-        'Não foi possível validar sua sessão. Faça login novamente.',
-        StackTrace.empty,
-      );
-      return false;
-    } catch (error, stack) {
-      _clearSwipeSecurityValidationCache();
-      AppLogger.warning('Swipe validation failed after refresh.', error, stack);
-      state = const AsyncError(
-        'Não foi possível validar sua sessão. Faça login novamente.',
-        StackTrace.empty,
-      );
-      return false;
-    }
-  }
-
-  Future<bool> _refreshSwipeSecurityContext(
-    AuthRepository authRepo, {
-    required String reason,
-  }) async {
-    _clearSwipeSecurityValidationCache();
-    _trackSwipeSessionRecovery(stage: reason, outcome: 'attempt');
-    final refreshResult = await authRepo.refreshSecurityContext();
-    return refreshResult.fold(
-      (failure) {
-        _trackSwipeSessionRecovery(
-          stage: reason,
-          outcome: 'failed',
-          failure: failure,
-        );
-        AppLogger.warning(
-          'Swipe security refresh failed ($reason): '
-          '${failure.message} ${failure.debugMessage ?? ''}',
-        );
-        state = AsyncError(failure.message, StackTrace.current);
-        return false;
-      },
-      (_) {
-        _trackSwipeSessionRecovery(stage: reason, outcome: 'succeeded');
-        AppLogger.info('Swipe security refresh succeeded ($reason).');
-        return true;
-      },
-    );
-  }
-
-  bool _hasFreshSwipeSecurityValidation(String userId) {
-    final validatedAt = _lastSwipeSecurityValidationAt;
-    if (_lastValidatedSwipeUserId != userId || validatedAt == null) {
-      return false;
-    }
-
-    return DateTime.now().difference(validatedAt) < _swipeSecurityValidationTtl;
-  }
-
-  void _markSwipeSecurityContextValidated(String userId) {
-    _lastValidatedSwipeUserId = userId;
-    _lastSwipeSecurityValidationAt = DateTime.now();
-  }
-
-  void _clearSwipeSecurityValidationCache() {
-    _lastValidatedSwipeUserId = null;
-    _lastSwipeSecurityValidationAt = null;
-  }
-
-  void _trackSwipeSessionRecovery({
-    required String stage,
-    required String outcome,
-    Failure? failure,
-  }) {
-    final params = <String, Object>{'stage': stage, 'outcome': outcome};
-    final failureCode = failure?.debugMessage?.trim();
-    if (failureCode != null && failureCode.isNotEmpty) {
-      params['failure_code'] = failureCode;
-    }
-
-    final analytics = ref.read(analyticsServiceProvider);
-    unawaited(
-      analytics
-          .logEvent(
-            name: 'matchpoint_swipe_session_recovery',
-            parameters: params,
-          )
-          .catchError((_) {}),
-    );
-  }
-
-  bool _isSessionFailure(Failure failure) {
-    final normalized = [
-      failure.message,
-      failure.debugMessage ?? '',
-    ].join(' ').toLowerCase();
-
-    return normalized.contains('session-expired') ||
-        normalized.contains('sessão expirou') ||
-        normalized.contains('sessao expirou') ||
-        normalized.contains('user-token-expired') ||
-        normalized.contains('invalid-user-token') ||
-        normalized.contains('user-disabled') ||
-        normalized.contains('unauthenticated');
   }
 
   SwipeActionResult _buildSwipeSuccessResult({

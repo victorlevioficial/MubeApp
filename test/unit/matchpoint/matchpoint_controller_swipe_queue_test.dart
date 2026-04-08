@@ -174,6 +174,10 @@ void main() {
   });
 
   tearDown(() {
+    MatchpointController.debugForceDeferredQueuedSwipeDrain = null;
+    MatchpointController.debugDeferredQueuedSwipeDrainDelay = const Duration(
+      milliseconds: 750,
+    );
     fakeAuthRepository.dispose();
     container.dispose();
   });
@@ -336,9 +340,10 @@ void main() {
     test(
       'optimistically decrements and restores likes quota on failure',
       () async {
+        final failureCompleter =
+            Completer<Either<Failure, MatchpointActionResult>>();
         final repository = _QueueingMatchpointRepository([
-          () async =>
-              const Left(ServerFailure(message: 'Backend indisponível')),
+          () => failureCompleter.future,
         ]);
         container = buildContainer(repository);
         final controller = container.read(
@@ -358,6 +363,9 @@ void main() {
         expect(await controller.queueSwipeRight(targetUser), isTrue);
         expect(container.read(likesQuotaProvider).remaining, 9);
 
+        failureCompleter.complete(
+          const Left(ServerFailure(message: 'Backend indisponível')),
+        );
         await flushQueue();
 
         expect(container.read(likesQuotaProvider).remaining, 10);
@@ -365,7 +373,7 @@ void main() {
     );
 
     test(
-      'reuses recent swipe security validation across queued swipes',
+      'does not prevalidate FirebaseAuth tokens across queued swipes',
       () async {
         final countingUser = _CountingFirebaseUser(
           uid: 'user-1',
@@ -410,7 +418,50 @@ void main() {
 
         await flushQueue();
 
-        expect(countingUser.getIdTokenCalls, 1);
+        expect(countingUser.getIdTokenCalls, 0);
+      },
+    );
+
+    test(
+      'defers queued swipe drain when forced for iOS release behavior',
+      () async {
+        MatchpointController.debugForceDeferredQueuedSwipeDrain = true;
+        MatchpointController.debugDeferredQueuedSwipeDrainDelay =
+            const Duration(milliseconds: 40);
+
+        final repository = _QueueingMatchpointRepository([
+          () async => Right(
+            MatchpointActionResult(
+              success: true,
+              isMatch: false,
+              remainingLikes: 49,
+            ),
+          ),
+        ]);
+        container = buildContainer(repository);
+        final controller = container.read(
+          matchpointControllerProvider.notifier,
+        );
+
+        const targetUser = AppUser(
+          uid: 'target-1',
+          email: 'target-1@mube.app',
+          nome: 'Target 1',
+        );
+
+        expect(await controller.queueSwipeRight(targetUser), isTrue);
+        await flushQueue();
+
+        expect(repository.submitActionCalls, 0);
+        expect(
+          container.read(matchpointSwipeQueueStateProvider).pendingActions,
+          1,
+        );
+
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        await flushQueue();
+
+        expect(repository.submitActionCalls, 1);
       },
     );
   });

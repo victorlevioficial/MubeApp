@@ -95,6 +95,18 @@ class _QueuedMatchpointRepository extends Fake implements MatchpointRepository {
   }
 }
 
+class _CountingFirebaseUser extends FakeFirebaseUser {
+  _CountingFirebaseUser({required super.uid, super.email});
+
+  int getIdTokenCalls = 0;
+
+  @override
+  Future<String?> getIdToken([bool forceRefresh = false]) async {
+    getIdTokenCalls += 1;
+    return super.getIdToken(forceRefresh);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -140,99 +152,71 @@ void main() {
     );
   }
 
-  group('MatchpointController session recovery', () {
+  group('MatchpointController swipe submit flow', () {
+    test('submits swipe without prevalidating FirebaseAuth tokens', () async {
+      final countingUser = _CountingFirebaseUser(
+        uid: 'user-1',
+        email: 'user-1@mube.app',
+      );
+      fakeAuthRepository.emitUser(countingUser);
+      fakeMatchpointRepository = _QueuedMatchpointRepository([
+        Right(
+          MatchpointActionResult(
+            success: true,
+            isMatch: false,
+            remainingLikes: 48,
+          ),
+        ),
+      ]);
+      container = buildContainer();
+
+      const targetUser = AppUser(
+        uid: 'target-1',
+        email: 'target-1@mube.app',
+        nome: 'Target',
+      );
+
+      final result = await container
+          .read(matchpointControllerProvider.notifier)
+          .swipeRight(targetUser);
+
+      expect(result.success, true);
+      expect(fakeMatchpointRepository.submitActionCalls, 1);
+      expect(fakeAuthRepository.refreshSecurityContextCalls, 0);
+      expect(countingUser.getIdTokenCalls, 0);
+      expect(container.read(likesQuotaProvider).remaining, 48);
+    });
+
+    test('does not call submitAction when user is null', () async {
+      fakeAuthRepository.emitUser(null);
+      fakeMatchpointRepository = _QueuedMatchpointRepository([]);
+      container = buildContainer();
+
+      const targetUser = AppUser(
+        uid: 'target-1',
+        email: 'target-1@mube.app',
+        nome: 'Target',
+      );
+
+      final result = await container
+          .read(matchpointControllerProvider.notifier)
+          .swipeRight(targetUser);
+
+      expect(result.success, false);
+      expect(fakeMatchpointRepository.submitActionCalls, 0);
+      expect(fakeAuthRepository.refreshSecurityContextCalls, 0);
+      final state = container.read(matchpointControllerProvider);
+      expect(state.hasError, true);
+      expect(
+        state.whenOrNull(error: (error, _) => error.toString()),
+        contains('Sua sessão expirou'),
+      );
+    });
+
     test(
-      'retries swipe once after session failure when refresh succeeds',
+      'returns failure without controller-level retry on session failure',
       () async {
         fakeAuthRepository.emitUser(fakeFirebaseUser);
-        fakeMatchpointRepository = _QueuedMatchpointRepository([
-          const Left(
-            AuthFailure(message: 'Sua sessão expirou. Faça login novamente.'),
-          ),
-          Right(
-            MatchpointActionResult(
-              success: true,
-              isMatch: false,
-              remainingLikes: 48,
-            ),
-          ),
-        ]);
-        container = buildContainer();
-
-        const targetUser = AppUser(
-          uid: 'target-1',
-          email: 'target-1@mube.app',
-          nome: 'Target',
-        );
-
-        final result = await container
-            .read(matchpointControllerProvider.notifier)
-            .swipeRight(targetUser);
-
-        expect(result.success, true);
-        expect(fakeMatchpointRepository.submitActionCalls, 2);
-        expect(fakeAuthRepository.refreshSecurityContextCalls, 1);
-        expect(container.read(likesQuotaProvider).remaining, 48);
-        final events = fakeAnalyticsService.events
-            .where((event) => event.name == 'matchpoint_swipe_session_recovery')
-            .toList();
-        expect(events.length, 3);
-        expect(events[0].parameters?['stage'], 'submit_action');
-        expect(events[0].parameters?['outcome'], 'attempt');
-        expect(events[1].parameters?['stage'], 'submit_action');
-        expect(events[1].parameters?['outcome'], 'succeeded');
-        expect(events[2].parameters?['stage'], 'submit_action');
-        expect(events[2].parameters?['outcome'], 'retry_succeeded');
-      },
-    );
-
-    test(
-      'does not call submitAction when user is null and refresh fails',
-      () async {
-        fakeAuthRepository.emitUser(null);
-        fakeAuthRepository.refreshSecurityContextResult = const Left(
-          AuthFailure(message: 'Sua sessão expirou. Faça login novamente.'),
-        );
-        fakeMatchpointRepository = _QueuedMatchpointRepository([]);
-        container = buildContainer();
-
-        const targetUser = AppUser(
-          uid: 'target-1',
-          email: 'target-1@mube.app',
-          nome: 'Target',
-        );
-
-        final result = await container
-            .read(matchpointControllerProvider.notifier)
-            .swipeRight(targetUser);
-
-        expect(result.success, false);
-        expect(fakeMatchpointRepository.submitActionCalls, 0);
-        expect(fakeAuthRepository.refreshSecurityContextCalls, 1);
-        final state = container.read(matchpointControllerProvider);
-        expect(state.hasError, true);
-        expect(
-          state.whenOrNull(error: (error, _) => error.toString()),
-          contains('Sua sessão expirou'),
-        );
-        final events = fakeAnalyticsService.events
-            .where((event) => event.name == 'matchpoint_swipe_session_recovery')
-            .toList();
-        expect(events.length, 2);
-        expect(events[0].parameters?['stage'], 'missing_user');
-        expect(events[0].parameters?['outcome'], 'attempt');
-        expect(events[1].parameters?['stage'], 'missing_user');
-        expect(events[1].parameters?['outcome'], 'failed');
-      },
-    );
-
-    test(
-      'returns failure without retrying submit when refresh fails after session failure',
-      () async {
-        fakeAuthRepository.emitUser(fakeFirebaseUser);
-        fakeAuthRepository.refreshSecurityContextResult = const Left(
-          AuthFailure(message: 'Sua sessão expirou. Faça login novamente.'),
-        );
         fakeMatchpointRepository = _QueuedMatchpointRepository([
           const Left(
             AuthFailure(message: 'Sua sessão expirou. Faça login novamente.'),
@@ -252,15 +236,13 @@ void main() {
 
         expect(result.success, false);
         expect(fakeMatchpointRepository.submitActionCalls, 1);
-        expect(fakeAuthRepository.refreshSecurityContextCalls, 1);
-        final events = fakeAnalyticsService.events
-            .where((event) => event.name == 'matchpoint_swipe_session_recovery')
-            .toList();
-        expect(events.length, 2);
-        expect(events[0].parameters?['stage'], 'submit_action');
-        expect(events[0].parameters?['outcome'], 'attempt');
-        expect(events[1].parameters?['stage'], 'submit_action');
-        expect(events[1].parameters?['outcome'], 'failed');
+        expect(fakeAuthRepository.refreshSecurityContextCalls, 0);
+        final state = container.read(matchpointControllerProvider);
+        expect(state.hasError, true);
+        expect(
+          state.whenOrNull(error: (error, _) => error.toString()),
+          contains('Sua sessão expirou'),
+        );
       },
     );
   });
