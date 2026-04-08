@@ -19,8 +19,6 @@ import 'package:mube/src/utils/geohash_helper.dart';
 
 import '../../../constants/firestore_constants.dart';
 import '../../../core/providers/firebase_providers.dart';
-import '../../../core/services/analytics/analytics_provider.dart';
-import '../../../core/services/analytics/analytics_service.dart';
 
 abstract class MatchpointRemoteDataSource {
   Future<List<AppUser>> fetchCandidates({
@@ -68,7 +66,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
 
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
-  final AnalyticsService? _analytics;
   final FirebaseAuth _auth;
   final app_check.FirebaseAppCheck _appCheck;
   Future<void>? _securityRefreshInFlight;
@@ -76,11 +73,9 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   MatchpointRemoteDataSourceImpl(
     this._firestore,
     this._functions, {
-    AnalyticsService? analytics,
     required FirebaseAuth auth,
     required app_check.FirebaseAppCheck appCheck,
-  }) : _analytics = analytics,
-       _auth = auth,
+  }) : _auth = auth,
        _appCheck = appCheck;
 
   FirebaseAuth get _firebaseAuth => _auth;
@@ -250,13 +245,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
           ..sort(_compareCandidates);
 
     if (scoredCandidates.isEmpty) {
-      _logRankingAudit(
-        currentUserGeohash: currentGeohash,
-        queryGenresCount: targetGenres.length,
-        queryHashtagsCount: targetHashtags.length,
-        pool: const [],
-        returned: const [],
-      );
+      _logRankingAudit(pool: const [], returned: const []);
       AppLogger.info('MatchPoint: no eligible candidates found after ranking.');
       AppLogger.breadcrumb('mp:fetch:return_empty');
       return const [];
@@ -268,13 +257,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     AppLogger.breadcrumb(
       'mp:fetch:audit_call pool=${scoredCandidates.length} ret=${returnedCandidates.length}',
     );
-    _logRankingAudit(
-      currentUserGeohash: currentGeohash,
-      queryGenresCount: targetGenres.length,
-      queryHashtagsCount: targetHashtags.length,
-      pool: scoredCandidates,
-      returned: returnedCandidates,
-    );
+    _logRankingAudit(pool: scoredCandidates, returned: returnedCandidates);
     AppLogger.breadcrumb('mp:fetch:audit_done');
 
     final result = returnedCandidates.map((item) => item.user).toList();
@@ -605,9 +588,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }
 
   void _logRankingAudit({
-    required String? currentUserGeohash,
-    required int queryGenresCount,
-    required int queryHashtagsCount,
     required List<_ScoredCandidate> pool,
     required List<_ScoredCandidate> returned,
   }) {
@@ -621,64 +601,13 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       'pool[p=${poolStats.proximity},h=${poolStats.hashtag},g=${poolStats.genre},f=${poolStats.fallback},local=${poolStats.localTotal},lh=${poolStats.localHashtag},lg=${poolStats.localGenre}] '
       'returned[p=${returnedStats.proximity},h=${returnedStats.hashtag},g=${returnedStats.genre},f=${returnedStats.fallback},local=${returnedStats.localTotal},lh=${returnedStats.localHashtag},lg=${returnedStats.localGenre}]',
     );
-
-    final analytics = _analytics;
-    if (analytics != null) {
-      // Defer the analytics Pigeon call so it does NOT overlap with the
-      // continuation of fetchCandidates() and the swipe deck's image loads
-      // / additional Firebase ops on the same frame. The audit event is
-      // non-critical telemetry and can land 250ms later without consequence.
-      // Firing it inline (even via unawaited) means the firebase_analytics
-      // iOS plugin's Swift Task launches on the cooperative pool exactly
-      // when the next Firestore query is also being scheduled, which
-      // saturates the executor and triggers swift_task_dealloc / SIGABRT
-      // (Crashlytics issue a37e597a, last seen 1.6.15+162).
-      AppLogger.breadcrumb('mp:audit:scheduled');
-      Future<void>.delayed(const Duration(milliseconds: 250), () {
-        AppLogger.breadcrumb('mp:audit:fire');
-        AppLogger.setCustomKey('mp_step', 'audit:fire');
-        unawaited(
-          analytics
-              .logEvent(
-                name: 'matchpoint_ranking_audit',
-                parameters: {
-                  'pool_total': pool.length,
-                  'returned_total': returned.length,
-                  'pool_proximity': poolStats.proximity,
-                  'pool_hashtag': poolStats.hashtag,
-                  'pool_genre': poolStats.genre,
-                  'pool_fallback': poolStats.fallback,
-                  'ret_proximity': returnedStats.proximity,
-                  'ret_hashtag': returnedStats.hashtag,
-                  'ret_genre': returnedStats.genre,
-                  'ret_fallback': returnedStats.fallback,
-                  'pool_local_total': poolStats.localTotal,
-                  'pool_local_hashtag': poolStats.localHashtag,
-                  'pool_local_genre': poolStats.localGenre,
-                  'ret_local_total': returnedStats.localTotal,
-                  'ret_local_hashtag': returnedStats.localHashtag,
-                  'ret_local_genre': returnedStats.localGenre,
-                  'query_genres': queryGenresCount,
-                  'query_tags': queryHashtagsCount,
-                  'used_geohash': currentUserGeohash != null,
-                },
-              )
-              .then((_) {
-                AppLogger.breadcrumb('mp:audit:done');
-              })
-              .catchError((Object error) {
-                AppLogger.breadcrumb('mp:audit:err $error');
-              }),
-        );
-      });
-    }
-
-    // The Cloud Function mirror (recordMatchpointRankingAudit) was removed
-    // because it fired a platform-channel call (+ potential auth/AppCheck
-    // recovery) simultaneously with the analytics event and Firestore
-    // listeners, overwhelming the iOS Swift Concurrency cooperative thread
-    // pool and causing SIGABRT crashes in release builds. The same audit data
-    // is already captured by the analytics.logEvent call above.
+    // Keep ranking telemetry local-only. The previous Firebase Analytics event
+    // (`matchpoint_ranking_audit`) was consistently the last breadcrumb before
+    // iOS Swift Concurrency SIGABRT crashes under memory pressure.
+    AppLogger.breadcrumb('mp:audit:local_only');
+    AppLogger.setCustomKey('mp_step', 'audit:local_only');
+    AppLogger.setCustomKey('mp_audit_pool', pool.length);
+    AppLogger.setCustomKey('mp_audit_returned', returned.length);
   }
 
   @override
@@ -912,7 +841,6 @@ final matchpointRemoteDataSourceProvider = Provider<MatchpointRemoteDataSource>(
     return MatchpointRemoteDataSourceImpl(
       ref.read(firebaseFirestoreProvider),
       ref.read(firebaseFunctionsProvider),
-      analytics: ref.watch(analyticsServiceProvider),
       auth: ref.read(firebaseAuthProvider),
       appCheck: ref.read(firebaseAppCheckProvider),
     );

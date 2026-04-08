@@ -26,6 +26,9 @@ class MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cacheWidth = _resolveCardCacheWidth(context);
+    final cacheHeight = cacheWidth * 2;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -44,6 +47,10 @@ class MatchCard extends StatelessWidget {
                 CachedNetworkImage(
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
+                  memCacheWidth: cacheWidth,
+                  memCacheHeight: cacheHeight,
+                  maxWidthDiskCache: cacheWidth,
+                  maxHeightDiskCache: cacheHeight,
                   fadeInDuration: Duration.zero,
                   fadeOutDuration: Duration.zero,
                   useOldImageOnUrlChange: false,
@@ -262,6 +269,17 @@ class MatchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  int _resolveCardCacheWidth(BuildContext context) {
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final requestedWidth = (viewportWidth * pixelRatio).round();
+    if (requestedWidth < ImageCacheConfig.minDecodeDimensionPx) {
+      return ImageCacheConfig.minDecodeDimensionPx;
+    }
+    if (requestedWidth > 1080) return 1080;
+    return requestedWidth;
   }
 
   String _getDisplayName() {

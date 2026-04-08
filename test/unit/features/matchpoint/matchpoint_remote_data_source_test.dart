@@ -1,12 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_remote_data_source.dart';
 
@@ -105,55 +102,6 @@ class _FakeAppCheck extends Fake implements app_check.FirebaseAppCheck {
   }
 }
 
-class _RecordingAnalyticsService extends Fake implements AnalyticsService {
-  final List<String> eventNames = [];
-  final List<Map<String, Object>?> eventParameters = [];
-
-  @override
-  Future<void> logEvent({
-    required String name,
-    Map<String, Object>? parameters,
-  }) async {
-    eventNames.add(name);
-    eventParameters.add(parameters);
-  }
-
-  @override
-  NavigatorObserver getObserver() =>
-      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance);
-
-  @override
-  Future<void> logAuthSignupComplete({required String method}) async {}
-
-  @override
-  Future<void> logFeedPostView({required String postId}) async {}
-
-  @override
-  Future<void> logMatchPointFilter({
-    required List<String> instruments,
-    required List<String> genres,
-    required double distance,
-  }) async {}
-
-  @override
-  Future<void> logProfileEdit({required String userId}) async {}
-
-  @override
-  Future<void> logScreenView({
-    required String screenName,
-    String? screenClass,
-  }) async {}
-
-  @override
-  Future<void> setUserId(String? id) async {}
-
-  @override
-  Future<void> setUserProperty({
-    required String name,
-    required String? value,
-  }) async {}
-}
-
 Map<String, dynamic> _userDoc({
   required String uid,
   required String email,
@@ -186,14 +134,12 @@ Map<String, dynamic> _optionalEntry(String key, Object? value) {
 MatchpointRemoteDataSourceImpl _buildDataSource(
   FirebaseFirestore firestore,
   FirebaseFunctions functions, {
-  AnalyticsService? analytics,
   FirebaseAuth? auth,
   app_check.FirebaseAppCheck? appCheck,
 }) {
   return MatchpointRemoteDataSourceImpl(
     firestore,
     functions,
-    analytics: analytics,
     auth: auth ?? _FakeFirebaseAuth(),
     appCheck: appCheck ?? _FakeAppCheck(),
   );
@@ -352,124 +298,6 @@ void main() {
         expect(result.last.uid, 'far_with_match');
       },
     );
-
-    test('emits ranking audit telemetry with classified sources', () async {
-      final firestore = FakeFirebaseFirestore();
-      final analytics = _RecordingAnalyticsService();
-      final functions = _FakeFunctions();
-      final dataSource = _buildDataSource(
-        firestore,
-        functions,
-        analytics: analytics,
-      );
-
-      final currentUser = AppUser.fromJson(
-        _userDoc(
-          uid: 'current',
-          email: 'current@test.com',
-          location: {'lat': 0.0, 'lng': 0.0},
-          matchpointProfile: {'is_active': true, 'search_radius': 50},
-        ),
-      );
-
-      await firestore
-          .collection('users')
-          .doc('proximity')
-          .set(
-            _userDoc(
-              uid: 'proximity',
-              email: 'proximity@test.com',
-              location: {'lat': 0.01, 'lng': 0.01},
-              matchpointProfile: {
-                'is_active': true,
-                'hashtags': ['#cover'],
-                'generosMusicais': ['rock'],
-              },
-            ),
-          );
-      await firestore
-          .collection('users')
-          .doc('hashtag')
-          .set(
-            _userDoc(
-              uid: 'hashtag',
-              email: 'hashtag@test.com',
-              location: {'lat': 1.0, 'lng': 1.0},
-              matchpointProfile: {
-                'is_active': true,
-                'hashtags': ['#cover'],
-              },
-            ),
-          );
-      await firestore
-          .collection('users')
-          .doc('genre')
-          .set(
-            _userDoc(
-              uid: 'genre',
-              email: 'genre@test.com',
-              location: {'lat': 1.0, 'lng': 1.0},
-              matchpointProfile: {
-                'is_active': true,
-                'generosMusicais': ['rock'],
-              },
-            ),
-          );
-      await firestore
-          .collection('users')
-          .doc('fallback')
-          .set(
-            _userDoc(
-              uid: 'fallback',
-              email: 'fallback@test.com',
-              location: {'lat': 1.0, 'lng': 1.0},
-              matchpointProfile: {
-                'is_active': true,
-                'generosMusicais': ['jazz'],
-              },
-            ),
-          );
-
-      await dataSource.fetchCandidates(
-        currentUser: currentUser,
-        genres: const ['rock'],
-        hashtags: const ['#cover'],
-        excludedUserIds: const [],
-        limit: 10,
-      );
-
-      // The matchpoint_ranking_audit analytics event is intentionally
-      // deferred ~250ms inside _logRankingAudit so its Pigeon call does
-      // not overlap with the continuation of fetchCandidates() on iOS
-      // (Crashlytics issue a37e597a SIGABRT mitigation). Wait long
-      // enough for the deferred call to land before asserting.
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-
-      expect(analytics.eventNames, contains('matchpoint_ranking_audit'));
-      final params = analytics.eventParameters.last!;
-      expect(params['pool_proximity'], 1);
-      expect(params['pool_hashtag'], 1);
-      expect(params['pool_genre'], 1);
-      expect(params['pool_fallback'], 1);
-      expect(params['pool_local_total'], 1);
-      expect(params['pool_local_hashtag'], 1);
-      expect(params['pool_local_genre'], 1);
-      expect(params['ret_local_total'], 1);
-      expect(params['ret_local_hashtag'], 1);
-      expect(params['ret_local_genre'], 1);
-      expect(params['returned_total'], 4);
-
-      // The recordMatchpointRankingAudit Cloud Function mirror was removed
-      // because it triggered concurrent platform-channel calls that crash
-      // the iOS Swift Concurrency runtime (SIGABRT). The audit data is now
-      // captured exclusively via the analytics event above.
-      expect(
-        functions.invocations.where(
-          (call) => call.name == 'recordMatchpointRankingAudit',
-        ),
-        isEmpty,
-      );
-    });
   });
 
   group('MatchpointRemoteDataSource.fetchExistingInteractions', () {

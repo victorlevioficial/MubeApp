@@ -133,10 +133,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
             cardsCount: widget.candidates.length,
             isLoop:
                 false, // IMPORTANTE: Não fazer loop - cada perfil aparece só uma vez
-            numberOfCardsDisplayed: min(
-              widget.candidates.length,
-              2,
-            ), // Optimize performance
+            numberOfCardsDisplayed: min(widget.candidates.length, 1),
             backCardOffset: const Offset(0, 40),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.s16,
