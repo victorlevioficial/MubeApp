@@ -273,18 +273,14 @@ void main() {
         await Future.delayed(Duration.zero);
 
         controller.setProfessionalSubcategory(ProfessionalSubcategory.luthier);
-        await waitUntil(
-          () {
-            final state = container.read(searchControllerProvider);
-            return state.filters.category == SearchCategory.professionals &&
-                state.filters.professionalSubcategory ==
-                    ProfessionalSubcategory.luthier &&
-                fakeSearchRepository.lastSearchFilters
-                        ?.professionalSubcategory ==
-                    ProfessionalSubcategory.luthier;
-          },
-          debugLabel: 'Timed out waiting for luthier promotion search state',
-        );
+        await waitUntil(() {
+          final state = container.read(searchControllerProvider);
+          return state.filters.category == SearchCategory.professionals &&
+              state.filters.professionalSubcategory ==
+                  ProfessionalSubcategory.luthier &&
+              fakeSearchRepository.lastSearchFilters?.professionalSubcategory ==
+                  ProfessionalSubcategory.luthier;
+        }, debugLabel: 'Timed out waiting for luthier promotion search state');
 
         final state = container.read(searchControllerProvider);
         expect(state.filters.category, SearchCategory.professionals);
@@ -609,21 +605,17 @@ void main() {
         };
 
         controller.applyFilters(strictFilters);
-        await waitUntil(
-          () {
-            final state = container.read(searchControllerProvider);
-            return state.filters == strictFilters &&
-                state.effectiveFilters == relaxedFilters &&
-                state.isShowingRelaxedResults &&
-                state.lastDocument?.id == doc1.id &&
-                state.hasMore &&
-                listEquals(
-                  state.items.map((item) => item.uid).toList(),
-                  ['pro-1'],
-                );
-          },
-          debugLabel: 'Timed out waiting for relaxed first page search state',
-        );
+        await waitUntil(() {
+          final state = container.read(searchControllerProvider);
+          return state.filters == strictFilters &&
+              state.effectiveFilters == relaxedFilters &&
+              state.isShowingRelaxedResults &&
+              state.lastDocument?.id == doc1.id &&
+              state.hasMore &&
+              listEquals(state.items.map((item) => item.uid).toList(), [
+                'pro-1',
+              ]);
+        }, debugLabel: 'Timed out waiting for relaxed first page search state');
 
         final firstState = container.read(searchControllerProvider);
         expect(firstState.filters, strictFilters);
@@ -632,17 +624,14 @@ void main() {
         expect(firstState.items.map((item) => item.uid), ['pro-1']);
 
         await controller.loadMore();
-        await waitUntil(
-          () {
-            final state = container.read(searchControllerProvider);
-            return listEquals(
-                  state.items.map((item) => item.uid).toList(),
-                  ['pro-1', 'pro-2'],
-                ) &&
-                !state.hasMore;
-          },
-          debugLabel: 'Timed out waiting for relaxed pagination results',
-        );
+        await waitUntil(() {
+          final state = container.read(searchControllerProvider);
+          return listEquals(state.items.map((item) => item.uid).toList(), [
+                'pro-1',
+                'pro-2',
+              ]) &&
+              !state.hasMore;
+        }, debugLabel: 'Timed out waiting for relaxed pagination results');
 
         final finalState = container.read(searchControllerProvider);
         expect(finalState.items.map((item) => item.uid), ['pro-1', 'pro-2']);
