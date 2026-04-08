@@ -19,6 +19,10 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
     success: true,
     isMatch: false,
   );
+  int fetchExistingInteractionsCalls = 0;
+  List<String> fetchExistingInteractionsResult = const [];
+  List<AppUser> fetchCandidatesResult = const [];
+  List<String>? lastExcludedUserIds;
 
   @override
   Future<MatchpointActionResult> submitAction({
@@ -31,8 +35,9 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }
 
   @override
-  Future<List<String>> fetchExistingInteractions(String currentUserId) {
-    throw UnimplementedError();
+  Future<List<String>> fetchExistingInteractions(String currentUserId) async {
+    fetchExistingInteractionsCalls += 1;
+    return fetchExistingInteractionsResult;
   }
 
   @override
@@ -47,8 +52,9 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
     required List<String> hashtags,
     required List<String> excludedUserIds,
     int limit = 50,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    lastExcludedUserIds = excludedUserIds;
+    return fetchCandidatesResult;
   }
 
   @override
@@ -136,6 +142,28 @@ class _CompletingAnalyticsService implements AnalyticsService {
 }
 
 void main() {
+  group('MatchpointRepository.fetchCandidates', () {
+    test('skips server interaction lookup during MatchPoint entry', () async {
+      final dataSource = _FakeMatchpointRemoteDataSource()
+        ..fetchExistingInteractionsResult = const ['server-like']
+        ..fetchCandidatesResult = const [
+          AppUser(uid: 'candidate-1', email: 'candidate@mube.app'),
+        ];
+      final repository = MatchpointRepository(dataSource);
+
+      final result = await repository.fetchCandidates(
+        currentUser: const AppUser(uid: 'current', email: 'current@mube.app'),
+        genres: const ['rock'],
+        hashtags: const ['#cover'],
+        blockedUsers: const ['blocked-1'],
+      );
+
+      expect(result.isRight(), isTrue);
+      expect(dataSource.fetchExistingInteractionsCalls, 0);
+      expect(dataSource.lastExcludedUserIds, ['blocked-1']);
+    });
+  });
+
   group('MatchpointRepository.submitAction', () {
     test(
       'maps unauthenticated without app check hint to auth failure',

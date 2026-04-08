@@ -60,9 +60,13 @@ abstract class MatchpointRemoteDataSource {
   });
 }
 
+enum _CandidateFetchQueryMode { globalOnly, nearbyOnly }
+
 class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
   static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
+  static const _CandidateFetchQueryMode _candidateFetchQueryMode =
+      _CandidateFetchQueryMode.globalOnly;
 
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
@@ -202,6 +206,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }) async {
     AppLogger.breadcrumb('mp:fetch:start');
     AppLogger.setCustomKey('mp_step', 'fetch:start');
+    AppLogger.setCustomKey('mp_fetch_mode', _candidateFetchQueryMode.name);
     final excludedIds = {...excludedUserIds, currentUser.uid};
     final currentLocation = _extractUserCoordinates(currentUser);
     final currentGeohash = _resolveCurrentUserGeohash(
@@ -223,6 +228,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     final candidateDocs = await _fetchCandidateDocuments(
       currentUserGeohash: currentGeohash,
       poolLimit: poolLimit,
+      queryMode: _candidateFetchQueryMode,
     );
     AppLogger.breadcrumb('mp:fetch:docs_done count=${candidateDocs.length}');
     AppLogger.setCustomKey('mp_pool_docs', candidateDocs.length);
@@ -270,20 +276,29 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   _fetchCandidateDocuments({
     required String? currentUserGeohash,
     required int poolLimit,
+    required _CandidateFetchQueryMode queryMode,
   }) async {
-    final seenIds = <String>{};
-    final docs = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-
-    void appendSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
-      for (final doc in snapshot.docs) {
-        if (seenIds.add(doc.id)) {
-          docs.add(doc);
+    switch (queryMode) {
+      case _CandidateFetchQueryMode.globalOnly:
+        AppLogger.breadcrumb('mp:fetch:global_q');
+        final globalSnapshot = await _firestore
+            .collection(FirestoreCollections.users)
+            .where(
+              '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
+              isEqualTo: true,
+            )
+            .limit(poolLimit)
+            .get();
+        AppLogger.breadcrumb(
+          'mp:fetch:global_done count=${globalSnapshot.size}',
+        );
+        return globalSnapshot.docs;
+      case _CandidateFetchQueryMode.nearbyOnly:
+        if (currentUserGeohash == null || currentUserGeohash.isEmpty) {
+          AppLogger.breadcrumb('mp:fetch:nearby_skip_no_geohash');
+          return const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
         }
-      }
-    }
 
-    if (currentUserGeohash != null && currentUserGeohash.isNotEmpty) {
-      try {
         AppLogger.breadcrumb('mp:fetch:geohash_q');
         final nearbySnapshot = await _firestore
             .collection(FirestoreCollections.users)
@@ -300,41 +315,8 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
         AppLogger.breadcrumb(
           'mp:fetch:geohash_done count=${nearbySnapshot.size}',
         );
-        appendSnapshot(nearbySnapshot);
-      } catch (e, stack) {
-        AppLogger.breadcrumb('mp:fetch:geohash_err');
-        AppLogger.warning(
-          'MatchPoint: geohash query failed, falling back to global pool.',
-          e,
-          stack,
-        );
-      }
+        return nearbySnapshot.docs;
     }
-
-    if (docs.length < poolLimit) {
-      // Brief gap so the iOS Swift Concurrency cooperative pool can drain
-      // the previous Pigeon call (FirebaseFirestoreHostApi.queryGet) before
-      // we issue the next .get(). Without this, two back-to-back queries
-      // can stack `async let` child tasks on the same worker, contributing
-      // to the SIGABRT crash on Matchpoint entry.
-      await Future<void>.delayed(const Duration(milliseconds: 80));
-
-      AppLogger.breadcrumb('mp:fetch:fallback_q');
-      final fallbackSnapshot = await _firestore
-          .collection(FirestoreCollections.users)
-          .where(
-            '${FirestoreFields.matchpointProfile}.${FirestoreFields.isActive}',
-            isEqualTo: true,
-          )
-          .limit(poolLimit)
-          .get();
-      AppLogger.breadcrumb(
-        'mp:fetch:fallback_done count=${fallbackSnapshot.size}',
-      );
-      appendSnapshot(fallbackSnapshot);
-    }
-
-    return docs;
   }
 
   _ScoredCandidate? _scoreCandidate({
@@ -552,16 +534,15 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   }
 
   int _resolvePoolLimit(int limit) {
-    // Was: max(limit * 5, 80) — pulled 100 documents for the default
-    // limit=20, parsed all 100 into AppUser, then ranked locally and
-    // returned 12. That much memory + parsing was a meaningful contributor
-    // to the iOS memory pressure that triggered SIGABRT crashes on entry
-    // (Crashlytics issue a37e597a). 30 documents is still ~2.5x the
-    // returned count, which keeps enough diversity for the proximity /
-    // hashtag / genre ranking buckets to be meaningful.
-    if (limit <= 0) return 30;
-    final scaled = limit + 10;
-    return scaled < 25 ? 25 : scaled;
+    // Isolation release for Crashlytics issue a37e597a:
+    // keep the initial candidate pool tighter to reduce document parsing and
+    // image churn while we narrow the native iOS crash. The previous pool of
+    // ~30+ docs still put the app under meaningful pressure on entry.
+    if (limit <= 0) return 20;
+    final scaled = limit + 4;
+    if (scaled < 18) return 18;
+    if (scaled > 24) return 24;
+    return scaled;
   }
 
   double _resolveSearchRadius(Map<String, dynamic>? matchpointProfile) {

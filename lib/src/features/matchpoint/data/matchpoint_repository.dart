@@ -13,6 +13,7 @@ import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
+import 'package:mube/src/utils/app_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/services/analytics/analytics_provider.dart';
@@ -111,10 +112,19 @@ class MatchpointRepository {
     int limit = 20,
   }) async {
     try {
-      final interactedUserIds = await _dataSource.fetchExistingInteractions(
-        currentUser.uid,
-      );
-      final excludedUserIds = {...blockedUsers, ...interactedUserIds}.toList();
+      // Isolation hotfix for Crashlytics issue a37e597a:
+      // avoid the extra Firestore interactions query on MatchPoint entry.
+      // The previous flow stacked:
+      // 1. interactions.get()
+      // 2. users geohash query
+      // 3. users fallback query
+      // inside ~1s on iOS, which matches the Swift Concurrency SIGABRT window.
+      //
+      // For this release we keep entry to a single users query and rely on the
+      // caller-provided exclusions only. This intentionally favors stability
+      // over perfect server-side de-duplication during cold entry.
+      AppLogger.breadcrumb('mp:repo:skip_server_interactions');
+      final excludedUserIds = blockedUsers.toSet().toList(growable: false);
 
       final candidates = await _dataSource.fetchCandidates(
         currentUser: currentUser,
