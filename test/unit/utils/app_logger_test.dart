@@ -5,6 +5,66 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
 void main() {
+  group('AppLogger MatchPoint Crashlytics suppression', () {
+    test('suppresses MatchPoint custom keys in release mode', () {
+      expect(
+        AppLogger.shouldSuppressCrashlyticsCustomKey(
+          'mp_step',
+          isReleaseMode: true,
+        ),
+        isTrue,
+      );
+      expect(
+        AppLogger.shouldSuppressCrashlyticsCustomKey(
+          'mp_fetch_mode',
+          isReleaseMode: true,
+        ),
+        isTrue,
+      );
+      expect(
+        AppLogger.shouldSuppressCrashlyticsCustomKey(
+          'feed_page',
+          isReleaseMode: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('suppresses MatchPoint breadcrumbs in release mode', () {
+      expect(
+        AppLogger.shouldSuppressCrashlyticsBreadcrumb(
+          'mp:explore:init',
+          isReleaseMode: true,
+        ),
+        isTrue,
+      );
+      expect(
+        AppLogger.shouldSuppressCrashlyticsBreadcrumb(
+          'feed:init',
+          isReleaseMode: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('does not suppress MatchPoint diagnostics outside release mode', () {
+      expect(
+        AppLogger.shouldSuppressCrashlyticsCustomKey(
+          'mp_step',
+          isReleaseMode: false,
+        ),
+        isFalse,
+      );
+      expect(
+        AppLogger.shouldSuppressCrashlyticsBreadcrumb(
+          'mp:explore:init',
+          isReleaseMode: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('AppLogger.shouldTreatFlutterErrorAsFatal', () {
     test('returns false for RenderFlex overflow errors', () {
       final details = FlutterErrorDetails(

@@ -335,8 +335,17 @@ class AppLogger {
   }
 
   /// Adiciona uma chave customizada ao contexto do Crashlytics
+  @visibleForTesting
+  static bool shouldSuppressCrashlyticsCustomKey(
+    String key, {
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (!isReleaseMode) return false;
+    return key.startsWith('mp_');
+  }
+
   static void setCustomKey(String key, dynamic value) {
-    if (_isCrashlyticsEnabled) {
+    if (_isCrashlyticsEnabled && !shouldSuppressCrashlyticsCustomKey(key)) {
       _crashlytics.setCustomKey(key, value.toString());
     }
   }
@@ -348,11 +357,21 @@ class AppLogger {
   ///
   /// Use sparingly (the breadcrumb buffer is bounded) and only on hot paths
   /// where you need to know the last Dart step that executed before a crash.
+  @visibleForTesting
+  static bool shouldSuppressCrashlyticsBreadcrumb(
+    String message, {
+    bool isReleaseMode = kReleaseMode,
+  }) {
+    if (!isReleaseMode) return false;
+    return message.startsWith('mp:');
+  }
+
   static void breadcrumb(String message) {
     if (kDebugMode && verboseLoggingEnabled) {
       _mirrorToFlutterConsole('MubeApp BREAD', message);
     }
-    if (_isCrashlyticsEnabled) {
+    if (_isCrashlyticsEnabled &&
+        !shouldSuppressCrashlyticsBreadcrumb(message)) {
       _crashlytics.log(message);
     }
   }
