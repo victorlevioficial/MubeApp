@@ -646,29 +646,31 @@ void main() {
     // a37e597a). The data source now reads directly from the
     // hashtagRanking Firestore collection. These tests reflect the new
     // behavior.
-    test('fetchHashtagRanking reads from Firestore ordered by use_count',
-        () async {
-      final firestore = FakeFirebaseFirestore();
-      await firestore.collection('hashtagRanking').doc('rank-1').set({
-        'hashtag': '#rock',
-        'display_name': '#rock',
-        'use_count': 42,
-        'current_position': 1,
-        'previous_position': 2,
-        'trend': 'up',
-        'trend_delta': 1,
-        'is_trending': true,
-        'updated_at': Timestamp.fromDate(DateTime(2026, 3, 13)),
-      });
-      final dataSource = _buildDataSource(firestore, _FakeFunctions());
+    test(
+      'fetchHashtagRanking reads from Firestore ordered by use_count',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        await firestore.collection('hashtagRanking').doc('rank-1').set({
+          'hashtag': '#rock',
+          'display_name': '#rock',
+          'use_count': 42,
+          'current_position': 1,
+          'previous_position': 2,
+          'trend': 'up',
+          'trend_delta': 1,
+          'is_trending': true,
+          'updated_at': Timestamp.fromDate(DateTime(2026, 3, 13)),
+        });
+        final dataSource = _buildDataSource(firestore, _FakeFunctions());
 
-      final result = await dataSource.fetchHashtagRanking(limit: 5);
+        final result = await dataSource.fetchHashtagRanking(limit: 5);
 
-      expect(result, hasLength(1));
-      expect(result.first.id, 'rank-1');
-      expect(result.first.hashtag, '#rock');
-      expect(result.first.useCount, 42);
-    });
+        expect(result, hasLength(1));
+        expect(result.first.id, 'rank-1');
+        expect(result.first.hashtag, '#rock');
+        expect(result.first.useCount, 42);
+      },
+    );
 
     test(
       'searchHashtags reads from Firestore matching the query prefix',
