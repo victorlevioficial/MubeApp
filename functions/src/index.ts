@@ -13,6 +13,8 @@ export {migrateinteractions} from "./interaction_migration";
 export {
   submitMatchpointAction,
   onMatchpointCommandCreated,
+  onMatchpointFeedRefreshRequested,
+  onMatchpointProfileWritten,
   recordMatchpointRankingAudit,
   getRemainingLikes,
   onMatchCreated,

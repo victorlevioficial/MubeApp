@@ -9,7 +9,7 @@
  */
 
 import {HttpsError, onCall} from "firebase-functions/v2/https";
-import {onDocumentCreated} from "firebase-functions/v2/firestore";
+import {onDocumentCreated, onDocumentWritten} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import {
   DocumentData,
@@ -25,6 +25,25 @@ const INTERACTION_EXPIRY_DAYS = 30;
 const MATCH_NOTIFICATION_TYPE = "system";
 const MATCH_NOTIFICATION_ROUTE_PREFIX = "/conversation/";
 const MATCHPOINT_COMMANDS_COLLECTION = "matchpointCommands";
+const MATCHPOINT_FEEDS_COLLECTION = "matchpointFeeds";
+const MATCHPOINT_FEED_REFRESH_REQUESTS_COLLECTION =
+  "matchpointFeedRefreshRequests";
+const MATCHPOINT_FEED_LIMIT = 20;
+const MATCHPOINT_FEED_POOL_LIMIT = 48;
+const MATCHPOINT_FEED_TTL_MS = 30 * 60 * 1000;
+const REGISTRATION_COMPLETE = "concluido";
+const STATUS_ACTIVE = "ativo";
+const PROFILE_TYPE_PROFESSIONAL = "profissional";
+const PROFILE_TYPE_BAND = "banda";
+const SUPPORT_ONLY_PROFESSIONAL_CATEGORY_IDS = new Set([
+  "audiovisual",
+  "audio_visual",
+  "educacao",
+  "education",
+  "luthier",
+  "luthieria",
+  "performance",
+]);
 
 type MatchpointSwipeAction = "like" | "dislike";
 type MatchpointCommandStatus = "pending" | "processing" | "completed" | "failed";
@@ -59,6 +78,28 @@ interface MatchpointCommandRequest {
 interface MatchpointCommandError {
   code: string;
   message: string;
+}
+
+interface MatchpointFeedProjection {
+  userId: string;
+  candidateIds: string[];
+  totalCandidates: number;
+  generatedAt: Timestamp;
+  expiresAt: Timestamp;
+  reason: string;
+}
+
+interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+interface ScoredFeedCandidate {
+  userId: string;
+  locationBucket: number;
+  hashtagMatches: number;
+  genreMatches: number;
+  distanceKm: number | null;
 }
 
 interface RemainingLikesResponse {
@@ -110,6 +151,10 @@ interface MatchNotificationInput {
   senderUserId: string;
   recipientUserId: string;
   conversationId: string;
+}
+
+function logCleanupFailure(context: string, error: unknown): void {
+  console.warn(`[matchpoint] Cleanup failed: ${context}`, error);
 }
 
 /**
@@ -297,6 +342,408 @@ function resolveMatchConversationId(
     matchData?.conversation_id,
     matchData?.conversationId,
   ], fallback);
+}
+
+function matchpointStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+
+  return [];
+}
+
+function normalizeWhitespace(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function removeDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeGenreToken(value: string): string {
+  return normalizeWhitespace(removeDiacritics(value).toLowerCase());
+}
+
+function normalizeHashtagToken(value: string): string {
+  return removeDiacritics(value.replace(/#/g, ""))
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9_]/g, "");
+}
+
+function normalizeCategoryId(value: string): string {
+  return removeDiacritics(value)
+    .toLowerCase()
+    .trim()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function extractCoordinatesFromMap(rawLocation: unknown): Coordinates | null {
+  const location = asRecord(rawLocation);
+  const rawLat = location.lat;
+  const rawLng = location.lng ?? location.long;
+
+  if (typeof rawLat !== "number" || typeof rawLng !== "number") {
+    return null;
+  }
+
+  return {lat: rawLat, lng: rawLng};
+}
+
+function readCurrentUserGeohash(
+  userData: Record<string, unknown>,
+  location: Coordinates | null
+): string {
+  const persistedGeohash = firstNonEmptyString([userData.geohash]);
+  if (persistedGeohash) return persistedGeohash;
+  if (!location) return "";
+  return `${location.lat.toFixed(2)}:${location.lng.toFixed(2)}`;
+}
+
+function resolveSearchRadiusKm(userData: Record<string, unknown>): number {
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  const rawRadius = matchpointProfile.search_radius;
+  if (typeof rawRadius === "number" && Number.isFinite(rawRadius) && rawRadius > 0) {
+    return rawRadius;
+  }
+  return 50;
+}
+
+function extractCandidateGenres(userData: Record<string, unknown>): string[] {
+  const genres = new Set<string>();
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  for (const value of [
+    matchpointProfile.generosMusicais,
+    matchpointProfile.musicalGenres,
+    matchpointProfile.musical_genres,
+    matchpointProfile.genres,
+  ]) {
+    for (const genre of matchpointStringList(value)) {
+      genres.add(genre);
+    }
+  }
+
+  const professional = asRecord(userData.profissional);
+  const band = asRecord(userData.banda);
+  for (const genre of matchpointStringList(professional.generosMusicais)) {
+    genres.add(genre);
+  }
+  for (const genre of matchpointStringList(band.generosMusicais)) {
+    genres.add(genre);
+  }
+
+  return [...genres];
+}
+
+function extractCandidateHashtags(userData: Record<string, unknown>): string[] {
+  const hashtags = new Set<string>();
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  for (const hashtag of matchpointStringList(matchpointProfile.hashtags)) {
+    hashtags.add(hashtag);
+  }
+  for (const hashtag of matchpointStringList(userData.hashtags)) {
+    hashtags.add(hashtag);
+  }
+  return [...hashtags];
+}
+
+function readCurrentUserGenres(userData: Record<string, unknown>): string[] {
+  return extractCandidateGenres(userData)
+    .map(normalizeGenreToken)
+    .filter((value) => value.length > 0);
+}
+
+function readCurrentUserHashtags(userData: Record<string, unknown>): string[] {
+  return extractCandidateHashtags(userData)
+    .map(normalizeHashtagToken)
+    .filter((value) => value.length > 0);
+}
+
+function isEligibleMatchpointType(userData: Record<string, unknown>): boolean {
+  const profileType = firstNonEmptyString([userData.tipo_perfil]);
+  if (profileType === PROFILE_TYPE_BAND) return true;
+  if (profileType !== PROFILE_TYPE_PROFESSIONAL) return false;
+
+  const professional = asRecord(userData.profissional);
+  const rawCategories = [
+    ...matchpointStringList(professional.categorias),
+    ...matchpointStringList(professional.categoria),
+  ];
+  const normalized = rawCategories
+    .map(normalizeCategoryId)
+    .filter((value) => value.length > 0);
+  if (normalized.length === 0) return true;
+
+  return !normalized.every((value) =>
+    SUPPORT_ONLY_PROFESSIONAL_CATEGORY_IDS.has(value)
+  );
+}
+
+function isVisibleCandidate(userData: Record<string, unknown>): boolean {
+  const registrationStatus = firstNonEmptyString([
+    userData.cadastro_status,
+  ]);
+  const status = firstNonEmptyString([userData.status], STATUS_ACTIVE);
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+
+  return registrationStatus === REGISTRATION_COMPLETE &&
+    status === STATUS_ACTIVE &&
+    matchpointProfile.is_active === true &&
+    isEligibleMatchpointType(userData);
+}
+
+function haversineKm(from: Coordinates, to: Coordinates): number {
+  const toRadians = (value: number): number => value * Math.PI / 180;
+  const earthRadiusKm = 6371;
+  const deltaLat = toRadians(to.lat - from.lat);
+  const deltaLng = toRadians(to.lng - from.lng);
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(toRadians(from.lat)) *
+      Math.cos(toRadians(to.lat)) *
+      Math.sin(deltaLng / 2) *
+      Math.sin(deltaLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusKm * c;
+}
+
+function resolveLocationBucket(
+  currentLocation: Coordinates | null,
+  candidateLocation: Coordinates | null,
+  searchRadiusKm: number
+): {bucket: number; distanceKm: number | null} {
+  if (!currentLocation) return {bucket: 0, distanceKm: null};
+  if (!candidateLocation) return {bucket: 2, distanceKm: null};
+
+  const distanceKm = haversineKm(currentLocation, candidateLocation);
+  if (distanceKm <= searchRadiusKm) {
+    return {bucket: 0, distanceKm};
+  }
+
+  return {bucket: 1, distanceKm};
+}
+
+function compareScoredFeedCandidates(
+  a: ScoredFeedCandidate,
+  b: ScoredFeedCandidate
+): number {
+  const locationOrder = a.locationBucket - b.locationBucket;
+  if (locationOrder !== 0) return locationOrder;
+
+  const hashtagOrder = b.hashtagMatches - a.hashtagMatches;
+  if (hashtagOrder !== 0) return hashtagOrder;
+
+  const genreOrder = b.genreMatches - a.genreMatches;
+  if (genreOrder !== 0) return genreOrder;
+
+  const distanceOrder = (a.distanceKm ?? Number.POSITIVE_INFINITY) -
+    (b.distanceKm ?? Number.POSITIVE_INFINITY);
+  if (distanceOrder !== 0) return distanceOrder;
+
+  return a.userId.localeCompare(b.userId);
+}
+
+async function readBlockedUserIds(userId: string): Promise<Set<string>> {
+  const blockedDocIds = new Set<string>();
+  const blockedSnapshot = await db
+    .collection("users")
+    .doc(userId)
+    .collection("blocked")
+    .limit(200)
+    .get();
+
+  for (const doc of blockedSnapshot.docs) {
+    blockedDocIds.add(doc.id);
+  }
+
+  return blockedDocIds;
+}
+
+async function readExistingInteractionTargetIds(userId: string): Promise<Set<string>> {
+  const snapshot = await db
+    .collection("interactions")
+    .where("source_user_id", "==", userId)
+    .where("type", "in", ["like", "dislike"])
+    .get();
+
+  const now = Timestamp.now();
+  const targetIds = new Set<string>();
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const targetUserId = firstNonEmptyString([data.target_user_id]);
+    if (!targetUserId) continue;
+
+    if (data.type === "like") {
+      targetIds.add(targetUserId);
+      continue;
+    }
+
+    if (data.type !== "dislike") continue;
+    const expiresAt = data.expires_at;
+    if (expiresAt instanceof Timestamp && expiresAt.toMillis() > now.toMillis()) {
+      targetIds.add(targetUserId);
+    }
+  }
+
+  return targetIds;
+}
+
+async function enqueueMatchpointFeedRefresh(
+  userId: string,
+  reason: string
+): Promise<void> {
+  if (!userId) return;
+
+  await db.collection(MATCHPOINT_FEED_REFRESH_REQUESTS_COLLECTION).add({
+    user_id: userId,
+    reason,
+    requested_at: Timestamp.now(),
+    created_at: FieldValue.serverTimestamp(),
+  });
+}
+
+async function rebuildMatchpointFeedForUser(
+  userId: string,
+  reason: string
+): Promise<MatchpointFeedProjection | null> {
+  const userRef = db.collection("users").doc(userId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists) {
+    await db.collection(MATCHPOINT_FEEDS_COLLECTION).doc(userId).delete()
+      .catch((error) => logCleanupFailure(`delete feed for missing user ${userId}`, error));
+    return null;
+  }
+
+  const userData = asRecord(userDoc.data());
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  if (matchpointProfile.is_active !== true || !isVisibleCandidate(userData)) {
+    await db.collection(MATCHPOINT_FEEDS_COLLECTION).doc(userId).delete()
+      .catch((error) => logCleanupFailure(`delete inactive feed ${userId}`, error));
+    return null;
+  }
+
+  const currentLocation = extractCoordinatesFromMap(userData.location);
+  const currentGeohash = readCurrentUserGeohash(userData, currentLocation);
+  const searchRadiusKm = resolveSearchRadiusKm(userData);
+  const targetGenres = new Set(readCurrentUserGenres(userData));
+  const targetHashtags = new Set(readCurrentUserHashtags(userData));
+
+  const blockedUsers = new Set(asStringArray(userData.blocked_users));
+  const blockedSubcollectionUsers = await readBlockedUserIds(userId);
+  for (const blockedUserId of blockedSubcollectionUsers) {
+    blockedUsers.add(blockedUserId);
+  }
+
+  const interactedTargetIds = await readExistingInteractionTargetIds(userId);
+  const excludedIds = new Set<string>([
+    userId,
+    ...blockedUsers,
+    ...interactedTargetIds,
+  ]);
+
+  const candidateSnapshot = await db
+    .collection("users")
+    .where("matchpoint_profile.is_active", "==", true)
+    .limit(MATCHPOINT_FEED_POOL_LIMIT)
+    .get();
+
+  const scored = candidateSnapshot.docs
+    .filter((doc) => !excludedIds.has(doc.id))
+    .map((doc) => {
+      const candidateData = asRecord(doc.data());
+      if (!isVisibleCandidate(candidateData)) return null;
+
+      const candidateLocation = extractCoordinatesFromMap(candidateData.location);
+      const {bucket, distanceKm} = resolveLocationBucket(
+        currentLocation,
+        candidateLocation,
+        searchRadiusKm
+      );
+      const hashtagMatches = extractCandidateHashtags(candidateData)
+        .map(normalizeHashtagToken)
+        .filter((token) => targetHashtags.has(token))
+        .length;
+      const genreMatches = extractCandidateGenres(candidateData)
+        .map(normalizeGenreToken)
+        .filter((token) => targetGenres.has(token))
+        .length;
+
+      return {
+        userId: doc.id,
+        locationBucket: bucket,
+        hashtagMatches,
+        genreMatches,
+        distanceKm,
+      } as ScoredFeedCandidate;
+    })
+    .filter((candidate): candidate is ScoredFeedCandidate => candidate !== null)
+    .sort(compareScoredFeedCandidates);
+
+  const candidateIds = scored
+    .slice(0, MATCHPOINT_FEED_LIMIT)
+    .map((candidate) => candidate.userId);
+  const generatedAt = Timestamp.now();
+  const expiresAt = Timestamp.fromMillis(
+    generatedAt.toMillis() + MATCHPOINT_FEED_TTL_MS
+  );
+
+  await db.collection(MATCHPOINT_FEEDS_COLLECTION).doc(userId).set({
+    user_id: userId,
+    current_user_geohash: currentGeohash,
+    candidate_ids: candidateIds,
+    total_candidates: scored.length,
+    generated_at: generatedAt,
+    expires_at: expiresAt,
+    reason,
+    source: "server_projection",
+    version: 1,
+    updated_at: FieldValue.serverTimestamp(),
+  });
+
+  return {
+    userId,
+    candidateIds,
+    totalCandidates: scored.length,
+    generatedAt,
+    expiresAt,
+    reason,
+  };
+}
+
+function buildRelevantFeedSignature(userData: Record<string, unknown>): string {
+  const matchpointProfile = asRecord(userData.matchpoint_profile);
+  const location = asRecord(userData.location);
+  return JSON.stringify({
+    cadastro_status: userData.cadastro_status ?? "",
+    status: userData.status ?? "",
+    tipo_perfil: userData.tipo_perfil ?? "",
+    geohash: userData.geohash ?? "",
+    blocked_users: [...asStringArray(userData.blocked_users)].sort(),
+    location: {
+      lat: location.lat ?? null,
+      lng: location.lng ?? location.long ?? null,
+    },
+    matchpoint_profile: {
+      is_active: matchpointProfile.is_active ?? false,
+      generosMusicais: matchpointStringList(
+        matchpointProfile.generosMusicais ?? matchpointProfile.musicalGenres
+      ),
+      hashtags: matchpointStringList(matchpointProfile.hashtags),
+      search_radius: matchpointProfile.search_radius ?? null,
+    },
+  });
 }
 
 /**
@@ -542,6 +989,11 @@ async function processMatchpointAction(
 
       stage = "remove_match";
       const removedMatch = await removeMatch(currentUserId, targetUserId);
+      stage = "enqueue_feed_refresh";
+      await Promise.all([
+        enqueueMatchpointFeedRefresh(currentUserId, "interaction_dislike"),
+        enqueueMatchpointFeedRefresh(targetUserId, "interaction_dislike"),
+      ]);
 
       return {
         success: true,
@@ -585,6 +1037,11 @@ async function processMatchpointAction(
     const isMatch = mutualLikeQuery !== null && !mutualLikeQuery.empty;
 
     if (!isMatch) {
+      stage = "enqueue_feed_refresh";
+      await Promise.all([
+        enqueueMatchpointFeedRefresh(currentUserId, "interaction_like"),
+        enqueueMatchpointFeedRefresh(targetUserId, "interaction_like"),
+      ]);
       return {
         success: true,
         isMatch: false,
@@ -602,6 +1059,11 @@ async function processMatchpointAction(
     );
 
     if (matchResult === null) {
+      stage = "enqueue_feed_refresh";
+      await Promise.all([
+        enqueueMatchpointFeedRefresh(currentUserId, "interaction_like"),
+        enqueueMatchpointFeedRefresh(targetUserId, "interaction_like"),
+      ]);
       return {
         success: true,
         isMatch: false,
@@ -609,6 +1071,12 @@ async function processMatchpointAction(
         message: "Like registrado",
       };
     }
+
+    stage = "enqueue_feed_refresh";
+    await Promise.all([
+      enqueueMatchpointFeedRefresh(currentUserId, "match_created"),
+      enqueueMatchpointFeedRefresh(targetUserId, "match_created"),
+    ]);
 
     return {
       success: true,
@@ -728,6 +1196,78 @@ export const onMatchpointCommandCreated = onDocumentCreated(
         error: commandError,
       }, {merge: true});
     }
+  }
+);
+
+/**
+ * Trigger: reconstrói o feed projetado quando um refresh é solicitado.
+ *
+ * Caminho: matchpointFeedRefreshRequests/{requestId}
+ */
+export const onMatchpointFeedRefreshRequested = onDocumentCreated(
+  {
+    document: `${MATCHPOINT_FEED_REFRESH_REQUESTS_COLLECTION}/{requestId}`,
+    region: "southamerica-east1",
+    memory: "256MiB",
+    concurrency: 1,
+    maxInstances: 10,
+    timeoutSeconds: 30,
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const requestData = asRecord(snapshot.data());
+    const userId = firstNonEmptyString([requestData.user_id]);
+    const reason = firstNonEmptyString([requestData.reason], "refresh_request");
+
+    try {
+      await rebuildMatchpointFeedForUser(userId, reason);
+    } finally {
+      await snapshot.ref.delete().catch(
+        (error) => logCleanupFailure(
+          `delete refresh request ${snapshot.ref.path}`,
+          error
+        )
+      );
+    }
+  }
+);
+
+/**
+ * Trigger: atualiza o feed projetado do próprio usuário quando os dados de
+ * MatchPoint mudam no documento `users/{userId}`.
+ */
+export const onMatchpointProfileWritten = onDocumentWritten(
+  {
+    document: "users/{userId}",
+    region: "southamerica-east1",
+    memory: "256MiB",
+    concurrency: 1,
+    maxInstances: 10,
+    timeoutSeconds: 30,
+  },
+  async (event) => {
+    const after = event.data?.after;
+    const before = event.data?.before;
+    const userId = event.params.userId;
+
+    if (!after?.exists) {
+      await db.collection(MATCHPOINT_FEEDS_COLLECTION).doc(userId)
+        .delete()
+        .catch((error) => logCleanupFailure(`delete feed for removed profile ${userId}`, error));
+      return;
+    }
+
+    const beforeData = before?.exists ? asRecord(before.data()) : {};
+    const afterData = asRecord(after.data());
+    const beforeSignature = buildRelevantFeedSignature(beforeData);
+    const afterSignature = buildRelevantFeedSignature(afterData);
+    if (beforeSignature === afterSignature) {
+      return;
+    }
+
+    await rebuildMatchpointFeedForUser(userId, "profile_updated");
   }
 );
 

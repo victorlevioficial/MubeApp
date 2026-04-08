@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_remote_data_source.dart';
@@ -58,50 +56,6 @@ class _FakeFunctions extends Fake implements FirebaseFunctions {
   }
 }
 
-class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
-  final User? _currentUser;
-
-  _FakeFirebaseAuth({User? currentUser}) : _currentUser = currentUser;
-
-  @override
-  User? get currentUser => _currentUser;
-}
-
-class _FakeAppCheck extends Fake implements app_check.FirebaseAppCheck {
-  int cachedTokenCalls = 0;
-  int forcedTokenCalls = 0;
-  String? cachedToken;
-  String? forcedToken;
-  Object? cachedError;
-  Object? forcedError;
-  Duration cachedTokenDelay;
-
-  _FakeAppCheck({
-    this.cachedToken,
-    this.forcedToken,
-    this.cachedError,
-    this.forcedError,
-    this.cachedTokenDelay = Duration.zero,
-  });
-
-  @override
-  Future<String?> getToken([bool? forceRefresh]) async {
-    final isForced = forceRefresh ?? false;
-    if (isForced) {
-      forcedTokenCalls += 1;
-      if (forcedError != null) throw forcedError!;
-      return forcedToken;
-    }
-
-    cachedTokenCalls += 1;
-    if (cachedTokenDelay > Duration.zero) {
-      await Future<void>.delayed(cachedTokenDelay);
-    }
-    if (cachedError != null) throw cachedError!;
-    return cachedToken;
-  }
-}
-
 Map<String, dynamic> _userDoc({
   required String uid,
   required String email,
@@ -133,16 +87,9 @@ Map<String, dynamic> _optionalEntry(String key, Object? value) {
 
 MatchpointRemoteDataSourceImpl _buildDataSource(
   FirebaseFirestore firestore,
-  FirebaseFunctions functions, {
-  FirebaseAuth? auth,
-  app_check.FirebaseAppCheck? appCheck,
-}) {
-  return MatchpointRemoteDataSourceImpl(
-    firestore,
-    functions,
-    auth: auth ?? _FakeFirebaseAuth(),
-    appCheck: appCheck ?? _FakeAppCheck(),
-  );
+  FirebaseFunctions functions,
+) {
+  return MatchpointRemoteDataSourceImpl(firestore, functions);
 }
 
 void main() {
@@ -337,132 +284,60 @@ void main() {
     );
   });
 
-  group('MatchpointRemoteDataSource App Check recovery', () {
-    FirebaseFunctionsException recoverableAppCheckError() {
-      return FirebaseFunctionsException(
-        code: 'failed-precondition',
-        message: 'App Check token is required.',
-      );
-    }
-
-    test('skips forced refresh when App Check reports throttling', () async {
+  group('MatchpointRemoteDataSource callable access', () {
+    test('getRemainingLikes forwards directly to the callable', () async {
       final firestore = FakeFirebaseFirestore();
       final functions = _FakeFunctions(
         handlers: {
-          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+          'getRemainingLikes': (_) async =>
+              _FakeHttpsCallableResult(<String, dynamic>{
+                'remaining': 7,
+                'limit': 50,
+                'resetTime': '2026-04-09T00:00:00.000Z',
+              }),
         },
       );
-      final appCheck = _FakeAppCheck(
-        cachedError: Exception('Too many attempts.'),
-        forcedError: Exception('Should not force refresh while throttled.'),
-      );
-      final dataSource = _buildDataSource(
-        firestore,
-        functions,
-        auth: _FakeFirebaseAuth(),
-        appCheck: appCheck,
-      );
+      final dataSource = _buildDataSource(firestore, functions);
 
-      await expectLater(
-        dataSource.getRemainingLikes(),
-        throwsA(isA<FirebaseFunctionsException>()),
-      );
+      final result = await dataSource.getRemainingLikes();
 
-      expect(appCheck.cachedTokenCalls, 1);
-      expect(appCheck.forcedTokenCalls, 0);
-    });
-
-    test('uses cooldown to avoid repeated forced App Check refresh', () async {
-      final firestore = FakeFirebaseFirestore();
-      final functions = _FakeFunctions(
-        handlers: {
-          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
-        },
-      );
-      final appCheck = _FakeAppCheck(cachedToken: null, forcedToken: 'fresh');
-      final dataSource = _buildDataSource(
-        firestore,
-        functions,
-        auth: _FakeFirebaseAuth(),
-        appCheck: appCheck,
-      );
-
-      await expectLater(
-        dataSource.getRemainingLikes(),
-        throwsA(isA<FirebaseFunctionsException>()),
-      );
-      await expectLater(
-        dataSource.getRemainingLikes(),
-        throwsA(isA<FirebaseFunctionsException>()),
-      );
-
-      expect(appCheck.cachedTokenCalls, 2);
-      expect(appCheck.forcedTokenCalls, 1);
-    });
-
-    test('deduplicates concurrent security refresh attempts', () async {
-      final firestore = FakeFirebaseFirestore();
-      final functions = _FakeFunctions(
-        handlers: {
-          'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
-        },
-      );
-      final appCheck = _FakeAppCheck(
-        cachedToken: null,
-        forcedToken: 'fresh',
-        cachedTokenDelay: const Duration(milliseconds: 60),
-      );
-      final dataSource = _buildDataSource(
-        firestore,
-        functions,
-        auth: _FakeFirebaseAuth(),
-        appCheck: appCheck,
-      );
-
-      await Future.wait<void>([
-        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, _) {}),
-        dataSource.getRemainingLikes().then<void>((_) {}, onError: (_, _) {}),
-      ]);
-
-      expect(appCheck.cachedTokenCalls, 1);
-      expect(appCheck.forcedTokenCalls, 1);
+      expect(result.remaining, 7);
+      expect(functions.invocations, hasLength(1));
+      expect(functions.invocations.single.name, 'getRemainingLikes');
+      expect(functions.invocations.single.parameters, isNull);
     });
 
     test(
-      'surfaces App Check refresh failure as functions precondition error',
+      'submitAction forwards the swipe payload directly to the callable',
       () async {
         final firestore = FakeFirebaseFirestore();
         final functions = _FakeFunctions(
           handlers: {
-            'getRemainingLikes': (_) async => throw recoverableAppCheckError(),
+            'submitMatchpointAction': (_) async =>
+                _FakeHttpsCallableResult(<String, dynamic>{
+                  'success': true,
+                  'isMatch': true,
+                  'conversationId': 'conversation-1',
+                  'remainingLikes': 12,
+                }),
           },
         );
-        final appCheck = _FakeAppCheck(
-          cachedToken: null,
-          forcedError: Exception('403 App attestation failed.'),
-        );
-        final dataSource = _buildDataSource(
-          firestore,
-          functions,
-          auth: _FakeFirebaseAuth(),
-          appCheck: appCheck,
+        final dataSource = _buildDataSource(firestore, functions);
+
+        final result = await dataSource.submitAction(
+          targetUserId: 'target-1',
+          action: 'like',
         );
 
-        await expectLater(
-          dataSource.getRemainingLikes(),
-          throwsA(
-            isA<FirebaseFunctionsException>()
-                .having((error) => error.code, 'code', 'failed-precondition')
-                .having(
-                  (error) => error.message,
-                  'message',
-                  contains('App Check'),
-                ),
-          ),
-        );
-
-        expect(appCheck.cachedTokenCalls, 1);
-        expect(appCheck.forcedTokenCalls, 1);
+        expect(result.success, isTrue);
+        expect(result.isMatch, isTrue);
+        expect(result.conversationId, 'conversation-1');
+        expect(functions.invocations, hasLength(1));
+        expect(functions.invocations.single.name, 'submitMatchpointAction');
+        expect(functions.invocations.single.parameters, <String, dynamic>{
+          'targetUserId': 'target-1',
+          'action': 'like',
+        });
       },
     );
   });

@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/core/errors/failures.dart';
@@ -73,14 +72,7 @@ void main() {
                 AppUser(uid: 'target-2', email: 'target-2@mube.app'),
               ]);
 
-        final container = ProviderContainer(
-          overrides: [
-            matchpointRepositoryProvider.overrideWithValue(legacyRepository),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        final repository = container.read(matchpointFeedRepositoryProvider);
+        final repository = LegacyMatchpointFeedRepository(legacyRepository);
         final result = await repository.fetchExploreFeed(
           currentUser: const AppUser(uid: 'user-1', email: 'user-1@mube.app'),
           genres: const ['rock'],

@@ -313,6 +313,25 @@ service cloud.firestore {
     }
 
     // ================================================================
+    // MATCHPOINT FEEDS - feed projetado do Explore
+    // ================================================================
+    match /matchpointFeeds/{userId} {
+      allow read: if request.auth != null && userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+
+    // ================================================================
+    // MATCHPOINT FEED REFRESH REQUESTS - aquecimento do feed projetado
+    // ================================================================
+    match /matchpointFeedRefreshRequests/{requestId} {
+      allow create: if request.auth != null &&
+        request.resource.data.user_id == request.auth.uid &&
+        request.resource.data.reason is string &&
+        request.resource.data.requested_at is timestamp;
+      allow read, update, delete: if false;
+    }
+
+    // ================================================================
     // MATCHES - Matches entre usuários
     // ================================================================
     match /matches/{matchId} {

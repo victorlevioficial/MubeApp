@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:diacritic/diacritic.dart';
-import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
@@ -12,7 +10,6 @@ import 'package:mube/src/features/matchpoint/domain/likes_quota_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_availability.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_dynamic_fields.dart';
-import 'package:mube/src/utils/app_check_refresh_coordinator.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/distance_calculator.dart';
 import 'package:mube/src/utils/geohash_helper.dart';
@@ -63,107 +60,13 @@ abstract class MatchpointRemoteDataSource {
 enum _CandidateFetchQueryMode { globalOnly, nearbyOnly }
 
 class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
-  static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
-  static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
   static const _CandidateFetchQueryMode _candidateFetchQueryMode =
       _CandidateFetchQueryMode.globalOnly;
 
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
-  final FirebaseAuth _auth;
-  final app_check.FirebaseAppCheck _appCheck;
-  Future<void>? _securityRefreshInFlight;
 
-  MatchpointRemoteDataSourceImpl(
-    this._firestore,
-    this._functions, {
-    required FirebaseAuth auth,
-    required app_check.FirebaseAppCheck appCheck,
-  }) : _auth = auth,
-       _appCheck = appCheck;
-
-  FirebaseAuth get _firebaseAuth => _auth;
-  app_check.FirebaseAppCheck get _firebaseAppCheck => _appCheck;
-
-  bool _isAuthContextError(FirebaseFunctionsException e) {
-    final code = e.code.toLowerCase();
-    final message = (e.message ?? '').toLowerCase();
-    if (code == 'unauthenticated') return true;
-
-    final appCheckHint = message.contains('app check');
-    return appCheckHint &&
-        (code == 'failed-precondition' || code == 'permission-denied');
-  }
-
-  Future<void> _refreshSecurityTokens() {
-    final inFlight = _securityRefreshInFlight;
-    if (inFlight != null) return inFlight;
-
-    final refreshFuture = _refreshSecurityTokensInternal();
-    _securityRefreshInFlight = refreshFuture.whenComplete(() {
-      _securityRefreshInFlight = null;
-    });
-    return _securityRefreshInFlight!;
-  }
-
-  Future<void> _refreshSecurityTokensInternal() async {
-    // Serialize token refreshes to avoid concurrent platform-channel calls
-    // that crash the iOS Swift Concurrency runtime in release builds.
-    final currentUser = _firebaseAuth.currentUser;
-    if (currentUser != null) {
-      try {
-        await currentUser.getIdToken(true).timeout(const Duration(seconds: 10));
-      } catch (e, stack) {
-        AppLogger.warning(
-          'Failed to refresh FirebaseAuth token before retry.',
-          e,
-          stack,
-        );
-      }
-    }
-
-    // Small gap between platform-channel calls to let the cooperative
-    // executor drain completed tasks before queuing the next one.
-    await Future<void>.delayed(const Duration(milliseconds: 200));
-
-    await AppCheckRefreshCoordinator.ensureValidTokenOrThrow(
-      _firebaseAppCheck,
-      operationLabel: 'retry de MatchPoint',
-      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
-      throttledBackoff: _throttledAppCheckBackoff,
-    );
-  }
-
-  Future<HttpsCallableResult<dynamic>> _callWithRecovery(
-    String functionName, {
-    Map<String, dynamic>? data,
-  }) async {
-    final callable = _functions.httpsCallable(functionName);
-    try {
-      return await callable.call(data);
-    } on FirebaseFunctionsException catch (e) {
-      if (!_isAuthContextError(e)) rethrow;
-
-      AppLogger.warning(
-        '$functionName returned ${e.code}. Refreshing auth context and retrying once.',
-      );
-      try {
-        await _refreshSecurityTokens();
-      } on AppCheckRefreshException catch (error, stackTrace) {
-        AppLogger.warning(
-          'MatchPoint App Check refresh failed before retrying $functionName.',
-          error,
-          stackTrace,
-          false,
-        );
-        throw FirebaseFunctionsException(
-          code: 'failed-precondition',
-          message: 'App Check token unavailable for MatchPoint retry.',
-        );
-      }
-      return await callable.call(data);
-    }
-  }
+  MatchpointRemoteDataSourceImpl(this._firestore, this._functions);
 
   Map<String, dynamic> _normalizeCloudFunctionMap(Object? value) {
     if (value is Map<String, dynamic>) {
@@ -597,10 +500,11 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     required String action,
   }) async {
     try {
-      final result = await _callWithRecovery(
-        'submitMatchpointAction',
-        data: {'targetUserId': targetUserId, 'action': action},
-      );
+      final callable = _functions.httpsCallable('submitMatchpointAction');
+      final result = await callable.call({
+        'targetUserId': targetUserId,
+        'action': action,
+      });
 
       return MatchpointActionResult.fromJson(
         _normalizeCloudFunctionMap(result.data),
@@ -649,7 +553,8 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
   @override
   Future<LikesQuotaInfo> getRemainingLikes() async {
     try {
-      final result = await _callWithRecovery('getRemainingLikes');
+      final callable = _functions.httpsCallable('getRemainingLikes');
+      final result = await callable.call();
 
       return LikesQuotaInfo.fromJson(_normalizeCloudFunctionMap(result.data));
     } on FirebaseFunctionsException catch (e) {
@@ -822,8 +727,6 @@ final matchpointRemoteDataSourceProvider = Provider<MatchpointRemoteDataSource>(
     return MatchpointRemoteDataSourceImpl(
       ref.read(firebaseFirestoreProvider),
       ref.read(firebaseFunctionsProvider),
-      auth: ref.read(firebaseAuthProvider),
-      appCheck: ref.read(firebaseAppCheckProvider),
     );
   },
 );
