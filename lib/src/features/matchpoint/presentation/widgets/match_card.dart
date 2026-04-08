@@ -278,7 +278,7 @@ class MatchCard extends StatelessWidget {
     if (requestedWidth < ImageCacheConfig.minDecodeDimensionPx) {
       return ImageCacheConfig.minDecodeDimensionPx;
     }
-    if (requestedWidth > 1080) return 1080;
+    if (requestedWidth > 720) return 720;
     return requestedWidth;
   }
 

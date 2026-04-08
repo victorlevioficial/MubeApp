@@ -35,10 +35,13 @@ class _MatchpointExploreScreenState
     extends ConsumerState<MatchpointExploreScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
   bool _showTutorial = false;
+  bool _tutorialStatusResolved = false;
   bool _allCandidatesViewed = false;
   String _lastCandidatesSignature = '';
+  String _lastDeckCacheSignature = '';
   int _lastHandledSwipeFeedbackId = -1;
   ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
+  Widget? _cachedSwipeDeck;
 
   /// True until fresh candidates arrive, so the UI shows the loading skeleton
   /// instead of stale cached data from a previous session.
@@ -113,11 +116,23 @@ class _MatchpointExploreScreenState
   }
 
   Future<void> _checkTutorialStatus() async {
-    final prefs = await ref.read(sharedPreferencesLoaderProvider)();
-    final seen = prefs.getBool('matchpoint_tutorial_seen') ?? false;
-    if (mounted && !seen) {
+    try {
+      final prefs = await ref.read(sharedPreferencesLoaderProvider)();
+      final seen = prefs.getBool('matchpoint_tutorial_seen') ?? false;
+      if (!mounted) return;
       setState(() {
-        _showTutorial = true;
+        _showTutorial = !seen;
+        _tutorialStatusResolved = true;
+      });
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to resolve MatchPoint tutorial state.',
+        error,
+        stackTrace,
+      );
+      if (!mounted) return;
+      setState(() {
+        _tutorialStatusResolved = true;
       });
     }
   }
@@ -155,7 +170,7 @@ class _MatchpointExploreScreenState
     // iOS Swift Concurrency cooperative pool, causing swift_task_dealloc /
     // SIGABRT (Crashlytics issue a37e597a, confirmed in 1.6.15+162 with
     // duplicate `matchpoint_ranking_audit` breadcrumbs ~440ms apart).
-    if (_awaitingFreshCandidates) {
+    if (_awaitingFreshCandidates || !_tutorialStatusResolved) {
       return Stack(
         children: [
           _buildLoadingState(),
@@ -205,11 +220,13 @@ class _MatchpointExploreScreenState
             }
 
             if (_allCandidatesViewed) return _buildAllViewedState();
+            if (_showTutorial) {
+              AppLogger.breadcrumb('mp:explore:tutorial_gate');
+              AppLogger.setCustomKey('mp_step', 'explore:tutorial_gate');
+              return _buildTutorialHoldState();
+            }
             if (candidates.isNotEmpty) {
-              AppLogger.breadcrumb('mp:explore:building_deck');
-              AppLogger.setCustomKey('mp_step', 'explore:building_deck');
-              final deck = _buildSwipeDeck(candidates);
-              AppLogger.breadcrumb('mp:explore:deck_built');
+              final deck = _buildOrReuseSwipeDeck(candidates);
               return deck;
             }
             return _buildEmptyState();
@@ -261,14 +278,31 @@ class _MatchpointExploreScreenState
     );
   }
 
-  Widget _buildSwipeDeck(List<AppUser> candidates) {
+  Widget _buildTutorialHoldState() => _buildLoadingState();
+
+  Widget _buildOrReuseSwipeDeck(List<AppUser> candidates) {
     final canUndo = !ref.watch(
       matchpointSwipeQueueStateProvider.select(
         (state) => state.hasPendingActions,
       ),
     );
+    final currentUserGenres = _getCurrentUserGenres();
+    final deckCacheSignature = [
+      candidates.map((candidate) => candidate.uid).join('|'),
+      canUndo ? 'undo-enabled' : 'undo-locked',
+      (currentUserGenres ?? const <String>[]).join('|'),
+    ].join('::');
 
-    return MatchSwipeDeck(
+    if (_cachedSwipeDeck != null &&
+        deckCacheSignature == _lastDeckCacheSignature) {
+      return _cachedSwipeDeck!;
+    }
+
+    AppLogger.breadcrumb('mp:explore:building_deck');
+    AppLogger.setCustomKey('mp_step', 'explore:building_deck');
+
+    final deck = MatchSwipeDeck(
+      key: ValueKey(deckCacheSignature),
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
@@ -320,9 +354,14 @@ class _MatchpointExploreScreenState
       onUndoSwipe: () {
         ref.read(swipeHistoryProvider.notifier).undoLast();
       },
-      currentUserGenres: _getCurrentUserGenres(),
+      currentUserGenres: currentUserGenres,
       canUndo: canUndo,
     );
+
+    _cachedSwipeDeck = deck;
+    _lastDeckCacheSignature = deckCacheSignature;
+    AppLogger.breadcrumb('mp:explore:deck_built');
+    return deck;
   }
 
   Future<void> _handleSwipeFeedback(MatchpointSwipeFeedbackEvent event) async {

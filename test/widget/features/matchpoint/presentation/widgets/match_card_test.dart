@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -250,6 +251,34 @@ void main() {
 
       final clipRRect = tester.widget<ClipRRect>(find.byType(ClipRRect));
       expect(clipRRect.borderRadius, isNotNull);
+    });
+
+    testWidgets('caps decoded image dimensions on large screens', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1179, 2556);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MatchCard(user: testUser, onTap: () {}),
+          ),
+        ),
+      );
+
+      final image = tester.widget<CachedNetworkImage>(
+        find.byType(CachedNetworkImage),
+      );
+
+      expect(image.memCacheWidth, 720);
+      expect(image.memCacheHeight, 1440);
+      expect(image.maxWidthDiskCache, 720);
+      expect(image.maxHeightDiskCache, 1440);
     });
 
     testWidgets('renders without photo placeholder when no photo', (
