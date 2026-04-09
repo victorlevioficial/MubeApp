@@ -28,6 +28,7 @@ import 'features/gigs/domain/gig_review_opportunity.dart';
 import 'features/gigs/presentation/gig_review_reminder_dialog.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
 import 'features/matchpoint/data/matchpoint_swipe_outbox_coordinator.dart';
+import 'features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'routing/app_router.dart';
 import 'routing/route_paths.dart';
@@ -59,7 +60,8 @@ class MubeApp extends ConsumerStatefulWidget {
   ConsumerState<MubeApp> createState() => _MubeAppState();
 }
 
-class _MubeAppState extends ConsumerState<MubeApp> {
+class _MubeAppState extends ConsumerState<MubeApp>
+    with WidgetsBindingObserver {
   StreamSubscription? _onMessageOpenedSub;
   ProviderSubscription<AsyncValue<User?>>? _authStateSubscription;
   ProviderSubscription<AsyncValue<AppUser?>>? _profileSubscription;
@@ -83,16 +85,37 @@ class _MubeAppState extends ConsumerState<MubeApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _goRouter = ref.read(goRouterProvider);
     _MubeAppSessionEffects(this)._initializeSessionEffects();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_onMessageOpenedSub?.cancel());
     _onMessageOpenedSub = null;
     _MubeAppSessionEffects(this)._disposeSessionEffects();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final shouldFlushMatchpoint = switch (state) {
+      AppLifecycleState.resumed => false,
+      AppLifecycleState.inactive ||
+      AppLifecycleState.hidden ||
+      AppLifecycleState.paused ||
+      AppLifecycleState.detached => true,
+    };
+    if (!shouldFlushMatchpoint) return;
+
+    unawaited(() async {
+      await ref.read(matchpointControllerProvider.notifier).drainPendingSwipesNow();
+      await ref.read(matchpointSwipeOutboxCoordinatorProvider).flushNow(
+        reason: 'app_lifecycle:${state.name}',
+      );
+    }());
   }
 
   @override

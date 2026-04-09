@@ -27,7 +27,6 @@ class MatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cacheWidth = _resolveCardCacheWidth(context);
-    final cacheHeight = cacheWidth * 2;
 
     return GestureDetector(
       onTap: onTap,
@@ -48,9 +47,7 @@ class MatchCard extends StatelessWidget {
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
                   memCacheWidth: cacheWidth,
-                  memCacheHeight: cacheHeight,
                   maxWidthDiskCache: cacheWidth,
-                  maxHeightDiskCache: cacheHeight,
                   fadeInDuration: Duration.zero,
                   fadeOutDuration: Duration.zero,
                   useOldImageOnUrlChange: false,

@@ -16,6 +16,8 @@ import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_feed_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_command_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_outbox_coordinator.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_outbox_store.dart';
 import 'package:mube/src/features/matchpoint/domain/hashtag_ranking.dart';
 import 'package:mube/src/features/matchpoint/domain/match_info.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_swipe_command.dart';
@@ -194,6 +196,7 @@ class MatchpointController extends _$MatchpointController {
   static const Duration _deferredQueuedSwipeDrainDelay = Duration(
     milliseconds: 750,
   );
+  static const Duration _queuedOutboxFlushDelay = Duration(seconds: 2);
 
   @visibleForTesting
   static bool? debugForceDeferredQueuedSwipeDrain;
@@ -460,6 +463,10 @@ class MatchpointController extends _$MatchpointController {
       (success) => success,
     );
     if (actionResult.isQueued && actionResult.commandId != null) {
+      ref.read(matchpointSwipeOutboxCoordinatorProvider).scheduleFlush(
+        delay: _queuedOutboxFlushDelay,
+        reason: 'queued_swipe:$type',
+      );
       unawaited(
         _awaitSwipeCommandCompletion(
           commandId: actionResult.commandId!,
@@ -474,6 +481,16 @@ class MatchpointController extends _$MatchpointController {
       type: type,
       actionResult: actionResult,
     );
+  }
+
+  Future<void> drainPendingSwipesNow() async {
+    if (!ref.mounted) return;
+    _queuedSwipeDrainTimer?.cancel();
+    _queuedSwipeDrainTimer = null;
+    if (_isProcessingQueuedSwipes || _queuedSwipes.isEmpty) {
+      return;
+    }
+    await _drainQueuedSwipes();
   }
 
   Future<void> _awaitSwipeCommandCompletion({
@@ -877,6 +894,9 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       ...userProfile.blockedUsers,
       ...blockedFromCollection,
     }.toList();
+    final pendingOutboxTargetIds = await _loadPendingOutboxTargetIds(
+      currentUser.uid,
+    );
 
     final repo = ref.read(matchpointFeedRepositoryProvider);
     AppLogger.breadcrumb('mp:cand:repo_call');
@@ -895,15 +915,47 @@ class MatchpointCandidates extends _$MatchpointCandidates {
         throw failure.message;
       },
       (snapshot) {
+        final locallyFilteredCandidates = snapshot.candidates
+            .where((candidate) => !pendingOutboxTargetIds.contains(candidate.uid))
+            .toList(growable: false);
+        if (locallyFilteredCandidates.length != snapshot.candidates.length) {
+          AppLogger.info(
+            'MatchPoint local exclusion filtered '
+            '${snapshot.candidates.length - locallyFilteredCandidates.length} '
+            'pending outbox candidates',
+          );
+        }
         AppLogger.info(
-          'MatchPoint query success: found ${snapshot.count} candidates '
+          'MatchPoint query success: found ${locallyFilteredCandidates.length} candidates '
           'source=${snapshot.source.name}',
         );
-        AppLogger.breadcrumb('mp:cand:success count=${snapshot.count}');
+        AppLogger.breadcrumb(
+          'mp:cand:success count=${locallyFilteredCandidates.length}',
+        );
         AppLogger.setCustomKey('mp_step', 'cand:success');
-        return snapshot.candidates;
+        return locallyFilteredCandidates;
       },
     );
+  }
+
+  Future<Set<String>> _loadPendingOutboxTargetIds(String userId) async {
+    try {
+      final pendingCommands = await ref
+          .read(matchpointSwipeOutboxStoreProvider)
+          .load(userId);
+      return pendingCommands
+          .map((entry) => entry.command.targetUserId)
+          .where((targetUserId) => targetUserId.trim().isNotEmpty)
+          .toSet();
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to load MatchPoint pending outbox for local exclusion.',
+        error,
+        stackTrace,
+        false,
+      );
+      return const <String>{};
+    }
   }
 
   List<String> _resolveGenres(AppUser userProfile) {

@@ -468,5 +468,47 @@ void main() {
         expect(repository.submitActionCalls, 1);
       },
     );
+
+    test(
+      'drainPendingSwipesNow processes queued swipes immediately before app exit',
+      () async {
+        MatchpointController.debugForceDeferredQueuedSwipeDrain = true;
+        MatchpointController.debugDeferredQueuedSwipeDrainDelay =
+            const Duration(seconds: 30);
+
+        final repository = _QueueingMatchpointRepository([
+          () async => Right(
+            MatchpointActionResult(
+              success: true,
+              isMatch: false,
+              remainingLikes: 49,
+            ),
+          ),
+        ]);
+        container = buildContainer(repository);
+        final controller = container.read(
+          matchpointControllerProvider.notifier,
+        );
+
+        const targetUser = AppUser(
+          uid: 'target-1',
+          email: 'target-1@mube.app',
+          nome: 'Target 1',
+        );
+
+        expect(await controller.queueSwipeRight(targetUser), isTrue);
+        await flushQueue();
+        expect(repository.submitActionCalls, 0);
+
+        await controller.drainPendingSwipesNow();
+        await flushQueue();
+
+        expect(repository.submitActionCalls, 1);
+        expect(
+          container.read(matchpointSwipeQueueStateProvider).pendingActions,
+          0,
+        );
+      },
+    );
   });
 }
