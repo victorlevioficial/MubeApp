@@ -60,8 +60,7 @@ class MubeApp extends ConsumerStatefulWidget {
   ConsumerState<MubeApp> createState() => _MubeAppState();
 }
 
-class _MubeAppState extends ConsumerState<MubeApp>
-    with WidgetsBindingObserver {
+class _MubeAppState extends ConsumerState<MubeApp> with WidgetsBindingObserver {
   StreamSubscription? _onMessageOpenedSub;
   ProviderSubscription<AsyncValue<User?>>? _authStateSubscription;
   ProviderSubscription<AsyncValue<AppUser?>>? _profileSubscription;
@@ -111,10 +110,12 @@ class _MubeAppState extends ConsumerState<MubeApp>
     if (!shouldFlushMatchpoint) return;
 
     unawaited(() async {
-      await ref.read(matchpointControllerProvider.notifier).drainPendingSwipesNow();
-      await ref.read(matchpointSwipeOutboxCoordinatorProvider).flushNow(
-        reason: 'app_lifecycle:${state.name}',
-      );
+      await ref
+          .read(matchpointControllerProvider.notifier)
+          .drainPendingSwipesNow();
+      await ref
+          .read(matchpointSwipeOutboxCoordinatorProvider)
+          .flushNow(reason: 'app_lifecycle:${state.name}');
     }());
   }
 

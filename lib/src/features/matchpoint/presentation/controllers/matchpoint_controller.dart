@@ -463,10 +463,12 @@ class MatchpointController extends _$MatchpointController {
       (success) => success,
     );
     if (actionResult.isQueued && actionResult.commandId != null) {
-      ref.read(matchpointSwipeOutboxCoordinatorProvider).scheduleFlush(
-        delay: _queuedOutboxFlushDelay,
-        reason: 'queued_swipe:$type',
-      );
+      ref
+          .read(matchpointSwipeOutboxCoordinatorProvider)
+          .scheduleFlush(
+            delay: _queuedOutboxFlushDelay,
+            reason: 'queued_swipe:$type',
+          );
       unawaited(
         _awaitSwipeCommandCompletion(
           commandId: actionResult.commandId!,
@@ -916,7 +918,9 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       },
       (snapshot) {
         final locallyFilteredCandidates = snapshot.candidates
-            .where((candidate) => !pendingOutboxTargetIds.contains(candidate.uid))
+            .where(
+              (candidate) => !pendingOutboxTargetIds.contains(candidate.uid),
+            )
             .toList(growable: false);
         if (locallyFilteredCandidates.length != snapshot.candidates.length) {
           AppLogger.info(

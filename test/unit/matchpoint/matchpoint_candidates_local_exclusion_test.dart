@@ -45,20 +45,27 @@ void main() {
   test('MatchpointCandidates excludes users pending in local outbox', () async {
     SharedPreferences.setMockInitialValues({});
 
-    final authRepository = FakeAuthRepository(
-      initialUser: FakeFirebaseUser(uid: 'user-1', email: 'user-1@mube.app'),
-    )..appUser = const AppUser(
-        uid: 'user-1',
-        email: 'user-1@mube.app',
-        nome: 'User 1',
-        matchpointProfile: {
-          'musicalGenres': ['rock'],
-        },
-        privacySettings: {},
-        blockedUsers: [],
-      );
+    final authRepository =
+        FakeAuthRepository(
+            initialUser: FakeFirebaseUser(
+              uid: 'user-1',
+              email: 'user-1@mube.app',
+            ),
+          )
+          ..appUser = const AppUser(
+            uid: 'user-1',
+            email: 'user-1@mube.app',
+            nome: 'User 1',
+            matchpointProfile: {
+              'musicalGenres': ['rock'],
+            },
+            privacySettings: {},
+            blockedUsers: [],
+          );
 
-    final outboxStore = MatchpointSwipeOutboxStore(SharedPreferences.getInstance);
+    final outboxStore = MatchpointSwipeOutboxStore(
+      SharedPreferences.getInstance,
+    );
     await outboxStore.enqueue(
       userId: 'user-1',
       entry: PersistedMatchpointSwipeCommand(
@@ -101,7 +108,9 @@ void main() {
     addTearDown(container.dispose);
     addTearDown(authRepository.dispose);
 
-    final candidates = await container.read(matchpointCandidatesProvider.future);
+    final candidates = await container.read(
+      matchpointCandidatesProvider.future,
+    );
 
     expect(candidates.map((candidate) => candidate.uid).toList(), ['target-2']);
   });
