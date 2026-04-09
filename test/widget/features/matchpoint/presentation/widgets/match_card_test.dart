@@ -253,7 +253,7 @@ void main() {
       expect(clipRRect.borderRadius, isNotNull);
     });
 
-    testWidgets('caps decoded image dimensions on large screens', (
+    testWidgets('caps decoded image width on large screens only', (
       WidgetTester tester,
     ) async {
       tester.view.physicalSize = const Size(1179, 2556);
@@ -276,9 +276,9 @@ void main() {
       );
 
       expect(image.memCacheWidth, 720);
-      expect(image.memCacheHeight, 1440);
+      expect(image.memCacheHeight, isNull);
       expect(image.maxWidthDiskCache, 720);
-      expect(image.maxHeightDiskCache, 1440);
+      expect(image.maxHeightDiskCache, isNull);
     });
 
     testWidgets('renders without photo placeholder when no photo', (
