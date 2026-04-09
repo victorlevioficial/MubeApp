@@ -37,11 +37,9 @@ class _MatchpointExploreScreenState
   bool _showTutorial = false;
   bool _tutorialStatusResolved = false;
   bool _allCandidatesViewed = false;
-  String _lastCandidatesSignature = '';
-  String _lastDeckCacheSignature = '';
+  String _lastCandidatesToken = '';
   int _lastHandledSwipeFeedbackId = -1;
   ProviderSubscription<MatchpointSwipeFeedbackEvent?>? _feedbackSubscription;
-  Widget? _cachedSwipeDeck;
 
   /// True until fresh candidates arrive, so the UI shows the loading skeleton
   /// instead of stale cached data from a previous session.
@@ -206,9 +204,9 @@ class _MatchpointExploreScreenState
             // after the first like — see MatchpointController.
             // _buildSwipeSuccessResult.
 
-            final signature = candidates.map((c) => c.uid).join('|');
-            if (signature != _lastCandidatesSignature) {
-              _lastCandidatesSignature = signature;
+            final candidatesToken = _buildDeckSessionKey(candidates);
+            if (candidatesToken != _lastCandidatesToken) {
+              _lastCandidatesToken = candidatesToken;
               if (_allCandidatesViewed && candidates.isNotEmpty) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
@@ -226,7 +224,10 @@ class _MatchpointExploreScreenState
               return _buildTutorialHoldState();
             }
             if (candidates.isNotEmpty) {
-              final deck = _buildOrReuseSwipeDeck(candidates);
+              final deck = _buildSwipeDeck(
+                candidates,
+                deckSessionKey: candidatesToken,
+              );
               return deck;
             }
             return _buildEmptyState();
@@ -280,29 +281,30 @@ class _MatchpointExploreScreenState
 
   Widget _buildTutorialHoldState() => _buildLoadingState();
 
-  Widget _buildOrReuseSwipeDeck(List<AppUser> candidates) {
+  String _buildDeckSessionKey(List<AppUser> candidates) {
+    // Keep the deck stable across transient UI-only changes like undo lock
+    // toggles, but force a reset when the provider emits a fresh candidate
+    // list, even if it contains the same UIDs in the same order.
+    final signature = candidates.map((candidate) => candidate.uid).join('|');
+    return '$signature::${identityHashCode(candidates)}';
+  }
+
+  Widget _buildSwipeDeck(
+    List<AppUser> candidates, {
+    required String deckSessionKey,
+  }) {
     final canUndo = !ref.watch(
       matchpointSwipeQueueStateProvider.select(
         (state) => state.hasPendingActions,
       ),
     );
     final currentUserGenres = _getCurrentUserGenres();
-    final deckCacheSignature = [
-      candidates.map((candidate) => candidate.uid).join('|'),
-      canUndo ? 'undo-enabled' : 'undo-locked',
-      (currentUserGenres ?? const <String>[]).join('|'),
-    ].join('::');
-
-    if (_cachedSwipeDeck != null &&
-        deckCacheSignature == _lastDeckCacheSignature) {
-      return _cachedSwipeDeck!;
-    }
 
     AppLogger.breadcrumb('mp:explore:building_deck');
     AppLogger.setCustomKey('mp_step', 'explore:building_deck');
 
     final deck = MatchSwipeDeck(
-      key: ValueKey(deckCacheSignature),
+      key: ValueKey(deckSessionKey),
       candidates: candidates,
       controller: _swiperController,
       onSwipeRight: (user) async {
@@ -358,8 +360,6 @@ class _MatchpointExploreScreenState
       canUndo: canUndo,
     );
 
-    _cachedSwipeDeck = deck;
-    _lastDeckCacheSignature = deckCacheSignature;
     AppLogger.breadcrumb('mp:explore:deck_built');
     return deck;
   }
