@@ -72,5 +72,41 @@ void main() {
 
       expect(swiper().isDisabled, isFalse);
     });
+
+    testWidgets('accepts a real horizontal drag gesture on the card', (
+      tester,
+    ) async {
+      var dislikeCalls = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 720,
+              child: MatchSwipeDeck(
+                candidates: const [
+                  AppUser(uid: '1', email: 'one@mube.app', nome: 'One'),
+                  AppUser(uid: '2', email: 'two@mube.app', nome: 'Two'),
+                ],
+                controller: CardSwiperController(),
+                onSwipeRight: (_) async => true,
+                onSwipeLeft: (_) async {
+                  dislikeCalls += 1;
+                  return true;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(CardSwiper), const Offset(-500, 0));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(dislikeCalls, 1);
+    });
   });
 }
