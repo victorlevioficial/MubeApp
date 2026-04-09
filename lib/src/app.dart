@@ -27,6 +27,7 @@ import 'features/bands/presentation/band_formation_reminder_dialog.dart';
 import 'features/gigs/domain/gig_review_opportunity.dart';
 import 'features/gigs/presentation/gig_review_reminder_dialog.dart';
 import 'features/gigs/presentation/providers/gig_streams.dart';
+import 'features/matchpoint/data/matchpoint_swipe_outbox_coordinator.dart';
 import 'features/onboarding/presentation/onboarding_form_provider.dart';
 import 'routing/app_router.dart';
 import 'routing/route_paths.dart';

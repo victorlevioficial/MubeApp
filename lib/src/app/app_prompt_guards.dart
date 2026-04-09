@@ -7,6 +7,11 @@ extension _MubeAppPromptGuards on _MubeAppState {
   AppUser? get _currentPromptProfile =>
       ref.read(currentUserProfileProvider).value;
 
+  bool _isMatchpointRoute(String currentPath) {
+    return currentPath == RoutePaths.matchpoint ||
+        currentPath.startsWith('${RoutePaths.matchpoint}/');
+  }
+
   bool _shouldWaitForBandMembersReminderRoute(String currentPath) {
     return currentPath == RoutePaths.splash ||
         currentPath == RoutePaths.login ||

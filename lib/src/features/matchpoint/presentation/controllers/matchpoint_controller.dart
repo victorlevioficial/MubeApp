@@ -229,7 +229,8 @@ class MatchpointController extends _$MatchpointController {
   bool get _shouldDeferQueuedSwipeDrain {
     final debugOverride = debugForceDeferredQueuedSwipeDrain;
     if (debugOverride != null) return debugOverride;
-    return shouldDeferQueuedSwipeDrain();
+    return shouldDeferQueuedSwipeDrain() &&
+        !FirestoreMatchpointSwipeCommandRepository.shouldBypassImmediateSubmission();
   }
 
   Duration get _queuedSwipeDrainDelay {

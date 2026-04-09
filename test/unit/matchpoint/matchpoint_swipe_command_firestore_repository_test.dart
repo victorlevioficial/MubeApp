@@ -8,9 +8,11 @@ import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_repository.dart';
 import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_command_repository.dart';
+import 'package:mube/src/features/matchpoint/data/matchpoint_swipe_outbox_store.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_action_result.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_swipe_command.dart';
 import 'package:mube/src/features/matchpoint/domain/matchpoint_swipe_command_result.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeLegacyMatchpointRepository extends Fake
     implements MatchpointRepository {
@@ -32,9 +34,11 @@ class _FakeLegacyMatchpointRepository extends Fake
 void main() {
   late FakeFirebaseFirestore firestore;
   late _FakeLegacyMatchpointRepository legacyRepository;
+  late MatchpointSwipeOutboxStore outboxStore;
   late FirestoreMatchpointSwipeCommandRepository repository;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     firestore = FakeFirebaseFirestore();
     legacyRepository = _FakeLegacyMatchpointRepository()
       ..onSubmitAction = ({required targetUserId, required type}) async =>
@@ -45,8 +49,10 @@ void main() {
               remainingLikes: 49,
             ),
           );
+    outboxStore = MatchpointSwipeOutboxStore(SharedPreferences.getInstance);
     repository = FirestoreMatchpointSwipeCommandRepository(
       firestore,
+      outboxStore,
       LegacyMatchpointSwipeCommandRepository(legacyRepository),
     );
   });
@@ -184,6 +190,7 @@ void main() {
         const commandId = 'cmd-4';
         final repository = FirestoreMatchpointSwipeCommandRepository(
           firestore,
+          outboxStore,
           LegacyMatchpointSwipeCommandRepository(legacyRepository),
           enableCompletionListenerOverride: false,
         );
@@ -216,5 +223,63 @@ void main() {
         expect(commandResult.isProcessed, isFalse);
       },
     );
+
+    test(
+      'submit stores command in local outbox when immediate submission is disabled',
+      () async {
+        final repository = FirestoreMatchpointSwipeCommandRepository(
+          firestore,
+          outboxStore,
+          LegacyMatchpointSwipeCommandRepository(legacyRepository),
+          bypassImmediateSubmissionOverride: true,
+        );
+        final command = MatchpointSwipeCommand(
+          sourceUserId: 'user-1',
+          targetUserId: 'target-5',
+          action: MatchpointSwipeAction.like,
+          createdAt: DateTime(2026, 4, 8, 12, 30),
+          idempotencyKey: 'cmd-5',
+        );
+
+        final result = await repository.submit(command);
+        final snapshot = await firestore
+            .collection(FirestoreCollections.matchpointCommands)
+            .doc('cmd-5')
+            .get();
+
+        expect(result.isRight(), isTrue);
+        expect(snapshot.exists, isFalse);
+        final pending = await outboxStore.load('user-1');
+        expect(pending, hasLength(1));
+        expect(pending.single.commandId, 'cmd-5');
+        expect(pending.single.command.targetUserId, 'target-5');
+      },
+    );
+
+    test('flushPending drains local outbox into Firestore', () async {
+      await outboxStore.enqueue(
+        userId: 'user-1',
+        entry: PersistedMatchpointSwipeCommand(
+          commandId: 'cmd-6',
+          command: MatchpointSwipeCommand(
+            sourceUserId: 'user-1',
+            targetUserId: 'target-6',
+            action: MatchpointSwipeAction.dislike,
+            createdAt: DateTime(2026, 4, 8, 12, 35),
+            idempotencyKey: 'cmd-6',
+          ),
+        ),
+      );
+
+      await repository.flushPending(userId: 'user-1');
+
+      final snapshot = await firestore
+          .collection(FirestoreCollections.matchpointCommands)
+          .doc('cmd-6')
+          .get();
+      expect(snapshot.exists, isTrue);
+      expect(snapshot.data()!['action'], 'dislike');
+      expect(await outboxStore.load('user-1'), isEmpty);
+    });
   });
 }

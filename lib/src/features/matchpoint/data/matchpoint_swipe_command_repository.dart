@@ -14,6 +14,7 @@ import 'package:mube/src/utils/app_logger.dart';
 import 'package:uuid/uuid.dart';
 
 import 'matchpoint_repository.dart';
+import 'matchpoint_swipe_outbox_store.dart';
 
 abstract class MatchpointSwipeCommandRepository {
   FutureResult<MatchpointSwipeCommandResult> submit(
@@ -25,6 +26,8 @@ abstract class MatchpointSwipeCommandRepository {
     required String commandId,
     Duration timeout = const Duration(seconds: 12),
   });
+
+  Future<void> flushPending({required String userId});
 }
 
 class LegacyMatchpointSwipeCommandRepository
@@ -65,6 +68,9 @@ class LegacyMatchpointSwipeCommandRepository
       ),
     );
   }
+
+  @override
+  Future<void> flushPending({required String userId}) async {}
 }
 
 class FirestoreMatchpointSwipeCommandRepository
@@ -73,16 +79,21 @@ class FirestoreMatchpointSwipeCommandRepository
 
   final FirebaseFirestore _firestore;
   final LegacyMatchpointSwipeCommandRepository _fallbackRepository;
+  final MatchpointSwipeOutboxStore _outboxStore;
   final Uuid _uuid;
   final bool? _enableCompletionListenerOverride;
+  final bool? _bypassImmediateSubmissionOverride;
 
   FirestoreMatchpointSwipeCommandRepository(
     this._firestore,
+    this._outboxStore,
     this._fallbackRepository, {
     Uuid? uuid,
     bool? enableCompletionListenerOverride,
+    bool? bypassImmediateSubmissionOverride,
   }) : _uuid = uuid ?? const Uuid(),
-       _enableCompletionListenerOverride = enableCompletionListenerOverride;
+       _enableCompletionListenerOverride = enableCompletionListenerOverride,
+       _bypassImmediateSubmissionOverride = bypassImmediateSubmissionOverride;
 
   CollectionReference<Map<String, dynamic>> get _commands =>
       _firestore.collection(FirestoreCollections.matchpointCommands);
@@ -96,25 +107,32 @@ class FirestoreMatchpointSwipeCommandRepository
     return !(isReleaseMode && !isWeb && resolvedPlatform == TargetPlatform.iOS);
   }
 
+  static bool shouldBypassImmediateSubmission({
+    bool isReleaseMode = kReleaseMode,
+    bool isWeb = kIsWeb,
+    TargetPlatform? platform,
+  }) {
+    final resolvedPlatform = platform ?? defaultTargetPlatform;
+    return isReleaseMode && !isWeb && resolvedPlatform == TargetPlatform.iOS;
+  }
+
   bool get _shouldListenForCommandCompletion =>
       _enableCompletionListenerOverride ?? shouldListenForCommandCompletion();
+
+  bool get _shouldBypassImmediateSubmission =>
+      _bypassImmediateSubmissionOverride ?? shouldBypassImmediateSubmission();
 
   @override
   FutureResult<MatchpointSwipeCommandResult> submit(
     MatchpointSwipeCommand command,
   ) async {
     final commandId = _resolveCommandId(command);
+    if (_shouldBypassImmediateSubmission) {
+      return _enqueueLocally(command, commandId: commandId);
+    }
+
     try {
-      await _commands.doc(commandId).set({
-        'user_id': command.sourceUserId,
-        'target_user_id': command.targetUserId,
-        'action': command.action.value,
-        'status': 'pending',
-        'client_created_at': Timestamp.fromDate(command.createdAt),
-        'idempotency_key': command.idempotencyKey ?? commandId,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
+      await _submitToFirestore(command, commandId: commandId);
 
       return Right(
         MatchpointSwipeCommandResult(
@@ -140,6 +158,48 @@ class FirestoreMatchpointSwipeCommandRepository
         false,
       );
       return _fallbackRepository.submit(command);
+    }
+  }
+
+  FutureResult<MatchpointSwipeCommandResult> _enqueueLocally(
+    MatchpointSwipeCommand command, {
+    required String commandId,
+  }) async {
+    try {
+      await _outboxStore.enqueue(
+        userId: command.sourceUserId,
+        entry: PersistedMatchpointSwipeCommand(
+          commandId: commandId,
+          command: command.copyWith(idempotencyKey: commandId),
+        ),
+      );
+
+      AppLogger.info(
+        'MatchPoint swipe stored in local outbox: action=${command.action.value} '
+        'target=${command.targetUserId} commandId=$commandId',
+      );
+      return Right(
+        MatchpointSwipeCommandResult(
+          targetUserId: command.targetUserId,
+          action: command.action,
+          status: MatchpointSwipeCommandStatus.accepted,
+          commandId: commandId,
+        ),
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to store MatchPoint swipe in local outbox.',
+        error,
+        stackTrace,
+        false,
+      );
+      return Left(
+        ServerFailure(
+          message:
+              'Nao foi possivel registrar sua acao agora. Tente novamente.',
+          originalError: error,
+        ),
+      );
     }
   }
 
@@ -191,12 +251,61 @@ class FirestoreMatchpointSwipeCommandRepository
     }
   }
 
+  @override
+  Future<void> flushPending({required String userId}) async {
+    final pendingCommands = await _outboxStore.load(userId);
+    if (pendingCommands.isEmpty) return;
+
+    AppLogger.info(
+      'MatchPoint outbox pending flush count=${pendingCommands.length} uid=$userId',
+    );
+
+    for (final entry in pendingCommands) {
+      try {
+        await _submitToFirestore(entry.command, commandId: entry.commandId);
+        await _outboxStore.remove(userId: userId, commandId: entry.commandId);
+      } on FirebaseException catch (error, stackTrace) {
+        AppLogger.warning(
+          'Failed to flush MatchPoint outbox command to Firestore.',
+          error,
+          stackTrace,
+          false,
+        );
+        return;
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Unexpected error while flushing MatchPoint outbox command.',
+          error,
+          stackTrace,
+          false,
+        );
+        return;
+      }
+    }
+  }
+
   String _resolveCommandId(MatchpointSwipeCommand command) {
     final explicitId = command.idempotencyKey?.trim();
     if (explicitId != null && explicitId.isNotEmpty) {
       return explicitId;
     }
     return _uuid.v4();
+  }
+
+  Future<void> _submitToFirestore(
+    MatchpointSwipeCommand command, {
+    required String commandId,
+  }) {
+    return _commands.doc(commandId).set({
+      'user_id': command.sourceUserId,
+      'target_user_id': command.targetUserId,
+      'action': command.action.value,
+      'status': 'pending',
+      'client_created_at': Timestamp.fromDate(command.createdAt),
+      'idempotency_key': command.idempotencyKey ?? commandId,
+      'created_at': FieldValue.serverTimestamp(),
+      'updated_at': FieldValue.serverTimestamp(),
+    });
   }
 
   Either<Failure, MatchpointSwipeCommandResult>? _parseSnapshot(
@@ -310,6 +419,7 @@ final matchpointSwipeCommandRepositoryProvider =
 
       return FirestoreMatchpointSwipeCommandRepository(
         ref.read(firebaseFirestoreProvider),
+        ref.read(matchpointSwipeOutboxStoreProvider),
         legacyRepository,
       );
     });

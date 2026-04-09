@@ -5,6 +5,17 @@ extension _MubeAppPromptDispatch on _MubeAppState {
     final currentPath = _currentAppPath;
     if (currentPath == RoutePaths.splash) return;
 
+    final outboxCoordinator = ref.read(
+      matchpointSwipeOutboxCoordinatorProvider,
+    );
+    if (_isMatchpointRoute(currentPath)) {
+      outboxCoordinator.cancelScheduledFlush(
+        reason: 'matchpoint_route_active:$currentPath',
+      );
+    } else {
+      outboxCoordinator.scheduleFlush(reason: 'route_changed:$currentPath');
+    }
+
     if (!_hasReleasedInitialRoute) {
       _hasReleasedInitialRoute = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {

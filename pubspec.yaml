@@ -1,7 +1,7 @@
 name: mube
 description: "Mube - Conectando Músicos" # matchpoint iOS crash fix
 publish_to: 'none'
-version: 1.6.30+178
+version: 1.6.31+179
 
 # Scripts úteis para build
 # Para gerar um build de release Android:

@@ -45,6 +45,11 @@ extension _MubeAppSessionEffects on _MubeAppState {
           _handleGigReviewReminderSession(user);
           _handleStoreReviewSession(user);
           _handlePushBootstrapForAuthState(user);
+          if (user != null && !_isMatchpointRoute(_currentAppPath)) {
+            ref
+                .read(matchpointSwipeOutboxCoordinatorProvider)
+                .scheduleFlush(reason: 'auth_state_logged_in');
+          }
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
             ref.read(accountDeletionInProgressProvider.notifier).clear();
           }
