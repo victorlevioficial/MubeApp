@@ -62,6 +62,14 @@
         "destination": "/termosdeuso/index.html"
       },
       {
+        "source": "/segurancainfantil",
+        "destination": "/segurancainfantil/index.html"
+      },
+      {
+        "source": "/childsafety",
+        "destination": "/segurancainfantil/index.html"
+      },
+      {
         "source": "/admin",
         "destination": "/admin/index.html"
       },
