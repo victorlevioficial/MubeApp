@@ -15,9 +15,13 @@ part 'profile_controller.g.dart';
 
 @Riverpod(keepAlive: true)
 class ProfileController extends _$ProfileController {
+  /// Identifies which operation is running: 'update', 'image', 'delete', or null.
+  String? get activeOperation => _activeOperation;
+  String? _activeOperation;
+
   @override
   FutureOr<void> build() {
-    // No initial state to load beyond what's passed or available in auth
+    _activeOperation = null;
   }
 
   Future<void> updateProfile({
@@ -34,6 +38,7 @@ class ProfileController extends _$ProfileController {
         );
       }
     }
+    _activeOperation = 'update';
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
@@ -89,6 +94,7 @@ class ProfileController extends _$ProfileController {
         return null;
       });
     });
+    _activeOperation = null;
   }
 
   Future<void> updateProfileImage({
@@ -99,6 +105,7 @@ class ProfileController extends _$ProfileController {
     final authRepo = ref.read(authRepositoryProvider);
     final moderationTest = ref.read(contentModerationServiceProvider);
 
+    _activeOperation = 'image';
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
@@ -151,15 +158,18 @@ class ProfileController extends _$ProfileController {
       );
       return;
     });
+    _activeOperation = null;
   }
 
   Future<void> deleteProfile() async {
     final authRepo = ref.read(authRepositoryProvider);
+    _activeOperation = 'delete';
     state = const AsyncValue.loading();
 
     state = await AsyncValue.guard(() async {
       final result = await authRepo.deleteAccount();
       result.fold((failure) => throw failure.message, (_) => null);
     });
+    _activeOperation = null;
   }
 }

@@ -21,10 +21,17 @@ class CreateGigSubmissionResult {
 
 @riverpod
 class CreateGigController extends _$CreateGigController {
+  /// Identifies which operation is running: 'submit' or 'update', null when idle.
+  String? get activeOperation => _activeOperation;
+  String? _activeOperation;
+
   @override
-  FutureOr<void> build() {}
+  FutureOr<void> build() {
+    _activeOperation = null;
+  }
 
   Future<CreateGigSubmissionResult> submitDraft(GigDraft draft) async {
+    _activeOperation = 'submit';
     state = const AsyncLoading();
 
     try {
@@ -42,18 +49,21 @@ class CreateGigController extends _$CreateGigController {
             .read(storeReviewServiceProvider)
             .recordTrigger(StoreReviewTrigger.firstGigCreated);
       }
+      _activeOperation = null;
       state = const AsyncData(null);
       return CreateGigSubmissionResult(
         gigId: gigId,
         isFirstGigForCurrentUser: isFirstGigForCurrentUser,
       );
     } catch (error, stackTrace) {
+      _activeOperation = null;
       state = AsyncError(error, stackTrace);
       rethrow;
     }
   }
 
   Future<void> updateDraft(String gigId, GigUpdate update) async {
+    _activeOperation = 'update';
     state = const AsyncLoading();
     try {
       await GigSessionGuard.run(
@@ -61,8 +71,10 @@ class CreateGigController extends _$CreateGigController {
         operationLabel: 'create_gig_update',
         action: () => ref.read(gigRepositoryProvider).updateGig(gigId, update),
       );
+      _activeOperation = null;
       state = const AsyncData(null);
     } catch (error, stackTrace) {
+      _activeOperation = null;
       state = AsyncError(error, stackTrace);
       rethrow;
     }

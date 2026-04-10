@@ -87,15 +87,19 @@ class _GigDetailScreenState extends ConsumerState<GigDetailScreen> {
       final creatorsById = creatorAsync.asData?.value;
       final creator = creatorsById?[gig.creatorId];
       final config = appConfigAsync.asData?.value;
-      final authUserAsync = ref.watch(authStateChangesProvider);
-      final currentUserId = authUserAsync.asData?.value?.uid;
+      final currentUserId = ref.watch(
+        authStateChangesProvider.select((async) => async.asData?.value?.uid),
+      );
       final isCreator = currentUserId == gig.creatorId;
       final myApplicationAsync = currentUserId == null || isCreator
           ? const AsyncData<GigApplication?>(null)
           : ref.watch(myGigApplicationProvider(gig.id));
       final myApplication = myApplicationAsync.asData?.value;
       final hasPendingDependencies =
-          (currentUserId == null && authUserAsync.isLoading) ||
+          (currentUserId == null &&
+              ref.watch(
+                authStateChangesProvider.select((async) => async.isLoading),
+              )) ||
           (creatorsById == null && creatorAsync.isLoading) ||
           (config == null && appConfigAsync.isLoading) ||
           (!isCreator &&

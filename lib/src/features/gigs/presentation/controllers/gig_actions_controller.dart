@@ -17,8 +17,15 @@ part 'gig_actions_controller.g.dart';
 
 @Riverpod(keepAlive: true)
 class GigActionsController extends _$GigActionsController {
+  /// Label of the currently executing action, or null if idle.
+  /// Use to show per-button loading indicators in UI.
+  String? get activeAction => _activeAction;
+  String? _activeAction;
+
   @override
-  FutureOr<void> build() {}
+  FutureOr<void> build() {
+    _activeAction = null;
+  }
 
   Future<void> applyToGig(String gigId, String message) async {
     await _runGigAction(
@@ -59,6 +66,7 @@ class GigActionsController extends _$GigActionsController {
     required String operationLabel,
     required Future<void> Function(GigRepository repository) action,
   }) async {
+    _activeAction = operationLabel;
     state = const AsyncLoading();
 
     try {
@@ -68,9 +76,11 @@ class GigActionsController extends _$GigActionsController {
         action: () => action(ref.read(gigRepositoryProvider)),
       );
       if (!ref.mounted) return;
+      _activeAction = null;
       state = const AsyncData(null);
     } catch (error, stackTrace) {
       if (ref.mounted) {
+        _activeAction = null;
         state = AsyncError(error, stackTrace);
       }
       rethrow;
