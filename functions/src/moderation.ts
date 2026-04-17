@@ -11,11 +11,19 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
+import {
+  buildUtcDayKey,
+  isDailyLimitExceeded,
+  REPORT_DAILY_LIMIT,
+  startOfUtcDay,
+} from "./rate_limits";
+
 const db = admin.firestore();
 
 const REPORT_THRESHOLD_SUSPENSION = 3;
 const SUSPENSION_DURATION_DAYS = 7;
 const SUSPENSION_ESCALATION_MULTIPLIER = 2;
+const VALID_REPORTED_ITEM_TYPES = ["user", "message", "post", "band"];
 
 type ReportData = Record<string, unknown>;
 
@@ -36,6 +44,8 @@ export const onReportCreated = onDocumentCreated(
     const reportId = event.params.reportId as string;
     const reportedItemType = getStringField(reportData, "reported_item_type");
     const reportedItemId = getStringField(reportData, "reported_item_id");
+    const reporterUserId = getStringField(reportData, "reporter_user_id");
+    const now = Timestamp.now();
 
     console.log("Processando denúncia", {
       type: reportedItemType,
@@ -47,14 +57,30 @@ export const onReportCreated = onDocumentCreated(
         console.log(`Denúncia ${reportId} inválida, ignorando`);
         await snapshot.ref.update({
           status: "invalid",
-          processed_at: Timestamp.now(),
+          processed_at: now,
         });
         return;
       }
 
+      if (reporterUserId != null) {
+        const dailyReportCount = await getReporterDailyReportCount(
+          reporterUserId,
+          now
+        );
+        if (shouldRateLimitReportCount(dailyReportCount)) {
+          await snapshot.ref.update({
+            status: "rate_limited",
+            processed_at: now,
+            rate_limit_count: dailyReportCount,
+            rate_limit_day_key: buildUtcDayKey(now.toDate()),
+          });
+          return;
+        }
+      }
+
       await snapshot.ref.update({
         status: "processing",
-        processing_started_at: Timestamp.now(),
+        processing_started_at: now,
       });
 
       switch (reportedItemType) {
@@ -78,7 +104,7 @@ export const onReportCreated = onDocumentCreated(
 
       await snapshot.ref.update({
         status: "processed",
-        processed_at: Timestamp.now(),
+        processed_at: now,
       });
     } catch (error) {
       console.error(`Erro ao processar denúncia ${reportId}:`, error);
@@ -88,7 +114,7 @@ export const onReportCreated = onDocumentCreated(
         error_message: error instanceof Error ?
           error.message :
           "Erro desconhecido",
-        processed_at: Timestamp.now(),
+        processed_at: now,
       });
     }
   }
@@ -100,17 +126,34 @@ export const onReportCreated = onDocumentCreated(
  * @param {Object} data - Documento da denúncia
  * @return {boolean} resultado da validação
  */
-function isValidReport(data: ReportData): boolean {
+export function isValidReport(data: ReportData): boolean {
   const reportedItemId = getStringField(data, "reported_item_id");
   const reportedItemType = getStringField(data, "reported_item_type");
   const reporterUserId = getStringField(data, "reporter_user_id");
   const reason = getStringField(data, "reason");
+  const normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
   if (!reportedItemId || !reportedItemType || !reporterUserId || !reason) {
     return false;
   }
 
+  if (!VALID_REPORTED_ITEM_TYPES.includes(reportedItemType)) {
+    return false;
+  }
+
+  if (normalizedReason.length < 3 || normalizedReason.length > 1000) {
+    return false;
+  }
+
+  if (reportedItemType == "message" && !getConversationId(data)) {
+    return false;
+  }
+
   return reportedItemId !== reporterUserId;
+}
+
+export function shouldRateLimitReportCount(count: number): boolean {
+  return isDailyLimitExceeded(count, REPORT_DAILY_LIMIT);
 }
 
 /**
@@ -413,4 +456,19 @@ function getConversationId(reportData: ReportData): string | null {
   const contextRecord = context as Record<string, unknown>;
   const conversationId = contextRecord.conversation_id;
   return typeof conversationId === "string" ? conversationId : null;
+}
+
+async function getReporterDailyReportCount(
+  reporterUserId: string,
+  now: Timestamp
+): Promise<number> {
+  const dayStart = Timestamp.fromDate(startOfUtcDay(now.toDate()));
+  const countSnapshot = await db
+    .collection("reports")
+    .where("reporter_user_id", "==", reporterUserId)
+    .where("created_at", ">=", dayStart)
+    .count()
+    .get();
+
+  return countSnapshot.data().count || 0;
 }

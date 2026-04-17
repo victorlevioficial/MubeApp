@@ -527,6 +527,24 @@
                                    ]
                     },
                     {
+                        "collectionGroup":  "reports",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "reporter_user_id",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "created_at",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "__name__",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
                         "collectionGroup":  "suspensions",
                         "queryScope":  "COLLECTION",
                         "fields":  [
