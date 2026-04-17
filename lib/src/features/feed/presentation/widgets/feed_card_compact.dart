@@ -29,10 +29,12 @@ class FeedCardCompact extends StatelessWidget {
                   ? constraints.maxHeight
                   : 160.0;
               final avatarSize = (maxHeight - 56).clamp(84.0, 96.0);
-              final nameSpacing =
-                  maxHeight < 156 ? AppSpacing.s4 : AppSpacing.s8;
-              final metaSpacing =
-                  maxHeight < 156 ? AppSpacing.s2 : AppSpacing.s4;
+              final nameSpacing = maxHeight < 156
+                  ? AppSpacing.s4
+                  : AppSpacing.s8;
+              final metaSpacing = maxHeight < 156
+                  ? AppSpacing.s2
+                  : AppSpacing.s4;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.center,

@@ -67,9 +67,7 @@ class AppLoadingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final indicatorColor = color ?? AppColors.primary;
-    final resolvedLabel = semanticLabel ??
-        message ??
-        'Carregando';
+    final resolvedLabel = semanticLabel ?? message ?? 'Carregando';
 
     return Semantics(
       liveRegion: true,

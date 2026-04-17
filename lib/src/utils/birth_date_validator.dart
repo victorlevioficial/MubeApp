@@ -23,9 +23,7 @@ abstract final class BirthDateValidator {
     if (day < 1 || day > 31) return null;
 
     final parsed = DateTime(year, month, day);
-    if (parsed.year != year ||
-        parsed.month != month ||
-        parsed.day != day) {
+    if (parsed.year != year || parsed.month != month || parsed.day != day) {
       return null;
     }
     return parsed;

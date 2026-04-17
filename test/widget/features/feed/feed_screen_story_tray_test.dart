@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
@@ -22,6 +23,7 @@ import 'package:mube/src/features/stories/domain/story_tray_bundle.dart';
 import 'package:mube/src/features/stories/presentation/controllers/story_tray_controller.dart';
 import 'package:mube/src/features/stories/presentation/widgets/story_tray.dart';
 import 'package:mube/src/routing/route_paths.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/test_fakes.dart';
 
@@ -113,6 +115,8 @@ void main() {
   late AppUser currentUser;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+
     _trackedStoryTrayRefreshCalls = 0;
     fakeAuthRepository = FakeAuthRepository();
     fakeFavoriteRepository = FakeFavoriteRepository();
@@ -160,6 +164,10 @@ void main() {
         ),
         invitesRepositoryProvider.overrideWithValue(fakeInvitesRepository),
         blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
+        isOnlineProvider.overrideWith((ref) => true),
         homeGigsPreviewProvider.overrideWith((ref) => Stream.value(const [])),
         currentUserPendingStoriesProvider.overrideWith(
           (ref) async => _pendingStories,
@@ -235,6 +243,10 @@ void main() {
         ),
         invitesRepositoryProvider.overrideWithValue(fakeInvitesRepository),
         blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
+        isOnlineProvider.overrideWith((ref) => true),
         homeGigsPreviewProvider.overrideWith((ref) => Stream.value(const [])),
         currentUserPendingStoriesProvider.overrideWith(
           (ref) async => _pendingStories,

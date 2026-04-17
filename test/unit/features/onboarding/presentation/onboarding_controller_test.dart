@@ -185,7 +185,8 @@ void main() {
           expect(
             fakeAuthRepository.lastCompletedOnboardingUser,
             same(updatedUser),
-            reason: 'band onboarding must use completeOnboardingProfile '
+            reason:
+                'band onboarding must use completeOnboardingProfile '
                 'so the rascunho status survives the data-source layer.',
           );
         },

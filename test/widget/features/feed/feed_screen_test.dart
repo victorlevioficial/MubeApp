@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/design_system/components/feedback/empty_state_widget.dart';
 import 'package:mube/src/design_system/components/loading/app_skeleton.dart'
     show SkeletonShimmer;
@@ -25,9 +26,11 @@ import 'package:mube/src/features/gigs/domain/gig_status.dart';
 import 'package:mube/src/features/gigs/domain/gig_type.dart';
 import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
+import 'package:mube/src/features/moderation/data/blocked_users_provider.dart';
 import 'package:mube/src/features/notifications/data/notification_repository.dart';
 import 'package:mube/src/routing/route_paths.dart';
 import 'package:network_image_mock/network_image_mock.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/test_fakes.dart';
 
@@ -40,6 +43,8 @@ void main() {
   late FakeNotificationRepository fakeNotificationRepository;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+
     fakePrecacheService = FakeFeedImagePrecacheService();
     fakeFavoriteRepository = FakeFavoriteRepository();
     fakeFeedRepository = FakeFeedRepository();
@@ -81,6 +86,11 @@ void main() {
         notificationRepositoryProvider.overrideWithValue(
           fakeNotificationRepository,
         ),
+        blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
+        isOnlineProvider.overrideWith((ref) => true),
         ...additionalOverrides,
       ],
       child: const MaterialApp(home: FeedScreen()),
@@ -113,6 +123,11 @@ void main() {
         notificationRepositoryProvider.overrideWithValue(
           fakeNotificationRepository,
         ),
+        blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
+        isOnlineProvider.overrideWith((ref) => true),
         ...additionalOverrides,
       ],
       child: MaterialApp.router(routerConfig: router),

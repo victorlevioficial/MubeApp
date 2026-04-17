@@ -148,7 +148,8 @@ extension _ChatScreenWidgets on _ChatScreenState {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (dateLabel != null) _DaySeparator(label: dateLabel),
+                            if (dateLabel != null)
+                              _DaySeparator(label: dateLabel),
                             _MessageBubble(
                               message: message,
                               isMe: isMe,
@@ -486,7 +487,9 @@ class _PendingRequestCard extends StatelessWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check_rounded),
-                label: Text(isAccepting ? 'Aceitando...' : 'Aceitar solicitacao'),
+                label: Text(
+                  isAccepting ? 'Aceitando...' : 'Aceitar solicitacao',
+                ),
               ),
             ),
           ],
@@ -682,8 +685,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                           children: [
                             if (showReplyPreview)
                               _BubbleReplyPreview(
-                                authorLabel: widget.replyAuthorLabel ??
-                                    'Mensagem',
+                                authorLabel:
+                                    widget.replyAuthorLabel ?? 'Mensagem',
                                 text: widget.message.replyToText!,
                                 isMe: widget.isMe,
                               ),
@@ -721,7 +724,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                     )
                                   else
                                     Icon(
-                                      widget.isRead ? Icons.done_all : Icons.done,
+                                      widget.isRead
+                                          ? Icons.done_all
+                                          : Icons.done,
                                       size: 14,
                                       color: widget.isRead
                                           ? AppColors.textPrimary
@@ -749,10 +754,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
   String _buildSemanticLabel(bool showReplyPreview) {
     final segments = <String>[
       widget.isMe ? 'Sua mensagem' : 'Mensagem recebida',
-      if (widget.isPending) 'pendente de envio' else if (widget.isMe)
-        widget.isRead
-            ? 'lida'
-            : 'enviada',
+      if (widget.isPending)
+        'pendente de envio'
+      else if (widget.isMe)
+        widget.isRead ? 'lida' : 'enviada',
       if (showReplyPreview)
         'respondendo a ${widget.replyAuthorLabel ?? 'mensagem anterior'}',
       widget.message.text,
@@ -887,8 +892,10 @@ class _DaySeparator extends StatelessWidget {
       header: true,
       label: label,
       child: Padding(
-        padding:
-            const EdgeInsets.only(bottom: AppSpacing.s8, top: AppSpacing.s8),
+        padding: const EdgeInsets.only(
+          bottom: AppSpacing.s8,
+          top: AppSpacing.s8,
+        ),
         child: Center(
           child: Container(
             padding: const EdgeInsets.symmetric(
