@@ -149,35 +149,35 @@ extension _OnboardingProfessionalFlowActions
   }
 
   bool _validateAge() {
-    final dobText = _dataNascimentoController.text;
-    if (dobText.isEmpty) return true;
-
-    try {
-      final parts = dobText.split('/');
-      final day = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-      final dob = DateTime(year, month, day);
-      final today = DateTime.now();
-
-      int age = today.year - dob.year;
-      if (today.month < dob.month ||
-          (today.month == dob.month && today.day < dob.day)) {
-        age--;
-      }
-
-      if (age < 18) {
-        AppSnackBar.show(
-          context,
-          'É necessário ser maior de 18 anos para se cadastrar.',
-          isError: true,
-        );
-        return false;
-      }
-      return true;
-    } catch (e) {
+    final dobText = _dataNascimentoController.text.trim();
+    if (dobText.isEmpty) {
+      AppSnackBar.show(
+        context,
+        'Informe sua data de nascimento.',
+        isError: true,
+      );
       return false;
     }
+
+    final dob = BirthDateValidator.parseStrict(dobText);
+    if (dob == null) {
+      AppSnackBar.show(
+        context,
+        'Data de nascimento inválida. Use o formato dd/mm/aaaa.',
+        isError: true,
+      );
+      return false;
+    }
+
+    if (!BirthDateValidator.isAdult(dob)) {
+      AppSnackBar.show(
+        context,
+        'É necessário ser maior de 18 anos para se cadastrar.',
+        isError: true,
+      );
+      return false;
+    }
+    return true;
   }
 
   bool get _isStep3Valid {
@@ -200,11 +200,20 @@ extension _OnboardingProfessionalFlowActions
   }
 
   Future<void> _finishOnboarding() async {
-    final appConfigAsync = ref.read(appConfigProvider);
-    final appConfig = appConfigAsync.value;
+    AppConfig appConfig;
+    try {
+      appConfig = await ref.read(appConfigProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.show(
+        context,
+        'Não foi possível carregar as opções de gêneros e instrumentos. '
+        'Tente novamente em instantes.',
+        isError: true,
+      );
+      return;
+    }
 
-    List<String> genreIds = _selectedGenres;
-    List<String> instrumentIds = _selectedInstruments;
     final roleIds = _selectedRoles
         .where(
           (roleId) =>
@@ -212,25 +221,23 @@ extension _OnboardingProfessionalFlowActions
         )
         .toList(growable: false);
 
-    if (appConfig != null) {
-      genreIds = _selectedGenres.map((label) {
-        return appConfig.genres
-            .firstWhere(
-              (g) => g.label == label,
-              orElse: () => ConfigItem(id: label, label: label, order: 0),
-            )
-            .id;
-      }).toList();
+    final genreIds = _selectedGenres.map((label) {
+      return appConfig.genres
+          .firstWhere(
+            (g) => g.label == label,
+            orElse: () => ConfigItem(id: label, label: label, order: 0),
+          )
+          .id;
+    }).toList();
 
-      instrumentIds = _selectedInstruments.map((label) {
-        return appConfig.instruments
-            .firstWhere(
-              (i) => i.label == label,
-              orElse: () => ConfigItem(id: label, label: label, order: 0),
-            )
-            .id;
-      }).toList();
-    }
+    final instrumentIds = _selectedInstruments.map((label) {
+      return appConfig.instruments
+          .firstWhere(
+            (i) => i.label == label,
+            orElse: () => ConfigItem(id: label, label: label, order: 0),
+          )
+          .id;
+    }).toList();
 
     final Map<String, dynamic> professionalData = {
       'nomeArtistico': _nomeArtisticoController.text.trim(),

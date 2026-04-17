@@ -247,6 +247,23 @@ class AuthRepository {
     }
   }
 
+  /// Persists the final onboarding write so the new user document
+  /// transitions to `cadastro_status: 'concluido'` while explicitly
+  /// setting the initial account `status` ('ativo' for non-band
+  /// profiles, 'rascunho' for bands). Account-status writes are
+  /// blocked outside this dedicated path; the Firestore Rules also
+  /// validate the transition server-side.
+  FutureResult<Unit> completeOnboardingProfile(AppUser user) async {
+    try {
+      await _dataSource.completeOnboardingProfile(user);
+      return const Right(unit);
+    } catch (e) {
+      return Left(
+        ServerFailure(message: _readableErrorMessage(e), originalError: e),
+      );
+    }
+  }
+
   FutureResult<Unit> deleteAccount() async {
     try {
       final uid = currentUser?.uid;

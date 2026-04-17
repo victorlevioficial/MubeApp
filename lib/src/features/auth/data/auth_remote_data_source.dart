@@ -24,6 +24,12 @@ abstract class AuthRemoteDataSource {
   Future<UserCredential> signInWithApple();
   Future<void> saveUserProfile(AppUser user);
   Future<void> updateUserProfile(AppUser user);
+
+  /// Persists the final onboarding write that flips
+  /// `cadastro_status` to `concluido` and assigns the initial
+  /// account `status` ('ativo' or 'rascunho' for bands). The
+  /// server-side rules validate that this transition is legal.
+  Future<void> completeOnboardingProfile(AppUser user);
   Future<String> updatePublicUsername(String username);
   Future<AppUser?> fetchUserProfile(String uid);
   Future<AppUser?> fetchUserProfileByUsername(String username);
@@ -226,6 +232,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> completeOnboardingProfile(AppUser user) async {
+    final data = _prepareUserData(
+      user,
+      forUpdate: true,
+      allowAccountStatus: true,
+    );
+    await _firestore
+        .collection(FirestoreCollections.users)
+        .doc(user.uid)
+        .set(data, SetOptions(merge: true));
+  }
+
+  @override
   Future<String> updatePublicUsername(String username) async {
     final normalizedUsername = normalizedPublicUsernameOrNull(username);
     if (normalizedUsername == null) {
@@ -285,16 +304,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
-  /// Prepara os dados do usuário adicionando geohash automaticamente
+  /// Prepara os dados do usuário adicionando geohash automaticamente.
+  ///
+  /// Quando [allowAccountStatus] é true, o campo `status` é preservado
+  /// para que a transição final do onboarding (perfil_pendente ->
+  /// concluido) possa atribuir 'ativo' ou 'rascunho'. As Firestore Rules
+  /// continuam sendo a fonte de verdade que valida a transição.
   Map<String, dynamic> _prepareUserData(
     AppUser user, {
     bool forCreate = false,
     bool forUpdate = false,
+    bool allowAccountStatus = false,
   }) {
     final data = user.toFirestore();
 
     if (forCreate || forUpdate) {
       for (final key in _blockedClientUpdateKeys) {
+        if (allowAccountStatus && key == 'status') continue;
         data.remove(key);
       }
       // Avoid noisy writes/denied updates for null fields.

@@ -19,6 +19,7 @@ import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/birth_date_validator.dart';
 import '../../../../utils/category_normalizer.dart';
 import '../../../../utils/instagram_utils.dart';
 import '../../../../utils/professional_profile_utils.dart';

@@ -89,7 +89,7 @@ class OnboardingController extends _$OnboardingController {
 
       final result = await ref
           .read(authRepositoryProvider)
-          .updateUser(updatedUser);
+          .completeOnboardingProfile(updatedUser);
       result.fold((l) => throw l, (r) => null);
       await ref.read(onboardingFormProvider.notifier).clearState();
     });
