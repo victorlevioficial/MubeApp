@@ -335,17 +335,10 @@ class ProfileScreen extends ConsumerWidget {
     AppUser user,
     String Function(String) formatter,
   ) {
-    final profissional = user.dadosProfissional;
-    final categorias = profileStringList(profissional?['categorias']);
-    final instrumentos = instrumentDisplayLabels(
-      profileStringList(profissional?['instrumentos']),
-    );
-    final generos = genreDisplayLabels(
-      profileStringList(profissional?['generosMusicais']),
-    );
-    final funcoes = professionalRoleDisplayLabels(
-      profileStringList(profissional?['funcoes']),
-    );
+    final categorias = user.professionalCategories;
+    final instrumentos = instrumentDisplayLabels(user.professionalInstruments);
+    final generos = genreDisplayLabels(user.professionalGenres);
+    final funcoes = professionalRoleDisplayLabels(user.professionalRoles);
 
     final displayCategorias = categorias.map(formatter).toList();
 
@@ -397,17 +390,14 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildContractorDetails(AppUser user) {
-    final contratante = user.dadosContratante;
-    final instagram = contratante?['instagram'] as String?;
-    final genero = contratante?['genero'] as String?;
+    final instagram = user.profileInstagram;
+    final genero = user.profileGender;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (genero != null && genero.isNotEmpty)
-          _buildInfoSection('Gênero', [genero]),
-        if (instagram != null && instagram.isNotEmpty)
-          _buildInfoSection('Instagram', [instagram]),
+        if (genero.isNotEmpty) _buildInfoSection('Gênero', [genero]),
+        if (instagram.isNotEmpty) _buildInfoSection('Instagram', [instagram]),
       ],
     );
   }

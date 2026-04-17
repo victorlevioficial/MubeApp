@@ -30,17 +30,14 @@ class _ProfessionalDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prof = user.dadosProfissional ?? const <String, dynamic>{};
-    final instrumentos = instrumentDisplayLabels(
-      profileStringList(prof['instrumentos']),
+    final professionalData =
+        user.dadosProfissional ?? const <String, dynamic>{};
+    final instrumentos = instrumentDisplayLabels(user.professionalInstruments);
+    final funcoes = professionalRoleDisplayLabels(user.professionalRoles);
+    final generos = genreDisplayLabels(user.professionalGenres);
+    final offersRemoteRecording = professionalOffersRemoteRecording(
+      professionalData,
     );
-    final funcoes = professionalRoleDisplayLabels(
-      profileStringList(prof['funcoes']),
-    );
-    final generos = genreDisplayLabels(
-      profileStringList(prof['generosMusicais']),
-    );
-    final offersRemoteRecording = professionalOffersRemoteRecording(prof);
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
