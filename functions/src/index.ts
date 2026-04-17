@@ -2,6 +2,7 @@ import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 
 import {logChatSafetyEvent} from "./chat_safety";
+import {incrementDailyCounter, MESSAGE_DAILY_LIMIT} from "./rate_limits";
 
 admin.initializeApp();
 
@@ -320,6 +321,31 @@ export const onMessageCreated = onDocumentCreated(
       });
 
       console.log(`✅ Conversation updated for message ${snapshot.id}`);
+
+      const messageRateLimit = await incrementDailyCounter({
+        db,
+        collectionName: "messageDailyCounters",
+        subjectId: senderId,
+        limit: MESSAGE_DAILY_LIMIT,
+      });
+
+      if (messageRateLimit.exceeded) {
+        await snapshot.ref.set({
+          rate_limited: true,
+          moderation_state: "rate_limited",
+          rate_limit_count: messageRateLimit.count,
+          rate_limit_day_key: messageRateLimit.dayKey,
+          updated_at: admin.firestore.Timestamp.now(),
+        }, {merge: true});
+        console.log("⏳ Message effects skipped due to daily rate limit", {
+          conversationId,
+          messageId: snapshot.id,
+          senderId,
+          count: messageRateLimit.count,
+          dayKey: messageRateLimit.dayKey,
+        });
+        return;
+      }
 
       // 2. Upsert notification in Firestore
       // (one per conversation, not per message)

@@ -1224,8 +1224,8 @@ export const listReports = onCall(
   async (request) => {
     assertAdmin(request);
 
-    const status = (request.data?.status as string) || "processed";
-    const limit = Math.min((request.data?.limit as number) || 20, 100);
+    const status = (request.data?.status as string) || "all";
+    const limit = normalizeLimit(request.data?.limit, 20, 100);
 
     let query = db.collection("reports")
       .orderBy("created_at", "desc") as FirebaseFirestore.Query;
@@ -1284,7 +1284,7 @@ export const updateReportStatus = onCall(
     }
 
     const validStatuses = ["pending", "processing", "processed",
-      "rejected", "invalid"];
+      "rejected", "invalid", "rate_limited"];
     if (!validStatuses.includes(newStatus)) {
       throw new HttpsError("invalid-argument", "Status inválido.");
     }
@@ -1441,7 +1441,9 @@ export const listTickets = onCall(
     assertAdmin(request);
 
     const statusFilter = (request.data?.status as string) || "all";
-    const limit = Math.min((request.data?.limit as number) || 20, 100);
+    const limit = normalizeLimit(request.data?.limit, 20, 100);
+    const cursor = asRecord(request.data?.cursor);
+    const cursorId = firstNonEmptyString([request.data?.cursor, cursor.id]);
 
     let query = db.collection("tickets")
       .orderBy("createdAt", "desc") as FirebaseFirestore.Query;
@@ -1450,8 +1452,17 @@ export const listTickets = onCall(
       query = query.where("status", "==", statusFilter);
     }
 
-    const snap = await query.limit(limit).get();
-    const tickets = snap.docs.map((doc) => {
+    if (cursorId) {
+      const cursorDoc = await db.collection("tickets").doc(cursorId).get();
+      if (cursorDoc.exists) {
+        query = query.startAfter(cursorDoc);
+      }
+    }
+
+    const snap = await query.limit(limit + 1).get();
+    const hasMore = snap.docs.length > limit;
+    const pageDocs = hasMore ? snap.docs.slice(0, limit) : snap.docs;
+    const tickets = pageDocs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -1471,7 +1482,14 @@ export const listTickets = onCall(
       };
     });
 
-    return { tickets, total: tickets.length };
+    return {
+      tickets,
+      total: tickets.length,
+      hasMore,
+      nextCursor: hasMore && pageDocs.length > 0 ? {
+        id: pageDocs[pageDocs.length - 1].id,
+      } : null,
+    };
   }
 );
 
