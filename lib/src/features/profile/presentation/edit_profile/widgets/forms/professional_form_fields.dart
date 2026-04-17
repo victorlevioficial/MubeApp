@@ -6,6 +6,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../../../constants/app_constants.dart';
+import '../../../../../../core/domain/professional_roles.dart';
 import '../../../../../../core/providers/app_config_provider.dart';
 import '../../../../../../design_system/components/buttons/app_button.dart';
 import '../../../../../../design_system/components/feedback/app_snackbar.dart';
@@ -21,139 +22,6 @@ import '../../../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../../../utils/category_normalizer.dart';
 import '../../../../../../utils/instagram_utils.dart';
 import '../../../../../../utils/professional_profile_utils.dart';
-
-class _RoleOption {
-  final String id;
-  final String label;
-
-  const _RoleOption({required this.id, required this.label});
-}
-
-class _RoleSectionDefinition {
-  final String categoryId;
-  final String title;
-  final String subtitle;
-  final List<_RoleOption> options;
-
-  const _RoleSectionDefinition({
-    required this.categoryId,
-    required this.title,
-    required this.subtitle,
-    required this.options,
-  });
-
-  Map<String, String> get labelById => {
-    for (final option in options) option.id: option.label,
-  };
-}
-
-List<_RoleOption> _buildPlainRoleOptions(List<String> labels) {
-  return labels
-      .map(
-        (label) =>
-            _RoleOption(id: CategoryNormalizer.sanitize(label), label: label),
-      )
-      .toList(growable: false);
-}
-
-List<_RoleOption> _buildPrefixedRoleOptions(
-  String prefix,
-  List<String> labels,
-) {
-  return labels
-      .map(
-        (label) => _RoleOption(
-          id: '${prefix}_${CategoryNormalizer.sanitize(label)}',
-          label: label,
-        ),
-      )
-      .toList(growable: false);
-}
-
-const List<String> _audiovisualRoleLabels = [
-  'Direção de Vídeo',
-  'Captação de Vídeo',
-  'Edição de Vídeo',
-  'Motion Design',
-  'Operação de Câmera',
-  'Streaming ao Vivo',
-];
-
-const List<String> _educationRoleLabels = [
-  'Professor(a)',
-  'Mentor(a)',
-  'Oficineiro(a)',
-  'Palestrante',
-  'Coach Artístico',
-  'Consultor(a)',
-];
-
-const List<String> _luthierRoleLabels = [
-  'Ajuste e Regulagem',
-  'Reparo',
-  'Construção de Instrumentos',
-  'Elétrica e Eletrônica',
-  'Customização',
-  'Encordoamento e Manutenção',
-];
-
-const List<String> _performanceRoleLabels = [
-  'Performer',
-  'Artista de Palco',
-  'Intervenção Cênica',
-  'Dança',
-  'Live Act',
-  'VJ / Visuals',
-];
-
-final List<_RoleSectionDefinition> _roleSections = [
-  _RoleSectionDefinition(
-    categoryId: 'production',
-    title: 'Produção Musical *',
-    subtitle: 'Quais funções de produção você desempenha?',
-    options: _buildPlainRoleOptions(productionRoles),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'stage_tech',
-    title: 'Técnica de Palco *',
-    subtitle: 'Quais funções técnicas de palco você desempenha?',
-    options: _buildPlainRoleOptions(stageTechRoles),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'audiovisual',
-    title: 'Audiovisual *',
-    subtitle: 'Selecione suas funções em vídeo e conteúdo visual',
-    options: _buildPrefixedRoleOptions('audiovisual', _audiovisualRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'education',
-    title: 'Educação *',
-    subtitle: 'Selecione suas funções ligadas a ensino e mentoria',
-    options: _buildPrefixedRoleOptions('education', _educationRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'luthier',
-    title: 'Luthier *',
-    subtitle: 'Selecione suas funções de construção e manutenção',
-    options: _buildPrefixedRoleOptions('luthier', _luthierRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'performance',
-    title: 'Performance *',
-    subtitle: 'Selecione suas funções de presença cênica e live acts',
-    options: _buildPrefixedRoleOptions('performance', _performanceRoleLabels),
-  ),
-];
-
-final Map<String, _RoleSectionDefinition> _roleSectionByCategoryId = {
-  for (final section in _roleSections) section.categoryId: section,
-};
-
-const Set<String> _genreHiddenCategories = {
-  'audiovisual',
-  'education',
-  'luthier',
-};
 
 /// Enhanced Professional Form Fields with modern card-based design.
 /// Matches the onboarding flow UI.
@@ -288,7 +156,7 @@ class _ProfessionalFormFieldsState
   }
 
   bool _roleBelongsToCategory(String roleId, String categoryId) {
-    return _roleSectionByCategoryId[categoryId]?.options.any(
+    return professionalRoleSectionByCategoryId[categoryId]?.options.any(
           (option) => option.id == roleId,
         ) ??
         false;
@@ -317,7 +185,7 @@ class _ProfessionalFormFieldsState
       rawRoles: widget.selectedRoles,
     );
     return resolved.any(
-      (category) => !_genreHiddenCategories.contains(category),
+      (category) => !professionalGenreHiddenCategories.contains(category),
     );
   }
 
@@ -331,7 +199,7 @@ class _ProfessionalFormFieldsState
     widget.onRolesChanged(next);
   }
 
-  Future<void> _showRoleSelector(_RoleSectionDefinition section) async {
+  Future<void> _showRoleSelector(ProfessionalRoleSection section) async {
     final currentRoleIds = _selectedRoleIdsForCategory(section.categoryId);
     final result = await EnhancedMultiSelectModal.show<String>(
       context: context,
@@ -560,7 +428,7 @@ class _ProfessionalFormFieldsState
 
     if (_selectedCategories.contains('production')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['production']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['production']!),
         const SizedBox(height: AppSpacing.s16),
         _buildRemoteRecordingCheckbox(),
         const SizedBox(height: AppSpacing.s48),
@@ -569,35 +437,35 @@ class _ProfessionalFormFieldsState
 
     if (_selectedCategories.contains('stage_tech')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['stage_tech']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['stage_tech']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
 
     if (_selectedCategories.contains('audiovisual')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['audiovisual']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['audiovisual']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
 
     if (_selectedCategories.contains('education')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['education']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['education']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
 
     if (_selectedCategories.contains('luthier')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['luthier']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['luthier']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
 
     if (_selectedCategories.contains('performance')) {
       widgets.addAll([
-        _buildRoleSection(_roleSectionByCategoryId['performance']!),
+        _buildRoleSection(professionalRoleSectionByCategoryId['performance']!),
         const SizedBox(height: AppSpacing.s48),
       ]);
     }
@@ -612,7 +480,7 @@ class _ProfessionalFormFieldsState
     return widgets;
   }
 
-  Widget _buildRoleSection(_RoleSectionDefinition section) {
+  Widget _buildRoleSection(ProfessionalRoleSection section) {
     final selectedIds = _selectedRoleIdsForCategory(section.categoryId);
     final selectedLabels = selectedIds
         .map((id) => section.labelById[id] ?? id)

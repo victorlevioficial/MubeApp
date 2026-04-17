@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/constants/app_constants.dart' as app_constants;
+import 'package:mube/src/core/domain/professional_roles.dart';
 import 'package:mube/src/core/services/analytics/analytics_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -239,6 +240,42 @@ void main() {
       expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
     });
 
+    test('drops genres for audiovisual-only profiles', () async {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['audiovisual']);
+      controller.updateRoles(const ['audiovisual_direcao_de_video']);
+      controller.updateGenres(const ['Rock']);
+
+      await saveProfile();
+
+      final updatedUser = fakeAuthRepository.lastUpdatedUser;
+      expect(updatedUser, isNotNull);
+      expect(updatedUser!.dadosProfissional?['categorias'], ['audiovisual']);
+      expect(updatedUser.dadosProfissional?['generosMusicais'], isEmpty);
+      expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
+
+    test('drops genres for education-only profiles', () async {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['education']);
+      controller.updateRoles(const ['education_coach_artistico']);
+      controller.updateGenres(const ['Rock']);
+
+      await saveProfile();
+
+      final updatedUser = fakeAuthRepository.lastUpdatedUser;
+      expect(updatedUser, isNotNull);
+      expect(updatedUser!.dadosProfissional?['categorias'], ['education']);
+      expect(updatedUser.dadosProfissional?['generosMusicais'], isEmpty);
+      expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
+
     test('keeps genres for performance profiles', () async {
       final controller = container.read(
         editProfileControllerProvider(professionalUser.uid).notifier,
@@ -255,6 +292,173 @@ void main() {
       expect(updatedUser!.dadosProfissional?['categorias'], ['performance']);
       expect(updatedUser.dadosProfissional?['generosMusicais'], ['rock']);
       expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
+
+    test('keeps genres for mixed audiovisual + performance profiles', () async {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['audiovisual', 'performance']);
+      controller.updateRoles(const [
+        'audiovisual_direcao_de_video',
+        'performance_performer',
+      ]);
+      controller.updateGenres(const ['Rock']);
+
+      await saveProfile();
+
+      final updatedUser = fakeAuthRepository.lastUpdatedUser;
+      expect(updatedUser, isNotNull);
+      expect(updatedUser!.dadosProfissional?['categorias'], [
+        'audiovisual',
+        'performance',
+      ]);
+      expect(updatedUser.dadosProfissional?['generosMusicais'], ['Rock']);
+      expect(updatedUser.dadosProfissional?['funcoes'], isNotEmpty);
+    });
+  });
+
+  group('EditProfileController role management (API pública)', () {
+    late FakeAuthRepository fakeAuthRepository;
+    late FakeAnalyticsService fakeAnalyticsService;
+    late ProviderContainer container;
+
+    const professionalUser = AppUser(
+      uid: 'professional-roles-1',
+      email: 'professional@example.com',
+      cadastroStatus: 'concluido',
+      tipoPerfil: AppUserType.professional,
+      nome: 'Professional Roles User',
+      matchpointProfile: {},
+      privacySettings: {},
+      blockedUsers: [],
+      dadosProfissional: {},
+    );
+
+    setUp(() {
+      fakeAuthRepository = FakeAuthRepository();
+      fakeAuthRepository.appUser = professionalUser;
+      fakeAnalyticsService = FakeAnalyticsService();
+
+      container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          analyticsServiceProvider.overrideWithValue(fakeAnalyticsService),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(professionalUser),
+          ),
+        ],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+      fakeAuthRepository.dispose();
+    });
+
+    test('updateCategories([]) prunes previously selected roles', () {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['audiovisual']);
+      controller.updateRoles(const [
+        'audiovisual_direcao_de_video',
+        'audiovisual_captacao_de_video',
+      ]);
+
+      expect(
+        container
+            .read(editProfileControllerProvider(professionalUser.uid))
+            .selectedRoles,
+        const ['audiovisual_direcao_de_video', 'audiovisual_captacao_de_video'],
+      );
+
+      controller.updateCategories(const <String>[]);
+
+      final state = container.read(
+        editProfileControllerProvider(professionalUser.uid),
+      );
+      expect(state.selectedCategories, isEmpty);
+      expect(state.selectedRoles, isEmpty);
+    });
+
+    test('toggleRole normalizes a human label into a prefixed role id', () {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.toggleRole('Direção de Vídeo');
+
+      final state = container.read(
+        editProfileControllerProvider(professionalUser.uid),
+      );
+      expect(state.selectedRoles, contains('audiovisual_direcao_de_video'));
+    });
+  });
+
+  group('EditProfileController.validate (AppUserType.professional)', () {
+    late FakeAuthRepository fakeAuthRepository;
+    late FakeAnalyticsService fakeAnalyticsService;
+    late ProviderContainer container;
+
+    const professionalUser = AppUser(
+      uid: 'professional-validate-1',
+      email: 'professional@example.com',
+      cadastroStatus: 'concluido',
+      tipoPerfil: AppUserType.professional,
+      nome: 'Professional Validate User',
+      matchpointProfile: {},
+      privacySettings: {},
+      blockedUsers: [],
+      dadosProfissional: {},
+    );
+
+    setUp(() {
+      fakeAuthRepository = FakeAuthRepository();
+      fakeAuthRepository.appUser = professionalUser;
+      fakeAnalyticsService = FakeAnalyticsService();
+
+      container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          analyticsServiceProvider.overrideWithValue(fakeAnalyticsService),
+          currentUserProfileProvider.overrideWith(
+            (ref) => Stream.value(professionalUser),
+          ),
+        ],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+      fakeAuthRepository.dispose();
+    });
+
+    for (final categoryId in professionalRoleCategoriesWithSelectors) {
+      test('fails when $categoryId is selected but no role is chosen', () {
+        final controller = container.read(
+          editProfileControllerProvider(professionalUser.uid).notifier,
+        );
+
+        controller.updateCategories(<String>[categoryId]);
+        controller.updateRoles(const <String>[]);
+
+        expect(controller.validate(AppUserType.professional), isFalse);
+      });
+    }
+
+    test('passes when audiovisual category has a valid role and no genre', () {
+      final controller = container.read(
+        editProfileControllerProvider(professionalUser.uid).notifier,
+      );
+
+      controller.updateCategories(const ['audiovisual']);
+      controller.updateRoles(const ['audiovisual_direcao_de_video']);
+      controller.updateGenres(const <String>[]);
+
+      expect(controller.validate(AppUserType.professional), isTrue);
     });
   });
 }
