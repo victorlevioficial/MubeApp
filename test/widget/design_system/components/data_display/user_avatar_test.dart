@@ -5,15 +5,13 @@ import 'package:mube/src/design_system/components/data_display/user_avatar.dart'
 
 void main() {
   group('UserAvatar', () {
-    testWidgets('exposes semantic label for avatars', (WidgetTester tester) async {
+    testWidgets('exposes semantic label for avatars', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: UserAvatar(
-              photoUrl: null,
-              name: 'John Doe',
-              size: 80,
-            ),
+            body: UserAvatar(photoUrl: null, name: 'John Doe', size: 80),
           ),
         ),
       );
