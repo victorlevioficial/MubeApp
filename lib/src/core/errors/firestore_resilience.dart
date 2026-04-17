@@ -7,6 +7,48 @@ import 'failure_mapper.dart';
 
 typedef FirestoreFinalErrorMapper = Object Function(FirebaseException error);
 
+bool isTransientFirestoreCode(String code) {
+  final normalizedCode = code.toLowerCase();
+  return normalizedCode == 'unavailable' ||
+      normalizedCode == 'deadline-exceeded' ||
+      normalizedCode == 'aborted';
+}
+
+class RecoverableFirestoreException implements Exception {
+  const RecoverableFirestoreException({
+    required this.message,
+    this.code,
+    this.originalError,
+  });
+
+  final String message;
+  final String? code;
+  final Object? originalError;
+
+  @override
+  String toString() => message;
+}
+
+Object recoverableFirestoreFinalError(FirebaseException error) {
+  return RecoverableFirestoreException(
+    message: mapExceptionToFailure(error).message,
+    code: error.code,
+    originalError: error,
+  );
+}
+
+bool isRecoverableFirestoreError(Object error) {
+  if (error is RecoverableFirestoreException) {
+    return true;
+  }
+
+  if (error is FirebaseException) {
+    return isTransientFirestoreCode(error.code);
+  }
+
+  return false;
+}
+
 class FirestoreResilience {
   const FirestoreResilience(this._scope);
 
@@ -15,10 +57,7 @@ class FirestoreResilience {
   final String _scope;
 
   bool _isTransientFirestoreError(FirebaseException error) {
-    final code = error.code.toLowerCase();
-    return code == 'unavailable' ||
-        code == 'deadline-exceeded' ||
-        code == 'aborted';
+    return isTransientFirestoreCode(error.code);
   }
 
   Duration _retryDelayForAttempt(int attempt) {
