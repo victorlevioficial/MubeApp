@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/core/providers/connectivity_provider.dart';
+import 'package:mube/src/core/services/offline_mutation_queue.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
 import 'package:mube/src/features/favorites/domain/favorite_state.dart';
 import 'package:mube/src/features/feed/presentation/feed_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -50,6 +53,8 @@ void main() {
   late ProviderContainer container;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+
     fakeAuthRepo = FakeAuthRepository();
     fakeFavRepo = _TestFavoriteRepository();
 
@@ -62,6 +67,10 @@ void main() {
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
         favoriteRepositoryProvider.overrideWithValue(fakeFavRepo),
         feedControllerProvider.overrideWith(_StubFeedController.new),
+        isOnlineProvider.overrideWith((ref) => true),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
       ],
     );
   });
@@ -113,6 +122,36 @@ void main() {
         expect(state.isSyncing, isFalse);
       });
 
+      test('replays persisted favorite intent after loading online', () async {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        await OfflineMutationQueue(SharedPreferences.getInstance).save('u1', [
+          OfflineMutation(
+            id: favoriteMutationScopeKey('target-1'),
+            type: OfflineMutationType.favoriteAdd,
+            scopeKey: favoriteMutationScopeKey('target-1'),
+            payload: const {'target_id': 'target-1'},
+            createdAtMs: now,
+            updatedAtMs: now,
+          ),
+        ]);
+        fakeFavRepo.favorites = {};
+        await waitForUser();
+
+        final ctrl = getController();
+        await ctrl.loadFavorites();
+        await pumpAsync();
+
+        final state = getState();
+        expect(state.localFavorites, contains('target-1'));
+        expect(state.serverFavorites, contains('target-1'));
+        expect(fakeFavRepo.favorites, contains('target-1'));
+
+        final queued = await OfflineMutationQueue(
+          SharedPreferences.getInstance,
+        ).load('u1');
+        expect(queued, isEmpty);
+      });
+
       test('handles load error gracefully', () async {
         fakeFavRepo.throwError = true;
         await waitForUser();
@@ -134,6 +173,10 @@ void main() {
             authRepositoryProvider.overrideWithValue(fakeAuthRepo),
             favoriteRepositoryProvider.overrideWithValue(fakeFavRepo),
             feedControllerProvider.overrideWith(_StubFeedController.new),
+            isOnlineProvider.overrideWith((ref) => true),
+            connectivityProvider.overrideWith(
+              (ref) => Stream.value(ConnectivityStatus.online),
+            ),
           ],
         );
         addTearDown(loggedOutContainer.dispose);
@@ -176,6 +219,44 @@ void main() {
         await pumpAsync();
 
         expect(getState().serverFavorites, contains('target-1'));
+      });
+
+      test('keeps optimistic favorite queued while offline', () async {
+        final offlineAuthRepo = FakeAuthRepository();
+        final offlineFavRepo = _TestFavoriteRepository();
+        final firebaseUser = FakeFirebaseUser(uid: 'offline-user');
+        offlineAuthRepo.emitUser(firebaseUser);
+        offlineAuthRepo.appUser = TestData.user(uid: 'offline-user');
+
+        final offlineContainer = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(offlineAuthRepo),
+            favoriteRepositoryProvider.overrideWithValue(offlineFavRepo),
+            feedControllerProvider.overrideWith(_StubFeedController.new),
+            isOnlineProvider.overrideWith((ref) => false),
+            connectivityProvider.overrideWith(
+              (ref) => Stream.value(ConnectivityStatus.offline),
+            ),
+          ],
+        );
+        addTearDown(offlineContainer.dispose);
+        addTearDown(offlineAuthRepo.dispose);
+
+        final ctrl = offlineContainer.read(favoriteControllerProvider.notifier);
+        await ctrl.loadFavorites();
+
+        ctrl.toggle('target-1');
+        await pumpAsync();
+
+        final state = offlineContainer.read(favoriteControllerProvider);
+        expect(state.localFavorites, contains('target-1'));
+        expect(state.serverFavorites, isNot(contains('target-1')));
+        expect(offlineFavRepo.favorites, isNot(contains('target-1')));
+
+        final queued = offlineContainer.read(offlineMutationStoreProvider);
+        expect(queued, hasLength(1));
+        expect(queued.single.type, OfflineMutationType.favoriteAdd);
+        expect(queued.single.favoriteTargetId, 'target-1');
       });
 
       test('removes item optimistically and syncs with server', () async {

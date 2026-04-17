@@ -15,6 +15,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../favorites/domain/favorite_controller.dart';
 import '../../moderation/data/blocked_users_provider.dart';
+import '../data/feed_cache_store.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
@@ -30,6 +31,8 @@ part 'feed_controller.g.dart';
 
 @Riverpod(keepAlive: true)
 class FeedController extends _$FeedController {
+  static const _feedCacheTtl = Duration(minutes: 5);
+
   List<FeedItem> _manualFeaturedItems = [];
   List<FeedItem> _spotlightItems = [];
   bool _blockedUsersListenerRegistered = false;
@@ -148,11 +151,21 @@ class FeedController extends _$FeedController {
       data: {'full_skeleton': showFullSkeleton},
     );
 
-    final currentState = state.value ?? const FeedState();
+    var currentState = state.value ?? const FeedState();
+    final cachedState = await _hydrateCachedFeedStateIfNeeded(
+      showFullSkeleton: showFullSkeleton,
+      currentState: currentState,
+    );
+    if (cachedState != null) {
+      currentState = cachedState;
+    }
+    final shouldShowFullSkeleton = showFullSkeleton && cachedState == null;
     state = AsyncValue.data(
       currentState.copyWithFeed(
-        isInitialLoading: showFullSkeleton,
-        status: currentState.items.isEmpty || showFullSkeleton
+        isInitialLoading: shouldShowFullSkeleton,
+        isRefreshing: cachedState != null || !showFullSkeleton,
+        status:
+            !_hasRenderableFeedContent(currentState) || shouldShowFullSkeleton
             ? PaginationStatus.loading
             : currentState.status,
         clearError: true,
@@ -171,6 +184,7 @@ class FeedController extends _$FeedController {
         state = AsyncValue.data(
           currentState.copyWithFeed(
             isInitialLoading: false,
+            isRefreshing: false,
             status: PaginationStatus.error,
             errorMessage: 'Usuario nao autenticado',
             clearLastDocument: true,
@@ -225,11 +239,16 @@ class FeedController extends _$FeedController {
       if (!ref.mounted) return;
 
       if (mainFeedState.status == PaginationStatus.error) {
+        final shouldKeepCachedContent = _hasRenderableFeedContent(currentState);
         state = AsyncValue.data(
           currentState.copyWithFeed(
             sectionItems: sections,
             isInitialLoading: false,
-            status: PaginationStatus.error,
+            isRefreshing: false,
+            isStaleData: shouldKeepCachedContent || currentState.isStaleData,
+            status: shouldKeepCachedContent
+                ? _renderableFallbackStatus(currentState)
+                : PaginationStatus.error,
             errorMessage: mainFeedState.errorMessage,
             clearLastDocument: true,
             hasMore: false,
@@ -246,6 +265,7 @@ class FeedController extends _$FeedController {
         return;
       }
 
+      final refreshedAt = DateTime.now();
       final nextState = _withSpotlightItems(
         currentState.copyWithFeed(
           sectionItems: sections,
@@ -254,11 +274,15 @@ class FeedController extends _$FeedController {
           currentPage: mainFeedState.currentPage,
           hasMore: mainFeedState.hasMore,
           isInitialLoading: false,
+          isStaleData: false,
+          dataUpdatedAt: refreshedAt,
+          isRefreshing: false,
           clearError: true,
           clearLastDocument: true,
         ),
       );
       state = AsyncValue.data(nextState);
+      unawaited(_saveFeedCache(user.uid, nextState, refreshedAt));
       AppPerformanceTracker.finishSpan(
         'feed.load_all_data',
         loadStopwatch,
@@ -277,10 +301,15 @@ class FeedController extends _$FeedController {
       );
       if (!ref.mounted) return;
       final latestState = state.value ?? currentState;
+      final hasRenderableContent = _hasRenderableFeedContent(latestState);
       state = AsyncValue.data(
         latestState.copyWithFeed(
           isInitialLoading: false,
-          status: PaginationStatus.error,
+          isRefreshing: false,
+          isStaleData: hasRenderableContent || latestState.isStaleData,
+          status: hasRenderableContent
+              ? _renderableFallbackStatus(latestState)
+              : PaginationStatus.error,
           errorMessage: resolveErrorMessage(error),
         ),
       );
@@ -506,15 +535,19 @@ class FeedController extends _$FeedController {
         );
     if (!ref.mounted) return;
 
-    state = AsyncValue.data(
-      _withSpotlightItems(
-        nextState.copyWithFeed(
-          sectionItems: currentState.sectionItems,
-          featuredItems: currentState.featuredItems,
-          isInitialLoading: false,
-        ),
+    final refreshedAt = DateTime.now();
+    final mergedState = _withSpotlightItems(
+      nextState.copyWithFeed(
+        sectionItems: currentState.sectionItems,
+        featuredItems: currentState.featuredItems,
+        isInitialLoading: false,
+        isStaleData: false,
+        dataUpdatedAt: refreshedAt,
+        isRefreshing: false,
       ),
     );
+    state = AsyncValue.data(mergedState);
+    unawaited(_saveFeedCache(user.uid, mergedState, refreshedAt));
   }
 
   // ignore: unused_element
@@ -596,15 +629,19 @@ class FeedController extends _$FeedController {
         );
     if (!ref.mounted) return;
 
-    state = AsyncValue.data(
-      _withSpotlightItems(
-        nextState.copyWithFeed(
-          sectionItems: currentState.sectionItems,
-          featuredItems: currentState.featuredItems,
-          isInitialLoading: false,
-        ),
+    final refreshedAt = DateTime.now();
+    final filteredState = _withSpotlightItems(
+      nextState.copyWithFeed(
+        sectionItems: currentState.sectionItems,
+        featuredItems: currentState.featuredItems,
+        isInitialLoading: false,
+        isStaleData: false,
+        dataUpdatedAt: refreshedAt,
+        isRefreshing: false,
       ),
     );
+    state = AsyncValue.data(filteredState);
+    unawaited(_saveFeedCache(user.uid, filteredState, refreshedAt));
   }
 
   /// Updates like count for a specific item.
@@ -765,6 +802,114 @@ class FeedController extends _$FeedController {
     }
 
     return blocked.toList();
+  }
+
+  Future<FeedState?> _hydrateCachedFeedStateIfNeeded({
+    required bool showFullSkeleton,
+    required FeedState currentState,
+  }) async {
+    if (!showFullSkeleton || _hasRenderableFeedContent(currentState)) {
+      return null;
+    }
+
+    final currentUser = ref.read(authRepositoryProvider).currentUser;
+    if (currentUser == null || currentUser.uid.isEmpty) {
+      return null;
+    }
+
+    try {
+      final cached = await ref
+          .read(feedCacheStoreProvider)
+          .load(currentUser.uid);
+      if (cached == null) {
+        return null;
+      }
+
+      final cachedState = _withSpotlightItems(
+        currentState.copyWithFeed(
+          featuredItems: cached.featuredItems,
+          sectionItems: cached.sectionItems,
+          currentFilter: cached.currentFilter,
+          items: cached.items,
+          status: PaginationStatus.loaded,
+          currentPage: 0,
+          hasMore: false,
+          isInitialLoading: false,
+          isStaleData: true,
+          dataUpdatedAt: cached.cachedAt,
+          isRefreshing: true,
+          clearError: true,
+          clearLastDocument: true,
+        ),
+      );
+
+      if (!_hasRenderableFeedContent(cachedState)) {
+        return null;
+      }
+
+      AppPerformanceTracker.mark(
+        'feed.cache.hydrated',
+        data: {
+          'items': cachedState.items.length,
+          'sections': cachedState.sectionItems.length,
+          'age_ms': DateTime.now().difference(cached.cachedAt).inMilliseconds,
+          'within_ttl':
+              DateTime.now().difference(cached.cachedAt) <= _feedCacheTtl,
+        },
+      );
+      return cachedState;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Feed: erro ao hidratar cache local',
+        error,
+        stackTrace,
+      );
+      return null;
+    }
+  }
+
+  Future<void> _saveFeedCache(
+    String userId,
+    FeedState state,
+    DateTime cachedAt,
+  ) async {
+    if (!_hasRenderableFeedContent(state)) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(feedCacheStoreProvider)
+          .save(
+            userId,
+            FeedCacheSnapshot(
+              cachedAt: cachedAt,
+              currentFilter: state.currentFilter,
+              items: state.items,
+              featuredItems: state.featuredItems,
+              sectionItems: state.sectionItems,
+            ),
+          );
+    } catch (error, stackTrace) {
+      AppLogger.warning('Feed: erro ao salvar cache local', error, stackTrace);
+    }
+  }
+
+  bool _hasRenderableFeedContent(FeedState state) {
+    return state.items.isNotEmpty ||
+        state.sectionItems.values.any((items) => items.isNotEmpty) ||
+        state.featuredItems.isNotEmpty;
+  }
+
+  PaginationStatus _renderableFallbackStatus(FeedState state) {
+    return switch (state.status) {
+      PaginationStatus.loaded ||
+      PaginationStatus.noMoreData ||
+      PaginationStatus.loadingMore => state.status,
+      PaginationStatus.initial ||
+      PaginationStatus.loading ||
+      PaginationStatus.error => PaginationStatus.loaded,
+    };
   }
 }
 

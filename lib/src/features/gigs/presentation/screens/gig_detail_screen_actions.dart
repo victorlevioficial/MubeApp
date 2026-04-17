@@ -1,7 +1,11 @@
 part of 'gig_detail_screen.dart';
 
 extension _GigDetailScreenActions on _GigDetailScreenState {
-  Future<void> _showApplyDialog(BuildContext context, String gigId) async {
+  Future<void> _showApplyDialog(
+    BuildContext context,
+    String gigId,
+    String gigTitle,
+  ) async {
     final message = await AppOverlay.dialog<String>(
       context: context,
       builder: (context) => const _GigApplyDialog(),
@@ -11,13 +15,52 @@ extension _GigDetailScreenActions on _GigDetailScreenState {
 
     await _runPendingAction(_GigDetailPendingAction.apply, () async {
       try {
-        await ref
+        final outcome = await ref
             .read(gigActionsControllerProvider.notifier)
-            .applyToGig(gigId, message);
+            .applyToGig(gigId, message, gigTitle: gigTitle);
+        if (!context.mounted) return;
+        switch (outcome) {
+          case GigApplyOutcome.submitted:
+            AppSnackBar.success(
+              context,
+              'Candidatura enviada. A gig agora aparece em Minhas candidaturas.',
+            );
+          case GigApplyOutcome.queued:
+            AppSnackBar.success(
+              context,
+              'Candidatura salva no aparelho e será enviada quando a conexão voltar.',
+            );
+        }
+      } catch (error) {
+        if (!context.mounted) return;
+        AppSnackBar.error(context, resolveGigErrorMessage(error));
+      }
+    });
+  }
+
+  Future<void> _withdraw(
+    BuildContext context,
+    GigApplication? application,
+  ) async {
+    if (application == null) return;
+
+    await _runPendingAction(_GigDetailPendingAction.withdraw, () async {
+      try {
+        if (_isQueuedApplication(application)) {
+          await ref
+              .read(gigActionsControllerProvider.notifier)
+              .cancelQueuedApplication(application.gigId);
+        } else {
+          await ref
+              .read(gigActionsControllerProvider.notifier)
+              .withdrawApplication(application.gigId);
+        }
         if (!context.mounted) return;
         AppSnackBar.success(
           context,
-          'Candidatura enviada. A gig agora aparece em Minhas candidaturas.',
+          _isQueuedApplication(application)
+              ? 'Pendência de candidatura removida.'
+              : 'Candidatura retirada com sucesso.',
         );
       } catch (error) {
         if (!context.mounted) return;
@@ -26,19 +69,8 @@ extension _GigDetailScreenActions on _GigDetailScreenState {
     });
   }
 
-  Future<void> _withdraw(BuildContext context, String gigId) async {
-    await _runPendingAction(_GigDetailPendingAction.withdraw, () async {
-      try {
-        await ref
-            .read(gigActionsControllerProvider.notifier)
-            .withdrawApplication(gigId);
-        if (!context.mounted) return;
-        AppSnackBar.success(context, 'Candidatura retirada com sucesso.');
-      } catch (error) {
-        if (!context.mounted) return;
-        AppSnackBar.error(context, resolveGigErrorMessage(error));
-      }
-    });
+  bool _isQueuedApplication(GigApplication application) {
+    return application.id.startsWith('queued:');
   }
 
   Future<void> _confirmCloseGig(BuildContext context, String gigId) async {

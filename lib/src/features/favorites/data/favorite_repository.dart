@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/errors/firestore_resilience.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../domain/paginated_favorites_response.dart';
@@ -13,6 +14,9 @@ part 'favorite_repository.g.dart';
 class FavoriteRepository {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  final FirestoreResilience _firestoreResilience = const FirestoreResilience(
+    'FavoriteRepository',
+  );
 
   FavoriteRepository(this._firestore, this._auth);
 
@@ -212,11 +216,15 @@ class FavoriteRepository {
         .collection('favorites')
         .doc(targetId);
 
-    await userRef.set({
-      'favoritedAt': FieldValue.serverTimestamp(),
-      'source_user_id': _uid,
-      'target_user_id': targetId,
-    }, SetOptions(merge: true));
+    await _firestoreResilience.run(
+      () => userRef.set({
+        'favoritedAt': FieldValue.serverTimestamp(),
+        'source_user_id': _uid,
+        'target_user_id': targetId,
+      }, SetOptions(merge: true)),
+      operationLabel: 'add_favorite',
+      onFinalError: recoverableFirestoreFinalError,
+    );
   }
 
   /// Removes a favorite for the current user.
@@ -230,7 +238,11 @@ class FavoriteRepository {
         .collection('favorites')
         .doc(targetId);
 
-    await userRef.delete();
+    await _firestoreResilience.run(
+      () => userRef.delete(),
+      operationLabel: 'remove_favorite',
+      onFinalError: recoverableFirestoreFinalError,
+    );
   }
 
   int _readLikeCount(Map<String, dynamic>? data) {

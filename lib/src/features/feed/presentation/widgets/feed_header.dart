@@ -30,6 +30,8 @@ class FeedHeader extends ConsumerStatefulWidget {
   final VoidCallback? onNotificationTap;
   final bool isScrolled;
   final int? notificationCount;
+  final bool isStaleData;
+  final DateTime? dataUpdatedAt;
 
   const FeedHeader({
     super.key,
@@ -37,6 +39,8 @@ class FeedHeader extends ConsumerStatefulWidget {
     this.onNotificationTap,
     this.isScrolled = false,
     this.notificationCount,
+    this.isStaleData = false,
+    this.dataUpdatedAt,
   });
 
   @override
@@ -108,6 +112,10 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
                     context,
                     widget.currentUser!.favoritesCount,
                   ),
+                ],
+                if (widget.isStaleData) ...[
+                  const SizedBox(height: AppSpacing.s16),
+                  _buildStaleDataNotice(widget.dataUpdatedAt),
                 ],
                 if (alerts.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.s16),

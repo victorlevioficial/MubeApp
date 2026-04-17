@@ -240,6 +240,84 @@ extension _FeedHeaderUi on _FeedHeaderState {
     );
   }
 
+  Widget _buildStaleDataNotice(DateTime? dataUpdatedAt) {
+    final updatedAtLabel = _formatStaleDataTime(dataUpdatedAt);
+
+    return Container(
+      key: const Key('feed_header_stale_data_notice'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s14,
+        vertical: AppSpacing.s12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.12),
+        borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.16),
+              borderRadius: AppRadius.all12,
+            ),
+            child: const Icon(
+              Icons.cached_rounded,
+              color: AppColors.warning,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Mostrando dados salvos',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s2),
+                Text(
+                  updatedAtLabel == null
+                      ? 'Atualizamos automaticamente quando a conexao permitir.'
+                      : 'Ultima atualizacao: $updatedAtLabel. Atualizamos automaticamente quando a conexao permitir.',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _formatStaleDataTime(DateTime? dataUpdatedAt) {
+    if (dataUpdatedAt == null) return null;
+
+    final now = DateTime.now();
+    final difference = now.difference(dataUpdatedAt);
+    if (difference.inMinutes < 1) {
+      return 'agora ha pouco';
+    }
+    if (difference.inMinutes < 60) {
+      return 'ha ${difference.inMinutes} min';
+    }
+    if (difference.inHours < 24) {
+      return 'ha ${difference.inHours} h';
+    }
+    return 'ha ${difference.inDays} dias';
+  }
+
   Widget _buildAlertsSurface(BuildContext context, List<_HeaderAlert> alerts) {
     switch (_alertDisplayMode) {
       case _AlertDisplayMode.expanded:

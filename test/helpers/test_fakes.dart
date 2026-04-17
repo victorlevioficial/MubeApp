@@ -112,6 +112,7 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   // Mutable state for testing
   AppUser? _appUser;
   AppUser? lastUpdatedUser;
+  AppUser? lastCompletedOnboardingUser;
   String? lastUpdatedPublicUsername;
   bool shouldThrow = false;
   bool shouldFailDeleteAccount = false;
@@ -162,6 +163,15 @@ class FakeAuthRepository extends Fake implements AuthRepository {
     if (shouldThrow) return const Left(ServerFailure(message: 'Update failed'));
     _appUser = user;
     lastUpdatedUser = user;
+    return const Right(unit);
+  }
+
+  @override
+  FutureResult<Unit> completeOnboardingProfile(AppUser user) async {
+    if (shouldThrow) return const Left(ServerFailure(message: 'Update failed'));
+    _appUser = user;
+    lastUpdatedUser = user;
+    lastCompletedOnboardingUser = user;
     return const Right(unit);
   }
 

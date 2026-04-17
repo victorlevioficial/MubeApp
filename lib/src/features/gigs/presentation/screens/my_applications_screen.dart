@@ -97,14 +97,24 @@ class MyApplicationsScreen extends ConsumerWidget {
                         applications[index].status == ApplicationStatus.pending)
                     ? () async {
                         try {
-                          await ref
-                              .read(gigActionsControllerProvider.notifier)
-                              .withdrawApplication(applications[index].gigId);
+                          if (_isQueuedApplication(applications[index])) {
+                            await ref
+                                .read(gigActionsControllerProvider.notifier)
+                                .cancelQueuedApplication(
+                                  applications[index].gigId,
+                                );
+                          } else {
+                            await ref
+                                .read(gigActionsControllerProvider.notifier)
+                                .withdrawApplication(applications[index].gigId);
+                          }
                           if (!context.mounted) return;
                           AppSnackBar.success(
                             context,
-                            applications[index].status ==
-                                    ApplicationStatus.accepted
+                            _isQueuedApplication(applications[index])
+                                ? 'Pendencia de candidatura removida.'
+                                : applications[index].status ==
+                                      ApplicationStatus.accepted
                                 ? 'Você desistiu da gig.'
                                 : 'Candidatura retirada com sucesso.',
                           );
@@ -136,6 +146,17 @@ class MyApplicationsScreen extends ConsumerWidget {
       body: body,
     );
   }
+}
+
+String _applicationStatusLabel(GigApplication application) {
+  if (_isQueuedApplication(application)) {
+    return 'Pendente de envio';
+  }
+  return application.status.label;
+}
+
+bool _isQueuedApplication(GigApplication application) {
+  return application.id.startsWith('queued:');
 }
 
 // ── Summary bar ───────────────────────────────────────────────────────────────
@@ -305,7 +326,7 @@ class _ApplicationCard extends StatelessWidget {
                             ),
                             const SizedBox(height: AppSpacing.s4),
                             Text(
-                              application.status.label,
+                              _applicationStatusLabel(application),
                               style: AppTypography.labelSmall.copyWith(
                                 color: statusColor,
                                 fontWeight: FontWeight.w700,
