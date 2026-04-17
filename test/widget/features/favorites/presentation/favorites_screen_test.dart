@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/presentation/favorites_screen.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
 import 'package:mube/src/features/feed/presentation/feed_image_precache_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
@@ -18,6 +20,8 @@ void main() {
   late FakeFeedImagePrecacheService fakePrecacheService;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+
     fakeAuthRepo = FakeAuthRepository();
     fakeFavoriteRepo = FakeFavoriteRepository();
     fakeFeedRepo = FakeFeedRepository();
@@ -60,6 +64,10 @@ void main() {
         favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepo),
         feedRepositoryProvider.overrideWithValue(fakeFeedRepo),
         feedImagePrecacheServiceProvider.overrideWithValue(fakePrecacheService),
+        connectivityProvider.overrideWith(
+          (ref) => Stream.value(ConnectivityStatus.online),
+        ),
+        isOnlineProvider.overrideWith((ref) => true),
       ],
       child: MaterialApp.router(routerConfig: router),
     );
