@@ -2,6 +2,7 @@ part of 'package:mube/src/app.dart';
 
 extension _MubeAppSessionEffects on _MubeAppState {
   void _initializeSessionEffects() {
+    ref.read(offlineMutationCoordinatorProvider);
     _goRouter.routerDelegate.addListener(_handleRouterStateChanged);
     _setupPushListeners();
     _setupAuthStateListener();
@@ -48,6 +49,9 @@ extension _MubeAppSessionEffects on _MubeAppState {
           if (user != null && !_isMatchpointRoute(_currentAppPath)) {
             ref
                 .read(matchpointSwipeOutboxCoordinatorProvider)
+                .scheduleFlush(reason: 'auth_state_logged_in');
+            ref
+                .read(offlineMutationCoordinatorProvider)
                 .scheduleFlush(reason: 'auth_state_logged_in');
           }
           if (user == null && ref.read(accountDeletionInProgressProvider)) {
