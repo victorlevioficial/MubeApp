@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/constants/app_constants.dart' as app_constants;
+import 'package:mube/src/core/domain/professional_roles.dart';
 import 'package:mube/src/utils/category_normalizer.dart';
 
 void main() {
@@ -141,6 +143,121 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // PR 8 — paridade após reconciliar aliases com `professional_roles`.
+  // Garante que o lookup centralizado em `professional_roles.dart`
+  // continua reconhecendo todos os labels que o normalizer cobria
+  // localmente antes da refatoração.
+  // -------------------------------------------------------------------
+
+  group('CategoryNormalizer.normalizeRoleId — paridade legacy/canonical', () {
+    test('reconhece todos os labels canônicos de produção e stage tech', () {
+      for (final label in app_constants.productionRoles) {
+        final id = CategoryNormalizer.sanitize(label);
+        expect(
+          CategoryNormalizer.normalizeRoleId(label),
+          id,
+          reason: 'production role "$label"',
+        );
+        expect(
+          CategoryNormalizer.isProductionRoleId(id),
+          isTrue,
+          reason: 'production role id "$id"',
+        );
+      }
+      for (final label in app_constants.stageTechRoles) {
+        final id = CategoryNormalizer.sanitize(label);
+        expect(
+          CategoryNormalizer.normalizeRoleId(label),
+          id,
+          reason: 'stage_tech role "$label"',
+        );
+        expect(
+          CategoryNormalizer.isStageTechRoleId(id),
+          isTrue,
+          reason: 'stage_tech role id "$id"',
+        );
+      }
+    });
+
+    test(
+      'reconhece labels legados de audiovisual/education/luthier/performance',
+      () {
+        final legacyLists = <String, List<String>>{
+          'audiovisual': app_constants.audiovisualRoles,
+          'education': app_constants.educationRoles,
+          'luthier': app_constants.luthierRoles,
+          'performance': app_constants.performanceRoles,
+        };
+
+        for (final entry in legacyLists.entries) {
+          for (final label in entry.value) {
+            final id = CategoryNormalizer.sanitize(label);
+            expect(
+              CategoryNormalizer.normalizeRoleId(label),
+              id,
+              reason: '${entry.key} legacy role "$label"',
+            );
+          }
+        }
+      },
+    );
+
+    test('preserva aliases manuais históricos', () {
+      expect(CategoryNormalizer.normalizeRoleId('produtor'), 'produtor');
+      expect(
+        CategoryNormalizer.normalizeRoleId('Diretor Musical'),
+        'diretor_musical',
+      );
+      expect(
+        CategoryNormalizer.normalizeRoleId('Backline Tech'),
+        'backline_tech',
+      );
+
+      expect(CategoryNormalizer.isProductionRoleId('produtor'), isTrue);
+      expect(CategoryNormalizer.isProductionRoleId('diretor_musical'), isTrue);
+      expect(CategoryNormalizer.isStageTechRoleId('backline_tech'), isTrue);
+    });
+
+    test('inputs desconhecidos voltam sanitizados sem modificação', () {
+      expect(
+        CategoryNormalizer.normalizeRoleId('Funcao Customizada'),
+        'funcao_customizada',
+      );
+      expect(
+        CategoryNormalizer.isProductionRoleId('funcao_customizada'),
+        isFalse,
+      );
+      expect(
+        CategoryNormalizer.isStageTechRoleId('funcao_customizada'),
+        isFalse,
+      );
+    });
+  });
+
+  group('professionalRoleAliasLookup — sanity check', () {
+    test('cobre todas as listas legadas de roles em app_constants', () {
+      final expected = {
+        for (final label in app_constants.productionRoles)
+          CategoryNormalizer.sanitize(label),
+        for (final label in app_constants.stageTechRoles)
+          CategoryNormalizer.sanitize(label),
+        for (final label in app_constants.audiovisualRoles)
+          CategoryNormalizer.sanitize(label),
+        for (final label in app_constants.educationRoles)
+          CategoryNormalizer.sanitize(label),
+        for (final label in app_constants.luthierRoles)
+          CategoryNormalizer.sanitize(label),
+        for (final label in app_constants.performanceRoles)
+          CategoryNormalizer.sanitize(label),
+        'produtor',
+        'diretor_musical',
+        'backline_tech',
+      };
+      expect(professionalRoleAliasLookup.keys.toSet(), containsAll(expected));
     });
   });
 }

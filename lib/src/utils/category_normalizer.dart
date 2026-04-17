@@ -1,6 +1,5 @@
-import 'package:diacritic/diacritic.dart';
-
-import '../constants/app_constants.dart';
+import '../core/domain/professional_roles.dart';
+import 'identifier_sanitizer.dart';
 
 abstract final class CategoryNormalizer {
   static final Map<String, String> _categoryAliases = <String, String>{
@@ -33,30 +32,6 @@ abstract final class CategoryNormalizer {
     'performer': 'performance',
   };
 
-  static final Map<String, String> _productionRoleAliases = _buildRoleAliases(
-    productionRoles,
-    legacyAliases: const {
-      'produtor': 'produtor',
-      'diretor_musical': 'diretor_musical',
-    },
-  );
-  static final Map<String, String> _stageTechRoleAliases = _buildRoleAliases(
-    stageTechRoles,
-    legacyAliases: const {'backline_tech': 'backline_tech'},
-  );
-  static final Map<String, String> _audiovisualRoleAliases = _buildRoleAliases(
-    audiovisualRoles,
-  );
-  static final Map<String, String> _educationRoleAliases = _buildRoleAliases(
-    educationRoles,
-  );
-  static final Map<String, String> _luthierRoleAliases = _buildRoleAliases(
-    luthierRoles,
-  );
-  static final Map<String, String> _performanceRoleAliases = _buildRoleAliases(
-    performanceRoles,
-  );
-
   static const Set<String> _newGenreOptionalCategories = <String>{
     'audiovisual',
     'education',
@@ -71,14 +46,7 @@ abstract final class CategoryNormalizer {
     'crew',
   };
 
-  static String sanitize(String value) {
-    return removeDiacritics(value)
-        .toLowerCase()
-        .trim()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'_+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
-  }
+  static String sanitize(String value) => sanitizeIdentifier(value);
 
   static String normalizeCategoryId(String raw) {
     final sanitized = sanitize(raw);
@@ -89,14 +57,7 @@ abstract final class CategoryNormalizer {
   static String normalizeRoleId(String raw) {
     final sanitized = sanitize(raw);
     if (sanitized.isEmpty) return '';
-
-    return _productionRoleAliases[sanitized] ??
-        _stageTechRoleAliases[sanitized] ??
-        _audiovisualRoleAliases[sanitized] ??
-        _educationRoleAliases[sanitized] ??
-        _luthierRoleAliases[sanitized] ??
-        _performanceRoleAliases[sanitized] ??
-        sanitized;
+    return professionalRoleAliasLookup[sanitized] ?? sanitized;
   }
 
   static List<String> resolveCategories({
@@ -140,10 +101,10 @@ abstract final class CategoryNormalizer {
   }
 
   static bool isProductionRoleId(String roleId) =>
-      _productionRoleAliases.containsValue(roleId);
+      professionalProductionRoleIds.contains(roleId);
 
   static bool isStageTechRoleId(String roleId) =>
-      _stageTechRoleAliases.containsValue(roleId);
+      professionalStageTechRoleIds.contains(roleId);
 
   static bool isProductionRole(String rawRole) =>
       isProductionRoleId(normalizeRoleId(rawRole));
@@ -207,15 +168,5 @@ abstract final class CategoryNormalizer {
     }
 
     return false;
-  }
-
-  static Map<String, String> _buildRoleAliases(
-    List<String> labels, {
-    Map<String, String> legacyAliases = const {},
-  }) {
-    return {
-      for (final label in labels) sanitize(label): sanitize(label),
-      ...legacyAliases,
-    };
   }
 }

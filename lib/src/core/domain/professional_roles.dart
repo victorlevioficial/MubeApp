@@ -10,7 +10,7 @@
 // source for the current UI and are intentionally NOT equal to the legacy
 // lists in `app_constants.dart`.
 import '../../constants/app_constants.dart' as app_constants;
-import '../../utils/category_normalizer.dart';
+import '../../utils/identifier_sanitizer.dart';
 
 /// A single selectable professional role (id + label) within a section.
 class ProfessionalRoleOption {
@@ -163,13 +163,80 @@ final Map<String, String> professionalRoleIdLookup = _buildRoleIdLookup();
 final Map<String, String> professionalRoleCategoryById =
     _buildRoleCategoryById();
 
+// ---------------------------------------------------------------------------
+// Reconciled aliases — single source of truth for `CategoryNormalizer`.
+//
+// Before PR 8, `CategoryNormalizer` kept six private maps built locally from
+// `app_constants.{audiovisual,education,luthier,performance,production,
+// stageTech}Roles`. That duplicated the taxonomy: any new role added to
+// `professional_roles.dart` had to be mirrored manually inside the
+// normalizer to be recognized. The structures below centralise the
+// canonical IDs (production / stage_tech) and the legacy IDs preserved in
+// `app_constants` for older Firestore documents — `CategoryNormalizer`
+// consumes them directly.
+// ---------------------------------------------------------------------------
+
+/// Canonical IDs that identify a Production role. Includes every
+/// label in `app_constants.productionRoles` (sanitized) plus the historical
+/// aliases that older clients persisted directly.
+final Set<String> professionalProductionRoleIds = {
+  for (final label in app_constants.productionRoles) sanitizeIdentifier(label),
+  'produtor',
+  'diretor_musical',
+};
+
+/// Canonical IDs that identify a Stage-Tech role. Mirrors
+/// [professionalProductionRoleIds] for `app_constants.stageTechRoles`.
+final Set<String> professionalStageTechRoleIds = {
+  for (final label in app_constants.stageTechRoles) sanitizeIdentifier(label),
+  'backline_tech',
+};
+
+/// Sanitized lookup of role IDs → canonical role ID. Combines:
+/// - production / stage_tech IDs (non-prefixed) from `app_constants`;
+/// - legacy audiovisual / education / luthier / performance IDs preserved
+///   in `app_constants` for older Firestore documents;
+/// - manual historical aliases ('produtor', 'diretor_musical',
+///   'backline_tech').
+///
+/// The current UI labels (audiovisual_*, education_*, luthier_*,
+/// performance_*) are NOT included here on purpose: those ids are emitted
+/// pre-prefixed by the role pickers, and `normalizeRoleId` already returns
+/// any sanitized input unchanged when no alias matches.
+final Map<String, String> professionalRoleAliasLookup = _buildRoleAliasLookup();
+
+Map<String, String> _buildRoleAliasLookup() {
+  final lookup = <String, String>{};
+
+  void addIdentity(Iterable<String> labels) {
+    for (final label in labels) {
+      final id = sanitizeIdentifier(label);
+      if (id.isEmpty) continue;
+      lookup[id] = id;
+    }
+  }
+
+  addIdentity(app_constants.productionRoles);
+  addIdentity(app_constants.stageTechRoles);
+  addIdentity(app_constants.audiovisualRoles);
+  addIdentity(app_constants.educationRoles);
+  addIdentity(app_constants.luthierRoles);
+  addIdentity(app_constants.performanceRoles);
+
+  // Manual aliases that older clients used but never appeared in the
+  // canonical label lists.
+  lookup['produtor'] = 'produtor';
+  lookup['diretor_musical'] = 'diretor_musical';
+  lookup['backline_tech'] = 'backline_tech';
+
+  return lookup;
+}
+
 List<ProfessionalRoleOption> _buildPlainRoleOptions(List<String> labels) {
   return labels
       .map(
-        (label) => ProfessionalRoleOption(
-          id: CategoryNormalizer.sanitize(label),
-          label: label,
-        ),
+        (label) =>
+            ProfessionalRoleOption(id: sanitizeIdentifier(label), label: label),
       )
       .toList(growable: false);
 }
@@ -181,7 +248,7 @@ List<ProfessionalRoleOption> _buildPrefixedRoleOptions(
   return labels
       .map(
         (label) => ProfessionalRoleOption(
-          id: '${prefix}_${CategoryNormalizer.sanitize(label)}',
+          id: '${prefix}_${sanitizeIdentifier(label)}',
           label: label,
         ),
       )
@@ -189,7 +256,7 @@ List<ProfessionalRoleOption> _buildPrefixedRoleOptions(
 }
 
 String _professionalRoleId(String label, {String? prefix}) {
-  final normalized = CategoryNormalizer.sanitize(label);
+  final normalized = sanitizeIdentifier(label);
   return prefix == null ? normalized : '${prefix}_$normalized';
 }
 
@@ -201,7 +268,7 @@ Map<String, String> _buildRoleIdLookup() {
       final roleId = _professionalRoleId(label, prefix: prefix);
       lookup[roleId] = roleId;
       lookup[label] = roleId;
-      lookup[CategoryNormalizer.sanitize(label)] = roleId;
+      lookup[sanitizeIdentifier(label)] = roleId;
     }
   }
 
