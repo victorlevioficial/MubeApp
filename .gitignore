@@ -36,9 +36,11 @@ migrate_working_dir/
 # =========================
 .agent/
 .agents/
+.codex_tmp/
 .kombai/
 .claude/
 .playwright-cli/
+.playwright-mcp/
 .tmp/
 tmp/
 .xcodelogs/
@@ -132,6 +134,7 @@ result.json
 test_output.txt
 logs/
 output/
+codex_artifacts/
 *.jsonl
 *_log*.txt
 *_out*.txt
