@@ -444,6 +444,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('Enviar mensagem'), findsOneWidget);
+    expect(find.bySemanticsLabel('Enviar mensagem'), findsOneWidget);
   });
 
   testWidgets('prepares conversation after delayed user profile load', (

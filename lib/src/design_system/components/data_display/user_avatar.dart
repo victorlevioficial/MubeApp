@@ -16,6 +16,8 @@ class UserAvatar extends StatelessWidget {
   final String? name;
   final double size;
   final bool showBorder;
+  final String? semanticLabel;
+  final String? semanticHint;
 
   const UserAvatar({
     super.key,
@@ -24,6 +26,8 @@ class UserAvatar extends StatelessWidget {
     this.name,
     this.size = 80,
     this.showBorder = true,
+    this.semanticLabel,
+    this.semanticHint,
   });
 
   /// List of modern pastel background colors.
@@ -48,23 +52,42 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const borderWidth = 2.5;
+    final label = semanticLabel ?? _defaultSemanticLabel();
 
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: showBorder
-            ? Border.all(color: AppColors.surfaceHighlight, width: borderWidth)
-            : null,
-      ),
-      child: ClipOval(
+    return Semantics(
+      image: true,
+      label: label,
+      hint: semanticHint,
+      child: ExcludeSemantics(
         child: Container(
-          color: AppColors.surface, // Background for the image area
-          child: _buildContent(context),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: showBorder
+                ? Border.all(
+                    color: AppColors.surfaceHighlight,
+                    width: borderWidth,
+                  )
+                : null,
+          ),
+          child: ClipOval(
+            child: Container(
+              color: AppColors.surface, // Background for the image area
+              child: _buildContent(context),
+            ),
+          ),
         ),
       ),
     );
+  }
+
+  String _defaultSemanticLabel() {
+    final displayName = name?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return 'Avatar de $displayName';
+    }
+    return 'Avatar de usuario';
   }
 
   Widget _buildContent(BuildContext context) {

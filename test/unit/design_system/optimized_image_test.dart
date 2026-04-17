@@ -14,6 +14,15 @@ void main() {
     });
 
     group('Factory constructors', () {
+      test('avatarSmall defines default semantic label', () {
+        final widget = OptimizedImage.avatarSmall(
+          imageUrl: 'https://example.com/avatar.jpg',
+          size: 40,
+        );
+
+        expect(widget.semanticLabel, 'Foto de perfil');
+      });
+
       test('avatarSmall deve criar widget correto', () {
         final widget = OptimizedImage.avatarSmall(
           imageUrl: 'https://example.com/avatar.jpg',

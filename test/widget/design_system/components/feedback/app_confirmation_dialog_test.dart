@@ -4,6 +4,35 @@ import 'package:mube/src/design_system/components/feedback/app_confirmation_dial
 
 void main() {
   group('AppConfirmationDialog', () {
+    testWidgets('exposes the dialog title as semantic label', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => const AppConfirmationDialog(
+                    title: 'Confirmar',
+                    message: 'Deseja continuar?',
+                    confirmText: 'Sim',
+                  ),
+                );
+              },
+              child: const Text('Show Dialog'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Show Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Confirmar'), findsWidgets);
+    });
+
     testWidgets('renders with title and message', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(

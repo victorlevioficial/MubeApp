@@ -9,6 +9,7 @@ class AppConfirmationDialog extends StatelessWidget {
   final String confirmText;
   final String cancelText;
   final bool isDestructive;
+  final String? semanticLabel;
 
   const AppConfirmationDialog({
     super.key,
@@ -17,11 +18,13 @@ class AppConfirmationDialog extends StatelessWidget {
     required this.confirmText,
     this.cancelText = 'Cancelar',
     this.isDestructive = true,
+    this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      semanticLabel: semanticLabel ?? title,
       backgroundColor: AppColors.surface,
       surfaceTintColor: AppColors.transparent,
       elevation: 0,

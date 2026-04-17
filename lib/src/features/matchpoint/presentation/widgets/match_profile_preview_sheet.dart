@@ -1,12 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:mube/src/features/auth/domain/app_user.dart';
 
 import '../../../../core/services/image_cache_config.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
-import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../profile/domain/media_item.dart';
 import '../../../profile/presentation/widgets/public_gallery_grid.dart';
@@ -52,7 +52,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Drag handle
               Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.s12),
                 child: Container(
@@ -64,7 +63,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              // Close button row
               Align(
                 alignment: Alignment.centerRight,
                 child: Padding(
@@ -73,6 +71,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
                     top: AppSpacing.s4,
                   ),
                   child: IconButton(
+                    tooltip: 'Fechar pré-visualização',
                     icon: const Icon(
                       Icons.close,
                       color: AppColors.textSecondary,
@@ -81,7 +80,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              // Scrollable content
               Expanded(
                 child: ListView(
                   controller: scrollController,
@@ -115,46 +113,55 @@ class MatchProfilePreviewSheet extends StatelessWidget {
 
   /// Foto grande do candidato com bordas arredondadas.
   Widget _buildPhotoSection() {
+    final displayName = _getDisplayName();
     final fotoUrl = user.foto;
     if (fotoUrl == null || fotoUrl.isEmpty) {
-      return Container(
-        height: 320,
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceHighlight,
-          borderRadius: AppRadius.all16,
-        ),
-        child: const Center(
-          child: Icon(Icons.person, size: 80, color: AppColors.textSecondary),
+      return Semantics(
+        image: true,
+        label: 'Foto indisponivel de $displayName',
+        child: Container(
+          height: 320,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceHighlight,
+            borderRadius: AppRadius.all16,
+          ),
+          child: const Center(
+            child: Icon(Icons.person, size: 80, color: AppColors.textSecondary),
+          ),
         ),
       );
     }
 
-    return ClipRRect(
-      borderRadius: AppRadius.all16,
-      child: CachedNetworkImage(
-        imageUrl: fotoUrl,
-        height: 320,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        fadeInDuration: Duration.zero,
-        fadeOutDuration: Duration.zero,
-        useOldImageOnUrlChange: true,
-        cacheManager: ImageCacheConfig.profileCacheManager,
-        placeholder: (context, url) => Container(
+    return Semantics(
+      image: true,
+      label: 'Foto de $displayName',
+      child: ClipRRect(
+        borderRadius: AppRadius.all16,
+        child: CachedNetworkImage(
+          imageUrl: fotoUrl,
           height: 320,
-          color: AppColors.surfaceHighlight,
-          child: const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          width: double.infinity,
+          fit: BoxFit.cover,
+          fadeInDuration: Duration.zero,
+          fadeOutDuration: Duration.zero,
+          useOldImageOnUrlChange: true,
+          cacheManager: ImageCacheConfig.profileCacheManager,
+          placeholder: (context, url) => Container(
+            height: 320,
+            color: AppColors.surfaceHighlight,
+            child: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           ),
-        ),
-        errorWidget: (context, url, error) => Container(
-          height: 320,
-          color: AppColors.surfaceHighlight,
-          child: const Center(
-            child: Icon(
-              Icons.broken_image,
-              size: 48,
-              color: AppColors.textSecondary,
+          errorWidget: (context, url, error) => Container(
+            height: 320,
+            color: AppColors.surfaceHighlight,
+            child: const Center(
+              child: Icon(
+                Icons.broken_image,
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ),
@@ -164,15 +171,12 @@ class MatchProfilePreviewSheet extends StatelessWidget {
 
   /// Nome, tipo de perfil e localização.
   Widget _buildNameSection() {
-    final displayName = user.appDisplayName.isNotEmpty
-        ? user.appDisplayName
-        : (user.nome ?? 'Usuário');
+    final displayName = _getDisplayName();
     final location = user.location;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile type badge
         Row(
           children: [
             Icon(
@@ -191,14 +195,12 @@ class MatchProfilePreviewSheet extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.s8),
-        // Name
         Text(
           displayName,
           style: AppTypography.headlineMedium,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        // Subtitle (roles / type description)
         const SizedBox(height: AppSpacing.s4),
         Text(
           _getSubtitle(),
@@ -208,7 +210,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        // Location
         if (location != null) ...[
           const SizedBox(height: AppSpacing.s8),
           Row(
@@ -232,7 +233,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  /// Seção de bio / sobre.
   Widget _buildBioSection(String bio) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,7 +250,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  /// Hashtags do matchpoint profile do candidato.
   Widget _buildMatchpointHashtags() {
     final mp = user.matchpointProfile;
     if (mp == null) return const SizedBox.shrink();
@@ -297,7 +296,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  /// Detalhes por tipo de perfil (instrumentos, gêneros, serviços, etc).
   Widget _buildTypeSpecificDetails() {
     switch (user.tipoPerfil) {
       case AppUserType.professional:
@@ -418,7 +416,6 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  /// Galeria de fotos e vídeos extraída dos dados do user.
   Widget _buildGallerySection() {
     final List<dynamic> galleryData;
 
@@ -456,7 +453,10 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  // --- Helpers ---
+  String _getDisplayName() {
+    if (user.appDisplayName.isNotEmpty) return user.appDisplayName;
+    return user.nome ?? 'Usuário';
+  }
 
   String _getSubtitle() {
     if (user.tipoPerfil == AppUserType.professional) {

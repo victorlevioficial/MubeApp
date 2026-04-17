@@ -49,6 +49,8 @@ class OptimizedImage extends StatelessWidget {
   final Duration fadeInDuration;
   final Map<String, String>? headers;
   final Alignment alignment;
+  final String? semanticLabel;
+  final String? semanticHint;
 
   /// Resolução máxima para otimização de cache
   final ImageResolution resolution;
@@ -78,6 +80,8 @@ class OptimizedImage extends StatelessWidget {
     this.placeholderColor,
     this.cacheManager,
     this.alignment = Alignment.center,
+    this.semanticLabel,
+    this.semanticHint,
   });
 
   /// Factory para avatar circular pequeno (lista)
@@ -87,6 +91,8 @@ class OptimizedImage extends StatelessWidget {
     double size = 40,
     Widget? placeholder,
     Widget? errorWidget,
+    String? semanticLabel,
+    String? semanticHint,
   }) {
     return OptimizedImage(
       key: key,
@@ -98,6 +104,8 @@ class OptimizedImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(size / 2),
       placeholder: placeholder ?? _buildAvatarPlaceholder(size),
       errorWidget: errorWidget ?? _buildAvatarError(size),
+      semanticLabel: semanticLabel ?? 'Foto de perfil',
+      semanticHint: semanticHint,
     );
   }
 
@@ -108,6 +116,8 @@ class OptimizedImage extends StatelessWidget {
     double size = 80,
     Widget? placeholder,
     Widget? errorWidget,
+    String? semanticLabel,
+    String? semanticHint,
   }) {
     return OptimizedImage(
       key: key,
@@ -119,6 +129,8 @@ class OptimizedImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(size / 2),
       placeholder: placeholder ?? _buildAvatarPlaceholder(size),
       errorWidget: errorWidget ?? _buildAvatarError(size),
+      semanticLabel: semanticLabel ?? 'Foto de perfil',
+      semanticHint: semanticHint,
     );
   }
 
@@ -129,6 +141,8 @@ class OptimizedImage extends StatelessWidget {
     double size = 120,
     Widget? placeholder,
     Widget? errorWidget,
+    String? semanticLabel,
+    String? semanticHint,
   }) {
     return OptimizedImage(
       key: key,
@@ -140,6 +154,8 @@ class OptimizedImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(size / 2),
       placeholder: placeholder ?? _buildAvatarPlaceholder(size),
       errorWidget: errorWidget ?? _buildAvatarError(size),
+      semanticLabel: semanticLabel ?? 'Foto de perfil',
+      semanticHint: semanticHint,
     );
   }
 
@@ -212,7 +228,7 @@ class OptimizedImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (imageUrl == null || imageUrl!.isEmpty) {
-      return _buildErrorWidget();
+      return _wrapSemantics(_buildErrorWidget());
     }
 
     // Calcula dimensões de cache baseadas na resolução e tamanho do widget
@@ -257,7 +273,7 @@ class OptimizedImage extends StatelessWidget {
       imageWidget = ClipRRect(borderRadius: borderRadius!, child: imageWidget);
     }
 
-    return imageWidget;
+    return _wrapSemantics(imageWidget);
   }
 
   /// Calcula a largura do cache baseada na resolução e tamanho do widget
@@ -355,6 +371,21 @@ class OptimizedImage extends StatelessWidget {
           size: (width ?? 48) * 0.3,
         ),
       ),
+    );
+  }
+
+  Widget _wrapSemantics(Widget child) {
+    final label = semanticLabel?.trim();
+    final hint = semanticHint?.trim();
+    if ((label == null || label.isEmpty) && (hint == null || hint.isEmpty)) {
+      return child;
+    }
+
+    return Semantics(
+      image: true,
+      label: label?.isNotEmpty == true ? label : null,
+      hint: hint?.isNotEmpty == true ? hint : null,
+      child: child,
     );
   }
 }
