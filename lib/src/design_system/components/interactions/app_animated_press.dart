@@ -20,6 +20,8 @@ class AppAnimatedPress extends StatefulWidget {
   final bool capturesTap;
   final double scaleFactor;
   final Duration duration;
+  final String? semanticLabel;
+  final String? semanticHint;
 
   const AppAnimatedPress({
     super.key,
@@ -28,6 +30,8 @@ class AppAnimatedPress extends StatefulWidget {
     this.capturesTap = true,
     this.scaleFactor = 0.95,
     this.duration = AppMotion.short,
+    this.semanticLabel,
+    this.semanticHint,
   });
 
   @override
@@ -93,24 +97,40 @@ class _AppAnimatedPressState extends State<AppAnimatedPress>
       child: widget.child,
     );
 
+    Widget interactiveChild;
     if (!widget.capturesTap) {
-      return Listener(
+      interactiveChild = Listener(
         onPointerDown: _handleTapDown,
         onPointerUp: _handleTapUp,
         onPointerCancel: _handleTapCancel,
         child: animatedChild,
       );
+    } else {
+      interactiveChild = Listener(
+        onPointerDown: _handleTapDown,
+        onPointerUp: _handleTapUp,
+        onPointerCancel: _handleTapCancel,
+        child: GestureDetector(
+          onTap: widget.onPressed,
+          behavior: HitTestBehavior.opaque,
+          child: animatedChild,
+        ),
+      );
     }
 
-    return Listener(
-      onPointerDown: _handleTapDown,
-      onPointerUp: _handleTapUp,
-      onPointerCancel: _handleTapCancel,
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        behavior: HitTestBehavior.opaque,
-        child: animatedChild,
-      ),
+    final semanticLabel = widget.semanticLabel?.trim();
+    final semanticHint = widget.semanticHint?.trim();
+    if ((semanticLabel == null || semanticLabel.isEmpty) &&
+        (semanticHint == null || semanticHint.isEmpty)) {
+      return interactiveChild;
+    }
+
+    return Semantics(
+      button: true,
+      enabled: true,
+      label: semanticLabel?.isNotEmpty == true ? semanticLabel : null,
+      hint: semanticHint?.isNotEmpty == true ? semanticHint : null,
+      child: interactiveChild,
     );
   }
 }

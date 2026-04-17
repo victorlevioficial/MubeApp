@@ -148,8 +148,7 @@ extension _ChatScreenWidgets on _ChatScreenState {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            if (dateLabel != null)
-                              _DaySeparator(label: dateLabel),
+                            if (dateLabel != null) _DaySeparator(label: dateLabel),
                             _MessageBubble(
                               message: message,
                               isMe: isMe,
@@ -255,24 +254,34 @@ extension _ChatScreenWidgets on _ChatScreenState {
   }
 
   Widget _buildAppBarTitle() {
-    return GestureDetector(
-      onTap: () {
-        if (_otherUserId.isNotEmpty) {
-          context.push(RoutePaths.publicProfileById(_otherUserId));
-        }
-      },
-      child: Row(
-        children: [
-          UserAvatar(size: 36, photoUrl: _otherUserPhoto, name: _otherUserName),
-          const SizedBox(width: AppSpacing.s8),
-          Expanded(
-            child: Text(
-              _otherUserName,
-              style: AppTypography.titleMedium,
-              overflow: TextOverflow.ellipsis,
+    return Semantics(
+      button: true,
+      label: 'Abrir perfil de $_otherUserName',
+      hint: 'Toque para abrir o perfil',
+      child: GestureDetector(
+        onTap: () {
+          if (_otherUserId.isNotEmpty) {
+            context.push(RoutePaths.publicProfileById(_otherUserId));
+          }
+        },
+        child: Row(
+          children: [
+            UserAvatar(
+              size: 36,
+              photoUrl: _otherUserPhoto,
+              name: _otherUserName,
+              semanticLabel: 'Avatar de $_otherUserName',
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.s8),
+            Expanded(
+              child: Text(
+                _otherUserName,
+                style: AppTypography.titleMedium,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -352,6 +361,9 @@ extension _ChatScreenWidgets on _ChatScreenState {
                       button: true,
                       enabled: canInteract && hasText,
                       label: 'Enviar mensagem',
+                      hint: canInteract && hasText
+                          ? 'Envia a mensagem digitada'
+                          : 'Digite uma mensagem para ativar o envio',
                       child: GestureDetector(
                         onTap: canInteract && hasText ? _sendMessage : null,
                         child: AnimatedContainer(
@@ -401,7 +413,7 @@ extension _ChatScreenWidgets on _ChatScreenState {
             const SizedBox(height: AppSpacing.s12),
             Text(
               _conversationAccessMessage ??
-                  'Não foi possível acessar esta conversa.',
+                  'Nao foi possivel acessar esta conversa.',
               textAlign: TextAlign.center,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
@@ -425,55 +437,60 @@ class _PendingRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(
-        AppSpacing.s16,
-        AppSpacing.s8,
-        AppSpacing.s16,
-        0,
-      ),
-      padding: AppSpacing.all16,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.surfaceHighlight.withValues(alpha: 0.7),
+    return Semantics(
+      container: true,
+      label: 'Solicitacao de mensagem pendente',
+      hint: 'Leia a conversa normalmente e aceite para responder',
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(
+          AppSpacing.s16,
+          AppSpacing.s8,
+          AppSpacing.s16,
+          0,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Solicitacao de mensagem',
-            style: AppTypography.titleSmall.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: AppTypography.buttonPrimary.fontWeight,
-            ),
+        padding: AppSpacing.all16,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.all16,
+          border: Border.all(
+            color: AppColors.surfaceHighlight.withValues(alpha: 0.7),
           ),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            'Leia a conversa normalmente. Para responder, aceite esta solicitacao.',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Solicitacao de mensagem',
+              style: AppTypography.titleSmall.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: AppTypography.buttonPrimary.fontWeight,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onAccept,
-              icon: isAccepting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: Text(isAccepting ? 'Aceitando...' : 'Aceitar solicitacao'),
+            const SizedBox(height: AppSpacing.s8),
+            Text(
+              'Leia a conversa normalmente. Para responder, aceite esta solicitacao.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.s12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onAccept,
+                icon: isAccepting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_rounded),
+                label: Text(isAccepting ? 'Aceitando...' : 'Aceitar solicitacao'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -492,55 +509,60 @@ class _ReplyComposerPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s12,
-        vertical: AppSpacing.s10,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: AppColors.surfaceHighlight.withValues(alpha: 0.7),
+    return Semantics(
+      container: true,
+      label: 'Respondendo a $authorLabel. $text',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s12,
+          vertical: AppSpacing.s10,
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Respondendo a $authorLabel',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s2),
-                Text(
-                  text,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.all16,
+          border: Border.all(
+            color: AppColors.surfaceHighlight.withValues(alpha: 0.7),
           ),
-          const SizedBox(width: AppSpacing.s8),
-          GestureDetector(
-            onTap: onClose,
-            child: const Icon(
-              Icons.close_rounded,
-              color: AppColors.textTertiary,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Respondendo a $authorLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
+                  Text(
+                    text,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.s8),
+            IconButton(
+              tooltip: 'Cancelar resposta',
+              onPressed: onClose,
+              icon: const Icon(
+                Icons.close_rounded,
+                color: AppColors.textTertiary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -586,134 +608,156 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        dragStartBehavior: DragStartBehavior.down,
-        onHorizontalDragStart: canReply ? _handleHorizontalDragStart : null,
-        onHorizontalDragUpdate: canReply ? _handleHorizontalDragUpdate : null,
-        onHorizontalDragEnd: canReply ? _handleHorizontalDragEnd : null,
-        onHorizontalDragCancel: canReply ? _resetDrag : null,
-        child: Stack(
-          alignment: Alignment.centerLeft,
-          children: [
-            if (canReply)
-              Padding(
-                padding: const EdgeInsets.only(left: AppSpacing.s12),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Opacity(
-                    opacity: (_dragOffset / _replyIconFadeDistance).clamp(
-                      0.0,
-                      1.0,
-                    ),
-                    child: const Icon(
-                      Icons.reply_rounded,
-                      color: AppColors.primary,
+      child: Semantics(
+        container: true,
+        label: _buildSemanticLabel(showReplyPreview),
+        hint: canReply ? 'Deslize para responder' : null,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          dragStartBehavior: DragStartBehavior.down,
+          onHorizontalDragStart: canReply ? _handleHorizontalDragStart : null,
+          onHorizontalDragUpdate: canReply ? _handleHorizontalDragUpdate : null,
+          onHorizontalDragEnd: canReply ? _handleHorizontalDragEnd : null,
+          onHorizontalDragCancel: canReply ? _resetDrag : null,
+          child: ExcludeSemantics(
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                if (canReply)
+                  Padding(
+                    padding: const EdgeInsets.only(left: AppSpacing.s12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Opacity(
+                        opacity: (_dragOffset / _replyIconFadeDistance).clamp(
+                          0.0,
+                          1.0,
+                        ),
+                        child: const Icon(
+                          Icons.reply_rounded,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            Transform.translate(
-              offset: Offset(_dragOffset, 0),
-              child: Row(
-                mainAxisAlignment: widget.isMe
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
-                children: [
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.s12,
-                      vertical: AppSpacing.s8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: widget.isMe
-                          ? AppColors.primary
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(AppRadius.r24),
-                        topRight: const Radius.circular(AppRadius.r24),
-                        bottomLeft: widget.isMe
-                            ? const Radius.circular(AppRadius.r24)
-                            : const Radius.circular(AppRadius.r4),
-                        bottomRight: widget.isMe
-                            ? const Radius.circular(AppRadius.r4)
-                            : const Radius.circular(AppRadius.r24),
-                      ),
-                      border: !widget.isMe
-                          ? Border.all(
-                              color: AppColors.surfaceHighlight.withValues(
-                                alpha: 0.5,
-                              ),
-                            )
-                          : null,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        if (showReplyPreview)
-                          _BubbleReplyPreview(
-                            authorLabel: widget.replyAuthorLabel ?? 'Mensagem',
-                            text: widget.message.replyToText!,
-                            isMe: widget.isMe,
-                          ),
-                        Text(
-                          widget.message.text,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                Transform.translate(
+                  offset: Offset(_dragOffset, 0),
+                  child: Row(
+                    mainAxisAlignment: widget.isMe
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
-                        const SizedBox(height: AppSpacing.s2),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _formatTime(
-                                widget.message.createdAt.toDate().toLocal(),
-                              ),
-                              style: AppTypography.chipLabel.copyWith(
-                                color: widget.isMe
-                                    ? AppColors.textPrimary.withValues(
-                                        alpha: 0.7,
-                                      )
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                            if (widget.isMe) ...[
-                              const SizedBox(width: AppSpacing.s4),
-                              if (widget.isPending)
-                                Icon(
-                                  Icons.schedule,
-                                  size: 14,
-                                  color: AppColors.textPrimary.withValues(
-                                    alpha: 0.7,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.s12,
+                          vertical: AppSpacing.s8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: widget.isMe
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(AppRadius.r24),
+                            topRight: const Radius.circular(AppRadius.r24),
+                            bottomLeft: widget.isMe
+                                ? const Radius.circular(AppRadius.r24)
+                                : const Radius.circular(AppRadius.r4),
+                            bottomRight: widget.isMe
+                                ? const Radius.circular(AppRadius.r4)
+                                : const Radius.circular(AppRadius.r24),
+                          ),
+                          border: !widget.isMe
+                              ? Border.all(
+                                  color: AppColors.surfaceHighlight.withValues(
+                                    alpha: 0.5,
                                   ),
                                 )
-                              else
-                                Icon(
-                                  widget.isRead ? Icons.done_all : Icons.done,
-                                  size: 14,
-                                  color: widget.isRead
-                                      ? AppColors.textPrimary
-                                      : AppColors.textPrimary.withValues(
-                                          alpha: 0.7,
-                                        ),
+                              : null,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (showReplyPreview)
+                              _BubbleReplyPreview(
+                                authorLabel: widget.replyAuthorLabel ??
+                                    'Mensagem',
+                                text: widget.message.replyToText!,
+                                isMe: widget.isMe,
+                              ),
+                            Text(
+                              widget.message.text,
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.s2),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _formatTime(
+                                    widget.message.createdAt.toDate().toLocal(),
+                                  ),
+                                  style: AppTypography.chipLabel.copyWith(
+                                    color: widget.isMe
+                                        ? AppColors.textPrimary.withValues(
+                                            alpha: 0.7,
+                                          )
+                                        : AppColors.textSecondary,
+                                  ),
                                 ),
-                            ],
+                                if (widget.isMe) ...[
+                                  const SizedBox(width: AppSpacing.s4),
+                                  if (widget.isPending)
+                                    Icon(
+                                      Icons.schedule,
+                                      size: 14,
+                                      color: AppColors.textPrimary.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                    )
+                                  else
+                                    Icon(
+                                      widget.isRead ? Icons.done_all : Icons.done,
+                                      size: 14,
+                                      color: widget.isRead
+                                          ? AppColors.textPrimary
+                                          : AppColors.textPrimary.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                    ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  String _buildSemanticLabel(bool showReplyPreview) {
+    final segments = <String>[
+      widget.isMe ? 'Sua mensagem' : 'Mensagem recebida',
+      if (widget.isPending) 'pendente de envio' else if (widget.isMe)
+        widget.isRead
+            ? 'lida'
+            : 'enviada',
+      if (showReplyPreview)
+        'respondendo a ${widget.replyAuthorLabel ?? 'mensagem anterior'}',
+      widget.message.text,
+    ];
+    return segments.join('. ');
   }
 
   void _handleHorizontalDragStart(DragStartDetails details) {
@@ -755,13 +799,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
   }
 
   double _visualDragOffsetFor(double dragTravel) {
-    if (dragTravel <= 0) {
-      return 0;
-    }
-
-    if (dragTravel <= _directDragDistance) {
-      return dragTravel;
-    }
+    if (dragTravel <= 0) return 0;
+    if (dragTravel <= _directDragDistance) return dragTravel;
 
     final overshootDistance = dragTravel - _directDragDistance;
     final resistedOffset =
@@ -844,26 +883,33 @@ class _DaySeparator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s8, top: AppSpacing.s8),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s12,
-            vertical: AppSpacing.s4,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: AppRadius.all12,
-            border: Border.all(
-              color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+    return Semantics(
+      header: true,
+      label: label,
+      child: Padding(
+        padding:
+            const EdgeInsets.only(bottom: AppSpacing.s8, top: AppSpacing.s8),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s4,
             ),
-          ),
-          child: Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: AppTypography.titleSmall.fontWeight,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: AppRadius.all12,
+              border: Border.all(
+                color: AppColors.surfaceHighlight.withValues(alpha: 0.5),
+              ),
+            ),
+            child: ExcludeSemantics(
+              child: Text(
+                label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: AppTypography.titleSmall.fontWeight,
+                ),
+              ),
             ),
           ),
         ),

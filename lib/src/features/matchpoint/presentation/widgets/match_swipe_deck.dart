@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -257,6 +257,8 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               // DISLIKE
               _ActionButton(
                 icon: Icons.close,
+                tooltip: 'Recusar perfil',
+                semanticLabel: 'Recusar perfil',
                 color: AppColors.textSecondary, // Grey
                 backgroundColor: AppColors.surfaceHighlight,
                 size: 64,
@@ -270,6 +272,8 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               // UNDO
               _ActionButton(
                 icon: Icons.replay,
+                tooltip: 'Desfazer escolha',
+                semanticLabel: 'Desfazer escolha',
                 color: AppColors.textSecondary,
                 backgroundColor: AppColors.surface,
                 size: 48,
@@ -282,6 +286,8 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
               // LIKE
               _ActionButton(
                 icon: Icons.favorite,
+                tooltip: 'Curtir perfil',
+                semanticLabel: 'Curtir perfil',
                 color: AppColors.primary,
                 backgroundColor: AppColors.surface,
                 size: 64,
@@ -304,6 +310,8 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback onPressed;
   final double size;
   final bool enabled;
+  final String tooltip;
+  final String semanticLabel;
 
   const _ActionButton({
     required this.icon,
@@ -312,30 +320,40 @@ class _ActionButton extends StatelessWidget {
     required this.onPressed,
     this.size = 56,
     this.enabled = true,
+    required this.tooltip,
+    required this.semanticLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: enabled
-            ? backgroundColor
-            : backgroundColor.withValues(alpha: 0.5),
-        shape: BoxShape.circle,
-        boxShadow: AppEffects.cardShadow,
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-      ),
-      child: Material(
-        color: AppColors.transparent,
-        child: InkWell(
-          onTap: enabled ? onPressed : null,
-          customBorder: const CircleBorder(),
-          child: Icon(
-            icon,
-            color: enabled ? color : color.withValues(alpha: 0.45),
-            size: size * 0.5,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: semanticLabel,
+      child: Tooltip(
+        message: tooltip,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: enabled
+                ? backgroundColor
+                : backgroundColor.withValues(alpha: 0.5),
+            shape: BoxShape.circle,
+            boxShadow: AppEffects.cardShadow,
+            border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+          ),
+          child: Material(
+            color: AppColors.transparent,
+            child: InkWell(
+              onTap: enabled ? onPressed : null,
+              customBorder: const CircleBorder(),
+              child: Icon(
+                icon,
+                color: enabled ? color : color.withValues(alpha: 0.45),
+                size: size * 0.5,
+              ),
+            ),
           ),
         ),
       ),
