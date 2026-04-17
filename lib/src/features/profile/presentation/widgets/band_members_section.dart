@@ -66,19 +66,19 @@ class _BandMemberCard extends StatelessWidget {
   });
 
   String get _primaryRole {
-    final prof = member.dadosProfissional;
-    if (prof == null) return 'M\u00FAsico';
+    final instrumentos = member.professionalInstruments;
+    if (instrumentos.isNotEmpty) {
+      return instrumentDisplayLabel(instrumentos.first);
+    }
 
-    final instrumentos = prof['instrumentos'] as List?;
-    if (instrumentos != null && instrumentos.isNotEmpty) {
-      return instrumentDisplayLabel(instrumentos.first.toString());
+    final funcoes = member.professionalRoles;
+    if (funcoes.isNotEmpty) {
+      return professionalRoleDisplayLabel(funcoes.first);
     }
-    final funcoes = prof['funcoes'] as List?;
-    if (funcoes != null && funcoes.isNotEmpty) {
-      return professionalRoleDisplayLabel(funcoes.first.toString());
-    }
+
+    final prof = member.dadosProfissional;
     // Legacy field
-    final skills = prof['skills'] as List?;
+    final skills = prof?['skills'] as List?;
     if (skills != null && skills.isNotEmpty) {
       return skills.first as String;
     }
