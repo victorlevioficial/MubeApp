@@ -12,7 +12,7 @@
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
     rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260327-2">
+  <link rel="stylesheet" href="styles.css?v=20260410-1">
 </head>
 
 <body>
@@ -103,52 +103,54 @@
         </button>
       </div>
 
-      <div class="sidebar-group">
-        <p class="sidebar-label">Operacao</p>
-        <button class="nav-item is-active" data-section="dashboard" type="button">
-          <span class="material-icons-round">dashboard</span>
-          <span>Dashboard</span>
-        </button>
-        <button class="nav-item" data-section="users" type="button">
-          <span class="material-icons-round">groups</span>
-          <span>Usuarios</span>
-        </button>
-        <button class="nav-item" data-section="conversations" type="button">
-          <span class="material-icons-round">forum</span>
-          <span>Conversas</span>
-        </button>
-        <button class="nav-item" data-section="gigs" type="button">
-          <span class="material-icons-round">event_note</span>
-          <span>Gigs</span>
-        </button>
-        <button class="nav-item" data-section="matchpoint" type="button">
-          <span class="material-icons-round">bolt</span>
-          <span>MatchPoint</span>
-        </button>
-      </div>
+      <div class="sidebar-nav">
+        <div class="sidebar-group">
+          <p class="sidebar-label">Operacao</p>
+          <button class="nav-item is-active" data-section="dashboard" type="button">
+            <span class="material-icons-round">dashboard</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item" data-section="users" type="button">
+            <span class="material-icons-round">groups</span>
+            <span>Usuarios</span>
+          </button>
+          <button class="nav-item" data-section="conversations" type="button">
+            <span class="material-icons-round">forum</span>
+            <span>Conversas</span>
+          </button>
+          <button class="nav-item" data-section="gigs" type="button">
+            <span class="material-icons-round">event_note</span>
+            <span>Gigs</span>
+          </button>
+          <button class="nav-item" data-section="matchpoint" type="button">
+            <span class="material-icons-round">bolt</span>
+            <span>MatchPoint</span>
+          </button>
+        </div>
 
-      <div class="sidebar-group">
-        <p class="sidebar-label">Gestao</p>
-        <button class="nav-item" data-section="featured" type="button">
-          <span class="material-icons-round">stars</span>
-          <span>Em destaque</span>
-        </button>
-        <button class="nav-item" data-section="reports" type="button">
-          <span class="material-icons-round">outlined_flag</span>
-          <span>Denuncias</span>
-        </button>
-        <button class="nav-item" data-section="suspensions" type="button">
-          <span class="material-icons-round">gpp_bad</span>
-          <span>Suspensoes</span>
-        </button>
-        <button class="nav-item" data-section="tickets" type="button">
-          <span class="material-icons-round">support_agent</span>
-          <span>Tickets</span>
-        </button>
-        <button class="nav-item" data-section="system" type="button">
-          <span class="material-icons-round">memory</span>
-          <span>Sistema</span>
-        </button>
+        <div class="sidebar-group">
+          <p class="sidebar-label">Gestao</p>
+          <button class="nav-item" data-section="featured" type="button">
+            <span class="material-icons-round">stars</span>
+            <span>Em destaque</span>
+          </button>
+          <button class="nav-item" data-section="reports" type="button">
+            <span class="material-icons-round">outlined_flag</span>
+            <span>Denuncias</span>
+          </button>
+          <button class="nav-item" data-section="suspensions" type="button">
+            <span class="material-icons-round">gpp_bad</span>
+            <span>Suspensoes</span>
+          </button>
+          <button class="nav-item" data-section="tickets" type="button">
+            <span class="material-icons-round">support_agent</span>
+            <span>Tickets</span>
+          </button>
+          <button class="nav-item" data-section="system" type="button">
+            <span class="material-icons-round">memory</span>
+            <span>Sistema</span>
+          </button>
+        </div>
       </div>
 
       <div class="sidebar-footer">
@@ -655,6 +657,12 @@
                 </label>
               </div>
               <div id="tickets-list" class="stack-list"></div>
+              <div class="inline-actions">
+                <button id="tickets-load-more-btn" class="btn btn-secondary hidden" type="button">
+                  <span class="material-icons-round">expand_more</span>
+                  <span>Carregar mais</span>
+                </button>
+              </div>
             </div>
 
             <div id="tickets-detail" class="panel detail-panel">

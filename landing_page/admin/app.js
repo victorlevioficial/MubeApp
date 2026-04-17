@@ -100,6 +100,7 @@
     suspensionsList: requiredElement("suspensions-list"),
     ticketsFilter: requiredElement("tickets-filter"),
     ticketsList: requiredElement("tickets-list"),
+    ticketsLoadMoreButton: requiredElement("tickets-load-more-btn"),
     ticketsDetail: requiredElement("tickets-detail"),
     systemRefreshButton: requiredElement("system-refresh-btn"),
     systemConfigCards: requiredElement("system-config-cards"),
@@ -124,6 +125,7 @@
     authUser: null,
     dashboard: null,
     dashboardAudit: null,
+    dashboardLoadErrors: { overview: false, audit: false },
     users: { items: [], mode: "list", totalUsersBase: 0, scannedCount: 0, total: 0, hasMore: false, nextCursor: null },
     userDetail: null,
     conversations: { items: [], total: 0, selectedId: "", detail: null },
@@ -132,7 +134,7 @@
     featured: { uids: [], profiles: [], preview: null },
     reports: [],
     suspensions: [],
-    tickets: { items: [], selectedId: "" },
+    tickets: { items: [], selectedId: "", hasMore: false, nextCursor: null },
     system: { data: null, firestoreResult: null, storageResult: null },
     drawerPayloads: Object.create(null),
     toastTimer: null,
@@ -222,7 +224,8 @@
     ui.reportsFilter.addEventListener("change", function () { loadReports({ force: true }).catch(handleError); });
     ui.suspendConfirmButton.addEventListener("click", function () { createSuspension().catch(handleError); });
     ui.suspensionsFilter.addEventListener("change", function () { loadSuspensions({ force: true }).catch(handleError); });
-    ui.ticketsFilter.addEventListener("change", function () { loadTickets({ force: true }).catch(handleError); });
+    ui.ticketsFilter.addEventListener("change", function () { loadTickets({ force: true, reset: true }).catch(handleError); });
+    ui.ticketsLoadMoreButton.addEventListener("click", function () { loadTickets({ append: true }).catch(handleError); });
     ui.systemRefreshButton.addEventListener("click", function () { loadSystem({ force: true }).catch(handleError); });
     ui.firestoreInspectButton.addEventListener("click", function () { inspectFirestorePath().catch(handleError); });
     ui.storageInspectButton.addEventListener("click", function () { inspectStoragePrefix().catch(handleError); });
@@ -366,7 +369,7 @@
     const shouldReload = settings.force === true || state.sectionLoaded[section] !== true;
     if (state.authUser && shouldReload) {
       await SECTION_META[section].loader({ force: settings.force === true, reset: settings.reset === true });
-      state.sectionLoaded[section] = true;
+      state.sectionLoaded[section] = !(section === "dashboard" && state.dashboardLoadErrors.overview);
     }
   }
 
@@ -383,18 +386,51 @@
     setLoadingMarkup(ui.dashboardActivity, "Montando linhas do tempo...", "schedule");
     setLoadingMarkup(ui.dashboardAudit, "Buscando buckets de auditoria...", "analytics");
 
-    const results = await Promise.all([
+    const results = await Promise.allSettled([
       callFunction("getDashboardOverview", {}),
-      callFunction("getMatchpointRankingAuditDashboard", { limit: 12 }).catch(function () { return null; }),
+      callFunction("getMatchpointRankingAuditDashboard", { limit: 12 }),
     ]);
-    state.dashboard = results[0] || null;
-    state.dashboardAudit = results[1] || null;
+    state.dashboard = results[0].status === "fulfilled" ? results[0].value : null;
+    state.dashboardAudit = results[1].status === "fulfilled" ? results[1].value : null;
+    state.dashboardLoadErrors.overview = results[0].status === "rejected";
+    state.dashboardLoadErrors.audit = results[1].status === "rejected";
+
     renderDashboard();
+
+    if (state.dashboardLoadErrors.overview && state.dashboardLoadErrors.audit) {
+      showToast("Nao foi possivel carregar o dashboard agora.", "error");
+      return;
+    }
+    if (state.dashboardLoadErrors.overview) {
+      showToast("Dashboard carregado parcialmente. A visao geral falhou.", "error");
+      return;
+    }
+    if (state.dashboardLoadErrors.audit) {
+      showToast("Dashboard carregado com falha na auditoria MatchPoint.", "error");
+    }
   }
 
   function renderDashboard() {
     if (!state.dashboard) {
-      setLoadingMarkup(ui.dashboardQuickStats, "Nenhum dado de dashboard disponivel.", "dashboard");
+      ui.dashboardQuickStats.innerHTML = renderEmptyState(
+        state.dashboardLoadErrors.overview ?
+          "Nao foi possivel carregar a visao executiva agora." :
+          "Nenhum dado de dashboard disponivel.",
+        "dashboard"
+      );
+      ui.dashboardMetrics.innerHTML = renderEmptyState(
+        "Indicadores indisponiveis no momento.",
+        "insights"
+      );
+      ui.dashboardHealth.innerHTML = renderEmptyState(
+        "Saude operacional indisponivel no momento.",
+        "monitor_heart"
+      );
+      ui.dashboardActivity.innerHTML = renderEmptyState(
+        "Atividade recente indisponivel no momento.",
+        "schedule"
+      );
+      renderDashboardAudit();
       return;
     }
 
@@ -459,6 +495,10 @@
       ]),
     ].join("");
 
+    renderDashboardAudit();
+  }
+
+  function renderDashboardAudit() {
     const audit = state.dashboardAudit;
     if (audit && asArray(audit.buckets).length > 0) {
       const summary = asObject(audit.summary);
@@ -467,6 +507,8 @@
       ].concat(asArray(audit.buckets).slice(0, 8).map(function (bucket) {
         return stackCard("Bucket " + formatDateTime(bucket.bucketStart), ["Eventos: " + formatNumber(bucket.totalEvents), "Pool: " + formatNumber(bucket.poolTotal), "Retornados: " + formatNumber(bucket.returnedTotal), "Proximidade: " + formatNumber(bucket.returnedProximity)].join(" | "), pillHtml("Geohash " + formatNumber(bucket.geohashUsedCount), "pill-accent"));
       })).join("");
+    } else if (state.dashboardLoadErrors.audit) {
+      ui.dashboardAudit.innerHTML = renderEmptyState("Nao foi possivel carregar a auditoria de ranking agora.", "analytics");
     } else {
       ui.dashboardAudit.innerHTML = renderEmptyState("Nenhuma auditoria de ranking encontrada.", "analytics");
     }
@@ -1061,17 +1103,43 @@
   }
 
   async function loadTickets(options) {
-    const force = Boolean(options && options.force);
-    if (!force && state.tickets.items.length > 0) {
+    const settings = options || {};
+    const force = Boolean(settings.force);
+    if (settings.append && !state.tickets.nextCursor) {
+      return;
+    }
+
+    if (!settings.append && !force && state.tickets.items.length > 0) {
       renderTickets();
       return;
     }
-    setLoadingMarkup(ui.ticketsList, "Carregando tickets...", "support_agent");
-    const response = await callFunction("listTickets", { status: ui.ticketsFilter.value || "all", limit: 60 });
-    state.tickets.items = asArray(response.tickets);
-    const selectedExists = state.tickets.items.some(function (item) { return stringValue(item.id) === state.tickets.selectedId; });
-    if (!selectedExists) state.tickets.selectedId = "";
-    renderTickets();
+
+    if (!settings.append) {
+      state.tickets.nextCursor = null;
+      state.tickets.hasMore = false;
+      setLoadingMarkup(ui.ticketsList, "Carregando tickets...", "support_agent");
+    } else {
+      setButtonBusy(ui.ticketsLoadMoreButton, true);
+    }
+
+    try {
+      const response = await callFunction("listTickets", {
+        status: ui.ticketsFilter.value || "all",
+        limit: 30,
+        cursor: settings.append ? state.tickets.nextCursor : null,
+      });
+      const incomingTickets = asArray(response.tickets);
+      state.tickets.items = settings.append ?
+        mergeItemsById(state.tickets.items, incomingTickets) :
+        incomingTickets;
+      state.tickets.hasMore = response.hasMore === true;
+      state.tickets.nextCursor = response.nextCursor || null;
+      const selectedExists = state.tickets.items.some(function (item) { return stringValue(item.id) === state.tickets.selectedId; });
+      if (!selectedExists) state.tickets.selectedId = "";
+      renderTickets();
+    } finally {
+      setButtonBusy(ui.ticketsLoadMoreButton, false);
+    }
   }
 
   function renderTickets() {
@@ -1080,6 +1148,8 @@
       const ticketId = stringValue(ticket.id);
       return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + escapeHtml(stringValue(ticket.subject, stringValue(ticket.title, ticketId))) + "</h3><p>" + escapeHtml(stringValue(ticket.contactEmail, stringValue(ticket.userId, "Sem contato"))) + "</p></div>" + badgeHtml(stringValue(ticket.status, "open"), stringValue(ticket.status, "open")) + "</div><div class=\"card-meta\">" + pillHtml(stringValue(ticket.category, "Sem categoria"), "pill-blue") + pillHtml("Criado em " + formatDateTime(ticket.createdAt), "pill-accent") + "</div><div class=\"drawer-actions\" style=\"margin-top:12px;\">" + actionButton("open-ticket", "Abrir", "mark_email_read", { ticketId: ticketId }, "primary") + (ticket.userId ? actionButton("open-user", "Usuario", "person", { uid: stringValue(ticket.userId) }, "ghost") : "") + "</div></article>";
     }).join("") : renderEmptyState("Nenhum ticket encontrado com esse status.", "mail");
+    ui.ticketsLoadMoreButton.classList.toggle("hidden", !state.tickets.hasMore);
+    ui.ticketsLoadMoreButton.disabled = false;
     const selected = tickets.find(function (ticket) { return stringValue(ticket.id) === state.tickets.selectedId; });
     ui.ticketsDetail.innerHTML = selected ? renderTicketDetail(selected) : renderEmptyState("Selecione um ticket para responder ou atualizar o status.", "support_agent");
   }
@@ -1406,6 +1476,17 @@
 
   function stackCard(title, text, trailingHtml) {
     return "<article class=\"stack-card\"><div class=\"panel-header\"><div><h3>" + title + "</h3><p>" + text + "</p></div>" + (trailingHtml || "") + "</div></article>";
+  }
+
+  function mergeItemsById(existingItems, nextItems) {
+    const itemsById = new Map();
+    asArray(existingItems).forEach(function (item) {
+      itemsById.set(stringValue(item.id), item);
+    });
+    asArray(nextItems).forEach(function (item) {
+      itemsById.set(stringValue(item.id), item);
+    });
+    return Array.from(itemsById.values());
   }
 
   function detailSection(title, bodyHtml) {
