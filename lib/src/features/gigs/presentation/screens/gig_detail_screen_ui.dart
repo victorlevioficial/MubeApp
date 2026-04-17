@@ -160,8 +160,8 @@ extension _GigDetailScreenUi on _GigDetailScreenState {
                     isCreator: isCreator,
                     myApplication: myApplication,
                     pendingAction: _pendingAction,
-                    onApply: () => _showApplyDialog(context, gig.id),
-                    onWithdraw: () => _withdraw(context, gig.id),
+                    onApply: () => _showApplyDialog(context, gig.id, gig.title),
+                    onWithdraw: () => _withdraw(context, myApplication),
                     onViewApplicants: () =>
                         context.push(RoutePaths.gigApplicantsById(gig.id)),
                     onCloseGig: () => _confirmCloseGig(context, gig.id),

@@ -614,10 +614,14 @@ class _ActionPanelSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final queuedApplication =
+        myApplication != null && myApplication!.id.startsWith('queued:');
+
     return _ActionPanel(
       gig: gig,
       isCreator: isCreator,
       myApplication: myApplication,
+      isQueuedApplication: queuedApplication,
       pendingAction: pendingAction,
       onApply: onApply,
       onWithdraw: myApplication == null ? null : onWithdraw,
@@ -643,6 +647,7 @@ class _ActionPanel extends StatelessWidget {
     required this.gig,
     required this.isCreator,
     required this.myApplication,
+    required this.isQueuedApplication,
     required this.pendingAction,
     required this.onApply,
     required this.onWithdraw,
@@ -657,6 +662,7 @@ class _ActionPanel extends StatelessWidget {
   final Gig gig;
   final bool isCreator;
   final GigApplication? myApplication;
+  final bool isQueuedApplication;
   final _GigDetailPendingAction? pendingAction;
   final VoidCallback onApply;
   final VoidCallback? onWithdraw;
@@ -762,8 +768,10 @@ class _ActionPanel extends StatelessWidget {
     if (applicationStatus == ApplicationStatus.pending) {
       return Column(
         children: [
-          const AppButton.secondary(
-            text: 'Candidatura enviada',
+          AppButton.secondary(
+            text: isQueuedApplication
+                ? 'Envio pendente (offline)'
+                : 'Candidatura enviada',
             isFullWidth: true,
             onPressed: null,
           ),

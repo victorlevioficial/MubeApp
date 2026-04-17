@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
 import '../../../core/errors/failure_mapper.dart';
+import '../../../core/errors/firestore_resilience.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
 import '../../../core/services/analytics/analytics_service.dart';
@@ -26,6 +27,13 @@ import '../domain/gig_type.dart';
 import '../domain/review_type.dart';
 
 part 'gig_repository.g.dart';
+
+class GigApplicationAlreadyExistsException implements Exception {
+  const GigApplicationAlreadyExistsException();
+
+  @override
+  String toString() => 'Voce ja tem uma candidatura ativa para esta gig.';
+}
 
 @Riverpod(keepAlive: true)
 GigRepository gigRepository(Ref ref) {
@@ -85,6 +93,7 @@ class GigRepository {
   Future<T> _runFirestoreRequest<T>(
     Future<T> Function() request, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) async {
     for (var attempt = 1; attempt <= _maxFirestoreRetryAttempts; attempt++) {
       try {
@@ -99,7 +108,7 @@ class GigRepository {
             error,
             stackTrace,
           );
-          throw _wrapFirestoreException(error);
+          throw (onFinalError ?? _wrapFirestoreException)(error);
         }
 
         final delay = _retryDelayForAttempt(attempt);
@@ -161,30 +170,36 @@ class GigRepository {
   Future<DocumentSnapshot<Map<String, dynamic>>> _getDocument(
     DocumentReference<Map<String, dynamic>> reference, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => reference.get(),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> _getQuerySnapshot(
     Query<Map<String, dynamic>> query, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => query.get(),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
   Future<AggregateQuerySnapshot> _getAggregateSnapshot(
     AggregateQuery query, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => query.get(),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
@@ -193,10 +208,12 @@ class GigRepository {
     Map<String, dynamic> data, {
     SetOptions? options,
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => reference.set(data, options),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
@@ -204,20 +221,24 @@ class GigRepository {
     DocumentReference<Map<String, dynamic>> reference,
     Map<Object, Object?> data, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => reference.update(data),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
   Future<void> _deleteDocument(
     DocumentReference<Map<String, dynamic>> reference, {
     required String operationLabel,
+    FirestoreFinalErrorMapper? onFinalError,
   }) {
     return _runFirestoreRequest(
       () => reference.delete(),
       operationLabel: operationLabel,
+      onFinalError: onFinalError,
     );
   }
 
@@ -623,6 +644,7 @@ class GigRepository {
     final gigSnapshot = await _getDocument(
       _gigs.doc(gigId),
       operationLabel: 'apply_to_gig_get_gig',
+      onFinalError: recoverableFirestoreFinalError,
     );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
       throw Exception('Gig nao encontrada.');
@@ -643,18 +665,24 @@ class GigRepository {
     final existing = await _getDocument(
       applicationRef,
       operationLabel: 'apply_to_gig_check_existing',
+      onFinalError: recoverableFirestoreFinalError,
     );
     if (existing.exists) {
-      throw Exception('Voce ja tem uma candidatura ativa para esta gig.');
+      throw const GigApplicationAlreadyExistsException();
     }
 
-    await _setDocument(applicationRef, {
-      GigFields.applicantId: _uid,
-      GigFields.message: message.trim(),
-      GigFields.status: _applicationStatusValue(ApplicationStatus.pending),
-      GigFields.appliedAt: FieldValue.serverTimestamp(),
-      GigFields.respondedAt: null,
-    }, operationLabel: 'apply_to_gig_set_application');
+    await _setDocument(
+      applicationRef,
+      {
+        GigFields.applicantId: _uid,
+        GigFields.message: message.trim(),
+        GigFields.status: _applicationStatusValue(ApplicationStatus.pending),
+        GigFields.appliedAt: FieldValue.serverTimestamp(),
+        GigFields.respondedAt: null,
+      },
+      operationLabel: 'apply_to_gig_set_application',
+      onFinalError: recoverableFirestoreFinalError,
+    );
 
     unawaited(
       _analytics

@@ -60,126 +60,133 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
         ? Hero(tag: widget.avatarHeroTag!, child: avatar)
         : avatar;
 
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isPressed = true),
-      onExit: (_) => setState(() => _isPressed = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: _handleTapDown,
-        onTapUp: _handleTapUp,
-        onTapCancel: _handleTapCancel,
-        child: AnimatedScale(
-          scale: _isPressed ? 0.98 : 1.0,
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeInOut,
-          child: Container(
-            margin:
-                widget.margin ??
-                const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s16,
-                  vertical: AppSpacing.s8,
+    return Semantics(
+      button: true,
+      label: item.displayName,
+      hint: 'Toque para abrir o perfil',
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isPressed = true),
+        onExit: (_) => setState(() => _isPressed = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onTapDown: _handleTapDown,
+          onTapUp: _handleTapUp,
+          onTapCancel: _handleTapCancel,
+          child: AnimatedScale(
+            scale: _isPressed ? 0.98 : 1.0,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeInOut,
+            child: Container(
+              margin:
+                  widget.margin ??
+                  const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s16,
+                    vertical: AppSpacing.s8,
+                  ),
+              padding: AppSpacing.all12,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: AppRadius.all16,
+                border: Border.all(
+                  color: _isPressed
+                      ? AppColors.primary.withValues(alpha: 0.5)
+                      : AppColors.surfaceHighlight.withValues(alpha: 0.5),
+                  width: 1,
                 ),
-            padding: AppSpacing.all12,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: AppRadius.all16,
-              border: Border.all(
-                color: _isPressed
-                    ? AppColors.primary.withValues(alpha: 0.5)
-                    : AppColors.surfaceHighlight.withValues(alpha: 0.5),
-                width: 1,
+                boxShadow: _isPressed
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
-              boxShadow: _isPressed
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Esquerda: Avatar com Hero opcional
-                avatarWidget,
-                const SizedBox(width: AppSpacing.s12),
-
-                // Meio: Coluna de Informações
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              item.displayName,
-                              style: AppTypography.cardTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.s8),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.s8),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                        child: Row(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  avatarWidget,
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            if (_hasLocationInfo) ...[
-                              const Icon(
-                                Icons.location_on,
-                                size: 14,
-                                color: AppColors.textSecondary,
+                            Flexible(
+                              child: Text(
+                                item.displayName,
+                                style: AppTypography.cardTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: AppSpacing.s4),
-                              Text(
-                                widget.item.distanceText,
-                                style: AppTypography.bodySmall.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.s8),
-                            ],
-                            ProfileTypeBadge(
-                              tipoPerfil: item.tipoPerfil,
-                              subCategories: item.subCategories,
                             ),
+                            const SizedBox(width: AppSpacing.s8),
                           ],
                         ),
-                      ),
-                      if (item.offersRemoteRecording)
+                        const SizedBox(height: AppSpacing.s8),
                         Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                          child: _buildRemoteRecordingChip(),
-                        ),
-                      if (item.skills.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                          child: _SingleLineChipList(
-                            items: item.skills,
-                            chipBuilder: _buildSkillChip,
-                            overflowBuilder: (count) =>
-                                _buildSkillChip('+$count'),
+                          child: Row(
+                            children: [
+                              if (_hasLocationInfo) ...[
+                                const Icon(
+                                  Icons.location_on,
+                                  size: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: AppSpacing.s4),
+                                Text(
+                                  widget.item.distanceText,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.s8),
+                              ],
+                              ProfileTypeBadge(
+                                tipoPerfil: item.tipoPerfil,
+                                subCategories: item.subCategories,
+                              ),
+                            ],
                           ),
                         ),
-                      if (item.formattedGenres.isNotEmpty)
-                        _SingleLineChipList(
-                          items: item.formattedGenres,
-                          chipBuilder: _buildGenreChip,
-                          overflowBuilder: (count) =>
-                              _buildGenreChip('+$count'),
-                        ),
-                    ],
+                        if (item.offersRemoteRecording)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.s8,
+                            ),
+                            child: _buildRemoteRecordingChip(),
+                          ),
+                        if (item.skills.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.s8,
+                            ),
+                            child: _SingleLineChipList(
+                              items: item.skills,
+                              chipBuilder: _buildSkillChip,
+                              overflowBuilder: (count) =>
+                                  _buildSkillChip('+$count'),
+                            ),
+                          ),
+                        if (item.formattedGenres.isNotEmpty)
+                          _SingleLineChipList(
+                            items: item.formattedGenres,
+                            chipBuilder: _buildGenreChip,
+                            overflowBuilder: (count) =>
+                                _buildGenreChip('+$count'),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-
-                // Direita: Botão Curtir
-                AppLikeButton(targetId: item.uid, initialCount: item.likeCount),
-              ],
+                  AppLikeButton(
+                    targetId: item.uid,
+                    initialCount: item.likeCount,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

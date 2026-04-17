@@ -116,7 +116,11 @@ void main() {
     );
   }
 
-  Widget createSubject(AppUser user) {
+  Widget createSubject(
+    AppUser user, {
+    bool isStaleData = false,
+    DateTime? dataUpdatedAt,
+  }) {
     return ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
@@ -128,7 +132,15 @@ void main() {
       ],
       child: MaterialApp(
         home: Scaffold(
-          body: CustomScrollView(slivers: [FeedHeader(currentUser: user)]),
+          body: CustomScrollView(
+            slivers: [
+              FeedHeader(
+                currentUser: user,
+                isStaleData: isStaleData,
+                dataUpdatedAt: dataUpdatedAt,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -225,6 +237,33 @@ void main() {
 
       expect(find.byKey(const Key('feed_header_address_row')), findsOneWidget);
       expect(find.text('Rua Augusta, Consolacao'), findsOneWidget);
+    });
+
+    testWidgets('shows stale data notice when feed is using cache', (
+      tester,
+    ) async {
+      final user = buildProfessionalUser(
+        complete: true,
+        addresses: [primaryAddress()],
+      );
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(
+          createSubject(
+            user,
+            isStaleData: true,
+            dataUpdatedAt: DateTime.now().subtract(const Duration(minutes: 8)),
+          ),
+        );
+        await tester.pumpAndSettle();
+      });
+
+      expect(
+        find.byKey(const Key('feed_header_stale_data_notice')),
+        findsOneWidget,
+      );
+      expect(find.text('Mostrando dados salvos'), findsOneWidget);
+      expect(find.textContaining('Ultima atualizacao'), findsOneWidget);
     });
 
     testWidgets('shows compact alerts and allows expanding and hiding', (

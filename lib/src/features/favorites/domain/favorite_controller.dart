@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/errors/firestore_resilience.dart';
+import '../../../core/providers/connectivity_provider.dart';
 import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../core/services/offline_mutation_coordinator.dart';
+import '../../../core/services/offline_mutation_queue.dart';
 import '../../../utils/app_logger.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../chat/data/chat_repository.dart';
@@ -29,6 +33,19 @@ class FavoriteController extends _$FavoriteController {
   @override
   FavoriteState build() {
     final authState = ref.watch(authStateChangesProvider);
+    ref.listen<AsyncValue<ConnectivityStatus>>(connectivityProvider, (
+      previous,
+      next,
+    ) {
+      if (previous?.value != ConnectivityStatus.offline ||
+          next.value != ConnectivityStatus.online) {
+        return;
+      }
+
+      for (final targetId in List<String>.from(_pendingDesiredStatus.keys)) {
+        unawaited(_processSyncQueue(targetId));
+      }
+    });
 
     if (authState.hasValue && authState.value != null) {
       Future.microtask(loadFavorites);
@@ -53,17 +70,44 @@ class FavoriteController extends _$FavoriteController {
     }
 
     state = state.copyWith(isSyncing: true);
+    final store = ref.read(offlineMutationStoreProvider.notifier);
 
     try {
+      await store.ensureUserLoaded(user.uid);
       final serverFavorites = await ref
           .read(favoriteRepositoryProvider)
           .loadFavorites();
+      final pendingDesiredStatus = store.favoriteDesiredStatusByTarget();
+      for (final entry in pendingDesiredStatus.entries) {
+        if (entry.value == serverFavorites.contains(entry.key)) {
+          _pendingDesiredStatus.remove(entry.key);
+          unawaited(_clearPersistedFavoriteIntent(entry.key));
+          continue;
+        }
+
+        _pendingDesiredStatus[entry.key] = entry.value;
+      }
+
+      final localFavorites = Set<String>.from(serverFavorites);
+      pendingDesiredStatus.forEach((targetId, isFavorite) {
+        if (isFavorite) {
+          localFavorites.add(targetId);
+        } else {
+          localFavorites.remove(targetId);
+        }
+      });
 
       state = state.copyWith(
-        localFavorites: Set<String>.from(serverFavorites),
+        localFavorites: localFavorites,
         serverFavorites: serverFavorites,
         isSyncing: false,
       );
+
+      if (ref.read(isOnlineProvider)) {
+        for (final targetId in List<String>.from(_pendingDesiredStatus.keys)) {
+          unawaited(_processSyncQueue(targetId));
+        }
+      }
     } catch (e, stackTrace) {
       state = state.copyWith(isSyncing: false);
       AppLogger.error('Erro ao carregar favoritos', e, stackTrace);
@@ -117,6 +161,7 @@ class FavoriteController extends _$FavoriteController {
         .updateLikeCount(targetId, isLiked: newStatus);
 
     _pendingDesiredStatus[targetId] = newStatus;
+    unawaited(_persistFavoriteIntent(targetId, newStatus));
     unawaited(_processSyncQueue(targetId));
   }
 
@@ -128,6 +173,8 @@ class FavoriteController extends _$FavoriteController {
 
     try {
       while (true) {
+        if (!ref.mounted) return;
+
         final desiredStatus = _pendingDesiredStatus[targetId];
         if (desiredStatus == null) break;
 
@@ -137,12 +184,20 @@ class FavoriteController extends _$FavoriteController {
           continue;
         }
 
+        if (!ref.read(isOnlineProvider)) {
+          ref
+              .read(offlineMutationCoordinatorProvider)
+              .scheduleFlush(reason: 'favorite_sync_offline');
+          break;
+        }
+
         try {
           if (desiredStatus) {
             await repo.addFavorite(targetId);
           } else {
             await repo.removeFavorite(targetId);
           }
+          if (!ref.mounted) return;
 
           // Analytics: fire-and-forget after successful remote sync.
           unawaited(
@@ -159,6 +214,8 @@ class FavoriteController extends _$FavoriteController {
           );
 
           _setServerFavorite(targetId, desiredStatus);
+          await _clearPersistedFavoriteIntent(targetId);
+          if (!ref.mounted) return;
 
           if (desiredStatus) {
             final currentUserId = ref
@@ -194,23 +251,39 @@ class FavoriteController extends _$FavoriteController {
             _pendingDesiredStatus.remove(targetId);
           }
         } catch (e, stackTrace) {
+          if (!ref.mounted) return;
+
           final latestDesired = _pendingDesiredStatus[targetId];
           final currentServerStatus = state.serverFavorites.contains(targetId);
+          final shouldPreservePendingChange =
+              latestDesired == desiredStatus &&
+              _shouldPreservePendingFavoriteChange(e);
 
           // Only rollback when this failing request is still the latest intent.
           if (latestDesired == desiredStatus) {
             _pendingDesiredStatus.remove(targetId);
 
-            if (desiredStatus != currentServerStatus) {
-              _applyLikeCountDelta(targetId, isLiked: currentServerStatus);
-            }
-
-            final currentLocalStatus = state.localFavorites.contains(targetId);
-            if (currentLocalStatus != currentServerStatus) {
-              _setLocalFavorite(targetId, currentServerStatus);
+            if (shouldPreservePendingChange) {
               ref
-                  .read(feedControllerProvider.notifier)
-                  .updateLikeCount(targetId, isLiked: currentServerStatus);
+                  .read(offlineMutationCoordinatorProvider)
+                  .scheduleFlush(reason: 'favorite_sync_retry');
+            } else {
+              await _clearPersistedFavoriteIntent(targetId);
+              if (!ref.mounted) return;
+
+              if (desiredStatus != currentServerStatus) {
+                _applyLikeCountDelta(targetId, isLiked: currentServerStatus);
+              }
+
+              final currentLocalStatus = state.localFavorites.contains(
+                targetId,
+              );
+              if (currentLocalStatus != currentServerStatus) {
+                _setLocalFavorite(targetId, currentServerStatus);
+                ref
+                    .read(feedControllerProvider.notifier)
+                    .updateLikeCount(targetId, isLiked: currentServerStatus);
+              }
             }
           }
 
@@ -223,14 +296,43 @@ class FavoriteController extends _$FavoriteController {
       }
     } finally {
       _syncInProgress.remove(targetId);
-
-      // Handle edge-case where a new toggle was queued exactly while leaving loop.
-      final pendingStatus = _pendingDesiredStatus[targetId];
-      if (pendingStatus != null &&
-          pendingStatus != state.serverFavorites.contains(targetId)) {
-        unawaited(_processSyncQueue(targetId));
+      if (ref.mounted) {
+        // Handle edge-case where a new toggle was queued exactly while leaving loop.
+        final pendingStatus = _pendingDesiredStatus[targetId];
+        if (pendingStatus != null &&
+            ref.read(isOnlineProvider) &&
+            pendingStatus != state.serverFavorites.contains(targetId)) {
+          unawaited(_processSyncQueue(targetId));
+        }
       }
     }
+  }
+
+  Future<void> _persistFavoriteIntent(
+    String targetId,
+    bool desiredStatus,
+  ) async {
+    final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
+    final store = ref.read(offlineMutationStoreProvider.notifier);
+    await store.ensureUserLoaded(currentUserId);
+    await store.upsertFavoriteDesiredState(
+      targetId: targetId,
+      isFavorite: desiredStatus,
+    );
+  }
+
+  Future<void> _clearPersistedFavoriteIntent(String targetId) async {
+    await ref
+        .read(offlineMutationStoreProvider.notifier)
+        .removeScopeKey(favoriteMutationScopeKey(targetId));
+  }
+
+  bool _shouldPreservePendingFavoriteChange(Object error) {
+    if (!ref.read(isOnlineProvider)) {
+      return true;
+    }
+
+    return isRecoverableFirestoreError(error);
   }
 
   void _applyLikeCountDelta(String targetId, {required bool isLiked}) {

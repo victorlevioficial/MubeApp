@@ -39,6 +39,8 @@ extension _FeedScreenUi on _FeedScreenState {
             FeedHeader(
               currentUser: currentUser,
               isScrolled: _isScrolled,
+              isStaleData: state.isStaleData,
+              dataUpdatedAt: state.dataUpdatedAt,
               onNotificationTap: () {
                 context.push(RoutePaths.notifications);
               },

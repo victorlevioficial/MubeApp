@@ -5,9 +5,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/offline_mutation_queue.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/gig_repository.dart';
+import '../../domain/application_status.dart';
 import '../../domain/gig.dart';
 import '../../domain/gig_application.dart';
 import '../../domain/gig_review.dart';
@@ -24,9 +26,20 @@ final gigUsersByStableIdsProvider =
           .getUsersByIds(_decodeGigUserIdsKey(idsKey));
     });
 
-final myGigApplicationProvider = StreamProvider.autoDispose
+final myGigApplicationRemoteProvider = StreamProvider.autoDispose
     .family<GigApplication?, String>((ref, gigId) {
       return ref.read(gigRepositoryProvider).watchMyApplicationForGig(gigId);
+    });
+
+final myGigApplicationProvider = Provider.autoDispose
+    .family<AsyncValue<GigApplication?>, String>((ref, gigId) {
+      final remoteApplicationAsync = ref.watch(
+        myGigApplicationRemoteProvider(gigId),
+      );
+      final queuedApplication = _queuedGigApplicationFor(ref, gigId);
+      return remoteApplicationAsync.whenData(
+        (application) => application ?? queuedApplication,
+      );
     });
 
 final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
@@ -114,11 +127,25 @@ Stream<List<GigApplication>> myApplications(Ref ref) {
       ref.read(authRepositoryProvider).currentUser?.uid;
   if (uid == null) return Stream.value(const <GigApplication>[]);
 
-  return ref.read(gigRepositoryProvider).watchMyApplications();
+  final queuedApplications = _queuedGigApplicationsFor(ref, uid);
+
+  return ref
+      .read(gigRepositoryProvider)
+      .watchMyApplications()
+      .map(
+        (applications) => _mergeQueuedApplications(
+          applications,
+          queuedApplications,
+          applicantId: uid,
+        ),
+      );
 }
 
 @riverpod
 Future<bool> hasApplied(Ref ref, String gigId) {
+  if (_queuedGigApplicationFor(ref, gigId) != null) {
+    return Future<bool>.value(true);
+  }
   return ref.watch(gigRepositoryProvider).hasApplied(gigId);
 }
 
@@ -160,4 +187,88 @@ List<String> _decodeGigUserIdsKey(String idsKey) {
       .map((id) => id.trim())
       .where((id) => id.isNotEmpty)
       .toList(growable: false);
+}
+
+GigApplication? _queuedGigApplicationFor(Ref ref, String gigId) {
+  final uid =
+      ref.watch(currentUserIdProvider) ??
+      ref.read(authRepositoryProvider).currentUser?.uid;
+  if (uid == null || uid.isEmpty) {
+    return null;
+  }
+
+  final entries = ref.watch(offlineMutationStoreProvider);
+  final scopeKey = gigApplyMutationScopeKey(gigId.trim());
+  OfflineMutation? entry;
+  for (final candidate in entries) {
+    if (candidate.scopeKey == scopeKey &&
+        candidate.type == OfflineMutationType.gigApply) {
+      entry = candidate;
+      break;
+    }
+  }
+  if (entry == null) {
+    return null;
+  }
+
+  return _offlineMutationToGigApplication(entry, applicantId: uid);
+}
+
+List<GigApplication> _queuedGigApplicationsFor(Ref ref, String applicantId) {
+  final entries = ref
+      .watch(offlineMutationStoreProvider)
+      .where((entry) => entry.type == OfflineMutationType.gigApply);
+  return entries
+      .map(
+        (entry) =>
+            _offlineMutationToGigApplication(entry, applicantId: applicantId),
+      )
+      .whereType<GigApplication>()
+      .toList(growable: false);
+}
+
+GigApplication? _offlineMutationToGigApplication(
+  OfflineMutation entry, {
+  required String applicantId,
+}) {
+  final gigId = entry.gigId?.trim() ?? '';
+  final message = entry.gigMessage?.trim() ?? '';
+  if (gigId.isEmpty || message.isEmpty) {
+    return null;
+  }
+
+  return GigApplication(
+    id: 'queued:$gigId',
+    gigId: gigId,
+    applicantId: applicantId,
+    message: message,
+    status: ApplicationStatus.pending,
+    appliedAt: entry.updatedAt,
+    gigTitle: entry.gigTitle,
+  );
+}
+
+List<GigApplication> _mergeQueuedApplications(
+  List<GigApplication> remoteApplications,
+  List<GigApplication> queuedApplications, {
+  required String applicantId,
+}) {
+  final applicationsByGigId = <String, GigApplication>{
+    for (final application in queuedApplications)
+      if (application.applicantId == applicantId)
+        application.gigId: application,
+  };
+
+  for (final application in remoteApplications) {
+    applicationsByGigId[application.gigId] = application;
+  }
+
+  final mergedApplications = applicationsByGigId.values.toList(growable: false)
+    ..sort((a, b) {
+      final left = a.appliedAt?.millisecondsSinceEpoch ?? 0;
+      final right = b.appliedAt?.millisecondsSinceEpoch ?? 0;
+      return right.compareTo(left);
+    });
+
+  return mergedApplications;
 }

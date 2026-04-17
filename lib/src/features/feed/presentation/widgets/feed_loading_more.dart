@@ -15,10 +15,14 @@ class FeedLoadingMore extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: padding,
-      child: Column(
-        children: List.generate(count, (_) => const FeedItemSkeleton()),
+    return Semantics(
+      liveRegion: true,
+      label: 'Carregando mais perfis',
+      child: Padding(
+        padding: padding,
+        child: Column(
+          children: List.generate(count, (_) => const FeedItemSkeleton()),
+        ),
       ),
     );
   }
