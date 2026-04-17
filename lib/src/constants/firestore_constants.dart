@@ -33,12 +33,21 @@ class FirestoreFields {
 
   // Nested Fields
   static const String category = 'categoria';
+  static const String categories = 'categorias';
   static const String instruments = 'instrumentos';
   static const String functions = 'funcoes';
   static const String musicalGenres = 'generosMusicais';
   static const String artisticName = 'nomeArtistico';
   static const String bandName = 'nomeBanda';
+  static const String studioName = 'nomeEstudio';
+  static const String displayName = 'nomeExibicao';
   static const String services = 'services';
+  static const String phone = 'celular';
+  static const String birthDate = 'dataNascimento';
+  static const String gender = 'genero';
+  static const String instagram = 'instagram';
+  static const String bio = 'bio';
+  static const String gallery = 'gallery';
 
   // MatchPoint
   static const String matchpointProfile = 'matchpoint_profile';

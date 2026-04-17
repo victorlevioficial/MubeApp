@@ -211,6 +211,70 @@ abstract class AppUser with _$AppUser {
     return publicUsernameHandle(normalized);
   }
 
+  /// Phone number stored in the active profile map for the user type.
+  String get profilePhone => _readActiveProfileString('celular');
+
+  /// Birth date stored in the active profile map for the user type.
+  String get profileBirthDate => _readActiveProfileString('dataNascimento');
+
+  /// Gender stored in the active profile map for the user type.
+  String get profileGender => _readActiveProfileString('genero');
+
+  /// Instagram handle stored in the active profile map for the user type.
+  String get profileInstagram => _readActiveProfileString('instagram');
+
+  /// Professional categories (e.g. singer, instrumentalist) from `dadosProfissional['categorias']`.
+  List<String> get professionalCategories =>
+      _stringList(dadosProfissional?['categorias']);
+
+  /// Professional role ids from `dadosProfissional['funcoes']`.
+  List<String> get professionalRoles =>
+      _stringList(dadosProfissional?['funcoes']);
+
+  /// Instruments from `dadosProfissional['instrumentos']`.
+  List<String> get professionalInstruments =>
+      _stringList(dadosProfissional?['instrumentos']);
+
+  /// Musical genres from `dadosProfissional['generosMusicais']`.
+  List<String> get professionalGenres =>
+      _stringList(dadosProfissional?['generosMusicais']);
+
+  String _readActiveProfileString(String key) {
+    final Map<String, dynamic>? data;
+    switch (tipoPerfil) {
+      case AppUserType.professional:
+        data = dadosProfissional;
+        break;
+      case AppUserType.band:
+        data = dadosBanda;
+        break;
+      case AppUserType.studio:
+        data = dadosEstudio;
+        break;
+      case AppUserType.contractor:
+        data = dadosContratante;
+        break;
+      default:
+        return '';
+    }
+    final value = data?[key];
+    return value is String ? value : '';
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is Iterable) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList(growable: false);
+    }
+    if (value is String) {
+      final normalized = value.trim();
+      return normalized.isEmpty ? const <String>[] : <String>[normalized];
+    }
+    return const <String>[];
+  }
+
   String _firstNonEmptyName(List<dynamic> candidates, [String fallback = '']) {
     for (final value in candidates) {
       if (value is String && value.trim().isNotEmpty) {
