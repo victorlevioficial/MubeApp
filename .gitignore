@@ -49,6 +49,12 @@ tmp/
 
 # Local documentation and planning notes
 docs/
+project_docs/
+
+# Local QA/browser artifacts
+artifacts/
+.codex_device_screen.png
+functions/lint*.json
 
 # =========================
 # Flutter / Dart / Pub
