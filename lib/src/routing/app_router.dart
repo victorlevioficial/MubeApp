@@ -42,7 +42,7 @@ import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/blocked_users_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
-import '../features/settings/presentation/settings_screen.dart';
+import '../features/settings/presentation/settings_screen_v2.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../features/stories/domain/story_viewer_route_args.dart';
@@ -336,7 +336,9 @@ List<RouteBase> _buildRoutes(Ref ref) {
               path: RoutePaths.settings,
               pageBuilder: (context, state) => NoTransitionPage(
                 key: state.pageKey,
-                child: const SettingsScreen(),
+                // SettingsScreenV2 is the redesigned clean version.
+                // The original SettingsScreen is preserved for reference.
+                child: const SettingsScreenV2(),
               ),
               routes: [
                 GoRoute(
