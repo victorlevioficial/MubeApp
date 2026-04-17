@@ -47,6 +47,9 @@ tmp/
 .bundle/
 .ruby-lsp/
 
+# Local documentation and planning notes
+docs/
+
 # =========================
 # Flutter / Dart / Pub
 # =========================
