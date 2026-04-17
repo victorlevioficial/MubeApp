@@ -102,6 +102,17 @@ class GigFields {
 class RegistrationStatus {
   static const String complete = 'concluido';
   static const String pending = 'tipo_pendente';
+  static const String profilePending = 'perfil_pendente';
+}
+
+class AccountStatus {
+  static const String active = 'ativo';
+  static const String draft = 'rascunho';
+  static const String inactive = 'inativo';
+  static const String suspended = 'suspenso';
+
+  /// Statuses that the client may set when completing onboarding.
+  static const Set<String> clientAllowedOnCompletion = {active, draft};
 }
 
 class ProfileType {

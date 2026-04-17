@@ -137,21 +137,28 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   }
 
   Future<void> _finishOnboarding() async {
-    final appConfigAsync = ref.read(appConfigProvider);
-    final appConfig = appConfigAsync.value;
-
-    List<String> genreIds = _selectedGenres;
-
-    if (appConfig != null) {
-      genreIds = _selectedGenres.map((label) {
-        return appConfig.genres
-            .firstWhere(
-              (g) => g.label == label,
-              orElse: () => ConfigItem(id: label, label: label, order: 0),
-            )
-            .id;
-      }).toList();
+    AppConfig appConfig;
+    try {
+      appConfig = await ref.read(appConfigProvider.future);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.show(
+        context,
+        'Não foi possível carregar as opções de gêneros. '
+        'Tente novamente em instantes.',
+        isError: true,
+      );
+      return;
     }
+
+    final genreIds = _selectedGenres.map((label) {
+      return appConfig.genres
+          .firstWhere(
+            (g) => g.label == label,
+            orElse: () => ConfigItem(id: label, label: label, order: 0),
+          )
+          .id;
+    }).toList();
 
     final bandDisplayName = _nomeBandaController.text.trim();
 

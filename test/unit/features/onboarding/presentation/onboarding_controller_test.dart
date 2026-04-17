@@ -139,6 +139,13 @@ void main() {
           expect(updatedUser, isNotNull);
           expect(updatedUser!.cadastroStatus, 'concluido');
           expect(updatedUser.status, profileActiveStatus);
+          expect(
+            fakeAuthRepository.lastCompletedOnboardingUser,
+            same(updatedUser),
+            reason:
+                'submitProfileForm must go through completeOnboardingProfile '
+                'so that the account status reaches Firestore.',
+          );
           expect(updatedUser.nome, 'New Name');
           expect(updatedUser.foto, 'http://new.photo');
           expect(updatedUser.location, location);
@@ -175,6 +182,12 @@ void main() {
           expect(updatedUser, isNotNull);
           expect(updatedUser!.cadastroStatus, 'concluido');
           expect(updatedUser.status, profileDraftStatus);
+          expect(
+            fakeAuthRepository.lastCompletedOnboardingUser,
+            same(updatedUser),
+            reason: 'band onboarding must use completeOnboardingProfile '
+                'so the rascunho status survives the data-source layer.',
+          );
         },
       );
 
