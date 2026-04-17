@@ -188,6 +188,174 @@ void main() {
       });
     });
 
+    group('profile accessors', () {
+      test('profilePhone reads celular from dadosProfissional', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {
+            'nomeArtistico': 'DJ Test',
+            'celular': '11999999999',
+            'dataNascimento': '01/01/1990',
+            'genero': 'Masculino',
+            'instagram': '@djtest',
+          },
+        );
+
+        expect(user.profilePhone, '11999999999');
+        expect(user.profileBirthDate, '01/01/1990');
+        expect(user.profileGender, 'Masculino');
+        expect(user.profileInstagram, '@djtest');
+      });
+
+      test('profilePhone reads celular from dadosContratante', () {
+        const user = AppUser(
+          uid: 'contractor-uid',
+          email: 'contractor@example.com',
+          tipoPerfil: AppUserType.contractor,
+          dadosContratante: {
+            'nomeExibicao': 'Casa Show',
+            'celular': '21988887777',
+            'instagram': '@casashow',
+          },
+        );
+
+        expect(user.profilePhone, '21988887777');
+        expect(user.profileInstagram, '@casashow');
+      });
+
+      test('profile accessors return empty string when field is missing', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {'nomeArtistico': 'DJ Test'},
+        );
+
+        expect(user.profilePhone, '');
+        expect(user.profileBirthDate, '');
+        expect(user.profileGender, '');
+        expect(user.profileInstagram, '');
+      });
+
+      test('profileInstagram reads from dadosBanda for band profile', () {
+        const user = AppUser(
+          uid: 'band-uid',
+          email: 'band@example.com',
+          tipoPerfil: AppUserType.band,
+          dadosBanda: {'nomeBanda': 'Banda Teste', 'instagram': '@bandateste'},
+        );
+
+        expect(user.profileInstagram, '@bandateste');
+      });
+
+      test('profile accessors return empty for unknown tipoPerfil', () {
+        const user = AppUser(uid: 'uid', email: 'e@x.com');
+
+        expect(user.profilePhone, '');
+        expect(user.profileBirthDate, '');
+        expect(user.profileGender, '');
+        expect(user.profileInstagram, '');
+      });
+
+      test('professional list accessors normalize Iterable values', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {
+            'categorias': ['singer', 'instrumentalist'],
+            'funcoes': ['audiovisual_direcao_de_video'],
+            'instrumentos': ['Guitarra', 'Baixo'],
+            'generosMusicais': ['Rock', 'Jazz'],
+          },
+        );
+
+        expect(user.professionalCategories, ['singer', 'instrumentalist']);
+        expect(user.professionalRoles, ['audiovisual_direcao_de_video']);
+        expect(user.professionalInstruments, ['Guitarra', 'Baixo']);
+        expect(user.professionalGenres, ['Rock', 'Jazz']);
+      });
+
+      test('professional list accessors return empty when missing', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {'nomeArtistico': 'DJ Test'},
+        );
+
+        expect(user.professionalCategories, isEmpty);
+        expect(user.professionalRoles, isEmpty);
+        expect(user.professionalInstruments, isEmpty);
+        expect(user.professionalGenres, isEmpty);
+      });
+
+      test('professional list accessors trim and filter empty strings', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {
+            'categorias': ['  singer  ', '', 'dj'],
+          },
+        );
+
+        expect(user.professionalCategories, ['singer', 'dj']);
+      });
+    });
+
+    group('appDisplayName regression', () {
+      test('professional falls back to generic label when name is empty', () {
+        const user = AppUser(
+          uid: 'pro-uid',
+          email: 'pro@example.com',
+          tipoPerfil: AppUserType.professional,
+          dadosProfissional: {},
+        );
+
+        expect(user.appDisplayName, 'Profissional');
+      });
+
+      test('band uses legacy fallback chain', () {
+        const user = AppUser(
+          uid: 'band-uid',
+          email: 'band@example.com',
+          tipoPerfil: AppUserType.band,
+          dadosBanda: {'nome': 'Nome Legado'},
+        );
+
+        expect(user.appDisplayName, 'Nome Legado');
+      });
+
+      test('studio prefers nomeEstudio over legacy keys', () {
+        const user = AppUser(
+          uid: 'studio-uid',
+          email: 'studio@example.com',
+          tipoPerfil: AppUserType.studio,
+          dadosEstudio: {
+            'nomeEstudio': 'Studio Atual',
+            'nomeArtistico': 'Legado Artistico',
+            'nome': 'Legado Nome',
+          },
+        );
+
+        expect(user.appDisplayName, 'Studio Atual');
+      });
+
+      test('contractor uses nomeExibicao', () {
+        const user = AppUser(
+          uid: 'contractor-uid',
+          email: 'contractor@example.com',
+          tipoPerfil: AppUserType.contractor,
+          dadosContratante: {'nomeExibicao': 'Casa Show'},
+        );
+
+        expect(user.appDisplayName, 'Casa Show');
+      });
+    });
+
     group('avatar urls', () {
       test('prefers explicit fotoThumb for preview surfaces', () {
         const user = AppUser(

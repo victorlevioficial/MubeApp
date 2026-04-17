@@ -1,41 +1,6 @@
 import '../constants/app_constants.dart' as app_constants;
+import '../core/domain/professional_roles.dart';
 import 'category_normalizer.dart';
-
-const List<String> professionalAudiovisualRoleLabels = [
-  'Direção de Vídeo',
-  'Captação de Vídeo',
-  'Edição de Vídeo',
-  'Motion Design',
-  'Operação de Câmera',
-  'Streaming ao Vivo',
-];
-
-const List<String> professionalEducationRoleLabels = [
-  'Professor(a)',
-  'Mentor(a)',
-  'Oficineiro(a)',
-  'Palestrante',
-  'Coach Artístico',
-  'Consultor(a)',
-];
-
-const List<String> professionalLuthierRoleLabels = [
-  'Ajuste e Regulagem',
-  'Reparo',
-  'Construção de Instrumentos',
-  'Elétrica e Eletrônica',
-  'Customização',
-  'Encordoamento e Manutenção',
-];
-
-const List<String> professionalPerformanceRoleLabels = [
-  'Performer',
-  'Artista de Palco',
-  'Intervenção Cênica',
-  'Dança',
-  'Live Act',
-  'VJ / Visuals',
-];
 
 const String professionalRemoteRecordingFieldKey = 'fazGravacaoRemota';
 const String professionalRemoteRecordingLabel = 'Gravação remota';

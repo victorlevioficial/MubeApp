@@ -21,6 +21,8 @@ void main() {
   late MockUser mockUser;
   late FakeFavoriteRepository fakeFavoriteRepository;
   late StoryRepository repository;
+  late DateTime baseCreatedAt;
+  late DateTime baseExpiresAt;
 
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
@@ -37,6 +39,10 @@ void main() {
       mockAuth,
       fakeFavoriteRepository,
     );
+
+    final now = DateTime.now();
+    baseCreatedAt = now.subtract(const Duration(hours: 6));
+    baseExpiresAt = baseCreatedAt.add(const Duration(hours: 24));
   });
 
   StoryItem buildStory({
@@ -130,8 +136,8 @@ void main() {
             id: 'story-current',
             ownerUid: 'current-user',
             ownerName: 'Current User',
-            createdAt: DateTime(2026, 4, 10, 8),
-            expiresAt: DateTime(2026, 4, 11, 8),
+            createdAt: baseCreatedAt,
+            expiresAt: baseExpiresAt,
           ),
         );
         await seedStory(
@@ -139,8 +145,8 @@ void main() {
             id: 'story-favorite',
             ownerUid: 'favorite-user',
             ownerName: 'Favorite User',
-            createdAt: DateTime(2026, 4, 10, 9),
-            expiresAt: DateTime(2026, 4, 11, 9),
+            createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
           ),
         );
         await seedStory(
@@ -148,8 +154,8 @@ void main() {
             id: 'story-other',
             ownerUid: 'other-user',
             ownerName: 'Other User',
-            createdAt: DateTime(2026, 4, 10, 10),
-            expiresAt: DateTime(2026, 4, 11, 10),
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
           ),
         );
 
@@ -177,8 +183,8 @@ void main() {
             id: 'story-owner-older',
             ownerUid: 'owner-user',
             ownerName: 'Owner User',
-            createdAt: DateTime(2026, 4, 10, 8),
-            expiresAt: DateTime(2026, 4, 11, 8),
+            createdAt: baseCreatedAt,
+            expiresAt: baseExpiresAt,
           ),
         );
         await seedStory(
@@ -186,8 +192,8 @@ void main() {
             id: 'story-owner-newer',
             ownerUid: 'owner-user',
             ownerName: 'Owner User',
-            createdAt: DateTime(2026, 4, 10, 9),
-            expiresAt: DateTime(2026, 4, 11, 9),
+            createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
           ),
         );
 
@@ -220,8 +226,8 @@ void main() {
             id: 'story-favorite',
             ownerUid: 'favorite-user',
             ownerName: 'Favorite User',
-            createdAt: DateTime(2026, 4, 10, 8),
-            expiresAt: DateTime(2026, 4, 11, 8),
+            createdAt: baseCreatedAt,
+            expiresAt: baseExpiresAt,
           ),
         );
         await seedStory(
@@ -229,8 +235,8 @@ void main() {
             id: 'story-discovered',
             ownerUid: 'discovered-user',
             ownerName: 'Discovered User',
-            createdAt: DateTime(2026, 4, 10, 9),
-            expiresAt: DateTime(2026, 4, 11, 9),
+            createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
           ),
         );
         await seedStory(
@@ -238,8 +244,8 @@ void main() {
             id: 'story-outside',
             ownerUid: 'outside-user',
             ownerName: 'Outside User',
-            createdAt: DateTime(2026, 4, 10, 10),
-            expiresAt: DateTime(2026, 4, 11, 10),
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
           ),
         );
 
@@ -273,8 +279,8 @@ void main() {
             id: 'story-outside',
             ownerUid: 'outside-user',
             ownerName: 'Outside User',
-            createdAt: DateTime(2026, 4, 10, 10),
-            expiresAt: DateTime(2026, 4, 11, 10),
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
           ),
         );
 
@@ -293,8 +299,8 @@ void main() {
             id: 'story-missing-owner-doc',
             ownerUid: 'missing-owner-doc',
             ownerName: 'Missing Owner',
-            createdAt: DateTime(2026, 4, 10, 10),
-            expiresAt: DateTime(2026, 4, 11, 10),
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
           ),
         );
 
@@ -318,8 +324,8 @@ void main() {
           id: 'story-visible',
           ownerUid: 'visible-user',
           ownerName: 'Visible User',
-          createdAt: DateTime(2026, 4, 10, 8),
-          expiresAt: DateTime(2026, 4, 11, 8),
+          createdAt: baseCreatedAt,
+          expiresAt: baseExpiresAt,
         ),
       );
       await seedStory(
@@ -327,8 +333,8 @@ void main() {
           id: 'story-blocked',
           ownerUid: 'blocked-by-owner',
           ownerName: 'Blocked Owner',
-          createdAt: DateTime(2026, 4, 10, 9),
-          expiresAt: DateTime(2026, 4, 11, 9),
+          createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+          expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
         ),
       );
 
@@ -348,8 +354,8 @@ void main() {
           id: 'story-older',
           ownerUid: 'owner-user',
           ownerName: 'Owner User',
-          createdAt: DateTime(2026, 4, 10, 8),
-          expiresAt: DateTime(2026, 4, 11, 8),
+          createdAt: baseCreatedAt,
+          expiresAt: baseExpiresAt,
         ),
       );
       await seedStory(
@@ -357,8 +363,8 @@ void main() {
           id: 'story-target',
           ownerUid: 'owner-user',
           ownerName: 'Owner User',
-          createdAt: DateTime(2026, 4, 10, 9),
-          expiresAt: DateTime(2026, 4, 11, 9),
+          createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+          expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
         ),
       );
 
@@ -403,8 +409,8 @@ void main() {
           id: 'story-1',
           ownerUid: 'owner-user',
           ownerName: 'Owner User',
-          createdAt: DateTime(2026, 4, 10, 8),
-          expiresAt: DateTime(2026, 4, 11, 8),
+          createdAt: baseCreatedAt,
+          expiresAt: baseExpiresAt,
         );
 
         await repository.markStoryViewed(story);
@@ -431,8 +437,8 @@ void main() {
         id: 'story-own',
         ownerUid: 'current-user',
         ownerName: 'Current User',
-        createdAt: DateTime(2026, 4, 10, 8),
-        expiresAt: DateTime(2026, 4, 11, 8),
+        createdAt: baseCreatedAt,
+        expiresAt: baseExpiresAt,
       );
 
       await repository.markStoryViewed(ownStory);
@@ -456,8 +462,8 @@ void main() {
             id: 'story-processing-newer',
             ownerUid: 'current-user',
             ownerName: 'Current User',
-            createdAt: DateTime(2026, 4, 10, 11),
-            expiresAt: DateTime(2026, 4, 11, 11),
+            createdAt: baseCreatedAt.add(const Duration(hours: 3)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 3)),
             mediaType: StoryMediaType.video,
             status: StoryStatus.processing,
           ),
@@ -467,8 +473,8 @@ void main() {
             id: 'story-processing-older',
             ownerUid: 'current-user',
             ownerName: 'Current User',
-            createdAt: DateTime(2026, 4, 10, 10),
-            expiresAt: DateTime(2026, 4, 11, 10),
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
             mediaType: StoryMediaType.video,
             status: StoryStatus.processing,
           ),
@@ -478,8 +484,8 @@ void main() {
             id: 'story-active',
             ownerUid: 'current-user',
             ownerName: 'Current User',
-            createdAt: DateTime(2026, 4, 10, 9),
-            expiresAt: DateTime(2026, 4, 11, 9),
+            createdAt: baseCreatedAt.add(const Duration(hours: 1)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 1)),
           ),
         );
         await seedStory(
@@ -487,8 +493,8 @@ void main() {
             id: 'story-other-user',
             ownerUid: 'other-user',
             ownerName: 'Other User',
-            createdAt: DateTime(2026, 4, 10, 12),
-            expiresAt: DateTime(2026, 4, 11, 12),
+            createdAt: baseCreatedAt.add(const Duration(hours: 4)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 4)),
             mediaType: StoryMediaType.video,
             status: StoryStatus.processing,
           ),

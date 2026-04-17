@@ -5,6 +5,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../../common_widgets/formatters/title_case_formatter.dart';
 import '../../../../constants/app_constants.dart';
 import '../../../../core/domain/app_config.dart';
+import '../../../../core/domain/professional_roles.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
@@ -26,153 +27,6 @@ import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
 import '../steps/onboarding_address_step.dart';
 import '../steps/professional_category_step.dart';
-
-class _RoleOption {
-  final String id;
-  final String label;
-
-  const _RoleOption({required this.id, required this.label});
-}
-
-class _RoleSectionDefinition {
-  final String categoryId;
-  final String title;
-  final String subtitle;
-  final List<_RoleOption> options;
-
-  const _RoleSectionDefinition({
-    required this.categoryId,
-    required this.title,
-    required this.subtitle,
-    required this.options,
-  });
-
-  Map<String, String> get labelById => {
-    for (final option in options) option.id: option.label,
-  };
-}
-
-List<_RoleOption> _buildPlainRoleOptions(List<String> labels) {
-  return labels
-      .map(
-        (label) =>
-            _RoleOption(id: CategoryNormalizer.sanitize(label), label: label),
-      )
-      .toList(growable: false);
-}
-
-List<_RoleOption> _buildPrefixedRoleOptions(
-  String prefix,
-  List<String> labels,
-) {
-  return labels
-      .map(
-        (label) => _RoleOption(
-          id: '${prefix}_${CategoryNormalizer.sanitize(label)}',
-          label: label,
-        ),
-      )
-      .toList(growable: false);
-}
-
-const List<String> _audiovisualRoleLabels = [
-  'Direção de Vídeo',
-  'Captação de Vídeo',
-  'Edição de Vídeo',
-  'Motion Design',
-  'Operação de Câmera',
-  'Streaming ao Vivo',
-];
-
-const List<String> _educationRoleLabels = [
-  'Professor(a)',
-  'Mentor(a)',
-  'Oficineiro(a)',
-  'Palestrante',
-  'Coach Artístico',
-  'Consultor(a)',
-];
-
-const List<String> _luthierRoleLabels = [
-  'Ajuste e Regulagem',
-  'Reparo',
-  'Construção de Instrumentos',
-  'Elétrica e Eletrônica',
-  'Customização',
-  'Encordoamento e Manutenção',
-];
-
-const List<String> _performanceRoleLabels = [
-  'Performer',
-  'Artista de Palco',
-  'Intervenção Cênica',
-  'Dança',
-  'Live Act',
-  'VJ / Visuals',
-];
-
-final List<_RoleSectionDefinition> _roleSections = [
-  _RoleSectionDefinition(
-    categoryId: 'production',
-    title: 'Produção Musical *',
-    subtitle: 'Quais funções de produção você desempenha?',
-    options: _buildPlainRoleOptions(productionRoles),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'stage_tech',
-    title: 'Técnica de Palco *',
-    subtitle: 'Quais funções técnicas de palco você desempenha?',
-    options: _buildPlainRoleOptions(stageTechRoles),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'audiovisual',
-    title: 'Audiovisual *',
-    subtitle: 'Selecione suas funções em vídeo e conteúdo visual',
-    options: _buildPrefixedRoleOptions('audiovisual', _audiovisualRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'education',
-    title: 'Educação *',
-    subtitle: 'Selecione suas funções ligadas a ensino e mentoria',
-    options: _buildPrefixedRoleOptions('education', _educationRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'luthier',
-    title: 'Luthier *',
-    subtitle: 'Selecione suas funções de construção e manutenção',
-    options: _buildPrefixedRoleOptions('luthier', _luthierRoleLabels),
-  ),
-  _RoleSectionDefinition(
-    categoryId: 'performance',
-    title: 'Performance *',
-    subtitle: 'Selecione suas funções de presença cênica e live acts',
-    options: _buildPrefixedRoleOptions('performance', _performanceRoleLabels),
-  ),
-];
-
-final Map<String, _RoleSectionDefinition> _roleSectionByCategoryId = {
-  for (final section in _roleSections) section.categoryId: section,
-};
-
-final Map<String, String> _roleIdLookup = _buildRoleIdLookup();
-
-const Set<String> _genreHiddenCategories = {
-  'audiovisual',
-  'education',
-  'luthier',
-};
-
-Map<String, String> _buildRoleIdLookup() {
-  final lookup = <String, String>{};
-  for (final section in _roleSections) {
-    for (final option in section.options) {
-      lookup[option.id] = option.id;
-      lookup[option.label] = option.id;
-      lookup[CategoryNormalizer.sanitize(option.label)] = option.id;
-    }
-  }
-  return lookup;
-}
 
 /// Enhanced Professional Onboarding Flow with modern UI.
 ///
@@ -233,7 +87,7 @@ class _OnboardingProfessionalFlowState
   }
 
   bool _roleBelongsToCategory(String roleId, String categoryId) {
-    return _roleSectionByCategoryId[categoryId]?.options.any(
+    return professionalRoleSectionByCategoryId[categoryId]?.options.any(
           (option) => option.id == roleId,
         ) ??
         false;
@@ -242,8 +96,8 @@ class _OnboardingProfessionalFlowState
   String _normalizeRoleId(String rawRole) {
     final trimmed = rawRole.trim();
     if (trimmed.isEmpty) return '';
-    return _roleIdLookup[trimmed] ??
-        _roleIdLookup[CategoryNormalizer.sanitize(trimmed)] ??
+    return professionalRoleIdLookup[trimmed] ??
+        professionalRoleIdLookup[CategoryNormalizer.sanitize(trimmed)] ??
         trimmed;
   }
 
@@ -277,7 +131,7 @@ class _OnboardingProfessionalFlowState
       rawRoles: _selectedRoles,
     );
     return resolved.any(
-      (category) => !_genreHiddenCategories.contains(category),
+      (category) => !professionalGenreHiddenCategories.contains(category),
     );
   }
 
@@ -290,7 +144,7 @@ class _OnboardingProfessionalFlowState
     ];
   }
 
-  Future<void> _showRoleSelector(_RoleSectionDefinition section) async {
+  Future<void> _showRoleSelector(ProfessionalRoleSection section) async {
     final currentRoleIds = _selectedRoleIdsForCategory(section.categoryId);
     final result = await EnhancedMultiSelectModal.show<String>(
       context: context,
@@ -483,7 +337,7 @@ class _OnboardingProfessionalFlowState
       return false;
     }
 
-    for (final categoryId in _roleSectionByCategoryId.keys) {
+    for (final categoryId in professionalRoleSectionByCategoryId.keys) {
       if (_selectedCategories.contains(categoryId) &&
           _selectedRoleIdsForCategory(categoryId).isEmpty) {
         return false;
@@ -883,14 +737,14 @@ class _OnboardingProfessionalFlowState
 
         if (_selectedCategories.contains('production')) ...[
           const SizedBox(height: AppSpacing.s24),
-          _buildRoleSection(_roleSectionByCategoryId['production']!),
+          _buildRoleSection(professionalRoleSectionByCategoryId['production']!),
           const SizedBox(height: AppSpacing.s16),
           _buildRemoteRecordingCheckbox(),
         ],
 
         if (_selectedCategories.contains('stage_tech')) ...[
           const SizedBox(height: AppSpacing.s24),
-          _buildRoleSection(_roleSectionByCategoryId['stage_tech']!),
+          _buildRoleSection(professionalRoleSectionByCategoryId['stage_tech']!),
         ],
 
         for (final categoryId in const [
@@ -901,7 +755,7 @@ class _OnboardingProfessionalFlowState
         ])
           if (_selectedCategories.contains(categoryId)) ...[
             const SizedBox(height: AppSpacing.s24),
-            _buildRoleSection(_roleSectionByCategoryId[categoryId]!),
+            _buildRoleSection(professionalRoleSectionByCategoryId[categoryId]!),
           ],
 
         const SizedBox(height: AppSpacing.s48),
@@ -919,7 +773,7 @@ class _OnboardingProfessionalFlowState
     );
   }
 
-  Widget _buildRoleSection(_RoleSectionDefinition section) {
+  Widget _buildRoleSection(ProfessionalRoleSection section) {
     final selectedIds = _selectedRoleIdsForCategory(section.categoryId);
     final selectedLabels = selectedIds
         .map((id) => section.labelById[id] ?? id)

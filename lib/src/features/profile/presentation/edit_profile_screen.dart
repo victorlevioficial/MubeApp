@@ -188,56 +188,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen>
     _nomeController = TextEditingController(text: registrationName);
     _bioController = TextEditingController(text: user.profileBio ?? '');
 
-    String nomeArt = '';
-    String cel = '';
-    String dataNasc = '';
-    String gen = '';
-    String insta = '';
-
-    switch (user.tipoPerfil) {
-      case AppUserType.professional:
-        final data = user.dadosProfissional ?? {};
-        nomeArt = data['nomeArtistico'] ?? '';
-        cel = data['celular'] ?? '';
-        dataNasc = data['dataNascimento'] ?? '';
-        gen = data['genero'] ?? '';
-        insta = data['instagram'] ?? '';
-        break;
-      case AppUserType.band:
-        final data = user.dadosBanda ?? {};
-        nomeArt =
-            data['nomeBanda'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
-        insta = data['instagram'] ?? '';
-        break;
-      case AppUserType.studio:
-        final data = user.dadosEstudio ?? {};
-        nomeArt =
-            data['nomeEstudio'] ?? data['nomeArtistico'] ?? data['nome'] ?? '';
-        cel = data['celular'] ?? '';
-        insta = data['instagram'] ?? '';
-        break;
-      case AppUserType.contractor:
-        final data = user.dadosContratante ?? {};
-        nomeArt = data['nomeExibicao'] ?? '';
-        cel = data['celular'] ?? '';
-        dataNasc = data['dataNascimento'] ?? '';
-        gen = data['genero'] ?? '';
-        insta = data['instagram'] ?? '';
-        break;
-      default:
-        break;
-    }
-
-    if (nomeArt.isEmpty) {
-      nomeArt = user.appDisplayName;
-    }
-
-    _nomeArtisticoController = TextEditingController(text: nomeArt);
-    _celularController = TextEditingController(text: cel);
-    _dataNascimentoController = TextEditingController(text: dataNasc);
-    _generoController = TextEditingController(text: normalizeGenderValue(gen));
+    _nomeArtisticoController = TextEditingController(text: user.appDisplayName);
+    _celularController = TextEditingController(text: user.profilePhone);
+    _dataNascimentoController = TextEditingController(
+      text: user.profileBirthDate,
+    );
+    _generoController = TextEditingController(
+      text: normalizeGenderValue(user.profileGender),
+    );
     _instagramController = TextEditingController(
-      text: normalizeInstagramHandle(insta),
+      text: normalizeInstagramHandle(user.profileInstagram),
     );
     _usernameController = TextEditingController(
       text: user.publicUsername ?? '',
