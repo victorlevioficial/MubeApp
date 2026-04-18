@@ -740,6 +740,60 @@ abstract class AppLocalizations {
   /// **'Email enviado! Verifique sua caixa de entrada.'**
   String get settings_change_password_email_sent;
 
+  /// No description provided for @edit_profile_update_success.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil atualizado com sucesso!'**
+  String get edit_profile_update_success;
+
+  /// No description provided for @edit_profile_media_still_processing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguarde o processamento da mídia terminar antes de sair.'**
+  String get edit_profile_media_still_processing;
+
+  /// No description provided for @edit_profile_discard_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descartar alterações?'**
+  String get edit_profile_discard_title;
+
+  /// No description provided for @edit_profile_discard_message.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você tem alterações não salvas. Deseja realmente sair sem salvar?'**
+  String get edit_profile_discard_message;
+
+  /// No description provided for @edit_profile_discard_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descartar'**
+  String get edit_profile_discard_confirm;
+
+  /// No description provided for @edit_profile_music_links_revise.
+  ///
+  /// In pt, this message translates to:
+  /// **'Revise os links musicais preenchidos.'**
+  String get edit_profile_music_links_revise;
+
+  /// No description provided for @delete_account_error_title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível excluir'**
+  String get delete_account_error_title;
+
+  /// No description provided for @delete_account_type_to_confirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para confirmar, digite \"{word}\" abaixo.'**
+  String delete_account_type_to_confirm(String word);
+
+  /// No description provided for @delete_account_session_issue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível validar sua sessão agora. Saia e entre novamente e tente excluir a conta outra vez.'**
+  String get delete_account_session_issue;
+
   /// No description provided for @settings_delete_confirm_title.
   ///
   /// In pt, this message translates to:
@@ -1091,7 +1145,7 @@ abstract class AppLocalizations {
   /// No description provided for @settings_addresses_search_service_unavailable.
   ///
   /// In pt, this message translates to:
-  /// **'Serviço de busca indisponível. Configure a chave da Google API.'**
+  /// **'Busca de endereço indisponível no momento. Tente novamente em instantes.'**
   String get settings_addresses_search_service_unavailable;
 
   /// No description provided for @settings_addresses_invalid_selection.

@@ -105,12 +105,12 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
           return Scaffold(
             backgroundColor: AppColors.background,
             appBar: AppAppBar(
-              title: 'Matchpoint',
+              title: 'MatchPoint',
               showBackButton: true,
               onBackPressed: () => handleMatchpointBack(context),
               actions: [
                 IconButton(
-                  tooltip: 'Filtros avancados',
+                  tooltip: 'Filtros avançados',
                   onPressed: () => context.push(RoutePaths.matchpointWizard),
                   icon: const Icon(
                     Icons.tune_rounded,
@@ -118,7 +118,7 @@ class _MatchpointTabsScreenState extends ConsumerState<MatchpointTabsScreen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Historico de swipes',
+                  tooltip: 'Histórico de swipes',
                   onPressed: () => context.push(RoutePaths.matchpointHistory),
                   icon: const Icon(
                     Icons.history_rounded,

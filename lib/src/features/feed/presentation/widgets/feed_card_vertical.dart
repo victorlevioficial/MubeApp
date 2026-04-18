@@ -159,13 +159,13 @@ class _FeedCardVerticalState extends State<FeedCardVertical> {
                             ),
                             child: _buildRemoteRecordingChip(),
                           ),
-                        if (item.skills.isNotEmpty)
+                        if (item.formattedSkills.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(
                               bottom: AppSpacing.s8,
                             ),
                             child: _SingleLineChipList(
-                              items: item.skills,
+                              items: item.formattedSkills,
                               chipBuilder: _buildSkillChip,
                               overflowBuilder: (count) =>
                                   _buildSkillChip('+$count'),

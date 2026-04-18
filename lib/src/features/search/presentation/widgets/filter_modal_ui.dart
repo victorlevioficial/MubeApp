@@ -44,7 +44,7 @@ class _FilterSheetHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Filtros avancados',
+                      'Filtros avançados',
                       style: AppTypography.headlineMedium,
                     ),
                     const SizedBox(height: AppSpacing.s4),

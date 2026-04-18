@@ -186,7 +186,7 @@ class FeedController extends _$FeedController {
             isInitialLoading: false,
             isRefreshing: false,
             status: PaginationStatus.error,
-            errorMessage: 'Usuario nao autenticado',
+            errorMessage: 'Usuário não autenticado',
             clearLastDocument: true,
             hasMore: false,
           ),
@@ -512,7 +512,7 @@ class FeedController extends _$FeedController {
       state = AsyncValue.data(
         currentState.copyWithFeed(
           status: PaginationStatus.error,
-          errorMessage: 'Usuario nao autenticado',
+          errorMessage: 'Usuário não autenticado',
         ),
       );
       return;
@@ -595,7 +595,7 @@ class FeedController extends _$FeedController {
           currentFilter: filter,
           items: const [],
           status: PaginationStatus.error,
-          errorMessage: 'Usuario nao autenticado',
+          errorMessage: 'Usuário não autenticado',
           hasMore: false,
           clearLastDocument: true,
         ),
@@ -835,7 +835,10 @@ class FeedController extends _$FeedController {
           currentPage: 0,
           hasMore: false,
           isInitialLoading: false,
-          isStaleData: true,
+          // Don't flag cache as stale while a fresh fetch is already in
+          // flight — the stale notice only makes sense when the network
+          // failed and we're stuck on cache.
+          isStaleData: false,
           dataUpdatedAt: cached.cachedAt,
           isRefreshing: true,
           clearError: true,

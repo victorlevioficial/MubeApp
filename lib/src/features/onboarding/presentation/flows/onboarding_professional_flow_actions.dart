@@ -149,14 +149,18 @@ extension _OnboardingProfessionalFlowActions
   }
 
   bool _validateAge() {
-    final dobText = _dataNascimentoController.text.trim();
-    if (dobText.isEmpty) {
+    if (!_isAdultConfirmed) {
       AppSnackBar.show(
         context,
-        'Informe sua data de nascimento.',
+        'Confirme que você tem 18 anos ou mais para continuar.',
         isError: true,
       );
       return false;
+    }
+
+    final dobText = _dataNascimentoController.text.trim();
+    if (dobText.isEmpty) {
+      return true;
     }
 
     final dob = BirthDateValidator.parseStrict(dobText);

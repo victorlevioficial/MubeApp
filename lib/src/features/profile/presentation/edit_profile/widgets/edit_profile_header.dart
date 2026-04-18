@@ -254,7 +254,7 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
     switch (widget.user.tipoPerfil) {
       case AppUserType.band:
       case AppUserType.studio:
-        return 'Nome Completo (Responsavel)';
+        return 'Nome Completo (Responsável)';
       default:
         return 'Nome Completo';
     }

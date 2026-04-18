@@ -386,7 +386,7 @@ class _MatchpointSetupWizardScreenState
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Sem espacos e sem acentos. Exemplo: rider tecnico -> #ridertecnico.',
+          'Sem espaços e sem acentos. Exemplo: rider técnico → #ridertecnico.',
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),

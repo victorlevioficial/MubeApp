@@ -14,6 +14,7 @@ class _RecordingFirebaseAppCheck extends Fake
     implements app_check.FirebaseAppCheck {
   int activateCalls = 0;
   bool tokenAutoRefreshEnabled = false;
+  WebProvider? providerWeb;
   app_check.AndroidAppCheckProvider? providerAndroid;
   app_check.AppleAppCheckProvider? providerApple;
   final StreamController<String?> _tokenChanges =
@@ -35,6 +36,7 @@ class _RecordingFirebaseAppCheck extends Fake
         const app_check.AppleDeviceCheckProvider(),
   }) async {
     activateCalls += 1;
+    this.providerWeb = providerWeb ?? webProvider;
     this.providerAndroid = providerAndroid;
     this.providerApple = providerApple;
   }
@@ -94,9 +96,45 @@ void main() {
         ]);
 
         expect(appCheck.activateCalls, 1);
-        expect(appCheck.tokenAutoRefreshEnabled, isTrue);
+        // In debug mode we disable auto-refresh to let
+        // AppCheckRefreshCoordinator handle token lifecycle with backoff.
+        expect(appCheck.tokenAutoRefreshEnabled, isFalse);
       },
     );
+  });
+
+  group('resolveAppCheckWebProviderConfig', () {
+    test('returns null when no web site key is configured', () {
+      expect(
+        resolveAppCheckWebProviderConfig(
+          recaptchaV3SiteKey: '',
+          recaptchaEnterpriseSiteKey: '',
+        ),
+        isNull,
+      );
+    });
+
+    test('uses reCAPTCHA v3 when only v3 site key is configured', () {
+      final config = resolveAppCheckWebProviderConfig(
+        recaptchaV3SiteKey: ' v3-key ',
+        recaptchaEnterpriseSiteKey: '',
+      );
+
+      expect(config, isNotNull);
+      expect(config!.kind, AppCheckWebProviderKind.reCaptchaV3);
+      expect(config.siteKey, 'v3-key');
+    });
+
+    test('prefers reCAPTCHA Enterprise when both site keys are configured', () {
+      final config = resolveAppCheckWebProviderConfig(
+        recaptchaV3SiteKey: 'v3-key',
+        recaptchaEnterpriseSiteKey: ' enterprise-key ',
+      );
+
+      expect(config, isNotNull);
+      expect(config!.kind, AppCheckWebProviderKind.reCaptchaEnterprise);
+      expect(config.siteKey, 'enterprise-key');
+    });
   });
 
   group('AppBootstrapNotifier', () {
@@ -104,7 +142,7 @@ void main() {
     tearDown(resetAppCheckActivationState);
 
     test(
-      'marks bootstrap as ready without waiting for app check activation',
+      'marks bootstrap as ready after app check activation completes',
       () async {
         SharedPreferences.setMockInitialValues(const <String, Object>{});
         final activationCompleter = Completer<void>();
@@ -120,16 +158,21 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        await container
+        final startFuture = container
             .read(appBootstrapProvider.notifier)
-            .start()
-            .timeout(const Duration(milliseconds: 100));
+            .start();
 
-        expect(container.read(appBootstrapProvider), AppBootstrapState.ready);
-        expect(activationCompleter.isCompleted, isFalse);
+        // Antes do activation completar, bootstrap ainda está inicializando.
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          container.read(appBootstrapProvider),
+          isNot(AppBootstrapState.ready),
+        );
 
         activationCompleter.complete();
-        await Future<void>.delayed(Duration.zero);
+        await startFuture;
+
+        expect(container.read(appBootstrapProvider), AppBootstrapState.ready);
       },
     );
   });

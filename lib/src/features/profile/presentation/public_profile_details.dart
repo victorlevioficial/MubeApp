@@ -533,10 +533,9 @@ class _SkillChip extends StatelessWidget {
         horizontal: AppSpacing.s12,
         vertical: AppSpacing.s4,
       ),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.08),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceHighlight,
         borderRadius: AppRadius.pill,
-        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
@@ -564,7 +563,7 @@ class _GenreChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
       ),
     );
   }

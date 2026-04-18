@@ -35,14 +35,14 @@ class StoryRepositoryException implements Exception {
   factory StoryRepositoryException.storyUnavailable() {
     return const StoryRepositoryException(
       StoryRepositoryExceptionCode.storyUnavailable,
-      'Esse story nao esta mais disponivel.',
+      'Esse story não está mais disponível.',
     );
   }
 
   factory StoryRepositoryException.loadViewersFailed() {
     return const StoryRepositoryException(
       StoryRepositoryExceptionCode.loadViewersFailed,
-      'Nao foi possivel carregar as visualizacoes agora.',
+      'Não foi possível carregar as visualizações agora.',
     );
   }
 
@@ -51,21 +51,21 @@ class StoryRepositoryException implements Exception {
       StoryRepositoryExceptionCode.publishFailed,
       message?.trim().isNotEmpty == true
           ? message!.trim()
-          : 'Nao foi possivel publicar o story.',
+          : 'Não foi possível publicar o story.',
     );
   }
 
   factory StoryRepositoryException.deleteFailed() {
     return const StoryRepositoryException(
       StoryRepositoryExceptionCode.deleteFailed,
-      'Nao foi possivel excluir o story agora.',
+      'Não foi possível excluir o story agora.',
     );
   }
 
   factory StoryRepositoryException.uploadFileMissing() {
     return const StoryRepositoryException(
       StoryRepositoryExceptionCode.uploadFileMissing,
-      'Arquivo nao encontrado para upload.',
+      'Arquivo não encontrado para upload.',
     );
   }
 

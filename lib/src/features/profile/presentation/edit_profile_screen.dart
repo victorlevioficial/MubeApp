@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../common_widgets/formatters/sentence_start_uppercase_formatter.dart';
 import '../../../constants/app_constants.dart';
 import '../../../core/errors/error_message_resolver.dart';

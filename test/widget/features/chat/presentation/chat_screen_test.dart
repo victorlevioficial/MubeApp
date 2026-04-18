@@ -768,7 +768,7 @@ void main() {
     await tester.pumpWidget(createSubject());
     await tester.pumpAndSettle();
 
-    expect(find.text('Aceitar solicitacao'), findsOneWidget);
+    expect(find.text('Aceitar solicitação'), findsOneWidget);
     expect(find.text('Oi, tudo bem?'), findsOneWidget);
     expect(find.text('Aceite para responder'), findsOneWidget);
 
@@ -792,7 +792,7 @@ void main() {
     await tester.pumpWidget(createSubject());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Aceitar solicitacao'));
+    await tester.tap(find.text('Aceitar solicitação'));
     await tester.pumpAndSettle();
 
     expect((fakeChatRepo as _PendingRecipientChatRepository).acceptCalls, 1);

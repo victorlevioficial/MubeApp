@@ -440,9 +440,9 @@ void main() {
         await tester.tap(find.text('Seu story', skipOffstage: false));
         await tester.pumpAndSettle();
 
-        expect(find.text('Publicar novo'), findsOneWidget);
+        expect(find.text('Publicar'), findsOneWidget);
 
-        await tester.tap(find.text('Publicar novo'));
+        await tester.tap(find.text('Publicar'));
         await tester.pump();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
@@ -476,7 +476,7 @@ void main() {
       await tester.tap(find.text('Seu story', skipOffstage: false));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Publicar novo'));
+      await tester.tap(find.text('Publicar'));
       await tester.pump();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));

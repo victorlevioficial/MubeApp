@@ -17,6 +17,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../utils/email_validator.dart';
 import '../data/auth_repository.dart';
 
 part 'forgot_password_screen.g.dart';
@@ -185,10 +186,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       label: 'E-mail',
                       hint: 'seu@email.com',
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) =>
-                          value == null || !value.contains('@')
-                          ? 'E-mail inválido'
-                          : null,
+                      validator: EmailValidator.validate,
                     ),
 
                     const SizedBox(height: AppSpacing.s32),

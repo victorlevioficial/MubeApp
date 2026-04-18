@@ -24,7 +24,7 @@ class ProfileCompletionEvaluator {
         percent: 0,
         completedItems: 0,
         totalItems: 0,
-        missingRequirements: ['Usuario nao autenticado'],
+        missingRequirements: ['Usuário não autenticado'],
       );
     }
 

@@ -10,7 +10,6 @@ import '../core/errors/failures.dart';
 import '../core/typedefs.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/presentation/account_deletion_provider.dart';
-import '../features/onboarding/providers/notification_permission_prompt_provider.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../utils/app_logger.dart';
 import '../utils/app_performance_tracker.dart';
@@ -150,16 +149,16 @@ class AuthGuard {
           );
           return deferredPublicPath;
         }
-        _log('Profile loading on splash - redirecting optimistically to feed');
-        return RoutePaths.feed;
+        _log('Profile loading on splash - waiting for profile before routing');
+        return null;
       }
       // Keep auth-flow routes inline so signup/login doesn't bounce to splash.
       if (_isAuthFlowRoute(currentPath)) {
         _log('Profile loading on auth route - waiting inline');
         return null;
       }
-      _log('Profile loading on current route - waiting inline');
-      return null;
+      _log('Profile loading - sending back to splash to gate UI');
+      return RoutePaths.splash;
     }
 
     // Recover from inconsistent state: Auth user exists but profile document
@@ -214,7 +213,13 @@ class AuthGuard {
       return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
     }
 
-    final user = userProfileAsync.value!;
+    final user = userProfileAsync.value;
+    if (user == null) {
+      _signalWarning(
+        'Profile hasValue=true but value is null. path=$currentPath',
+      );
+      return currentPath == RoutePaths.splash ? null : RoutePaths.splash;
+    }
     _finishProfileWaitIfNeeded(status: 'resolved', path: currentPath);
 
     // We have a fully loaded user profile. If they are on Splash, route them based on onboarding.
@@ -402,34 +407,6 @@ class AuthGuard {
 
   /// User completed registration - redirect away from auth/onboarding screens.
   Future<String?> _guardCompletedUser(String currentPath) async {
-    final permissionPromptState = _ref.read(
-      notificationPermissionPromptProvider,
-    );
-
-    if (permissionPromptState.isLoading) {
-      _log('Notification permission state loading - waiting on current route');
-      return null;
-    }
-
-    if (permissionPromptState.hasError) {
-      _signalWarning(
-        'Notification permission state unavailable. '
-        'path=$currentPath error=${permissionPromptState.error}',
-      );
-    }
-
-    final hasShownPermission = permissionPromptState.asData?.value ?? false;
-
-    if (!hasShownPermission) {
-      if (currentPath == RoutePaths.notificationPermission) return null;
-      _log('Redirecting to notification permission screen');
-      return RoutePaths.notificationPermission;
-    }
-
-    // Allow user to stay on notification permission screen even if already shown
-    // but typically they will navigate away by clicking a button.
-    if (currentPath == RoutePaths.notificationPermission) return null;
-
     final isLegalRoute =
         currentPath == RoutePaths.legal ||
         currentPath.startsWith('${RoutePaths.legal}/');

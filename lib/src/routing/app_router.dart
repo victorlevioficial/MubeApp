@@ -31,7 +31,6 @@ import '../features/matchpoint/presentation/screens/matchpoint_setup_wizard_scre
 import '../features/matchpoint/presentation/screens/matchpoint_wrapper_screen.dart';
 import '../features/matchpoint/presentation/screens/swipe_history_screen.dart';
 import '../features/notifications/presentation/notification_list_screen.dart';
-import '../features/onboarding/presentation/notification_permission_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
 import '../features/onboarding/providers/notification_permission_prompt_provider.dart';
@@ -199,13 +198,6 @@ List<RouteBase> _buildRoutes(Ref ref) {
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             child: const OnboardingFormScreen(),
-          ),
-        ),
-        GoRoute(
-          path: 'notifications',
-          pageBuilder: (context, state) => NoTransitionPage(
-            key: state.pageKey,
-            child: const NotificationPermissionScreen(),
           ),
         ),
       ],
@@ -487,17 +479,25 @@ List<RouteBase> _buildRoutes(Ref ref) {
     GoRoute(
       path: RoutePaths.invites,
       pageBuilder: (context, state) {
-        // Smart Redirect: Band -> ManageMembers, Others -> Invites
-        final user = ref.read(currentUserProfileProvider).value;
-        if (user != null && user.tipoPerfil == AppUserType.band) {
-          return slideTransitionPage(
-            key: state.pageKey,
-            child: const ManageMembersScreen(),
-          );
-        }
+        // Smart Redirect: Band -> ManageMembers, Others -> Invites.
+        // Use watch-through-Consumer so we re-evaluate once profile resolves
+        // rather than locking in a stale branch from an in-flight AsyncValue.
         return slideTransitionPage(
           key: state.pageKey,
-          child: const InvitesScreen(),
+          child: Consumer(
+            builder: (context, ref, _) {
+              final profileAsync = ref.watch(currentUserProfileProvider);
+              return profileAsync.when(
+                loading: () => const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                ),
+                error: (_, _) => const InvitesScreen(),
+                data: (user) => user?.tipoPerfil == AppUserType.band
+                    ? const ManageMembersScreen()
+                    : const InvitesScreen(),
+              );
+            },
+          ),
         );
       },
     ),
@@ -576,7 +576,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
         final child = storyId != null && storyId.isNotEmpty
             ? StoryViewerRouteLoader(storyId: storyId, preloadedArgs: args)
             : const Scaffold(
-                body: Center(child: Text('Story nao encontrado.')),
+                body: Center(child: Text('Story não encontrado.')),
               );
         return NoTransitionPage(key: state.pageKey, child: child);
       },

@@ -247,7 +247,7 @@ class _GigsCompactHeader extends StatelessWidget {
           Text('Tudo sobre gigs', style: AppTypography.headlineSmall),
           const SizedBox(height: AppSpacing.s4),
           Text(
-            'Acompanhe vagas, candidaturas e publicacoes em um lugar so.',
+            'Acompanhe vagas, candidaturas e publicações em um lugar só.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),

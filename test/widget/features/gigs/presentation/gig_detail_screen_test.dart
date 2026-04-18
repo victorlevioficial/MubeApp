@@ -96,7 +96,7 @@ void main() {
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     await tester.scrollUntilVisible(find.text('Candidatar-se'), 300);
     await tester.pumpAndSettle();
-    expect(find.text('7 pessoas ja se candidataram.'), findsOneWidget);
+    expect(find.text('7 pessoas já se candidataram.'), findsOneWidget);
     expect(find.text('Candidatar-se'), findsOneWidget);
   });
 

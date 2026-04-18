@@ -26,7 +26,7 @@ class MatchpointUnavailableScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: showBackButton
           ? AppAppBar(
-              title: 'Matchpoint',
+              title: 'MatchPoint',
               showBackButton: true,
               onBackPressed:
                   onBackPressed ?? () => handleMatchpointBack(context),
@@ -83,8 +83,8 @@ class MatchpointUnavailableScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.s12),
                 Text(
-                  'O Matchpoint esta disponivel apenas para perfis Profissional e Banda. '
-                  'Use a Busca para encontrar conexoes no seu perfil atual.',
+                  'O Matchpoint está disponível apenas para perfis Profissional e Banda. '
+                  'Use a Busca para encontrar conexões no seu perfil atual.',
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.textSecondary,
                   ),

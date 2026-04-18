@@ -47,6 +47,31 @@ const List<String> professionalAudiovisualRoleLabels = [
   'Motion Design',
   'Operação de Câmera',
   'Streaming ao Vivo',
+  'Fotografia de Show / Evento',
+  'Fotografia de Estúdio',
+  'Fotografia de Backstage',
+  'Retrato Artístico',
+  'Edição e Tratamento de Fotos',
+];
+
+/// Canonical labels for the `graphic_design` category (UI source of truth).
+const List<String> professionalGraphicDesignRoleLabels = [
+  'Capa de Álbum / Single',
+  'Identidade Visual',
+  'Material de Divulgação',
+  'Lyric Video',
+  'Ilustração',
+  'Tipografia / Letterings',
+];
+
+/// Canonical labels for the `marketing` category (UI source of truth).
+const List<String> professionalMarketingRoleLabels = [
+  'Social Media Manager',
+  'Marketing de Lançamento',
+  'Copywriter',
+  'Gestão de Conteúdo',
+  'Tráfego Pago / Ads',
+  'Análise de Métricas',
 ];
 
 /// Canonical labels for the `education` category (UI source of truth).
@@ -84,6 +109,8 @@ const Set<String> professionalGenreHiddenCategories = {
   'audiovisual',
   'education',
   'luthier',
+  'graphic_design',
+  'marketing',
 };
 
 /// Categories that render a role-selector section (and require at least one
@@ -95,6 +122,8 @@ const Set<String> professionalRoleCategoriesWithSelectors = {
   'education',
   'luthier',
   'performance',
+  'graphic_design',
+  'marketing',
 };
 
 /// Ordered list of role sections used by the UI (onboarding and edit profile).
@@ -113,8 +142,8 @@ final List<ProfessionalRoleSection> professionalRoleSections = [
   ),
   ProfessionalRoleSection(
     categoryId: 'audiovisual',
-    title: 'Audiovisual *',
-    subtitle: 'Selecione suas funções em vídeo e conteúdo visual',
+    title: 'Audiovisual e Fotografia *',
+    subtitle: 'Selecione suas funções em vídeo, fotografia e conteúdo visual',
     options: _buildPrefixedRoleOptions(
       'audiovisual',
       professionalAudiovisualRoleLabels,
@@ -145,6 +174,24 @@ final List<ProfessionalRoleSection> professionalRoleSections = [
     options: _buildPrefixedRoleOptions(
       'performance',
       professionalPerformanceRoleLabels,
+    ),
+  ),
+  ProfessionalRoleSection(
+    categoryId: 'graphic_design',
+    title: 'Design Gráfico *',
+    subtitle: 'Selecione suas funções de identidade visual e arte',
+    options: _buildPrefixedRoleOptions(
+      'graphic_design',
+      professionalGraphicDesignRoleLabels,
+    ),
+  ),
+  ProfessionalRoleSection(
+    categoryId: 'marketing',
+    title: 'Social Media e Marketing *',
+    subtitle: 'Selecione suas funções de divulgação e gestão de marca',
+    options: _buildPrefixedRoleOptions(
+      'marketing',
+      professionalMarketingRoleLabels,
     ),
   ),
 ];
@@ -286,6 +333,16 @@ Map<String, String> _buildRoleIdLookup() {
     professionalPerformanceRoleLabels,
     prefix: 'performance',
   );
+  addRoles(
+    'graphic_design',
+    professionalGraphicDesignRoleLabels,
+    prefix: 'graphic_design',
+  );
+  addRoles(
+    'marketing',
+    professionalMarketingRoleLabels,
+    prefix: 'marketing',
+  );
 
   return lookup;
 }
@@ -313,6 +370,16 @@ Map<String, String> _buildRoleCategoryById() {
     'performance',
     professionalPerformanceRoleLabels,
     prefix: 'performance',
+  );
+  addRoles(
+    'graphic_design',
+    professionalGraphicDesignRoleLabels,
+    prefix: 'graphic_design',
+  );
+  addRoles(
+    'marketing',
+    professionalMarketingRoleLabels,
+    prefix: 'marketing',
   );
 
   return map;

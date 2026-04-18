@@ -89,8 +89,9 @@ extension _GigDetailScreenUi on _GigDetailScreenState {
                         _InfoRow(
                           icon: Icons.groups_outlined,
                           label: 'Vagas',
-                          value:
-                              '${gig.slotsTotal} totais • ${gig.availableSlots} disponíveis',
+                          value: gig.slotsFilled > 0
+                              ? '${gig.slotsFilled} de ${gig.slotsTotal} preenchidas'
+                              : '${gig.slotsTotal} ${gig.slotsTotal == 1 ? 'vaga a preencher' : 'vagas a preencher'}',
                           valueColor:
                               gig.availableSlots <= 2 && gig.availableSlots > 0
                               ? AppColors.primary

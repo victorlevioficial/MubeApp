@@ -13,6 +13,14 @@ const String _appCheckDebugToken = String.fromEnvironment(
   'APP_CHECK_DEBUG_TOKEN',
   defaultValue: '',
 );
+const String _appCheckWebRecaptchaV3SiteKey = String.fromEnvironment(
+  'APP_CHECK_WEB_RECAPTCHA_V3_SITE_KEY',
+  defaultValue: '',
+);
+const String _appCheckWebRecaptchaEnterpriseSiteKey = String.fromEnvironment(
+  'APP_CHECK_WEB_RECAPTCHA_ENTERPRISE_SITE_KEY',
+  defaultValue: '',
+);
 const String _debugBuildMarker = 'chat-batch-retry-fix-20260314-privacy';
 Future<void>? _appCheckActivationInFlight;
 bool _appCheckActivationCompleted = false;
@@ -20,6 +28,17 @@ StreamSubscription<String?>? _appCheckTokenSubscription;
 String? _lastLoggedAppCheckToken;
 
 enum AppBootstrapState { idle, running, ready }
+
+@visibleForTesting
+enum AppCheckWebProviderKind { reCaptchaV3, reCaptchaEnterprise }
+
+@visibleForTesting
+class AppCheckWebProviderConfig {
+  const AppCheckWebProviderConfig({required this.kind, required this.siteKey});
+
+  final AppCheckWebProviderKind kind;
+  final String siteKey;
+}
 
 typedef AppCheckBootstrapper = Future<void> Function();
 
@@ -50,8 +69,18 @@ class AppBootstrapNotifier extends Notifier<AppBootstrapState> {
     state = AppBootstrapState.running;
 
     try {
-      unawaited(_ensureAppCheckActivation());
-      unawaited(_warmNotificationPermissionPromptState());
+      await Future.wait([
+        _ensureAppCheckActivation(),
+        _warmNotificationPermissionPromptState(),
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          AppLogger.warning(
+            'Bootstrap excedeu timeout de 10s. Prosseguindo sem bloquear UI.',
+          );
+          return const <void>[];
+        },
+      );
     } catch (error, stack) {
       bootstrapStatus = 'error';
       AppLogger.warning(
@@ -155,6 +184,11 @@ Future<void> ensureAppCheckActivated(app_check.FirebaseAppCheck appCheck) {
 }
 
 Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
+  if (kIsWeb) {
+    await _activateWebAppCheck(appCheck);
+    return;
+  }
+
   if (kReleaseMode) {
     await appCheck.activate(
       providerAndroid: const app_check.AndroidPlayIntegrityProvider(),
@@ -174,7 +208,11 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
         ? const app_check.AppleDebugProvider(debugToken: _appCheckDebugToken)
         : const app_check.AppleDebugProvider(),
   );
-  await appCheck.setTokenAutoRefreshEnabled(true);
+  // Em debug, desabilita auto-refresh pra evitar rate limit: o SDK tentaria
+  // renovar por conta em loop quando o token debug falha, estourando "Too
+  // many attempts". AppCheckRefreshCoordinator faz refresh sob demanda com
+  // backoff — mais confiável em dev.
+  await appCheck.setTokenAutoRefreshEnabled(false);
   _ensureDebugTokenLoggingAttached(appCheck);
 
   if (hasExplicitDebugToken) {
@@ -203,6 +241,59 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
   }
 
   await _warmDebugTokenLogging(appCheck);
+}
+
+@visibleForTesting
+AppCheckWebProviderConfig? resolveAppCheckWebProviderConfig({
+  String recaptchaV3SiteKey = _appCheckWebRecaptchaV3SiteKey,
+  String recaptchaEnterpriseSiteKey = _appCheckWebRecaptchaEnterpriseSiteKey,
+}) {
+  final enterpriseSiteKey = recaptchaEnterpriseSiteKey.trim();
+  if (enterpriseSiteKey.isNotEmpty) {
+    return AppCheckWebProviderConfig(
+      kind: AppCheckWebProviderKind.reCaptchaEnterprise,
+      siteKey: enterpriseSiteKey,
+    );
+  }
+
+  final v3SiteKey = recaptchaV3SiteKey.trim();
+  if (v3SiteKey.isNotEmpty) {
+    return AppCheckWebProviderConfig(
+      kind: AppCheckWebProviderKind.reCaptchaV3,
+      siteKey: v3SiteKey,
+    );
+  }
+
+  return null;
+}
+
+Future<void> _activateWebAppCheck(app_check.FirebaseAppCheck appCheck) async {
+  final providerConfig = resolveAppCheckWebProviderConfig();
+  if (providerConfig == null) {
+    AppLogger.warning(
+      'App Check web nao foi ativado porque nenhum site key de reCAPTCHA '
+      'foi configurado. Use APP_CHECK_WEB_RECAPTCHA_V3_SITE_KEY ou '
+      'APP_CHECK_WEB_RECAPTCHA_ENTERPRISE_SITE_KEY via --dart-define.',
+      null,
+      null,
+      false,
+    );
+    return;
+  }
+
+  switch (providerConfig.kind) {
+    case AppCheckWebProviderKind.reCaptchaEnterprise:
+      await appCheck.activate(
+        providerWeb: app_check.ReCaptchaEnterpriseProvider(
+          providerConfig.siteKey,
+        ),
+      );
+    case AppCheckWebProviderKind.reCaptchaV3:
+      await appCheck.activate(
+        providerWeb: app_check.ReCaptchaV3Provider(providerConfig.siteKey),
+      );
+  }
+  await appCheck.setTokenAutoRefreshEnabled(true);
 }
 
 void _ensureDebugTokenLoggingAttached(app_check.FirebaseAppCheck appCheck) {

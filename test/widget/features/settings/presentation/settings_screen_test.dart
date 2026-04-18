@@ -352,7 +352,10 @@ void main() {
       await tester.tap(find.text('Excluir conta'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Excluir'));
+      await tester.enterText(find.byType(TextField), 'EXCLUIR');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Excluir'));
       await tester.pumpAndSettle();
 
       expect(fakeAuthRepository.currentUser, null);
@@ -376,7 +379,10 @@ void main() {
       await tester.tap(find.text('Excluir conta'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Excluir'));
+      await tester.enterText(find.byType(TextField), 'EXCLUIR');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Excluir'));
       await tester.pumpAndSettle();
 
       expect(fakeAuthRepository.currentUser, isNotNull);

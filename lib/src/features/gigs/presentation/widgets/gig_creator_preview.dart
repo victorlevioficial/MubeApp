@@ -96,7 +96,7 @@ class GigCreatorPreview extends StatelessWidget {
       case AppUserType.band:
         return 'Banda';
       case AppUserType.studio:
-        return 'Estudio';
+        return 'Estúdio';
       case AppUserType.contractor:
         return 'Contratante';
       case null:

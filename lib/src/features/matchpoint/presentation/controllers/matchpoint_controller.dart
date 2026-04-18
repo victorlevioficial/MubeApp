@@ -253,7 +253,7 @@ class MatchpointController extends _$MatchpointController {
     state = await AsyncValue.guard(() async {
       final appUser = ref.read(currentUserProfileProvider).value;
       if (appUser == null) {
-        throw Exception('Perfil nao carregado');
+        throw Exception('Perfil não carregado');
       }
 
       final authRepo = ref.read(authRepositoryProvider);

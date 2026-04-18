@@ -163,7 +163,7 @@ class _ChatRepositoryBase {
           studioData?['nomeArtistico'],
           studioData?['nome'],
           data?['nome'],
-        ], fallback: 'Estudio');
+        ], fallback: 'Estúdio');
       case 'contratante':
         return _firstNonEmptyString([
           contractorData?['nomeExibicao'],

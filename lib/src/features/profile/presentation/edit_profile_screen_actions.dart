@@ -65,7 +65,10 @@ extension _EditProfileScreenActions on _EditProfileScreenState {
       }
       if (!mounted) return null;
       linksFormState.validate();
-      AppSnackBar.warning(context, 'Revise os links musicais preenchidos.');
+      AppSnackBar.warning(
+        context,
+        AppLocalizations.of(context)!.edit_profile_music_links_revise,
+      );
       return null;
     }
 
@@ -146,7 +149,10 @@ extension _EditProfileScreenActions on _EditProfileScreenState {
       );
 
       if (mounted) {
-        AppSnackBar.success(context, 'Perfil atualizado com sucesso!');
+        AppSnackBar.success(
+          context,
+          AppLocalizations.of(context)!.edit_profile_update_success,
+        );
         _leaveEditProfile();
       }
     } catch (e) {
@@ -165,7 +171,9 @@ extension _EditProfileScreenActions on _EditProfileScreenState {
           context,
           state.uploadStatus.isNotEmpty
               ? state.uploadStatus
-              : 'Aguarde o processamento da mídia terminar antes de sair.',
+              : AppLocalizations.of(
+                  context,
+                )!.edit_profile_media_still_processing,
         );
       }
       return;
@@ -176,14 +184,14 @@ extension _EditProfileScreenActions on _EditProfileScreenState {
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final shouldLeave = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (context) => const AppConfirmationDialog(
-        title: 'Descartar alterações?',
-        message:
-            'Você tem alterações não salvas. Deseja realmente sair sem salvar?',
-        confirmText: 'Descartar',
-        cancelText: 'Continuar editando',
+      builder: (context) => AppConfirmationDialog(
+        title: l10n.edit_profile_discard_title,
+        message: l10n.edit_profile_discard_message,
+        confirmText: l10n.edit_profile_discard_confirm,
+        cancelText: l10n.common_cancel,
         isDestructive: true,
       ),
     );

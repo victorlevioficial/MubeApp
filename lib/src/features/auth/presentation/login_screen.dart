@@ -20,6 +20,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../utils/email_validator.dart';
 import '../data/auth_repository.dart';
 
 part 'login_screen.g.dart';
@@ -199,16 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               Icons.email_outlined,
                               size: 20,
                             ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Digite seu e-mail';
-                              }
-                              if (!value.contains('@') ||
-                                  !value.contains('.')) {
-                                return 'E-mail inválido';
-                              }
-                              return null;
-                            },
+                            validator: EmailValidator.validate,
                           ),
                           const SizedBox(height: AppSpacing.s24),
                           AppTextField(

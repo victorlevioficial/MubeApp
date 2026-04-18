@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../core/config/app_config.dart';
 import '../features/address/domain/address_search_result.dart';
 import '../features/address/domain/resolved_address.dart';
+import '../utils/app_logger.dart';
 
 typedef LocationRequestHandler =
     Future<http.Response> Function(String url, {Map<String, String>? headers});
@@ -342,9 +343,12 @@ class LocationService {
 
   void _ensureConfigured() {
     if (!isConfigured) {
+      AppLogger.error(
+        'LocationService called without configured GOOGLE_MAPS_API_KEY',
+      );
       throw const LocationServiceException(
         LocationServiceErrorCode.apiKeyMissing,
-        'Servico de busca indisponivel. Configure a chave da Google API.',
+        'Não foi possível concluir a busca de endereço agora. Tente novamente em instantes.',
       );
     }
   }
@@ -488,11 +492,15 @@ class LocationService {
     final normalized = message.toLowerCase();
     if (normalized.contains('not authorized to use this api key') ||
         normalized.contains('api project is not authorized')) {
-      return 'A chave da Google API deste app nao esta autorizada para busca de enderecos e geocodificacao. Verifique as restricoes da chave no Google Cloud.';
+      AppLogger.error(
+        'Google Maps API key not authorized for Places/Geocoding',
+      );
+      return 'Não foi possível buscar endereço agora. Tente novamente em instantes.';
     }
     if (normalized.contains('provided api key is invalid') ||
         normalized.contains('api key is invalid')) {
-      return 'A chave da Google API configurada no app e invalida.';
+      AppLogger.error('Google Maps API key is invalid');
+      return 'Não foi possível buscar endereço agora. Tente novamente em instantes.';
     }
     return message;
   }

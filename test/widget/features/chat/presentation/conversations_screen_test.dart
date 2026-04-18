@@ -82,7 +82,7 @@ void main() {
 
       expect(find.text('Nenhuma conversa ainda'), findsOneWidget);
       expect(
-        find.text('Suas conexoes e amigos aparecerao aqui.'),
+        find.text('Suas conexões e amigos aparecerão aqui.'),
         findsOneWidget,
       );
     });
@@ -130,7 +130,7 @@ void main() {
       await tester.pumpWidget(createSubject(conversations: conversations));
       await tester.pumpAndSettle();
 
-      expect(find.text('Voce: Tudo certo'), findsOneWidget);
+      expect(find.text('Você: Tudo certo'), findsOneWidget);
     });
 
     testWidgets('shows unread badge for unread messages', (tester) async {
@@ -165,7 +165,7 @@ void main() {
       await tester.pumpWidget(createSubject(conversations: conversations));
       await tester.pumpAndSettle();
 
-      expect(find.text('Solicitacoes'), findsOneWidget);
+      expect(find.text('Solicitações'), findsOneWidget);
       expect(find.text('1'), findsWidgets);
     });
 
@@ -248,7 +248,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('Solicitacoes'));
+        await tester.tap(find.text('Solicitações'));
         await tester.pumpAndSettle();
 
         await tester.drag(

@@ -340,6 +340,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'Email sent! Check your inbox.';
 
   @override
+  String get edit_profile_update_success => 'Profile updated successfully!';
+
+  @override
+  String get edit_profile_media_still_processing =>
+      'Wait for media processing to finish before leaving.';
+
+  @override
+  String get edit_profile_discard_title => 'Discard changes?';
+
+  @override
+  String get edit_profile_discard_message =>
+      'You have unsaved changes. Do you really want to leave without saving?';
+
+  @override
+  String get edit_profile_discard_confirm => 'Discard';
+
+  @override
+  String get edit_profile_music_links_revise =>
+      'Review the music links you filled in.';
+
+  @override
+  String get delete_account_error_title => 'Couldn\'t delete';
+
+  @override
+  String delete_account_type_to_confirm(String word) {
+    return 'To confirm, type \"$word\" below.';
+  }
+
+  @override
+  String get delete_account_session_issue =>
+      'We couldn\'t validate your session right now. Sign out and back in, then try deleting your account again.';
+
+  @override
   String get settings_delete_confirm_title => 'Delete account?';
 
   @override
@@ -549,7 +582,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_addresses_search_service_unavailable =>
-      'Search service unavailable. Configure the Google API key.';
+      'Address search is unavailable right now. Try again in a few moments.';
 
   @override
   String get settings_addresses_invalid_selection =>

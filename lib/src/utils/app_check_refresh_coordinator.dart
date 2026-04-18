@@ -59,7 +59,7 @@ class AppCheckRefreshCoordinator {
     app_check.FirebaseAppCheck appCheck, {
     required String operationLabel,
     Duration forcedRefreshCooldown = const Duration(minutes: 2),
-    Duration throttledBackoff = const Duration(minutes: 10),
+    Duration throttledBackoff = const Duration(minutes: 15),
   }) {
     final appCheckKey = identityHashCode(appCheck);
     final inFlight = _inFlightRefreshes[appCheckKey];
@@ -85,7 +85,7 @@ class AppCheckRefreshCoordinator {
     app_check.FirebaseAppCheck appCheck, {
     required String operationLabel,
     Duration forcedRefreshCooldown = const Duration(minutes: 2),
-    Duration throttledBackoff = const Duration(minutes: 10),
+    Duration throttledBackoff = const Duration(minutes: 15),
   }) async {
     final status = await ensureValidToken(
       appCheck,

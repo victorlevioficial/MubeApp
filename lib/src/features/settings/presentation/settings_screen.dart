@@ -358,12 +358,7 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final confirm = await AppOverlay.dialog<bool>(
       context: context,
-      builder: (context) => AppConfirmationDialog(
-        title: l10n.settings_delete_confirm_title,
-        message: l10n.settings_delete_confirm_message,
-        confirmText: l10n.common_delete,
-        isDestructive: true,
-      ),
+      builder: (context) => const _DeleteAccountConfirmDialog(),
     );
 
     if (confirm != true) return;
@@ -376,33 +371,63 @@ class SettingsScreen extends ConsumerWidget {
       final result = await ref.read(authRepositoryProvider).deleteAccount();
       if (!context.mounted) return;
 
-      result.fold(
-        (failure) {
+      await result.fold(
+        (failure) async {
           ref.read(accountDeletionInProgressProvider.notifier).clear();
-          AppSnackBar.error(
+          await _showDeleteErrorDialog(
             context,
             _messageForDeleteFailure(l10n, failure.message),
           );
         },
-        (_) {
+        (_) async {
           ref.invalidate(authStateChangesProvider);
           ref.invalidate(currentUserProfileProvider);
+          // Reset in-progress state on success too (was previously only
+          // cleared on failure, leaking the flag across sessions).
+          ref.read(accountDeletionInProgressProvider.notifier).clear();
           AppSnackBar.success(context, l10n.settings_delete_success);
         },
       );
     } catch (error) {
       ref.read(accountDeletionInProgressProvider.notifier).clear();
       if (!context.mounted) return;
-      AppSnackBar.error(
+      await _showDeleteErrorDialog(
         context,
         l10n.settings_error_with_details(error.toString()),
       );
     }
   }
 
+  Future<void> _showDeleteErrorDialog(
+    BuildContext context,
+    String message,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.delete_account_error_title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _messageForDeleteFailure(AppLocalizations l10n, String message) {
-    if (message == 'requires-recent-login') {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('requires-recent-login')) {
       return l10n.settings_delete_requires_recent_login;
+    }
+    if (normalized.contains('unauthenticated') ||
+        normalized.contains('appcheck') ||
+        normalized.contains('app check') ||
+        normalized.contains('throttled')) {
+      return l10n.delete_account_session_issue;
     }
     const exceptionPrefix = 'Exception: ';
     if (message.startsWith(exceptionPrefix)) {
@@ -410,6 +435,78 @@ class SettingsScreen extends ConsumerWidget {
     }
 
     return message.trim();
+  }
+}
+
+class _DeleteAccountConfirmDialog extends StatefulWidget {
+  const _DeleteAccountConfirmDialog();
+
+  @override
+  State<_DeleteAccountConfirmDialog> createState() =>
+      _DeleteAccountConfirmDialogState();
+}
+
+class _DeleteAccountConfirmDialogState
+    extends State<_DeleteAccountConfirmDialog> {
+  final _controller = TextEditingController();
+  static const _expected = 'EXCLUIR';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final canConfirm = _controller.text.trim() == _expected;
+
+    return AlertDialog(
+      title: Text(l10n.settings_delete_confirm_title),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.settings_delete_confirm_message),
+            const SizedBox(height: AppSpacing.s16),
+            Text(
+              l10n.delete_account_type_to_confirm(_expected),
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                hintText: _expected,
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(l10n.common_cancel),
+        ),
+        TextButton(
+          onPressed: canConfirm
+              ? () => Navigator.of(context).pop(true)
+              : null,
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: Text(l10n.common_delete),
+        ),
+      ],
+    );
   }
 }
 

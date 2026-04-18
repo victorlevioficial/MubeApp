@@ -16,7 +16,9 @@ import '../../../../design_system/foundations/tokens/app_typography.dart';
 /// - DJ
 /// - Produção Musical
 /// - Técnica de Palco
-/// - Audiovisual
+/// - Audiovisual e Fotografia
+/// - Design Gráfico
+/// - Social Media e Marketing
 /// - Educação
 /// - Luthier
 /// - Performance
@@ -66,7 +68,8 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
     {
       'id': 'production',
       'label': 'Produção Musical',
-      'description': 'Ex: Produção, direção, gravação, mixagem e arranjos',
+      'description':
+          'Ex: Produção, mixagem, composição, letra, arranjos e direção',
       'icon': FontAwesomeIcons.sliders,
     },
     {
@@ -77,9 +80,24 @@ class _ProfessionalCategoryStepState extends State<ProfessionalCategoryStep> {
     },
     {
       'id': 'audiovisual',
-      'label': 'Audiovisual',
-      'description': 'Ex: Vídeo, transmissão, captação, edição e motion',
-      'icon': Icons.video_camera_front_outlined,
+      'label': 'Audiovisual e Fotografia',
+      'description':
+          'Ex: Vídeo, fotografia, transmissão, captação, edição e motion',
+      'icon': FontAwesomeIcons.camera,
+    },
+    {
+      'id': 'graphic_design',
+      'label': 'Design Gráfico',
+      'description':
+          'Ex: Capa de álbum, identidade visual e material de divulgação',
+      'icon': FontAwesomeIcons.palette,
+    },
+    {
+      'id': 'marketing',
+      'label': 'Social Media e Marketing',
+      'description':
+          'Ex: Gestão de redes, campanhas, copywriting e lançamentos',
+      'icon': FontAwesomeIcons.bullhorn,
     },
     {
       'id': 'education',

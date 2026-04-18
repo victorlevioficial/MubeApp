@@ -23,7 +23,7 @@ class FavoriteRepository {
   /// Returns current user id or throws when unauthenticated.
   String get _uid {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Usuario nao autenticado');
+    if (user == null) throw Exception('Usuário não autenticado');
     return user.uid;
   }
 

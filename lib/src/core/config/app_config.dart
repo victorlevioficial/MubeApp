@@ -36,9 +36,7 @@ class AppConfig {
   /// Effective Google Maps key used by location flows.
   ///
   /// The key must be provided via `--dart-define`.
-  static String get effectiveGoogleMapsApiKey {
-    return googleMapsApiKey;
-  }
+  static String get effectiveGoogleMapsApiKey => googleMapsApiKey;
 
   // ===========================================================================
   // API ENDPOINTS

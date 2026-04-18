@@ -39,6 +39,7 @@ class OnboardingBandFlow extends ConsumerStatefulWidget {
 
 class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   int _currentStep = 1;
   static const int _totalSteps = 3;
@@ -101,6 +102,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _nomeCompletoController.dispose();
     _nomeBandaController.dispose();
     _celularController.dispose();
@@ -111,7 +113,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
   void _nextStep() {
     if (_currentStep == 1) {
       if (!_formKey.currentState!.validate()) return;
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     } else if (_currentStep == 2) {
       if (_selectedGenres.isEmpty) {
         AppSnackBar.show(
@@ -122,18 +124,26 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         return;
       }
       ref.read(onboardingFormProvider.notifier).updateGenres(_selectedGenres);
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     }
   }
 
   void _prevStep() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      _setCurrentStep(_currentStep - 1);
     } else {
       ref
           .read(onboardingControllerProvider.notifier)
           .resetToTypeSelection(currentUser: widget.user);
     }
+  }
+
+  void _setCurrentStep(int nextStep) {
+    setState(() => _currentStep = nextStep);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.jumpTo(0);
+    });
   }
 
   Future<void> _finishOnboarding() async {
@@ -198,6 +208,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         backgroundColor: AppColors.background,
         body: SafeArea(
           child: SingleChildScrollView(
+            controller: _scrollController,
             child: ResponsiveCenter(
               maxContentWidth: 600,
               padding: const EdgeInsets.symmetric(
@@ -247,7 +258,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Informacoes basicas sobre o grupo',
+          'Informações básicas sobre o grupo',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -256,16 +267,18 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         const SizedBox(height: AppSpacing.s32),
 
         AppTextField(
+          fieldKey: const Key('onboarding_band_responsavel_input'),
           controller: _nomeCompletoController,
-          label: 'Nome Completo (Responsavel)',
+          label: 'Nome Completo (Responsável)',
           hint: 'Usado para cadastro interno',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => v!.trim().isEmpty ? 'Nome obrigatorio' : null,
+          validator: (v) => v!.trim().isEmpty ? 'Nome obrigatório' : null,
           prefixIcon: const Icon(Icons.person_outline, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_band_nome_input'),
           controller: _nomeBandaController,
           label: 'Nome da Banda',
           hint: 'Nome exibido no app',
@@ -277,16 +290,22 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_band_celular_input'),
           controller: _celularController,
           label: 'Celular de Contato',
           hint: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
           inputFormatters: [_celularMask],
-          validator: (v) => v!.length < 14 ? 'Celular invalido' : null,
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Celular obrigatorio';
+            if (v.length < 14) return 'Celular invalido';
+            return null;
+          },
           prefixIcon: const Icon(Icons.phone_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_band_instagram_input'),
           controller: _instagramController,
           label: instagramLabelOptional,
           hint: instagramHint,
@@ -319,7 +338,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Quais generos a banda toca?',
+          'Quais gêneros a banda toca?',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -344,7 +363,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Generos Musicais *',
+                'Gêneros Musicais *',
                 style: AppTypography.titleMedium.copyWith(
                   color: _selectedGenres.isEmpty
                       ? AppColors.error
@@ -355,7 +374,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
               Text(
                 _selectedGenres.isEmpty
                     ? 'Selecione os estilos que a banda toca'
-                    : '${_selectedGenres.length} genero${_selectedGenres.length > 1 ? 's' : ''} selecionado${_selectedGenres.length > 1 ? 's' : ''}',
+                    : '${_selectedGenres.length} gênero${_selectedGenres.length > 1 ? 's' : ''} selecionado${_selectedGenres.length > 1 ? 's' : ''}',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -410,12 +429,12 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                 width: double.infinity,
                 child: AppButton.outline(
                   text: _selectedGenres.isEmpty
-                      ? 'Selecionar Generos'
-                      : 'Editar Generos',
+                      ? 'Selecionar Gêneros'
+                      : 'Editar Gêneros',
                   onPressed: () async {
                     final result = await EnhancedMultiSelectModal.show<String>(
                       context: context,
-                      title: 'Generos Musicais',
+                      title: 'Gêneros Musicais',
                       subtitle: 'Selecione os estilos da banda',
                       items: genres,
                       selectedItems: _selectedGenres,

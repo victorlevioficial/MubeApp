@@ -9,6 +9,7 @@ import '../../../../core/domain/professional_roles.dart';
 import '../../../../core/providers/app_config_provider.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
+import '../../../../design_system/components/inputs/app_checkbox.dart';
 import '../../../../design_system/components/inputs/app_date_picker_field.dart';
 import '../../../../design_system/components/inputs/app_dropdown_field.dart';
 import '../../../../design_system/components/inputs/app_text_field.dart';
@@ -72,6 +73,12 @@ class _OnboardingProfessionalFlowState
     mask: '(##) #####-####',
     filter: {'#': RegExp(r'[0-9]')},
   );
+
+  // Age-gate self-declaration. Not persisted: Apple requires that any
+  // personal data we collect be visibly used. We store only the fact
+  // the user confirmed adulthood during onboarding; the optional DOB
+  // is still gathered for users who choose to fill it in.
+  bool _isAdultConfirmed = false;
 
   // Step 2 & 3 Data
   List<String> _selectedCategories = [];

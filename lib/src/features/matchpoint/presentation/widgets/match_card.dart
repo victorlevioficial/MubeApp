@@ -63,24 +63,11 @@ class MatchCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.surfaceHighlight,
-                      child: const Icon(
-                        Icons.person_off,
-                        size: 48,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
+                    errorWidget: (context, url, error) =>
+                        _InitialsFallback(name: _getDisplayName()),
                   )
                 else
-                  Container(
-                    color: AppColors.surfaceHighlight,
-                    child: const Icon(
-                      Icons.person,
-                      size: 80,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  _InitialsFallback(name: _getDisplayName()),
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -236,7 +223,7 @@ class MatchCard extends StatelessWidget {
                                 ),
                               ),
                               child: Text(
-                                tag,
+                                _humanizeTag(tag),
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textPrimary,
                                   fontWeight:
@@ -283,7 +270,7 @@ class MatchCard extends StatelessWidget {
     if (user.tipoPerfil == AppUserType.professional) {
       final roles = matchpointStringList(user.dadosProfissional?['funcoes']);
       if (roles.isNotEmpty) {
-        return roles.join(' • ');
+        return roles.map(_humanizeTag).join(' • ');
       }
     }
     switch (user.tipoPerfil) {
@@ -298,6 +285,17 @@ class MatchCard extends StatelessWidget {
       case null:
         return 'Usuário';
     }
+  }
+
+  String _humanizeTag(String tag) {
+    if (tag.isEmpty) return tag;
+    return tag
+        .split('_')
+        .map(
+          (word) =>
+              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
+        )
+        .join(' ');
   }
 
   List<String> _getTags() {
@@ -351,5 +349,45 @@ class MatchCard extends StatelessWidget {
         .length;
 
     return commonGenres;
+  }
+}
+
+class _InitialsFallback extends StatelessWidget {
+  const _InitialsFallback({required this.name});
+
+  final String name;
+
+  Color _colorFor(String value) {
+    if (value.isEmpty) return AppColors.surfaceHighlight;
+    final hash = value.hashCode.abs();
+    return AppColors.avatarColors[hash % AppColors.avatarColors.length];
+  }
+
+  String _initialsFor(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '?';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return trimmed[0].toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final background = _colorFor(name);
+    final initials = _initialsFor(name);
+    return Container(
+      color: background,
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: AppTypography.headlineLarge.copyWith(
+          color: AppColors.background,
+          fontSize: 96,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }

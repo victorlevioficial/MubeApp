@@ -74,32 +74,42 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
         const SizedBox(height: AppSpacing.s32),
 
         AppTextField(
+          fieldKey: const Key('onboarding_nome_input'),
           controller: _nomeController,
           label: 'Nome Completo',
           hint: 'Digite seu nome completo',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => v!.isEmpty ? 'Nome obrigatório' : null,
+          validator: (v) =>
+              (v == null || v.isEmpty) ? 'Nome obrigatório' : null,
           prefixIcon: const Icon(Icons.person_outline, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_nome_artistico_input'),
           controller: _nomeArtisticoController,
           label: 'Nome Artístico',
           hint: 'Nome exibido no app',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => v!.isEmpty ? 'Nome artístico obrigatório' : null,
+          validator: (v) => (v == null || v.isEmpty)
+              ? 'Nome artístico obrigatório'
+              : null,
           prefixIcon: const Icon(Icons.stars_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_celular_input'),
           controller: _celularController,
           label: 'Celular',
           hint: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
           inputFormatters: [_celularMask],
-          validator: (v) => v!.length < 14 ? 'Celular inválido' : null,
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Celular obrigatório';
+            if (v.length < 14) return 'Celular inválido';
+            return null;
+          },
           prefixIcon: const Icon(Icons.phone_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
@@ -133,7 +143,17 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           prefixIcon: const Icon(Icons.alternate_email, size: 20),
         ),
 
-        const SizedBox(height: AppSpacing.s48),
+        const SizedBox(height: AppSpacing.s24),
+
+        AppCheckbox(
+          key: const Key('onboarding_adult_confirm_checkbox'),
+          label: 'Tenho 18 anos ou mais',
+          value: _isAdultConfirmed,
+          onChanged: (v) =>
+              _updateState(() => _isAdultConfirmed = v ?? false),
+        ),
+
+        const SizedBox(height: AppSpacing.s32),
 
         SizedBox(
           height: 56,
@@ -338,6 +358,8 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           'education',
           'luthier',
           'performance',
+          'graphic_design',
+          'marketing',
         ])
           if (_selectedCategories.contains(categoryId)) ...[
             const SizedBox(height: AppSpacing.s24),
@@ -463,12 +485,25 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           const SizedBox(height: AppSpacing.s16),
           SizedBox(
             width: double.infinity,
-            child: AppButton.outline(
-              text: buttonText,
+            height: AppSpacing.s48,
+            child: OutlinedButton.icon(
               onPressed: onTap,
               icon: Icon(
                 selectedItems.isEmpty ? Icons.add : Icons.edit_outlined,
                 size: 18,
+                color: AppColors.primary,
+              ),
+              label: Text(buttonText),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.2),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.pill,
+                ),
+                textStyle: AppTypography.buttonSecondary.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),

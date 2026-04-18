@@ -41,7 +41,7 @@ sealed class FeedItem with _$FeedItem {
       case 'banda':
         return 'Banda';
       case 'estudio':
-        return 'Estudio';
+        return 'Estúdio';
       case 'contratante':
         final contractorName = nome.trim();
         return contractorName.isNotEmpty ? contractorName : 'Contratante';
@@ -62,12 +62,14 @@ sealed class FeedItem with _$FeedItem {
 
   /// Formatted genres (converts snake_case IDs to readable labels)
   List<String> get formattedGenres =>
-      generosMusicais.map(_formatGenreLabel).toList();
+      generosMusicais.map(_formatLabel).toList();
 
-  /// Converts a genre ID (snake_case) to a readable label
-  static String _formatGenreLabel(String genreId) {
-    // Replace underscores with spaces and capitalize each word
-    return genreId
+  /// Formatted skills (converts snake_case IDs to readable labels)
+  List<String> get formattedSkills => skills.map(_formatLabel).toList();
+
+  /// Converts a snake_case id to a readable label
+  static String _formatLabel(String id) {
+    return id
         .split('_')
         .map(
           (word) =>

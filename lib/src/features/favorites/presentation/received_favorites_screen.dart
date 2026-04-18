@@ -53,7 +53,7 @@ class _ReceivedFavoritesScreenState
       if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _error = 'Usuario nao autenticado.';
+        _error = 'Usuário não autenticado.';
         _items = const [];
       });
       return;
@@ -179,7 +179,7 @@ class _ReceivedFavoritesScreenState
               icon: Icons.favorite_border,
               title: 'Ninguém favoritou você ainda',
               subtitle:
-                  'Quando alguem favoritar seu perfil, a lista aparece aqui.',
+                  'Quando alguém favoritar seu perfil, a lista aparece aqui.',
             ),
           ),
         ],

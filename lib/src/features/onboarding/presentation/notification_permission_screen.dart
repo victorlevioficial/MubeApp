@@ -2,15 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/services/push_notification_provider.dart';
 import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
-import '../../../design_system/foundations/tokens/app_assets.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
@@ -128,10 +125,10 @@ class _NotificationPermissionScreenState
           child: SingleChildScrollView(
             physics: const ClampingScrollPhysics(),
             child: ResponsiveCenter(
-              maxContentWidth: 480,
+              maxContentWidth: 420,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.s24,
-                vertical: AppSpacing.s48,
+                vertical: AppSpacing.s24,
               ),
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -142,34 +139,37 @@ class _NotificationPermissionScreenState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const _NotificationHeader(),
-                      const SizedBox(height: AppSpacing.s40),
-                      const _BenefitsCard(),
-                      const SizedBox(height: AppSpacing.s32),
+                      const SizedBox(height: AppSpacing.s24),
+                      const _BenefitsList(),
+                      const SizedBox(height: AppSpacing.s24),
                       SizedBox(
-                        height: 56,
+                        height: 52,
                         child: Semantics(
                           button: true,
                           label: 'Ativar notificações',
                           child: AppButton.primary(
                             text: 'Ativar notificações',
-                            size: AppButtonSize.large,
+                            size: AppButtonSize.medium,
                             isLoading: _isLoading,
                             onPressed: _handleAccept,
                             isFullWidth: true,
                           ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.s16),
+                      const SizedBox(height: AppSpacing.s8),
                       Center(
                         child: GestureDetector(
                           onTap: _isLoading ? null : _handleSkip,
-                          child: Text(
-                            'Agora não',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: _isLoading
-                                  ? AppColors.textTertiary
-                                  : AppColors.textSecondary,
-                              fontWeight: FontWeight.w600,
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.s8),
+                            child: Text(
+                              'Agora não',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: _isLoading
+                                    ? AppColors.textTertiary
+                                    : AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -193,46 +193,37 @@ class _NotificationHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Center(
-          child: SvgPicture.asset(
-            AppAssets.logoHorizontalSvg,
-            height: 40,
-            fit: BoxFit.contain,
-            placeholderBuilder: (context) =>
-                const SizedBox(height: 40, width: 120),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s32),
         Container(
-          width: 112,
-          height: 112,
+          width: 72,
+          height: 72,
           decoration: BoxDecoration(
             color: AppColors.primaryMuted,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.notifications_active_rounded,
-            size: 52,
+            size: 36,
             color: AppColors.primary,
           ),
         ),
-        const SizedBox(height: AppSpacing.s24),
+        const SizedBox(height: AppSpacing.s16),
         Text(
           'Fique por dentro de tudo',
           textAlign: TextAlign.center,
-          style: AppTypography.headlineLarge.copyWith(
-            fontSize: 32,
-            letterSpacing: -1,
+          style: AppTypography.titleLarge.copyWith(
+            fontSize: 22,
+            letterSpacing: -0.5,
             height: 1.2,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: AppSpacing.s12),
+        const SizedBox(height: AppSpacing.s8),
         Text(
-          'Ative as notificações para acompanhar mensagens, convites e novos matches.',
+          'Ative para receber mensagens, convites e matches.',
           textAlign: TextAlign.center,
-          style: AppTypography.bodyLarge.copyWith(
+          style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
-            height: 1.5,
+            height: 1.4,
           ),
         ),
       ],
@@ -240,49 +231,35 @@ class _NotificationHeader extends StatelessWidget {
   }
 }
 
-class _BenefitsCard extends StatelessWidget {
-  const _BenefitsCard();
+class _BenefitsList extends StatelessWidget {
+  const _BenefitsList();
 
   static const _benefits = [
     _BenefitData(
       icon: Icons.chat_bubble_outline_rounded,
       title: 'Mensagens no chat',
-      subtitle: 'Responda produtores e músicos rapidamente.',
     ),
     _BenefitData(
       icon: Icons.group_add_outlined,
       title: 'Convites para bandas',
-      subtitle: 'Receba convites assim que forem enviados.',
     ),
     _BenefitData(
       icon: Icons.music_note_rounded,
       title: 'Novos matches musicais',
-      subtitle: 'Descubra oportunidades no momento certo.',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all20,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < _benefits.length; index++) ...[
-            _BenefitItem(data: _benefits[index]),
-            if (index < _benefits.length - 1) ...[
-              const SizedBox(height: AppSpacing.s16),
-              const Divider(height: 1, thickness: 1, color: AppColors.border),
-              const SizedBox(height: AppSpacing.s16),
-            ],
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < _benefits.length; index++) ...[
+          _BenefitItem(data: _benefits[index]),
+          if (index < _benefits.length - 1)
+            const SizedBox(height: AppSpacing.s12),
         ],
-      ),
+      ],
     );
   }
 }
@@ -295,35 +272,16 @@ class _BenefitItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceHighlight,
-            borderRadius: AppRadius.all12,
-          ),
-          child: Icon(data.icon, size: 22, color: AppColors.textPrimary),
-        ),
-        const SizedBox(width: AppSpacing.s16),
+        Icon(data.icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: AppSpacing.s12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data.title,
-                style: AppTypography.titleMedium.copyWith(height: 1.3),
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              Text(
-                data.subtitle,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.4,
-                ),
-              ),
-            ],
+          child: Text(
+            data.title,
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -334,11 +292,6 @@ class _BenefitItem extends StatelessWidget {
 class _BenefitData {
   final IconData icon;
   final String title;
-  final String subtitle;
 
-  const _BenefitData({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+  const _BenefitData({required this.icon, required this.title});
 }

@@ -789,6 +789,26 @@ service cloud.firestore {
     }
 
     // ================================================================
+    // COLLECTION GROUP: gig_applications
+    // Client queries via FirebaseFirestore.collectionGroup('gig_applications')
+    // don't include the parent /gigs/{gigId} path, so the nested subcollection
+    // rule never triggers. This top-level rule authorizes only the applicant
+    // reading their own applications across gigs.
+    // ================================================================
+    match /{path=**}/gig_applications/{applicantId} {
+      allow get: if request.auth != null &&
+        (
+          applicantId == request.auth.uid ||
+          resource.data.applicant_id == request.auth.uid
+        );
+
+      allow list: if request.auth != null &&
+        resource.data.applicant_id == request.auth.uid;
+
+      allow create, update, delete: if false;
+    }
+
+    // ================================================================
     // FALLBACK
     // ================================================================
     match /{document=**} {

@@ -22,18 +22,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Novo story'), findsOneWidget);
-      expect(find.text('Escolha uma foto ou video.'), findsOneWidget);
+      expect(find.text('Escolha uma foto ou vídeo.'), findsOneWidget);
       expect(find.text('MIDIA'), findsNothing);
       expect(find.text('PREVIEW'), findsNothing);
 
       await tester.scrollUntilVisible(
-        find.text('Sem midia selecionada'),
+        find.text('Sem mídia selecionada'),
         250,
         scrollable: find.byType(Scrollable),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Sem midia selecionada'), findsOneWidget);
+      expect(find.text('Sem mídia selecionada'), findsOneWidget);
       expect(find.text('Seu story vai aparecer aqui'), findsOneWidget);
       expect(find.text('Legenda'), findsNothing);
 

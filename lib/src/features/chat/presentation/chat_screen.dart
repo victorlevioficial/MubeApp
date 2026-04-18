@@ -1119,7 +1119,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     result.fold(
       (failure) => AppSnackBar.error(
         context,
-        'Erro ao aceitar solicitacao: ${failure.message}',
+        'Erro ao aceitar solicitação: ${failure.message}',
       ),
       (_) {
         accepted = true;
@@ -1189,7 +1189,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (mounted) {
         AppSnackBar.warning(
           context,
-          'Aceite a solicitacao para responder esta conversa.',
+          'Aceite a solicitação para responder esta conversa.',
         );
       }
       return;
@@ -1351,7 +1351,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return _buildInitialLoadingScaffold();
       }
       return const Scaffold(
-        body: Center(child: Text('Usuario nao autenticado')),
+        body: Center(child: Text('Usuário não autenticado')),
       );
     }
 

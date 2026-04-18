@@ -30,7 +30,7 @@ class MatchpointWrapperScreen extends ConsumerWidget {
         if (user == null) {
           return _buildFallbackScaffold(
             context,
-            'Erro: usuario nao encontrado',
+            'Erro: usuário não encontrado',
           );
         }
         return _buildResolvedState(user);
@@ -38,7 +38,7 @@ class MatchpointWrapperScreen extends ConsumerWidget {
       loading: () => Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppAppBar(
-          title: 'Matchpoint',
+          title: 'MatchPoint',
           showBackButton: true,
           onBackPressed: () => handleMatchpointBack(context),
         ),
@@ -81,7 +81,7 @@ class MatchpointWrapperScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppAppBar(
-        title: 'Matchpoint',
+        title: 'MatchPoint',
         showBackButton: true,
         onBackPressed: () => handleMatchpointBack(context),
       ),

@@ -34,7 +34,7 @@ void main() {
       expect(find.text('Abrir MatchPoint'), findsOneWidget);
       expect(
         find.text(
-          'Continue explorando perfis, matches e o historico da sua rede.',
+          'Continue explorando perfis, matches e o histórico da sua rede.',
         ),
         findsOneWidget,
       );

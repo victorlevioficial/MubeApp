@@ -70,7 +70,7 @@ void main() {
 
       expect(
         message,
-        'A chave da Google API deste app nao esta autorizada para busca de enderecos e geocodificacao. Verifique as restricoes da chave no Google Cloud.',
+        'Não foi possível buscar endereço agora. Tente novamente em instantes.',
       );
     });
   });

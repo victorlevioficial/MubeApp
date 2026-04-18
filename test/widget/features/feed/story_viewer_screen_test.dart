@@ -136,8 +136,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Story nao encontrado.'), findsOneWidget);
-      expect(find.text('Esse story nao esta mais disponivel.'), findsOneWidget);
+      expect(find.text('Story não encontrado.'), findsOneWidget);
+      expect(find.text('Esse story não está mais disponível.'), findsOneWidget);
     });
 
     testWidgets(

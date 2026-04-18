@@ -110,7 +110,7 @@ class _StoryTrayItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(right: AppSpacing.s16),
       child: SizedBox(
-        width: 82,
+        width: 92,
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,

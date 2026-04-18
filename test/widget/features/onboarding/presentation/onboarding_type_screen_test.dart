@@ -43,7 +43,7 @@ void main() {
       expect(find.text('Perfil Individual'), findsOneWidget);
       expect(
         find.text(
-          'Cantor, instrumentista, DJ, produ\u00E7\u00E3o musical, audiovisual, educa\u00E7\u00E3o, luthier, performance ou t\u00E9cnica de palco',
+          'Cantor, instrumentista, DJ, produ\u00E7\u00E3o, audiovisual, fotografia, design gr\u00E1fico, social media, educa\u00E7\u00E3o, luthier, performance ou t\u00E9cnica de palco',
         ),
         findsOneWidget,
       );

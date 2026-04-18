@@ -81,15 +81,15 @@ class ProfileTypeBadge extends StatelessWidget {
   ) {
     switch (classification) {
       case ProfileClassification.musician:
-        return ('Musico', Icons.music_note, AppColors.badgeMusician);
+        return ('Músico', Icons.music_note, AppColors.badgeMusician);
       case ProfileClassification.technician:
-        return ('Tecnico', Icons.build_rounded, AppColors.badgeMusician);
+        return ('Técnico', Icons.build_rounded, AppColors.badgeMusician);
       case ProfileClassification.professional:
         return ('Profissional', Icons.badge_rounded, AppColors.primary);
       case ProfileClassification.band:
         return ('Banda', Icons.groups, AppColors.badgeBand);
       case ProfileClassification.studio:
-        return ('Estudio', Icons.headphones, AppColors.badgeStudio);
+        return ('Estúdio', Icons.headphones, AppColors.badgeStudio);
       case ProfileClassification.venue:
         return ('Local', Icons.storefront_rounded, AppColors.warning);
     }

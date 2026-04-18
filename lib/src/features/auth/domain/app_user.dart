@@ -158,7 +158,7 @@ abstract class AppUser with _$AppUser {
           dadosEstudio?['nomeEstudio'],
           dadosEstudio?['nomeArtistico'],
           dadosEstudio?['nome'],
-        ], 'Estudio');
+        ], 'Estúdio');
       case AppUserType.contractor:
         return _firstNonEmptyName([
           dadosContratante?['nomeExibicao'],

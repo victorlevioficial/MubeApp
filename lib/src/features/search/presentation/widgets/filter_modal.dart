@@ -194,8 +194,8 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                     ],
                     if (isStudio) ...[
                       _FilterSection(
-                        title: 'Tipo de estudio',
-                        subtitle: 'Defina o tipo de espaco que voce procura.',
+                        title: 'Tipo de estúdio',
+                        subtitle: 'Defina o tipo de espaço que você procura.',
                         child: _FilterPanel(child: _buildStudioTypeChips()),
                       ),
                       const SizedBox(height: AppSpacing.s20),

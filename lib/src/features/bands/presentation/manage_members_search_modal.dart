@@ -248,7 +248,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
                               : Icons.search_rounded,
                           title: hasSearchQuery
                               ? 'Nenhum perfil encontrado'
-                              : 'Busque musicos para sua banda',
+                              : 'Busque músicos para sua banda',
                           subtitle: hasSearchQuery
                               ? 'Tente outro nome ou instrumento para ampliar a busca.'
                               : 'Digite pelo menos 3 caracteres para pesquisar por nome ou instrumento.',

@@ -163,16 +163,16 @@ class _ModernNavBar extends StatelessWidget {
       top: false,
       left: false,
       right: false,
-      minimum: const EdgeInsets.only(bottom: AppSpacing.s8),
+      minimum: const EdgeInsets.only(bottom: AppSpacing.s4),
       child: Container(
         margin: const EdgeInsets.only(
           left: AppSpacing.s16,
           right: AppSpacing.s16,
-          bottom: AppSpacing.s16,
+          bottom: AppSpacing.s10,
         ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s8,
-          vertical: AppSpacing.s12,
+          vertical: AppSpacing.s4,
         ),
         decoration: BoxDecoration(
           // Solid background (nao mais transparente)
@@ -343,8 +343,8 @@ class _NavBarItemState extends State<_NavBarItem>
                     AnimatedContainer(
                       duration: AppEffects.normal,
                       curve: Curves.easeOut,
-                      width: 56,
-                      height: 32,
+                      width: 52,
+                      height: 28,
                       decoration: BoxDecoration(
                         gradient: widget.isSelected
                             ? LinearGradient(
@@ -368,8 +368,8 @@ class _NavBarItemState extends State<_NavBarItem>
 
                     // Icon
                     SizedBox(
-                      width: 56,
-                      height: 32,
+                      width: 52,
+                      height: 28,
                       child: Center(
                         child: ScaleTransition(
                           scale: _scaleAnimation,
@@ -377,7 +377,7 @@ class _NavBarItemState extends State<_NavBarItem>
                             widget.isSelected
                                 ? widget.selectedIcon
                                 : widget.icon,
-                            size: 24,
+                            size: 22,
                             color: widget.isSelected
                                 ? activeColor
                                 : inactiveColor,
@@ -396,7 +396,7 @@ class _NavBarItemState extends State<_NavBarItem>
                   ],
                 ),
 
-                const SizedBox(height: AppSpacing.s4),
+                const SizedBox(height: AppSpacing.s2),
 
                 // Label with fade animation
                 FadeTransition(

@@ -17,6 +17,7 @@ import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../routing/route_paths.dart';
 import '../../../utils/auth_exception_handler.dart';
+import '../../../utils/email_validator.dart';
 import '../../legal/presentation/legal_detail_screen.dart';
 import 'register_controller.dart';
 
@@ -159,9 +160,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                               Icons.email_outlined,
                               size: 20,
                             ),
-                            validator: (v) => v != null && v.isNotEmpty
-                                ? null
-                                : 'E-mail obrigatório',
+                            validator: EmailValidator.validate,
                           ),
                           const SizedBox(height: AppSpacing.s24),
                           AppTextField(
@@ -205,9 +204,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                                     !_isConfirmPasswordVisible;
                               });
                             },
-                            validator: (v) => v == _passwordController.text
-                                ? null
-                                : 'As senhas não conferem',
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Confirme sua senha';
+                              }
+                              if (v != _passwordController.text) {
+                                return 'As senhas não conferem';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: AppSpacing.s32),
                           SizedBox(

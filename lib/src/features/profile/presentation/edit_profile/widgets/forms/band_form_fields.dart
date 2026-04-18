@@ -77,7 +77,7 @@ class BandFormFields extends ConsumerWidget {
           Text('Estilo Musical', style: AppTypography.headlineMedium),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Quais generos a banda toca?',
+            'Quais gêneros a banda toca?',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -101,7 +101,7 @@ class BandFormFields extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Generos Musicais *',
+                  'Gêneros Musicais *',
                   style: AppTypography.titleMedium.copyWith(
                     color: selectedGenres.isEmpty
                         ? AppColors.error
@@ -112,7 +112,7 @@ class BandFormFields extends ConsumerWidget {
                 Text(
                   selectedGenres.isEmpty
                       ? 'Selecione os estilos que a banda toca'
-                      : '${selectedGenres.length} genero${selectedGenres.length > 1 ? 's' : ''} selecionado${selectedGenres.length > 1 ? 's' : ''}',
+                      : '${selectedGenres.length} gênero${selectedGenres.length > 1 ? 's' : ''} selecionado${selectedGenres.length > 1 ? 's' : ''}',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -167,17 +167,17 @@ class BandFormFields extends ConsumerWidget {
                   width: double.infinity,
                   child: AppButton.outline(
                     text: selectedGenres.isEmpty
-                        ? 'Selecionar Generos'
-                        : 'Editar Generos',
+                        ? 'Selecionar Gêneros'
+                        : 'Editar Gêneros',
                     onPressed: () async {
                       final result =
                           await EnhancedMultiSelectModal.show<String>(
                             context: context,
-                            title: 'Generos Musicais',
+                            title: 'Gêneros Musicais',
                             subtitle: 'Selecione os estilos da banda',
                             items: genres,
                             selectedItems: selectedGenres,
-                            searchHint: 'Buscar genero...',
+                            searchHint: 'Buscar gênero...',
                           );
                       if (result != null) {
                         onGenresChanged(result);

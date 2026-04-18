@@ -64,7 +64,7 @@ class GigRepository {
 
   String get _uid {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Usuario nao autenticado');
+    if (user == null) throw Exception('Usuário não autenticado');
     return user.uid;
   }
 
@@ -507,7 +507,7 @@ class GigRepository {
       operationLabel: 'update_gig_get',
     );
     if (!snapshot.exists || snapshot.data() == null) {
-      throw Exception('Gig nao encontrada.');
+      throw Exception('Gig não encontrada.');
     }
 
     final gig = Gig.fromFirestore(snapshot);
@@ -624,7 +624,7 @@ class GigRepository {
       operationLabel: 'update_gig_status_get',
     );
     if (!snapshot.exists || snapshot.data() == null) {
-      throw Exception('Gig nao encontrada.');
+      throw Exception('Gig não encontrada.');
     }
 
     final gig = Gig.fromFirestore(snapshot);
@@ -647,15 +647,15 @@ class GigRepository {
       onFinalError: recoverableFirestoreFinalError,
     );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
-      throw Exception('Gig nao encontrada.');
+      throw Exception('Gig não encontrada.');
     }
 
     final gig = Gig.fromFirestore(gigSnapshot);
     if (gig.creatorId == _uid) {
-      throw Exception('Voce nao pode se candidatar a propria gig.');
+      throw Exception('Você não pode se candidatar à própria gig.');
     }
     if (gig.status != GigStatus.open) {
-      throw Exception('Esta gig nao esta mais aberta.');
+      throw Exception('Esta gig não está mais aberta.');
     }
     if (gig.isFull) {
       throw Exception('As vagas desta gig ja foram preenchidas.');
@@ -702,13 +702,13 @@ class GigRepository {
       operationLabel: 'withdraw_application_get',
     );
     if (!snapshot.exists || snapshot.data() == null) {
-      throw Exception('Candidatura nao encontrada.');
+      throw Exception('Candidatura não encontrada.');
     }
 
     final status = snapshot.data()![GigFields.status] as String?;
     if (status == _applicationStatusValue(ApplicationStatus.rejected) ||
         status == _applicationStatusValue(ApplicationStatus.gigCancelled)) {
-      throw Exception('Esta candidatura nao pode mais ser retirada.');
+      throw Exception('Esta candidatura não pode mais ser retirada.');
     }
 
     await _deleteDocument(
@@ -739,7 +739,7 @@ class GigRepository {
       operationLabel: 'update_application_status_get_gig',
     );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
-      throw Exception('Gig nao encontrada.');
+      throw Exception('Gig não encontrada.');
     }
     final gig = Gig.fromFirestore(gigSnapshot);
     if (gig.creatorId != _uid) {
@@ -752,7 +752,7 @@ class GigRepository {
       operationLabel: 'update_application_status_get_application',
     );
     if (!applicationSnapshot.exists || applicationSnapshot.data() == null) {
-      throw Exception('Candidatura nao encontrada.');
+      throw Exception('Candidatura não encontrada.');
     }
 
     final current = _applicationStatusFromString(
@@ -761,7 +761,7 @@ class GigRepository {
 
     if (current == ApplicationStatus.rejected &&
         status == ApplicationStatus.accepted) {
-      throw Exception('Candidatura recusada nao pode ser aceita depois.');
+      throw Exception('Candidatura recusada não pode ser aceita depois.');
     }
 
     if (current == ApplicationStatus.accepted &&
@@ -788,7 +788,7 @@ class GigRepository {
 
     if (current != ApplicationStatus.pending &&
         current != ApplicationStatus.accepted) {
-      throw Exception('Esta candidatura nao pode mais ser alterada.');
+      throw Exception('Esta candidatura não pode mais ser alterada.');
     }
 
     await _updateDocument(applicationRef, {
@@ -895,7 +895,7 @@ class GigRepository {
       operationLabel: 'submit_review_get_gig',
     );
     if (!gigSnapshot.exists || gigSnapshot.data() == null) {
-      throw Exception('Gig nao encontrada.');
+      throw Exception('Gig não encontrada.');
     }
     final gig = Gig.fromFirestore(gigSnapshot);
 
@@ -940,7 +940,7 @@ class GigRepository {
         operationLabel: 'resolve_review_type_target_application',
       );
       if (!application.exists || application.data() == null) {
-        throw Exception('Participante nao encontrado nesta gig.');
+        throw Exception('Participante não encontrado nesta gig.');
       }
 
       final status = _applicationStatusFromString(
@@ -958,7 +958,7 @@ class GigRepository {
       operationLabel: 'resolve_review_type_own_application',
     );
     if (!ownApplication.exists || ownApplication.data() == null) {
-      throw Exception('Voce nao participou desta gig.');
+      throw Exception('Você não participou desta gig.');
     }
 
     final status = _applicationStatusFromString(

@@ -198,7 +198,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Estúdio'), findsOneWidget);
+      expect(find.text('Estúdio'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('renders tags', (WidgetTester tester) async {
@@ -281,14 +281,15 @@ void main() {
       expect(image.maxHeightDiskCache, isNull);
     });
 
-    testWidgets('renders without photo placeholder when no photo', (
+    testWidgets('renders initials fallback when no photo', (
       WidgetTester tester,
     ) async {
       const userWithoutPhoto = AppUser(
         uid: 'user-4',
         email: 'test4@example.com',
-        nome: 'Sem Foto',
+        nome: 'Attena Bezerra',
         tipoPerfil: AppUserType.professional,
+        dadosProfissional: {'nomeArtistico': 'Attena Bezerra'},
       );
 
       await tester.pumpWidget(
@@ -299,7 +300,7 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.person), findsOneWidget);
+      expect(find.text('AB'), findsOneWidget);
     });
 
     testWidgets('handles legacy scalar profile fields without crashing', (

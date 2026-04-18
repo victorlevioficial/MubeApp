@@ -196,7 +196,7 @@ class _StoryPickerActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Escolha uma foto ou video.',
+          'Escolha uma foto ou vídeo.',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -217,7 +217,7 @@ class _StoryPickerActions extends StatelessWidget {
             Expanded(
               child: _PickerOptionCard(
                 icon: Icons.videocam_outlined,
-                title: 'Video',
+                title: 'Vídeo',
                 subtitle: 'Clipe curto',
                 isSelected: selectedMediaType == StoryMediaType.video,
                 onTap: onPickVideo,
@@ -328,15 +328,15 @@ class _SelectedStoryPreview extends StatelessWidget {
     final previewLabel = switch (mediaType) {
       StoryMediaType.image =>
         isImageMirrored ? 'Foto espelhada' : 'Foto pronta',
-      StoryMediaType.video => 'Video pronto',
-      null => 'Sem midia selecionada',
+      StoryMediaType.video => 'Vídeo pronto',
+      null => 'Sem mídia selecionada',
     };
     final previewDescription = switch (mediaType) {
       StoryMediaType.image =>
         'Confira enquadramento e como a foto ocupa o frame vertical.',
       StoryMediaType.video =>
         'Veja o corte final e toque para pausar ou continuar.',
-      null => 'Assim que voce escolher foto ou video, o preview aparece aqui.',
+      null => 'Assim que você escolher foto ou vídeo, o preview aparece aqui.',
     };
 
     return Column(
@@ -390,7 +390,7 @@ class _SelectedStoryPreview extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.s8),
                 Text(
-                  'Selecione uma foto ou video para revisar antes de publicar.',
+                  'Selecione uma foto ou vídeo para revisar antes de publicar.',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,

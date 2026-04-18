@@ -293,8 +293,8 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   Widget build(BuildContext context) {
     if (_bundles.isEmpty) {
       return const StoryViewerFallbackState(
-        title: 'Story nao encontrado.',
-        subtitle: 'Esse story nao esta mais disponivel.',
+        title: 'Story não encontrado.',
+        subtitle: 'Esse story não está mais disponível.',
       );
     }
 

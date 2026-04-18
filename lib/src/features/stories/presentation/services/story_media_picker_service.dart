@@ -62,7 +62,7 @@ class StoryMediaPickerService {
   Future<StoryUploadMedia?> pickVideo(BuildContext context) async {
     final source = await chooseSource(
       context,
-      title: 'Escolha a origem do video',
+      title: 'Escolha a origem do vídeo',
     );
     if (source == null) return null;
     if (!context.mounted) return null;
@@ -139,7 +139,7 @@ class StoryMediaPickerService {
       var file = File(picked.path);
       if (!await file.exists()) {
         throw const UploadValidationException(
-          'Arquivo nao encontrado. Por favor, selecione outro arquivo.',
+          'Arquivo não encontrado. Por favor, selecione outro arquivo.',
         );
       }
 
@@ -274,7 +274,7 @@ class StoryMediaPickerService {
       context,
       title: title,
       cameraIcon: Icons.photo_camera_outlined,
-      cameraLabel: 'Camera',
+      cameraLabel: 'Câmera',
       galleryIcon: Icons.photo_library_outlined,
       galleryLabel: 'Galeria',
     );

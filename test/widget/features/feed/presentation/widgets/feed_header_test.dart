@@ -186,12 +186,17 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Perfil individual'), findsOneWidget);
-        expect(find.text('Seu Perfil'), findsOneWidget);
+        expect(
+          find.byKey(const Key('feed_header_profile_card')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const Key('feed_header_profile_card')));
+        await tester.pumpAndSettle();
+
         expect(find.text('Foto de perfil'), findsOneWidget);
         expect(find.text('Nome artistico'), findsOneWidget);
         expect(find.text('Celular'), findsOneWidget);
-        expect(find.text('Data de nascimento'), findsNothing);
-        expect(find.textContaining('+'), findsWidgets);
       },
     );
 
@@ -224,7 +229,6 @@ void main() {
       });
 
       expect(find.byKey(const Key('feed_header_profile_card')), findsNothing);
-      expect(find.text('Seu Perfil'), findsNothing);
     });
 
     testWidgets('shows the current street and neighborhood in the header', (
@@ -235,8 +239,11 @@ void main() {
       await tester.pumpWidget(createSubject(user));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('feed_header_address_row')), findsOneWidget);
-      expect(find.text('Rua Augusta, Consolacao'), findsOneWidget);
+      expect(
+        find.byKey(const Key('feed_header_address_inline')),
+        findsOneWidget,
+      );
+      expect(find.text('Consolacao'), findsOneWidget);
     });
 
     testWidgets('shows stale data notice when feed is using cache', (

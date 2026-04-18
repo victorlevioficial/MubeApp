@@ -74,11 +74,11 @@ extension _EditProfileScreenUi on _EditProfileScreenState {
                     dividerColor: AppColors.transparent,
                     padding: AppSpacing.all4,
                     tabs: isContractor
-                        ? const [Tab(text: 'Perfil'), Tab(text: 'Midia')]
+                        ? const [Tab(text: 'Perfil'), Tab(text: 'Mídia')]
                         : const [
                             Tab(text: 'Perfil'),
-                            Tab(text: 'Midia'),
-                            Tab(text: 'Links Musicais'),
+                            Tab(text: 'Mídia'),
+                            Tab(text: 'Links'),
                           ],
                   ),
                 ),
@@ -285,14 +285,14 @@ extension _EditProfileScreenUi on _EditProfileScreenState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Link publico do perfil',
+            'Link público do perfil',
             style: AppTypography.titleMedium.copyWith(
               color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.s8),
           Text(
-            'Escolha um @usuario para compartilhar seu perfil com um link curto.',
+            'Escolha um @usuário para compartilhar seu perfil com um link curto.',
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),

@@ -99,7 +99,7 @@ void main() {
         await tester.tap(btnFinder);
         await tester.pump();
 
-        expect(find.text('Digite seu e-mail'), findsOneWidget);
+        expect(find.text('E-mail obrigatório'), findsOneWidget);
         expect(find.text('Mínimo 6 caracteres'), findsOneWidget);
       });
 

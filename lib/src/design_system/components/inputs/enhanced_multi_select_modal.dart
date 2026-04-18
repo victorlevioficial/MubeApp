@@ -248,11 +248,6 @@ class _ModalFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasSelection = selectedCount > 0;
-    final summaryText = hasSelection
-        ? '$selectedCount ${selectedCount == 1 ? 'item pronto' : 'itens prontos'} para confirmar'
-        : 'Selecione pelo menos um item para continuar';
-
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.s16,
@@ -273,69 +268,20 @@ class _ModalFooter extends StatelessWidget {
           top: BorderSide(color: AppColors.border, width: 1),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s12,
-              vertical: AppSpacing.s10,
-            ),
-            decoration: BoxDecoration(
-              color: hasSelection
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : AppColors.surface2,
-              borderRadius: AppRadius.all12,
-              border: Border.all(
-                color: hasSelection
-                    ? AppColors.primary.withValues(alpha: 0.24)
-                    : AppColors.border,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  hasSelection
-                      ? Icons.playlist_add_check_circle_outlined
-                      : Icons.touch_app_rounded,
-                  size: 18,
-                  color: hasSelection
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
-                ),
-                const SizedBox(width: AppSpacing.s8),
-                Expanded(
-                  child: Text(
-                    summaryText,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: hasSelection
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
-                      fontWeight: hasSelection ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          _FooterIconButton(
+            icon: Icons.close_rounded,
+            semanticLabel: 'Cancelar seleção',
+            onPressed: onCancel,
           ),
-          const SizedBox(height: AppSpacing.s12),
-          Row(
-            children: [
-              _FooterIconButton(
-                icon: Icons.close_rounded,
-                semanticLabel: 'Cancelar seleção',
-                onPressed: onCancel,
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Expanded(
-                child: AppButton.primary(
-                  text: 'Confirmar',
-                  size: AppButtonSize.large,
-                  onPressed: onConfirm,
-                ),
-              ),
-            ],
+          const SizedBox(width: AppSpacing.s12),
+          Expanded(
+            child: AppButton.primary(
+              text: 'Confirmar',
+              size: AppButtonSize.large,
+              onPressed: onConfirm,
+            ),
           ),
         ],
       ),

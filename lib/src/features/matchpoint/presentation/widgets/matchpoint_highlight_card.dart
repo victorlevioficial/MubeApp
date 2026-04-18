@@ -148,7 +148,7 @@ class _MatchpointHighlightContent {
       case MatchpointHighlightState.active:
         return const _MatchpointHighlightContent(
           description:
-              'Continue explorando perfis, matches e o historico da sua rede.',
+              'Continue explorando perfis, matches e o histórico da sua rede.',
           buttonLabel: 'Abrir MatchPoint',
         );
       case MatchpointHighlightState.pendingSetup:

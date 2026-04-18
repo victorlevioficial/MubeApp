@@ -118,15 +118,13 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     if (fotoUrl == null || fotoUrl.isEmpty) {
       return Semantics(
         image: true,
-        label: 'Foto indisponivel de $displayName',
-        child: Container(
-          height: 320,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceHighlight,
-            borderRadius: AppRadius.all16,
-          ),
-          child: const Center(
-            child: Icon(Icons.person, size: 80, color: AppColors.textSecondary),
+        label: 'Foto indisponível de $displayName',
+        child: ClipRRect(
+          borderRadius: AppRadius.all16,
+          child: SizedBox(
+            height: 320,
+            width: double.infinity,
+            child: _PreviewInitialsFallback(name: displayName),
           ),
         ),
       );
@@ -153,16 +151,9 @@ class MatchProfilePreviewSheet extends StatelessWidget {
               child: CircularProgressIndicator(color: AppColors.primary),
             ),
           ),
-          errorWidget: (context, url, error) => Container(
+          errorWidget: (context, url, error) => SizedBox(
             height: 320,
-            color: AppColors.surfaceHighlight,
-            child: const Center(
-              child: Icon(
-                Icons.broken_image,
-                size: 48,
-                color: AppColors.textSecondary,
-              ),
-            ),
+            child: _PreviewInitialsFallback(name: displayName),
           ),
         ),
       ),
@@ -458,11 +449,22 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     return user.nome ?? 'Usuário';
   }
 
+  String _humanizeRole(String role) {
+    if (role.isEmpty) return role;
+    return role
+        .split('_')
+        .map(
+          (word) =>
+              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
+        )
+        .join(' ');
+  }
+
   String _getSubtitle() {
     if (user.tipoPerfil == AppUserType.professional) {
       final roles = matchpointStringList(user.dadosProfissional?['funcoes']);
       if (roles.isNotEmpty) {
-        return roles.join(' • ');
+        return roles.map(_humanizeRole).join(' • ');
       }
     }
     switch (user.tipoPerfil) {
@@ -518,5 +520,43 @@ class MatchProfilePreviewSheet extends StatelessWidget {
       default:
         return 'Perfil';
     }
+  }
+}
+
+class _PreviewInitialsFallback extends StatelessWidget {
+  const _PreviewInitialsFallback({required this.name});
+
+  final String name;
+
+  Color _colorFor(String value) {
+    if (value.isEmpty) return AppColors.surfaceHighlight;
+    final hash = value.hashCode.abs();
+    return AppColors.avatarColors[hash % AppColors.avatarColors.length];
+  }
+
+  String _initialsFor(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '?';
+    final parts = trimmed.split(RegExp(r'\s+'));
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return trimmed[0].toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _colorFor(name),
+      alignment: Alignment.center,
+      child: Text(
+        _initialsFor(name),
+        style: AppTypography.headlineLarge.copyWith(
+          color: AppColors.background,
+          fontSize: 72,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
   }
 }

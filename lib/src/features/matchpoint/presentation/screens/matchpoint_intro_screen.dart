@@ -17,7 +17,7 @@ class MatchpointIntroScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppAppBar(
-        title: 'Matchpoint',
+        title: 'MatchPoint',
         showBackButton: true,
         onBackPressed: () => handleMatchpointBack(context),
       ),

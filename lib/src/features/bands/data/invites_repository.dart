@@ -107,8 +107,21 @@ class InvitesRepository {
     required String fallbackMessage,
   }) {
     if (error is FirebaseFunctionsException) {
+      final code = error.code.toLowerCase();
+      if (code == 'unauthenticated') {
+        return Exception(
+          'Verifique seu e-mail para gerenciar integrantes da banda.',
+        );
+      }
+      if (code == 'permission-denied') {
+        return Exception(
+          'Você não tem permissão para esta ação na banda.',
+        );
+      }
       final serverMessage = error.message?.trim();
-      if (serverMessage != null && serverMessage.isNotEmpty) {
+      if (serverMessage != null &&
+          serverMessage.isNotEmpty &&
+          !serverMessage.toLowerCase().startsWith('unauthenticated')) {
         return Exception(serverMessage);
       }
     }

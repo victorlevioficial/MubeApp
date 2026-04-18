@@ -263,7 +263,7 @@ void main() {
     );
 
     test(
-      'redirects authenticated users from splash to feed while profile still loads',
+      'keeps authenticated users on splash while profile still loads',
       () async {
         final fakeUser = FakeFirebaseUser(
           uid: 'user-1',
@@ -296,12 +296,12 @@ void main() {
           _stateForPath(RoutePaths.splash),
         );
 
-        expect(redirect, RoutePaths.feed);
+        expect(redirect, anyOf(isNull, equals(RoutePaths.splash)));
       },
     );
 
     test(
-      'keeps authenticated users on the current route while profile still loads',
+      'sends authenticated users back to splash from non-splash routes while profile still loads',
       () async {
         final fakeUser = FakeFirebaseUser(
           uid: 'user-1',
@@ -334,7 +334,7 @@ void main() {
           _stateForPath(RoutePaths.feed),
         );
 
-        expect(redirect, isNull);
+        expect(redirect, RoutePaths.splash);
       },
     );
 

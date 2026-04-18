@@ -21,9 +21,10 @@ class OnboardingSectionCard extends StatelessWidget {
     return Container(
       margin: margin ?? const EdgeInsets.only(bottom: AppSpacing.s24),
       padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

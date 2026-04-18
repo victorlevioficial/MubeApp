@@ -341,6 +341,39 @@ class AppLocalizationsPt extends AppLocalizations {
       'Email enviado! Verifique sua caixa de entrada.';
 
   @override
+  String get edit_profile_update_success => 'Perfil atualizado com sucesso!';
+
+  @override
+  String get edit_profile_media_still_processing =>
+      'Aguarde o processamento da mídia terminar antes de sair.';
+
+  @override
+  String get edit_profile_discard_title => 'Descartar alterações?';
+
+  @override
+  String get edit_profile_discard_message =>
+      'Você tem alterações não salvas. Deseja realmente sair sem salvar?';
+
+  @override
+  String get edit_profile_discard_confirm => 'Descartar';
+
+  @override
+  String get edit_profile_music_links_revise =>
+      'Revise os links musicais preenchidos.';
+
+  @override
+  String get delete_account_error_title => 'Não foi possível excluir';
+
+  @override
+  String delete_account_type_to_confirm(String word) {
+    return 'Para confirmar, digite \"$word\" abaixo.';
+  }
+
+  @override
+  String get delete_account_session_issue =>
+      'Não foi possível validar sua sessão agora. Saia e entre novamente e tente excluir a conta outra vez.';
+
+  @override
   String get settings_delete_confirm_title => 'Excluir conta?';
 
   @override
@@ -551,7 +584,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settings_addresses_search_service_unavailable =>
-      'Serviço de busca indisponível. Configure a chave da Google API.';
+      'Busca de endereço indisponível no momento. Tente novamente em instantes.';
 
   @override
   String get settings_addresses_invalid_selection =>

@@ -238,10 +238,14 @@ void main() {
       expect(find.text('Guitarrista \u2022 Vocalista'), findsOneWidget);
     });
 
-    testWidgets('renders placeholder when user has no photo', (tester) async {
+    testWidgets('renders initials fallback when user has no photo', (
+      tester,
+    ) async {
       await openSheet(tester, minimalUser);
 
-      expect(find.byIcon(Icons.person), findsWidgets);
+      // minimalUser is a professional without nomeArtistico, so displayName
+      // falls back to 'Profissional' → initials 'P'.
+      expect(find.text('P'), findsOneWidget);
     });
 
     testWidgets('does not show gallery when empty', (tester) async {

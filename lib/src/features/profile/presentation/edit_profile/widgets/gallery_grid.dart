@@ -131,10 +131,10 @@ class _GalleryGridState extends State<GalleryGrid> {
           const SizedBox(height: AppSpacing.s16),
           _buildPhotosGrid(photos),
           const SizedBox(height: AppSpacing.s32),
-          Text('Videos', style: AppTypography.titleMedium),
+          Text('Vídeos', style: AppTypography.titleMedium),
           const SizedBox(height: AppSpacing.s4),
           Text(
-            'Adicione até ${widget.maxVideos} videos',
+            'Adicione até ${widget.maxVideos} vídeos',
             style: AppTypography.bodySmall.copyWith(
               color: AppColors.textSecondary,
             ),

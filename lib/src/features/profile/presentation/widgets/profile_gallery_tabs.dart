@@ -28,6 +28,7 @@ class ProfileGalleryTabs extends StatelessWidget {
     final photos = items.where((i) => i.type == MediaType.photo).toList();
     final videos = items.where((i) => i.type == MediaType.video).toList();
     final totalItems = photos.length + videos.length;
+    if (totalItems == 0) return const SizedBox.shrink();
     final showDivider = photos.isNotEmpty && videos.isNotEmpty;
 
     return Container(
@@ -86,33 +87,32 @@ class ProfileGalleryTabs extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.s16),
-          _GallerySection(
-            title: 'Fotos',
-            count: photos.length,
-            icon: Icons.photo_outlined,
-            accentColor: accentColor,
-            items: photos,
-            emptyTitle: 'Sem fotos',
-            emptyMessage: 'Este perfil ainda n\u00E3o publicou fotos.',
-            onItemTap: onItemTap,
-          ),
-          SizedBox(height: showDivider ? AppSpacing.s12 : AppSpacing.s14),
-          if (showDivider)
+          if (photos.isNotEmpty)
+            _GallerySection(
+              title: 'Fotos',
+              count: photos.length,
+              icon: Icons.photo_outlined,
+              accentColor: accentColor,
+              items: photos,
+              onItemTap: onItemTap,
+            ),
+          if (showDivider) ...[
+            const SizedBox(height: AppSpacing.s12),
             Container(
               height: 1,
               color: AppColors.surfaceHighlight,
               margin: const EdgeInsets.only(bottom: AppSpacing.s12),
             ),
-          _GallerySection(
-            title: 'V\u00EDdeos',
-            count: videos.length,
-            icon: Icons.videocam_outlined,
-            accentColor: accentColor,
-            items: videos,
-            emptyTitle: 'Sem v\u00EDdeos',
-            emptyMessage: 'Este perfil ainda n\u00E3o publicou v\u00EDdeos.',
-            onItemTap: onItemTap,
-          ),
+          ],
+          if (videos.isNotEmpty)
+            _GallerySection(
+              title: 'V\u00EDdeos',
+              count: videos.length,
+              icon: Icons.videocam_outlined,
+              accentColor: accentColor,
+              items: videos,
+              onItemTap: onItemTap,
+            ),
         ],
       ),
     );
@@ -125,8 +125,6 @@ class _GallerySection extends StatelessWidget {
   final IconData icon;
   final Color accentColor;
   final List<MediaItem> items;
-  final String emptyTitle;
-  final String emptyMessage;
   final void Function(int index, List<MediaItem> filteredItems) onItemTap;
 
   const _GallerySection({
@@ -135,8 +133,6 @@ class _GallerySection extends StatelessWidget {
     required this.icon,
     required this.accentColor,
     required this.items,
-    required this.emptyTitle,
-    required this.emptyMessage,
     required this.onItemTap,
   });
 
@@ -171,64 +167,12 @@ class _GallerySection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.s8),
-        if (items.isEmpty)
-          _EmptyGalleryState(
-            title: emptyTitle,
-            message: emptyMessage,
-            icon: icon,
-          )
-        else
-          PublicGalleryGrid(
-            items: items,
-            onItemTap: (index) => onItemTap(index, items),
-          ),
+        PublicGalleryGrid(
+          items: items,
+          onItemTap: (index) => onItemTap(index, items),
+        ),
       ],
     );
   }
 }
 
-class _EmptyGalleryState extends StatelessWidget {
-  final String title;
-  final String message;
-  final IconData icon;
-
-  const _EmptyGalleryState({
-    required this.title,
-    required this.message,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s24),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: AppRadius.all12,
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 34, color: AppColors.textSecondary),
-          const SizedBox(height: AppSpacing.s8),
-          Text(
-            title,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s4),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

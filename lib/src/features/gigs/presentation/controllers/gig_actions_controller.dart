@@ -33,7 +33,7 @@ class GigActionsController extends _$GigActionsController {
   }) async {
     final currentUser = ref.read(authRepositoryProvider).currentUser;
     if (currentUser == null) {
-      throw Exception('Usuario nao autenticado.');
+      throw Exception('Usuário não autenticado.');
     }
 
     final store = ref.read(offlineMutationStoreProvider.notifier);
@@ -101,7 +101,7 @@ class GigActionsController extends _$GigActionsController {
   Future<void> cancelQueuedApplication(String gigId) async {
     final currentUser = ref.read(authRepositoryProvider).currentUser;
     if (currentUser == null) {
-      throw Exception('Usuario nao autenticado.');
+      throw Exception('Usuário não autenticado.');
     }
 
     state = const AsyncLoading();
@@ -221,7 +221,7 @@ class GigActionsController extends _$GigActionsController {
   }) async {
     final currentUser = ref.read(currentUserProfileProvider).value;
     if (currentUser == null) {
-      throw Exception('Usuario nao autenticado.');
+      throw Exception('Usuário não autenticado.');
     }
 
     final conversationId = ref

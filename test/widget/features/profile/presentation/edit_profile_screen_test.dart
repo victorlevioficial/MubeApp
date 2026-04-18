@@ -168,7 +168,7 @@ void main() {
     await pumpScreen(tester);
 
     expect(find.text('Perfil'), findsWidgets);
-    expect(find.text('Midia'), findsOneWidget);
+    expect(find.text('Mídia'), findsOneWidget);
     expect(find.text('Links Musicais'), findsNothing);
     expect(find.text('Dados do Estabelecimento'), findsOneWidget);
     expect(find.text('Nome de Exibicao'), findsOneWidget);

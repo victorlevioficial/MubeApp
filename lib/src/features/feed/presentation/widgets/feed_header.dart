@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../constants/app_constants.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/data_display/user_avatar.dart';
 import '../../../../design_system/components/feedback/app_overlay.dart';
@@ -49,6 +48,7 @@ class FeedHeader extends ConsumerStatefulWidget {
 
 class _FeedHeaderState extends ConsumerState<FeedHeader> {
   _AlertDisplayMode _alertDisplayMode = _AlertDisplayMode.compact;
+  bool _profileCardExpanded = false;
 
   @override
   void didUpdateWidget(covariant FeedHeader oldWidget) {
@@ -97,14 +97,11 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.currentUser != null) ...[
-                  _buildAddressShortcut(context, primaryAddress),
-                  const SizedBox(height: AppSpacing.s14),
-                ],
                 _buildWelcomeSection(
                   context,
                   _getHeaderCategoryLabel(),
                   resolvedNotificationCount,
+                  primaryAddress,
                 ),
                 if (widget.currentUser != null) ...[
                   const SizedBox(height: AppSpacing.s14),
@@ -217,23 +214,11 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
     return '${alerts.length} alertas ativos';
   }
 
-  String _formatAddressShortcut(SavedAddress? address) {
-    if (address == null) return 'Adicionar endereco';
-
-    final parts = <String>[
-      address.logradouro.trim(),
-      address.bairro.trim(),
-    ].where((part) => part.isNotEmpty).toList();
-
-    if (parts.isEmpty) return 'Adicionar endereco';
-    return parts.join(', ');
-  }
-
   String _getDisplayName() {
     if (widget.currentUser == null) return 'Usuario';
     final display = widget.currentUser!.appDisplayName;
     if (display.trim().isNotEmpty) return display.trim();
-    return widget.currentUser!.nome ?? 'Usuario';
+    return widget.currentUser!.nome ?? 'Usuário';
   }
 
   String _getHeaderCategoryLabel() {
@@ -246,69 +231,10 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
       case AppUserType.band:
         return 'Banda';
       case AppUserType.studio:
-        return 'Estudio';
+        return 'Estúdio';
       case AppUserType.contractor:
         return 'Contratante';
     }
   }
 
-  String _getProfileTypeLabel() {
-    final type = widget.currentUser?.tipoPerfil;
-    if (type == null) return 'Musico';
-
-    switch (type) {
-      case AppUserType.professional:
-        return 'Profissional';
-      case AppUserType.band:
-        return 'Banda';
-      case AppUserType.studio:
-        return 'Estudio';
-      case AppUserType.contractor:
-        return 'Contratante';
-    }
-  }
-
-  String _getProfileRole() {
-    if (widget.currentUser == null) return 'Musico';
-
-    final profData = widget.currentUser!.dadosProfissional;
-    if (profData != null) {
-      final categorias = profData['categorias'] as List<dynamic>?;
-      if (categorias != null && categorias.isNotEmpty) {
-        return _getCategoryLabel(categorias.first as String);
-      }
-
-      final instrumentos = profData['instrumentos'] as List<dynamic>?;
-      if (instrumentos != null && instrumentos.isNotEmpty) {
-        return _formatRole(instrumentos.first as String);
-      }
-    }
-
-    return 'Musico';
-  }
-
-  String _getCategoryLabel(String id) {
-    if (id == 'crew') {
-      return 'Equipe Técnica';
-    }
-    try {
-      final category = professionalCategories.firstWhere(
-        (element) => element['id'] == id,
-        orElse: () => {'label': _formatRole(id)},
-      );
-      return category['label'] as String;
-    } catch (_) {
-      return _formatRole(id);
-    }
-  }
-
-  String _formatRole(String role) {
-    return role
-        .split('_')
-        .map(
-          (word) =>
-              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1),
-        )
-        .join(' ');
-  }
 }

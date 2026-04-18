@@ -228,7 +228,9 @@ const List<String> productionRoles = [
   'Beatmaker',
   'Arranjador',
   'Compositor',
-  'Diretor Vocal',
+  'Letrista',
+  'Songwriter (letra + melodia)',
+  'Arranjador Vocal',
 ];
 
 // Funcoes de tecnica de palco

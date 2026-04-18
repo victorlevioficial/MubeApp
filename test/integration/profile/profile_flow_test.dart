@@ -460,7 +460,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        await tester.tap(find.text('Links Musicais'));
+        await tester.tap(find.text('Links'));
         await tester.pumpAndSettle();
 
         final musicLinksFields = find.descendant(
@@ -486,7 +486,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Use um link v\u00E1lido do Spotify.'), findsWidgets);
-        expect(find.text('Links Musicais'), findsWidgets);
+        expect(find.text('Links'), findsWidgets);
       });
 
       testWidgets('should show shortened media tab label', (tester) async {
@@ -528,7 +528,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text('Midia'), findsOneWidget);
+        expect(find.text('M\u00EDdia'), findsOneWidget);
         expect(find.text('Midia & Portfolio'), findsNothing);
       });
 
@@ -583,7 +583,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        await tester.tap(find.text('Links Musicais'));
+        await tester.tap(find.text('Links'));
         await tester.pumpAndSettle();
 
         final musicLinksFields = find.descendant(

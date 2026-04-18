@@ -221,9 +221,11 @@ class _GigApplyDialogState extends State<_GigApplyDialog> {
                             child: AppButton.primary(
                               text: 'Enviar',
                               icon: const Icon(Icons.send_rounded, size: 18),
-                              onPressed: () => Navigator.of(
-                                context,
-                              ).pop(_controller.text.trim()),
+                              onPressed: hasMessage
+                                  ? () => Navigator.of(
+                                      context,
+                                    ).pop(_controller.text.trim())
+                                  : null,
                             ),
                           ),
                         ],
@@ -834,12 +836,12 @@ class _ActionPanel extends StatelessWidget {
       return 'Seja a primeira pessoa a se candidatar.';
     }
     if (applicantCount == 1) {
-      return '1 pessoa ja se candidatou.';
+      return '1 pessoa já se candidatou.';
     }
     if (applicantCount <= 25) {
-      return '$applicantCount pessoas ja se candidataram.';
+      return '$applicantCount pessoas já se candidataram.';
     }
-    return 'Alta procura: mais de 25 pessoas ja se candidataram.';
+    return 'Alta procura: mais de 25 pessoas já se candidataram.';
   }
 }
 

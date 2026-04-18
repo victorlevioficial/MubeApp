@@ -100,7 +100,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
 
     final currentUser = ref.read(currentUserProfileProvider).value;
     if (currentUser == null) {
-      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      AppSnackBar.error(context, 'Usuário não autenticado.');
       return false;
     }
 
@@ -163,7 +163,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
 
     final currentUser = ref.read(currentUserProfileProvider).value;
     if (currentUser == null) {
-      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      AppSnackBar.error(context, 'Usuário não autenticado.');
       return false;
     }
 
@@ -184,7 +184,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
     result.fold(
       (failure) => AppSnackBar.error(
         context,
-        'Erro ao aceitar solicitacao: ${failure.message}',
+        'Erro ao aceitar solicitação: ${failure.message}',
       ),
       (_) {
         accepted = true;
@@ -217,16 +217,16 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
 
     final currentUser = ref.read(currentUserProfileProvider).value;
     if (currentUser == null) {
-      AppSnackBar.error(context, 'Usuario nao autenticado.');
+      AppSnackBar.error(context, 'Usuário não autenticado.');
       return false;
     }
 
     final confirmed = await AppOverlay.dialog<bool>(
       context: context,
       builder: (dialogContext) => const AppConfirmationDialog(
-        title: 'Recusar solicitacao?',
+        title: 'Recusar solicitação?',
         message:
-            'A conversa saira de Solicitacoes, mas podera reaparecer se a pessoa enviar uma nova mensagem.',
+            'A conversa sairá de Solicitações, mas poderá reaparecer se a pessoa enviar uma nova mensagem.',
         confirmText: 'Recusar',
         isDestructive: true,
       ),
@@ -251,11 +251,11 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
     result.fold(
       (failure) => AppSnackBar.error(
         context,
-        'Erro ao recusar solicitacao: ${failure.message}',
+        'Erro ao recusar solicitação: ${failure.message}',
       ),
       (_) {
         rejected = true;
-        AppSnackBar.success(context, 'Solicitacao recusada.');
+        AppSnackBar.success(context, 'Solicitação recusada.');
       },
     );
 
@@ -357,7 +357,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
           tabs: [
             const Tab(text: 'Conversas'),
             Tab(
-              child: _TabLabel(text: 'Solicitacoes', count: pendingCount),
+              child: _TabLabel(text: 'Solicitações', count: pendingCount),
             ),
           ],
         ),
@@ -405,7 +405,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
                   child: _buildEmptyState(
                     icon: Icons.chat_bubble_outline,
                     title: 'Nenhuma conversa ainda',
-                    message: 'Suas conexoes e amigos aparecerao aqui.',
+                    message: 'Suas conexões e amigos aparecerão aqui.',
                   ),
                 ),
               ],
@@ -484,9 +484,9 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
                   height: MediaQuery.of(context).size.height * 0.72,
                   child: _buildEmptyState(
                     icon: Icons.inbox_outlined,
-                    title: 'Nenhuma solicitacao',
+                    title: 'Nenhuma solicitação',
                     message:
-                        'Novas mensagens recebidas em chat privado aparecerao aqui.',
+                        'Novas mensagens recebidas em chat privado aparecerão aqui.',
                   ),
                 ),
               ],
@@ -529,7 +529,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
                   currentUserId: currentUserId,
                   isProcessing: isProcessing,
                   semanticHint:
-                      'Toque para abrir. Deslize para aceitar ou recusar solicitacao.',
+                      'Toque para abrir. Deslize para aceitar ou recusar solicitação.',
                   onTap: () => _openConversation(context, preview),
                 ),
               );
@@ -541,7 +541,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen>
           const SkeletonShimmer(child: UserListSkeleton(itemCount: 4)),
       error: (error, stack) => _buildErrorState(
         context: context,
-        title: 'Erro ao carregar solicitacoes',
+        title: 'Erro ao carregar solicitações',
       ),
     );
   }
@@ -695,8 +695,8 @@ class _ConversationTile extends StatelessWidget {
         ? ''
         : ', ${_formatTime(preview.lastMessageAt!.toDate().toLocal())}';
     final semanticUnread = preview.unreadCount > 0
-        ? ', ${preview.unreadCount} nao lidas'
-        : ', sem mensagens nao lidas';
+        ? ', ${preview.unreadCount} não lidas'
+        : ', sem mensagens não lidas';
 
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 160),
@@ -829,7 +829,7 @@ class _ConversationTile extends StatelessWidget {
     final message = preview.lastMessageText?.trim();
     if (message == null || message.isEmpty) return 'Nova conversa';
     if (preview.lastSenderId != null && preview.lastSenderId == currentUserId) {
-      return 'Voce: $message';
+      return 'Você: $message';
     }
     return message;
   }

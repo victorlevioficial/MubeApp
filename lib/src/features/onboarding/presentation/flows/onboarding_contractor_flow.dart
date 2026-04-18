@@ -42,6 +42,7 @@ class OnboardingContractorFlow extends ConsumerStatefulWidget {
 class _OnboardingContractorFlowState
     extends ConsumerState<OnboardingContractorFlow> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   int _currentStep = 1;
   static const int _totalSteps = 3;
@@ -147,6 +148,7 @@ class _OnboardingContractorFlowState
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _nomeController.dispose();
     _celularController.dispose();
     _dataNascimentoController.dispose();
@@ -159,25 +161,33 @@ class _OnboardingContractorFlowState
   void _nextStep() {
     if (_currentStep == 1) {
       if (!_formKey.currentState!.validate()) return;
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
       return;
     }
 
     if (_currentStep == 2) {
       if (!_validateVenueSetupStep()) return;
       _persistVenueSetupDraft();
-      setState(() => _currentStep++);
+      _setCurrentStep(_currentStep + 1);
     }
   }
 
   void _prevStep() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      _setCurrentStep(_currentStep - 1);
     } else {
       ref
           .read(onboardingControllerProvider.notifier)
           .resetToTypeSelection(currentUser: widget.user);
     }
+  }
+
+  void _setCurrentStep(int nextStep) {
+    setState(() => _currentStep = nextStep);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.jumpTo(0);
+    });
   }
 
   Future<void> _finishOnboarding() async {
@@ -228,6 +238,7 @@ class _OnboardingContractorFlowState
         backgroundColor: AppColors.background,
         body: SafeArea(
           child: SingleChildScrollView(
+            controller: _scrollController,
             child: ResponsiveCenter(
               maxContentWidth: 600,
               padding: const EdgeInsets.symmetric(
@@ -286,6 +297,7 @@ class _OnboardingContractorFlowState
         const SizedBox(height: AppSpacing.s32),
 
         AppTextField(
+          fieldKey: const Key('onboarding_contractor_nome_input'),
           controller: _nomeController,
           label: 'Nome Completo',
           hint: 'Digite seu nome completo',
@@ -296,12 +308,17 @@ class _OnboardingContractorFlowState
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_contractor_celular_input'),
           controller: _celularController,
           label: 'Celular',
           hint: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
           inputFormatters: [_celularMask],
-          validator: (v) => v!.length < 14 ? 'Celular inválido' : null,
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Celular obrigatório';
+            if (v.length < 14) return 'Celular inválido';
+            return null;
+          },
           prefixIcon: const Icon(Icons.phone_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
@@ -327,6 +344,7 @@ class _OnboardingContractorFlowState
         ),
         const SizedBox(height: AppSpacing.s16),
         AppTextField(
+          fieldKey: const Key('onboarding_contractor_instagram_input'),
           controller: _instagramController,
           label: instagramLabelOptional,
           hint: instagramHint,

@@ -140,8 +140,8 @@ void main() {
     expect(find.byType(MatchpointTabsScreen), findsOneWidget);
     expect(find.byType(MatchpointIntroScreen), findsNothing);
     expect(find.byTooltip('Voltar'), findsOneWidget);
-    expect(find.byTooltip('Filtros avancados'), findsOneWidget);
-    expect(find.byTooltip('Historico de swipes'), findsOneWidget);
+    expect(find.byTooltip('Filtros avançados'), findsOneWidget);
+    expect(find.byTooltip('Histórico de swipes'), findsOneWidget);
   });
 
   testWidgets(

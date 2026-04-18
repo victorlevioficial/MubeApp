@@ -23,6 +23,8 @@ import '../../auth/domain/app_user.dart';
 import '../../gigs/domain/gig.dart';
 import '../../gigs/presentation/providers/gig_streams.dart';
 import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
+import '../../../core/services/push_notification_provider.dart';
+import '../../onboarding/providers/notification_permission_prompt_provider.dart';
 import '../../splash/presentation/splash_feed_render_tracking.dart';
 import '../../stories/domain/story_item.dart';
 import '../../stories/domain/story_tray_bundle.dart';
@@ -93,7 +95,28 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     _setupStoryPrecacheListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(feedControllerProvider.notifier).ensureLoaded();
+      unawaited(_requestNotificationPermissionOnce());
     });
+  }
+
+  Future<void> _requestNotificationPermissionOnce() async {
+    try {
+      final promptNotifier = ref.read(
+        notificationPermissionPromptProvider.notifier,
+      );
+      final alreadyShown = await ref.read(
+        notificationPermissionPromptProvider.future,
+      );
+      if (alreadyShown) return;
+      await promptNotifier.markAsShown();
+      await ref.read(pushNotificationServiceProvider).init();
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to request notification permission on feed enter',
+        error,
+        stackTrace,
+      );
+    }
   }
 
   @override
@@ -201,88 +224,9 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Future<void> _openCurrentUserStoryActions(StoryTrayBundle bundle) async {
-    final action = await AppOverlay.bottomSheet<_CurrentUserStoryAction>(
+    final action = await AppOverlay.dialog<_CurrentUserStoryAction>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s16,
-              0,
-              AppSpacing.s16,
-              AppSpacing.s24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Seu story',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s4),
-                Text(
-                  'Escolha o que deseja fazer com seus stories publicados.',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(
-                    'Ver story',
-                    style: AppTypography.titleSmall.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Abrir seus stories ativos na visualizacao.',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onTap: () =>
-                      Navigator.of(context).pop(_CurrentUserStoryAction.view),
-                ),
-                const Divider(color: AppColors.border, height: 1),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.add_circle_rounded,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(
-                    'Publicar novo',
-                    style: AppTypography.titleSmall.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Criar outro story sem sair da bandeja.',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onTap: () =>
-                      Navigator.of(context).pop(_CurrentUserStoryAction.create),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (context) => const _CurrentUserStoryActionsDialog(),
     );
 
     if (!mounted || action == null) {
@@ -625,5 +569,137 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         gigsPreviewAsync: gigsPreviewAsync,
       );
     });
+  }
+}
+
+class _CurrentUserStoryActionsDialog extends StatelessWidget {
+  const _CurrentUserStoryActionsDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface2,
+      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s24),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.all24),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Seu story',
+              textAlign: TextAlign.center,
+              style: AppTypography.titleLarge.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s8),
+            Text(
+              'O que você quer fazer agora?',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s20),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _StoryActionTile(
+                      icon: Icons.play_circle_fill_rounded,
+                      label: 'Ver story',
+                      description: 'Assistir publicados',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(_CurrentUserStoryAction.view),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s12),
+                  Expanded(
+                    child: _StoryActionTile(
+                      icon: Icons.add_rounded,
+                      label: 'Publicar',
+                      description: 'Enviar novo story',
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pop(_CurrentUserStoryAction.create),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StoryActionTile extends StatelessWidget {
+  const _StoryActionTile({
+    required this.icon,
+    required this.label,
+    required this.description,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String description;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.all16,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppRadius.all16,
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            width: 1.2,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s12,
+          vertical: AppSpacing.s16,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(height: AppSpacing.s12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: AppTypography.titleSmall.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

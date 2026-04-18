@@ -316,7 +316,7 @@ class FirestoreMatchpointSwipeCommandRepository
     final data = snapshot.data();
     if (data == null) {
       return const Left(
-        ServerFailure(message: 'Comando do MatchPoint nao encontrado.'),
+        ServerFailure(message: 'Comando do MatchPoint não encontrado.'),
       );
     }
 

@@ -6,13 +6,13 @@ import '../../../../common_widgets/location_service.dart';
 import '../../../../design_system/components/buttons/app_button.dart';
 import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/components/loading/app_loading_indicator.dart';
-import '../../../../design_system/components/patterns/full_width_selection_card.dart';
 import '../../../../design_system/components/patterns/onboarding_section_card.dart';
 import '../../../../design_system/components/patterns/or_divider.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
+import '../../../../utils/app_logger.dart';
 import '../../../address/domain/resolved_address.dart';
 import '../../../address/presentation/address_flow.dart';
 import '../onboarding_controller.dart';
@@ -41,9 +41,12 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
 
   Future<void> _openSearch() async {
     if (!LocationService.isConfigured) {
+      AppLogger.error(
+        'Address search unavailable: GOOGLE_MAPS_API_KEY is not configured',
+      );
       AppSnackBar.warning(
         context,
-        'Serviço de busca indisponível. Configure a chave da Google API.',
+        'Não foi possível abrir a busca de endereço agora. Tente novamente em instantes.',
       );
       return;
     }
@@ -85,9 +88,12 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
   Future<void> _useCurrentLocation() async {
     if (_isLoadingLocation) return;
     if (!LocationService.isConfigured) {
+      AppLogger.error(
+        'Current location unavailable: GOOGLE_MAPS_API_KEY is not configured',
+      );
       AppSnackBar.warning(
         context,
-        'Serviço de localização indisponível sem a chave da Google API.',
+        'Não foi possível obter sua localização agora. Tente novamente em instantes.',
       );
       return;
     }
@@ -213,28 +219,26 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          FullWidthSelectionCard(
+          _AddressActionTile(
             icon: Icons.my_location,
             title: _isLoadingLocation
                 ? 'Obtendo localização...'
                 : 'Usar localização atual',
             description:
                 currentLocationLabel ?? 'Encontrar meu endereço pelo GPS',
-            isSelected: false,
             onTap: _useCurrentLocation,
             isEnabled: actionsEnabled && !_isLoadingLocation,
             trailing: _isLoadingLocation
                 ? const AppLoadingIndicator.small(color: AppColors.primary)
                 : const Icon(Icons.chevron_right, color: AppColors.primary),
           ),
-          const SizedBox(height: AppSpacing.s24),
+          const SizedBox(height: AppSpacing.s16),
           const OrDivider(text: 'Ou'),
-          const SizedBox(height: AppSpacing.s24),
-          FullWidthSelectionCard(
+          const SizedBox(height: AppSpacing.s16),
+          _AddressActionTile(
             icon: Icons.search,
             title: 'Buscar endereço',
             description: 'Toque para abrir a busca e digitar seu endereço',
-            isSelected: false,
             onTap: _openSearch,
             isEnabled: actionsEnabled,
             trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
@@ -242,7 +246,7 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
           if (!actionsEnabled) ...[
             const SizedBox(height: AppSpacing.s12),
             Text(
-              'Serviço indisponível. Configure a chave da Google API para continuar.',
+              'Busca de endereço indisponível no momento. Tente novamente em instantes.',
               style: AppTypography.bodySmall.copyWith(color: AppColors.warning),
               textAlign: TextAlign.center,
             ),
@@ -319,5 +323,82 @@ class _OnboardingAddressStepState extends ConsumerState<OnboardingAddressStep> {
         ],
       ),
     );
+  }
+}
+
+class _AddressActionTile extends StatelessWidget {
+  const _AddressActionTile({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.onTap,
+    required this.isEnabled,
+    required this.trailing,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final VoidCallback onTap;
+  final bool isEnabled;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = InkWell(
+      onTap: isEnabled ? onTap : null,
+      borderRadius: AppRadius.all16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s16,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: AppRadius.all16,
+          border: Border.all(color: AppColors.primary, width: 1.2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.s12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.titleMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s4),
+                  Text(
+                    description,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s8),
+            trailing,
+          ],
+        ),
+      ),
+    );
+
+    if (isEnabled) return tile;
+    return Opacity(opacity: 0.5, child: IgnorePointer(child: tile));
   }
 }

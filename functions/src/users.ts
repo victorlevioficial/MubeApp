@@ -525,7 +525,23 @@ export const deleteAccount = onCall(
         await userRef.delete();
       }
 
-      // 5. Delete from Firebase Authentication
+      // 5. Best-effort: delete user-owned Storage objects (avatars, gallery,
+      // videos) under the users/{uid}/ prefix. Don't block account deletion
+      // if this fails — log and move on so Auth is still cleaned up.
+      try {
+        await admin
+          .storage()
+          .bucket()
+          .deleteFiles({prefix: `users/${uid}/`});
+      } catch (storageError) {
+        console.warn(
+          `Failed to clean up Storage for user ${uid}. ` +
+            "Account deletion will continue.",
+          storageError
+        );
+      }
+
+      // 6. Delete from Firebase Authentication
       await admin.auth().deleteUser(uid);
 
       console.log(`User ${uid} successfully backed up and deleted.`);

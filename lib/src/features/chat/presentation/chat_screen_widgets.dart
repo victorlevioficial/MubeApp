@@ -470,7 +470,7 @@ class _PendingRequestCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s8),
             Text(
-              'Leia a conversa normalmente. Para responder, aceite esta solicitacao.',
+              'Leia a conversa normalmente. Para responder, aceite esta solicitação.',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -488,7 +488,7 @@ class _PendingRequestCard extends StatelessWidget {
                       )
                     : const Icon(Icons.check_rounded),
                 label: Text(
-                  isAccepting ? 'Aceitando...' : 'Aceitar solicitacao',
+                  isAccepting ? 'Aceitando...' : 'Aceitar solicitação',
                 ),
               ),
             ),

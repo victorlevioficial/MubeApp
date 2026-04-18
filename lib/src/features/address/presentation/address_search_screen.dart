@@ -170,7 +170,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                   canRequestFocus: LocationService.isConfigured,
                   textInputAction: TextInputAction.search,
                   errorText: !LocationService.isConfigured
-                      ? 'Configure a chave da Google API para buscar endereços.'
+                      ? 'Busca de endereço indisponível no momento.'
                       : null,
                 ),
                 const SizedBox(height: AppSpacing.s12),
@@ -196,7 +196,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         icon: Icons.warning_amber_rounded,
         title: 'Busca indisponível',
         subtitle:
-            'Configure a chave da Google API para habilitar a busca de endereços.',
+            'Não foi possível carregar a busca de endereço agora. Tente novamente em instantes.',
       );
     }
 

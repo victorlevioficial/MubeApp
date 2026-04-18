@@ -1007,13 +1007,13 @@ class StoryRepository {
       case 'estudio':
         return (userData['estudio']?['nomeEstudio'] as String?) ??
             (userData['nome'] as String?) ??
-            'Estudio';
+            'Estúdio';
       case 'contratante':
         return (userData['contratante']?['nomeExibicao'] as String?) ??
             (userData['nome'] as String?) ??
             'Contratante';
       default:
-        return (userData['nome'] as String?) ?? 'Usuario';
+        return (userData['nome'] as String?) ?? 'Usuário';
     }
   }
 

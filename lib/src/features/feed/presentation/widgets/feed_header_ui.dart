@@ -1,86 +1,11 @@
 part of 'feed_header.dart';
 
 extension _FeedHeaderUi on _FeedHeaderState {
-  Widget _buildAddressShortcut(
-    BuildContext context,
-    SavedAddress? primaryAddress,
-  ) {
-    return Material(
-      key: const Key('feed_header_address_row'),
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: AppRadius.all16,
-        onTap: () => context.push(RoutePaths.addresses),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s14,
-            vertical: AppSpacing.s12,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: 0.68),
-            borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: AppColors.textPrimary.withValues(alpha: 0.07),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.16),
-                  borderRadius: AppRadius.all12,
-                ),
-                child: const Icon(
-                  Icons.location_on_outlined,
-                  color: AppColors.primary,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Endereço atual',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.s2),
-                    Text(
-                      _formatAddressShortcut(primaryAddress),
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: AppColors.textSecondary.withValues(alpha: 0.75),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildWelcomeSection(
     BuildContext context,
     String profileCategory,
     int notificationCount,
+    SavedAddress? primaryAddress,
   ) {
     final displayName = _getDisplayName();
     final firstName = displayName.split(' ').first;
@@ -136,15 +61,23 @@ extension _FeedHeaderUi on _FeedHeaderState {
                 style: widget.isScrolled
                     ? AppTypography.headlineSmall
                     : AppTypography.headlineMedium.copyWith(fontSize: 22),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: AppSpacing.s4),
+              const SizedBox(height: AppSpacing.s2),
               Text(
                 profileCategory,
-                style: AppTypography.bodyMedium.copyWith(
+                style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
+              if (widget.currentUser != null) ...[
+                const SizedBox(height: AppSpacing.s4),
+                _buildInlineAddress(context, primaryAddress),
+              ],
             ],
           ),
         ),
@@ -156,6 +89,46 @@ extension _FeedHeaderUi on _FeedHeaderState {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildInlineAddress(BuildContext context, SavedAddress? address) {
+    final bairro = address?.bairro.trim() ?? '';
+    final cidade = address?.cidade.trim() ?? '';
+    final hasAddress = bairro.isNotEmpty || cidade.isNotEmpty;
+    final label = hasAddress
+        ? (bairro.isNotEmpty ? bairro : cidade)
+        : 'Adicionar endereço';
+
+    return InkWell(
+      key: const Key('feed_header_address_inline'),
+      borderRadius: AppRadius.all8,
+      onTap: () => context.push(RoutePaths.addresses),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.location_on_outlined,
+              size: 14,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: AppSpacing.s4),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -210,7 +183,7 @@ extension _FeedHeaderUi on _FeedHeaderState {
                     ),
                     const SizedBox(height: AppSpacing.s2),
                     Text(
-                      'Ver quem curtiu voce',
+                      'Ver quem curtiu você',
                       style: AppTypography.labelSmall.copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
@@ -589,140 +562,166 @@ extension _FeedHeaderUi on _FeedHeaderState {
     BuildContext context,
     ProfileCompletionResult completion,
   ) {
-    final profileType = _getProfileTypeLabel();
-    final profileRole = _getProfileRole();
-    final missingItems = completion.missingRequirements.take(3).toList();
-    final remainingItems =
-        completion.missingRequirements.length - missingItems.length;
+    final percent = completion.percent;
+    final missingItems = completion.missingRequirements;
+    final expanded = _profileCardExpanded;
 
-    return GestureDetector(
+    return AnimatedContainer(
       key: const Key('feed_header_profile_card'),
-      onTap: () {
-        HapticFeedback.mediumImpact();
-        context.push(RoutePaths.profileEdit);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(AppSpacing.s20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary.withValues(alpha: 0.95),
-              AppColors.primaryPressed,
-            ],
-          ),
-          borderRadius: AppRadius.all20,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.72),
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: AppColors.textPrimary.withValues(alpha: 0.07),
         ),
+      ),
+      child: Material(
+        color: Colors.transparent,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Seu Perfil',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimary.withValues(alpha: 0.86),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.s4),
-                      Text(
-                        '$profileType - $profileRole',
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+            InkWell(
+              borderRadius: AppRadius.all16,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _profileCardExpanded = !expanded);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s14,
+                  vertical: AppSpacing.s12,
                 ),
-                const SizedBox(width: AppSpacing.s12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.s10,
-                        vertical: AppSpacing.s4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.textPrimary.withValues(alpha: 0.14),
-                        borderRadius: AppRadius.pill,
-                      ),
-                      child: Text(
-                        '${completion.percent}%',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    _CompletionRing(percent: percent),
+                    const SizedBox(width: AppSpacing.s12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _friendlyProfileTitle(percent),
+                            style: AppTypography.titleMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.s2),
+                          Text(
+                            _friendlyProfileSubtitle(missingItems.length),
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s10),
-                    Container(
-                      padding: AppSpacing.all8,
-                      decoration: BoxDecoration(
-                        color: AppColors.textPrimary.withValues(alpha: 0.12),
-                        borderRadius: AppRadius.all12,
-                      ),
+                    const SizedBox(width: AppSpacing.s8),
+                    AnimatedRotation(
+                      turns: expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 220),
                       child: const Icon(
-                        Icons.arrow_forward_ios,
-                        color: AppColors.textPrimary,
-                        size: 14,
+                        Icons.expand_more_rounded,
+                        color: AppColors.textSecondary,
+                        size: 22,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.s16),
-            Text(
-              'Falta completar',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textPrimary.withValues(alpha: 0.84),
-                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.s10),
-            ...missingItems.map(_buildMissingItem),
-            if (remainingItems > 0) ...[
-              const SizedBox(height: AppSpacing.s4),
-              Text(
-                '+$remainingItems itens para revisar',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.82),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.s14),
-            ClipRRect(
-              borderRadius: AppRadius.pill,
-              child: LinearProgressIndicator(
-                value: completion.percent / 100,
-                backgroundColor: AppColors.textPrimary.withValues(alpha: 0.16),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  AppColors.textPrimary,
-                ),
-                minHeight: 7,
-              ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              alignment: Alignment.topCenter,
+              child: expanded
+                  ? _buildProfileCardExpandedBody(context, missingItems)
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildProfileCardExpandedBody(
+    BuildContext context,
+    List<String> missingItems,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s14,
+        0,
+        AppSpacing.s14,
+        AppSpacing.s12,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Divider(
+            height: 1,
+            color: AppColors.textPrimary.withValues(alpha: 0.07),
+          ),
+          const SizedBox(height: AppSpacing.s12),
+          if (missingItems.isEmpty)
+            Text(
+              'Tudo pronto por aqui!',
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final item in missingItems) _buildMissingItem(item),
+              ],
+            ),
+          const SizedBox(height: AppSpacing.s12),
+          SizedBox(
+            height: 44,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                context.push(RoutePaths.profileEdit);
+              },
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text('Completar agora'),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.2),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: AppRadius.pill,
+                ),
+                textStyle: AppTypography.buttonSecondary.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _friendlyProfileTitle(int percent) {
+    if (percent >= 80) return 'Quase lá!';
+    if (percent >= 50) return 'Seu perfil está tomando forma';
+    if (percent >= 20) return 'Bora dar mais brilho ao seu perfil';
+    return 'Começando seu perfil';
+  }
+
+  String _friendlyProfileSubtitle(int missingCount) {
+    if (missingCount == 0) return 'Tudo preenchido, ótimo trabalho!';
+    if (missingCount == 1) return '1 detalhe faltando · toque para ver';
+    return '$missingCount detalhes faltando · toque para ver';
   }
 
   Widget _buildMissingItem(String text) {
@@ -731,27 +730,24 @@ extension _FeedHeaderUi on _FeedHeaderState {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 20,
-            height: 20,
-            margin: const EdgeInsets.only(top: AppSpacing.s2),
-            decoration: BoxDecoration(
-              color: AppColors.textPrimary.withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.priority_high_rounded,
-              size: 14,
-              color: AppColors.textPrimary,
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.s4),
+            child: Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.s10),
           Expanded(
             child: Text(
               text,
-              style: AppTypography.bodyMedium.copyWith(
+              style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textPrimary,
-                height: 1.3,
+                height: 1.4,
               ),
             ),
           ),
@@ -930,6 +926,40 @@ class _AlertSheetCard extends StatelessWidget {
             onPressed: onTap,
             icon: const Icon(Icons.arrow_forward_rounded, size: 18),
             isFullWidth: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletionRing extends StatelessWidget {
+  const _CompletionRing({required this.percent});
+
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = percent.clamp(0, 100) / 100.0;
+    return SizedBox(
+      width: 38,
+      height: 38,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: clamped,
+            strokeWidth: 3.2,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.18),
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+          Text(
+            '$percent%',
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
           ),
         ],
       ),

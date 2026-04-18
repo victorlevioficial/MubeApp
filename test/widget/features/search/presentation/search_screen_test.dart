@@ -71,7 +71,7 @@ void main() {
 
       expect(find.text('Busca'), findsOneWidget);
       expect(
-        find.text('Buscar musicos, bandas, estudios ou locais...'),
+        find.text('Buscar músicos, bandas, estúdios ou locais...'),
         findsOneWidget,
       );
     });

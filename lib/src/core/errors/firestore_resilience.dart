@@ -14,6 +14,16 @@ bool isTransientFirestoreCode(String code) {
       normalizedCode == 'aborted';
 }
 
+bool isNonRecoverableFirestoreCode(String code) {
+  final normalizedCode = code.toLowerCase();
+  return normalizedCode == 'permission-denied' ||
+      normalizedCode == 'unauthenticated' ||
+      normalizedCode == 'invalid-argument' ||
+      normalizedCode == 'failed-precondition' ||
+      normalizedCode == 'not-found' ||
+      normalizedCode == 'already-exists';
+}
+
 class RecoverableFirestoreException implements Exception {
   const RecoverableFirestoreException({
     required this.message,
@@ -30,6 +40,9 @@ class RecoverableFirestoreException implements Exception {
 }
 
 Object recoverableFirestoreFinalError(FirebaseException error) {
+  if (isNonRecoverableFirestoreCode(error.code)) {
+    return Exception(mapExceptionToFailure(error).message);
+  }
   return RecoverableFirestoreException(
     message: mapExceptionToFailure(error).message,
     code: error.code,
@@ -43,6 +56,9 @@ bool isRecoverableFirestoreError(Object error) {
   }
 
   if (error is FirebaseException) {
+    if (isNonRecoverableFirestoreCode(error.code)) {
+      return false;
+    }
     return isTransientFirestoreCode(error.code);
   }
 
@@ -101,7 +117,7 @@ class FirestoreResilience {
       }
     }
 
-    throw Exception('Nao foi possivel concluir a operacao agora.');
+    throw Exception('Não foi possível concluir a operação agora.');
   }
 
   Stream<T> watch<T>(

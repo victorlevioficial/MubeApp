@@ -499,7 +499,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       case 'internal':
         return Exception(
-          'O servidor nao conseguiu excluir a conta agora. Tente novamente em instantes.',
+          'O servidor não conseguiu excluir a conta agora. Tente novamente em instantes.',
         );
       default:
         return Exception(
