@@ -10,7 +10,7 @@ class GigSessionGuard {
   const GigSessionGuard._();
 
   static const String _appCheckFailureMessage =
-      'Falha na validacao de seguranca do app. Feche e abra o app e tente novamente.';
+      'Falha na validação de segurança do app. Feche e abra o app e tente novamente.';
 
   static Future<T> run<T>(
     Ref ref, {

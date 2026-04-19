@@ -29,13 +29,18 @@ class AppCheckRefreshException implements Exception {
   });
 
   String get message {
+    if (status == AppCheckRefreshStatus.throttled) {
+      return 'Muitas tentativas recentes de validação. '
+          'Aguarde alguns minutos e tente novamente.';
+    }
+
     if (kDebugMode) {
-      return 'Falha na validacao de seguranca do app neste build de '
+      return 'Falha na validação de segurança do app neste build de '
           'desenvolvimento. Cadastre o token de debug do App Check no '
           'Firebase Console e reabra o app.';
     }
 
-    return 'Falha na validacao de seguranca do app. Feche e abra o app e '
+    return 'Falha na validação de segurança do app. Feche e abra o app e '
         'tente novamente.';
   }
 

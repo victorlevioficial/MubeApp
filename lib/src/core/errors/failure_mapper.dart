@@ -120,7 +120,7 @@ Failure _mapPlatformException(PlatformException error) {
           normalizedCode == 'permission-denied')) {
     return const ServerFailure(
       message:
-          'Falha na validacao de seguranca do app. Feche e abra o app e tente novamente.',
+          'Falha na validação de segurança do app. Feche e abra o app e tente novamente.',
       debugMessage: 'app-check-auth-context-failure',
     );
   }

@@ -491,7 +491,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       case 'failed-precondition':
         if ((error.message ?? '').toLowerCase().contains('app check')) {
           return Exception(
-            'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+            'Falha na validação de segurança do app. Atualize o aplicativo e tente novamente.',
           );
         }
         return Exception(
@@ -517,7 +517,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (messageLower.contains('app check') ||
         messageLower.contains('appcheck')) {
       return Exception(
-        'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+        'Falha na validação de segurança do app. Atualize o aplicativo e tente novamente.',
       );
     }
 
@@ -556,7 +556,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (messageLower.contains('app check') ||
         messageLower.contains('appcheck')) {
       return Exception(
-        'Falha na validacao de seguranca do app. Atualize o aplicativo e tente novamente.',
+        'Falha na validação de segurança do app. Atualize o aplicativo e tente novamente.',
       );
     }
 

@@ -515,7 +515,7 @@ void main() {
             expect(failure, isA<ServerFailure>());
             expect(
               failure.message,
-              contains('Falha na validacao de seguranca do app'),
+              contains('Falha na validação de segurança do app'),
             );
           }, (_) => fail('Expected Left'));
         },

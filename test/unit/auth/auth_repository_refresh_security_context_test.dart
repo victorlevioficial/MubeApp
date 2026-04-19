@@ -70,7 +70,7 @@ void main() {
         expect(failure, isA<ServerFailure>());
         expect(
           failure.message,
-          'Falha na validacao de seguranca do app neste build de desenvolvimento. '
+          'Falha na validação de segurança do app neste build de desenvolvimento. '
           'Cadastre o token de debug do App Check no Firebase Console e reabra o app.',
         );
         expect(failure.debugMessage, 'app-check-auth-context-failure:failed');

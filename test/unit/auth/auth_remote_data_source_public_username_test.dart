@@ -229,7 +229,7 @@ void main() {
             isA<Exception>().having(
               (error) => error.toString(),
               'message',
-              contains('Falha na validacao de seguranca do app'),
+              contains('Falha na validação de segurança do app'),
             ),
           ),
         );
