@@ -126,7 +126,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     }
     if (nextStory != null && !nextStory.isVideo) {
       precacheImage(
-        NetworkImage(nextStory.mediaUrl),
+        CachedNetworkImageProvider(nextStory.mediaUrl),
         context,
         onError: (_, _) {},
       ).ignore();

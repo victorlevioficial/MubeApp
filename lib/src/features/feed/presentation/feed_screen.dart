@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -285,7 +286,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   : bundle.stories.first;
               if (firstStory != null && !firstStory.isVideo) {
                 precacheImage(
-                  NetworkImage(firstStory.mediaUrl),
+                  CachedNetworkImageProvider(firstStory.mediaUrl),
                   context,
                   onError: (_, _) {},
                 ).ignore();
@@ -293,7 +294,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
               final thumb = firstStory?.thumbnailUrl;
               if (thumb != null && thumb.isNotEmpty) {
                 precacheImage(
-                  NetworkImage(thumb),
+                  CachedNetworkImageProvider(thumb),
                   context,
                   onError: (_, _) {},
                 ).ignore();

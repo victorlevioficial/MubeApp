@@ -244,7 +244,10 @@ class InvitesRepository {
   /// Streams bands where the user is a member.
   Stream<List<Map<String, dynamic>>> getUserBands(String uid) {
     return _watchQuery(
-      _firestore.collection('users').where('members', arrayContains: uid),
+      _firestore
+          .collection('users')
+          .where('members', arrayContains: uid)
+          .limit(50),
       operationLabel: 'watch_user_bands',
     );
   }
