@@ -58,6 +58,10 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
     }
   }
 
+  void toggleProfileCardExpanded() {
+    setState(() => _profileCardExpanded = !_profileCardExpanded);
+  }
+
   @override
   Widget build(BuildContext context) {
     final completion = ProfileCompletionEvaluator.evaluate(widget.currentUser);

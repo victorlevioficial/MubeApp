@@ -109,7 +109,7 @@ extension _FeedHeaderUi on _FeedHeaderState {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.location_on_outlined,
               size: 14,
               color: AppColors.primary,
@@ -586,7 +586,7 @@ extension _FeedHeaderUi on _FeedHeaderState {
               borderRadius: AppRadius.all16,
               onTap: () {
                 HapticFeedback.selectionClick();
-                setState(() => _profileCardExpanded = !expanded);
+                toggleProfileCardExpanded();
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(
