@@ -187,130 +187,134 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: userAsync.when(
-          skipLoadingOnReload: true,
-          loading: () => const Center(child: AppLoadingIndicator.medium()),
-          error: (err, stack) => Center(
-            child: Text(
-              'Erro: $err',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
-            ),
-          ),
-          data: (user) {
-            if (user == null) {
-              return Center(
-                child: Text(
-                  'Usuário não autenticado.',
-                  style: AppTypography.bodyMedium,
+        body: SafeArea(
+          child: userAsync.when(
+            skipLoadingOnReload: true,
+            loading: () => const Center(child: AppLoadingIndicator.medium()),
+            error: (err, stack) => Center(
+              child: Text(
+                'Erro: $err',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.error,
                 ),
-              );
-            }
+              ),
+            ),
+            data: (user) {
+              if (user == null) {
+                return Center(
+                  child: Text(
+                    'Usuário não autenticado.',
+                    style: AppTypography.bodyMedium,
+                  ),
+                );
+              }
 
-            return Column(
-              children: [
-                Expanded(
-                  child: SafeArea(
-                    bottom: false,
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
+              return Column(
+                children: [
+                  Expanded(
+                    child: SafeArea(
+                      bottom: false,
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: ResponsiveCenter(
+                          maxContentWidth: 600,
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.s24,
+                            AppSpacing.s32,
+                            AppSpacing.s24,
+                            AppSpacing.s24,
+                          ),
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: SlideTransition(
+                              position: _slideAnimation,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _buildHeader(),
+                                  const SizedBox(height: AppSpacing.s32),
+                                  ...List.generate(_types.length, (index) {
+                                    final type = _types[index];
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom: index < _types.length - 1
+                                            ? AppSpacing.s12
+                                            : 0,
+                                      ),
+                                      child: FullWidthSelectionCard(
+                                        icon: type['icon'] as IconData,
+                                        title: type['label'] as String,
+                                        description:
+                                            type['description'] as String?,
+                                        isSelected:
+                                            _selectedType == type['value'],
+                                        onTap: () => _handleTypeSelection(type),
+                                        density: SelectionCardDensity.compact,
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SafeArea(
+                    top: false,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        border: const Border(
+                          top: BorderSide(color: AppColors.border),
+                        ),
+                        boxShadow: AppEffects.subtleShadow,
+                      ),
                       child: ResponsiveCenter(
                         maxContentWidth: 600,
                         padding: const EdgeInsets.fromLTRB(
                           AppSpacing.s24,
-                          AppSpacing.s32,
+                          AppSpacing.s16,
                           AppSpacing.s24,
                           AppSpacing.s24,
                         ),
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: SlideTransition(
-                            position: _slideAnimation,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildHeader(),
-                                const SizedBox(height: AppSpacing.s32),
-                                ...List.generate(_types.length, (index) {
-                                  final type = _types[index];
-                                  return Padding(
-                                    padding: EdgeInsets.only(
-                                      bottom: index < _types.length - 1
-                                          ? AppSpacing.s12
-                                          : 0,
-                                    ),
-                                    child: FullWidthSelectionCard(
-                                      icon: type['icon'] as IconData,
-                                      title: type['label'] as String,
-                                      description:
-                                          type['description'] as String?,
-                                      isSelected:
-                                          _selectedType == type['value'],
-                                      onTap: () => _handleTypeSelection(type),
-                                      density: SelectionCardDensity.compact,
-                                    ),
-                                  );
-                                }),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  top: false,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      border: const Border(
-                        top: BorderSide(color: AppColors.border),
-                      ),
-                      boxShadow: AppEffects.subtleShadow,
-                    ),
-                    child: ResponsiveCenter(
-                      maxContentWidth: 600,
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.s24,
-                        AppSpacing.s16,
-                        AppSpacing.s24,
-                        AppSpacing.s24,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(
-                            height: 56,
-                            child: AppButton.primary(
-                              text: 'Continuar',
-                              size: AppButtonSize.large,
-                              isLoading: state.isLoading,
-                              onPressed: _selectedType != null
-                                  ? () => _submit(user)
-                                  : null,
-                              isFullWidth: true,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.s12),
-                          Center(
-                            child: TextButton(
-                              onPressed: state.isLoading
-                                  ? null
-                                  : _handleLockedBackNavigation,
-                              child: Text(
-                                'Sair e usar outra conta',
-                                style: AppTypography.link,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: 56,
+                              child: AppButton.primary(
+                                text: 'Continuar',
+                                size: AppButtonSize.large,
+                                isLoading: state.isLoading,
+                                onPressed: _selectedType != null
+                                    ? () => _submit(user)
+                                    : null,
+                                isFullWidth: true,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: AppSpacing.s12),
+                            Center(
+                              child: TextButton(
+                                onPressed: state.isLoading
+                                    ? null
+                                    : _handleLockedBackNavigation,
+                                child: Text(
+                                  'Sair e usar outra conta',
+                                  style: AppTypography.link,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

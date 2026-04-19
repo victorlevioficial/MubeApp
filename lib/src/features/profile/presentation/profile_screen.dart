@@ -107,92 +107,94 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s24,
-          vertical: AppSpacing.s24,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header (Avatar + Name)
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: AppSpacing.s32),
-                  UserAvatar(
-                    size: 100,
-                    photoUrl: user.avatarFullUrl,
-                    photoPreviewUrl: user.avatarPreviewUrl,
-                    name: _getDisplayName(user),
-                  ),
-                  const SizedBox(height: AppSpacing.s12),
-                  Text(
-                    _getDisplayName(user),
-                    style: AppTypography.headlineMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.s4),
-                  Text(
-                    user.tipoPerfil?.label.toUpperCase() ?? '',
-                    style: AppTypography.profileTypeLabel,
-                  ),
-                  if (user.location != null) ...[
-                    const SizedBox(height: AppSpacing.s8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: AppSpacing.s4),
-                        Text(
-                          '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
-                          style: AppTypography.bodySmall.copyWith(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s24,
+            vertical: AppSpacing.s24,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header (Avatar + Name)
+              Center(
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppSpacing.s32),
+                    UserAvatar(
+                      size: 100,
+                      photoUrl: user.avatarFullUrl,
+                      photoPreviewUrl: user.avatarPreviewUrl,
+                      name: _getDisplayName(user),
+                    ),
+                    const SizedBox(height: AppSpacing.s12),
+                    Text(
+                      _getDisplayName(user),
+                      style: AppTypography.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      user.tipoPerfil?.label.toUpperCase() ?? '',
+                      style: AppTypography.profileTypeLabel,
+                    ),
+                    if (user.location != null) ...[
+                      const SizedBox(height: AppSpacing.s8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            size: 16,
                             color: AppColors.textSecondary,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: AppSpacing.s4),
+                          Text(
+                            '${user.location?['bairro'] ?? user.location?['cidade'] ?? '-'}, ${user.location?['estado'] ?? '-'}',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_shouldShowBandActivationBanner(user)) ...[
+                      const SizedBox(height: AppSpacing.s20),
+                      _buildBandActivationBanner(context, user),
+                    ],
                   ],
-                  if (_shouldShowBandActivationBanner(user)) ...[
-                    const SizedBox(height: AppSpacing.s20),
-                    _buildBandActivationBanner(context, user),
-                  ],
-                ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: AppSpacing.s32),
-            const Divider(color: AppColors.surfaceHighlight),
-            const SizedBox(height: AppSpacing.s24),
+              const SizedBox(height: AppSpacing.s32),
+              const Divider(color: AppColors.surfaceHighlight),
+              const SizedBox(height: AppSpacing.s24),
 
-            // Type Specific Details
-            if (user.tipoPerfil == AppUserType.professional)
-              _buildProfessionalDetails(user, formatCategory),
-            if (user.tipoPerfil == AppUserType.band) _buildBandDetails(user),
-            if (user.tipoPerfil == AppUserType.studio)
-              _buildStudioDetails(user),
-            if (user.tipoPerfil == AppUserType.contractor)
-              _buildContractorDetails(user),
+              // Type Specific Details
+              if (user.tipoPerfil == AppUserType.professional)
+                _buildProfessionalDetails(user, formatCategory),
+              if (user.tipoPerfil == AppUserType.band) _buildBandDetails(user),
+              if (user.tipoPerfil == AppUserType.studio)
+                _buildStudioDetails(user),
+              if (user.tipoPerfil == AppUserType.contractor)
+                _buildContractorDetails(user),
 
-            const SizedBox(height: AppSpacing.s24),
-            // Actions
-            AppButton.primary(
-              text: 'Editar Perfil',
-              onPressed: () => context.push(RoutePaths.profileEdit),
-            ),
-            const SizedBox(height: AppSpacing.s48),
-            const SizedBox(height: AppSpacing.s40),
-            Align(
-              child: IconButton(
-                icon: const Icon(Icons.logout, color: AppColors.textPrimary),
-                onPressed: () => ref.read(authRepositoryProvider).signOut(),
+              const SizedBox(height: AppSpacing.s24),
+              // Actions
+              AppButton.primary(
+                text: 'Editar Perfil',
+                onPressed: () => context.push(RoutePaths.profileEdit),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.s48),
+              const SizedBox(height: AppSpacing.s40),
+              Align(
+                child: IconButton(
+                  icon: const Icon(Icons.logout, color: AppColors.textPrimary),
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

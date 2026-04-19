@@ -29,6 +29,17 @@ void main() {
       await SystemChrome.setPreferredOrientations([
         DeviceOrientation.portraitUp,
       ]);
+      // Android 15+ targeting SDK 35 renders edge-to-edge by default; enabling
+      // it explicitly keeps the contract consistent on older versions too.
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setSystemUIOverlayStyle(
+        const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          systemNavigationBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
+      );
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
       ImageCacheConfig.configureFlutterImageCache();
 
