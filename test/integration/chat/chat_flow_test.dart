@@ -59,9 +59,8 @@ void main() {
           ),
           GoRoute(
             path: '/conversation/:id',
-            builder: (context, state) => Scaffold(
-              body: Text('Chat: ${state.pathParameters['id']}'),
-            ),
+            builder: (context, state) =>
+                Scaffold(body: Text('Chat: ${state.pathParameters['id']}')),
           ),
         ],
       );

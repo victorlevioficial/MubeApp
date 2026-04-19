@@ -239,10 +239,7 @@ class _BenefitsList extends StatelessWidget {
       icon: Icons.chat_bubble_outline_rounded,
       title: 'Mensagens no chat',
     ),
-    _BenefitData(
-      icon: Icons.group_add_outlined,
-      title: 'Convites para bandas',
-    ),
+    _BenefitData(icon: Icons.group_add_outlined, title: 'Convites para bandas'),
     _BenefitData(
       icon: Icons.music_note_rounded,
       title: 'Novos matches musicais',

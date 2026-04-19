@@ -97,41 +97,40 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets(
-      'renders Seu story publish entry when the tray is empty',
-      (tester) async {
-        final user = TestData.user(uid: 'user-1', nome: 'Usuario atual');
-        var createCount = 0;
-        StoryTrayBundle? openedBundle;
-        StoryTrayBundle? openedOptionsBundle;
+    testWidgets('renders Seu story publish entry when the tray is empty', (
+      tester,
+    ) async {
+      final user = TestData.user(uid: 'user-1', nome: 'Usuario atual');
+      var createCount = 0;
+      StoryTrayBundle? openedBundle;
+      StoryTrayBundle? openedOptionsBundle;
 
-        await pumpStoryTrayApp(
-          tester,
-          currentUser: user,
-          storyBundles: const [],
-          onCreateStory: () => createCount++,
-          onOpenStoryBundle: (bundle) => openedBundle = bundle,
-          onOpenCurrentUserStoryOptions: (bundle) {
-            openedOptionsBundle = bundle;
-          },
-        );
+      await pumpStoryTrayApp(
+        tester,
+        currentUser: user,
+        storyBundles: const [],
+        onCreateStory: () => createCount++,
+        onOpenStoryBundle: (bundle) => openedBundle = bundle,
+        onOpenCurrentUserStoryOptions: (bundle) {
+          openedOptionsBundle = bundle;
+        },
+      );
 
-        expect(find.byType(StoryTray), findsOneWidget);
-        expect(find.text('Seu story'), findsOneWidget);
-        expect(find.text('Publicar'), findsOneWidget);
+      expect(find.byType(StoryTray), findsOneWidget);
+      expect(find.text('Seu story'), findsOneWidget);
+      expect(find.text('Publicar'), findsOneWidget);
 
-        final currentUserAvatar = tester
-            .widgetList<StoryRingAvatar>(find.byType(StoryRingAvatar))
-            .first;
-        expect(currentUserAvatar.hasStory, isFalse);
-        expect(currentUserAvatar.showAddBadge, isTrue);
+      final currentUserAvatar = tester
+          .widgetList<StoryRingAvatar>(find.byType(StoryRingAvatar))
+          .first;
+      expect(currentUserAvatar.hasStory, isFalse);
+      expect(currentUserAvatar.showAddBadge, isTrue);
 
-        // Nothing was tapped yet — callbacks must remain untouched.
-        expect(createCount, 0);
-        expect(openedBundle, isNull);
-        expect(openedOptionsBundle, isNull);
-      },
-    );
+      // Nothing was tapped yet — callbacks must remain untouched.
+      expect(createCount, 0);
+      expect(openedBundle, isNull);
+      expect(openedOptionsBundle, isNull);
+    });
 
     testWidgets(
       'tapping Seu story with an active bundle routes to the options callback',

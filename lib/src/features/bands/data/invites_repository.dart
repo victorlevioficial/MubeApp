@@ -114,9 +114,7 @@ class InvitesRepository {
         );
       }
       if (code == 'permission-denied') {
-        return Exception(
-          'Você não tem permissão para esta ação na banda.',
-        );
+        return Exception('Você não tem permissão para esta ação na banda.');
       }
       final serverMessage = error.message?.trim();
       if (serverMessage != null &&

@@ -338,11 +338,7 @@ Map<String, String> _buildRoleIdLookup() {
     professionalGraphicDesignRoleLabels,
     prefix: 'graphic_design',
   );
-  addRoles(
-    'marketing',
-    professionalMarketingRoleLabels,
-    prefix: 'marketing',
-  );
+  addRoles('marketing', professionalMarketingRoleLabels, prefix: 'marketing');
 
   return lookup;
 }
@@ -376,11 +372,7 @@ Map<String, String> _buildRoleCategoryById() {
     professionalGraphicDesignRoleLabels,
     prefix: 'graphic_design',
   );
-  addRoles(
-    'marketing',
-    professionalMarketingRoleLabels,
-    prefix: 'marketing',
-  );
+  addRoles('marketing', professionalMarketingRoleLabels, prefix: 'marketing');
 
   return map;
 }

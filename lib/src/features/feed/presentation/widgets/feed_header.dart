@@ -240,5 +240,4 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
         return 'Contratante';
     }
   }
-
 }

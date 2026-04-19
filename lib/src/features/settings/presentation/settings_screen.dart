@@ -499,9 +499,7 @@ class _DeleteAccountConfirmDialogState
           child: Text(l10n.common_cancel),
         ),
         TextButton(
-          onPressed: canConfirm
-              ? () => Navigator.of(context).pop(true)
-              : null,
+          onPressed: canConfirm ? () => Navigator.of(context).pop(true) : null,
           style: TextButton.styleFrom(foregroundColor: AppColors.error),
           child: Text(l10n.common_delete),
         ),

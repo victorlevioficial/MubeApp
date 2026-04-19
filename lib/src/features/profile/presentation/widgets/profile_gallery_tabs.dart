@@ -175,4 +175,3 @@ class _GallerySection extends StatelessWidget {
     );
   }
 }
-

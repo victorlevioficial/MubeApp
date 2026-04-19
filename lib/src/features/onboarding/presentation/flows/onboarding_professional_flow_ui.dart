@@ -92,9 +92,8 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           hint: 'Nome exibido no app',
           textCapitalization: TextCapitalization.words,
           inputFormatters: [TitleCaseTextInputFormatter()],
-          validator: (v) => (v == null || v.isEmpty)
-              ? 'Nome artístico obrigatório'
-              : null,
+          validator: (v) =>
+              (v == null || v.isEmpty) ? 'Nome artístico obrigatório' : null,
           prefixIcon: const Icon(Icons.stars_outlined, size: 20),
         ),
         const SizedBox(height: AppSpacing.s16),
@@ -149,8 +148,7 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           key: const Key('onboarding_adult_confirm_checkbox'),
           label: 'Tenho 18 anos ou mais',
           value: _isAdultConfirmed,
-          onChanged: (v) =>
-              _updateState(() => _isAdultConfirmed = v ?? false),
+          onChanged: (v) => _updateState(() => _isAdultConfirmed = v ?? false),
         ),
 
         const SizedBox(height: AppSpacing.s32),
