@@ -36,6 +36,17 @@ describe("moderation report guards", () => {
     ).toBe(false);
   });
 
+  test("rejects self reports", () => {
+    expect(
+      isValidReport({
+        reporter_user_id: "user-1",
+        reported_item_id: "user-1",
+        reported_item_type: "user",
+        reason: "Comportamento abusivo recorrente",
+      })
+    ).toBe(false);
+  });
+
   test("rejects message reports without conversation context", () => {
     expect(
       isValidReport({

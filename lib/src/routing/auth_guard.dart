@@ -157,6 +157,10 @@ class AuthGuard {
         _log('Profile loading on auth route - waiting inline');
         return null;
       }
+      if (RoutePaths.isPublic(currentPath)) {
+        _log('Profile loading on public route - waiting inline');
+        return null;
+      }
       _log('Profile loading - sending back to splash to gate UI');
       return RoutePaths.splash;
     }

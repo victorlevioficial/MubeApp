@@ -187,6 +187,7 @@ class OfflineMutationStore extends Notifier<List<OfflineMutation>> {
 
   String? _currentUserId;
   bool _isLoaded = false;
+  int _loadGeneration = 0;
 
   List<OfflineMutation> get entries =>
       List<OfflineMutation>.unmodifiable(state);
@@ -219,6 +220,7 @@ class OfflineMutationStore extends Notifier<List<OfflineMutation>> {
   }
 
   Future<void> loadForUser(String? userId) async {
+    final loadGeneration = ++_loadGeneration;
     final normalizedUserId = userId?.trim();
     if (normalizedUserId == null || normalizedUserId.isEmpty) {
       _currentUserId = null;
@@ -228,7 +230,14 @@ class OfflineMutationStore extends Notifier<List<OfflineMutation>> {
     }
 
     _currentUserId = normalizedUserId;
-    state = await _queue.load(normalizedUserId);
+    _isLoaded = false;
+    final loadedEntries = await _queue.load(normalizedUserId);
+    if (loadGeneration != _loadGeneration ||
+        _currentUserId != normalizedUserId) {
+      return;
+    }
+
+    state = loadedEntries;
     _sortEntries();
     _isLoaded = true;
   }

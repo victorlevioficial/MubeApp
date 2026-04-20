@@ -883,6 +883,50 @@ void main() {
         expect(page.hasMore, false);
         expect(page.lastVisibleDoc, isNotNull);
       });
+
+      test('filters hidden and rate-limited messages from pages', () async {
+        await fakeFirestore.collection('conversations').doc(conversationId).set(
+          {
+            'participants': [myUid, otherUid],
+          },
+        );
+
+        final messagesRef = fakeFirestore
+            .collection('conversations')
+            .doc(conversationId)
+            .collection('messages');
+
+        await messagesRef.doc('visible').set({
+          'senderId': myUid,
+          'text': 'mensagem visivel',
+          'type': 'text',
+          'createdAt': Timestamp.fromMillisecondsSinceEpoch(3),
+        });
+        await messagesRef.doc('hidden').set({
+          'senderId': myUid,
+          'text': 'mensagem ocultada',
+          'type': 'text',
+          'hidden': true,
+          'createdAt': Timestamp.fromMillisecondsSinceEpoch(2),
+        });
+        await messagesRef.doc('limited').set({
+          'senderId': myUid,
+          'text': 'mensagem limitada',
+          'type': 'text',
+          'rate_limited': true,
+          'createdAt': Timestamp.fromMillisecondsSinceEpoch(1),
+        });
+
+        final page = await repository.getMessagesPage(
+          conversationId: conversationId,
+          limit: 50,
+        );
+
+        expect(page.messages.map((message) => message.text), [
+          'mensagem visivel',
+        ]);
+        expect(page.lastVisibleDoc, isNotNull);
+      });
     });
 
     group('deleteConversation', () {

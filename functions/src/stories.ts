@@ -644,7 +644,7 @@ export const expireStories = onSchedule(
   async () => {
     const now = admin.firestore.Timestamp.now();
 
-    while (true) {
+    for (;;) {
       const snapshot = await db
         .collection("stories")
         .where("status", "in", ["active", "processing"])

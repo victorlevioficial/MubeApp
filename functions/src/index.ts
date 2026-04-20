@@ -311,17 +311,6 @@ export const onMessageCreated = onDocumentCreated(
         return;
       }
 
-      await db.runTransaction(async (transaction) => {
-        transaction.update(conversationRef, {
-          lastMessageText: displayMessage,
-          lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-          lastSenderId: senderId,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      });
-
-      console.log(`✅ Conversation updated for message ${snapshot.id}`);
-
       const messageRateLimit = await incrementDailyCounter({
         db,
         collectionName: "messageDailyCounters",
@@ -331,6 +320,8 @@ export const onMessageCreated = onDocumentCreated(
 
       if (messageRateLimit.exceeded) {
         await snapshot.ref.set({
+          hidden: true,
+          hidden_reason: "daily_rate_limit",
           rate_limited: true,
           moderation_state: "rate_limited",
           rate_limit_count: messageRateLimit.count,
@@ -346,6 +337,17 @@ export const onMessageCreated = onDocumentCreated(
         });
         return;
       }
+
+      await db.runTransaction(async (transaction) => {
+        transaction.update(conversationRef, {
+          lastMessageText: displayMessage,
+          lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastSenderId: senderId,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      });
+
+      console.log(`Conversation updated for message ${snapshot.id}`);
 
       // 2. Upsert notification in Firestore
       // (one per conversation, not per message)

@@ -40,6 +40,22 @@ service cloud.firestore {
         request.auth.uid in conversationId.split('_');
     }
 
+    function conversationDoc(conversationId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId));
+    }
+
+    function conversationExists(conversationId) {
+      return exists(/databases/$(database)/documents/conversations/$(conversationId));
+    }
+
+    function messageDoc(conversationId, messageId) {
+      return get(/databases/$(database)/documents/conversations/$(conversationId)/messages/$(messageId));
+    }
+
+    function messageExists(conversationId, messageId) {
+      return exists(/databases/$(database)/documents/conversations/$(conversationId)/messages/$(messageId));
+    }
+
     function isOptionalNullableStringWithMax(data, key, maxLength) {
       return !(key in data) ||
         data[key] == null ||
@@ -68,6 +84,18 @@ service cloud.firestore {
 
     function storyExists(storyId) {
       return exists(/databases/$(database)/documents/stories/$(storyId));
+    }
+
+    function postDoc(postId) {
+      return get(/databases/$(database)/documents/posts/$(postId));
+    }
+
+    function postExists(postId) {
+      return exists(/databases/$(database)/documents/posts/$(postId));
+    }
+
+    function bandExists(bandId) {
+      return exists(/databases/$(database)/documents/bands/$(bandId));
     }
 
     function isCompletedProfile(userId) {
@@ -110,6 +138,48 @@ service cloud.firestore {
 
     function isAllowedMatchpointSwipeAction(value) {
       return ['like', 'dislike'].hasAny([value]);
+    }
+
+    function isValidUserReport(data) {
+      return data.reported_item_type != 'user' ||
+        (
+          userExists(data.reported_item_id) &&
+          data.reported_item_id != request.auth.uid
+        );
+    }
+
+    function isValidMessageReport(data) {
+      return data.reported_item_type != 'message' ||
+        (
+          'context' in data &&
+          data.context is map &&
+          data.context.conversation_id is string &&
+          data.context.conversation_id.size() > 0 &&
+          conversationExists(data.context.conversation_id) &&
+          conversationDoc(data.context.conversation_id).data.participants is list &&
+          request.auth.uid in conversationDoc(data.context.conversation_id).data.participants &&
+          messageExists(data.context.conversation_id, data.reported_item_id) &&
+          messageDoc(data.context.conversation_id, data.reported_item_id).data.senderId != request.auth.uid
+        );
+    }
+
+    function isValidPostReport(data) {
+      return data.reported_item_type != 'post' ||
+        (
+          postExists(data.reported_item_id) &&
+          postDoc(data.reported_item_id).data.author_id != request.auth.uid
+        );
+    }
+
+    function isValidBandReport(data) {
+      return data.reported_item_type != 'band' ||
+        (
+          data.reported_item_id != request.auth.uid &&
+          (
+            userExists(data.reported_item_id) ||
+            bandExists(data.reported_item_id)
+          )
+        );
     }
 
     function isValidGigStatusTransition(current, next) {
@@ -550,15 +620,10 @@ service cloud.firestore {
           request.resource.data.description is string) &&
         (!( 'context' in request.resource.data) ||
           request.resource.data.context is map) &&
-        (
-          request.resource.data.reported_item_type != 'message' ||
-          (
-            'context' in request.resource.data &&
-            request.resource.data.context.conversation_id is string &&
-            request.resource.data.context.conversation_id.size() > 0
-          )
-        ) &&
-        request.resource.data.reported_item_id != request.auth.uid;
+        isValidUserReport(request.resource.data) &&
+        isValidMessageReport(request.resource.data) &&
+        isValidPostReport(request.resource.data) &&
+        isValidBandReport(request.resource.data);
       
       // Read/Update/Delete: Apenas via Cloud Functions
       allow read, update, delete: if false; 
