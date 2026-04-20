@@ -490,8 +490,10 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
   /// Stream de mensagens de uma conversa (ultimas 50).
   Stream<List<Message>> getMessages(String conversationId) {
     return getMessagesSnapshot(conversationId).map(
-      (snapshot) =>
-          snapshot.docs.map((doc) => Message.fromFirestore(doc)).toList(),
+      (snapshot) => snapshot.docs
+          .where(_isVisibleMessageDoc)
+          .map((doc) => Message.fromFirestore(doc))
+          .toList(),
     );
   }
 
@@ -510,6 +512,7 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
       operationLabel: 'get_messages_page',
     );
     final messages = snapshot.docs
+        .where(_isVisibleMessageDoc)
         .map((doc) => Message.fromFirestore(doc))
         .toList(growable: false);
     final lastVisibleDoc = snapshot.docs.isNotEmpty ? snapshot.docs.last : null;
@@ -520,5 +523,14 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
       lastVisibleDoc: lastVisibleDoc,
       hasMore: hasMore,
     );
+  }
+
+  bool _isVisibleMessageDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    if (data == null) return false;
+
+    return data['hidden'] != true &&
+        data['rate_limited'] != true &&
+        data['moderation_state'] != 'rate_limited';
   }
 }

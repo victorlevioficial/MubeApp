@@ -10,6 +10,7 @@ analyzer:
     - "test/**/*.g.dart"
     - "test/**/*.freezed.dart"
     - "third_party/**"
+    - "docs/**"
     - scripts/**
   errors:
     invalid_annotation_target: ignore

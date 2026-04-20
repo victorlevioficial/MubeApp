@@ -654,8 +654,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     QuerySnapshot<Map<String, dynamic>> snapshot,
   ) {
     return snapshot.docs
+        .where(_isVisibleMessageDoc)
         .map((doc) => Message.fromFirestore(doc))
         .toList(growable: false);
+  }
+
+  bool _isVisibleMessageDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    if (data == null) return false;
+
+    return data['hidden'] != true &&
+        data['rate_limited'] != true &&
+        data['moderation_state'] != 'rate_limited';
   }
 
   void _syncPaginationStateFromLatestSnapshot(

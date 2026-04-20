@@ -339,6 +339,44 @@ void main() {
     );
 
     test(
+      'keeps authenticated users on public routes while profile still loads',
+      () async {
+        final fakeUser = FakeFirebaseUser(
+          uid: 'user-1',
+          email: 'test@mube.app',
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(
+              const AsyncValue<AppUser?>.loading(),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.gigDetailById('gig-123')),
+        );
+
+        expect(redirect, isNull);
+      },
+    );
+
+    test(
       'refreshes security context instead of signing out on permission-related profile stream error',
       () async {
         final fakeUser = FakeFirebaseUser(

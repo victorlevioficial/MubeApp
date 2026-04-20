@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/core/services/offline_mutation_queue.dart';
@@ -80,4 +82,80 @@ void main() {
       expect(container.read(offlineMutationStoreProvider), isEmpty);
     },
   );
+
+  test('ignores stale load results when auth user changes quickly', () async {
+    final delayedQueue = _DelayedOfflineMutationQueue();
+    final localAuthRepository = FakeAuthRepository();
+    final localContainer = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(localAuthRepository),
+        authStateChangesProvider.overrideWithValue(const AsyncValue.data(null)),
+        offlineMutationQueueProvider.overrideWithValue(delayedQueue),
+      ],
+    );
+
+    addTearDown(() {
+      localContainer.dispose();
+      localAuthRepository.dispose();
+    });
+
+    final store = localContainer.read(offlineMutationStoreProvider.notifier);
+
+    final firstLoad = store.loadForUser('user-1');
+    final secondLoad = store.loadForUser('user-2');
+
+    delayedQueue.complete('user-2', [_favoriteMutation('target-2')]);
+    await secondLoad;
+
+    expect(store.currentUserId, 'user-2');
+    expect(
+      localContainer.read(offlineMutationStoreProvider).single.favoriteTargetId,
+      'target-2',
+    );
+
+    delayedQueue.complete('user-1', [_favoriteMutation('target-1')]);
+    await firstLoad;
+
+    expect(store.currentUserId, 'user-2');
+    expect(
+      localContainer.read(offlineMutationStoreProvider).single.favoriteTargetId,
+      'target-2',
+    );
+  });
+}
+
+OfflineMutation _favoriteMutation(String targetId) {
+  final scopeKey = favoriteMutationScopeKey(targetId);
+  return OfflineMutation(
+    id: scopeKey,
+    type: OfflineMutationType.favoriteAdd,
+    scopeKey: scopeKey,
+    payload: {'target_id': targetId},
+    createdAtMs: 1,
+    updatedAtMs: 1,
+  );
+}
+
+class _DelayedOfflineMutationQueue extends OfflineMutationQueue {
+  _DelayedOfflineMutationQueue() : super(SharedPreferences.getInstance);
+
+  final _loads = <String, Completer<List<OfflineMutation>>>{};
+
+  @override
+  Future<List<OfflineMutation>> load(String userId) {
+    final completer = Completer<List<OfflineMutation>>();
+    _loads[userId] = completer;
+    return completer.future;
+  }
+
+  void complete(String userId, List<OfflineMutation> entries) {
+    final completer = _loads.remove(userId);
+    if (completer == null) {
+      throw StateError('No pending load for $userId');
+    }
+    completer.complete(entries);
+  }
+
+  @override
+  Future<void> save(String userId, List<OfflineMutation> entries) async {}
 }

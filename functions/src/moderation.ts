@@ -24,6 +24,7 @@ const REPORT_THRESHOLD_SUSPENSION = 3;
 const SUSPENSION_DURATION_DAYS = 7;
 const SUSPENSION_ESCALATION_MULTIPLIER = 2;
 const VALID_REPORTED_ITEM_TYPES = ["user", "message", "post", "band"];
+const DUPLICATE_GUARD_STATUSES = ["pending", "processing", "processed"];
 
 type ReportData = Record<string, unknown>;
 
@@ -57,6 +58,28 @@ export const onReportCreated = onDocumentCreated(
         console.log(`Denúncia ${reportId} inválida, ignorando`);
         await snapshot.ref.update({
           status: "invalid",
+          invalid_reason: "invalid_payload",
+          processed_at: now,
+        });
+        return;
+      }
+
+      if (!(await isReportTargetAllowed(reportData))) {
+        console.log(`Denúncia ${reportId} sem permissão/alvo válido`);
+        await snapshot.ref.update({
+          status: "invalid",
+          invalid_reason: "target_not_allowed",
+          processed_at: now,
+        });
+        return;
+      }
+
+      const duplicateReportId = await findPriorReportId(reportData, reportId);
+      if (duplicateReportId != null) {
+        console.log(`Denúncia ${reportId} duplicada de ${duplicateReportId}`);
+        await snapshot.ref.update({
+          status: "duplicate",
+          duplicate_of_report_id: duplicateReportId,
           processed_at: now,
         });
         return;
@@ -154,6 +177,119 @@ export function isValidReport(data: ReportData): boolean {
 
 export function shouldRateLimitReportCount(count: number): boolean {
   return isDailyLimitExceeded(count, REPORT_DAILY_LIMIT);
+}
+
+async function isReportTargetAllowed(reportData: ReportData): Promise<boolean> {
+  const reportedItemType = getStringField(reportData, "reported_item_type");
+
+  switch (reportedItemType) {
+  case "user":
+    return canReportUser(reportData);
+  case "message":
+    return canReportMessage(reportData);
+  case "post":
+    return canReportPost(reportData);
+  case "band":
+    return canReportBand(reportData);
+  default:
+    return false;
+  }
+}
+
+async function canReportUser(reportData: ReportData): Promise<boolean> {
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
+  const reportedUserId = getStringField(reportData, "reported_item_id");
+  if (!reporterUserId || !reportedUserId || reporterUserId === reportedUserId) {
+    return false;
+  }
+
+  const reportedUserDoc = await db.collection("users").doc(reportedUserId).get();
+  return reportedUserDoc.exists;
+}
+
+async function canReportMessage(reportData: ReportData): Promise<boolean> {
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
+  const messageId = getStringField(reportData, "reported_item_id");
+  const conversationId = getConversationId(reportData);
+  if (!reporterUserId || !messageId || !conversationId) return false;
+
+  const conversationRef = db.collection("conversations").doc(conversationId);
+  const messageRef = conversationRef.collection("messages").doc(messageId);
+  const [conversationDoc, messageDoc] = await Promise.all([
+    conversationRef.get(),
+    messageRef.get(),
+  ]);
+
+  if (!conversationDoc.exists || !messageDoc.exists) return false;
+
+  const participants = readStringArray(conversationDoc.data()?.participants);
+  if (!participants.includes(reporterUserId)) return false;
+
+  const messageData = messageDoc.data() || {};
+  return getStringField(messageData, "senderId") !== reporterUserId;
+}
+
+async function canReportPost(reportData: ReportData): Promise<boolean> {
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
+  const postId = getStringField(reportData, "reported_item_id");
+  if (!reporterUserId || !postId) return false;
+
+  const postDoc = await db.collection("posts").doc(postId).get();
+  if (!postDoc.exists) return false;
+
+  const postData = postDoc.data() || {};
+  return getStringField(postData, "author_id") !== reporterUserId;
+}
+
+async function canReportBand(reportData: ReportData): Promise<boolean> {
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
+  const bandId = getStringField(reportData, "reported_item_id");
+  if (!reporterUserId || !bandId || reporterUserId === bandId) return false;
+
+  const [userBandDoc, legacyBandDoc] = await Promise.all([
+    db.collection("users").doc(bandId).get(),
+    db.collection("bands").doc(bandId).get(),
+  ]);
+
+  return userBandDoc.exists || legacyBandDoc.exists;
+}
+
+async function findPriorReportId(
+  reportData: ReportData,
+  reportId: string
+): Promise<string | null> {
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
+  const reportedItemType = getStringField(reportData, "reported_item_type");
+  const reportedItemId = getStringField(reportData, "reported_item_id");
+  if (!reporterUserId || !reportedItemType || !reportedItemId) return null;
+
+  const currentConversationId = getConversationId(reportData);
+  const snapshot = await db
+    .collection("reports")
+    .where("reporter_user_id", "==", reporterUserId)
+    .where("reported_item_type", "==", reportedItemType)
+    .where("reported_item_id", "==", reportedItemId)
+    .limit(10)
+    .get();
+
+  for (const doc of snapshot.docs) {
+    if (doc.id === reportId) continue;
+
+    const data = doc.data() as ReportData;
+    const status = getStringField(data, "status") || "pending";
+    if (!DUPLICATE_GUARD_STATUSES.includes(status)) continue;
+
+    if (
+      reportedItemType === "message" &&
+      getConversationId(data) !== currentConversationId
+    ) {
+      continue;
+    }
+
+    return doc.id;
+  }
+
+  return null;
 }
 
 /**
@@ -264,6 +400,7 @@ async function handleUserReport(
 async function handleMessageReport(reportData: ReportData): Promise<void> {
   const messageId = getStringField(reportData, "reported_item_id");
   const conversationId = getConversationId(reportData);
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
   if (!messageId || !conversationId) return;
 
   const messageRef = db
@@ -272,23 +409,27 @@ async function handleMessageReport(reportData: ReportData): Promise<void> {
     .collection("messages")
     .doc(messageId);
 
-  await messageRef.update({
-    reported: true,
-    report_count: FieldValue.increment(1),
-    updated_at: Timestamp.now(),
-  });
+  await db.runTransaction(async (transaction) => {
+    const messageDoc = await transaction.get(messageRef);
+    if (!messageDoc.exists) return;
 
-  const messageDoc = await messageRef.get();
-  if (!messageDoc.exists) return;
+    const msgData = messageDoc.data() || {};
+    if (getStringField(msgData, "senderId") === reporterUserId) return;
 
-  const msgData = messageDoc.data() || {};
-  if ((msgData.report_count || 0) >= REPORT_THRESHOLD_SUSPENSION) {
-    await messageRef.update({
-      hidden: true,
-      hidden_reason: "multiple_reports",
+    const nextReportCount = getNumberField(msgData, "report_count") + 1;
+    const updateData: Record<string, unknown> = {
+      reported: true,
+      report_count: FieldValue.increment(1),
       updated_at: Timestamp.now(),
-    });
-  }
+    };
+
+    if (nextReportCount >= REPORT_THRESHOLD_SUSPENSION) {
+      updateData.hidden = true;
+      updateData.hidden_reason = "multiple_reports";
+    }
+
+    transaction.update(messageRef, updateData);
+  });
 }
 
 /**
@@ -299,26 +440,31 @@ async function handleMessageReport(reportData: ReportData): Promise<void> {
  */
 async function handlePostReport(reportData: ReportData): Promise<void> {
   const postId = getStringField(reportData, "reported_item_id");
+  const reporterUserId = getStringField(reportData, "reporter_user_id");
   if (!postId) return;
 
   const postRef = db.collection("posts").doc(postId);
-  await postRef.update({
-    reported: true,
-    report_count: FieldValue.increment(1),
-    updated_at: Timestamp.now(),
-  });
+  await db.runTransaction(async (transaction) => {
+    const postDoc = await transaction.get(postRef);
+    if (!postDoc.exists) return;
 
-  const postDoc = await postRef.get();
-  if (!postDoc.exists) return;
+    const postData = postDoc.data() || {};
+    if (getStringField(postData, "author_id") === reporterUserId) return;
 
-  const postData = postDoc.data() || {};
-  if ((postData.report_count || 0) >= REPORT_THRESHOLD_SUSPENSION) {
-    await postRef.update({
-      status: "hidden",
-      hidden_reason: "multiple_reports",
+    const nextReportCount = getNumberField(postData, "report_count") + 1;
+    const updateData: Record<string, unknown> = {
+      reported: true,
+      report_count: FieldValue.increment(1),
       updated_at: Timestamp.now(),
-    });
-  }
+    };
+
+    if (nextReportCount >= REPORT_THRESHOLD_SUSPENSION) {
+      updateData.status = "hidden";
+      updateData.hidden_reason = "multiple_reports";
+    }
+
+    transaction.update(postRef, updateData);
+  });
 }
 
 /**
@@ -441,6 +587,17 @@ export const liftSuspensions = onSchedule(
 function getStringField(data: ReportData, key: string): string | null {
   const value = data[key];
   return typeof value === "string" ? value : null;
+}
+
+function getNumberField(data: ReportData, key: string): number {
+  const value = data[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ?
+    value.filter((item): item is string => typeof item === "string") :
+    [];
 }
 
 /**
