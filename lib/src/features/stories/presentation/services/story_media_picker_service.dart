@@ -322,8 +322,11 @@ class StoryMediaPickerService {
     final controller = VideoPlayerController.file(file);
     try {
       await controller.initialize();
-      final size = controller.value.size;
-      final aspectRatio = size.height > 0 ? size.width / size.height : null;
+      // `controller.value.aspectRatio` is normalized for the video's display
+      // rotation. Reading `size.width / size.height` would treat a portrait
+      // clip with rotation metadata as landscape and falsely reject it.
+      final reportedAspectRatio = controller.value.aspectRatio;
+      final aspectRatio = reportedAspectRatio > 0 ? reportedAspectRatio : null;
       return _VideoMetadata(
         durationSeconds: controller.value.duration.inMilliseconds / 1000,
         aspectRatio: aspectRatio,

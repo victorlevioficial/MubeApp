@@ -179,6 +179,7 @@ extension _FeedScreenUi on _FeedScreenState {
             onOpenStoryBundle: (bundle) => unawaited(_openStoryViewer(bundle)),
             onOpenCurrentUserStoryOptions: (bundle) =>
                 unawaited(_openCurrentUserStoryActions(bundle)),
+            onRefreshPending: () => unawaited(_refreshPendingStories()),
           ),
           if (pendingStories.isNotEmpty) ...[
             Padding(
@@ -234,12 +235,7 @@ extension _FeedScreenUi on _FeedScreenState {
                     AppButton.ghost(
                       text: 'Atualizar',
                       size: AppButtonSize.small,
-                      onPressed: () async {
-                        ref.invalidate(currentUserPendingStoriesProvider);
-                        await ref
-                            .read(storyTrayControllerProvider.notifier)
-                            .refresh();
-                      },
+                      onPressed: () => unawaited(_refreshPendingStories()),
                     ),
                   ],
                 ),

@@ -245,6 +245,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     ]);
   }
 
+  Future<void> _refreshPendingStories() async {
+    ref.invalidate(currentUserPendingStoriesProvider);
+    await ref.read(storyTrayControllerProvider.notifier).refresh();
+  }
+
   List<FeedItem> _getSpotlightItems(FeedState state) {
     if (state.featuredItems.isNotEmpty) {
       return state.featuredItems

@@ -4,7 +4,10 @@ abstract final class StoryConstants {
   static const Duration storyLifetime = Duration(hours: 24);
   static const Duration imageDisplayDuration = Duration(seconds: 5);
   static const double targetAspectRatio = 9 / 16;
-  static const double targetAspectRatioTolerance = 0.02;
+  // Tolerance widened slightly to account for pixel rounding done by the
+  // image cropper on devices with non-standard screen densities (a 1079x1920
+  // crop yields ~0.5620 instead of 0.5625, for example).
+  static const double targetAspectRatioTolerance = 0.04;
   static const double maxVerticalAspectRatio = 0.75;
   static const String storiesCollection = 'stories';
   static const String viewsSubcollection = 'views';
