@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/stories/data/story_repository.dart';
+import 'package:mube/src/features/stories/domain/story_constants.dart';
 import 'package:mube/src/features/stories/domain/story_item.dart';
 import 'package:mube/src/features/stories/domain/story_repository_exception.dart';
 import 'package:mube/src/features/stories/domain/story_tray_bundle.dart';
@@ -52,6 +57,7 @@ StoryItem _story({
   required String id,
   required String caption,
   required DateTime createdAt,
+  String? mediaUrl,
 }) {
   return StoryItem(
     id: id,
@@ -59,7 +65,7 @@ StoryItem _story({
     ownerName: 'Owner User',
     ownerType: 'profissional',
     mediaType: StoryMediaType.image,
-    mediaUrl: 'https://example.com/$id.jpg',
+    mediaUrl: mediaUrl ?? 'https://example.com/$id.jpg',
     caption: caption,
     createdAt: createdAt,
     expiresAt: createdAt.add(const Duration(hours: 24)),
@@ -190,6 +196,78 @@ void main() {
         expect(find.text('Story para excluir'), findsNothing);
       },
     );
+
+    testWidgets(
+      'resumes image timer when the image becomes ready while paused',
+      (tester) async {
+        final requestNonce = DateTime.now().microsecondsSinceEpoch;
+        final firstStory = _story(
+          id: 'story-paused-load',
+          caption: 'Story pausado no carregamento',
+          createdAt: DateTime(2026, 4, 10, 8),
+          mediaUrl: 'https://delayed.example.com/story.jpg?v=$requestNonce',
+        );
+        final secondStory = _story(
+          id: 'story-after-pause',
+          caption: 'Story depois do pause',
+          createdAt: DateTime(2026, 4, 10, 9),
+        );
+        final args = StoryViewerRouteArgs(
+          bundles: [
+            _bundle([firstStory, secondStory]),
+          ],
+          initialOwnerUid: 'owner-user',
+          initialStoryId: firstStory.id,
+        );
+
+        await _withDelayedImageCacheManager(
+          delay: const Duration(seconds: 1),
+          body: (cacheManager) async {
+            await tester.pumpWidget(
+              ProviderScope(
+                overrides: [
+                  storyRepositoryProvider.overrideWithValue(
+                    _FakeStoryRepository(),
+                  ),
+                ],
+                child: MaterialApp(
+                  home: StoryViewerScreen(
+                    args: args,
+                    cacheManager: cacheManager,
+                  ),
+                ),
+              ),
+            );
+            await tester.pump();
+
+            final gesture = await tester.startGesture(
+              tester.getCenter(find.byType(StoryViewerScreen)),
+            );
+            await tester.pump(
+              kLongPressTimeout + const Duration(milliseconds: 50),
+            );
+            await tester.pump(const Duration(milliseconds: 700));
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 250));
+            expect(find.byType(CircularProgressIndicator), findsNothing);
+            expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+            expect(find.text('Story pausado no carregamento'), findsOneWidget);
+
+            await gesture.up();
+            await tester.pump();
+            await tester.pump(
+              StoryConstants.imageDisplayDuration +
+                  const Duration(milliseconds: 250),
+            );
+            await tester.pump(const Duration(milliseconds: 1100));
+            await tester.pump();
+          },
+        );
+
+        expect(find.text('Story depois do pause'), findsOneWidget);
+        expect(find.text('Story pausado no carregamento'), findsNothing);
+      },
+    );
   });
 
   group('StoryMediaPickerService', () {
@@ -316,4 +394,39 @@ void main() {
       expect(find.text('Story carregado da rota'), findsOneWidget);
     });
   });
+}
+
+Future<void> _withDelayedImageCacheManager({
+  required Duration delay,
+  required Future<void> Function(BaseCacheManager cacheManager) body,
+}) async {
+  final cacheManager = _DelayedImageCacheManager(delay);
+  try {
+    await body(cacheManager);
+  } finally {
+    await cacheManager.dispose();
+  }
+}
+
+class _DelayedImageCacheManager implements BaseCacheManager {
+  _DelayedImageCacheManager(this.delay);
+
+  final Duration delay;
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Stream<FileResponse> getFileStream(
+    String url, {
+    String? key,
+    Map<String, String>? headers,
+    bool withProgress = false,
+  }) async* {
+    await Future<void>.delayed(delay);
+    throw Exception('Delayed image failure');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

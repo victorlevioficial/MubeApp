@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
@@ -23,9 +24,10 @@ import '../widgets/story_ring_avatar.dart';
 import '../widgets/story_viewer_fallback_state.dart';
 
 class StoryViewerScreen extends ConsumerStatefulWidget {
-  const StoryViewerScreen({super.key, required this.args});
+  const StoryViewerScreen({super.key, required this.args, this.cacheManager});
 
   final StoryViewerRouteArgs args;
+  final BaseCacheManager? cacheManager;
 
   @override
   ConsumerState<StoryViewerScreen> createState() => _StoryViewerScreenState();
@@ -40,6 +42,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   final Set<String> _markedStoryIds = <String>{};
   double _videoProgress = 0;
   bool _isPaused = false;
+  bool _isCurrentImageReady = false;
 
   StoryTrayBundle get _currentBundle => _bundles[_bundleIndex];
   StoryItem get _currentStory => _currentBundle.stories[_storyIndex];
@@ -96,6 +99,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   void _activateCurrentStory() {
     if (_bundles.isEmpty) return;
     final story = _currentStory;
+    _isCurrentImageReady = false;
     _markViewed(story);
     _precacheNextStory();
 
@@ -120,6 +124,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     if (!mounted || _bundles.isEmpty) return;
     if (_currentStory.id != story.id) return;
     if (story.isVideo) return;
+    _isCurrentImageReady = true;
     if (_isPaused) return;
 
     _imageProgressController
@@ -139,7 +144,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     }
     if (nextStory != null && !nextStory.isVideo) {
       precacheImage(
-        CachedNetworkImageProvider(nextStory.mediaUrl),
+        CachedNetworkImageProvider(
+          nextStory.mediaUrl,
+          cacheManager: widget.cacheManager,
+        ),
         context,
         onError: (_, _) {},
       ).ignore();
@@ -162,11 +170,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     if (!_isPaused || _bundles.isEmpty) return;
     setState(() => _isPaused = false);
     if (_currentStory.isVideo) return;
-    // Only resume if the image had already been marked ready (duration > 0
-    // and value < 1 means we have started counting). Otherwise wait for
-    // `_handleImageReady` to start the controller for the first time.
-    if (_imageProgressController.value > 0 &&
-        _imageProgressController.value < 1) {
+    // If the image became ready while the story was paused, the controller is
+    // still at zero. Start it on resume instead of waiting for another decode
+    // callback that will not fire for the same image.
+    if (_isCurrentImageReady && _imageProgressController.value < 1) {
       _imageProgressController.forward();
     }
   }
@@ -176,6 +183,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       _bundleIndex = bundleIndex;
       _storyIndex = storyIndex;
       _isPaused = false;
+      _isCurrentImageReady = false;
       _videoProgress = 0;
     });
     _activateCurrentStory();
@@ -293,6 +301,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       _bundleIndex = nextBundleIndex;
       _storyIndex = nextStoryIndex;
       _isPaused = false;
+      _isCurrentImageReady = false;
       _videoProgress = 0;
     });
     _activateCurrentStory();
@@ -340,6 +349,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                   _StoryMediaStage(
                     key: ValueKey(currentStory.id),
                     story: currentStory,
+                    cacheManager: widget.cacheManager,
                     isPaused: _isPaused,
                     onCompleted: _advanceStory,
                     onProgressChanged: (value) {
@@ -480,6 +490,7 @@ class _StoryMediaStage extends StatefulWidget {
   const _StoryMediaStage({
     super.key,
     required this.story,
+    required this.cacheManager,
     required this.isPaused,
     required this.onCompleted,
     required this.onProgressChanged,
@@ -487,6 +498,7 @@ class _StoryMediaStage extends StatefulWidget {
   });
 
   final StoryItem story;
+  final BaseCacheManager? cacheManager;
   final bool isPaused;
   final VoidCallback onCompleted;
   final ValueChanged<double> onProgressChanged;
@@ -616,6 +628,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
                 !_imageLoaded)
               CachedNetworkImage(
                 imageUrl: thumbnailUrl,
+                cacheManager: widget.cacheManager,
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.low,
               ),
@@ -624,6 +637,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
               duration: const Duration(milliseconds: 200),
               child: CachedNetworkImage(
                 imageUrl: widget.story.mediaUrl,
+                cacheManager: widget.cacheManager,
                 fit: BoxFit.cover,
                 imageBuilder: (context, imageProvider) {
                   _markImageReady();
@@ -660,7 +674,11 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
         fit: StackFit.expand,
         children: [
           if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
-            CachedNetworkImage(imageUrl: thumbnailUrl, fit: BoxFit.cover),
+            CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              cacheManager: widget.cacheManager,
+              fit: BoxFit.cover,
+            ),
           const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
