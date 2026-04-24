@@ -280,8 +280,7 @@ class StoryRepository {
         'viewed_at': FieldValue.serverTimestamp(),
       });
     } on FirebaseException catch (error, stackTrace) {
-      if (error.code == 'permission-denied' ||
-          error.code == 'already-exists') {
+      if (error.code == 'permission-denied' || error.code == 'already-exists') {
         return;
       }
       AppLogger.warning(
