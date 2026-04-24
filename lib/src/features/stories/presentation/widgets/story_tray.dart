@@ -18,6 +18,7 @@ class StoryTray extends StatelessWidget {
     required this.onCreateStory,
     required this.onOpenStoryBundle,
     required this.onOpenCurrentUserStoryOptions,
+    required this.onRefreshPending,
   });
 
   final AppUser currentUser;
@@ -26,6 +27,7 @@ class StoryTray extends StatelessWidget {
   final VoidCallback onCreateStory;
   final void Function(StoryTrayBundle bundle) onOpenStoryBundle;
   final void Function(StoryTrayBundle bundle) onOpenCurrentUserStoryOptions;
+  final VoidCallback onRefreshPending;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,8 @@ class StoryTray extends StatelessWidget {
     final others = storyBundles
         .where((bundle) => !bundle.isCurrentUser)
         .toList(growable: false);
+    final hasPendingProcessing =
+        currentUserBundle == null && pendingProcessingCount > 0;
 
     return SizedBox(
       height: 132,
@@ -58,9 +62,11 @@ class StoryTray extends StatelessWidget {
             photoUrl: currentUser.foto,
             photoPreviewUrl: currentUser.fotoThumb,
             name: currentUser.appDisplayName,
-            onTap: currentUserBundle == null
-                ? onCreateStory
-                : () => onOpenCurrentUserStoryOptions(currentUserBundle),
+            onTap: currentUserBundle != null
+                ? () => onOpenCurrentUserStoryOptions(currentUserBundle)
+                : hasPendingProcessing
+                ? onRefreshPending
+                : onCreateStory,
             onLongPress: onCreateStory,
           ),
           ...others.map(

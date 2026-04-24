@@ -89,6 +89,7 @@ void main() {
                 onCreateStory: onCreateStory,
                 onOpenStoryBundle: onOpenStoryBundle,
                 onOpenCurrentUserStoryOptions: onOpenCurrentUserStoryOptions,
+                onRefreshPending: () {},
               ),
             ),
           ),

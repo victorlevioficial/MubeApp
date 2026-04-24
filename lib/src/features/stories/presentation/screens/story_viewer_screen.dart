@@ -100,18 +100,31 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     _precacheNextStory();
 
     if (story.isVideo) {
-      _imageProgressController.stop();
+      _imageProgressController
+        ..stop()
+        ..value = 0;
       setState(() => _videoProgress = 0);
       return;
     }
 
+    // The image timer is intentionally NOT started here. `_StoryMediaStage`
+    // calls back via `onImageReady` once the bitmap is decoded so the user
+    // always gets the full display duration, even on slow networks.
     _imageProgressController
+      ..stop()
       ..duration = StoryConstants.imageDisplayDuration
       ..value = 0;
+  }
 
-    if (!_isPaused) {
-      _imageProgressController.forward();
-    }
+  void _handleImageReady(StoryItem story) {
+    if (!mounted || _bundles.isEmpty) return;
+    if (_currentStory.id != story.id) return;
+    if (story.isVideo) return;
+    if (_isPaused) return;
+
+    _imageProgressController
+      ..duration = StoryConstants.imageDisplayDuration
+      ..forward();
   }
 
   void _precacheNextStory() {
@@ -149,7 +162,13 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     if (!_isPaused || _bundles.isEmpty) return;
     setState(() => _isPaused = false);
     if (_currentStory.isVideo) return;
-    _imageProgressController.forward();
+    // Only resume if the image had already been marked ready (duration > 0
+    // and value < 1 means we have started counting). Otherwise wait for
+    // `_handleImageReady` to start the controller for the first time.
+    if (_imageProgressController.value > 0 &&
+        _imageProgressController.value < 1) {
+      _imageProgressController.forward();
+    }
   }
 
   void _goToStory({required int bundleIndex, required int storyIndex}) {
@@ -328,6 +347,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                         setState(() => _videoProgress = value);
                       }
                     },
+                    onImageReady: () => _handleImageReady(currentStory),
                   ),
                   Container(
                     decoration: BoxDecoration(
@@ -463,12 +483,14 @@ class _StoryMediaStage extends StatefulWidget {
     required this.isPaused,
     required this.onCompleted,
     required this.onProgressChanged,
+    required this.onImageReady,
   });
 
   final StoryItem story;
   final bool isPaused;
   final VoidCallback onCompleted;
   final ValueChanged<double> onProgressChanged;
+  final VoidCallback onImageReady;
 
   @override
   State<_StoryMediaStage> createState() => _StoryMediaStageState();
@@ -547,9 +569,12 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
     final progress = durationMs <= 0 ? 0.0 : positionMs / durationMs;
     widget.onProgressChanged(progress.clamp(0.0, 1.0));
 
+    // Advance only when the playhead actually reaches the end. The previous
+    // `!isPlaying` check fired `onCompleted` whenever the user paused near
+    // the end of the clip, accidentally skipping to the next story.
     if (!_hasCompleted &&
         durationMs > 0 &&
-        positionMs >= durationMs - 180 &&
+        positionMs >= durationMs &&
         !controller.value.isPlaying) {
       _hasCompleted = true;
       widget.onCompleted();
@@ -567,6 +592,15 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
   void dispose() {
     unawaited(_disposeController());
     super.dispose();
+  }
+
+  void _markImageReady() {
+    if (_imageLoaded) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _imageLoaded) return;
+      setState(() => _imageLoaded = true);
+      widget.onImageReady();
+    });
   }
 
   @override
@@ -592,14 +626,13 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
                 imageUrl: widget.story.mediaUrl,
                 fit: BoxFit.cover,
                 imageBuilder: (context, imageProvider) {
-                  if (!_imageLoaded) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) setState(() => _imageLoaded = true);
-                    });
-                  }
+                  _markImageReady();
                   return Image(image: imageProvider, fit: BoxFit.cover);
                 },
                 errorWidget: (context, url, error) {
+                  // Even on a load error we let the timer run so the viewer
+                  // doesn't get stuck on a broken story forever.
+                  _markImageReady();
                   return const Center(
                     child: Icon(
                       Icons.broken_image_outlined,

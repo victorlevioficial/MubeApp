@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/providers/firebase_providers.dart';
@@ -262,17 +263,32 @@ class StoryRepository {
     final viewerPhoto =
         (userData['foto_thumb'] as String?) ?? userData['foto'] as String?;
 
-    await _firestore
+    final viewRef = _firestore
         .collection(StoryConstants.storiesCollection)
         .doc(story.id)
         .collection(StoryConstants.viewsSubcollection)
-        .doc(uid)
-        .set({
-          'viewer_uid': uid,
-          'viewer_name': viewerName,
-          'viewer_photo': viewerPhoto,
-          'viewed_at': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        .doc(uid);
+
+    try {
+      // Firestore rules only allow `create` for view receipts. A second
+      // viewing of the same story would fall into `update` and trigger a
+      // permission-denied error, so we treat that as a no-op.
+      await viewRef.set({
+        'viewer_uid': uid,
+        'viewer_name': viewerName,
+        'viewer_photo': viewerPhoto,
+        'viewed_at': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (error, stackTrace) {
+      if (error.code == 'permission-denied' || error.code == 'already-exists') {
+        return;
+      }
+      AppLogger.warning(
+        'Falha ao registrar visualizacao do story',
+        error,
+        stackTrace,
+      );
+    }
   }
 
   Future<List<StoryItem>> loadCurrentUserProcessingStories() async {
@@ -771,6 +787,7 @@ class StoryRepository {
   }) async {
     File fullFile;
     File thumbFile;
+    var compressionSucceeded = true;
     try {
       _emitProgress(onProgress, 0.12, 'Otimizando foto');
       fullFile = await ImageCompressor.compressGalleryPhoto(
@@ -778,19 +795,32 @@ class StoryRepository {
         format: ImageFormat.webp,
       );
       thumbFile = await ImageCompressor.compressThumbnail(media.file);
+      compressionSucceeded =
+          fullFile.path != media.file.path && thumbFile.path != media.file.path;
     } catch (e, stack) {
       AppLogger.error('Falha ao comprimir imagem do story', e, stack);
       fullFile = media.file;
       thumbFile = media.file;
+      compressionSucceeded = false;
     }
-    final fullUploadTarget = resolveImageUploadTarget(
-      file: fullFile,
-      basePathWithoutExtension: 'stories_images/$userId/$storyId/full',
-    );
-    final thumbUploadTarget = resolveImageUploadTarget(
-      file: thumbFile,
-      basePathWithoutExtension: 'stories_images/$userId/$storyId/thumb',
-    );
+    final fullUploadTarget = compressionSucceeded
+        ? resolveImageUploadTarget(
+            file: fullFile,
+            basePathWithoutExtension: 'stories_images/$userId/$storyId/full',
+          )
+        : _resolveOriginalImageUploadTarget(
+            file: fullFile,
+            basePathWithoutExtension: 'stories_images/$userId/$storyId/full',
+          );
+    final thumbUploadTarget = compressionSucceeded
+        ? resolveImageUploadTarget(
+            file: thumbFile,
+            basePathWithoutExtension: 'stories_images/$userId/$storyId/thumb',
+          )
+        : _resolveOriginalImageUploadTarget(
+            file: thumbFile,
+            basePathWithoutExtension: 'stories_images/$userId/$storyId/thumb',
+          );
 
     final fullUrl = await _uploadFile(
       file: fullFile,
@@ -861,16 +891,15 @@ class StoryRepository {
     );
     String? thumbUrl;
     if (thumbFile != null) {
-      final thumbUploadTarget = resolveImageUploadTarget(
-        file: thumbFile,
-        basePathWithoutExtension:
-            'stories_videos_thumbs/$userId/$storyId/thumb',
-      );
       try {
+        final webpThumb = await _ensureWebpThumbnail(thumbFile);
+        // The Cloud Function (`onStoryVideoUploaded`) reads thumbnails from
+        // `stories_videos_thumbs/{uid}/{storyId}/thumb.webp`, so the path and
+        // content type are pinned regardless of the source extension.
         thumbUrl = await _uploadFile(
-          file: thumbFile,
-          path: thumbUploadTarget.path,
-          contentType: thumbUploadTarget.contentType,
+          file: webpThumb,
+          path: 'stories_videos_thumbs/$userId/$storyId/thumb.webp',
+          contentType: 'image/webp',
           onProgress: (progress) {
             _emitProgress(
               onProgress,
@@ -889,6 +918,31 @@ class StoryRepository {
     }
 
     return _StoryMediaUploadResult(mediaUrl: videoUrl, thumbnailUrl: thumbUrl);
+  }
+
+  Future<File> _ensureWebpThumbnail(File source) async {
+    if (path.extension(source.path).toLowerCase() == '.webp') {
+      return source;
+    }
+
+    final bytes = await ImageCompressor.compressToBytes(
+      source,
+      maxWidth: ImageCompressor.thumbnailMaxWidth,
+      quality: ImageCompressor.thumbnailQuality,
+      format: ImageFormat.webp,
+    );
+    if (bytes == null || bytes.isEmpty) {
+      return source;
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final outputPath = path.join(
+      tempDir.path,
+      'story_video_thumb_${DateTime.now().millisecondsSinceEpoch}.webp',
+    );
+    final outputFile = File(outputPath);
+    await outputFile.writeAsBytes(bytes);
+    return outputFile;
   }
 
   Future<String> _uploadFile({
@@ -992,6 +1046,44 @@ class StoryRepository {
       ),
     };
   }
+
+  // When compression fails, the original file extension may be HEIC, HEIF, or
+  // some other format whose default resolution would tag it as webp — leading
+  // to a content-type/path mismatch on Storage. Fall back to JPEG, which the
+  // image picker normalizes the input to on most platforms.
+  @visibleForTesting
+  static StoryImageUploadTarget resolveOriginalImageUploadTarget({
+    required File file,
+    required String basePathWithoutExtension,
+  }) {
+    final extension = path.extension(file.path).toLowerCase();
+    return switch (extension) {
+      '.jpg' || '.jpeg' => StoryImageUploadTarget(
+        path: '$basePathWithoutExtension.jpg',
+        contentType: 'image/jpeg',
+      ),
+      '.png' => StoryImageUploadTarget(
+        path: '$basePathWithoutExtension.png',
+        contentType: 'image/png',
+      ),
+      '.webp' => StoryImageUploadTarget(
+        path: '$basePathWithoutExtension.webp',
+        contentType: 'image/webp',
+      ),
+      _ => StoryImageUploadTarget(
+        path: '$basePathWithoutExtension.jpg',
+        contentType: 'image/jpeg',
+      ),
+    };
+  }
+
+  StoryImageUploadTarget _resolveOriginalImageUploadTarget({
+    required File file,
+    required String basePathWithoutExtension,
+  }) => resolveOriginalImageUploadTarget(
+    file: file,
+    basePathWithoutExtension: basePathWithoutExtension,
+  );
 
   String _resolveDisplayName(Map<String, dynamic> userData) {
     final profileType = userData['tipo_perfil'] as String?;

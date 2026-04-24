@@ -124,6 +124,32 @@ void main() {
     });
 
     test(
+      'resolveOriginalImageUploadTarget falls back to jpeg for unknown extensions',
+      () {
+        final target = StoryRepository.resolveOriginalImageUploadTarget(
+          file: File('IMG_1234.HEIC'),
+          basePathWithoutExtension: 'stories_images/user/story/full',
+        );
+
+        expect(target.path, 'stories_images/user/story/full.jpg');
+        expect(target.contentType, 'image/jpeg');
+      },
+    );
+
+    test(
+      'resolveOriginalImageUploadTarget preserves explicit webp uploads',
+      () {
+        final target = StoryRepository.resolveOriginalImageUploadTarget(
+          file: File('story_photo.webp'),
+          basePathWithoutExtension: 'stories_images/user/story/full',
+        );
+
+        expect(target.path, 'stories_images/user/story/full.webp');
+        expect(target.contentType, 'image/webp');
+      },
+    );
+
+    test(
       'loadTray orders the current user first, then favorites, then other authors',
       () async {
         fakeFavoriteRepository.favorites = {'favorite-user'};
