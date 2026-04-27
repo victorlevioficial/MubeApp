@@ -115,8 +115,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
     // Get user location for distance calculation
     final currentUserProfile = ref.read(currentUserProfileProvider).value;
-    final userLat = currentUserProfile?.location?['lat'] as double?;
-    final userLng = currentUserProfile?.location?['lng'] as double?;
+    final userLat = (currentUserProfile?.location?['lat'] as num?)?.toDouble();
+    final userLng = (currentUserProfile?.location?['lng'] as num?)?.toDouble();
 
     final favoritesPage = await ref
         .read(favoriteRepositoryProvider)

@@ -80,12 +80,11 @@ extension _OnboardingProfessionalFlowActions
       itemLabel: (id) => section.labelById[id] ?? id,
     );
 
-    if (result != null) {
-      _updateState(() {
-        _updateRolesForCategory(section.categoryId, result);
-      });
-      ref.read(onboardingFormProvider.notifier).updateRoles(_selectedRoles);
-    }
+    if (!mounted || result == null) return;
+    _updateState(() {
+      _updateRolesForCategory(section.categoryId, result);
+    });
+    ref.read(onboardingFormProvider.notifier).updateRoles(_selectedRoles);
   }
 
   void _nextStep() {

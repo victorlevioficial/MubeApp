@@ -442,12 +442,11 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
                       selectedItems: _selectedServices,
                       searchHint: 'Buscar servico...',
                     );
-                    if (result != null) {
-                      setState(() => _selectedServices = result);
-                      ref
-                          .read(onboardingFormProvider.notifier)
-                          .updateServices(result);
-                    }
+                    if (!mounted || result == null) return;
+                    setState(() => _selectedServices = result);
+                    ref
+                        .read(onboardingFormProvider.notifier)
+                        .updateServices(result);
                   },
                   icon: Icon(
                     _selectedServices.isEmpty ? Icons.add : Icons.edit_outlined,

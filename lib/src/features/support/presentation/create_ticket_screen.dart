@@ -66,6 +66,7 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
         // leaving empty to use original for now, or use max methods
       );
 
+      if (!mounted) return;
       if (image != null) {
         setState(() {
           _attachments.add(File(image.path));

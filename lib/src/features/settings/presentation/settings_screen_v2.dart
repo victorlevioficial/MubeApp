@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -244,9 +242,15 @@ class SettingsScreenV2 extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      unawaited(ref.read(authRepositoryProvider).signOut());
+      final result = await ref.read(authRepositoryProvider).signOut();
       if (context.mounted) {
-        context.go(RoutePaths.login);
+        result.fold(
+          (_) => AppSnackBar.error(
+            context,
+            'Não foi possível sair. Tente novamente.',
+          ),
+          (_) => context.go(RoutePaths.login),
+        );
       }
     }
   }

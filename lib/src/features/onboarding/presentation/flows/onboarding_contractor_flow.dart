@@ -568,7 +568,7 @@ class _OnboardingContractorFlowState
                         selectedItems: selectedAmenityLabels,
                         searchHint: 'Buscar comodidade...',
                       );
-                      if (result == null) return;
+                      if (!mounted || result == null) return;
                       final amenityIds = _amenityIdsFromLabels(result);
                       setState(() => _selectedAmenities = amenityIds);
                       ref

@@ -119,6 +119,7 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   bool shouldFailPublicUsernameUpdate = false;
   bool publicUsernameAvailable = true;
   int signOutCalls = 0;
+  int watchUserCalls = 0;
   int refreshSecurityContextCalls = 0;
   int ensureCurrentUserProfileExistsCalls = 0;
   Either<Failure, Unit> refreshSecurityContextResult = const Right(unit);
@@ -154,6 +155,7 @@ class FakeAuthRepository extends Fake implements AuthRepository {
 
   @override
   Stream<AppUser?> watchUser(String? uid) {
+    watchUserCalls++;
     if (shouldThrow) return Stream.error(Exception('Failed to load user'));
     return Stream.value(_appUser);
   }
@@ -375,6 +377,8 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   final List<int?> discoverFeedPoolTargetHistory = [];
   final List<int?> discoverFeedPoolFastPartialThresholdHistory = [];
   final List<List<FeedItem>> discoverFeedPoolPages = [];
+  double? lastGetUsersByIdsUserLat;
+  double? lastGetUsersByIdsUserLong;
 
   void enqueueMainFeedResponses(List<PaginatedFeedResponse> responses) {
     mainFeedResponses = List<PaginatedFeedResponse>.from(responses);
@@ -621,6 +625,8 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }) async {
     await _maybeWait();
     if (throwError) return Either.left(const ServerFailure(message: 'Failed'));
+    lastGetUsersByIdsUserLat = userLat;
+    lastGetUsersByIdsUserLong = userLong;
     // Retorna items que correspondem aos IDs solicitados
     final allItems = [
       ...nearbyUsers,

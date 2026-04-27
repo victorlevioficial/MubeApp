@@ -262,9 +262,8 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
                 selectedItems: _selectedInstruments,
                 searchHint: 'Buscar instrumento...',
               );
-              if (result != null) {
-                _updateState(() => _selectedInstruments = result);
-              }
+              if (!mounted || result == null) return;
+              _updateState(() => _selectedInstruments = result);
             },
           ),
           const SizedBox(height: AppSpacing.s16),
@@ -332,9 +331,8 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
                 selectedItems: _selectedGenres,
                 searchHint: 'Buscar gênero...',
               );
-              if (result != null) {
-                _updateState(() => _selectedGenres = result);
-              }
+              if (!mounted || result == null) return;
+              _updateState(() => _selectedGenres = result);
             },
           ),
         ],

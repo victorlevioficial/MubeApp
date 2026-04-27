@@ -28,8 +28,11 @@ void main() {
     fakePrecacheService = FakeFeedImagePrecacheService();
   });
 
-  Widget createSubject({Set<String> favorites = const {'fav-1'}}) {
-    final user = TestData.user(uid: 'user-1');
+  Widget createSubject({
+    Set<String> favorites = const {'fav-1'},
+    Map<String, dynamic>? location,
+  }) {
+    final user = TestData.user(uid: 'user-1', location: location);
     fakeAuthRepo.appUser = user;
     fakeAuthRepo.emitUser(FakeFirebaseUser(uid: 'user-1'));
 
@@ -60,7 +63,7 @@ void main() {
     return ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
-        currentUserProfileProvider.overrideWith((ref) => Stream.value(user)),
+        currentUserProfileProvider.overrideWithValue(AsyncData(user)),
         favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepo),
         feedRepositoryProvider.overrideWithValue(fakeFeedRepo),
         feedImagePrecacheServiceProvider.overrideWithValue(fakePrecacheService),
@@ -109,6 +112,27 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('Favorite User'), findsOneWidget);
+    });
+
+    testWidgets('accepts integer location coordinates from profile', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createSubject(
+          location: const {
+            'cidade': 'Sao Paulo',
+            'estado': 'SP',
+            'lat': 0,
+            'lng': -46,
+          },
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Favorite User'), findsOneWidget);
+      expect(fakeFeedRepo.lastGetUsersByIdsUserLat, 0.0);
+      expect(fakeFeedRepo.lastGetUsersByIdsUserLong, -46.0);
     });
 
     testWidgets('navigates to profile when item tapped', (tester) async {
