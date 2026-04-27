@@ -113,6 +113,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     if (user == null) return;
 
     final file = await _mediaPicker.pickAndCropPhoto(context);
+    if (!mounted) return;
     if (file == null) return; // User canceled
 
     setState(() {
@@ -127,13 +128,12 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
         file: file,
       );
 
+      if (!mounted) return;
       setState(() {
         _fotoUrl = urls.full ?? urls.firstAvailable;
       });
 
-      if (mounted) {
-        AppSnackBar.success(context, 'Foto enviada com sucesso!');
-      }
+      AppSnackBar.success(context, 'Foto enviada com sucesso!');
     } catch (e) {
       if (mounted) {
         AppSnackBar.error(context, 'Erro ao enviar foto');

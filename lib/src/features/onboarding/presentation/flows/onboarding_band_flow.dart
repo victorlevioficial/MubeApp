@@ -440,9 +440,8 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
                       selectedItems: _selectedGenres,
                       searchHint: 'Buscar genero...',
                     );
-                    if (result != null) {
-                      setState(() => _selectedGenres = result);
-                    }
+                    if (!mounted || result == null) return;
+                    setState(() => _selectedGenres = result);
                   },
                   icon: Icon(
                     _selectedGenres.isEmpty ? Icons.add : Icons.edit_outlined,

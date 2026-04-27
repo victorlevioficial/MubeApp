@@ -222,6 +222,52 @@ void main() {
         expect(updatedUser!.foto, 'https://example.com/social-avatar.jpg');
       });
 
+      test('refreshes current profile after successful submit', () async {
+        final user = TestData.user(
+          uid: 'user-1',
+          tipoPerfil: AppUserType.professional,
+          cadastroStatus: 'perfil_pendente',
+        );
+        fakeAuthRepository.emitUser(FakeFirebaseUser(uid: 'user-1'));
+        fakeAuthRepository.appUser = user;
+
+        final profileSubscription = container.listen(
+          currentUserProfileProvider,
+          (_, _) {},
+          fireImmediately: true,
+        );
+        addTearDown(profileSubscription.close);
+
+        await container.read(currentUserProfileProvider.future);
+        expect(
+          container.read(currentUserProfileProvider).value?.cadastroStatus,
+          'perfil_pendente',
+        );
+
+        final controller = container.read(
+          onboardingControllerProvider.notifier,
+        );
+        await controller.submitProfileForm(
+          currentUser: user,
+          location: const {
+            'cidade': 'Sao Paulo',
+            'estado': 'SP',
+            'lat': -23.5,
+            'lng': -46.6,
+          },
+          nome: 'Nome Teste',
+          dadosProfissional: const {'nomeArtistico': 'Teste'},
+        );
+
+        await container.read(currentUserProfileProvider.future);
+
+        expect(fakeAuthRepository.watchUserCalls, greaterThan(1));
+        expect(
+          container.read(currentUserProfileProvider).value?.cadastroStatus,
+          'concluido',
+        );
+      });
+
       test(
         'clears persisted onboarding draft after successful submit',
         () async {

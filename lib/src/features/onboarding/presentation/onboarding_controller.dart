@@ -20,8 +20,7 @@ class OnboardingController extends _$OnboardingController {
     required String selectedType,
     required AppUser currentUser,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    await _runGuarded(() async {
       final updatedUser = currentUser.copyWith(
         tipoPerfil: AppUserType.values.firstWhere((e) => e.id == selectedType),
         cadastroStatus: 'perfil_pendente', // Avança o status
@@ -35,8 +34,7 @@ class OnboardingController extends _$OnboardingController {
   }
 
   Future<void> resetToTypeSelection({required AppUser currentUser}) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    await _runGuarded(() async {
       final updatedUser = currentUser.copyWith(
         tipoPerfil: null, // Resetar tipo para forçar nova escolha
         cadastroStatus: 'tipo_pendente', // Retorna status anterior
@@ -62,8 +60,7 @@ class OnboardingController extends _$OnboardingController {
     required String nome,
     String? foto,
   }) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
+    await _runGuarded(() async {
       // 1. Monta o objeto final dependendo do tipo
       // A spec diz que ao concluir, status = 'concluido'
 
@@ -91,8 +88,24 @@ class OnboardingController extends _$OnboardingController {
           .read(authRepositoryProvider)
           .completeOnboardingProfile(updatedUser);
       result.fold((l) => throw l, (r) => null);
+
+      // Force the profile stream to restart after the final Firestore write.
+      // This makes the router evaluate against the completed profile instead
+      // of a stale `perfil_pendente` snapshot.
+      ref.invalidate(currentUserProfileProvider);
+
       await ref.read(onboardingFormProvider.notifier).clearState();
     });
+  }
+
+  Future<void> _runGuarded(Future<void> Function() action) async {
+    final keepAlive = ref.keepAlive();
+    try {
+      state = const AsyncLoading();
+      state = await AsyncValue.guard(action);
+    } finally {
+      keepAlive.close();
+    }
   }
 
   bool _defaultChatOpenForType(AppUserType? userType) {
