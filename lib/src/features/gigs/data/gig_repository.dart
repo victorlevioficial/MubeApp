@@ -85,9 +85,23 @@ class GigRepository {
 
   bool _isSecurityContextFailure(FirebaseException error) {
     final code = error.code.toLowerCase();
-    return code == 'permission-denied' ||
-        code == 'unauthenticated' ||
+    return isExpectedAuthContextFirestoreCode(code) ||
         code == 'failed-precondition';
+  }
+
+  void _logFinalFirestoreError({
+    required String kind,
+    required String operationLabel,
+    required FirebaseException error,
+    required StackTrace stackTrace,
+  }) {
+    final message = 'GigRepository Firestore $kind failed: $operationLabel';
+    if (isExpectedAuthContextFirestoreCode(error.code)) {
+      AppLogger.warning('$message (${error.code})', error, stackTrace, false);
+      return;
+    }
+
+    AppLogger.error(message, error, stackTrace);
   }
 
   Future<T> _runFirestoreRequest<T>(
@@ -103,10 +117,11 @@ class GigRepository {
             _isTransientFirestoreError(error) &&
             attempt < _maxFirestoreRetryAttempts;
         if (!shouldRetry) {
-          AppLogger.error(
-            'GigRepository Firestore request failed: $operationLabel',
-            error,
-            stackTrace,
+          _logFinalFirestoreError(
+            kind: 'request',
+            operationLabel: operationLabel,
+            error: error,
+            stackTrace: stackTrace,
           );
           throw (onFinalError ?? _wrapFirestoreException)(error);
         }
@@ -144,10 +159,11 @@ class GigRepository {
             _isTransientFirestoreError(error) &&
             attempt < (_maxFirestoreRetryAttempts - 1);
         if (!shouldRetry) {
-          AppLogger.error(
-            'GigRepository Firestore stream failed: $operationLabel',
-            error,
-            stackTrace,
+          _logFinalFirestoreError(
+            kind: 'stream',
+            operationLabel: operationLabel,
+            error: error,
+            stackTrace: stackTrace,
           );
           throw _wrapFirestoreException(error);
         }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../utils/app_logger.dart';
+import '../../../auth/data/auth_repository.dart';
 import '../../../feed/domain/feed_item.dart';
 import '../../../feed/presentation/feed_controller.dart';
 import '../../data/story_repository.dart';
@@ -17,6 +18,9 @@ final storyTrayControllerProvider =
 final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
   ref,
 ) async {
+  final uid = ref.watch(currentUserIdProvider);
+  if (uid == null) return const <StoryItem>[];
+
   try {
     return await ref
         .read(storyRepositoryProvider)
@@ -34,6 +38,9 @@ final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
 class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
   @override
   Future<List<StoryTrayBundle>> build() async {
+    final uid = ref.watch(currentUserIdProvider);
+    if (uid == null) return const <StoryTrayBundle>[];
+
     final discoveryOwnerIds = ref.watch(
       feedControllerProvider.select(_discoveryOwnerFingerprint),
     );
@@ -45,6 +52,11 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
   }
 
   Future<void> refresh() async {
+    if (ref.read(currentUserIdProvider) == null) {
+      state = const AsyncData(<StoryTrayBundle>[]);
+      return;
+    }
+
     final discoveryOwnerIds = _discoveryOwnerFingerprint(
       ref.read(feedControllerProvider),
     );
@@ -58,6 +70,10 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
   }
 
   Future<List<StoryTrayBundle>> _loadTray(List<String> ownerIds) async {
+    if (ref.read(currentUserIdProvider) == null) {
+      return const <StoryTrayBundle>[];
+    }
+
     try {
       return await ref
           .read(storyRepositoryProvider)

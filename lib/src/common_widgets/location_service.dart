@@ -230,9 +230,19 @@ class LocationService {
       return cachedAddress!.value;
     }
 
-    final response = await _makeRequest(
-      AppConfig.buildReverseGeocodeUrl(lat, lng),
-    );
+    late final http.Response response;
+    try {
+      response = await _makeRequest(AppConfig.buildReverseGeocodeUrl(lat, lng));
+    } on http.ClientException catch (error, stackTrace) {
+      AppLogger.warning(
+        'Reverse geocoding network error',
+        error,
+        stackTrace,
+        false,
+      );
+      return null;
+    }
+
     if (response.statusCode != 200) {
       throw const LocationServiceException(
         LocationServiceErrorCode.requestFailed,

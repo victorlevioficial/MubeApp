@@ -41,7 +41,7 @@ final class GigsStreamProvider
   }
 }
 
-String _$gigsStreamHash() => r'ed9c7d6a9e944dcac397927333fb171a1ade7cd2';
+String _$gigsStreamHash() => r'e818dab7479d0aff5bc80d93c9206cc6f467cd1f';
 
 @ProviderFor(myGigsStream)
 const myGigsStreamProvider = MyGigsStreamProvider._();
@@ -75,7 +75,7 @@ final class MyGigsStreamProvider
   }
 }
 
-String _$myGigsStreamHash() => r'010fa48c427055f07e6a7090a2c82ed5bf31f8f0';
+String _$myGigsStreamHash() => r'fc11057cf1a1a81526536e33b2eb7206b36a6bbe';
 
 @ProviderFor(gigDetail)
 const gigDetailProvider = GigDetailFamily._();
@@ -126,7 +126,7 @@ final class GigDetailProvider
   }
 }
 
-String _$gigDetailHash() => r'def527d36d3cb26d7f504ffce141a3495faa5fcd';
+String _$gigDetailHash() => r'2ef0bcf27aee20a9705acbf7c099a1830ba7cbfa';
 
 final class GigDetailFamily extends $Family
     with $FunctionalFamilyOverride<Stream<Gig?>, String> {
@@ -203,7 +203,7 @@ final class GigApplicationsProvider
   }
 }
 
-String _$gigApplicationsHash() => r'393350b6c8931f27a3485455e47a303ebb356275';
+String _$gigApplicationsHash() => r'96649fbe4b7f840bbcf4a63a63ab8ec3e059da82';
 
 final class GigApplicationsFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<GigApplication>>, String> {
@@ -262,7 +262,7 @@ final class MyApplicationsProvider
   }
 }
 
-String _$myApplicationsHash() => r'e95eb06011b72c09c316109ebc035d06d81ddaaf';
+String _$myApplicationsHash() => r'b2239b8c0d3cab5baa8393ad098090027d0ba941';
 
 @ProviderFor(hasApplied)
 const hasAppliedProvider = HasAppliedFamily._();
@@ -313,7 +313,7 @@ final class HasAppliedProvider
   }
 }
 
-String _$hasAppliedHash() => r'ac90d5ac3eca82991f524ca6726f4df669f8b085';
+String _$hasAppliedHash() => r'53fcb464630a7dce0f6505636550ee8aa8cc12c6';
 
 final class HasAppliedFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<bool>, String> {
@@ -388,7 +388,7 @@ final class UserReviewsProvider
   }
 }
 
-String _$userReviewsHash() => r'f3e2b33c958aeb0ae658bb037044671c15f3056d';
+String _$userReviewsHash() => r'c1561803921136b8e6156db10e33439e1fa52517';
 
 final class UserReviewsFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<GigReview>>, String> {
@@ -457,7 +457,7 @@ final class UserAverageRatingProvider
   }
 }
 
-String _$userAverageRatingHash() => r'b9b8234fd1f6bcaf4d9de9aae2cee3b8ededde35';
+String _$userAverageRatingHash() => r'c778ffbce0d39c6d6fc734d9fe61611a5f91a5a6';
 
 final class UserAverageRatingFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<double?>, String> {
@@ -534,7 +534,7 @@ final class GigUsersByIdsProvider
   }
 }
 
-String _$gigUsersByIdsHash() => r'dfae2fa093e6064ca144304ea3b8274baff29414';
+String _$gigUsersByIdsHash() => r'34379fb3d5ad527991af2b8895e5d7bd4f8060f7';
 
 final class GigUsersByIdsFamily extends $Family
     with
@@ -597,4 +597,4 @@ final class PendingGigReviewsProvider
   }
 }
 
-String _$pendingGigReviewsHash() => r'8d415e275ce9608edf17016c3ec172111a0539ae';
+String _$pendingGigReviewsHash() => r'd8d715c5781659e8f6917c84086d08ee31c26b19';

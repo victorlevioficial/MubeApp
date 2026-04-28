@@ -14,10 +14,15 @@ bool isTransientFirestoreCode(String code) {
       normalizedCode == 'aborted';
 }
 
-bool isNonRecoverableFirestoreCode(String code) {
+bool isExpectedAuthContextFirestoreCode(String code) {
   final normalizedCode = code.toLowerCase();
   return normalizedCode == 'permission-denied' ||
-      normalizedCode == 'unauthenticated' ||
+      normalizedCode == 'unauthenticated';
+}
+
+bool isNonRecoverableFirestoreCode(String code) {
+  final normalizedCode = code.toLowerCase();
+  return isExpectedAuthContextFirestoreCode(normalizedCode) ||
       normalizedCode == 'invalid-argument' ||
       normalizedCode == 'failed-precondition' ||
       normalizedCode == 'not-found' ||
@@ -84,6 +89,21 @@ class FirestoreResilience {
     return Exception(mapExceptionToFailure(error).message);
   }
 
+  void _logFinalFirestoreError({
+    required String kind,
+    required String operationLabel,
+    required FirebaseException error,
+    required StackTrace stackTrace,
+  }) {
+    final message = '$_scope Firestore $kind failed: $operationLabel';
+    if (isExpectedAuthContextFirestoreCode(error.code)) {
+      AppLogger.warning('$message (${error.code})', error, stackTrace, false);
+      return;
+    }
+
+    AppLogger.error(message, error, stackTrace);
+  }
+
   Future<T> run<T>(
     Future<T> Function() request, {
     required String operationLabel,
@@ -96,10 +116,11 @@ class FirestoreResilience {
         final shouldRetry =
             _isTransientFirestoreError(error) && attempt < _maxRetryAttempts;
         if (!shouldRetry) {
-          AppLogger.error(
-            '$_scope Firestore request failed: $operationLabel',
-            error,
-            stackTrace,
+          _logFinalFirestoreError(
+            kind: 'request',
+            operationLabel: operationLabel,
+            error: error,
+            stackTrace: stackTrace,
           );
           throw (onFinalError ?? _defaultFinalError)(error);
         }
@@ -138,10 +159,11 @@ class FirestoreResilience {
             _isTransientFirestoreError(error) &&
             attempt < (_maxRetryAttempts - 1);
         if (!shouldRetry) {
-          AppLogger.error(
-            '$_scope Firestore stream failed: $operationLabel',
-            error,
-            stackTrace,
+          _logFinalFirestoreError(
+            kind: 'stream',
+            operationLabel: operationLabel,
+            error: error,
+            stackTrace: stackTrace,
           );
           throw (onFinalError ?? _defaultFinalError)(error);
         }

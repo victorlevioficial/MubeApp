@@ -27,6 +27,13 @@ class FavoriteRepository {
     return user.uid;
   }
 
+  void _logReadWarning(String message, Object error, StackTrace stackTrace) {
+    final shouldReport =
+        error is! FirebaseException ||
+        !isExpectedAuthContextFirestoreCode(error.code);
+    AppLogger.warning(message, error, stackTrace, shouldReport);
+  }
+
   /// Loads current user's favorite target ids.
   Future<Set<String>> loadFavorites() async {
     try {
@@ -39,7 +46,7 @@ class FavoriteRepository {
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e, stackTrace) {
       // Keep UI resilient while offline/intermittent.
-      AppLogger.warning('Erro ao carregar favoritos', e, stackTrace);
+      _logReadWarning('Erro ao carregar favoritos', e, stackTrace);
       return {};
     }
   }
@@ -72,7 +79,7 @@ class FavoriteRepository {
         hasMore: hasMore,
       );
     } catch (e, stackTrace) {
-      AppLogger.warning('Erro ao carregar favoritos paginados', e, stackTrace);
+      _logReadWarning('Erro ao carregar favoritos paginados', e, stackTrace);
       return const PaginatedFavoritesResponse.empty();
     }
   }
@@ -115,7 +122,7 @@ class FavoriteRepository {
         }
       }
     } catch (e, stackTrace) {
-      AppLogger.warning(
+      _logReadWarning(
         'Erro ao carregar favoritos recebidos via subcolecao favorites',
         e,
         stackTrace,
@@ -131,7 +138,7 @@ class FavoriteRepository {
 
       _mergeInteractionDocs(byUser: byUser, docs: snapshot.docs);
     } catch (e, stackTrace) {
-      AppLogger.warning(
+      _logReadWarning(
         'Erro ao carregar favoritos recebidos via interactions',
         e,
         stackTrace,
@@ -147,7 +154,7 @@ class FavoriteRepository {
 
       _mergeInteractionDocs(byUser: byUser, docs: snapshot.docs);
     } catch (e, stackTrace) {
-      AppLogger.warning(
+      _logReadWarning(
         'Erro ao carregar favoritos recebidos via interactions legado',
         e,
         stackTrace,
@@ -163,7 +170,7 @@ class FavoriteRepository {
         );
         completedSources += 1;
       } catch (e, stackTrace) {
-        AppLogger.warning(
+        _logReadWarning(
           'Erro ao carregar favoritos recebidos via fallback legado',
           e,
           stackTrace,

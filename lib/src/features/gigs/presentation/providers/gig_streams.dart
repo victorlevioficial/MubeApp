@@ -21,6 +21,9 @@ part 'gig_streams.g.dart';
 
 final gigUsersByStableIdsProvider =
     FutureProvider.family<Map<String, AppUser>, String>((ref, idsKey) {
+      final uid = _currentAuthenticatedUid(ref);
+      if (uid == null) return Future<Map<String, AppUser>>.value(const {});
+
       return ref
           .read(gigRepositoryProvider)
           .getUsersByIds(_decodeGigUserIdsKey(idsKey));
@@ -77,6 +80,12 @@ final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
     }
   });
 
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) {
+    finish('skipped_unauthenticated', items: 0);
+    return Stream.value(const <Gig>[]);
+  }
+
   final source = ref.read(gigRepositoryProvider).watchLatestOpenGigs(limit: 3);
   return source.transform(
     StreamTransformer.fromHandlers(
@@ -94,6 +103,9 @@ final homeGigsPreviewProvider = StreamProvider.autoDispose<List<Gig>>((ref) {
 
 final publicCreatorOpenGigsProvider = StreamProvider.autoDispose
     .family<List<Gig>, String>((ref, creatorId) {
+      final uid = _currentAuthenticatedUid(ref);
+      if (uid == null) return Stream.value(const <Gig>[]);
+
       return ref
           .read(gigRepositoryProvider)
           .watchPublicOpenGigsByCreator(creatorId, limit: 3);
@@ -101,30 +113,40 @@ final publicCreatorOpenGigsProvider = StreamProvider.autoDispose
 
 @riverpod
 Stream<List<Gig>> gigsStream(Ref ref) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Stream.value(const <Gig>[]);
+
   final filters = ref.watch(gigFiltersControllerProvider);
   return ref.watch(gigRepositoryProvider).watchGigs(filters);
 }
 
 @Riverpod(keepAlive: true)
 Stream<List<Gig>> myGigsStream(Ref ref) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Stream.value(const <Gig>[]);
+
   return ref.watch(gigRepositoryProvider).watchMyGigs();
 }
 
 @riverpod
 Stream<Gig?> gigDetail(Ref ref, String gigId) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Stream.value(null);
+
   return ref.watch(gigRepositoryProvider).watchGigById(gigId);
 }
 
 @riverpod
 Stream<List<GigApplication>> gigApplications(Ref ref, String gigId) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Stream.value(const <GigApplication>[]);
+
   return ref.watch(gigRepositoryProvider).watchApplications(gigId);
 }
 
 @Riverpod(keepAlive: true)
 Stream<List<GigApplication>> myApplications(Ref ref) {
-  final uid =
-      ref.watch(currentUserIdProvider) ??
-      ref.read(authRepositoryProvider).currentUser?.uid;
+  final uid = _currentAuthenticatedUid(ref);
   if (uid == null) return Stream.value(const <GigApplication>[]);
 
   final queuedApplications = _queuedGigApplicationsFor(ref, uid);
@@ -143,6 +165,9 @@ Stream<List<GigApplication>> myApplications(Ref ref) {
 
 @riverpod
 Future<bool> hasApplied(Ref ref, String gigId) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Future<bool>.value(false);
+
   if (_queuedGigApplicationFor(ref, gigId) != null) {
     return Future<bool>.value(true);
   }
@@ -151,21 +176,33 @@ Future<bool> hasApplied(Ref ref, String gigId) {
 
 @riverpod
 Stream<List<GigReview>> userReviews(Ref ref, String userId) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Stream.value(const <GigReview>[]);
+
   return ref.watch(gigRepositoryProvider).watchReviewsForUser(userId);
 }
 
 @riverpod
 Future<double?> userAverageRating(Ref ref, String userId) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Future<double?>.value(null);
+
   return ref.watch(gigRepositoryProvider).getAverageRating(userId);
 }
 
 @riverpod
 Future<Map<String, AppUser>> gigUsersByIds(Ref ref, List<String> ids) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Future<Map<String, AppUser>>.value(const {});
+
   return ref.watch(gigRepositoryProvider).getUsersByIds(ids);
 }
 
 @riverpod
 Future<List<GigReviewOpportunity>> pendingGigReviews(Ref ref) {
+  final uid = _currentAuthenticatedUid(ref);
+  if (uid == null) return Future<List<GigReviewOpportunity>>.value(const []);
+
   return ref.watch(gigRepositoryProvider).getPendingReviewsForCurrentUser();
 }
 
@@ -190,9 +227,7 @@ List<String> _decodeGigUserIdsKey(String idsKey) {
 }
 
 GigApplication? _queuedGigApplicationFor(Ref ref, String gigId) {
-  final uid =
-      ref.watch(currentUserIdProvider) ??
-      ref.read(authRepositoryProvider).currentUser?.uid;
+  final uid = _currentAuthenticatedUid(ref);
   if (uid == null || uid.isEmpty) {
     return null;
   }
@@ -246,6 +281,11 @@ GigApplication? _offlineMutationToGigApplication(
     appliedAt: entry.updatedAt,
     gigTitle: entry.gigTitle,
   );
+}
+
+String? _currentAuthenticatedUid(Ref ref) {
+  return ref.watch(currentUserIdProvider) ??
+      ref.read(authRepositoryProvider).currentUser?.uid;
 }
 
 List<GigApplication> _mergeQueuedApplications(
