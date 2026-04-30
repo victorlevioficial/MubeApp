@@ -20,7 +20,14 @@ import {
 
 const db = admin.firestore();
 
-const DAILY_SWIPE_LIMIT = 50;
+/**
+ * Daily MatchPoint swipe quota for free accounts.
+ *
+ * Premium is planned to make this unlimited. When the premium entitlement is
+ * launched, resolveDailySwipeLimit will use users/{uid}.is_premium as the
+ * switch point without changing the public callable contract.
+ */
+export const FREE_DAILY_SWIPE_LIMIT = 50;
 const INTERACTION_EXPIRY_DAYS = 30;
 const MATCH_NOTIFICATION_TYPE = "system";
 const MATCH_NOTIFICATION_ROUTE_PREFIX = "/conversation/";
@@ -951,7 +958,7 @@ async function processMatchpointAction(
       if (!rateLimitResult.allowed) {
         throw new HttpsError(
           "resource-exhausted",
-          `Limite diário de ${DAILY_SWIPE_LIMIT} swipes atingido. ` +
+          `Limite diário de ${rateLimitResult.limit} swipes atingido. ` +
           "Tente novamente amanhã."
         );
       }
@@ -1279,7 +1286,7 @@ export const onMatchpointProfileWritten = onDocumentWritten(
  */
 async function checkAndUpdateRateLimit(
   userId: string
-): Promise<{ allowed: boolean; remainingLikes: number }> {
+): Promise<{ allowed: boolean; remainingLikes: number; limit: number }> {
   const userRef = db.collection("users").doc(userId);
 
   return await db.runTransaction(async (transaction) => {
@@ -1293,6 +1300,7 @@ async function checkAndUpdateRateLimit(
     const now = Timestamp.now();
     const today = new Date(now.toDate().setHours(0, 0, 0, 0));
     const todayTimestamp = Timestamp.fromDate(today);
+    const dailySwipeLimit = resolveDailySwipeLimit(userData);
 
     let dailyLikesCount = readDailySwipeCount(userData);
     const lastLikeDate = readLastLikeDate(userData);
@@ -1301,8 +1309,8 @@ async function checkAndUpdateRateLimit(
       dailyLikesCount = 0;
     }
 
-    if (dailyLikesCount >= DAILY_SWIPE_LIMIT) {
-      return {allowed: false, remainingLikes: 0};
+    if (dailyLikesCount >= dailySwipeLimit) {
+      return {allowed: false, remainingLikes: 0, limit: dailySwipeLimit};
     }
 
     transaction.update(userRef, {
@@ -1315,9 +1323,14 @@ async function checkAndUpdateRateLimit(
 
     return {
       allowed: true,
-      remainingLikes: DAILY_SWIPE_LIMIT - dailyLikesCount - 1,
+      remainingLikes: dailySwipeLimit - dailyLikesCount - 1,
+      limit: dailySwipeLimit,
     };
   });
+}
+
+function resolveDailySwipeLimit(_userData: DocumentData): number {
+  return FREE_DAILY_SWIPE_LIMIT;
 }
 
 /**
@@ -1329,10 +1342,12 @@ async function checkAndUpdateRateLimit(
 function getRemainingLikesSnapshot(userData: DocumentData): {
   remainingLikes: number;
   dailyLikesCount: number;
+  dailySwipeLimit: number;
 } {
   const now = Timestamp.now();
   const today = new Date(now.toDate().setHours(0, 0, 0, 0));
   const lastLikeDate = readLastLikeDate(userData);
+  const dailySwipeLimit = resolveDailySwipeLimit(userData);
   let dailyLikesCount = readDailySwipeCount(userData);
 
   if (!lastLikeDate || lastLikeDate < today) {
@@ -1340,8 +1355,9 @@ function getRemainingLikesSnapshot(userData: DocumentData): {
   }
 
   return {
-    remainingLikes: Math.max(0, DAILY_SWIPE_LIMIT - dailyLikesCount),
+    remainingLikes: Math.max(0, dailySwipeLimit - dailyLikesCount),
     dailyLikesCount,
+    dailySwipeLimit,
   };
 }
 
@@ -1887,7 +1903,7 @@ export const getRemainingLikes = onCall(
 
       return {
         remaining: dailyLikesSnapshot.remainingLikes,
-        limit: DAILY_SWIPE_LIMIT,
+        limit: dailyLikesSnapshot.dailySwipeLimit,
         resetTime: tomorrow.toISOString(),
       };
     } catch (error) {
