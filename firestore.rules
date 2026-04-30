@@ -294,8 +294,10 @@ service cloud.firestore {
           'story_state'
         ]);
 
-      // Only owner can delete their own account
-      allow delete: if request.auth != null && request.auth.uid == userId;
+      // Account deletion must go through deleteAccount Cloud Function so
+      // username cleanup, deletedUsers bookkeeping, Storage cleanup and Auth
+      // deletion stay in one audited flow.
+      allow delete: if false;
 
       // Update: próprio usuário pode atualizar seus dados.
       // - Campos administrativos permanecem bloqueados.
@@ -659,16 +661,6 @@ service cloud.firestore {
         allow read: if request.auth != null;
         allow write: if false;
       }
-    }
-
-    // ================================================================
-    // PROFILES - Coleção pública/global (Counter mirror)
-    // ================================================================
-    match /profiles/{profileId} {
-      allow read: if request.auth != null;
-      
-      // Apenas Cloud Functions podem atualizar
-      allow create, update, delete: if false;
     }
 
     match /publicUsernames/{username} {

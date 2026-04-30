@@ -200,10 +200,10 @@ Future<Map<String, AppUser>> gigUsersByIds(Ref ref, List<String> ids) {
 
 @riverpod
 Future<List<GigReviewOpportunity>> pendingGigReviews(Ref ref) {
-  final uid = _currentAuthenticatedUid(ref);
+  final uid = _currentCompletedProfileUid(ref);
   if (uid == null) return Future<List<GigReviewOpportunity>>.value(const []);
 
-  return ref.watch(gigRepositoryProvider).getPendingReviewsForCurrentUser();
+  return ref.watch(gigRepositoryProvider).getPendingReviewsForUser(uid);
 }
 
 String encodeGigUserIdsKey(Iterable<String> ids) {
@@ -286,6 +286,32 @@ GigApplication? _offlineMutationToGigApplication(
 String? _currentAuthenticatedUid(Ref ref) {
   return ref.watch(currentUserIdProvider) ??
       ref.read(authRepositoryProvider).currentUser?.uid;
+}
+
+String? _currentCompletedProfileUid(Ref ref) {
+  final authState = ref.watch(authStateChangesProvider);
+  if (authState.isLoading || !authState.hasValue) {
+    return null;
+  }
+
+  final authUser = authState.value;
+  if (authUser == null) {
+    return null;
+  }
+
+  final profileState = ref.watch(currentUserProfileProvider);
+  if (profileState.isLoading || !profileState.hasValue) {
+    return null;
+  }
+
+  final profile = profileState.value;
+  if (profile == null ||
+      !profile.isCadastroConcluido ||
+      profile.uid != authUser.uid) {
+    return null;
+  }
+
+  return profile.uid;
 }
 
 List<GigApplication> _mergeQueuedApplications(

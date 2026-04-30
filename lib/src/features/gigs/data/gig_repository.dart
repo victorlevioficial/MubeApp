@@ -279,7 +279,10 @@ class GigRepository {
   }
 
   Future<AppUser?> _loadCurrentProfile() async {
-    final uid = _uid;
+    return _loadProfile(_uid);
+  }
+
+  Future<AppUser?> _loadProfile(String uid) async {
     final doc = await _getDocument(
       _firestore.collection(FirestoreCollections.users).doc(uid),
       operationLabel: 'load_current_profile',
@@ -290,6 +293,13 @@ class GigRepository {
 
   Future<void> _ensureCanInteract() async {
     final profile = await _loadCurrentProfile();
+    if (profile == null || !profile.isCadastroConcluido) {
+      throw Exception('Finalize seu cadastro para usar gigs.');
+    }
+  }
+
+  Future<void> _ensureCanInteractForUser(String uid) async {
+    final profile = await _loadProfile(uid);
     if (profile == null || !profile.isCadastroConcluido) {
       throw Exception('Finalize seu cadastro para usar gigs.');
     }
@@ -1012,14 +1022,25 @@ class GigRepository {
   }
 
   Future<List<GigReviewOpportunity>> getPendingReviewsForCurrentUser() async {
-    await _ensureCanInteract();
+    return getPendingReviewsForUser(_uid);
+  }
+
+  Future<List<GigReviewOpportunity>> getPendingReviewsForUser(
+    String uid,
+  ) async {
+    final stableUid = uid.trim();
+    if (stableUid.isEmpty || _auth.currentUser?.uid != stableUid) {
+      return const [];
+    }
+
+    await _ensureCanInteractForUser(stableUid);
 
     final opportunities = <GigReviewOpportunity>[];
     final userIds = <String>{};
 
     final ownGigs = await _getQuerySnapshot(
       _gigs
-          .where(GigFields.creatorId, isEqualTo: _uid)
+          .where(GigFields.creatorId, isEqualTo: stableUid)
           .where(
             GigFields.status,
             isEqualTo: _gigStatusValue(GigStatus.closed),
@@ -1040,7 +1061,7 @@ class GigRepository {
       for (final applicationDoc in applications.docs) {
         final targetId = applicationDoc.id;
         final alreadyReviewed = await _getDocument(
-          _reviews.doc('${gig.id}_${_uid}_$targetId'),
+          _reviews.doc('${gig.id}_${stableUid}_$targetId'),
           operationLabel: 'pending_reviews_check_creator_review',
         );
         if (alreadyReviewed.exists) continue;
@@ -1058,14 +1079,17 @@ class GigRepository {
     }
 
     try {
-      final acceptedApplications = await _firestore
-          .collectionGroup(FirestoreCollections.gigApplications)
-          .where(GigFields.applicantId, isEqualTo: _uid)
-          .where(
-            GigFields.status,
-            isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
-          )
-          .get();
+      final acceptedApplications = await _getQuerySnapshot(
+        _firestore
+            .collectionGroup(FirestoreCollections.gigApplications)
+            .where(GigFields.applicantId, isEqualTo: stableUid)
+            .where(
+              GigFields.status,
+              isEqualTo: _applicationStatusValue(ApplicationStatus.accepted),
+            ),
+        operationLabel: 'pending_reviews_load_my_accepted_applications',
+        onFinalError: (error) => error,
+      );
 
       for (final doc in acceptedApplications.docs) {
         final gigId = doc.reference.parent.parent?.id;
@@ -1079,7 +1103,7 @@ class GigRepository {
         final gig = Gig.fromFirestore(gigSnapshot);
         if (gig.status != GigStatus.closed) continue;
 
-        final reviewId = '${gig.id}_${_uid}_${gig.creatorId}';
+        final reviewId = '${gig.id}_${stableUid}_${gig.creatorId}';
         final alreadyReviewed = await _getDocument(
           _reviews.doc(reviewId),
           operationLabel: 'pending_reviews_check_participant_review',
