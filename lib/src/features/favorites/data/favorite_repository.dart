@@ -189,21 +189,12 @@ class FavoriteRepository {
 
   /// Reads global like count for a target user.
   ///
-  /// Source of truth is `users/{targetId}`. Legacy fallback to
-  /// `profiles/{targetId}` is preserved for compatibility.
+  /// Source of truth is `users/{targetId}`.
   Future<int> getLikeCount(String targetId) async {
     try {
       final userDoc = await _firestore.collection('users').doc(targetId).get();
       if (userDoc.exists) {
         return _readLikeCount(userDoc.data());
-      }
-
-      final profileDoc = await _firestore
-          .collection('profiles')
-          .doc(targetId)
-          .get();
-      if (profileDoc.exists) {
-        return _readLikeCount(profileDoc.data());
       }
 
       return 0;

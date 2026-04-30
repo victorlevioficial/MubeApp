@@ -274,17 +274,14 @@ void main() {
       expect(count, 3);
     });
 
-    test(
-      'getLikeCount falls back to profiles collection for legacy docs',
-      () async {
-        await fakeFirestore.collection('profiles').doc(tTargetId).set({
-          'likeCount': 5,
-        });
+    test('getLikeCount ignores legacy profiles collection', () async {
+      await fakeFirestore.collection('profiles').doc(tTargetId).set({
+        'likeCount': 5,
+      });
 
-        final count = await repository.getLikeCount(tTargetId);
+      final count = await repository.getLikeCount(tTargetId);
 
-        expect(count, 5);
-      },
-    );
+      expect(count, 0);
+    });
   });
 }
