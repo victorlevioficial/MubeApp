@@ -184,6 +184,8 @@ O Serviço envia notificações push sobre matches, mensagens, atualizações e 
 
 7.4. O MUBE poderá cooperar com autoridades competentes na investigação de atividades ilegais.
 
+7.5. O MUBE adota política de **tolerância zero** contra abuso e exploração sexual infantil (CSAE) e contra qualquer Material de Abuso Sexual Infantil (CSAM). Para detalhes sobre mecanismos de prevenção, denúncia e resposta, consulte os **Padrões de Segurança Infantil** disponíveis em https://mubeapp.com.br/segurancainfantil/.
+
 ---
 
 ## 8. SUSPENSÃO E ENCERRAMENTO DE CONTAS
@@ -709,6 +711,8 @@ Caso o titular entenda que o tratamento de seus dados pessoais não está em con
 10.2. O MUBE não coleta intencionalmente dados pessoais de crianças ou adolescentes (menores de 18 anos), nos termos do art. 14 da LGPD e do Estatuto da Criança e do Adolescente (Lei nº 8.069/1990).
 
 10.3. Caso seja identificado o tratamento indevido de dados de menores, estes serão **imediatamente removidos**. Se você tiver conhecimento de que um menor de 18 anos está utilizando o Serviço, entre em contato pelo e-mail suporte@mubeapp.com.br.
+
+10.4. O MUBE mantém política de **tolerância zero** contra abuso e exploração sexual infantil (CSAE) e contra qualquer Material de Abuso Sexual Infantil (CSAM). Os padrões publicados, mecanismos in-app de denúncia e ponto de contato dedicado a segurança infantil estão disponíveis em https://mubeapp.com.br/segurancainfantil/.
 
 ---
 
