@@ -480,7 +480,7 @@ void main() {
     });
 
     test(
-      'loadCurrentUserProcessingStories returns only active processing docs',
+      'loadCurrentUserProcessingStories returns only active pending docs',
       () async {
         await seedUser(uid: 'current-user', hasActiveStory: true);
         await seedStory(
@@ -507,6 +507,28 @@ void main() {
         );
         await seedStory(
           buildStory(
+            id: 'story-uploading',
+            ownerUid: 'current-user',
+            ownerName: 'Current User',
+            createdAt: baseCreatedAt.add(const Duration(hours: 4)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 4)),
+            mediaType: StoryMediaType.image,
+            status: StoryStatus.uploading,
+          ),
+        );
+        await seedStory(
+          buildStory(
+            id: 'story-failed',
+            ownerUid: 'current-user',
+            ownerName: 'Current User',
+            createdAt: baseCreatedAt.add(const Duration(hours: 5)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 5)),
+            mediaType: StoryMediaType.video,
+            status: StoryStatus.failed,
+          ),
+        );
+        await seedStory(
+          buildStory(
             id: 'story-active',
             ownerUid: 'current-user',
             ownerName: 'Current User',
@@ -529,6 +551,7 @@ void main() {
         final stories = await repository.loadCurrentUserProcessingStories();
 
         expect(stories.map((story) => story.id), [
+          'story-uploading',
           'story-processing-newer',
           'story-processing-older',
         ]);

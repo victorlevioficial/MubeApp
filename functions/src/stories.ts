@@ -1,9 +1,9 @@
-import {onDocumentCreated} from "firebase-functions/v2/firestore";
-import {HttpsError, onCall} from "firebase-functions/v2/https";
-import {onSchedule} from "firebase-functions/v2/scheduler";
-import {onObjectFinalized} from "firebase-functions/v2/storage";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onObjectFinalized } from "firebase-functions/v2/storage";
 import * as admin from "firebase-admin";
-import {getDownloadURL} from "firebase-admin/storage";
+import { getDownloadURL } from "firebase-admin/storage";
 import {
   TranscoderServiceClient,
   protos,
@@ -19,20 +19,25 @@ const MAX_VIDEO_DURATION_SECONDS = 15;
 const MAX_VERTICAL_ASPECT_RATIO = 0.75;
 const STORY_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const EXPIRE_BATCH_SIZE = 100;
+const STORY_VIDEO_DOC_WAIT_MS = 2 * 60 * 1000;
+const STORY_VIDEO_DOC_POLL_MS = 1_000;
 const TRANSCODE_POLL_INTERVAL_MS = 5_000;
 const TRANSCODE_TIMEOUT_MS = 8 * 60 * 1_000;
 const TRANSCODED_FILE_NAME = "master.mp4";
 const VIDEO_JOB_STATE =
   protos.google.cloud.video.transcoder.v1.Job.ProcessingState;
+const DAILY_LIMIT_STORY_STATUSES = ["active", "processing", "uploading"];
+const EXPIRABLE_STORY_STATUSES = ["active", "processing", "uploading"];
+const FINALIZABLE_STORY_STATUSES = new Set(["uploading", "processing"]);
 
 const db = admin.firestore();
 const transcoderClient = new TranscoderServiceClient();
 
 type JobState =
-  protos.google.cloud.video.transcoder.v1.Job.ProcessingState |
-  keyof typeof VIDEO_JOB_STATE |
-  null |
-  undefined;
+  | protos.google.cloud.video.transcoder.v1.Job.ProcessingState
+  | keyof typeof VIDEO_JOB_STATE
+  | null
+  | undefined;
 
 interface StoryOwnerData {
   ownerName: string;
@@ -41,16 +46,33 @@ interface StoryOwnerData {
   ownerType: string;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value) ? value as Record<string, unknown> : {};
+interface StoryUploadMetadata {
+  storyId: string;
+  mediaType: "image" | "video";
+  caption: string | null;
+  durationSeconds: number | null;
+  aspectRatio: number | null;
 }
 
-function firstNonEmptyString(
-  values: unknown[],
-  fallback = ""
-): string {
+interface StoryPublishPayload extends StoryUploadMetadata {
+  mediaUrl: string;
+  thumbnailUrl: string | null;
+}
+
+interface StoryCreationContext {
+  ownerData: StoryOwnerData;
+  dayKey: string;
+  createdAt: admin.firestore.Timestamp;
+  expiresAt: admin.firestore.Timestamp;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function firstNonEmptyString(values: unknown[], fallback = ""): string {
   for (const value of values) {
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim();
@@ -83,6 +105,14 @@ function parseOptionalNumber(value: unknown): number | null {
   return value;
 }
 
+function parseStoryId(value: unknown): string {
+  const storyId = parseRequiredString(value, "storyId");
+  if (!/^[A-Za-z0-9_-]{8,80}$/.test(storyId)) {
+    throw new HttpsError("invalid-argument", "storyId invalido.");
+  }
+  return storyId;
+}
+
 function isSucceededState(state: JobState): boolean {
   return state === VIDEO_JOB_STATE.SUCCEEDED || state === "SUCCEEDED";
 }
@@ -96,21 +126,20 @@ function sleep(ms: number): Promise<void> {
 }
 
 function buildStoryDayKey(date: Date): string {
-  return new Intl.DateTimeFormat(
-    "en-CA",
-    {
-      timeZone: STORY_TIMEZONE,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }
-  ).format(date);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: STORY_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 }
 
-function resolveStoryOwnerData(userData: Record<string, unknown>): StoryOwnerData {
+function resolveStoryOwnerData(
+  userData: Record<string, unknown>,
+): StoryOwnerData {
   const tipoPerfil = firstNonEmptyString(
     [userData.tipo_perfil, userData.tipoPerfil],
-    "profissional"
+    "profissional",
   );
   const profissional = asRecord(userData.profissional);
   const banda = asRecord(userData.banda);
@@ -122,22 +151,22 @@ function resolveStoryOwnerData(userData: Record<string, unknown>): StoryOwnerDat
     case "banda":
       return firstNonEmptyString(
         [banda.nomeBanda, banda.nomeArtistico, userData.nome],
-        "Banda"
+        "Banda",
       );
     case "estudio":
       return firstNonEmptyString(
         [estudio.nomeEstudio, estudio.nomeArtistico, userData.nome],
-        "Estudio"
+        "Estudio",
       );
     case "contratante":
       return firstNonEmptyString(
         [contratante.nomeExibicao, userData.nome],
-        "Contratante"
+        "Contratante",
       );
     default:
       return firstNonEmptyString(
         [profissional.nomeArtistico, userData.nome_artistico, userData.nome],
-        "Profissional"
+        "Profissional",
       );
     }
   })();
@@ -150,29 +179,25 @@ function resolveStoryOwnerData(userData: Record<string, unknown>): StoryOwnerDat
   };
 }
 
-function validateStoryPayload(data: Record<string, unknown>): {
-  storyId: string;
-  mediaType: "image" | "video";
-  mediaUrl: string;
-  thumbnailUrl: string | null;
-  caption: string | null;
-  durationSeconds: number | null;
-  aspectRatio: number | null;
-} {
-  const storyId = parseRequiredString(data.storyId, "storyId");
+function validateStoryUploadMetadata(
+  data: Record<string, unknown>,
+): StoryUploadMetadata {
+  const storyId = parseStoryId(data.storyId);
   const mediaTypeRaw = parseRequiredString(data.mediaType, "mediaType");
-  const mediaType = mediaTypeRaw === "video" ? "video" :
-    mediaTypeRaw === "image" ? "image" : null;
+  const mediaType =
+    mediaTypeRaw === "video"
+      ? "video"
+      : mediaTypeRaw === "image"
+        ? "image"
+        : null;
 
   if (mediaType == null) {
     throw new HttpsError(
       "invalid-argument",
-      "mediaType precisa ser image ou video."
+      "mediaType precisa ser image ou video.",
     );
   }
 
-  const mediaUrl = parseRequiredString(data.mediaUrl, "mediaUrl");
-  const thumbnailUrl = parseOptionalString(data.thumbnailUrl);
   const caption = parseOptionalString(data.caption);
   const durationSeconds = parseOptionalNumber(data.durationSeconds);
   const aspectRatio = parseOptionalNumber(data.aspectRatio);
@@ -181,14 +206,14 @@ function validateStoryPayload(data: Record<string, unknown>): {
     if (durationSeconds == null || durationSeconds <= 0) {
       throw new HttpsError(
         "invalid-argument",
-        "durationSeconds e obrigatorio para video."
+        "durationSeconds e obrigatorio para video.",
       );
     }
 
     if (durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
       throw new HttpsError(
         "invalid-argument",
-        "O video do story pode ter no maximo 15 segundos."
+        "O video do story pode ter no maximo 15 segundos.",
       );
     }
 
@@ -199,7 +224,7 @@ function validateStoryPayload(data: Record<string, unknown>): {
     ) {
       throw new HttpsError(
         "invalid-argument",
-        "O video do story precisa ser vertical."
+        "O video do story precisa ser vertical.",
       );
     }
   }
@@ -207,11 +232,20 @@ function validateStoryPayload(data: Record<string, unknown>): {
   return {
     storyId,
     mediaType,
-    mediaUrl,
-    thumbnailUrl,
     caption,
     durationSeconds,
     aspectRatio,
+  };
+}
+
+function validateStoryPayload(
+  data: Record<string, unknown>,
+): StoryPublishPayload {
+  const metadata = validateStoryUploadMetadata(data);
+  return {
+    ...metadata,
+    mediaUrl: parseRequiredString(data.mediaUrl, "mediaUrl"),
+    thumbnailUrl: parseOptionalString(data.thumbnailUrl),
   };
 }
 
@@ -219,17 +253,18 @@ function ensureStoryMediaOwnership(
   mediaUrl: string,
   uid: string,
   storyId: string,
-  mediaType: "image" | "video"
+  mediaType: "image" | "video",
 ): void {
   const normalizedUrl = decodeURIComponent(mediaUrl).toLowerCase();
-  const expectedRoot = mediaType === "image" ?
-    `stories_images/${uid}/${storyId}/` :
-    `stories_videos_source/${uid}/${storyId}/`;
+  const expectedRoot =
+    mediaType === "image"
+      ? `stories_images/${uid}/${storyId}/`
+      : `stories_videos_source/${uid}/${storyId}/`;
 
   if (!normalizedUrl.includes(expectedRoot.toLowerCase())) {
     throw new HttpsError(
       "permission-denied",
-      "A midia do story nao pertence ao usuario autenticado."
+      "A midia do story nao pertence ao usuario autenticado.",
     );
   }
 }
@@ -238,21 +273,22 @@ function ensureStoryThumbnailOwnership(
   thumbnailUrl: string | null,
   uid: string,
   storyId: string,
-  mediaType: "image" | "video"
+  mediaType: "image" | "video",
 ): void {
   if (!thumbnailUrl) {
     return;
   }
 
   const normalizedUrl = decodeURIComponent(thumbnailUrl).toLowerCase();
-  const expectedRoot = mediaType === "image" ?
-    `stories_images/${uid}/${storyId}/` :
-    `stories_videos_thumbs/${uid}/${storyId}/`;
+  const expectedRoot =
+    mediaType === "image"
+      ? `stories_images/${uid}/${storyId}/`
+      : `stories_videos_thumbs/${uid}/${storyId}/`;
 
   if (!normalizedUrl.includes(expectedRoot.toLowerCase())) {
     throw new HttpsError(
       "permission-denied",
-      "A thumbnail do story nao pertence ao usuario autenticado."
+      "A thumbnail do story nao pertence ao usuario autenticado.",
     );
   }
 }
@@ -269,26 +305,82 @@ async function recomputeStoryState(ownerUid: string): Promise<void> {
   const now = Date.now();
   const activeStories = snapshot.docs.filter((doc) => {
     const expiresAt = doc.data().expires_at;
-    return expiresAt instanceof admin.firestore.Timestamp &&
-      expiresAt.toMillis() > now;
+    return (
+      expiresAt instanceof admin.firestore.Timestamp &&
+      expiresAt.toMillis() > now
+    );
   });
 
   const latestStory = activeStories[0]?.data();
-  await db.collection("users").doc(ownerUid).set({
-    story_state: {
-      has_active_story: activeStories.length > 0,
-      latest_story_id: activeStories[0]?.id ?? null,
-      latest_story_at: latestStory?.created_at ?? null,
-      latest_story_thumbnail: latestStory?.thumbnail_url ?? null,
-      active_story_count: activeStories.length,
-    },
-    updated_at: admin.firestore.FieldValue.serverTimestamp(),
-  }, {merge: true});
+  await db
+    .collection("users")
+    .doc(ownerUid)
+    .set(
+      {
+        story_state: {
+          has_active_story: activeStories.length > 0,
+          latest_story_id: activeStories[0]?.id ?? null,
+          latest_story_at: latestStory?.created_at ?? null,
+          latest_story_thumbnail: latestStory?.thumbnail_url ?? null,
+          active_story_count: activeStories.length,
+        },
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+}
+
+async function buildStoryCreationContext(
+  uid: string,
+): Promise<StoryCreationContext> {
+  const userDoc = await db.collection("users").doc(uid).get();
+  if (!userDoc.exists) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Perfil do usuario nao encontrado.",
+    );
+  }
+
+  const userData = userDoc.data() || {};
+  const accountStatus = firstNonEmptyString([userData.status], "ativo");
+
+  if (accountStatus === "suspenso") {
+    throw new HttpsError(
+      "permission-denied",
+      "Sua conta nao pode publicar stories neste momento.",
+    );
+  }
+
+  const now = new Date();
+  const dayKey = buildStoryDayKey(now);
+  const dayStories = await db
+    .collection("stories")
+    .where("owner_uid", "==", uid)
+    .where("published_day_key", "==", dayKey)
+    .where("status", "in", DAILY_LIMIT_STORY_STATUSES)
+    .limit(MAX_STORIES_PER_DAY)
+    .get();
+
+  if (dayStories.size >= MAX_STORIES_PER_DAY) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Voce atingiu o limite diario de 3 stories.",
+    );
+  }
+
+  return {
+    ownerData: resolveStoryOwnerData(userData),
+    dayKey,
+    createdAt: admin.firestore.Timestamp.now(),
+    expiresAt: admin.firestore.Timestamp.fromDate(
+      new Date(now.getTime() + STORY_LIFETIME_MS),
+    ),
+  };
 }
 
 async function deleteStoryStorageObjects(
   ownerUid: string,
-  storyId: string
+  storyId: string,
 ): Promise<void> {
   const bucket = admin.storage().bucket();
   const prefixes = [
@@ -299,16 +391,16 @@ async function deleteStoryStorageObjects(
   ];
 
   await Promise.allSettled(
-    prefixes.map((prefix) => bucket.deleteFiles({prefix, force: true}))
+    prefixes.map((prefix) => bucket.deleteFiles({ prefix, force: true })),
   );
 }
 
 async function waitForJobCompletion(
-  jobName: string
+  jobName: string,
 ): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
   const deadline = Date.now() + TRANSCODE_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const [job] = await transcoderClient.getJob({name: jobName});
+    const [job] = await transcoderClient.getJob({ name: jobName });
     if (isSucceededState(job.state as JobState)) {
       return job;
     }
@@ -329,22 +421,23 @@ function isAudioRelatedFailure(errorMessage: string): boolean {
 }
 
 function buildStoryTranscodeConfig(
-  includeAudio: boolean
+  includeAudio: boolean,
 ): protos.google.cloud.video.transcoder.v1.IJobConfig {
-  const elementaryStreams: protos.google.cloud.video.transcoder.v1.IElementaryStream[] = [
-    {
-      key: "video-stream0",
-      videoStream: {
-        h264: {
-          profile: "high",
-          heightPixels: 1280,
-          bitrateBps: 3_000_000,
-          frameRate: 30,
-          pixelFormat: "yuv420p",
+  const elementaryStreams: protos.google.cloud.video.transcoder.v1.IElementaryStream[] =
+    [
+      {
+        key: "video-stream0",
+        videoStream: {
+          h264: {
+            profile: "high",
+            heightPixels: 1280,
+            bitrateBps: 3_000_000,
+            frameRate: 30,
+            pixelFormat: "yuv420p",
+          },
         },
       },
-    },
-  ];
+    ];
 
   const muxElementaryStreamKeys = ["video-stream0"];
 
@@ -377,7 +470,7 @@ async function submitAndAwaitStoryTranscodeJob(
   parent: string,
   inputUri: string,
   outputUri: string,
-  includeAudio: boolean
+  includeAudio: boolean,
 ): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
   const [job] = await transcoderClient.createJob({
     parent,
@@ -398,14 +491,14 @@ async function submitAndAwaitStoryTranscodeJob(
 async function transcodeStoryVideoWithFallback(
   parent: string,
   inputUri: string,
-  outputUri: string
+  outputUri: string,
 ): Promise<protos.google.cloud.video.transcoder.v1.IJob> {
   try {
     return await submitAndAwaitStoryTranscodeJob(
       parent,
       inputUri,
       outputUri,
-      true
+      true,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -415,21 +508,16 @@ async function transcodeStoryVideoWithFallback(
 
     console.warn(
       "Story audio pipeline failed, retrying transcode without audio stream.",
-      message
+      message,
     );
-    return submitAndAwaitStoryTranscodeJob(
-      parent,
-      inputUri,
-      outputUri,
-      false
-    );
+    return submitAndAwaitStoryTranscodeJob(parent, inputUri, outputUri, false);
   }
 }
 
 async function createStoryTranscodeJob(
   bucketName: string,
   uid: string,
-  storyId: string
+  storyId: string,
 ): Promise<string | null> {
   const projectId = process.env.GCLOUD_PROJECT;
   if (!projectId) {
@@ -440,7 +528,11 @@ async function createStoryTranscodeJob(
   const inputUri = `gs://${bucketName}/stories_videos_source/${uid}/${storyId}/source.mp4`;
   const outputUri = `gs://${bucketName}/stories_videos_master/${uid}/${storyId}/`;
 
-  const job = await transcodeStoryVideoWithFallback(parent, inputUri, outputUri);
+  const job = await transcodeStoryVideoWithFallback(
+    parent,
+    inputUri,
+    outputUri,
+  );
   return job.name ?? null;
 }
 
@@ -457,73 +549,114 @@ export const publishStory = onCall(
     }
 
     const payload = validateStoryPayload(asRecord(request.data));
-    ensureStoryMediaOwnership(payload.mediaUrl, uid, payload.storyId, payload.mediaType);
+    ensureStoryMediaOwnership(
+      payload.mediaUrl,
+      uid,
+      payload.storyId,
+      payload.mediaType,
+    );
     ensureStoryThumbnailOwnership(
       payload.thumbnailUrl,
       uid,
       payload.storyId,
-      payload.mediaType
+      payload.mediaType,
     );
 
-    const userDoc = await db.collection("users").doc(uid).get();
-    if (!userDoc.exists) {
-      throw new HttpsError("failed-precondition", "Perfil do usuario nao encontrado.");
-    }
-
-    const userData = userDoc.data() || {};
-    const accountStatus = firstNonEmptyString([userData.status], "ativo");
-
-    if (accountStatus === "suspenso") {
-      throw new HttpsError(
-        "permission-denied",
-        "Sua conta nao pode publicar stories neste momento."
-      );
-    }
-
-    const now = new Date();
-    const dayKey = buildStoryDayKey(now);
-    const ownerData = resolveStoryOwnerData(userData);
-    const dayStories = await db
-      .collection("stories")
-      .where("owner_uid", "==", uid)
-      .where("published_day_key", "==", dayKey)
-      .where("status", "in", ["active", "processing"])
-      .limit(MAX_STORIES_PER_DAY)
-      .get();
-
-    if (dayStories.size >= MAX_STORIES_PER_DAY) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "Voce atingiu o limite diario de 3 stories."
-      );
-    }
-
-    const createdAt = admin.firestore.Timestamp.now();
-    const expiresAt = admin.firestore.Timestamp.fromDate(
-      new Date(now.getTime() + STORY_LIFETIME_MS)
-    );
     const status = payload.mediaType === "video" ? "processing" : "active";
+    const storyRef = db.collection("stories").doc(payload.storyId);
+    const existingStory = await storyRef.get();
 
-    await db.collection("stories").doc(payload.storyId).set({
-      id: payload.storyId,
-      owner_uid: uid,
-      owner_name: ownerData.ownerName,
-      owner_photo: ownerData.ownerPhoto,
-      owner_photo_preview: ownerData.ownerPhotoPreview,
-      owner_type: ownerData.ownerType,
-      media_type: payload.mediaType,
-      media_url: payload.mediaUrl,
-      thumbnail_url: payload.thumbnailUrl,
-      caption: payload.caption,
-      status,
-      created_at: createdAt,
-      expires_at: expiresAt,
-      published_day_key: dayKey,
-      duration_seconds: payload.durationSeconds,
-      aspect_ratio: payload.aspectRatio,
-      viewers_count: 0,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    }, {merge: true});
+    if (existingStory.exists) {
+      const existingData = existingStory.data() || {};
+      if (existingData.owner_uid !== uid) {
+        throw new HttpsError(
+          "permission-denied",
+          "Apenas o autor pode finalizar este story.",
+        );
+      }
+
+      const existingMediaType = firstNonEmptyString([existingData.media_type]);
+      if (existingMediaType && existingMediaType !== payload.mediaType) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Tipo de midia diferente do story reservado.",
+        );
+      }
+
+      const existingStatus = firstNonEmptyString([existingData.status]);
+      if (existingStatus === "active") {
+        return {
+          storyId: payload.storyId,
+          status: "active",
+          expiresAt:
+            existingData.expires_at instanceof admin.firestore.Timestamp
+              ? existingData.expires_at.toMillis()
+              : null,
+        };
+      }
+
+      if (!FINALIZABLE_STORY_STATUSES.has(existingStatus)) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Este story nao pode mais ser finalizado.",
+        );
+      }
+
+      await storyRef.set(
+        {
+          media_type: payload.mediaType,
+          media_url: payload.mediaUrl,
+          thumbnail_url: payload.thumbnailUrl,
+          caption: payload.caption,
+          status,
+          duration_seconds: payload.durationSeconds,
+          aspect_ratio: payload.aspectRatio,
+          upload_finished_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      if (status === "active") {
+        await recomputeStoryState(uid);
+      }
+
+      return {
+        storyId: payload.storyId,
+        status,
+        expiresAt:
+          existingData.expires_at instanceof admin.firestore.Timestamp
+            ? existingData.expires_at.toMillis()
+            : null,
+      };
+    }
+
+    const creation = await buildStoryCreationContext(uid);
+
+    await storyRef.set(
+      {
+        id: payload.storyId,
+        owner_uid: uid,
+        owner_name: creation.ownerData.ownerName,
+        owner_photo: creation.ownerData.ownerPhoto,
+        owner_photo_preview: creation.ownerData.ownerPhotoPreview,
+        owner_type: creation.ownerData.ownerType,
+        media_type: payload.mediaType,
+        media_url: payload.mediaUrl,
+        thumbnail_url: payload.thumbnailUrl,
+        caption: payload.caption,
+        status,
+        created_at: creation.createdAt,
+        expires_at: creation.expiresAt,
+        published_day_key: creation.dayKey,
+        duration_seconds: payload.durationSeconds,
+        aspect_ratio: payload.aspectRatio,
+        viewers_count: 0,
+        upload_finished_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     if (status === "active") {
       await recomputeStoryState(uid);
@@ -532,9 +665,74 @@ export const publishStory = onCall(
     return {
       storyId: payload.storyId,
       status,
-      expiresAt: expiresAt.toMillis(),
+      expiresAt: creation.expiresAt.toMillis(),
     };
-  }
+  },
+);
+
+export const beginStoryUpload = onCall(
+  {
+    region: REGION,
+    memory: "256MiB",
+    maxInstances: 10,
+  },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Usuario nao autenticado.");
+    }
+
+    const payload = validateStoryUploadMetadata(asRecord(request.data));
+    const storyRef = db.collection("stories").doc(payload.storyId);
+    const existingStory = await storyRef.get();
+    if (existingStory.exists) {
+      const existingData = existingStory.data() || {};
+      if (existingData.owner_uid === uid) {
+        return {
+          storyId: payload.storyId,
+          status: existingData.status ?? "uploading",
+          expiresAt:
+            existingData.expires_at instanceof admin.firestore.Timestamp
+              ? existingData.expires_at.toMillis()
+              : null,
+        };
+      }
+
+      throw new HttpsError("already-exists", "storyId ja esta em uso.");
+    }
+
+    const creation = await buildStoryCreationContext(uid);
+    const initialStatus =
+      payload.mediaType === "video" ? "processing" : "uploading";
+
+    await storyRef.set({
+      id: payload.storyId,
+      owner_uid: uid,
+      owner_name: creation.ownerData.ownerName,
+      owner_photo: creation.ownerData.ownerPhoto,
+      owner_photo_preview: creation.ownerData.ownerPhotoPreview,
+      owner_type: creation.ownerData.ownerType,
+      media_type: payload.mediaType,
+      media_url: null,
+      thumbnail_url: null,
+      caption: payload.caption,
+      status: initialStatus,
+      created_at: creation.createdAt,
+      expires_at: creation.expiresAt,
+      published_day_key: creation.dayKey,
+      duration_seconds: payload.durationSeconds,
+      aspect_ratio: payload.aspectRatio,
+      viewers_count: 0,
+      upload_started_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      storyId: payload.storyId,
+      status: initialStatus,
+      expiresAt: creation.expiresAt.toMillis(),
+    };
+  },
 );
 
 export const deleteStory = onCall(
@@ -549,7 +747,10 @@ export const deleteStory = onCall(
       throw new HttpsError("unauthenticated", "Usuario nao autenticado.");
     }
 
-    const storyId = parseRequiredString(asRecord(request.data).storyId, "storyId");
+    const storyId = parseRequiredString(
+      asRecord(request.data).storyId,
+      "storyId",
+    );
     const storyRef = db.collection("stories").doc(storyId);
     const storyDoc = await storyRef.get();
 
@@ -561,21 +762,24 @@ export const deleteStory = onCall(
     if (storyData.owner_uid !== uid) {
       throw new HttpsError(
         "permission-denied",
-        "Apenas o autor pode excluir este story."
+        "Apenas o autor pode excluir este story.",
       );
     }
 
-    await storyRef.set({
-      status: "deleted",
-      deleted_at: admin.firestore.FieldValue.serverTimestamp(),
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    }, {merge: true});
+    await storyRef.set(
+      {
+        status: "deleted",
+        deleted_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     await deleteStoryStorageObjects(uid, storyId);
     await recomputeStoryState(uid);
 
-    return {storyId, deleted: true};
-  }
+    return { storyId, deleted: true };
+  },
 );
 
 export const onStoryViewed = onDocumentCreated(
@@ -598,22 +802,29 @@ export const onStoryViewed = onDocumentCreated(
     if (!ownerUid || ownerUid === viewerUid) return;
 
     const viewData = snapshot.data();
-    const viewedAt = viewData.viewed_at instanceof admin.firestore.Timestamp ?
-      viewData.viewed_at :
-      admin.firestore.Timestamp.now();
+    const viewedAt =
+      viewData.viewed_at instanceof admin.firestore.Timestamp
+        ? viewData.viewed_at
+        : admin.firestore.Timestamp.now();
 
     await db.runTransaction(async (transaction) => {
       const currentStoryDoc = await transaction.get(storyRef);
       if (!currentStoryDoc.exists) return;
 
       const currentViewers = currentStoryDoc.data()?.viewers_count;
-      const viewersCount = typeof currentViewers === "number" &&
-        Number.isFinite(currentViewers) ? currentViewers : 0;
+      const viewersCount =
+        typeof currentViewers === "number" && Number.isFinite(currentViewers)
+          ? currentViewers
+          : 0;
 
-      transaction.set(storyRef, {
-        viewers_count: viewersCount + 1,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
+      transaction.set(
+        storyRef,
+        {
+          viewers_count: viewersCount + 1,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
 
       transaction.set(
         db
@@ -627,10 +838,10 @@ export const onStoryViewed = onDocumentCreated(
           last_seen_at: viewedAt,
           updated_at: admin.firestore.FieldValue.serverTimestamp(),
         },
-        {merge: true}
+        { merge: true },
       );
     });
-  }
+  },
 );
 
 export const expireStories = onSchedule(
@@ -647,7 +858,7 @@ export const expireStories = onSchedule(
     for (;;) {
       const snapshot = await db
         .collection("stories")
-        .where("status", "in", ["active", "processing"])
+        .where("status", "in", EXPIRABLE_STORY_STATUSES)
         .where("expires_at", "<=", now)
         .limit(EXPIRE_BATCH_SIZE)
         .get();
@@ -658,32 +869,38 @@ export const expireStories = onSchedule(
 
       const batch = db.batch();
       const ownerIds = new Set<string>();
-      const cleanupTargets: Array<{ownerUid: string; storyId: string}> = [];
+      const cleanupTargets: Array<{ ownerUid: string; storyId: string }> = [];
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
         const ownerUid = firstNonEmptyString([data.owner_uid]);
         if (ownerUid) {
           ownerIds.add(ownerUid);
-          cleanupTargets.push({ownerUid, storyId: doc.id});
+          cleanupTargets.push({ ownerUid, storyId: doc.id });
         }
 
-        batch.set(doc.ref, {
-          status: "expired",
-          expired_at: admin.firestore.FieldValue.serverTimestamp(),
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
-        }, {merge: true});
+        batch.set(
+          doc.ref,
+          {
+            status: "expired",
+            expired_at: admin.firestore.FieldValue.serverTimestamp(),
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
       }
 
       await batch.commit();
       await Promise.allSettled(
         cleanupTargets.map((target) =>
-          deleteStoryStorageObjects(target.ownerUid, target.storyId)
-        )
+          deleteStoryStorageObjects(target.ownerUid, target.storyId),
+        ),
       );
-      await Promise.all(Array.from(ownerIds, (ownerUid) => recomputeStoryState(ownerUid)));
+      await Promise.all(
+        Array.from(ownerIds, (ownerUid) => recomputeStoryState(ownerUid)),
+      );
     }
-  }
+  },
 );
 
 export const onStoryVideoUploaded = onObjectFinalized(
@@ -704,7 +921,7 @@ export const onStoryVideoUploaded = onObjectFinalized(
     if (!objectName || !bucketName) return;
 
     const match = objectName.match(
-      /^stories_videos_source\/([^/]+)\/([^/]+)\/source\.mp4$/
+      /^stories_videos_source\/([^/]+)\/([^/]+)\/source\.mp4$/,
     );
     if (!match) return;
 
@@ -713,18 +930,16 @@ export const onStoryVideoUploaded = onObjectFinalized(
     const storyRef = db.collection("stories").doc(storyId);
 
     try {
-      const storyDeadline = Date.now() + 15_000;
+      const storyDeadline = Date.now() + STORY_VIDEO_DOC_WAIT_MS;
       let storyDoc = await storyRef.get();
 
-      while (
-        Date.now() < storyDeadline &&
-        (!storyDoc.exists || storyDoc.data()?.status === "processing")
-      ) {
+      while (Date.now() < storyDeadline) {
         const storyData = storyDoc.data() || {};
         if (
           storyDoc.exists &&
           storyData.owner_uid === uid &&
-          storyData.status === "processing"
+          (storyData.status === "processing" ||
+            storyData.status === "uploading")
         ) {
           break;
         }
@@ -732,59 +947,100 @@ export const onStoryVideoUploaded = onObjectFinalized(
         if (storyDoc.exists && storyData.owner_uid !== uid) {
           await deleteStoryStorageObjects(uid, storyId);
           console.warn(
-            `Story ${storyId} ignored because it belongs to a different owner.`
+            `Story ${storyId} ignored because it belongs to a different owner.`,
           );
           return;
         }
 
-        await sleep(500);
+        if (
+          storyDoc.exists &&
+          ["active", "deleted", "expired", "failed"].includes(
+            firstNonEmptyString([storyData.status]),
+          )
+        ) {
+          return;
+        }
+
+        await sleep(STORY_VIDEO_DOC_POLL_MS);
         storyDoc = await storyRef.get();
       }
 
       const storyData = storyDoc.data() || {};
       if (!storyDoc.exists || storyData.owner_uid !== uid) {
-        await deleteStoryStorageObjects(uid, storyId);
-        console.warn(`Story ${storyId} ignored because it has no processing doc.`);
+        console.warn(
+          `Story ${storyId} ignored because it has no reserved story doc.`,
+        );
         return;
       }
 
-      if (storyData.status !== "processing") {
+      if (
+        storyData.status !== "processing" &&
+        storyData.status !== "uploading"
+      ) {
         return;
       }
 
-      const transcoderJobName = await createStoryTranscodeJob(bucketName, uid, storyId);
-      const outputFile = admin.storage().bucket(bucketName).file(
-        `stories_videos_master/${uid}/${storyId}/${TRANSCODED_FILE_NAME}`
+      await storyRef.set(
+        {
+          status: "processing",
+          source_uploaded_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
       );
+
+      const transcoderJobName = await createStoryTranscodeJob(
+        bucketName,
+        uid,
+        storyId,
+      );
+      const outputFile = admin
+        .storage()
+        .bucket(bucketName)
+        .file(
+          `stories_videos_master/${uid}/${storyId}/${TRANSCODED_FILE_NAME}`,
+        );
       const mediaUrl = await getDownloadURL(outputFile);
       let thumbnailUrl: string | null = null;
 
       try {
-        const thumbFile = admin.storage().bucket(bucketName).file(
-          `stories_videos_thumbs/${uid}/${storyId}/thumb.webp`
-        );
+        const thumbFile = admin
+          .storage()
+          .bucket(bucketName)
+          .file(`stories_videos_thumbs/${uid}/${storyId}/thumb.webp`);
         thumbnailUrl = await getDownloadURL(thumbFile);
       } catch (error) {
         console.warn("Story thumbnail not found after video upload.", error);
       }
 
-      await db.collection("stories").doc(storyId).set({
-        media_url: mediaUrl,
-        thumbnail_url: thumbnailUrl,
-        status: "active",
-        transcoder_job_name: transcoderJobName,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
+      await db.collection("stories").doc(storyId).set(
+        {
+          media_url: mediaUrl,
+          thumbnail_url: thumbnailUrl,
+          status: "active",
+          transcoder_job_name: transcoderJobName,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
 
       await recomputeStoryState(uid);
     } catch (error) {
       console.error(`Story transcode failed for ${storyId}:`, error);
-      await db.collection("stories").doc(storyId).set({
-        status: "deleted",
-        processing_error: error instanceof Error ? error.message : String(error),
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
+      await db
+        .collection("stories")
+        .doc(storyId)
+        .set(
+          {
+            status: "failed",
+            processing_error:
+              error instanceof Error ? error.message : String(error),
+            processing_failed_at: admin.firestore.FieldValue.serverTimestamp(),
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
       await recomputeStoryState(uid);
     }
-  }
+  },
 );

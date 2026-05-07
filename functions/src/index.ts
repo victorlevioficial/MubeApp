@@ -127,6 +127,7 @@ export {
 
 // Export Stories functions
 export {
+  beginStoryUpload,
   publishStory,
   deleteStory,
   onStoryViewed,

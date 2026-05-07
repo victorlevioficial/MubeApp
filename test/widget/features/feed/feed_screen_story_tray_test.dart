@@ -335,7 +335,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
 
         expect(find.text('Processando'), findsOneWidget);
-        expect(find.text('Seu video esta sendo processado'), findsOneWidget);
+        expect(find.text('Seu story esta sendo preparado'), findsOneWidget);
         expect(find.text('Atualizar'), findsOneWidget);
       },
     );

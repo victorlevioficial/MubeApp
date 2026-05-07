@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum StoryMediaType { image, video }
 
-enum StoryStatus { active, processing, expired, deleted }
+enum StoryStatus { active, processing, uploading, failed, expired, deleted }
 
 class StoryItem {
   const StoryItem({
@@ -140,6 +140,10 @@ class StoryItem {
     switch (raw) {
       case 'processing':
         return StoryStatus.processing;
+      case 'uploading':
+        return StoryStatus.uploading;
+      case 'failed':
+        return StoryStatus.failed;
       case 'expired':
         return StoryStatus.expired;
       case 'deleted':

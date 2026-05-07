@@ -14,6 +14,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
+import '../../../../utils/app_logger.dart';
 import '../../domain/story_constants.dart';
 import '../../domain/story_item.dart';
 import '../../domain/story_tray_bundle.dart';
@@ -383,10 +384,18 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        StoryProgressBar(
-                          itemCount: currentBundle.stories.length,
-                          currentIndex: _storyIndex,
-                          progress: progress,
+                        AnimatedBuilder(
+                          animation: _imageProgressController,
+                          builder: (context, _) {
+                            final animatedProgress = currentStory.isVideo
+                                ? progress
+                                : _imageProgressController.value;
+                            return StoryProgressBar(
+                              itemCount: currentBundle.stories.length,
+                              currentIndex: _storyIndex,
+                              progress: animatedProgress,
+                            );
+                          },
                         ),
                         const SizedBox(height: AppSpacing.s12),
                         Row(
@@ -509,9 +518,12 @@ class _StoryMediaStage extends StatefulWidget {
 }
 
 class _StoryMediaStageState extends State<_StoryMediaStage> {
+  static const Duration _videoInitializeTimeout = Duration(seconds: 12);
+
   VideoPlayerController? _controller;
   bool _hasCompleted = false;
   bool _imageLoaded = false;
+  bool _videoFailed = false;
 
   @override
   void initState() {
@@ -532,6 +544,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
     if (oldWidget.story.id != widget.story.id) {
       _hasCompleted = false;
       _imageLoaded = false;
+      _videoFailed = false;
       unawaited(_disposeController());
       if (widget.story.isVideo) {
         _initializeVideo();
@@ -544,20 +557,39 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
   }
 
   Future<void> _initializeVideo() async {
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.story.mediaUrl),
-    );
-    await controller.initialize();
-    controller.addListener(_handleVideoTick);
+    VideoPlayerController? controller;
+    try {
+      controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.story.mediaUrl),
+      );
+      await controller.initialize().timeout(_videoInitializeTimeout);
+      controller.addListener(_handleVideoTick);
 
-    if (!mounted) {
-      await controller.dispose();
-      return;
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+
+      setState(() {
+        _controller = controller;
+        _videoFailed = false;
+      });
+      await _syncPauseState();
+      widget.onProgressChanged(0);
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao inicializar video do story',
+        error,
+        stackTrace,
+      );
+      await controller?.dispose();
+      if (!mounted) return;
+      setState(() {
+        _controller = null;
+        _videoFailed = true;
+      });
+      widget.onProgressChanged(1);
     }
-
-    setState(() => _controller = controller);
-    await _syncPauseState();
-    widget.onProgressChanged(0);
   }
 
   Future<void> _syncPauseState() async {
@@ -668,6 +700,47 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
     }
 
     final controller = _controller;
+    if (_videoFailed) {
+      final thumbnailUrl = widget.story.thumbnailUrl;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumbnailUrl != null && thumbnailUrl.isNotEmpty)
+            CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              cacheManager: widget.cacheManager,
+              fit: BoxFit.cover,
+            ),
+          ColoredBox(
+            color: AppColors.background.withValues(alpha: 0.72),
+            child: Center(
+              child: Padding(
+                padding: AppSpacing.h24,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.videocam_off_outlined,
+                      color: AppColors.textPrimary,
+                      size: 52,
+                    ),
+                    const SizedBox(height: AppSpacing.s12),
+                    Text(
+                      'Nao foi possivel carregar este video.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (controller == null || !controller.value.isInitialized) {
       final thumbnailUrl = widget.story.thumbnailUrl;
       return Stack(

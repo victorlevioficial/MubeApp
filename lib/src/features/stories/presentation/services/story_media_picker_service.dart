@@ -13,6 +13,7 @@ import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../utils/app_logger.dart';
 import '../../../profile/presentation/services/media_picker_service.dart';
+import '../../../storage/domain/image_compressor.dart';
 import '../../../storage/domain/upload_validator.dart';
 import '../../domain/story_constants.dart';
 import '../../domain/story_item.dart';
@@ -88,14 +89,16 @@ class StoryMediaPickerService {
       source: source,
       maxWidth: 1440,
       imageQuality: 90,
+      requestFullMetadata: false,
     );
     if (picked == null) return null;
 
     final originalFile = File(picked.path);
-    final file = await _cropPhotoToStoryRatio(originalFile);
-    if (file == null) return null;
+    final croppedFile = await _cropPhotoToStoryRatio(originalFile);
+    if (croppedFile == null) return null;
 
     try {
+      final file = await _normalizePhotoForStoryUpload(croppedFile);
       await UploadValidator.validateImage(file);
       final aspectRatio = await _readImageAspectRatio(file);
       if (!StoryMediaPickerService.isSupportedStoryImageAspectRatio(
@@ -123,6 +126,34 @@ class StoryMediaPickerService {
       }
       return null;
     }
+  }
+
+  Future<File> _normalizePhotoForStoryUpload(File file) async {
+    final extension = path.extension(file.path).toLowerCase();
+    if (UploadLimits.allowedImageExtensions.contains(extension)) {
+      return file;
+    }
+
+    final jpegBytes = await ImageCompressor.compressToBytes(
+      file,
+      maxWidth: 1440,
+      quality: 90,
+      format: ImageFormat.jpeg,
+    );
+    if (jpegBytes == null || jpegBytes.isEmpty) {
+      throw const UploadValidationException(
+        'Nao foi possivel preparar essa foto. Tente outra imagem.',
+      );
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final outputPath = path.join(
+      tempDir.path,
+      'story_photo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+    final outputFile = File(outputPath);
+    await outputFile.writeAsBytes(jpegBytes);
+    return outputFile;
   }
 
   Future<StoryMediaSelection?> pickVideoFromSource(

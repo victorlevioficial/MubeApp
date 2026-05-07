@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +15,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../features/favorites/data/favorite_repository.dart';
 import '../../../features/storage/domain/image_compressor.dart';
+import '../../../utils/app_check_refresh_coordinator.dart';
 import '../../../utils/app_logger.dart';
 import '../domain/story_constants.dart';
 import '../domain/story_item.dart';
@@ -30,6 +32,7 @@ final storyRepositoryProvider = Provider<StoryRepository>((ref) {
     ref.read(firebaseFunctionsProvider),
     ref.read(firebaseAuthProvider),
     ref.read(favoriteRepositoryProvider),
+    appCheck: ref.read(firebaseAppCheckProvider),
   );
 });
 
@@ -47,21 +50,27 @@ class StoryRepository {
   static const int _ownerQueryBatchSize = 10;
   static const int _publicStorySnapshotLimit = 120;
   static const int _publicTrayOwnerLimit = 48;
-  static const Duration _uploadNoProgressTimeout = Duration(seconds: 45);
+  static const Duration _uploadNoProgressTimeout = Duration(minutes: 2);
+  static const Duration _imageUploadCompletionTimeout = Duration(minutes: 4);
+  static const Duration _videoUploadCompletionTimeout = Duration(minutes: 10);
+  static const Duration _forcedAppCheckRefreshCooldown = Duration(minutes: 2);
+  static const Duration _throttledAppCheckBackoff = Duration(minutes: 10);
 
   StoryRepository(
     this._firestore,
     this._storage,
     this._functions,
     this._auth,
-    this._favoriteRepository,
-  );
+    this._favoriteRepository, {
+    app_check.FirebaseAppCheck? appCheck,
+  }) : _appCheck = appCheck;
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   final FirebaseFunctions _functions;
   final FirebaseAuth _auth;
   final FavoriteRepository _favoriteRepository;
+  final app_check.FirebaseAppCheck? _appCheck;
 
   String get _uid {
     final currentUser = _auth.currentUser;
@@ -192,32 +201,64 @@ class StoryRepository {
   }) async {
     final uid = _uid;
     final storyId = const Uuid().v4();
-    _emitProgress(onProgress, 0.08, 'Preparando upload');
-    final upload = await _uploadStoryMedia(
-      userId: uid,
-      storyId: storyId,
-      media: media,
-      onProgress: onProgress,
-    );
+    final normalizedCaption = caption?.trim();
+    var didReserveStory = false;
 
-    _emitProgress(onProgress, 0.94, 'Finalizando story');
-    final callable = _functions.httpsCallable('publishStory');
     try {
-      await callable.call({
-        'storyId': storyId,
-        'mediaType': media.mediaType.name,
-        'mediaUrl': upload.mediaUrl,
-        'thumbnailUrl': upload.thumbnailUrl,
-        'caption': caption?.trim(),
-        'durationSeconds': media.durationSeconds,
-        'aspectRatio': media.aspectRatio,
-      });
+      _emitProgress(onProgress, 0.04, 'Validando sessao');
+      await _ensureSecurityContext(operationLabel: 'publicacao de story');
+
+      _emitProgress(onProgress, 0.08, 'Reservando story');
+      await _callFunctionWithRecovery(
+        'beginStoryUpload',
+        data: {
+          'storyId': storyId,
+          'mediaType': media.mediaType.name,
+          'caption': normalizedCaption,
+          'durationSeconds': media.durationSeconds,
+          'aspectRatio': media.aspectRatio,
+        },
+      );
+      didReserveStory = true;
+
+      _emitProgress(onProgress, 0.12, 'Preparando upload');
+      final upload = await _uploadStoryMedia(
+        userId: uid,
+        storyId: storyId,
+        media: media,
+        onProgress: onProgress,
+      );
+
+      if (media.mediaType == StoryMediaType.video) {
+        _emitProgress(onProgress, 1.0, 'Story enviado');
+        return;
+      }
+
+      _emitProgress(onProgress, 0.94, 'Finalizando story');
+      await _callFunctionWithRecovery(
+        'publishStory',
+        data: {
+          'storyId': storyId,
+          'mediaType': media.mediaType.name,
+          'mediaUrl': upload.mediaUrl,
+          'thumbnailUrl': upload.thumbnailUrl,
+          'caption': normalizedCaption,
+          'durationSeconds': media.durationSeconds,
+          'aspectRatio': media.aspectRatio,
+        },
+      );
+      _emitProgress(onProgress, 1.0, 'Story publicado');
     } on FirebaseFunctionsException catch (error, stackTrace) {
       AppLogger.error(
         'Falha ao finalizar publicacao do story',
         error,
         stackTrace,
       );
+      if (await _isStoryAcceptedAfterPublishFailure(storyId, media.mediaType)) {
+        _emitProgress(onProgress, 1.0, 'Story publicado');
+        return;
+      }
+      if (didReserveStory) await _abandonPreparedStory(storyId);
       throw StoryRepositoryException.publishFailed(error.message);
     } on FirebaseException catch (error, stackTrace) {
       AppLogger.error(
@@ -225,22 +266,47 @@ class StoryRepository {
         error,
         stackTrace,
       );
+      if (await _isStoryAcceptedAfterPublishFailure(storyId, media.mediaType)) {
+        _emitProgress(onProgress, 1.0, 'Story publicado');
+        return;
+      }
+      if (didReserveStory) await _abandonPreparedStory(storyId);
       throw StoryRepositoryException.publishFailed(error.message);
+    } on AppCheckRefreshException catch (error, stackTrace) {
+      AppLogger.error(
+        'Falha de App Check ao publicar story',
+        error,
+        stackTrace,
+      );
+      if (didReserveStory) await _abandonPreparedStory(storyId);
+      throw StoryRepositoryException.publishFailed(error.message);
+    } on StoryRepositoryException catch (error) {
+      if (error.code == StoryRepositoryExceptionCode.uploadFailed ||
+          error.code == StoryRepositoryExceptionCode.uploadFileMissing) {
+        if (didReserveStory) await _abandonPreparedStory(storyId);
+      }
+      rethrow;
     } catch (error, stackTrace) {
       AppLogger.error(
         'Falha ao finalizar publicacao do story',
         error,
         stackTrace,
       );
+      if (await _isStoryAcceptedAfterPublishFailure(storyId, media.mediaType)) {
+        _emitProgress(onProgress, 1.0, 'Story publicado');
+        return;
+      }
+      if (didReserveStory) await _abandonPreparedStory(storyId);
       throw StoryRepositoryException.publishFailed();
     }
-    _emitProgress(onProgress, 1.0, 'Story publicado');
   }
 
   Future<void> deleteStory(StoryItem story) async {
-    final callable = _functions.httpsCallable('deleteStory');
     try {
-      await callable.call({'storyId': story.id});
+      await _callFunctionWithRecovery(
+        'deleteStory',
+        data: {'storyId': story.id},
+      );
     } on FirebaseFunctionsException catch (error, stackTrace) {
       AppLogger.error('Falha ao excluir story', error, stackTrace);
       throw StoryRepositoryException.deleteFailed();
@@ -250,6 +316,125 @@ class StoryRepository {
     } catch (error, stackTrace) {
       AppLogger.error('Falha ao excluir story', error, stackTrace);
       throw StoryRepositoryException.deleteFailed();
+    }
+  }
+
+  Future<HttpsCallableResult<dynamic>> _callFunctionWithRecovery(
+    String functionName, {
+    Map<String, dynamic>? data,
+  }) async {
+    final callable = _functions.httpsCallable(functionName);
+
+    try {
+      return await callable.call(data);
+    } on FirebaseFunctionsException catch (error) {
+      if (!_isRecoverableFunctionsError(error)) rethrow;
+
+      AppLogger.warning(
+        '$functionName retornou ${error.code}. Atualizando contexto e tentando novamente.',
+      );
+      await _ensureSecurityContext(
+        operationLabel: 'retry de $functionName',
+        forceAuthRefresh: true,
+      );
+      return await callable.call(data);
+    }
+  }
+
+  Future<void> _ensureSecurityContext({
+    required String operationLabel,
+    bool forceAuthRefresh = false,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw StoryRepositoryException.unauthenticated();
+    }
+
+    if (forceAuthRefresh) {
+      try {
+        await currentUser.getIdToken(true);
+        await currentUser.reload();
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Falha ao atualizar token FirebaseAuth para stories',
+          error,
+          stackTrace,
+          false,
+        );
+      }
+    }
+
+    final appCheck = _appCheck;
+    if (appCheck == null) return;
+
+    await AppCheckRefreshCoordinator.ensureValidTokenOrThrow(
+      appCheck,
+      operationLabel: operationLabel,
+      forcedRefreshCooldown: _forcedAppCheckRefreshCooldown,
+      throttledBackoff: _throttledAppCheckBackoff,
+    );
+  }
+
+  bool _isRecoverableFunctionsError(FirebaseFunctionsException error) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+
+    if (code == 'unauthenticated') return true;
+
+    final mentionsAppCheck = message.contains('app check');
+    return mentionsAppCheck &&
+        (code == 'failed-precondition' || code == 'permission-denied');
+  }
+
+  bool _isRecoverableStorageError(FirebaseException error) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+
+    if (code == 'unauthenticated' || code == 'unauthorized') return true;
+
+    final mentionsAppCheck = message.contains('app check');
+    return mentionsAppCheck &&
+        (code == 'failed-precondition' || code == 'permission-denied');
+  }
+
+  Future<bool> _isStoryAcceptedAfterPublishFailure(
+    String storyId,
+    StoryMediaType mediaType,
+  ) async {
+    try {
+      final doc = await _firestore
+          .collection(StoryConstants.storiesCollection)
+          .doc(storyId)
+          .get();
+      if (!doc.exists) return false;
+      final story = StoryItem.fromJson(doc.data() ?? const {}, id: doc.id);
+      if (story.ownerUid != _auth.currentUser?.uid) return false;
+      if (mediaType == StoryMediaType.video) {
+        return story.status == StoryStatus.processing || story.isActive;
+      }
+      return story.isActive;
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao reconciliar status do story apos erro de publicacao',
+        error,
+        stackTrace,
+      );
+      return false;
+    }
+  }
+
+  Future<void> _abandonPreparedStory(String storyId) async {
+    try {
+      await _callFunctionWithRecovery(
+        'deleteStory',
+        data: {'storyId': storyId},
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao limpar story reservado apos erro de upload',
+        error,
+        stackTrace,
+      );
     }
   }
 
@@ -297,7 +482,16 @@ class StoryRepository {
       final snapshot = await _firestore
           .collection(StoryConstants.storiesCollection)
           .where('owner_uid', isEqualTo: uid)
-          .limit(10)
+          .where(
+            'status',
+            whereIn: [
+              StoryConstants.statusProcessing,
+              StoryConstants.statusUploading,
+            ],
+          )
+          .where('expires_at', isGreaterThan: Timestamp.now())
+          .orderBy('expires_at')
+          .limit(20)
           .get();
 
       final now = DateTime.now();
@@ -307,7 +501,8 @@ class StoryRepository {
               .where(
                 (story) =>
                     story.ownerUid == uid &&
-                    story.status == StoryStatus.processing &&
+                    (story.status == StoryStatus.processing ||
+                        story.status == StoryStatus.uploading) &&
                     story.expiresAt.isAfter(now),
               )
               .toList(growable: false)
@@ -562,6 +757,7 @@ class StoryRepository {
       final snapshot = await _firestore
           .collection('users')
           .where('story_state.has_active_story', isEqualTo: true)
+          .orderBy('story_state.latest_story_at', descending: true)
           .limit(_publicTrayOwnerLimit * 3)
           .get();
 
@@ -873,29 +1069,13 @@ class StoryRepository {
       throw StoryRepositoryException.uploadFileMissing();
     }
 
-    final videoUrl = await _uploadFile(
-      file: media.file,
-      path: 'stories_videos_source/$userId/$storyId/source.mp4',
-      contentType: 'video/mp4',
-      onProgress: (progress) {
-        _emitProgress(
-          onProgress,
-          _progressBetween(
-            progress,
-            start: 0.18,
-            end: thumbFile == null ? 0.9 : 0.86,
-          ),
-          'Enviando video',
-        );
-      },
-    );
     String? thumbUrl;
     if (thumbFile != null) {
       try {
         final webpThumb = await _ensureWebpThumbnail(thumbFile);
-        // The Cloud Function (`onStoryVideoUploaded`) reads thumbnails from
-        // `stories_videos_thumbs/{uid}/{storyId}/thumb.webp`, so the path and
-        // content type are pinned regardless of the source extension.
+        // Upload the thumbnail before the source video. The Storage trigger
+        // starts as soon as source.mp4 is finalized, so this keeps the preview
+        // available when the transcode worker activates the story.
         thumbUrl = await _uploadFile(
           file: webpThumb,
           path: 'stories_videos_thumbs/$userId/$storyId/thumb.webp',
@@ -903,7 +1083,7 @@ class StoryRepository {
           onProgress: (progress) {
             _emitProgress(
               onProgress,
-              _progressBetween(progress, start: 0.86, end: 0.92),
+              _progressBetween(progress, start: 0.18, end: 0.28),
               'Enviando preview',
             );
           },
@@ -916,6 +1096,23 @@ class StoryRepository {
         );
       }
     }
+
+    final videoUrl = await _uploadFile(
+      file: media.file,
+      path: 'stories_videos_source/$userId/$storyId/source.mp4',
+      contentType: 'video/mp4',
+      onProgress: (progress) {
+        _emitProgress(
+          onProgress,
+          _progressBetween(
+            progress,
+            start: thumbUrl == null ? 0.18 : 0.28,
+            end: 0.92,
+          ),
+          'Enviando video',
+        );
+      },
+    );
 
     return _StoryMediaUploadResult(mediaUrl: videoUrl, thumbnailUrl: thumbUrl);
   }
@@ -951,8 +1148,68 @@ class StoryRepository {
     required String contentType,
     void Function(double progress)? onProgress,
   }) async {
+    try {
+      return await _uploadFileOnce(
+        file: file,
+        path: path,
+        contentType: contentType,
+        onProgress: onProgress,
+      );
+    } on FirebaseException catch (error, stackTrace) {
+      if (!_isRecoverableStorageError(error)) {
+        AppLogger.error('Firebase upload error: $path', error, stackTrace);
+        throw _mapUploadFirebaseException(error, contentType);
+      }
+
+      AppLogger.warning(
+        'Upload de story retornou ${error.code}. Atualizando contexto e tentando novamente.',
+        error,
+        stackTrace,
+      );
+      await _ensureSecurityContext(
+        operationLabel: 'retry de upload de story',
+        forceAuthRefresh: true,
+      );
+      try {
+        return await _uploadFileOnce(
+          file: file,
+          path: path,
+          contentType: contentType,
+          onProgress: onProgress,
+        );
+      } on FirebaseException catch (retryError, retryStackTrace) {
+        AppLogger.error(
+          'Firebase upload retry error: $path',
+          retryError,
+          retryStackTrace,
+        );
+        throw _mapUploadFirebaseException(retryError, contentType);
+      }
+    } on TimeoutException catch (error, stackTrace) {
+      AppLogger.error('Upload timeout: $path', error, stackTrace);
+      throw StoryRepositoryException.uploadFailed(
+        _isVideoContentType(contentType)
+            ? 'O envio do video demorou demais. Tente novamente em uma rede melhor ou com um video menor.'
+            : 'O envio da foto demorou demais. Tente novamente em uma rede melhor.',
+      );
+    } on AppCheckRefreshException catch (error, stackTrace) {
+      AppLogger.error('App Check upload error: $path', error, stackTrace);
+      throw StoryRepositoryException.uploadFailed(error.message);
+    } on StoryRepositoryException {
+      rethrow;
+    } catch (e, stack) {
+      AppLogger.error('Upload error: $path', e, stack);
+      throw StoryRepositoryException.uploadFailed();
+    }
+  }
+
+  Future<String> _uploadFileOnce({
+    required File file,
+    required String path,
+    required String contentType,
+    void Function(double progress)? onProgress,
+  }) async {
     StreamSubscription<TaskSnapshot>? progressSubscription;
-    var uploadTimedOut = false;
     try {
       if (!await file.exists()) {
         throw StoryRepositoryException.uploadFileMissing();
@@ -965,8 +1222,9 @@ class StoryRepository {
           .timeout(
             _uploadNoProgressTimeout,
             onTimeout: (sink) {
-              uploadTimedOut = true;
-              unawaited(uploadTask.cancel());
+              AppLogger.warning(
+                'Upload de story sem evento de progresso recente: $path',
+              );
               sink.close();
             },
           )
@@ -977,29 +1235,55 @@ class StoryRepository {
                 : (snapshot.state == TaskState.success ? 1.0 : 0.0);
             onProgress?.call(clampDouble(rawProgress, 0, 1));
           });
-      final snapshot = await uploadTask;
+      final timeout = _uploadCompletionTimeout(contentType);
+      final snapshot = await uploadTask.timeout(
+        timeout,
+        onTimeout: () {
+          unawaited(uploadTask.cancel());
+          throw TimeoutException('Story upload timed out.', timeout);
+        },
+      );
       onProgress?.call(1);
       return await snapshot.ref.getDownloadURL();
-    } on FirebaseException catch (e, stack) {
-      AppLogger.error('Firebase upload error: $path', e, stack);
-      if (uploadTimedOut || e.code == 'canceled') {
-        throw StoryRepositoryException.uploadFailed(
-          contentType.startsWith('video/')
-              ? 'O envio do video ficou sem progresso. Tente novamente em uma rede melhor ou com um video menor.'
-              : 'O envio do arquivo ficou sem progresso. Tente novamente.',
-        );
-      }
-      throw StoryRepositoryException.uploadFailed(
-        'Erro ao enviar arquivo: ${e.message ?? 'tente novamente'}',
-      );
-    } on StoryRepositoryException {
-      rethrow;
-    } catch (e, stack) {
-      AppLogger.error('Upload error: $path', e, stack);
-      throw StoryRepositoryException.uploadFailed();
     } finally {
       await progressSubscription?.cancel();
     }
+  }
+
+  Duration _uploadCompletionTimeout(String contentType) {
+    return _isVideoContentType(contentType)
+        ? _videoUploadCompletionTimeout
+        : _imageUploadCompletionTimeout;
+  }
+
+  bool _isVideoContentType(String contentType) {
+    return contentType.toLowerCase().startsWith('video/');
+  }
+
+  StoryRepositoryException _mapUploadFirebaseException(
+    FirebaseException error,
+    String contentType,
+  ) {
+    final code = error.code.toLowerCase();
+    if (code == 'canceled') {
+      return StoryRepositoryException.uploadFailed(
+        _isVideoContentType(contentType)
+            ? 'O envio do video foi interrompido. Tente novamente em uma rede melhor ou com um video menor.'
+            : 'O envio da foto foi interrompido. Tente novamente.',
+      );
+    }
+
+    if (code == 'permission-denied' ||
+        code == 'unauthorized' ||
+        code == 'unauthenticated') {
+      return StoryRepositoryException.uploadFailed(
+        'Nao foi possivel validar sua sessao para enviar o story. Feche e abra o app, ou faca login novamente.',
+      );
+    }
+
+    return StoryRepositoryException.uploadFailed(
+      'Erro ao enviar arquivo: ${error.message ?? 'tente novamente'}',
+    );
   }
 
   void _emitProgress(

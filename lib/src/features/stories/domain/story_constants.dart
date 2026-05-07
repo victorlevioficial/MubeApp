@@ -14,6 +14,8 @@ abstract final class StoryConstants {
   static const String storySeenAuthorsSubcollection = 'story_seen_authors';
   static const String statusActive = 'active';
   static const String statusProcessing = 'processing';
+  static const String statusUploading = 'uploading';
+  static const String statusFailed = 'failed';
   static const String statusExpired = 'expired';
   static const String statusDeleted = 'deleted';
 

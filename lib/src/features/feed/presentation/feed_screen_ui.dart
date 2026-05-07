@@ -215,7 +215,7 @@ extension _FeedScreenUi on _FeedScreenState {
                         children: [
                           Text(
                             pendingStories.length == 1
-                                ? 'Seu video esta sendo processado'
+                                ? 'Seu story esta sendo preparado'
                                 : '${pendingStories.length} stories estao sendo processados',
                             style: AppTypography.labelLarge.copyWith(
                               color: AppColors.textPrimary,
@@ -223,7 +223,7 @@ extension _FeedScreenUi on _FeedScreenState {
                           ),
                           const SizedBox(height: AppSpacing.s4),
                           Text(
-                            'Ele vai aparecer na bandeja assim que o processamento terminar.',
+                            'Ele vai aparecer na bandeja assim que estiver pronto.',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.textSecondary,
                             ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,9 +24,18 @@ final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
   if (uid == null) return const <StoryItem>[];
 
   try {
-    return await ref
+    final stories = await ref
         .read(storyRepositoryProvider)
         .loadCurrentUserProcessingStories();
+    if (stories.isNotEmpty) {
+      final timer = Timer(const Duration(seconds: 8), () {
+        ref.invalidateSelf();
+        ref.invalidate(storyTrayControllerProvider);
+      });
+      ref.onDispose(timer.cancel);
+      scheduleMicrotask(() => ref.invalidate(storyTrayControllerProvider));
+    }
+    return stories;
   } catch (error, stackTrace) {
     AppLogger.warning(
       'Falha ao carregar stories pendentes do usuario atual',

@@ -722,6 +722,24 @@
                         "collectionGroup":  "users",
                         "queryScope":  "COLLECTION",
                         "fields":  [
+                                      {
+                                          "fieldPath":  "story_state.has_active_story",
+                                          "order":  "ASCENDING"
+                                      },
+                                      {
+                                          "fieldPath":  "story_state.latest_story_at",
+                                          "order":  "DESCENDING"
+                                      },
+                                      {
+                                          "fieldPath":  "__name__",
+                                          "order":  "DESCENDING"
+                                      }
+                                  ]
+                    },
+                    {
+                        "collectionGroup":  "users",
+                        "queryScope":  "COLLECTION",
+                        "fields":  [
                                        {
                                            "fieldPath":  "cadastro_status",
                                            "order":  "ASCENDING"
