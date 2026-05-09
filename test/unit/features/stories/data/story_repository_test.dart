@@ -288,6 +288,31 @@ void main() {
     );
 
     test(
+      'loadTray keeps global active stories when user story state is stale',
+      () async {
+        await seedUser(uid: 'current-user');
+        await seedUser(uid: 'stale-state-user', hasActiveStory: true);
+        await seedUser(uid: 'global-active-user');
+
+        await seedStory(
+          buildStory(
+            id: 'story-global-active',
+            ownerUid: 'global-active-user',
+            ownerName: 'Global Active User',
+            createdAt: baseCreatedAt.add(const Duration(hours: 2)),
+            expiresAt: baseExpiresAt.add(const Duration(hours: 2)),
+          ),
+        );
+
+        final bundles = await repository.loadTray();
+
+        expect(bundles.map((bundle) => bundle.ownerUid), [
+          'global-active-user',
+        ]);
+      },
+    );
+
+    test(
       'loadTray keeps active public authors even when profile filters would hide them',
       () async {
         await seedUser(uid: 'current-user');

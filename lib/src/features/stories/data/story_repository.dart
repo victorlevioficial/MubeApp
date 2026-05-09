@@ -707,11 +707,17 @@ class StoryRepository {
   }
 
   Future<Set<String>> _loadPublicOwnerIds({required Timestamp now}) async {
-    final ownerIdsFromUserState = await _loadPublicOwnerIdsFromUserState();
-    if (ownerIdsFromUserState.isNotEmpty) {
-      return ownerIdsFromUserState;
-    }
+    final results = await Future.wait([
+      _loadPublicOwnerIdsFromUserState(),
+      _loadPublicOwnerIdsFromGlobalSnapshot(now: now),
+    ]);
 
+    return <String>{...results[0], ...results[1]};
+  }
+
+  Future<Set<String>> _loadPublicOwnerIdsFromGlobalSnapshot({
+    required Timestamp now,
+  }) async {
     try {
       final snapshot = await _firestore
           .collection(StoryConstants.storiesCollection)
