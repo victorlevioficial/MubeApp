@@ -33,7 +33,6 @@ import '../features/matchpoint/presentation/screens/swipe_history_screen.dart';
 import '../features/notifications/presentation/notification_list_screen.dart';
 import '../features/onboarding/presentation/onboarding_form_screen.dart';
 import '../features/onboarding/presentation/onboarding_type_screen.dart';
-import '../features/onboarding/providers/notification_permission_prompt_provider.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/invites_screen.dart';
 import '../features/profile/presentation/public_profile_screen.dart';
@@ -41,7 +40,7 @@ import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/addresses_screen.dart';
 import '../features/settings/presentation/blocked_users_screen.dart';
 import '../features/settings/presentation/privacy_settings_screen.dart';
-import '../features/settings/presentation/settings_screen_v2.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../features/splash/presentation/splash_screen.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../features/stories/domain/story_viewer_route_args.dart';
@@ -86,7 +85,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     (_, _) => notifier.notify(),
   );
   ref.listen(splashFinishedProvider, (_, _) => notifier.notify());
-  ref.listen(notificationPermissionPromptProvider, (_, _) => notifier.notify());
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
@@ -328,9 +326,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
               path: RoutePaths.settings,
               pageBuilder: (context, state) => NoTransitionPage(
                 key: state.pageKey,
-                // SettingsScreenV2 is the redesigned clean version.
-                // The original SettingsScreen is preserved for reference.
-                child: const SettingsScreenV2(),
+                child: const SettingsScreen(),
               ),
               routes: [
                 GoRoute(

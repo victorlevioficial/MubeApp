@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +12,6 @@ import '../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
-import '../../../design_system/foundations/tokens/app_effects.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
@@ -24,17 +21,8 @@ import '../../auth/domain/user_type.dart';
 import '../../auth/presentation/account_deletion_provider.dart';
 import '../../matchpoint/presentation/widgets/matchpoint_highlight_card.dart';
 import 'widgets/bento_header.dart';
-import 'widgets/neon_settings_tile.dart';
-import 'widgets/settings_group.dart';
 
-/// Professional Settings screen with enhanced UI/UX
-///
-/// Features:
-/// - Modern bento grid header with stats
-/// - Refined settings groups with better visual hierarchy
-/// - Professional spacing and typography
-/// - Smooth interactions and animations
-/// - Clear visual separation between sections
+/// Settings screen used by the main app.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -47,158 +35,176 @@ class SettingsScreen extends ConsumerWidget {
     final canChangePassword = _supportsPasswordReset(authUser);
     final displayPreferences = ref.watch(appDisplayPreferencesProvider);
     final selectedLanguageId = _languageOptionIdFor(displayPreferences.locale);
+    final userType = ref.watch(
+      currentUserProfileProvider.select((s) => s.value?.tipoPerfil),
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppAppBar(title: l10n.settings_title, showBackButton: false),
-      extendBodyBehindAppBar: false,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.s16,
-          vertical: AppSpacing.s12,
+          vertical: AppSpacing.s8,
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.s4),
             const BentoHeader(),
             const SizedBox(height: AppSpacing.s16),
+
             MatchpointHighlightCard(
               user: ref.watch(currentUserProfileProvider).value,
               onTap: () => context.push(RoutePaths.matchpoint),
             ),
-            const SizedBox(height: AppSpacing.s40),
-            SettingsGroup(
-              title: l10n.settings_account,
+            const SizedBox(height: AppSpacing.s32),
+
+            _SectionLabel(label: l10n.settings_account.toUpperCase()),
+            const SizedBox(height: AppSpacing.s8),
+            _SettingsCard(
               children: [
-                NeonSettingsTile(
-                  icon: Icons.person_outline,
+                _SettingsTile(
+                  icon: Icons.person_outline_rounded,
                   title: l10n.profile_edit_title,
                   onTap: () => context.push(RoutePaths.profileEdit),
-                  customAccentColor: AppColors.primary,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.work_outline_rounded,
                   title: l10n.settings_my_gigs,
                   subtitle: l10n.settings_my_gigs_subtitle,
                   onTap: () => context.push(RoutePaths.settingsMyGigs),
-                  customAccentColor: AppColors.warning,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.assignment_outlined,
                   title: l10n.settings_my_applications,
                   subtitle: l10n.settings_my_applications_subtitle,
                   onTap: () => context.push(RoutePaths.settingsMyApplications),
-                  customAccentColor: AppColors.info,
                 ),
-                NeonSettingsTile(
-                  icon: Icons.favorite_outline,
+                _SettingsTile(
+                  icon: Icons.favorite_outline_rounded,
                   title: l10n.settings_favorites,
                   onTap: () => context.push(RoutePaths.favorites),
-                  customAccentColor: AppColors.primary,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.notifications_none_rounded,
                   title: l10n.settings_notifications,
                   onTap: () => context.push(RoutePaths.notifications),
-                  customAccentColor: AppColors.info,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.location_on_outlined,
                   title: l10n.settings_addresses,
                   subtitle: l10n.settings_addresses_subtitle,
                   onTap: () => context.push(RoutePaths.addresses),
-                  customAccentColor: AppColors.info,
                 ),
-                if (ref.watch(
-                      currentUserProfileProvider.select(
-                        (s) => s.value?.tipoPerfil,
-                      ),
-                    ) ==
-                    AppUserType.band)
-                  NeonSettingsTile(
+                if (userType == AppUserType.band)
+                  _SettingsTile(
                     icon: Icons.groups_outlined,
                     title: l10n.settings_band_management,
                     subtitle: l10n.settings_band_management_subtitle,
                     onTap: () => context.push(RoutePaths.invites),
-                    customAccentColor: AppColors.warning,
                   )
                 else
-                  NeonSettingsTile(
-                    icon: Icons.mail_outline,
+                  _SettingsTile(
+                    icon: Icons.mail_outline_rounded,
                     title: l10n.settings_my_bands,
                     subtitle: l10n.settings_my_bands_subtitle,
                     onTap: () => context.push(RoutePaths.invites),
-                    customAccentColor: AppColors.warning,
                   ),
                 if (canChangePassword)
-                  NeonSettingsTile(
-                    icon: Icons.lock_outline,
+                  _SettingsTile(
+                    icon: Icons.lock_outline_rounded,
                     title: l10n.settings_change_password,
                     onTap: () => _changePassword(context, ref),
-                    customAccentColor: AppColors.info,
                   ),
-                NeonSettingsTile(
-                  icon: Icons.public,
+                _SettingsTile(
+                  icon: Icons.shield_outlined,
                   title: l10n.settings_privacy_visibility,
                   subtitle: l10n.settings_privacy_visibility_subtitle,
                   onTap: () => context.push(RoutePaths.privacySettings),
-                  customAccentColor: AppColors.primary,
                 ),
               ],
             ),
-            SettingsGroup(
-              title: l10n.settings_other,
+            const SizedBox(height: AppSpacing.s24),
+
+            _SectionLabel(label: l10n.settings_other.toUpperCase()),
+            const SizedBox(height: AppSpacing.s8),
+            _SettingsCard(
               children: [
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.language_rounded,
                   title: l10n.settings_app_language,
-                  subtitle: _labelForLanguageOptionId(l10n, selectedLanguageId),
+                  valueText: _labelForLanguageOptionId(
+                    l10n,
+                    selectedLanguageId,
+                  ),
                   onTap: () => _selectLanguage(
                     context,
                     ref,
                     selectedLanguageId: selectedLanguageId,
                   ),
-                  customAccentColor: AppColors.info,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.help_outline_rounded,
                   title: l10n.settings_help,
                   onTap: () => context.push(RoutePaths.support),
-                  customAccentColor: AppColors.info,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.star_outline_rounded,
                   title: l10n.settings_rate_app,
                   subtitle: l10n.settings_rate_app_subtitle,
                   onTap: () => _requestStoreReview(context, ref),
-                  customAccentColor: AppColors.warning,
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.description_outlined,
                   title: l10n.settings_terms_of_use,
                   onTap: () =>
                       context.push(RoutePaths.legalDetail('termsOfUse')),
-                  customAccentColor: AppColors.textSecondary.withValues(
-                    alpha: 0.6,
-                  ),
                 ),
-                NeonSettingsTile(
+                _SettingsTile(
                   icon: Icons.privacy_tip_outlined,
                   title: l10n.settings_privacy_policy,
                   onTap: () =>
                       context.push(RoutePaths.legalDetail('privacyPolicy')),
-                  customAccentColor: AppColors.textSecondary.withValues(
-                    alpha: 0.6,
-                  ),
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.s8),
-            _LogoutSection(
-              onLogout: () => _confirmLogout(context, ref),
-              onDelete: () => _confirmDelete(context, ref),
+            const SizedBox(height: AppSpacing.s24),
+
+            _SettingsCard(
+              children: [
+                _SettingsTile(
+                  icon: Icons.logout_rounded,
+                  title: l10n.settings_logout_account,
+                  onTap: () => _confirmLogout(context, ref),
+                  showChevron: false,
+                ),
+              ],
             ),
+            const SizedBox(height: AppSpacing.s12),
+
+            Center(
+              child: TextButton(
+                onPressed: () => _confirmDelete(context, ref),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s16,
+                    vertical: AppSpacing.s8,
+                  ),
+                  foregroundColor: AppColors.error,
+                  overlayColor: AppColors.error,
+                ),
+                child: Text(
+                  l10n.settings_delete_account,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.error.withValues(alpha: 0.7),
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.error.withValues(alpha: 0.35),
+                  ),
+                ),
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.s48),
           ],
         ),
@@ -219,9 +225,15 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (confirm == true) {
-      unawaited(ref.read(authRepositoryProvider).signOut());
+      final result = await ref.read(authRepositoryProvider).signOut();
       if (context.mounted) {
-        context.go(RoutePaths.login);
+        result.fold(
+          (_) => AppSnackBar.error(
+            context,
+            'Não foi possível sair. Tente novamente.',
+          ),
+          (_) => context.go(RoutePaths.login),
+        );
       }
     }
   }
@@ -362,7 +374,6 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (confirm != true) return;
-
     if (!context.mounted) return;
     ref.read(accountDeletionInProgressProvider.notifier).start();
     AppSnackBar.info(context, l10n.settings_delete_in_progress);
@@ -382,8 +393,6 @@ class SettingsScreen extends ConsumerWidget {
         (_) async {
           ref.invalidate(authStateChangesProvider);
           ref.invalidate(currentUserProfileProvider);
-          // Reset in-progress state on success too (was previously only
-          // cleared on failure, leaking the flag across sessions).
           ref.read(accountDeletionInProgressProvider.notifier).clear();
           AppSnackBar.success(context, l10n.settings_delete_success);
         },
@@ -433,7 +442,6 @@ class SettingsScreen extends ConsumerWidget {
     if (message.startsWith(exceptionPrefix)) {
       return message.substring(exceptionPrefix.length).trim();
     }
-
     return message.trim();
   }
 }
@@ -510,139 +518,10 @@ class _DeleteAccountConfirmDialogState
 
 bool _supportsPasswordReset(User? user) {
   if (user == null) return false;
-
-  // Password reset only applies to accounts that authenticate with
-  // Firebase email/password. Social-only providers like Apple should not
-  // expose this action in settings.
   final providerIds = user.providerData
       .map((provider) => provider.providerId)
       .toSet();
-
   return providerIds.contains('password');
-}
-
-class _LogoutSection extends StatelessWidget {
-  final VoidCallback onLogout;
-  final VoidCallback onDelete;
-
-  const _LogoutSection({required this.onLogout, required this.onDelete});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      children: [
-        _LogoutButton(onTap: onLogout),
-        const SizedBox(height: AppSpacing.s16),
-        TextButton(
-          onPressed: onDelete,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s16,
-              vertical: AppSpacing.s8,
-            ),
-          ),
-          child: Text(
-            l10n.settings_delete_account,
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.error.withValues(alpha: 0.9),
-              decoration: TextDecoration.underline,
-              decorationColor: AppColors.error.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LogoutButton extends StatefulWidget {
-  final VoidCallback onTap;
-
-  const _LogoutButton({required this.onTap});
-
-  @override
-  State<_LogoutButton> createState() => _LogoutButtonState();
-}
-
-class _LogoutButtonState extends State<_LogoutButton> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return AnimatedContainer(
-      duration: AppEffects.fast,
-      curve: Curves.easeOut,
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: _isPressed
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.surface.withValues(alpha: 0.8),
-                  AppColors.surface.withValues(alpha: 0.6),
-                ],
-              )
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.surface.withValues(alpha: 0.7),
-                  AppColors.surface.withValues(alpha: 0.5),
-                ],
-              ),
-        borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: _isPressed
-              ? AppColors.textPrimary.withValues(alpha: 0.12)
-              : AppColors.textPrimary.withValues(alpha: 0.08),
-          width: 1,
-        ),
-        boxShadow: _isPressed
-            ? null
-            : [
-                BoxShadow(
-                  color: AppColors.background.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.onTap,
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          borderRadius: AppRadius.all16,
-          splashColor: AppColors.textPrimary.withValues(alpha: 0.05),
-          highlightColor: AppColors.textPrimary.withValues(alpha: 0.03),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.logout_rounded,
-                color: AppColors.textPrimary.withValues(alpha: 0.9),
-                size: 20,
-              ),
-              const SizedBox(width: AppSpacing.s12),
-              Text(
-                l10n.settings_logout_account,
-                style: AppTypography.titleMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.1,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 const String _languageOptionPortuguese = 'pt';
@@ -670,5 +549,193 @@ String _labelForLanguageOptionId(AppLocalizations l10n, String id) {
       return l10n.settings_language_english;
     default:
       return l10n.settings_language_portuguese_brazil;
+  }
+}
+
+/// Uppercase section label rendered above each [_SettingsCard].
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.s4),
+      child: Text(
+        label,
+        style: AppTypography.settingsGroupTitle.copyWith(
+          color: AppColors.textTertiary,
+          letterSpacing: 1.6,
+        ),
+      ),
+    );
+  }
+}
+
+/// iOS-style card that groups related [_SettingsTile]s with indented dividers.
+///
+/// Uses [Material] so [InkWell] ripples inside each tile render correctly.
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+
+  const _SettingsCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    // Interleave dividers between consecutive tiles.
+    final items = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      items.add(children[i]);
+      if (i < children.length - 1) {
+        items.add(const _CardDivider());
+      }
+    }
+
+    return Material(
+      color: AppColors.surface,
+      borderRadius: AppRadius.all20,
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: AppColors.border.withValues(alpha: 0.5),
+            width: 0.5,
+          ),
+          borderRadius: AppRadius.all20,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items,
+        ),
+      ),
+    );
+  }
+}
+
+/// Subtle indented divider between tiles inside a [_SettingsCard].
+///
+/// Indented past the icon area (padding 16 + icon 36 + gap 12 = 64 px).
+class _CardDivider extends StatelessWidget {
+  const _CardDivider();
+
+  static const double _indent =
+      AppSpacing.s16 + _SettingsTile._iconSize + AppSpacing.s12;
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 0.5,
+      color: AppColors.border.withValues(alpha: 0.5),
+      indent: _indent,
+      endIndent: 0,
+    );
+  }
+}
+
+/// Single row inside a [_SettingsCard].
+///
+/// Layout: [icon container] [title + subtitle] [valueText?] [chevron?]
+class _SettingsTile extends StatelessWidget {
+  static const double _iconSize = 36.0;
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  /// Optional right-side value text (e.g. current language name).
+  final String? valueText;
+
+  final VoidCallback onTap;
+
+  /// Set to false for tiles that are self-explanatory (e.g. logout).
+  final bool showChevron;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.valueText,
+    this.showChevron = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      splashColor: AppColors.textPrimary.withValues(alpha: 0.08),
+      highlightColor: AppColors.textPrimary.withValues(alpha: 0.06),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s16,
+          vertical: AppSpacing.s14,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: _iconSize,
+              height: _iconSize,
+              decoration: const BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: AppRadius.all12,
+              ),
+              child: Icon(icon, color: AppColors.textSecondary, size: 18),
+            ),
+            const SizedBox(width: AppSpacing.s12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      subtitle!,
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textTertiary,
+                        height: 1.3,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            if (valueText != null) ...[
+              const SizedBox(width: AppSpacing.s8),
+              Text(
+                valueText!,
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ],
+
+            if (showChevron) ...[
+              const SizedBox(width: AppSpacing.s4),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textTertiary.withValues(alpha: 0.5),
+                size: 18,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

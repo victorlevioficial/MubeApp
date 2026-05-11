@@ -23,7 +23,6 @@ sealed class FeedItem with _$FeedItem {
     @Default([]) List<String> skills,
     @Default([]) List<String> subCategories,
     @Default(false) bool offersRemoteRecording,
-    // @Default(false) bool isFavorited, // Removed
     double? distanceKm,
   }) = _FeedItem;
 

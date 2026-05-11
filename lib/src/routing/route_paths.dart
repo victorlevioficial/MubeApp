@@ -12,7 +12,6 @@ abstract final class RoutePaths {
   // Onboarding routes
   static const String onboarding = '/onboarding';
   static const String onboardingForm = '/onboarding/form';
-  static const String notificationPermission = '/onboarding/notifications';
 
   // Main app routes (inside shell)
   static const String feed = '/feed';

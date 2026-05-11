@@ -13,7 +13,6 @@ import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
 import '../../chat/data/chat_repository.dart';
 import '../../moderation/data/moderation_repository.dart';
-// import '../../feed/data/favorites_provider.dart'; // Removed
 import '../domain/media_item.dart';
 
 part 'public_profile_controller.g.dart';

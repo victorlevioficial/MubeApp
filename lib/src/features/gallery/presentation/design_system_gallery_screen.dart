@@ -92,8 +92,6 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
                   _buildColorBox(AppColors.textPrimary, 'Text Pri'),
                   _buildColorBox(AppColors.textSecondary, 'Text Sec'),
                   _buildColorBox(AppColors.textPlaceholder, 'Placeholder'),
-                  _buildColorBox(AppColors.textPlaceholder, 'Placeholder'),
-                  // Removed textInverse and border
                   _buildColorBox(AppColors.error, 'Error'),
                   _buildColorBox(AppColors.success, 'Success'),
                 ],
