@@ -59,7 +59,6 @@ class FirestoreFields {
   static const String type = 'type';
   static const String timestamp = 'timestamp';
   static const String targetId = 'targetId';
-  static const String fromId = 'fromId';
 }
 
 class GigFields {

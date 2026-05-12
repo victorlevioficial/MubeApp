@@ -51,7 +51,7 @@ class AppColors {
   /// Cor primária pressionada
   static const Color primaryPressed = _primaryPressed;
 
-  /// Cor primária com opacidade para elementos sutis (ex: RankBadge)
+  /// Cor primária com opacidade para elementos sutis.
   static Color get primaryMuted => _primary.withValues(alpha: 0.3);
 
   /// Cor primária desabilitada

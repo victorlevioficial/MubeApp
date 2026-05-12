@@ -5,6 +5,7 @@ import 'package:diacritic/diacritic.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../constants/app_constants.dart' as fallback;
+import '../../utils/app_logger.dart';
 import '../domain/app_config.dart';
 import '../providers/firebase_providers.dart';
 
@@ -33,9 +34,13 @@ class AppConfigRepository {
         await _saveToCache(config);
         return config;
       }
-    } catch (e) {
-      // Falha silenciosa no fetch, tenta cache
-      // print('Erro buscando config do Firestore: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to fetch remote app config; using cache fallback.',
+        e,
+        stackTrace,
+        false,
+      );
     }
 
     // 2. Tentar cache local
@@ -51,8 +56,13 @@ class AppConfigRepository {
       final prefs = await _loadPreferences();
       await prefs.setString(_cacheKey, jsonEncode(config.toJson()));
       await prefs.setInt(_versionKey, config.version);
-    } catch (e) {
-      // print('Erro salvando cache: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to persist app config cache.',
+        e,
+        stackTrace,
+        false,
+      );
     }
   }
 
@@ -63,8 +73,13 @@ class AppConfigRepository {
       if (json != null) {
         return _normalizeConfig(AppConfig.fromJson(jsonDecode(json)));
       }
-    } catch (e) {
-      // print('Erro lendo cache: $e');
+    } catch (e, stackTrace) {
+      AppLogger.warning(
+        'Failed to read app config cache.',
+        e,
+        stackTrace,
+        false,
+      );
     }
     return null;
   }

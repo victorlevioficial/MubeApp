@@ -7,20 +7,19 @@ import '../../../core/services/image_cache_config.dart';
 import '../../../utils/app_logger.dart';
 import '../../foundations/tokens/app_colors.dart';
 import '../../foundations/tokens/app_radius.dart';
-import '../../foundations/tokens/app_spacing.dart';
 
 /// Enum para definir o tamanho da imagem a ser carregada
 enum ImageResolution {
   /// Thumbnail pequeno (150px) - para avatares em listas
   thumbnail(150),
 
-  /// Médio (400px) - para cards e previews
+  /// Medio (400px) - para cards e previews
   medium(400),
 
-  /// Grande (800px) - para perfil e visualização
+  /// Grande (800px) - para perfil e visualizacao
   large(800),
 
-  /// Original/Full - para visualização completa
+  /// Original/Full - para visualizacao completa
   full(null);
 
   final int? maxDimension;
@@ -31,13 +30,13 @@ enum ImageResolution {
 ///
 /// Features:
 /// - Carregamento com shimmer animado
-/// - Cache automático (memória e disco)
-/// - Suporte a múltiplas resoluções
+/// - Cache automatico (memoria e disco)
+/// - Suporte a multiplas resolucoes
 /// - Lazy loading com placeholder
 /// - Imagem de erro quando falha
 /// - Fade-in animation suave
 /// - Suporte a bordas arredondadas
-/// - Otimização de memória com limites de cache
+/// - Otimizacao de memoria com limites de cache
 class OptimizedImage extends StatelessWidget {
   final String? imageUrl;
   final double? width;
@@ -52,7 +51,7 @@ class OptimizedImage extends StatelessWidget {
   final String? semanticLabel;
   final String? semanticHint;
 
-  /// Resolução máxima para otimização de cache
+  /// Resolucao maxima para otimizacao de cache
   final ImageResolution resolution;
 
   /// Se deve usar placeholder de skeleton durante o loading
@@ -109,7 +108,7 @@ class OptimizedImage extends StatelessWidget {
     );
   }
 
-  /// Factory para avatar circular médio (perfil)
+  /// Factory para avatar circular medio (perfil)
   factory OptimizedImage.avatarMedium({
     Key? key,
     required String? imageUrl,
@@ -231,7 +230,7 @@ class OptimizedImage extends StatelessWidget {
       return _wrapSemantics(_buildErrorWidget());
     }
 
-    // Calcula dimensões de cache baseadas na resolução e tamanho do widget
+    // Calcula dimensoes de cache baseadas na resolucao e tamanho do widget
     final cacheWidth = _calculateCacheWidth(context);
     final cacheHeight = _calculateCacheHeight(context);
     final effectiveCacheManager = cacheManager ?? _resolveCacheManager();
@@ -261,7 +260,7 @@ class OptimizedImage extends StatelessWidget {
         url: imageUrl!,
         error: error,
       ),
-      // Limita cache em memória para otimizar performance
+      // Limita cache em memoria para otimizar performance
       memCacheWidth: cacheWidth,
       memCacheHeight: cacheHeight,
       // Limita cache em disco
@@ -276,7 +275,7 @@ class OptimizedImage extends StatelessWidget {
     return _wrapSemantics(imageWidget);
   }
 
-  /// Calcula a largura do cache baseada na resolução e tamanho do widget
+  /// Calcula a largura do cache baseada na resolucao e tamanho do widget
   int? _calculateCacheWidth(BuildContext context) {
     return _calculateCacheDimension(
       context: context,
@@ -285,7 +284,7 @@ class OptimizedImage extends StatelessWidget {
     );
   }
 
-  /// Calcula a altura do cache baseada na resolução e tamanho do widget
+  /// Calcula a altura do cache baseada na resolucao e tamanho do widget
   int? _calculateCacheHeight(BuildContext context) {
     return _calculateCacheDimension(
       context: context,
@@ -390,9 +389,9 @@ class OptimizedImage extends StatelessWidget {
   }
 }
 
-/// Extensão para gerenciar cache de imagens
+/// Extensao para gerenciar cache de imagens
 extension OptimizedImageCache on OptimizedImage {
-  /// Limpa o cache de uma URL específica
+  /// Limpa o cache de uma URL especifica
   static Future<void> clearCache(String imageUrl) async {
     await CachedNetworkImage.evictFromCache(imageUrl);
   }
@@ -402,7 +401,7 @@ extension OptimizedImageCache on OptimizedImage {
     await ImageCacheConfig.clearAllCaches();
   }
 
-  /// Pré-carrega uma lista de URLs para cache
+  /// Pre-carrega uma lista de URLs para cache
   static Future<void> preloadImages(
     BuildContext context,
     List<String> urls, {
@@ -450,90 +449,5 @@ extension OptimizedImageCache on OptimizedImage {
         await Future<void>.delayed(const Duration(milliseconds: 16));
       }
     }
-  }
-}
-
-/// Widget para exibir imagens em lista com lazy loading otimizado
-class OptimizedImageList extends StatelessWidget {
-  final List<String> imageUrls;
-  final ScrollController? scrollController;
-  final EdgeInsets padding;
-  final double spacing;
-  final int crossAxisCount;
-  final double childAspectRatio;
-  final ImageResolution resolution;
-  final Widget Function(BuildContext, String, int)? itemBuilder;
-
-  const OptimizedImageList({
-    super.key,
-    required this.imageUrls,
-    this.scrollController,
-    this.padding = AppSpacing.all16,
-    this.spacing = AppSpacing.s8,
-    this.crossAxisCount = 3,
-    this.childAspectRatio = 1,
-    this.resolution = ImageResolution.thumbnail,
-    this.itemBuilder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      controller: scrollController,
-      padding: padding,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: childAspectRatio,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
-      ),
-      itemCount: imageUrls.length,
-      itemBuilder: (context, index) {
-        final url = imageUrls[index];
-
-        if (itemBuilder != null) {
-          return itemBuilder!(context, url, index);
-        }
-
-        return OptimizedImage.card(imageUrl: url, resolution: resolution);
-      },
-    );
-  }
-}
-
-/// Hero wrapper para transições suaves entre imagens
-class OptimizedImageHero extends StatelessWidget {
-  final String tag;
-  final String? imageUrl;
-  final double? width;
-  final double? height;
-  final BoxFit fit;
-  final BorderRadius? borderRadius;
-  final ImageResolution resolution;
-
-  const OptimizedImageHero({
-    super.key,
-    required this.tag,
-    required this.imageUrl,
-    this.width,
-    this.height,
-    this.fit = BoxFit.cover,
-    this.borderRadius,
-    this.resolution = ImageResolution.large,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Hero(
-      tag: tag,
-      child: OptimizedImage(
-        imageUrl: imageUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        borderRadius: borderRadius,
-        resolution: resolution,
-      ),
-    );
   }
 }

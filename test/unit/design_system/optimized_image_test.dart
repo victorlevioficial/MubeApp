@@ -128,36 +128,4 @@ void main() {
       });
     });
   });
-
-  group('OptimizedImageList', () {
-    testWidgets('deve renderizar GridView', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: OptimizedImageList(
-            imageUrls: [
-              'https://example.com/1.jpg',
-              'https://example.com/2.jpg',
-            ],
-          ),
-        ),
-      );
-
-      expect(find.byType(GridView), findsOneWidget);
-    });
-  });
-
-  group('OptimizedImageHero', () {
-    testWidgets('deve renderizar Hero widget', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: OptimizedImageHero(
-            tag: 'hero-tag',
-            imageUrl: 'https://example.com/image.jpg',
-          ),
-        ),
-      );
-
-      expect(find.byType(Hero), findsOneWidget);
-    });
-  });
 }

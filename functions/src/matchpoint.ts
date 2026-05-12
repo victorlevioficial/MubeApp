@@ -23,9 +23,9 @@ const db = admin.firestore();
 /**
  * Daily MatchPoint swipe quota for free accounts.
  *
- * Premium is planned to make this unlimited. When the premium entitlement is
- * launched, resolveDailySwipeLimit will use users/{uid}.is_premium as the
- * switch point without changing the public callable contract.
+ * Premium is planned to make this unlimited. Keep this behind
+ * resolveDailySwipeLimit so the callable contract does not change when the
+ * entitlement launches.
  */
 export const FREE_DAILY_SWIPE_LIMIT = 50;
 const INTERACTION_EXPIRY_DAYS = 30;
@@ -1300,7 +1300,7 @@ async function checkAndUpdateRateLimit(
     const now = Timestamp.now();
     const today = new Date(now.toDate().setHours(0, 0, 0, 0));
     const todayTimestamp = Timestamp.fromDate(today);
-    const dailySwipeLimit = resolveDailySwipeLimit(userData);
+    const dailySwipeLimit = resolveDailySwipeLimit();
 
     let dailyLikesCount = readDailySwipeCount(userData);
     const lastLikeDate = readLastLikeDate(userData);
@@ -1329,7 +1329,7 @@ async function checkAndUpdateRateLimit(
   });
 }
 
-function resolveDailySwipeLimit(_userData: DocumentData): number {
+function resolveDailySwipeLimit(): number {
   return FREE_DAILY_SWIPE_LIMIT;
 }
 
@@ -1347,7 +1347,7 @@ function getRemainingLikesSnapshot(userData: DocumentData): {
   const now = Timestamp.now();
   const today = new Date(now.toDate().setHours(0, 0, 0, 0));
   const lastLikeDate = readLastLikeDate(userData);
-  const dailySwipeLimit = resolveDailySwipeLimit(userData);
+  const dailySwipeLimit = resolveDailySwipeLimit();
   let dailyLikesCount = readDailySwipeCount(userData);
 
   if (!lastLikeDate || lastLikeDate < today) {

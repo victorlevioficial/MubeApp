@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart'; // Removed
 import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 
@@ -9,7 +8,7 @@ import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart'
     show AppTypography;
 import '../../../../utils/professional_profile_utils.dart';
-import '../../domain/feed_item.dart'; // Restored
+import '../../domain/feed_item.dart';
 import 'profile_type_badge.dart';
 
 /// A vertical feed card that reactively updates its favorite status.

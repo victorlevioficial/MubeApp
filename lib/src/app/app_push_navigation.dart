@@ -86,8 +86,7 @@ extension _MubeAppPushNavigation on _MubeAppState {
         currentPath == RoutePaths.login ||
         currentPath == RoutePaths.register ||
         currentPath == RoutePaths.forgotPassword ||
-        currentPath == RoutePaths.emailVerification ||
-        currentPath == RoutePaths.notificationPermission) {
+        currentPath == RoutePaths.emailVerification) {
       return true;
     }
 

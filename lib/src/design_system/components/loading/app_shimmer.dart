@@ -11,7 +11,6 @@ export 'app_skeleton.dart'
         SkeletonBox,
         SkeletonCircle,
         SkeletonText,
-        ProfileSkeleton,
         UserCardSkeleton,
         UserListSkeleton,
         FeedCardSkeleton,
