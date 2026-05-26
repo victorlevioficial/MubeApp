@@ -132,7 +132,7 @@ class OfflineMutationCoordinator {
   Future<void> _flushGigApplyMutation(OfflineMutation entry) async {
     final gigId = entry.gigId?.trim() ?? '';
     final message = entry.gigMessage?.trim() ?? '';
-    if (gigId.isEmpty || message.isEmpty) {
+    if (gigId.isEmpty) {
       return;
     }
 

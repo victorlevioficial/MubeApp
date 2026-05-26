@@ -268,7 +268,7 @@ GigApplication? _offlineMutationToGigApplication(
 }) {
   final gigId = entry.gigId?.trim() ?? '';
   final message = entry.gigMessage?.trim() ?? '';
-  if (gigId.isEmpty || message.isEmpty) {
+  if (gigId.isEmpty) {
     return null;
   }
 

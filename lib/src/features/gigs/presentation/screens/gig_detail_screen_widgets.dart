@@ -20,220 +20,209 @@ class _GigApplyDialogState extends State<_GigApplyDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
     return Dialog(
       backgroundColor: AppColors.transparent,
       insetPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.s16,
         vertical: AppSpacing.s24,
       ),
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: AppRadius.all24,
-              border: Border.all(color: AppColors.surfaceHighlight),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.background.withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  offset: const Offset(0, 16),
-                ),
-              ],
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.s24),
-              child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _controller,
-                builder: (context, value, _) {
-                  final hasMessage = value.text.trim().isNotEmpty;
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 460,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: AppRadius.all24,
+            border: Border.all(color: AppColors.surfaceHighlight),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.background.withValues(alpha: 0.4),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.s24),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _controller,
+              builder: (context, value, _) {
+                final hasMessage = value.text.trim().isNotEmpty;
 
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: AppRadius.all16,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.campaign_rounded,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.s10,
+                                  vertical: AppSpacing.s4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: AppRadius.pill,
+                                ),
+                                child: Text(
+                                  'Candidatura rápida',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.s10),
+                              Text(
+                                'Enviar candidatura',
+                                style: AppTypography.headlineSmall,
+                              ),
+                              const SizedBox(height: AppSpacing.s4),
+                              Text(
+                                'Destaque sua experiência, repertório e disponibilidade para o contratante.',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        IconButton(
+                          tooltip: 'Fechar',
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.s16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: AppRadius.all16,
+                        border: Border.all(color: AppColors.surfaceHighlight),
+                      ),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              borderRadius: AppRadius.all16,
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.campaign_rounded,
-                              color: AppColors.primary,
-                              size: 24,
+                          Text('Vale incluir', style: AppTypography.titleSmall),
+                          const SizedBox(height: AppSpacing.s10),
+                          const Wrap(
+                            spacing: AppSpacing.s8,
+                            runSpacing: AppSpacing.s8,
+                            children: [
+                              AppChip.skill(label: 'Experiência'),
+                              AppChip.skill(label: 'Disponibilidade'),
+                              AppChip.skill(label: 'Repertório'),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.s12),
+                          Text(
+                            hasMessage
+                                ? 'Sua mensagem está pronta para envio.'
+                                : 'A mensagem é opcional. Você pode se candidatar agora.',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: hasMessage
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.s14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.s10,
-                                    vertical: AppSpacing.s4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: AppRadius.pill,
-                                  ),
-                                  child: Text(
-                                    'Candidatura rápida',
-                                    style: AppTypography.labelSmall.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.s10),
-                                Text(
-                                  'Enviar candidatura',
-                                  style: AppTypography.headlineSmall,
-                                ),
-                                const SizedBox(height: AppSpacing.s4),
-                                Text(
-                                  'Destaque sua experiência, repertório e disponibilidade para o contratante.',
-                                  style: AppTypography.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    height: 1.45,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.s8),
-                          IconButton(
-                            tooltip: 'Fechar',
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(
-                              Icons.close_rounded,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s20),
+                    AppTextField(
+                      controller: _controller,
+                      label: 'Mensagem para o contratante (opcional)',
+                      hint:
+                          'Ex.: Tenho experiência com eventos ao vivo, equipamento próprio e disponibilidade para ensaios e show.',
+                      minLines: 5,
+                      maxLines: 6,
+                      maxLength: 280,
+                      textCapitalization: TextCapitalization.sentences,
+                      scrollPadding: const EdgeInsets.only(
+                        left: AppSpacing.s16,
+                        right: AppSpacing.s16,
+                        top: AppSpacing.s16,
+                        bottom: 120,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: AppColors.textSecondary.withValues(alpha: 0.9),
+                        ),
+                        const SizedBox(width: AppSpacing.s8),
+                        Expanded(
+                          child: Text(
+                            'Sua candidatura vai aparecer em Minhas candidaturas assim que for enviada.',
+                            style: AppTypography.bodySmall.copyWith(
                               color: AppColors.textSecondary,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.s20),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppSpacing.s16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: AppRadius.all16,
-                          border: Border.all(color: AppColors.surfaceHighlight),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Vale incluir',
-                              style: AppTypography.titleSmall,
-                            ),
-                            const SizedBox(height: AppSpacing.s10),
-                            const Wrap(
-                              spacing: AppSpacing.s8,
-                              runSpacing: AppSpacing.s8,
-                              children: [
-                                AppChip.skill(label: 'Experiência'),
-                                AppChip.skill(label: 'Disponibilidade'),
-                                AppChip.skill(label: 'Repertório'),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.s12),
-                            Text(
-                              hasMessage
-                                  ? 'Sua mensagem está pronta para envio.'
-                                  : 'Uma mensagem objetiva ajuda o contratante a responder mais rápido.',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: hasMessage
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.s24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton.secondary(
+                            text: 'Cancelar',
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.s20),
-                      AppTextField(
-                        controller: _controller,
-                        label: 'Mensagem para o contratante',
-                        hint:
-                            'Ex.: Tenho experiência com eventos ao vivo, equipamento próprio e disponibilidade para ensaios e show.',
-                        minLines: 5,
-                        maxLines: 6,
-                        maxLength: 280,
-                        textCapitalization: TextCapitalization.sentences,
-                        scrollPadding: const EdgeInsets.only(
-                          left: AppSpacing.s16,
-                          right: AppSpacing.s16,
-                          top: AppSpacing.s16,
-                          bottom: 120,
+                        const SizedBox(width: AppSpacing.s12),
+                        Expanded(
+                          child: AppButton.primary(
+                            text: hasMessage ? 'Enviar' : 'Candidatar-se',
+                            icon: const Icon(Icons.send_rounded, size: 18),
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop(_controller.text.trim()),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.s12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline_rounded,
-                            size: 16,
-                            color: AppColors.textSecondary.withValues(
-                              alpha: 0.9,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.s8),
-                          Expanded(
-                            child: Text(
-                              'Sua candidatura vai aparecer em Minhas candidaturas assim que for enviada.',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.s24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: AppButton.secondary(
-                              text: 'Cancelar',
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.s12),
-                          Expanded(
-                            child: AppButton.primary(
-                              text: 'Enviar',
-                              icon: const Icon(Icons.send_rounded, size: 18),
-                              onPressed: hasMessage
-                                  ? () => Navigator.of(
-                                      context,
-                                    ).pop(_controller.text.trim())
-                                  : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),

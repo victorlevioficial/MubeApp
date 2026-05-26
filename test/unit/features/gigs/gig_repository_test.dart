@@ -163,6 +163,22 @@ void main() {
       expect(doc.data(), contains('applied_at'));
     });
 
+    test('creates a pending application without a message', () async {
+      await repository.applyToGig(gigId, '');
+
+      final doc = await fakeFirestore
+          .collection('gigs')
+          .doc(gigId)
+          .collection('gig_applications')
+          .doc(applicantId)
+          .get();
+
+      expect(doc.exists, isTrue);
+      expect(doc.data(), containsPair('applicant_id', applicantId));
+      expect(doc.data(), containsPair('message', ''));
+      expect(doc.data(), containsPair('status', 'pending'));
+    });
+
     test(
       'throws a friendly error when an application already exists',
       () async {

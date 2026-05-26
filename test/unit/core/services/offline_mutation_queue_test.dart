@@ -83,6 +83,24 @@ void main() {
     },
   );
 
+  test('stores queued gig apply without a message', () async {
+    final store = container.read(offlineMutationStoreProvider.notifier);
+    await store.ensureUserLoaded('user-1');
+
+    await store.upsertGigApply(
+      gigId: 'gig-1',
+      message: '',
+      gigTitle: 'Show na sexta',
+    );
+
+    final entry = store.pendingGigApplyFor('gig-1');
+    expect(entry, isNotNull);
+    expect(entry!.type, OfflineMutationType.gigApply);
+    expect(entry.gigId, 'gig-1');
+    expect(entry.gigMessage, '');
+    expect(entry.gigTitle, 'Show na sexta');
+  });
+
   test('ignores stale load results when auth user changes quickly', () async {
     final delayedQueue = _DelayedOfflineMutationQueue();
     final localAuthRepository = FakeAuthRepository();

@@ -104,4 +104,38 @@ void main() {
     expect(queued.single.gigId, 'gig-1');
     expect(queued.single.gigTitle, 'Show na sexta');
   });
+
+  test('applyToGig queues application without message while offline', () async {
+    SharedPreferences.setMockInitialValues(const <String, Object>{});
+
+    final repository = MockGigRepository();
+    final authRepository = FakeAuthRepository()
+      ..emitUser(FakeFirebaseUser(uid: 'user-1'));
+
+    final container = ProviderContainer(
+      overrides: [
+        gigRepositoryProvider.overrideWith((ref) => repository),
+        authRepositoryProvider.overrideWithValue(authRepository),
+        isOnlineProvider.overrideWith((ref) => false),
+        offlineMutationCoordinatorProvider.overrideWith(
+          _NoopOfflineMutationCoordinator.new,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(authRepository.dispose);
+
+    final outcome = await container
+        .read(gigActionsControllerProvider.notifier)
+        .applyToGig('gig-1', '', gigTitle: 'Show na sexta');
+
+    expect(outcome, GigApplyOutcome.queued);
+    verifyNever(() => repository.applyToGig('gig-1', ''));
+
+    final queued = container.read(offlineMutationStoreProvider);
+    expect(queued, hasLength(1));
+    expect(queued.single.gigId, 'gig-1');
+    expect(queued.single.gigMessage, '');
+    expect(queued.single.gigTitle, 'Show na sexta');
+  });
 }

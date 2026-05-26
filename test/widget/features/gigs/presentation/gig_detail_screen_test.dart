@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/core/domain/app_config.dart';
 import 'package:mube/src/core/providers/app_config_provider.dart';
+import 'package:mube/src/design_system/components/buttons/app_button.dart';
 import 'package:mube/src/design_system/components/loading/app_skeleton.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
@@ -117,7 +118,23 @@ void main() {
 
     expect(find.text('Candidatura rápida'), findsOneWidget);
     expect(find.text('Vale incluir'), findsOneWidget);
-    expect(find.text('Mensagem para o contratante'), findsOneWidget);
+    final dialogFinder = find.byType(Dialog);
+    expect(
+      find.descendant(
+        of: dialogFinder,
+        matching: find.text('Mensagem para o contratante (opcional)'),
+      ),
+      findsOneWidget,
+    );
+    final applyWithoutMessageButton = find.descendant(
+      of: dialogFinder,
+      matching: find.widgetWithText(AppButton, 'Candidatar-se'),
+    );
+    expect(applyWithoutMessageButton, findsOneWidget);
+    expect(
+      tester.widget<AppButton>(applyWithoutMessageButton).onPressed,
+      isNotNull,
+    );
     expect(
       find.text(
         'Sua candidatura vai aparecer em Minhas candidaturas assim que for enviada.',

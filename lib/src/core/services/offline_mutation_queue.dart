@@ -303,7 +303,7 @@ class OfflineMutationStore extends Notifier<List<OfflineMutation>> {
   }) async {
     final normalizedGigId = gigId.trim();
     final trimmedMessage = message.trim();
-    if (normalizedGigId.isEmpty || trimmedMessage.isEmpty) return;
+    if (normalizedGigId.isEmpty) return;
 
     final scopeKey = gigApplyMutationScopeKey(normalizedGigId);
     final now = DateTime.now().millisecondsSinceEpoch;
