@@ -66,8 +66,7 @@ class FacebookMetaAnalyticsService implements MetaAnalyticsService {
 
   Future<void> _requestTrackingAuthorization() async {
     try {
-      final status =
-          await AppTrackingTransparency.trackingAuthorizationStatus;
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       if (status == TrackingStatus.notDetermined) {
         await AppTrackingTransparency.requestTrackingAuthorization();
       }
