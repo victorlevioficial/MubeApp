@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/analytics/meta_analytics_service.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
@@ -88,6 +91,14 @@ class OnboardingController extends _$OnboardingController {
           .read(authRepositoryProvider)
           .completeOnboardingProfile(updatedUser);
       result.fold((l) => throw l, (r) => null);
+
+      unawaited(
+        ref
+            .read(metaAnalyticsServiceProvider)
+            .logCompletedProfile(
+              profileType: currentUser.tipoPerfil?.id ?? 'unknown',
+            ),
+      );
 
       // Force the profile stream to restart after the final Firestore write.
       // This makes the router evaluate against the completed profile instead

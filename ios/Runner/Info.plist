@@ -30,6 +30,42 @@
 					<string>com.googleusercontent.apps.798301748829-oi72iiabk4jjdib7kgu4un3ugjs2a4c5</string>
 				</array>
 			</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>fb1171280415124777</string>
+				</array>
+			</dict>
+		</array>
+		<key>FacebookAppID</key>
+		<string>1171280415124777</string>
+		<key>FacebookClientToken</key>
+		<string>d02405e995059ffcd98f2ac4551160c8</string>
+		<key>FacebookDisplayName</key>
+		<string>Mube</string>
+		<key>FacebookAutoLogAppEventsEnabled</key>
+		<true/>
+		<key>FacebookAdvertiserIDCollectionEnabled</key>
+		<true/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>fbapi</string>
+			<string>fb-messenger-share-api</string>
+		</array>
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Usamos seus dados para mostrar conteúdo e anúncios mais relevantes para você no Mube.</string>
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>v9wttpbfk9.skadnetwork</string>
+			</dict>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>n38lu8286q.skadnetwork</string>
+			</dict>
 		</array>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>

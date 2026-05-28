@@ -80,6 +80,11 @@
 # Keep Analytics
 -keep class com.google.firebase.analytics.** { *; }
 
+# Keep Facebook SDK (App Events / Ads attribution)
+-keep class com.facebook.** { *; }
+-keepclassmembers class com.facebook.** { *; }
+-dontwarn com.facebook.**
+
 # Keep for image loading libraries
 -keep class com.bumptech.glide.** { *; }
 -keep public class * implements com.bumptech.glide.module.GlideModule

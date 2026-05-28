@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/services/analytics/analytics_provider.dart';
+import '../../../core/services/analytics/meta_analytics_service.dart';
 import '../../../core/typedefs.dart';
 import '../data/auth_repository.dart';
 
@@ -61,6 +62,9 @@ class RegisterController extends _$RegisterController {
           ref
               .read(analyticsServiceProvider)
               .logAuthSignupComplete(method: method);
+          ref
+              .read(metaAnalyticsServiceProvider)
+              .logCompletedRegistration(method: method);
         }
         state = const AsyncData(null);
       },

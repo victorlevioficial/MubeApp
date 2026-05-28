@@ -1,7 +1,7 @@
 name: mube
 description: "Mube - Conectando Músicos" # matchpoint iOS crash fix
 publish_to: 'none'
-version: 1.6.48+196
+version: 1.6.49+197
 
 # Scripts úteis para build
 # Para gerar um build de release Android:
@@ -92,6 +92,10 @@ dependencies:
   firebase_performance: ^0.11.1+5
   connectivity_plus: ^7.0.0
   flutter_native_video_trimmer: ^1.1.9
+
+  # Meta (Facebook) Ads attribution
+  facebook_app_events: ^0.20.1
+  app_tracking_transparency: ^2.0.6+1
 
 dev_dependencies:
   flutter_test:

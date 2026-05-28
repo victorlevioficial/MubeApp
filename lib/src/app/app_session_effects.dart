@@ -10,6 +10,14 @@ extension _MubeAppSessionEffects on _MubeAppState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleRouterStateChanged();
     });
+    _scheduleMetaAnalyticsInit();
+  }
+
+  void _scheduleMetaAnalyticsInit() {
+    Timer(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      unawaited(ref.read(metaAnalyticsServiceProvider).initialize());
+    });
   }
 
   void _disposeSessionEffects() {
@@ -37,9 +45,13 @@ extension _MubeAppSessionEffects on _MubeAppState {
           if (user != null) {
             AppLogger.setUserIdentifier(user.uid);
             AppLogger.setCustomKey('auth_user_present', true);
+            unawaited(
+              ref.read(metaAnalyticsServiceProvider).setUserId(user.uid),
+            );
           } else {
             AppLogger.clearUserIdentifier();
             AppLogger.setCustomKey('auth_user_present', false);
+            unawaited(ref.read(metaAnalyticsServiceProvider).setUserId(null));
           }
           _handleOnboardingDraftSession(user);
           _handleBandMembersReminderSession(user);

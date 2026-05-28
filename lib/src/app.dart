@@ -9,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import 'core/providers/app_display_preferences_provider.dart';
 import 'core/providers/app_update_provider.dart';
 import 'core/providers/connectivity_provider.dart';
+import 'core/services/analytics/meta_analytics_service.dart';
 import 'core/services/offline_mutation_coordinator.dart';
 import 'core/services/push_notification_event_bus.dart';
 import 'core/services/push_notification_provider.dart';
