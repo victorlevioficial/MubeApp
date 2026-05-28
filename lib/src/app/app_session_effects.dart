@@ -14,7 +14,7 @@ extension _MubeAppSessionEffects on _MubeAppState {
   }
 
   void _scheduleMetaAnalyticsInit() {
-    Timer(const Duration(seconds: 3), () {
+    _metaAnalyticsInitTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
       unawaited(ref.read(metaAnalyticsServiceProvider).initialize());
     });
@@ -22,6 +22,7 @@ extension _MubeAppSessionEffects on _MubeAppState {
 
   void _disposeSessionEffects() {
     _pushBootstrapTimer?.cancel();
+    _metaAnalyticsInitTimer?.cancel();
     _authStateSubscription?.close();
     _profileSubscription?.close();
     try {

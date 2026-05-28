@@ -76,6 +76,7 @@ class _MubeAppState extends ConsumerState<MubeApp> with WidgetsBindingObserver {
   String? _onboardingDraftOwnerUid;
   String? _storeReviewSessionOwnerUid;
   Timer? _pushBootstrapTimer;
+  Timer? _metaAnalyticsInitTimer;
   final SessionPromptCoordinator _appUpdateNoticeCoordinator =
       SessionPromptCoordinator(pendingInitially: true);
   final UserScopedSessionPromptCoordinator _bandMembersReminderCoordinator =
