@@ -930,7 +930,10 @@ export const onStoryVideoUploaded = onObjectFinalized(
     region: STORY_VIDEO_TRIGGER_REGION,
     memory: "512MiB",
     timeoutSeconds: 540,
-    maxInstances: 1,
+    // The worker mostly waits (I/O) on the Transcoder job rather than burning
+    // CPU, so allowing a few concurrent instances avoids serializing every
+    // story video through a single worker. Raise if the project quota allows.
+    maxInstances: 3,
     retry: false,
   },
   async (event) => {

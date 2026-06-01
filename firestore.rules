@@ -395,13 +395,18 @@ service cloud.firestore {
           )
         );
 
-      // Story tray queries must stay listable under Firestore query
-      // semantics. Client list queries already restrict by expiration and
-      // blocked owners are filtered in app code before querying.
+      // Story tray queries must stay listable under Firestore query semantics
+      // (client list queries already restrict by expiration). Block enforcement
+      // is now applied server-side too, so a blocked viewer can no longer list
+      // an owner's active stories through a raw query. This adds two exists()
+      // reads per listed story document — watch read cost on large trays.
       allow list: if request.auth != null &&
         (
-          resource.data.status == 'active' ||
-          resource.data.owner_uid == request.auth.uid
+          resource.data.owner_uid == request.auth.uid ||
+          (
+            resource.data.status == 'active' &&
+            !isBlockedBetween(request.auth.uid, resource.data.owner_uid)
+          )
         );
 
       allow create, update, delete: if false;
