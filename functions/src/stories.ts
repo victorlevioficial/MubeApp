@@ -15,6 +15,7 @@ const STORY_VIDEO_TRIGGER_REGION =
   process.env.STORY_VIDEO_TRIGGER_REGION || "us-central1";
 const STORY_TIMEZONE = "America/Sao_Paulo";
 const MAX_STORIES_PER_DAY = 3;
+const RESERVATION_GRACE_MS = 15 * 60 * 1000;
 const MAX_VIDEO_DURATION_SECONDS = 15;
 const MAX_VERTICAL_ASPECT_RATIO = 0.75;
 const STORY_LIFETIME_MS = 24 * 60 * 60 * 1000;
@@ -358,10 +359,28 @@ async function buildStoryCreationContext(
     .where("owner_uid", "==", uid)
     .where("published_day_key", "==", dayKey)
     .where("status", "in", DAILY_LIMIT_STORY_STATUSES)
-    .limit(MAX_STORIES_PER_DAY)
+    .limit(MAX_STORIES_PER_DAY * 4)
     .get();
 
-  if (dayStories.size >= MAX_STORIES_PER_DAY) {
+  const nowMs = now.getTime();
+  const countedStories = dayStories.docs.filter((doc) => {
+    const data = doc.data();
+    const status = firstNonEmptyString([data.status]);
+    if (status === "active") {
+      return true;
+    }
+    // Count only recent in-flight reservations so an abandoned upload (app
+    // killed between beginStoryUpload and publishStory) does not lock the
+    // daily quota for the full 24h story lifetime.
+    const createdAt = data.created_at;
+    const createdMs =
+      createdAt instanceof admin.firestore.Timestamp
+        ? createdAt.toMillis()
+        : 0;
+    return nowMs - createdMs < RESERVATION_GRACE_MS;
+  });
+
+  if (countedStories.length >= MAX_STORIES_PER_DAY) {
     throw new HttpsError(
       "resource-exhausted",
       "Voce atingiu o limite diario de 3 stories.",

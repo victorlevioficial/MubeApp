@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../design_system/components/feedback/app_overlay.dart';
+import '../../../../design_system/components/feedback/app_snackbar.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_motion.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
@@ -15,14 +16,20 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../routing/route_paths.dart';
 import '../../../../utils/app_logger.dart';
+import '../../../auth/data/auth_repository.dart';
+import '../../../moderation/data/moderation_repository.dart';
+import '../../../profile/presentation/widgets/report_reason_dialog.dart';
 import '../../domain/story_constants.dart';
 import '../../domain/story_item.dart';
 import '../../domain/story_tray_bundle.dart';
 import '../../domain/story_viewer_route_args.dart';
+import '../controllers/story_tray_controller.dart';
 import '../controllers/story_viewer_controller.dart';
 import '../widgets/story_progress_bar.dart';
 import '../widgets/story_ring_avatar.dart';
 import '../widgets/story_viewer_fallback_state.dart';
+
+enum _StoryViewerOption { report, block, profile }
 
 class StoryViewerScreen extends ConsumerStatefulWidget {
   const StoryViewerScreen({super.key, required this.args, this.cacheManager});
@@ -35,7 +42,7 @@ class StoryViewerScreen extends ConsumerStatefulWidget {
 }
 
 class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late List<StoryTrayBundle> _bundles;
   late int _bundleIndex;
   late int _storyIndex;
@@ -51,6 +58,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bundles = widget.args.bundles
         .where((bundle) => bundle.stories.isNotEmpty)
         .toList(growable: false);
@@ -93,8 +101,23 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _imageProgressController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (_bundles.isEmpty) return;
+    // Pause the progress timer / video when the app leaves the foreground so
+    // stories don't silently advance while the user is away, and resume when
+    // the user comes back.
+    if (state == AppLifecycleState.resumed) {
+      _resumeStory();
+    } else {
+      _pauseStory();
+    }
   }
 
   void _activateCurrentStory() {
@@ -246,7 +269,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
             ),
           ),
           content: Text(
-            'Esse story sera removido imediatamente.',
+            'Esse story será removido imediatamente.',
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -308,6 +331,196 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     _activateCurrentStory();
   }
 
+  Future<void> _showStoryOptions(StoryTrayBundle bundle) async {
+    _pauseStory();
+    final action = await showModalBottomSheet<_StoryViewerOption>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.flag_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                title: Text(
+                  'Denunciar story',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_StoryViewerOption.report),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.block_rounded,
+                  color: AppColors.error,
+                ),
+                title: Text(
+                  'Bloquear ${bundle.ownerName}',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.error,
+                  ),
+                ),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_StoryViewerOption.block),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.account_circle_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                title: Text(
+                  'Ver perfil',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                onTap: () =>
+                    Navigator.of(sheetContext).pop(_StoryViewerOption.profile),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                title: Text(
+                  'Cancelar',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                onTap: () => Navigator.of(sheetContext).pop(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == null) {
+      if (mounted) _resumeStory();
+      return;
+    }
+    if (!mounted) return;
+
+    switch (action) {
+      case _StoryViewerOption.report:
+        await _reportStoryOwner(bundle);
+      case _StoryViewerOption.block:
+        final closedViewer = await _blockStoryOwner(bundle);
+        if (closedViewer) return;
+      case _StoryViewerOption.profile:
+        await context.push(RoutePaths.publicProfileById(bundle.ownerUid));
+    }
+
+    if (!mounted) return;
+    _resumeStory();
+  }
+
+  Future<void> _reportStoryOwner(StoryTrayBundle bundle) async {
+    final result = await AppOverlay.dialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => const ReportReasonDialog(),
+    );
+    if (result == null || !mounted) return;
+
+    final currentUid = ref.read(currentUserIdProvider);
+    if (currentUid == null) return;
+
+    final outcome = await ref
+        .read(moderationRepositoryProvider)
+        .reportUser(
+          reporterId: currentUid,
+          reportedUserId: bundle.ownerUid,
+          reason: result['reason'] as String,
+          description: result['description'] as String?,
+        );
+    if (!mounted) return;
+    outcome.fold(
+      (_) => AppSnackBar.error(context, 'Não foi possível enviar a denúncia.'),
+      (_) => AppSnackBar.success(context, 'Denúncia enviada para análise.'),
+    );
+  }
+
+  Future<bool> _blockStoryOwner(StoryTrayBundle bundle) async {
+    final confirmed = await AppOverlay.dialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            'Bloquear ${bundle.ownerName}?',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Text(
+            'Você não verá mais os stories nem o conteúdo desse usuário. '
+            'Pode desfazer nas configurações.',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Bloquear'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return false;
+
+    final currentUid = ref.read(currentUserIdProvider);
+    if (currentUid == null) return false;
+
+    final outcome = await ref
+        .read(moderationRepositoryProvider)
+        .blockUser(currentUserId: currentUid, blockedUserId: bundle.ownerUid);
+    if (!mounted) return false;
+
+    final success = outcome.fold((_) => false, (_) => true);
+    if (!success) {
+      AppSnackBar.error(context, 'Não foi possível bloquear o usuário.');
+      return false;
+    }
+
+    ref.invalidate(storyTrayControllerProvider);
+    AppSnackBar.success(context, 'Usuário bloqueado.');
+
+    final remaining = _bundles
+        .where((item) => item.ownerUid != bundle.ownerUid)
+        .toList(growable: false);
+    if (remaining.isEmpty) {
+      Navigator.of(context).pop();
+      return true;
+    }
+
+    setState(() {
+      _bundles = remaining;
+      _bundleIndex = _bundleIndex.clamp(0, _bundles.length - 1);
+      _storyIndex = _storyIndex.clamp(0, _currentBundle.stories.length - 1);
+      _isPaused = false;
+      _isCurrentImageReady = false;
+      _videoProgress = 0;
+    });
+    _activateCurrentStory();
+    return false;
+  }
+
   void _handleTap(TapUpDetails details, BoxConstraints constraints) {
     final dx = details.localPosition.dx;
     final width = constraints.maxWidth;
@@ -344,6 +557,12 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
               onTapUp: (details) => _handleTap(details, constraints),
               onLongPressStart: (_) => _pauseStory(),
               onLongPressEnd: (_) => _resumeStory(),
+              onVerticalDragEnd: (details) {
+                // Swipe down to dismiss, mirroring the standard stories gesture.
+                if ((details.primaryVelocity ?? 0) > 220 && mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -445,6 +664,15 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                                 onPressed: _confirmDeleteCurrentStory,
                                 icon: const Icon(
                                   Icons.delete_outline_rounded,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            if (!currentBundle.isCurrentUser)
+                              IconButton(
+                                onPressed: () =>
+                                    _showStoryOptions(currentBundle),
+                                icon: const Icon(
+                                  Icons.more_vert_rounded,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
@@ -726,7 +954,7 @@ class _StoryMediaStageState extends State<_StoryMediaStage> {
                     ),
                     const SizedBox(height: AppSpacing.s12),
                     Text(
-                      'Nao foi possivel carregar este video.',
+                      'Não foi possível carregar este vídeo.',
                       textAlign: TextAlign.center,
                       style: AppTypography.bodyMedium.copyWith(
                         color: AppColors.textPrimary,

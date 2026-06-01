@@ -185,6 +185,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return;
     }
 
+    if (!bundle.isCurrentUser) {
+      // Clear the unseen ring right away for snappy feedback; the post-view
+      // refresh below reconciles with the server.
+      ref
+          .read(storyTrayControllerProvider.notifier)
+          .markBundleSeen(bundle.ownerUid);
+    }
+
     if (bundle.isCurrentUser) {
       await context.push(RoutePaths.storyViewerById(initialStory.id));
     } else {

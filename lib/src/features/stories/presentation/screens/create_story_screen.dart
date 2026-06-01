@@ -41,7 +41,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
 
     _syncCaptionController(state.caption);
 
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: AppColors.background,
       appBar: const AppAppBar(
         title: 'Novo story',
@@ -146,6 +146,10 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
         ),
       ),
     );
+
+    // Block accidental dismissal while the story is uploading so the in-flight
+    // publish (and its progress state) isn't lost mid-way.
+    return PopScope(canPop: !state.isPublishing, child: scaffold);
   }
 
   void _syncCaptionController(String caption) {
