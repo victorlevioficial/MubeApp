@@ -17,17 +17,20 @@ final storyComposeControllerProvider =
 
 class StoryComposeController extends Notifier<StoryComposeState> {
   late final StoryMediaPickerService _mediaPickerService;
+  bool _disposed = false;
 
   @override
   StoryComposeState build() {
     _mediaPickerService = StoryMediaPickerService();
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     ref.onDispose(_mediaPickerService.dispose);
     return const StoryComposeState();
   }
 
   Future<void> pickImage(BuildContext context) async {
     final selection = await _mediaPickerService.pickImage(context);
-    if (selection == null) return;
+    if (selection == null || _disposed) return;
     state = state.copyWith(
       selectedMedia: selection,
       clearError: true,
@@ -40,7 +43,7 @@ class StoryComposeController extends Notifier<StoryComposeState> {
 
   Future<void> pickVideo(BuildContext context) async {
     final selection = await _mediaPickerService.pickVideo(context);
-    if (selection == null) return;
+    if (selection == null || _disposed) return;
     state = state.copyWith(
       selectedMedia: selection,
       clearError: true,
@@ -120,6 +123,7 @@ class StoryComposeController extends Notifier<StoryComposeState> {
             media: mediaToPublish,
             caption: state.caption,
             onProgress: (progress) {
+              if (_disposed) return;
               state = state.copyWith(
                 isPublishing: true,
                 publishProgress: progress.value,
@@ -128,6 +132,7 @@ class StoryComposeController extends Notifier<StoryComposeState> {
               );
             },
           );
+      if (_disposed) return true;
       ref.invalidate(storyTrayControllerProvider);
       state = state.copyWith(
         isPublishing: false,
@@ -147,6 +152,7 @@ class StoryComposeController extends Notifier<StoryComposeState> {
       return true;
     } catch (error, stackTrace) {
       AppLogger.error('Falha ao publicar story', error, stackTrace);
+      if (_disposed) return false;
       state = state.copyWith(
         isPublishing: false,
         errorMessage: _resolveErrorMessage(error),

@@ -311,7 +311,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
       expect(find.byType(StoryTray), findsOneWidget);
-      expect(find.text('Nao foi possivel carregar os stories'), findsOneWidget);
+      expect(find.text('Não foi possível carregar os stories'), findsOneWidget);
       expect(find.text('Erro ao carregar stories'), findsOneWidget);
       expect(find.text('Tentar novamente'), findsOneWidget);
     });
@@ -335,7 +335,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(seconds: 2));
 
         expect(find.text('Processando'), findsOneWidget);
-        expect(find.text('Seu story esta sendo preparado'), findsOneWidget);
+        expect(find.text('Seu story está sendo preparado'), findsOneWidget);
         expect(find.text('Atualizar'), findsOneWidget);
       },
     );

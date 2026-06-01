@@ -215,8 +215,8 @@ extension _FeedScreenUi on _FeedScreenState {
                         children: [
                           Text(
                             pendingStories.length == 1
-                                ? 'Seu story esta sendo preparado'
-                                : '${pendingStories.length} stories estao sendo processados',
+                                ? 'Seu story está sendo preparado'
+                                : '${pendingStories.length} stories estão sendo processados',
                             style: AppTypography.labelLarge.copyWith(
                               color: AppColors.textPrimary,
                             ),
@@ -275,7 +275,7 @@ extension _FeedScreenUi on _FeedScreenState {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Nao foi possivel carregar os stories',
+                            'Não foi possível carregar os stories',
                             style: AppTypography.labelLarge.copyWith(
                               color: AppColors.textPrimary,
                             ),

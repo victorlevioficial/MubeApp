@@ -72,6 +72,10 @@ class StoryRepository {
   final FavoriteRepository _favoriteRepository;
   final app_check.FirebaseAppCheck? _appCheck;
 
+  String? _cachedViewerUid;
+  String? _cachedViewerName;
+  String? _cachedViewerPhoto;
+
   String get _uid {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -442,11 +446,18 @@ class StoryRepository {
     final uid = _uid;
     if (story.ownerUid == uid) return;
 
-    final userDoc = await _firestore.collection('users').doc(uid).get();
-    final userData = userDoc.data() ?? const <String, dynamic>{};
-    final viewerName = _resolveDisplayName(userData);
-    final viewerPhoto =
-        (userData['foto_thumb'] as String?) ?? userData['foto'] as String?;
+    // Resolve the viewer's display identity once per session instead of
+    // re-reading the full user document on every single story view.
+    if (_cachedViewerUid != uid) {
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userData = userDoc.data() ?? const <String, dynamic>{};
+      _cachedViewerName = _resolveDisplayName(userData);
+      _cachedViewerPhoto =
+          (userData['foto_thumb'] as String?) ?? userData['foto'] as String?;
+      _cachedViewerUid = uid;
+    }
+    final viewerName = _cachedViewerName;
+    final viewerPhoto = _cachedViewerPhoto;
 
     final viewRef = _firestore
         .collection(StoryConstants.storiesCollection)
@@ -1049,6 +1060,10 @@ class StoryRepository {
       },
     );
 
+    // Clean up the compressed temp files we created (never the user's original).
+    await _deleteTempFileIfNeeded(fullFile, keep: media.file);
+    await _deleteTempFileIfNeeded(thumbFile, keep: media.file);
+
     return _StoryMediaUploadResult(mediaUrl: fullUrl, thumbnailUrl: thumbUrl);
   }
 
@@ -1094,6 +1109,7 @@ class StoryRepository {
             );
           },
         );
+        await _deleteTempFileIfNeeded(webpThumb, keep: media.thumbnailFile);
       } catch (e, stack) {
         AppLogger.warning(
           'Falha ao upload thumbnail, continuando sem',
@@ -1309,6 +1325,24 @@ class StoryRepository {
   }) {
     final normalizedProgress = clampDouble(progress, 0, 1);
     return start + ((end - start) * normalizedProgress);
+  }
+
+  // Best-effort cleanup of the temporary files we generate during upload
+  // (compressed image/thumbnail, transcoded webp thumb). Never deletes the
+  // user's original [keep] file.
+  Future<void> _deleteTempFileIfNeeded(File file, {File? keep}) async {
+    try {
+      if (keep != null && file.path == keep.path) return;
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao limpar arquivo temporario do story',
+        error,
+        stackTrace,
+      );
+    }
   }
 
   @visibleForTesting

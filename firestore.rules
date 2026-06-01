@@ -395,9 +395,13 @@ service cloud.firestore {
           )
         );
 
-      // Story tray queries must stay listable under Firestore query
-      // semantics. Client list queries already restrict by expiration and
-      // blocked owners are filtered in app code before querying.
+      // Story tray queries must stay listable under Firestore query semantics.
+      // NOTE: blocking CANNOT be enforced here. The global tray query filters
+      // only by `status`, so `resource.data.owner_uid` is undefined during list
+      // rule evaluation; an isBlockedBetween(..., owner_uid) check then throws
+      // "Property owner_uid is undefined" and breaks the whole query — verified
+      // in the Firestore emulator. Blocked owners are filtered in app code, and
+      // the `get` rule above still enforces blocking for direct reads.
       allow list: if request.auth != null &&
         (
           resource.data.status == 'active' ||

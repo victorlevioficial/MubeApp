@@ -17,6 +17,9 @@ final storyTrayControllerProvider =
       StoryTrayController.new,
     );
 
+const int _maxPendingStoryPolls = 6;
+final Map<String, int> _pendingStoryPollAttempts = <String, int>{};
+
 final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
   ref,
 ) async {
@@ -27,13 +30,27 @@ final currentUserPendingStoriesProvider = FutureProvider<List<StoryItem>>((
     final stories = await ref
         .read(storyRepositoryProvider)
         .loadCurrentUserProcessingStories();
-    if (stories.isNotEmpty) {
-      final timer = Timer(const Duration(seconds: 8), () {
-        ref.invalidateSelf();
-        ref.invalidate(storyTrayControllerProvider);
-      });
+
+    if (stories.isEmpty) {
+      // Processing finished: refresh the tray once so the now-active story
+      // shows up, then stop polling.
+      final wasPolling = _pendingStoryPollAttempts.remove(uid) != null;
+      if (wasPolling) {
+        scheduleMicrotask(() => ref.invalidate(storyTrayControllerProvider));
+      }
+      return const <StoryItem>[];
+    }
+
+    // Re-check with an increasing backoff (8s, 13s, 18s, ...) up to a hard cap
+    // instead of a fixed 8s loop that reloaded the entire tray forever.
+    final attempt = _pendingStoryPollAttempts[uid] ?? 0;
+    if (attempt < _maxPendingStoryPolls) {
+      _pendingStoryPollAttempts[uid] = attempt + 1;
+      final timer = Timer(
+        Duration(seconds: 8 + attempt * 5),
+        ref.invalidateSelf,
+      );
       ref.onDispose(timer.cancel);
-      scheduleMicrotask(() => ref.invalidate(storyTrayControllerProvider));
     }
     return stories;
   } catch (error, stackTrace) {
@@ -78,6 +95,21 @@ class StoryTrayController extends AsyncNotifier<List<StoryTrayBundle>> {
       state = const AsyncLoading();
     }
     state = await AsyncValue.guard(() => _loadTray(ownerIds));
+  }
+
+  /// Optimistically clears the "unseen" ring for [ownerUid] so the tray updates
+  /// instantly after opening a bundle, without waiting for the server-side
+  /// `story_seen_authors` write plus a full reload.
+  void markBundleSeen(String ownerUid) {
+    final current = state.value;
+    if (current == null) return;
+    if (!current.any((b) => b.ownerUid == ownerUid && b.hasUnseen)) return;
+    state = AsyncData([
+      for (final bundle in current)
+        bundle.ownerUid == ownerUid
+            ? bundle.copyWith(hasUnseen: false)
+            : bundle,
+    ]);
   }
 
   Future<List<StoryTrayBundle>> _loadTray(List<String> ownerIds) async {
