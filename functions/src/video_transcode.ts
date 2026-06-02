@@ -481,7 +481,10 @@ export const onGalleryVideoUploaded = onObjectFinalized(
   {
     region: REGION,
     memory: "512MiB",
-    maxInstances: 1,
+    // I/O-bound worker that waits on the Transcoder job; allow a few
+    // concurrent instances so gallery videos from different users are not
+    // serialized behind a single instance (matches the stories worker).
+    maxInstances: 3,
     timeoutSeconds: 540,
     retry: false,
   },

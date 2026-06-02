@@ -764,6 +764,57 @@ class MatchpointController extends _$MatchpointController {
     );
   }
 
+  /// Reverte o último swipe enviado para [targetUserId].
+  ///
+  /// Cancela um comando ainda pendente no outbox (para não recriar a interação
+  /// após o flush) e chama a Cloud Function de reversão, que remove a interação
+  /// e desfaz o match no servidor. A cota não é estornada (mesma decisão
+  /// conservadora do servidor).
+  Future<void> undoLastSwipe({required String targetUserId}) async {
+    final currentUser = ref.read(authRepositoryProvider).currentUser;
+    if (currentUser == null) return;
+
+    await _cancelPendingOutboxSwipe(
+      userId: currentUser.uid,
+      targetUserId: targetUserId,
+    );
+
+    final result = await ref
+        .read(matchpointRepositoryProvider)
+        .undoSwipe(targetUserId: targetUserId);
+
+    result.fold(
+      (failure) =>
+          AppLogger.error('Failed to undo last swipe: ${failure.message}'),
+      (_) {
+        AppLogger.info('MatchPoint swipe undone for target=$targetUserId');
+        ref.invalidate(matchesProvider);
+      },
+    );
+  }
+
+  Future<void> _cancelPendingOutboxSwipe({
+    required String userId,
+    required String targetUserId,
+  }) async {
+    try {
+      final outbox = ref.read(matchpointSwipeOutboxStoreProvider);
+      final pending = await outbox.load(userId);
+      for (final entry in pending) {
+        if (entry.command.targetUserId == targetUserId) {
+          await outbox.remove(userId: userId, commandId: entry.commandId);
+        }
+      }
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to cancel pending outbox swipe during undo.',
+        error,
+        stackTrace,
+        false,
+      );
+    }
+  }
+
   Future<void> fetchRemainingLikes() async {
     final repo = ref.read(matchpointRepositoryProvider);
     final result = await repo.getRemainingLikes();

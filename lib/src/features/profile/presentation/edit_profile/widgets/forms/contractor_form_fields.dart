@@ -220,6 +220,7 @@ class ContractorFormFields extends StatelessWidget {
             controller: bioController,
             label: 'Bio',
             maxLines: 3,
+            maxLength: kProfileBioMaxLength,
             hint: 'Conte um pouco sobre você...',
             textCapitalization: TextCapitalization.sentences,
             inputFormatters: [SentenceStartUppercaseTextInputFormatter()],

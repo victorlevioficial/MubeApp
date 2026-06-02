@@ -31,6 +31,8 @@ abstract class MatchpointRemoteDataSource {
     required String action,
   });
 
+  Future<MatchpointActionResult> undoSwipe(String targetUserId);
+
   Future<List<String>> fetchExistingInteractions(String currentUserId);
 
   Future<LikesQuotaInfo> getRemainingLikes();
@@ -512,6 +514,23 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     } on FirebaseFunctionsException catch (e) {
       AppLogger.error(
         'submitMatchpointAction failed: code=${e.code}, message=${e.message}',
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<MatchpointActionResult> undoSwipe(String targetUserId) async {
+    try {
+      final callable = _functions.httpsCallable('undoMatchpointAction');
+      final result = await callable.call({'targetUserId': targetUserId});
+
+      return MatchpointActionResult.fromJson(
+        _normalizeCloudFunctionMap(result.data),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      AppLogger.error(
+        'undoMatchpointAction failed: code=${e.code}, message=${e.message}',
       );
       rethrow;
     }

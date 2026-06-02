@@ -32,6 +32,8 @@ class MatchpointRepository {
       'Nao foi possivel registrar sua acao agora. Tente novamente.';
   static const String _likesQuotaFallbackMessage =
       'Nao foi possivel consultar seus swipes agora. Tente novamente.';
+  static const String _undoActionFallbackMessage =
+      'Nao foi possivel desfazer seu swipe agora. Tente novamente.';
   static const String _appCheckDebugMessage =
       'App Check de desenvolvimento nao configurado. Cadastre o token de debug no Firebase Console e reabra o app.';
   static const String _appCheckReleaseMessage =
@@ -241,6 +243,27 @@ class MatchpointRepository {
           )
           .catchError((_) {}),
     );
+  }
+
+  /// Reverte o último swipe do usuário sobre [targetUserId] via Cloud Function.
+  FutureResult<MatchpointActionResult> undoSwipe({
+    required String targetUserId,
+  }) async {
+    try {
+      final result = await _dataSource.undoSwipe(targetUserId);
+      if (!result.success) {
+        return Left(
+          ServerFailure(message: result.message ?? 'Erro desconhecido'),
+        );
+      }
+      return Right(result);
+    } on FirebaseFunctionsException catch (e) {
+      return Left(
+        _mapFunctionsFailure(e, fallbackMessage: _undoActionFallbackMessage),
+      );
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
   }
 
   /// Obtem quantidade de likes restantes

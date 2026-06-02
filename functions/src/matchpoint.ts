@@ -1146,6 +1146,86 @@ export const submitMatchpointAction = onCall(
 );
 
 /**
+ * Cloud Function: undoMatchpointAction.
+ *
+ * Reverte o último swipe do usuário sobre um alvo: remove a interação e
+ * desfaz o match (se houver), reprojetando o feed de ambos. Não estorna a
+ * cota diária (decisão conservadora contra undo repetido).
+ */
+export const undoMatchpointAction = onCall(
+  {
+    region: "southamerica-east1",
+    memory: "256MiB",
+    concurrency: 1,
+    maxInstances: 10,
+    timeoutSeconds: 10,
+    enforceAppCheck: true,
+    invoker: "public",
+    cors: true,
+  },
+  async (request): Promise<MatchpointActionResponse> => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Usuário não autenticado");
+    }
+
+    const currentUserId = request.auth.uid;
+    const targetUserId = firstNonEmptyString([
+      asRecord(request.data).targetUserId,
+    ]);
+
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "targetUserId é obrigatório");
+    }
+
+    if (currentUserId === targetUserId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Não pode interagir consigo mesmo"
+      );
+    }
+
+    return processMatchpointUndo(currentUserId, targetUserId);
+  }
+);
+
+/**
+ * Reverte a interação do usuário atual sobre o alvo.
+ *
+ * @param {string} currentUserId - UID de quem desfaz o swipe.
+ * @param {string} targetUserId - UID do alvo.
+ * @return {Promise<MatchpointActionResponse>} Resultado da reversão.
+ */
+async function processMatchpointUndo(
+  currentUserId: string,
+  targetUserId: string
+): Promise<MatchpointActionResponse> {
+  const interactionsRef = db.collection("interactions");
+  const existingQuery = await interactionsRef
+    .where("source_user_id", "==", currentUserId)
+    .where("target_user_id", "==", targetUserId)
+    .where("type", "in", ["like", "dislike"])
+    .limit(1)
+    .get();
+
+  if (existingQuery.empty) {
+    return {success: true, message: "Nada para desfazer"};
+  }
+
+  await existingQuery.docs[0].ref.delete();
+  const removedMatch = await removeMatch(currentUserId, targetUserId);
+
+  await Promise.all([
+    enqueueMatchpointFeedRefresh(currentUserId, "interaction_undo"),
+    enqueueMatchpointFeedRefresh(targetUserId, "interaction_undo"),
+  ]);
+
+  return {
+    success: true,
+    message: removedMatch ? "Match desfeito" : "Swipe desfeito",
+  };
+}
+
+/**
  * Trigger: processa comandos assíncronos de swipe criados pelo app.
  *
  * Caminho: matchpointCommands/{commandId}

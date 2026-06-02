@@ -310,3 +310,11 @@ String normalizeGenderValue(String? value) {
   }
   return normalized;
 }
+
+/// Maximum bio length for profile editing.
+///
+/// Mirrors the Firestore security rule on `users/{uid}` update
+/// (`bio.size() <= 500`, see firestore.rules). Used to cap input in the
+/// edit-profile forms and as a defense-in-depth guard before the write, so a
+/// long bio never gets rejected server-side with a generic permission error.
+const int kProfileBioMaxLength = 500;

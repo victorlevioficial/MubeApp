@@ -66,6 +66,7 @@ class BandFormFields extends ConsumerWidget {
             controller: bioController,
             label: 'Bio',
             maxLines: 3,
+            maxLength: kProfileBioMaxLength,
             hint: 'Conte um pouco sobre a banda...',
             textCapitalization: TextCapitalization.sentences,
             inputFormatters: [SentenceStartUppercaseTextInputFormatter()],

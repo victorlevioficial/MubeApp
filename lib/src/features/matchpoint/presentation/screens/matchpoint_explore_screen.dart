@@ -354,6 +354,14 @@ class _MatchpointExploreScreenState
         }
       },
       onUndoSwipe: () {
+        final history = ref.read(swipeHistoryProvider);
+        if (history.isNotEmpty) {
+          unawaited(
+            ref
+                .read(matchpointControllerProvider.notifier)
+                .undoLastSwipe(targetUserId: history.first.targetUserId),
+          );
+        }
         ref.read(swipeHistoryProvider.notifier).undoLast();
       },
       currentUserGenres: currentUserGenres,

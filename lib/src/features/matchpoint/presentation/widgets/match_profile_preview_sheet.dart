@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 
 import '../../../../core/services/image_cache_config.dart';
+import '../../../../design_system/components/feedback/app_overlay.dart';
 import '../../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../auth/domain/user_type.dart';
 import '../../../profile/domain/media_item.dart';
+import '../../../profile/presentation/widgets/media_viewer_dialog.dart';
 import '../../../profile/presentation/widgets/public_gallery_grid.dart';
 import '../../domain/matchpoint_dynamic_fields.dart';
 
@@ -100,7 +102,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
                     ],
                     _buildMatchpointHashtags(),
                     _buildTypeSpecificDetails(),
-                    _buildGallerySection(),
+                    _buildGallerySection(context),
                   ],
                 ),
               ),
@@ -407,7 +409,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildGallerySection() {
+  Widget _buildGallerySection(BuildContext context) {
     final List<dynamic> galleryData;
 
     switch (user.tipoPerfil) {
@@ -439,7 +441,14 @@ class MatchProfilePreviewSheet extends StatelessWidget {
       children: [
         Text('Galeria', style: AppTypography.titleMedium),
         const SizedBox(height: AppSpacing.s12),
-        PublicGalleryGrid(items: gallery),
+        PublicGalleryGrid(
+          items: gallery,
+          onItemTap: (index) => AppOverlay.dialog<void>(
+            context: context,
+            builder: (_) =>
+                MediaViewerDialog(items: gallery, initialIndex: index),
+          ),
+        ),
       ],
     );
   }

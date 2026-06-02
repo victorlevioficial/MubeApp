@@ -35,6 +35,11 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }
 
   @override
+  Future<MatchpointActionResult> undoSwipe(String targetUserId) async {
+    return MatchpointActionResult(success: true, isMatch: false);
+  }
+
+  @override
   Future<List<String>> fetchExistingInteractions(String currentUserId) async {
     fetchExistingInteractionsCalls += 1;
     return fetchExistingInteractionsResult;

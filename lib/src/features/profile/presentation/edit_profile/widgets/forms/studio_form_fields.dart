@@ -107,6 +107,7 @@ class StudioFormFields extends ConsumerWidget {
             controller: bioController,
             label: 'Bio',
             maxLines: 3,
+            maxLength: kProfileBioMaxLength,
             hint: 'Descreva o estudio...',
             textCapitalization: TextCapitalization.sentences,
             inputFormatters: [SentenceStartUppercaseTextInputFormatter()],

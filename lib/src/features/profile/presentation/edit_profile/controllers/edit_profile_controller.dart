@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../../constants/app_constants.dart';
 import '../../../../../core/domain/professional_roles.dart';
 import '../../../../../core/errors/error_message_resolver.dart';
 import '../../../../../core/providers/firebase_providers.dart';
@@ -40,8 +42,6 @@ class EditProfileController extends _$EditProfileController {
   static const Duration _transcodePollInterval = Duration(seconds: 4);
   static const Duration _transcodeWaitTimeout = Duration(minutes: 9);
   static const String _videoUploadStatus = 'Enviando vídeo...';
-  static const String _videoTranscodeStatus =
-      'Processando vídeo para máxima compatibilidade...';
 
   @override
   EditProfileState build(String userId) {
@@ -591,37 +591,24 @@ class EditProfileController extends _$EditProfileController {
       final mediaUrls = results[0] as GalleryMediaUrls;
       final thumbUrl = results[1] as String;
       final uploadedVideoUrl = mediaUrls.full ?? '';
-      final pendingItem = MediaItem(
+
+      // The upload finished and produced a playable URL. Mark the item ready
+      // immediately so saving the profile is NOT blocked by the (up to
+      // 9-minute) server-side transcode. Transcoding keeps running: the server
+      // rewrites the gallery URL when it finishes and the player resolves the
+      // transcoded URL on demand, so the original upload is never lost and a
+      // slow/failed transcode no longer blocks the save.
+      final readyItem = MediaItem(
         id: mediaId,
         url: uploadedVideoUrl,
         type: MediaType.video,
         thumbnailUrl: thumbUrl,
         order: placeholder.order,
-        isUploading: true,
-        uploadProgress: 1.0,
-      );
-
-      _replaceGalleryItem(mediaId, pendingItem);
-
-      state = state.copyWith(
-        isUploadingMedia: true,
-        uploadProgress: 1.0,
-        uploadStatus: _videoTranscodeStatus,
-      );
-
-      final transcodedUrl = await _waitForTranscodedVideoUrl(
-        userId: userId,
-        mediaId: mediaId,
-        uploadedVideoUrl: uploadedVideoUrl,
-      );
-
-      final finalItem = pendingItem.copyWith(
-        url: transcodedUrl,
         isUploading: false,
         uploadProgress: 0.0,
       );
 
-      _replaceGalleryItem(mediaId, finalItem);
+      _replaceGalleryItem(mediaId, readyItem);
       state = state.copyWith(
         isUploadingMedia: false,
         uploadProgress: 0.0,
@@ -629,6 +616,14 @@ class EditProfileController extends _$EditProfileController {
       );
 
       ref.invalidate(publicProfileControllerProvider(userId));
+
+      unawaited(
+        _resolveTranscodedVideoInBackground(
+          userId: userId,
+          mediaId: mediaId,
+          uploadedVideoUrl: uploadedVideoUrl,
+        ),
+      );
     } catch (e) {
       await storage.deleteGalleryItem(
         userId: userId,
@@ -793,6 +788,19 @@ class EditProfileController extends _$EditProfileController {
     }).toList();
   }
 
+  /// Clamps [bio] to [kProfileBioMaxLength] Unicode code points so the write
+  /// never violates the Firestore rule on `users/{uid}.bio` (`bio.size() <=
+  /// 500`). The bio form fields already cap input via maxLength; this guards
+  /// legacy or pasted values that would otherwise be rejected with a generic
+  /// permission error.
+  String _clampBioToMaxLength(String bio) {
+    if (bio.runes.length <= kProfileBioMaxLength) return bio;
+    AppLogger.warning(
+      'Bio exceeds $kProfileBioMaxLength code points; truncating before save.',
+    );
+    return String.fromCharCodes(bio.runes.take(kProfileBioMaxLength));
+  }
+
   Future<void> saveProfile({
     required AppUser user,
     required String nome,
@@ -819,7 +827,8 @@ class EditProfileController extends _$EditProfileController {
           .ensureCurrentUserProfileExists();
       ensureProfileResult.fold((failure) => throw failure.message, (_) {});
 
-      final Map<String, dynamic> updates = {'nome': nome, 'bio': bio};
+      final safeBio = _clampBioToMaxLength(bio);
+      final Map<String, dynamic> updates = {'nome': nome, 'bio': safeBio};
       final gallery = await _galleryToJson(userId: user.uid);
       final normalizedUsername = normalizedPublicUsernameOrNull(username);
       final currentUsername = user.publicUsername;
@@ -891,7 +900,7 @@ class EditProfileController extends _$EditProfileController {
             'nomeEstudio': nomeArtistico,
             'nomeArtistico': nomeArtistico,
             'nome': nomeArtistico,
-            'bio': bio,
+            'bio': safeBio,
             'celular': celular,
             'instagram': instagram,
             'studioType': state.studioType,
@@ -907,7 +916,7 @@ class EditProfileController extends _$EditProfileController {
             'nomeBanda': nomeArtistico,
             'nomeArtistico': nomeArtistico,
             'nome': nomeArtistico,
-            'bio': bio,
+            'bio': safeBio,
             'instagram': instagram,
             'generosMusicais': state.bandGenres,
             'gallery': gallery,
@@ -922,7 +931,7 @@ class EditProfileController extends _$EditProfileController {
           updates['dadosContratante'] = {
             ...currentData,
             'nomeExibicao': nomeArtistico,
-            'bio': bio,
+            'bio': safeBio,
             'celular': celular,
             'dataNascimento': dataNascimento,
             'genero': genero,
@@ -960,6 +969,46 @@ class EditProfileController extends _$EditProfileController {
     }
   }
 
+  /// Resolves the transcoded video URL in the background after [addVideo] has
+  /// already exposed the item with its original upload URL. On success the
+  /// item's URL is upgraded to the transcoded master; on failure/timeout the
+  /// original (playable) URL is kept, since the server still rewrites the
+  /// gallery URL via applyTranscodedUrlToGallery if/when transcoding finishes.
+  Future<void> _resolveTranscodedVideoInBackground({
+    required String userId,
+    required String mediaId,
+    required String uploadedVideoUrl,
+  }) async {
+    final String transcodedUrl;
+    try {
+      transcodedUrl = await _waitForTranscodedVideoUrl(
+        userId: userId,
+        mediaId: mediaId,
+        uploadedVideoUrl: uploadedVideoUrl,
+      );
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Background gallery transcode did not complete; keeping original '
+        'video URL for media=$mediaId.',
+        error,
+        stackTrace,
+        false,
+      );
+      return;
+    }
+
+    if (!ref.mounted) return;
+    if (transcodedUrl.isEmpty || transcodedUrl == uploadedVideoUrl) return;
+
+    final index = state.galleryItems.indexWhere((item) => item.id == mediaId);
+    if (index < 0) return; // item was removed before transcoding finished
+
+    _replaceGalleryItem(
+      mediaId,
+      state.galleryItems[index].copyWith(url: transcodedUrl),
+    );
+  }
+
   Future<String> _waitForTranscodedVideoUrl({
     required String userId,
     required String mediaId,
@@ -981,6 +1030,11 @@ class EditProfileController extends _$EditProfileController {
     final deadline = DateTime.now().add(_transcodeWaitTimeout);
 
     while (DateTime.now().isBefore(deadline)) {
+      if (!ref.mounted) {
+        // Controller disposed (e.g. user left the screen) during a background
+        // transcode wait. Stop polling and keep the original upload URL.
+        return uploadedVideoUrl;
+      }
       try {
         final snapshot = await firestore
             .collection('mediaTranscodeJobs')
