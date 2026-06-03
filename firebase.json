@@ -47,7 +47,8 @@
     "public": "landing_page",
     "ignore": [
       "firebase.json",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/admin/package.json"
     ],
     "rewrites": [
       {
@@ -105,6 +106,14 @@
       {
         "source": "/gigs/**",
         "destination": "/gigs/index.html"
+      },
+      {
+        "source": "/p",
+        "destination": "/p/index.html"
+      },
+      {
+        "source": "/p/",
+        "destination": "/p/index.html"
       }
     ],
     "headers": [

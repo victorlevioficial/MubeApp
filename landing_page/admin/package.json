@@ -1,0 +1,6 @@
+{
+  "name": "mube-admin-next",
+  "private": true,
+  "type": "module",
+  "description": "New Mube admin panel — vanilla ES modules served by Firebase Hosting, no build step."
+}
