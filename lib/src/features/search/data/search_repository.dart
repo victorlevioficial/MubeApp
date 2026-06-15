@@ -25,6 +25,31 @@ class SearchConfig {
   static const int batchSize = 40;
   static const int maxDocsRead = 180;
   static const int targetResults = 20;
+
+  // When the user types a name/text term, matching is done in memory after
+  // reading documents from Firestore. This wider window is used as a fallback
+  // (in larger batches to keep the number of round-trips low) whenever the
+  // server-side name index can't narrow the candidates — e.g. for non-name
+  // terms (skills/aliases), profiles not yet backfilled, or if the index is
+  // missing. It also keeps name search working before the server index ships.
+  static const int batchSizeWithTerm = 250;
+  static const int maxDocsReadWithTerm = 2000;
+
+  // ── Server-side name index (scalable name search) ──
+  // Reads the denormalized `search_terms` array (name prefixes) maintained by
+  // the `syncUserSearchTerms` Cloud Function trigger, so name search runs as a
+  // Firestore query (`array-contains`) instead of scanning recent docs.
+  // Requires the Firestore index + the trigger + a one-time backfill deployed.
+  static const bool useServerSideNameSearch = true;
+  static const String searchTermsField = 'search_terms';
+  static const int serverSearchMinTokenLength = 2;
+  static const int serverSearchMaxPrefixLength = 20;
+}
+
+/// Thrown internally when the `search_terms` composite index is missing, so the
+/// repository can transparently fall back to the in-memory scan.
+class _MissingSearchIndexException implements Exception {
+  const _MissingSearchIndexException();
 }
 
 enum _SearchProfileScope {
@@ -108,103 +133,80 @@ class SearchRepository {
         return const Right(PaginatedSearchResponse.empty());
       }
 
-      final List<FeedItem> results = [];
-      final Set<String> seenUids = {};
-      DocumentSnapshot? lastDoc = startAfter;
-      int totalDocsRead = 0;
-      var reachedEnd = false;
+      // Resolve the most selective name token to query server-side. Null when
+      // the feature is off or there's no usable text term.
+      final serverToken = SearchConfig.useServerSideNameSearch
+          ? _resolveServerSearchToken(effectiveFilters)
+          : null;
 
-      while (results.length < SearchConfig.targetResults &&
-          totalDocsRead < SearchConfig.maxDocsRead) {
-        // Check if request is still valid (not cancelled by newer request)
-        if (getCurrentRequestId() != requestId) {
-          AppLogger.debug('Search request $requestId cancelled');
-          return const Right(PaginatedSearchResponse.empty());
+      PaginatedSearchResponse? response;
+
+      if (serverToken != null) {
+        try {
+          response = await _collectPaged(
+            effectiveFilters: effectiveFilters,
+            scope: scope,
+            startAfter: startAfter,
+            requestId: requestId,
+            getCurrentRequestId: getCurrentRequestId,
+            blockedUsers: blockedUsers,
+            serverToken: serverToken,
+          );
+        } on _MissingSearchIndexException {
+          // Index not deployed yet → degrade gracefully to the in-memory scan.
+          AppLogger.warning(
+            'search_terms index unavailable; falling back to in-memory scan.',
+          );
+          response = null;
         }
 
-        // Build and execute query
-        final query = _buildBaseQuery(startAfter: lastDoc, scope: scope);
-        final snapshot = await _firestoreResilience.run(
-          () => query.get(),
-          operationLabel: 'search_users_page',
-          onFinalError: (error) => mapExceptionToFailure(error),
+        // Fall back to the wide scan when the server path yields nothing on the
+        // first page — covers non-name terms (skills/aliases), profiles not yet
+        // backfilled, and the missing-index case above. Restricted to the first
+        // page so name searches don't trigger a wide scan on every empty
+        // follow-up page at scale.
+        if ((response == null || response.items.isEmpty) &&
+            startAfter == null) {
+          response = await _collectPaged(
+            effectiveFilters: effectiveFilters,
+            scope: scope,
+            startAfter: startAfter,
+            requestId: requestId,
+            getCurrentRequestId: getCurrentRequestId,
+            blockedUsers: blockedUsers,
+            serverToken: null,
+          );
+        }
+      } else {
+        response = await _collectPaged(
+          effectiveFilters: effectiveFilters,
+          scope: scope,
+          startAfter: startAfter,
+          requestId: requestId,
+          getCurrentRequestId: getCurrentRequestId,
+          blockedUsers: blockedUsers,
+          serverToken: null,
         );
-
-        if (snapshot.docs.isEmpty) {
-          reachedEnd = true;
-          break;
-        }
-
-        totalDocsRead += snapshot.docs.length;
-        lastDoc = snapshot.docs.last;
-
-        // Filter and deduplicate in memory
-        for (final doc in snapshot.docs) {
-          if (getCurrentRequestId() != requestId) {
-            return const Right(PaginatedSearchResponse.empty());
-          }
-
-          final data = doc.data();
-
-          // Skip non-searchable (incomplete/inactive profiles)
-          final cadastroStatus = data['cadastro_status'] as String?;
-          final status = data['status'] as String? ?? 'ativo';
-          if (cadastroStatus != 'concluido' || status != 'ativo') continue;
-
-          final isContractor = data['tipo_perfil'] == 'contratante';
-          if (isContractor) {
-            final contractorData =
-                data['contratante'] as Map<String, dynamic>? ?? {};
-            if (contractorData['isPublic'] != true) continue;
-          } else {
-            // Skip if hidden from search (Ghost Mode)
-            final privacy = data['privacy_settings'] as Map<String, dynamic>?;
-            if (privacy != null && privacy['visible_in_home'] == false) {
-              continue;
-            }
-          }
-
-          // Deduplicate
-          if (seenUids.contains(doc.id)) continue;
-
-          // Blocked check
-          if (blockedUsers.contains(doc.id)) continue;
-
-          // Apply filters
-          final item = FeedItem.fromFirestore(data, doc.id);
-          if (!_matchesFilters(item, data, effectiveFilters)) continue;
-
-          seenUids.add(doc.id);
-          results.add(item);
-
-          if (results.length >= SearchConfig.targetResults) break;
-        }
       }
 
-      AppLogger.debug(
-        'Search request $requestId returned ${results.length} results after reading $totalDocsRead docs',
-      );
+      // A null response means the request was cancelled by a newer one.
+      if (response == null) {
+        return const Right(PaginatedSearchResponse.empty());
+      }
 
       // Log analytics event for search performed
       await _analytics?.logEvent(
         name: 'search_performed',
         parameters: {
           'query': filters.term,
-          'results_count': results.length,
+          'results_count': response.items.length,
           'has_filters': effectiveFilters.hasActiveFilters,
           'category': effectiveFilters.category.name,
+          'server_index': serverToken != null,
         },
       );
 
-      final hasMore = !reachedEnd && lastDoc != null;
-
-      return Right(
-        PaginatedSearchResponse(
-          items: results,
-          lastDocument: lastDoc,
-          hasMore: hasMore,
-        ),
-      );
+      return Right(response);
     } catch (e, stack) {
       final failure = e is Failure ? e : mapExceptionToFailure(e, stack);
       AppLogger.error('Search repository failed', e, stack);
@@ -219,10 +221,166 @@ class SearchRepository {
     }
   }
 
+  /// Pages through Firestore collecting up to [SearchConfig.targetResults]
+  /// matches, applying eligibility and filters in memory.
+  ///
+  /// When [serverToken] is set, the query is narrowed with an `array-contains`
+  /// on [SearchConfig.searchTermsField]; otherwise it falls back to scanning
+  /// the most recently created profiles.
+  ///
+  /// Returns `null` if the request was cancelled by a newer one. Throws
+  /// [_MissingSearchIndexException] when [serverToken] is set but the composite
+  /// index is missing, so the caller can retry as a scan.
+  Future<PaginatedSearchResponse?> _collectPaged({
+    required SearchFilters effectiveFilters,
+    required _SearchProfileScope scope,
+    required DocumentSnapshot? startAfter,
+    required int requestId,
+    required ValueGetter<int> getCurrentRequestId,
+    required List<String> blockedUsers,
+    required String? serverToken,
+  }) async {
+    // A free-text scan matches in memory, so it must read a much wider window
+    // to reach profiles that aren't among the most recently created.
+    final hasTextTerm = effectiveFilters.term.trim().isNotEmpty;
+    final batchSize = hasTextTerm
+        ? SearchConfig.batchSizeWithTerm
+        : SearchConfig.batchSize;
+    final maxDocsRead = hasTextTerm
+        ? SearchConfig.maxDocsReadWithTerm
+        : SearchConfig.maxDocsRead;
+
+    final List<FeedItem> results = [];
+    final Set<String> seenUids = {};
+    DocumentSnapshot? lastDoc = startAfter;
+    int totalDocsRead = 0;
+    var reachedEnd = false;
+
+    while (results.length < SearchConfig.targetResults &&
+        totalDocsRead < maxDocsRead) {
+      // Check if request is still valid (not cancelled by newer request)
+      if (getCurrentRequestId() != requestId) {
+        AppLogger.debug('Search request $requestId cancelled');
+        return null;
+      }
+
+      // Build and execute query
+      final query = _buildBaseQuery(
+        startAfter: lastDoc,
+        scope: scope,
+        limit: batchSize,
+        searchToken: serverToken,
+      );
+      final snapshot = await _firestoreResilience.run(
+        () => query.get(),
+        operationLabel: 'search_users_page',
+        onFinalError: (error) {
+          if (serverToken != null && error.code == 'failed-precondition') {
+            return const _MissingSearchIndexException();
+          }
+          return mapExceptionToFailure(error);
+        },
+      );
+
+      if (snapshot.docs.isEmpty) {
+        reachedEnd = true;
+        break;
+      }
+
+      totalDocsRead += snapshot.docs.length;
+      lastDoc = snapshot.docs.last;
+
+      // Filter and deduplicate in memory
+      for (final doc in snapshot.docs) {
+        if (getCurrentRequestId() != requestId) {
+          return null;
+        }
+
+        final data = doc.data();
+
+        // Skip non-searchable (incomplete/inactive profiles)
+        final cadastroStatus = data['cadastro_status'] as String?;
+        final status = data['status'] as String? ?? 'ativo';
+        if (cadastroStatus != 'concluido' || status != 'ativo') continue;
+
+        final isContractor = data['tipo_perfil'] == 'contratante';
+        if (isContractor) {
+          final contractorData =
+              data['contratante'] as Map<String, dynamic>? ?? {};
+          if (contractorData['isPublic'] != true) continue;
+        } else {
+          // Skip if hidden from search (Ghost Mode)
+          final privacy = data['privacy_settings'] as Map<String, dynamic>?;
+          if (privacy != null && privacy['visible_in_home'] == false) {
+            continue;
+          }
+        }
+
+        // Deduplicate
+        if (seenUids.contains(doc.id)) continue;
+
+        // Blocked check
+        if (blockedUsers.contains(doc.id)) continue;
+
+        // Apply filters
+        final item = FeedItem.fromFirestore(data, doc.id);
+        if (!_matchesFilters(item, data, effectiveFilters)) continue;
+
+        seenUids.add(doc.id);
+        results.add(item);
+
+        if (results.length >= SearchConfig.targetResults) break;
+      }
+    }
+
+    AppLogger.debug(
+      'Search request $requestId returned ${results.length} results after '
+      'reading $totalDocsRead docs (server_index: ${serverToken != null})',
+    );
+
+    final hasMore = !reachedEnd && lastDoc != null;
+
+    return PaginatedSearchResponse(
+      items: results,
+      lastDocument: lastDoc,
+      hasMore: hasMore,
+    );
+  }
+
+  /// Resolves the most selective name token to query against the server-side
+  /// `search_terms` index, or null when there's no usable text term.
+  ///
+  /// Picks the longest word (most selective) from the normalized term and caps
+  /// it to [SearchConfig.serverSearchMaxPrefixLength] so it stays within the
+  /// indexed prefix range. The full term is still verified in memory.
+  String? _resolveServerSearchToken(SearchFilters filters) {
+    final normalized = normalizeText(filters.term);
+    if (normalized.isEmpty) return null;
+
+    final words =
+        normalized
+            .split(RegExp(r'[^a-z0-9]+'))
+            .where(
+              (word) => word.length >= SearchConfig.serverSearchMinTokenLength,
+            )
+            .toList()
+          ..sort((a, b) => b.length.compareTo(a.length));
+
+    if (words.isEmpty) return null;
+
+    final chosen = words.first;
+    final end = chosen.length < SearchConfig.serverSearchMaxPrefixLength
+        ? chosen.length
+        : SearchConfig.serverSearchMaxPrefixLength;
+    return chosen.substring(0, end);
+  }
+
   /// Builds the base Firestore query.
   Query<Map<String, dynamic>> _buildBaseQuery({
     required DocumentSnapshot? startAfter,
     required _SearchProfileScope scope,
+    int limit = SearchConfig.batchSize,
+    String? searchToken,
   }) {
     Query<Map<String, dynamic>> query = _firestore.collection('users');
 
@@ -234,6 +392,15 @@ class SearchRepository {
       }
     }
 
+    // Server-side name narrowing: only profiles whose denormalized name tokens
+    // contain the queried prefix. Requires the matching composite index.
+    if (searchToken != null) {
+      query = query.where(
+        SearchConfig.searchTermsField,
+        arrayContains: searchToken,
+      );
+    }
+
     // Order by creation date (stable pagination)
     query = query.orderBy('created_at', descending: true);
 
@@ -242,7 +409,7 @@ class SearchRepository {
       query = query.startAfterDocument(startAfter);
     }
 
-    return query.limit(SearchConfig.batchSize);
+    return query.limit(limit);
   }
 
   String? _scopeToTipoPerfil(_SearchProfileScope scope) {
