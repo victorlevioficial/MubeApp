@@ -363,6 +363,291 @@ export const backfillContractorDisplayNames = onRequest(
   }
 );
 
+const SEARCH_TERMS_FIELD = "search_terms";
+const SEARCH_MIN_TOKEN_LENGTH = 2;
+const SEARCH_MAX_PREFIX_LENGTH = 20;
+const SEARCH_MAX_WORDS = 12;
+const SEARCH_MAX_TERMS = 200;
+const SEARCH_NAME_CONNECTORS = new Set(["de", "da", "do", "dos", "das", "e"]);
+
+/**
+ * Normalizes text for search tokens.
+ *
+ * Mirrors the Dart `normalizeText` (lib/src/utils/text_utils.dart): strips
+ * diacritics (NFD), lowercases, trims and collapses whitespace. Keeping these
+ * in sync is required so client query tokens match the stored ones.
+ *
+ * @param {unknown} value Raw value.
+ * @return {string} Normalized text, or empty string.
+ */
+function normalizeSearchText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+/**
+ * Collects the raw name strings from a user document, across all profile types.
+ *
+ * @param {Record<string, unknown>} userData User document data.
+ * @return {string[]} Non-empty name source strings.
+ */
+function collectUserNameSources(
+  userData: Record<string, unknown>
+): string[] {
+  const profissional = asRecord(userData.profissional);
+  const banda = asRecord(userData.banda);
+  const estudio = asRecord(userData.estudio);
+  const contratante = asRecord(userData.contratante);
+
+  const candidates: unknown[] = [
+    userData.nome,
+    userData.nome_artistico,
+    profissional.nomeArtistico,
+    banda.nomeBanda,
+    banda.nomeArtistico,
+    banda.nome,
+    estudio.nomeEstudio,
+    estudio.nomeArtistico,
+    estudio.nome,
+    contratante.nomeExibicao,
+    userData.username,
+  ];
+
+  return candidates.filter(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0
+  );
+}
+
+/**
+ * Builds the sorted, deduped `search_terms` array for a user document.
+ *
+ * Each name word contributes its prefixes (length 2..N, capped) so the client
+ * can query by `array-contains` for incremental name search.
+ *
+ * @param {Record<string, unknown>} userData User document data.
+ * @return {string[]} Sorted unique search tokens.
+ */
+function buildUserSearchTerms(
+  userData: Record<string, unknown>
+): string[] {
+  const tokens = new Set<string>();
+  let wordCount = 0;
+
+  for (const source of collectUserNameSources(userData)) {
+    const normalized = normalizeSearchText(source);
+    if (!normalized) continue;
+
+    const words = normalized.split(/[^a-z0-9]+/).filter((w) => w.length > 0);
+    for (const word of words) {
+      if (word.length < SEARCH_MIN_TOKEN_LENGTH) continue;
+      if (SEARCH_NAME_CONNECTORS.has(word)) continue;
+      if (wordCount >= SEARCH_MAX_WORDS) break;
+      wordCount++;
+
+      const maxLen = Math.min(word.length, SEARCH_MAX_PREFIX_LENGTH);
+      for (let end = SEARCH_MIN_TOKEN_LENGTH; end <= maxLen; end++) {
+        tokens.add(word.slice(0, end));
+        if (tokens.size >= SEARCH_MAX_TERMS) break;
+      }
+      if (tokens.size >= SEARCH_MAX_TERMS) break;
+    }
+    if (tokens.size >= SEARCH_MAX_TERMS) break;
+  }
+
+  return Array.from(tokens).sort();
+}
+
+/**
+ * Reads stored `search_terms` as a sorted string array.
+ *
+ * @param {unknown} value Raw stored value.
+ * @return {string[]} Sorted string tokens.
+ */
+function readStoredSearchTerms(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .slice()
+    .sort();
+}
+
+/**
+ * Returns true when both sorted string arrays are equal.
+ *
+ * @param {string[]} a First sorted array.
+ * @param {string[]} b Second sorted array.
+ * @return {boolean} Whether they are equal.
+ */
+function stringArraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Keeps the denormalized `search_terms` name index in sync on every write.
+ *
+ * Trigger path: users/{userId}
+ * Persisted field: search_terms (array of normalized name prefixes)
+ *
+ * Only writes when the tokens actually change, which both prevents an infinite
+ * trigger loop and avoids write-amplification on unrelated updates.
+ */
+export const syncUserSearchTerms = onDocumentWritten(
+  "users/{userId}",
+  async (event) => {
+    const after = event.data?.after;
+    if (!after?.exists) return;
+
+    const userData = asRecord(after.data());
+    const expected = buildUserSearchTerms(userData);
+    const stored = readStoredSearchTerms(userData[SEARCH_TERMS_FIELD]);
+
+    if (stringArraysEqual(expected, stored)) return;
+    if (expected.length === 0 && stored.length === 0) return;
+
+    await after.ref.set({[SEARCH_TERMS_FIELD]: expected}, {merge: true});
+
+    console.log(
+      `[users] synced search terms for ${event.params.userId}: ` +
+      `${expected.length} tokens`
+    );
+  }
+);
+
+/**
+ * Backfills `search_terms` for all existing users (one-time migration).
+ *
+ * URL: https://us-central1-<project-id>.cloudfunctions.net/backfillUserSearchTokens
+ * Method: POST
+ * Header: x-migration-token: <MIGRATION_TOKEN>
+ * Optional:
+ * - `dryRun=true` (query or JSON body)
+ * - `limit=<n>` (query or JSON body) to cap processed users
+ */
+export const backfillUserSearchTokens = onRequest(
+  {
+    region: "us-central1",
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    secrets: [migrationToken],
+  },
+  async (req, res) => {
+    if (!ensureMigrationAuthorized(req, res)) {
+      return;
+    }
+
+    const dryRun = parseDryRun(req);
+    const rawLimit =
+      req.query.limit ??
+      (req.body as Record<string, unknown> | null)?.limit;
+    const limit = parsePositiveInt(rawLimit, 1000000, 1000000);
+
+    const summary = {
+      success: true,
+      dryRun: dryRun,
+      limit: limit,
+      scanned: 0,
+      wouldUpdate: 0,
+      updated: 0,
+      skippedNoTokens: 0,
+      skippedAlreadyUpToDate: 0,
+      errors: 0,
+    };
+
+    try {
+      let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+      let shouldStop = false;
+
+      while (!shouldStop) {
+        let query = db
+          .collection("users")
+          .orderBy(admin.firestore.FieldPath.documentId())
+          .limit(BACKFILL_PAGE_SIZE);
+
+        if (cursor != null) {
+          query = query.startAfter(cursor);
+        }
+
+        const snapshot = await query.get();
+        if (snapshot.empty) break;
+
+        let batch = db.batch();
+        let pendingWrites = 0;
+
+        for (const doc of snapshot.docs) {
+          if (summary.scanned >= limit) {
+            shouldStop = true;
+            break;
+          }
+
+          summary.scanned++;
+          const userData = asRecord(doc.data());
+          const expected = buildUserSearchTerms(userData);
+          const stored = readStoredSearchTerms(userData[SEARCH_TERMS_FIELD]);
+
+          if (stringArraysEqual(expected, stored)) {
+            summary.skippedAlreadyUpToDate++;
+            continue;
+          }
+
+          if (expected.length === 0 && stored.length === 0) {
+            summary.skippedNoTokens++;
+            continue;
+          }
+
+          summary.wouldUpdate++;
+          if (dryRun) {
+            continue;
+          }
+
+          batch.set(
+            doc.ref,
+            {[SEARCH_TERMS_FIELD]: expected},
+            {merge: true}
+          );
+          pendingWrites++;
+          summary.updated++;
+
+          if (pendingWrites >= BACKFILL_BATCH_SIZE) {
+            await batch.commit();
+            batch = db.batch();
+            pendingWrites = 0;
+          }
+        }
+
+        if (!dryRun && pendingWrites > 0) {
+          await batch.commit();
+        }
+
+        cursor = snapshot.docs[snapshot.docs.length - 1];
+        if (snapshot.size < BACKFILL_PAGE_SIZE) {
+          break;
+        }
+      }
+
+      console.log("[users] user search tokens backfill finished", summary);
+      res.status(200).json(summary);
+    } catch (error) {
+      summary.success = false;
+      summary.errors++;
+      console.error("[users] user search tokens backfill failed", error);
+      res.status(500).json({
+        ...summary,
+        error: (error as Error).message,
+      });
+    }
+  }
+);
+
 /**
  * Claims or updates a user's public username with server-side uniqueness.
  *

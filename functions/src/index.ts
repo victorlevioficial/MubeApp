@@ -107,6 +107,8 @@ export {
   setPublicUsername,
   syncContractorDisplayName,
   backfillContractorDisplayNames,
+  syncUserSearchTerms,
+  backfillUserSearchTokens,
 } from "./users";
 
 // Export Gigs functions
