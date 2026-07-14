@@ -410,10 +410,7 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
-        border: Border.all(
-          color: selectedItems.isEmpty ? AppColors.error : AppColors.border,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,9 +418,7 @@ extension _OnboardingProfessionalFlowUi on _OnboardingProfessionalFlowState {
           Text(
             title,
             style: AppTypography.titleMedium.copyWith(
-              color: selectedItems.isEmpty
-                  ? AppColors.error
-                  : AppColors.textPrimary,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.s8),

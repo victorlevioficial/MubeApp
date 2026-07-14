@@ -18,6 +18,7 @@ import '../../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../../design_system/foundations/tokens/app_typography.dart';
 import '../../../../utils/instagram_utils.dart';
 import '../../../auth/domain/app_user.dart';
+import '../../../bands/domain/band_activation_rules.dart';
 import '../onboarding_controller.dart';
 import '../onboarding_form_provider.dart';
 import '../steps/onboarding_address_step.dart';
@@ -258,7 +259,8 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
         ),
         const SizedBox(height: AppSpacing.s8),
         Text(
-          'Informações básicas sobre o grupo',
+          'Depois destes dados, você vai convidar pelo menos '
+          '$minimumBandMembersForActivation integrantes para ativar a banda.',
           style: AppTypography.bodyMedium.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -352,12 +354,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: _selectedGenres.isEmpty
-                  ? AppColors.error
-                  : AppColors.border,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,9 +362,7 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
               Text(
                 'Gêneros Musicais *',
                 style: AppTypography.titleMedium.copyWith(
-                  color: _selectedGenres.isEmpty
-                      ? AppColors.error
-                      : AppColors.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.s8),

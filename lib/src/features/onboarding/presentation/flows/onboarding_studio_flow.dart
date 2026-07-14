@@ -354,12 +354,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: AppRadius.all16,
-            border: Border.all(
-              color: _selectedServices.isEmpty
-                  ? AppColors.error
-                  : AppColors.border,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,9 +362,7 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
               Text(
                 'Servicos *',
                 style: AppTypography.titleMedium.copyWith(
-                  color: _selectedServices.isEmpty
-                      ? AppColors.error
-                      : AppColors.textPrimary,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: AppSpacing.s8),
