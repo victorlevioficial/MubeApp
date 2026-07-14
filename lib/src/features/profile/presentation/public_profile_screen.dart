@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +21,7 @@ import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/components/navigation/responsive_center.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_icons.dart';
+import '../../../design_system/foundations/tokens/app_motion.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
 import '../../../design_system/foundations/tokens/app_spacing.dart';
 import '../../../design_system/foundations/tokens/app_typography.dart';
@@ -40,8 +41,8 @@ import 'music_platform_catalog.dart';
 import 'public_profile_controller.dart';
 import 'widgets/band_members_section.dart';
 import 'widgets/media_viewer_dialog.dart';
-import 'widgets/profile_gallery_tabs.dart';
 import 'widgets/profile_hero_header.dart';
+import 'widgets/public_gallery_grid.dart';
 import 'widgets/report_reason_dialog.dart';
 
 part 'public_profile_body.dart';
@@ -63,9 +64,6 @@ final publicProfileMetricsProvider = FutureProvider.autoDispose
 class PublicProfileScreen extends ConsumerWidget {
   final String profileRef;
   final String? avatarHeroTag;
-  static const double _topActionSize = AppSpacing.s48;
-  static const double _topActionTopPadding = AppSpacing.s8;
-  static const double _topContentGap = AppSpacing.s12;
 
   const PublicProfileScreen({
     super.key,
@@ -74,14 +72,6 @@ class PublicProfileScreen extends ConsumerWidget {
   });
 
   String _displayName(AppUser user) => user.appDisplayName;
-
-  static double bodyTopInset(BuildContext context) {
-    final topInset = math.max(
-      MediaQuery.viewPaddingOf(context).top,
-      AppSpacing.s24,
-    );
-    return topInset + _topActionTopPadding + _topActionSize + _topContentGap;
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -127,9 +117,9 @@ class PublicProfileScreen extends ConsumerWidget {
     } else if (state?.error != null) {
       body = _ErrorBody(message: state!.error!);
     } else if (shouldShowLoading) {
-      body = _buildLoadingState(context);
+      body = const _PublicProfileSkeleton();
     } else if (state?.user == null) {
-      body = const _ErrorBody(message: 'Usuário não encontrado.');
+      body = const _ErrorBody(message: 'Não encontramos esse perfil.');
     } else {
       body = _ProfileBody(
         user: state!.user!,
@@ -150,22 +140,31 @@ class PublicProfileScreen extends ConsumerWidget {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Positioned.fill(child: body),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: _buildTopActions(context, ref, visibleUser),
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: AppColors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: AppColors.background,
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
-      bottomNavigationBar: visibleUser != null
-          ? _buildBottomBar(context, ref, visibleUser)
-          : null,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        extendBodyBehindAppBar: true,
+        body: Stack(
+          children: [
+            Positioned.fill(child: body),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildTopActions(context, ref, visibleUser),
+            ),
+          ],
+        ),
+        bottomNavigationBar: visibleUser != null
+            ? _buildBottomBar(context, ref, visibleUser)
+            : null,
+      ),
     );
   }
 
@@ -175,19 +174,19 @@ class PublicProfileScreen extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.s12,
-          _topActionTopPadding,
+          AppSpacing.s8,
           AppSpacing.s12,
           0,
         ),
         child: Row(
           children: [
-            _topActionShell(
+            _GlassActionShell(
               child: IconButton(
                 padding: EdgeInsets.zero,
                 alignment: Alignment.center,
                 constraints: const BoxConstraints.tightFor(
-                  width: _topActionSize,
-                  height: _topActionSize,
+                  width: 44,
+                  height: 44,
                 ),
                 icon: const Icon(
                   AppIcons.arrowBackCompact,
@@ -199,7 +198,7 @@ class PublicProfileScreen extends ConsumerWidget {
               ),
             ),
             const Spacer(),
-            _topActionShell(
+            _GlassActionShell(
               child: AppPopupMenuButton<String>(
                 enabled: user != null,
                 padding: EdgeInsets.zero,
@@ -246,24 +245,6 @@ class PublicProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _topActionShell({required Widget child}) {
-    return Container(
-      width: _topActionSize,
-      height: _topActionSize,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.92),
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildLoadingState(BuildContext context) {
-    return const _PublicProfileSkeleton();
-  }
-
   Future<void> _handleMenuAction(
     BuildContext context,
     WidgetRef ref,
@@ -292,10 +273,10 @@ class PublicProfileScreen extends ConsumerWidget {
         final confirmed = await AppOverlay.dialog<bool>(
           context: context,
           builder: (context) => const AppConfirmationDialog(
-            title: 'Bloquear Usu\u00E1rio?',
+            title: 'Bloquear Usuário?',
             message:
-                'Voc\u00EA n\u00E3o ver\u00E1 mais conte\u00FAdo deste usu\u00E1rio. '
-                'Esta a\u00E7\u00E3o pode ser desfeita nas configura\u00E7\u00F5es.',
+                'Você não verá mais conteúdo deste usuário. '
+                'Esta ação pode ser desfeita nas configurações.',
             confirmText: 'Bloquear',
             isDestructive: true,
           ),
@@ -304,10 +285,10 @@ class PublicProfileScreen extends ConsumerWidget {
           final success = await controller.blockUser();
           if (context.mounted) {
             if (success) {
-              AppSnackBar.success(context, 'Usu\u00E1rio bloqueado.');
+              AppSnackBar.success(context, 'Usuário bloqueado.');
               context.pop();
             } else {
-              AppSnackBar.error(context, 'Erro ao bloquear usu\u00E1rio.');
+              AppSnackBar.error(context, 'Erro ao bloquear usuário.');
             }
           }
         }
@@ -324,12 +305,9 @@ class PublicProfileScreen extends ConsumerWidget {
           final success = await controller.reportUser(reason, description);
           if (context.mounted) {
             if (success) {
-              AppSnackBar.success(
-                context,
-                'Den\u00FAncia enviada para an\u00E1lise.',
-              );
+              AppSnackBar.success(context, 'Denúncia enviada para análise.');
             } else {
-              AppSnackBar.error(context, 'Erro ao enviar den\u00FAncia.');
+              AppSnackBar.error(context, 'Erro ao enviar denúncia.');
             }
           }
         }
@@ -451,29 +429,22 @@ class PublicProfileScreen extends ConsumerWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.s12,
+          AppSpacing.s16,
           AppSpacing.s8,
-          AppSpacing.s12,
+          AppSpacing.s16,
           AppSpacing.s12,
         ),
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.s12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.surface2.withValues(alpha: 0.98),
-                AppColors.surface,
-              ],
-            ),
+            color: AppColors.background.withValues(alpha: 0.92),
             borderRadius: AppRadius.all24,
             border: Border.all(color: AppColors.surfaceHighlight),
             boxShadow: [
               BoxShadow(
-                color: AppColors.background.withValues(alpha: 0.42),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
+                color: AppColors.background.withValues(alpha: 0.6),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
               ),
             ],
           ),
@@ -491,6 +462,34 @@ class PublicProfileScreen extends ConsumerWidget {
                             .openChat(context)
                       : null,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassActionShell extends StatelessWidget {
+  final Widget child;
+
+  const _GlassActionShell({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.background.withValues(alpha: 0.55),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: AppColors.textPrimary.withValues(alpha: 0.16),
+            ),
+          ),
+          child: child,
         ),
       ),
     );

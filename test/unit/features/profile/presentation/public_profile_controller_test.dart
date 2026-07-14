@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/auth/domain/user_type.dart';
+import 'package:mube/src/features/bands/domain/band_activation_rules.dart';
 import 'package:mube/src/features/profile/presentation/public_profile_controller.dart';
 
 import '../../../../helpers/test_data.dart';
@@ -120,6 +121,47 @@ void main() {
       expect(state.isLoading, isFalse);
       expect(state.error, isNull);
       expect(state.user?.uid, contractor.uid);
+    });
+
+    test('blocks third-party access to a draft band profile', () async {
+      final band = TestData.bandUser(uid: 'draft-band').copyWith(
+        status: profileDraftStatus,
+        members: const ['member-1'],
+        dadosBanda: const {'nomeBanda': 'Banda Rascunho', 'isPublic': true},
+      );
+      final viewer = TestData.user(uid: 'viewer-1');
+      fakeAuthRepository.appUser = band;
+      final container = buildContainer(currentUser: viewer);
+      addTearDown(container.dispose);
+
+      await primeCurrentUser(container);
+      final state = await container.read(
+        publicProfileControllerProvider(band.uid).future,
+      );
+
+      expect(state.isLoading, isFalse);
+      expect(state.user, isNull);
+      expect(state.error, contains('Perfil n\u00E3o encontrado'));
+    });
+
+    test('allows the owner to open a draft band profile', () async {
+      final band = TestData.bandUser(uid: 'draft-band-owner').copyWith(
+        status: profileDraftStatus,
+        members: const ['member-1'],
+        dadosBanda: const {'nomeBanda': 'Banda Rascunho', 'isPublic': true},
+      );
+      fakeAuthRepository.appUser = band;
+      final container = buildContainer(currentUser: band);
+      addTearDown(container.dispose);
+
+      await primeCurrentUser(container);
+      final state = await container.read(
+        publicProfileControllerProvider(band.uid).future,
+      );
+
+      expect(state.isLoading, isFalse);
+      expect(state.error, isNull);
+      expect(state.user?.uid, band.uid);
     });
   });
 }

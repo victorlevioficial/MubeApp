@@ -40,23 +40,25 @@ class _ProfileBody extends StatelessWidget {
   }
 
   Widget _narrowLayout(BuildContext context) {
-    final topInset = PublicProfileScreen.bodyTopInset(context);
-
     return SingleChildScrollView(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: topInset),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20),
-            child: ProfileHeroHeader(
-              user: user,
-              avatarHeroTag: avatarHeroTag,
-              onAvatarTap: onAvatarTap,
-            ),
+          ProfileHeroHeader(
+            user: user,
+            avatarHeroTag: avatarHeroTag,
+            onAvatarTap: onAvatarTap,
           ),
-          const SizedBox(height: AppSpacing.s16),
-          _buildBody(context, padding: AppSpacing.s20),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s20,
+              AppSpacing.s4,
+              AppSpacing.s20,
+              AppSpacing.s24,
+            ),
+            child: _buildContentSections(context),
+          ),
           const SizedBox(height: AppSpacing.s48),
         ],
       ),
@@ -64,81 +66,69 @@ class _ProfileBody extends StatelessWidget {
   }
 
   Widget _wideLayout(BuildContext context) {
-    final topInset = PublicProfileScreen.bodyTopInset(context);
-
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.s32,
-        topInset,
-        AppSpacing.s32,
-        AppSpacing.s48,
-      ),
-      child: ResponsiveCenter(
-        padding: EdgeInsets.zero,
-        maxContentWidth: 1200,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left column: header + bio
-            SizedBox(
-              width: 340,
-              child: ProfileHeroHeader(
-                user: user,
-                avatarHeroTag: avatarHeroTag,
-                onAvatarTap: onAvatarTap,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s32),
-            // Right column: gallery + details + social proof
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [_buildBody(context, padding: 0)],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBody(BuildContext context, {required double padding}) {
-    final bio = user.profileBio;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: padding),
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildGallery(),
-          const SizedBox(height: AppSpacing.s16),
-          if (bio != null) ...[
-            _BioCard(bio: bio),
-            const SizedBox(height: AppSpacing.s16),
-          ],
-          _buildProfileSections(),
+          ProfileHeroHeader(
+            user: user,
+            avatarHeroTag: avatarHeroTag,
+            onAvatarTap: onAvatarTap,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.s32,
+              AppSpacing.s24,
+              AppSpacing.s32,
+              AppSpacing.s32,
+            ),
+            child: ResponsiveCenter(
+              padding: EdgeInsets.zero,
+              maxContentWidth: 1100,
+              child: _buildContentSections(context),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s48),
         ],
       ),
     );
   }
 
-  Widget _buildProfileSections() {
-    final accentColor = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+  Widget _buildContentSections(BuildContext context) {
+    final bio = user.profileBio;
+    final hasGallery = galleryItems.isNotEmpty;
     final showOpenGigsSection = isOpenGigsLoading || openGigs.isNotEmpty;
+    final accentColor = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (bio != null) ...[
+          const SizedBox(height: AppSpacing.s8),
+          _ExpandableBio(text: bio),
+          const SizedBox(height: AppSpacing.s20),
+        ] else
+          const SizedBox(height: AppSpacing.s8),
         _TypeDetails(user: user, bandMembers: bandMembers),
         if (showOpenGigsSection) ...[
-          const SizedBox(height: AppSpacing.s16),
+          const SizedBox(height: AppSpacing.s24),
           _OpenGigsSection(
             accentColor: accentColor,
             gigs: openGigs,
             isLoading: isOpenGigsLoading,
           ),
         ],
-        const SizedBox(height: AppSpacing.s16),
+        if (hasGallery) ...[
+          const SizedBox(height: AppSpacing.s24),
+          _GallerySectionHeader(count: galleryItems.length, user: user),
+          const SizedBox(height: AppSpacing.s12),
+          PublicGalleryGrid(
+            items: galleryItems,
+            onItemTap: (index) => onMediaTap(index, galleryItems),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.s24),
         _ReputationSection(
           accentColor: accentColor,
           averageRating: averageRating,
@@ -150,12 +140,167 @@ class _ProfileBody extends StatelessWidget {
       ],
     );
   }
+}
 
-  Widget _buildGallery() {
-    return ProfileGalleryTabs(
-      items: galleryItems,
-      accentColor: ProfileHeroHeader.profileTypeColor(user.tipoPerfil),
-      onItemTap: onMediaTap,
+class _ExpandableBio extends StatefulWidget {
+  final String text;
+
+  const _ExpandableBio({required this.text});
+
+  @override
+  State<_ExpandableBio> createState() => _ExpandableBioState();
+}
+
+class _ExpandableBioState extends State<_ExpandableBio> {
+  static const int _collapsedMaxLines = 4;
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = AppTypography.bodyMedium.copyWith(
+      color: AppColors.textSecondary,
+      height: 1.55,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all20,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final span = TextSpan(text: widget.text, style: textStyle);
+          final tp = TextPainter(
+            text: span,
+            textDirection: TextDirection.ltr,
+            maxLines: _collapsedMaxLines,
+          )..layout(maxWidth: constraints.maxWidth);
+
+          final didOverflow = tp.didExceedMaxLines;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _BlockHeader(
+                icon: Icons.auto_stories_rounded,
+                title: 'SOBRE',
+              ),
+              const SizedBox(height: AppSpacing.s10),
+              AnimatedSize(
+                duration: AppMotion.medium,
+                curve: AppMotion.standardCurve,
+                alignment: Alignment.topLeft,
+                child: Text(
+                  widget.text,
+                  style: textStyle,
+                  maxLines: _expanded ? null : _collapsedMaxLines,
+                  overflow: _expanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                ),
+              ),
+              if (didOverflow) ...[
+                const SizedBox(height: AppSpacing.s8),
+                InkWell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.s4,
+                    ),
+                    child: Text(
+                      _expanded ? 'Mostrar menos' : 'Mostrar mais',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Color accentColor;
+  final int? count;
+  final Widget? trailing;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.accentColor,
+    this.count,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSecondary),
+        const SizedBox(width: AppSpacing.s8),
+        Expanded(
+          child: Text(
+            title,
+            style: AppTypography.titleSmall.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        if (count != null && count! > 0)
+          Container(
+            margin: const EdgeInsets.only(left: AppSpacing.s8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s8,
+              vertical: AppSpacing.s2,
+            ),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: AppRadius.pill,
+              border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              '$count',
+              style: AppTypography.labelSmall.copyWith(
+                color: accentColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        if (trailing != null) ...[
+          const SizedBox(width: AppSpacing.s8),
+          trailing!,
+        ],
+      ],
+    );
+  }
+}
+
+class _GallerySectionHeader extends StatelessWidget {
+  final int count;
+  final AppUser user;
+
+  const _GallerySectionHeader({required this.count, required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final accentColor = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+    return _SectionHeader(
+      icon: Icons.collections_outlined,
+      title: 'Mídia',
+      accentColor: accentColor,
+      count: count,
     );
   }
 }
@@ -179,96 +324,102 @@ class _ReputationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Row(
+        children: [
+          const Icon(
+            Icons.star_outline_rounded,
+            size: 16,
+            color: AppColors.textTertiary,
+          ),
+          const SizedBox(width: AppSpacing.s8),
+          Text(
+            'Carregando avaliações…',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (reviewCount <= 0 || averageRating == null) {
+      return _EmptyReputation(accentColor: accentColor);
+    }
+
     final commentedReviews = reviews
         .where((review) => (review.comment ?? '').trim().isNotEmpty)
         .take(3)
         .toList(growable: false);
 
-    return _InfoCard(
-      icon: Icons.star_rounded,
-      title: 'Avaliações',
-      accentColor: accentColor,
-      count: reviewCount > 0 ? reviewCount : null,
-      trailing: reviews.isNotEmpty
-          ? TextButton(
-              onPressed: () => _showAllReviews(context),
-              child: const Text('Ver todas'),
-            )
-          : null,
-      child: isLoading
-          ? Text(
-              'Carregando avaliações...',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(
+          icon: Icons.star_rounded,
+          title: 'Avaliações',
+          accentColor: accentColor,
+          count: reviewCount,
+          trailing: reviews.length > commentedReviews.length
+              ? TextButton(
+                  onPressed: () => _showAllReviews(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 32),
+                  ),
+                  child: const Text('Ver todas'),
+                )
+              : null,
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              averageRating!.toStringAsFixed(1),
+              style: AppTypography.headlineLarge.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                height: 1.0,
               ),
-            )
-          : reviewCount <= 0 || averageRating == null
-          ? Text(
-              'Ainda sem avaliações públicas.',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      averageRating!.toStringAsFixed(1),
-                      style: AppTypography.headlineMedium.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StarRatingWidget(
-                            rating: averageRating!.round().clamp(0, 5),
-                            size: 18,
-                          ),
-                          const SizedBox(height: AppSpacing.s4),
-                          Text(
-                            reviewCount == 1
-                                ? '1 avaliação recebida'
-                                : '$reviewCount avaliações recebidas',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.s16),
-                if (commentedReviews.isEmpty)
+            ),
+            const SizedBox(width: AppSpacing.s12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StarRatingWidget(
+                    rating: averageRating!.round().clamp(0, 5),
+                    size: 18,
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
                   Text(
-                    'As avaliações ainda não têm comentários escritos.',
+                    reviewCount == 1
+                        ? '1 avaliação recebida'
+                        : '$reviewCount avaliações recebidas',
                     style: AppTypography.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
-                  )
-                else
-                  Column(
-                    children: [
-                      for (var i = 0; i < commentedReviews.length; i++) ...[
-                        _ReviewCommentTile(
-                          review: commentedReviews[i],
-                          reviewer:
-                              reviewAuthors[commentedReviews[i].reviewerId],
-                        ),
-                        if (i != commentedReviews.length - 1)
-                          const SizedBox(height: AppSpacing.s12),
-                      ],
-                    ],
                   ),
-              ],
+                ],
+              ),
             ),
+          ],
+        ),
+        if (commentedReviews.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.s16),
+          for (var i = 0; i < commentedReviews.length; i++) ...[
+            _ReviewCommentTile(
+              review: commentedReviews[i],
+              reviewer: reviewAuthors[commentedReviews[i].reviewerId],
+            ),
+            if (i != commentedReviews.length - 1)
+              const SizedBox(height: AppSpacing.s10),
+          ],
+        ],
+      ],
     );
   }
 
@@ -281,6 +432,36 @@ class _ReputationSection extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
       builder: (context) =>
           _AllReviewsSheet(reviews: reviews, reviewAuthors: reviewAuthors),
+    );
+  }
+}
+
+class _EmptyReputation extends StatelessWidget {
+  final Color accentColor;
+
+  const _EmptyReputation({required this.accentColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.star_outline_rounded,
+          size: 16,
+          color: AppColors.textTertiary,
+        ),
+        const SizedBox(width: AppSpacing.s8),
+        Expanded(
+          child: Text(
+            'Conte com o tempo. Avaliações aparecem após gigs concluídos.',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -309,7 +490,7 @@ class _ReviewCommentTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.s12),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         borderRadius: AppRadius.all12,
         border: Border.all(color: AppColors.surfaceHighlight),
       ),
@@ -375,27 +556,29 @@ class _OpenGigsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _InfoCard(
-      icon: Icons.work_outline_rounded,
-      title: 'Gigs em andamento',
-      accentColor: accentColor,
-      count: gigs.isNotEmpty ? gigs.length : null,
-      child: isLoading
-          ? Text(
-              'Carregando gigs ativas...',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            )
-          : Column(
-              children: [
-                for (var i = 0; i < gigs.length; i++) ...[
-                  _OpenGigTile(gig: gigs[i], accentColor: accentColor),
-                  if (i != gigs.length - 1)
-                    const SizedBox(height: AppSpacing.s10),
-                ],
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeader(
+          icon: Icons.work_outline_rounded,
+          title: 'Gigs em andamento',
+          accentColor: accentColor,
+          count: gigs.length,
+        ),
+        const SizedBox(height: AppSpacing.s12),
+        if (isLoading)
+          Text(
+            'Carregando gigs ativas…',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
             ),
+          )
+        else
+          for (var i = 0; i < gigs.length; i++) ...[
+            _OpenGigTile(gig: gigs[i], accentColor: accentColor),
+            if (i != gigs.length - 1) const SizedBox(height: AppSpacing.s8),
+          ],
+      ],
     );
   }
 }
@@ -425,23 +608,22 @@ class _OpenGigTile extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(AppSpacing.s12),
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.surface,
             borderRadius: AppRadius.all12,
             border: Border.all(color: AppColors.surfaceHighlight),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: AppSpacing.s4),
-                width: AppSpacing.s10,
-                height: AppSpacing.s10,
+                width: AppSpacing.s8,
+                height: AppSpacing.s8,
                 decoration: BoxDecoration(
                   color: accentColor,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: AppSpacing.s10),
+              const SizedBox(width: AppSpacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,14 +637,14 @@ class _OpenGigTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.s4),
+                    const SizedBox(height: AppSpacing.s2),
                     Text(
                       details.join(' • '),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
-                        height: 1.4,
+                        height: 1.35,
                       ),
                     ),
                   ],
@@ -557,50 +739,70 @@ class _PublicProfileSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topInset = PublicProfileScreen.bodyTopInset(context);
-
+    final height = ProfileHeroHeader.heightFor(context);
     return SkeletonShimmer(
       child: SingleChildScrollView(
         physics: const NeverScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: topInset),
+            SkeletonBox(
+              width: double.infinity,
+              height: height,
+              borderRadius: AppRadius.r4,
+            ),
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.s20),
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.s20,
+                AppSpacing.s24,
+                AppSpacing.s20,
+                AppSpacing.s24,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  SkeletonBox(height: 14, borderRadius: AppRadius.r4),
+                  SizedBox(height: AppSpacing.s8),
+                  SkeletonBox(height: 14, borderRadius: AppRadius.r4),
+                  SizedBox(height: AppSpacing.s8),
                   SkeletonBox(
-                    width: double.infinity,
-                    height: 180,
-                    borderRadius: 24,
+                    width: 160,
+                    height: 14,
+                    borderRadius: AppRadius.r4,
                   ),
-                  SizedBox(height: AppSpacing.s16),
-                  SkeletonBox(
-                    width: double.infinity,
-                    height: 220,
-                    borderRadius: 16,
-                  ),
-                  SizedBox(height: AppSpacing.s16),
-                  SkeletonBox(
-                    width: double.infinity,
-                    height: 132,
-                    borderRadius: 16,
-                  ),
-                  SizedBox(height: AppSpacing.s16),
-                  SkeletonBox(
-                    width: double.infinity,
-                    height: 180,
-                    borderRadius: 16,
-                  ),
-                  SizedBox(height: AppSpacing.s48),
+                  SizedBox(height: AppSpacing.s24),
+                  SkeletonBox(height: 120, borderRadius: AppRadius.r16),
+                  SizedBox(height: AppSpacing.s24),
+                  _GallerySkeletonGrid(),
+                  SizedBox(height: AppSpacing.s24),
+                  SkeletonBox(height: 60, borderRadius: AppRadius.r12),
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.s48),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _GallerySkeletonGrid extends StatelessWidget {
+  const _GallerySkeletonGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        mainAxisSpacing: AppSpacing.s4,
+        crossAxisSpacing: AppSpacing.s4,
+      ),
+      itemCount: 6,
+      itemBuilder: (_, _) => const SkeletonBox(borderRadius: AppRadius.r8),
     );
   }
 }
@@ -615,12 +817,24 @@ class _ErrorBody extends StatelessWidget {
     return Center(
       child: Padding(
         padding: AppSpacing.all24,
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.person_off_outlined,
+              size: 48,
+              color: AppColors.textTertiary,
+            ),
+            const SizedBox(height: AppSpacing.s16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );

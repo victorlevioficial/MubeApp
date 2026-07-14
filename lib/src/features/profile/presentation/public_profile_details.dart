@@ -1,5 +1,11 @@
 part of 'public_profile_screen.dart';
 
+/// Renders a single consolidated information card per profile type.
+///
+/// Replaces the previous one-card-per-attribute layout where each chip
+/// group lived in its own InfoCard. Bringing them under a single card
+/// reduces visual repetition and lets density vary based on what each
+/// type actually carries.
 class _TypeDetails extends StatelessWidget {
   final AppUser user;
   final List<AppUser> bandMembers;
@@ -10,107 +16,240 @@ class _TypeDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (user.tipoPerfil) {
       case AppUserType.professional:
-        return _ProfessionalDetails(user: user);
+        return _ProfessionalDetailsCard(user: user);
       case AppUserType.band:
-        return _BandDetails(user: user, members: bandMembers);
+        return _BandDetailsCard(user: user, members: bandMembers);
       case AppUserType.studio:
-        return _StudioDetails(user: user);
+        return _StudioDetailsCard(user: user);
       case AppUserType.contractor:
-        return _ContractorDetails(user: user);
+        return _ContractorDetailsCard(user: user);
       default:
         return const SizedBox.shrink();
     }
   }
 }
 
-class _ProfessionalDetails extends StatelessWidget {
-  final AppUser user;
+class _DetailsCard extends StatelessWidget {
+  final List<_DetailsBlock> blocks;
 
-  const _ProfessionalDetails({required this.user});
+  const _DetailsCard({required this.blocks});
 
   @override
   Widget build(BuildContext context) {
-    final professionalData =
-        user.dadosProfissional ?? const <String, dynamic>{};
-    final instrumentos = instrumentDisplayLabels(user.professionalInstruments);
-    final funcoes = professionalRoleDisplayLabels(user.professionalRoles);
-    final generos = genreDisplayLabels(user.professionalGenres);
-    final offersRemoteRecording = professionalOffersRemoteRecording(
-      professionalData,
+    final visible = blocks
+        .where((block) => block.shouldRender)
+        .toList(growable: false);
+    if (visible.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.s20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all20,
+        border: Border.all(color: AppColors.surfaceHighlight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < visible.length; i++) ...[
+            visible[i].build(context),
+            if (i != visible.length - 1) ...[
+              const SizedBox(height: AppSpacing.s16),
+              Container(
+                height: 1,
+                color: AppColors.surfaceHighlight.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: AppSpacing.s16),
+            ],
+          ],
+        ],
+      ),
     );
-    final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
-    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+  }
+}
 
-    if (instrumentos.isEmpty &&
-        funcoes.isEmpty &&
-        generos.isEmpty &&
-        !offersRemoteRecording &&
-        musicLinks.isEmpty) {
-      return const SizedBox.shrink();
-    }
+abstract class _DetailsBlock {
+  bool get shouldRender;
+  Widget build(BuildContext context);
+}
 
+class _ChipsBlock extends _DetailsBlock {
+  _ChipsBlock({required this.icon, required this.title, required this.items});
+
+  final IconData icon;
+  final String title;
+  final List<String> items;
+
+  @override
+  bool get shouldRender => items.isNotEmpty;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (offersRemoteRecording) ...[
-          _InfoCard(
-            icon: Icons.language_rounded,
-            title: 'Disponibilidade',
-            accentColor: color,
-            child: _ChipWrap(
-              items: const [professionalRemoteRecordingLabel],
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-        ],
-        if (instrumentos.isNotEmpty) ...[
-          _InfoCard(
-            icon: Icons.piano_rounded,
-            title: 'Instrumentos',
-            accentColor: color,
-            child: _ChipWrap(
-              items: instrumentos,
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-        ],
-        if (funcoes.isNotEmpty) ...[
-          _InfoCard(
-            icon: Icons.engineering_rounded,
-            title: 'Fun\u00E7\u00F5es T\u00E9cnicas',
-            accentColor: color,
-            child: _ChipWrap(items: funcoes, accentColor: color, isSkill: true),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-        ],
-        if (generos.isNotEmpty)
-          _InfoCard(
-            icon: Icons.queue_music_rounded,
-            title: 'G\u00EAneros Musicais',
-            accentColor: color,
-            child: _ChipWrap(items: generos, accentColor: color),
-          ),
-        if (musicLinks.isNotEmpty) ...[
-          if (instrumentos.isNotEmpty ||
-              funcoes.isNotEmpty ||
-              generos.isNotEmpty)
-            const SizedBox(height: AppSpacing.s12),
-          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
-        ],
+        _BlockHeader(icon: icon, title: title, count: items.length),
+        const SizedBox(height: AppSpacing.s10),
+        Wrap(
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s8,
+          children: items
+              .map((item) => _SkillChip(label: item))
+              .toList(growable: false),
+        ),
       ],
     );
   }
 }
 
-class _BandDetails extends StatelessWidget {
+class _CustomBlock extends _DetailsBlock {
+  _CustomBlock({
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.count,
+    this.visible = true,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget body;
+  final int? count;
+  final bool visible;
+
+  @override
+  bool get shouldRender => visible;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BlockHeader(icon: icon, title: title, count: count),
+        const SizedBox(height: AppSpacing.s10),
+        body,
+      ],
+    );
+  }
+}
+
+class _BlockHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final int? count;
+
+  const _BlockHeader({required this.icon, required this.title, this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.textTertiary),
+        const SizedBox(width: AppSpacing.s8),
+        Expanded(
+          child: Text(
+            title,
+            style: AppTypography.labelMedium.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ),
+        if (count != null && count! > 0)
+          Text(
+            '$count',
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _SkillChip extends StatelessWidget {
+  final String label;
+
+  const _SkillChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s12,
+        vertical: AppSpacing.s4,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceHighlight,
+        borderRadius: AppRadius.pill,
+      ),
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: AppColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ===========================================================================
+// PROFESSIONAL
+// ===========================================================================
+
+class _ProfessionalDetailsCard extends StatelessWidget {
+  final AppUser user;
+
+  const _ProfessionalDetailsCard({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final instrumentos = instrumentDisplayLabels(user.professionalInstruments);
+    final funcoes = professionalRoleDisplayLabels(user.professionalRoles);
+    final generos = genreDisplayLabels(user.professionalGenres);
+    final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
+
+    final blocks = <_DetailsBlock>[
+      _ChipsBlock(
+        icon: Icons.piano_rounded,
+        title: 'INSTRUMENTOS',
+        items: instrumentos,
+      ),
+      _ChipsBlock(
+        icon: Icons.engineering_rounded,
+        title: 'FUNÇÕES TÉCNICAS',
+        items: funcoes,
+      ),
+      _ChipsBlock(
+        icon: Icons.queue_music_rounded,
+        title: 'GÊNEROS MUSICAIS',
+        items: generos,
+      ),
+      _CustomBlock(
+        icon: Icons.headphones_rounded,
+        title: 'OUÇA NAS PLATAFORMAS',
+        visible: musicLinks.isNotEmpty,
+        body: _MusicLinksRow(musicLinks: musicLinks),
+      ),
+    ];
+
+    return _DetailsCard(blocks: blocks);
+  }
+}
+
+// ===========================================================================
+// BAND
+// ===========================================================================
+
+class _BandDetailsCard extends StatelessWidget {
   final AppUser user;
   final List<AppUser> members;
 
-  const _BandDetails({required this.user, required this.members});
+  const _BandDetailsCard({required this.user, required this.members});
 
   @override
   Widget build(BuildContext context) {
@@ -119,40 +258,40 @@ class _BandDetails extends StatelessWidget {
       profileStringList(banda?['generosMusicais']),
     );
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
-    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
+    final accentColor = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _InfoCard(
-          icon: Icons.people_rounded,
-          title: 'Integrantes',
-          accentColor: color,
-          count: members.isNotEmpty ? members.length : null,
-          child: BandMembersSection(members: members, accentColor: color),
-        ),
-        if (generos.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.s12),
-          _InfoCard(
-            icon: Icons.queue_music_rounded,
-            title: 'G\u00EAneros Musicais',
-            accentColor: color,
-            child: _ChipWrap(items: generos, accentColor: color),
-          ),
-        ],
-        if (musicLinks.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.s12),
-          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
-        ],
-      ],
-    );
+    final blocks = <_DetailsBlock>[
+      _CustomBlock(
+        icon: Icons.people_rounded,
+        title: 'INTEGRANTES',
+        count: members.isNotEmpty ? members.length : null,
+        body: BandMembersSection(members: members, accentColor: accentColor),
+      ),
+      _ChipsBlock(
+        icon: Icons.queue_music_rounded,
+        title: 'GÊNEROS MUSICAIS',
+        items: generos,
+      ),
+      _CustomBlock(
+        icon: Icons.headphones_rounded,
+        title: 'OUÇA NAS PLATAFORMAS',
+        visible: musicLinks.isNotEmpty,
+        body: _MusicLinksRow(musicLinks: musicLinks),
+      ),
+    ];
+
+    return _DetailsCard(blocks: blocks);
   }
 }
 
-class _StudioDetails extends StatelessWidget {
+// ===========================================================================
+// STUDIO
+// ===========================================================================
+
+class _StudioDetailsCard extends StatelessWidget {
   final AppUser user;
 
-  const _StudioDetails({required this.user});
+  const _StudioDetailsCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -164,60 +303,42 @@ class _StudioDetails extends StatelessWidget {
           : profileStringList(estudio['servicosOferecidos']),
     );
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
-    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
-    if (studioType == null && services.isEmpty && musicLinks.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final String? studioTypeLabel = studioType == null
+        ? null
+        : (studioType == 'commercial' ? 'Comercial' : 'Home Studio');
 
-    String? studioTypeLabel;
-    if (studioType != null) {
-      studioTypeLabel = studioType == 'commercial'
-          ? 'Comercial'
-          : 'Home Studio';
-    }
+    final blocks = <_DetailsBlock>[
+      _ChipsBlock(
+        icon: Icons.home_work_rounded,
+        title: 'TIPO DE ESTÚDIO',
+        items: studioTypeLabel == null ? const [] : [studioTypeLabel],
+      ),
+      _ChipsBlock(
+        icon: Icons.graphic_eq_rounded,
+        title: 'SERVIÇOS OFERECIDOS',
+        items: services,
+      ),
+      _CustomBlock(
+        icon: Icons.headphones_rounded,
+        title: 'PORTFÓLIO',
+        visible: musicLinks.isNotEmpty,
+        body: _MusicLinksRow(musicLinks: musicLinks),
+      ),
+    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (studioTypeLabel != null) ...[
-          _InfoCard(
-            icon: Icons.home_work_rounded,
-            title: 'Tipo de Est\u00FAdio',
-            accentColor: color,
-            child: _ChipWrap(
-              items: [studioTypeLabel],
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-        ],
-        if (services.isNotEmpty)
-          _InfoCard(
-            icon: Icons.graphic_eq_rounded,
-            title: 'Servi\u00E7os Oferecidos',
-            accentColor: color,
-            child: _ChipWrap(
-              items: services,
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-        if (musicLinks.isNotEmpty) ...[
-          if (studioTypeLabel != null || services.isNotEmpty)
-            const SizedBox(height: AppSpacing.s12),
-          _MusicLinksSection(musicLinks: musicLinks, accentColor: color),
-        ],
-      ],
-    );
+    return _DetailsCard(blocks: blocks);
   }
 }
 
-class _ContractorDetails extends StatelessWidget {
+// ===========================================================================
+// CONTRACTOR
+// ===========================================================================
+
+class _ContractorDetailsCard extends StatelessWidget {
   final AppUser user;
 
-  const _ContractorDetails({required this.user});
+  const _ContractorDetailsCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -228,80 +349,70 @@ class _ContractorDetails extends StatelessWidget {
         : profileStringList(contractor['amenities']);
     final venueType = venueTypeLabel(venueTypeId);
     final amenityLabels = venueAmenityLabels(amenities);
-    final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
-    if ((venueType == null || venueType.isEmpty) && amenityLabels.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final blocks = <_DetailsBlock>[
+      _ChipsBlock(
+        icon: Icons.storefront_rounded,
+        title: 'TIPO DE LOCAL',
+        items: (venueType == null || venueType.isEmpty)
+            ? const []
+            : [venueType],
+      ),
+      _ChipsBlock(
+        icon: Icons.check_circle_outline_rounded,
+        title: 'COMODIDADES',
+        items: amenityLabels,
+      ),
+    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (venueType != null && venueType.isNotEmpty) ...[
-          _InfoCard(
-            icon: Icons.storefront_rounded,
-            title: 'Tipo de Local',
-            accentColor: color,
-            child: _ChipWrap(
-              items: [venueType],
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-          if (amenityLabels.isNotEmpty) const SizedBox(height: AppSpacing.s12),
-        ],
-        if (amenityLabels.isNotEmpty)
-          _InfoCard(
-            icon: Icons.check_circle_outline_rounded,
-            title: 'Comodidades',
-            accentColor: color,
-            child: _ChipWrap(
-              items: amenityLabels,
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-      ],
-    );
+    return _DetailsCard(blocks: blocks);
   }
 }
 
-class _MusicLinksSection extends StatelessWidget {
-  final Map<String, String> musicLinks;
-  final Color accentColor;
+// ===========================================================================
+// MUSIC LINKS
+// ===========================================================================
 
-  const _MusicLinksSection({
-    required this.musicLinks,
-    required this.accentColor,
-  });
+class _MusicLinksRow extends StatelessWidget {
+  final Map<String, String> musicLinks;
+
+  const _MusicLinksRow({required this.musicLinks});
 
   @override
   Widget build(BuildContext context) {
-    return _InfoCard(
-      icon: Icons.headphones_rounded,
-      title: 'Ouça nas plataformas',
-      accentColor: accentColor,
-      child: Wrap(
-        spacing: AppSpacing.s12,
-        runSpacing: AppSpacing.s12,
-        children: [
-          for (final platform in musicPlatformCatalog)
-            if (musicLinks.containsKey(platform.key))
-              _MusicLinkButton(
-                platform: platform,
-                url: musicLinks[platform.key]!,
-              ),
-        ],
-      ),
+    final entries = <_MusicPlatformEntry>[];
+    for (final platform in musicPlatformCatalog) {
+      final url = musicLinks[platform.key];
+      if (url != null && url.isNotEmpty) {
+        entries.add(_MusicPlatformEntry(platform: platform, url: url));
+      }
+    }
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    return Wrap(
+      spacing: AppSpacing.s8,
+      runSpacing: AppSpacing.s8,
+      children: entries
+          .map(
+            (entry) => _MusicLinkPill(platform: entry.platform, url: entry.url),
+          )
+          .toList(growable: false),
     );
   }
 }
 
-class _MusicLinkButton extends StatelessWidget {
+class _MusicPlatformEntry {
   final MusicPlatformDefinition platform;
   final String url;
 
-  const _MusicLinkButton({required this.platform, required this.url});
+  const _MusicPlatformEntry({required this.platform, required this.url});
+}
+
+class _MusicLinkPill extends StatelessWidget {
+  final MusicPlatformDefinition platform;
+  final String url;
+
+  const _MusicLinkPill({required this.platform, required this.url});
 
   Future<void> _open(BuildContext context) async {
     final uri = Uri.tryParse(url);
@@ -331,239 +442,47 @@ class _MusicLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: platform.label,
-      child: Semantics(
-        button: true,
-        label: 'Abrir ${platform.label}',
-        child: Material(
-          color: AppColors.transparent,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () => _open(context),
-            child: Container(
-              width: AppSpacing.s48 + AppSpacing.s8,
-              height: AppSpacing.s48 + AppSpacing.s8,
-              padding: const EdgeInsets.all(AppSpacing.s14),
-              decoration: BoxDecoration(
-                color: platform.color.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: platform.color.withValues(alpha: 0.28),
+    return Material(
+      color: AppColors.transparent,
+      child: InkWell(
+        borderRadius: AppRadius.pill,
+        onTap: () => _open(context),
+        child: Tooltip(
+          message: 'Abrir ${platform.label}',
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s8,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHighlight,
+              borderRadius: AppRadius.pill,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.asset(
+                  platform.assetPath,
+                  width: 16,
+                  height: 16,
+                  colorFilter: ColorFilter.mode(
+                    platform.color,
+                    BlendMode.srcIn,
+                  ),
                 ),
-              ),
-              child: SvgPicture.asset(
-                platform.assetPath,
-                colorFilter: ColorFilter.mode(platform.color, BlendMode.srcIn),
-              ),
+                const SizedBox(width: AppSpacing.s8),
+                Text(
+                  platform.label,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// Shared UI components
-
-/// Card container for a profile information section.
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color accentColor;
-  final Widget child;
-  final int? count;
-  final Widget? trailing;
-
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.accentColor,
-    required this.child,
-    this.count,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.s8),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 15, color: accentColor),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Expanded(child: Text(title, style: AppTypography.titleSmall)),
-              if (count != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s8,
-                    vertical: AppSpacing.s2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
-                    borderRadius: AppRadius.pill,
-                  ),
-                  child: Text(
-                    '$count',
-                    style: AppTypography.labelSmall.copyWith(
-                      color: accentColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              if (trailing != null) ...[
-                const SizedBox(width: AppSpacing.s8),
-                trailing!,
-              ],
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s14),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-/// Bio card with "Sobre" section styling.
-class _BioCard extends StatelessWidget {
-  final String bio;
-
-  const _BioCard({required this.bio});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.all16,
-        border: Border.all(color: AppColors.surfaceHighlight),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.s8),
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceHighlight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.notes_rounded,
-                  size: 15,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.s8),
-              Text('Sobre', style: AppTypography.titleSmall),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.s12),
-          Text(
-            bio,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.55,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Wrap of chip widgets.
-class _ChipWrap extends StatelessWidget {
-  final List<String> items;
-  final Color accentColor;
-  final bool isSkill;
-
-  const _ChipWrap({
-    required this.items,
-    required this.accentColor,
-    this.isSkill = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: AppSpacing.s8,
-      runSpacing: AppSpacing.s8,
-      children: items.map((item) {
-        if (isSkill) {
-          return _SkillChip(label: item, accentColor: accentColor);
-        }
-        return _GenreChip(label: item);
-      }).toList(),
-    );
-  }
-}
-
-class _SkillChip extends StatelessWidget {
-  final String label;
-  final Color accentColor;
-
-  const _SkillChip({required this.label, required this.accentColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s12,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceHighlight,
-        borderRadius: AppRadius.pill,
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
-      ),
-    );
-  }
-}
-
-class _GenreChip extends StatelessWidget {
-  final String label;
-
-  const _GenreChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s12,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceHighlight,
-        borderRadius: AppRadius.pill,
-      ),
-      child: Text(
-        label,
-        style: AppTypography.bodySmall.copyWith(color: AppColors.textPrimary),
       ),
     );
   }

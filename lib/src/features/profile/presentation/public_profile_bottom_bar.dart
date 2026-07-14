@@ -52,9 +52,9 @@ class _IconBottomActionButton extends StatelessWidget {
           onPressed: onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.textPrimary,
-            backgroundColor: AppColors.surface2,
+            backgroundColor: AppColors.surface,
             side: const BorderSide(color: AppColors.surfaceHighlight),
-            shape: const RoundedRectangleBorder(borderRadius: AppRadius.all20),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.pill),
             padding: EdgeInsets.zero,
           ),
           child: Icon(icon, size: 20),
@@ -80,52 +80,34 @@ class _PrimaryBottomActionButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.primary, AppColors.primaryPressed],
-          ),
-          borderRadius: AppRadius.all20,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.28),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: AppColors.transparent,
-          child: InkWell(
-            borderRadius: AppRadius.all20,
-            onTap: onPressed,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: AppColors.textPrimary.withValues(alpha: 0.14),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, size: 16, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(width: AppSpacing.s10),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.buttonPrimary,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: AppRadius.pill,
+        child: InkWell(
+          borderRadius: AppRadius.pill,
+          onTap: onPressed,
+          highlightColor: AppColors.primaryPressed.withValues(alpha: 0.4),
+          splashColor: AppColors.primaryPressed.withValues(alpha: 0.3),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: AppColors.textPrimary),
+                const SizedBox(width: AppSpacing.s8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.buttonPrimary.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -150,7 +132,7 @@ class _MeBottomBar extends StatelessWidget {
             label: 'Gerenciar Integrantes',
             onPressed: () => context.push(RoutePaths.manageMembers),
           ),
-          const SizedBox(height: AppSpacing.s12),
+          const SizedBox(height: AppSpacing.s10),
         ],
         _PrimaryBottomActionButton(
           icon: Icons.edit_rounded,
@@ -184,9 +166,9 @@ class _SecondaryBottomActionButton extends StatelessWidget {
         label: Text(label),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
-          backgroundColor: AppColors.surface2,
+          backgroundColor: AppColors.surface,
           side: const BorderSide(color: AppColors.surfaceHighlight),
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.all20),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.pill),
           textStyle: AppTypography.buttonSecondary,
         ),
       ),

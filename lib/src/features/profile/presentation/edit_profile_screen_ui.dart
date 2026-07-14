@@ -189,6 +189,8 @@ extension _EditProfileScreenUi on _EditProfileScreenState {
             ],
             EditProfileHeader(user: user, nomeController: _nomeController),
             const SizedBox(height: AppSpacing.s16),
+            _buildProfileReadinessCard(user),
+            const SizedBox(height: AppSpacing.s16),
             _buildPublicLinkSection(user),
             const SizedBox(height: AppSpacing.s24),
             _buildTypeSpecificFields(user),
@@ -343,6 +345,375 @@ extension _EditProfileScreenUi on _EditProfileScreenState {
     );
   }
 
+  Widget _buildProfileReadinessCard(AppUser user) {
+    final completion = ProfileCompletionEvaluator.evaluate(user);
+    final isPublicable = _hasPublicableMinimum(user);
+    final actions = _buildProfileImprovementActions(user, completion);
+    final isContractor = user.tipoPerfil == AppUserType.contractor;
+    final statusLabel = isContractor ? 'Conta liberada' : 'Perfil publicável';
+    final title = isPublicable ? statusLabel : 'Revise os dados essenciais';
+    final subtitle = isPublicable
+        ? isContractor
+              ? 'Você já pode acessar o Mube. Se quiser aparecer como estabelecimento, complete os dados públicos depois.'
+              : 'Seu perfil já pode aparecer no Mube. Complete os próximos pontos para ser encontrado com mais confiança.'
+        : 'Faltam dados mínimos para este perfil aparecer corretamente no Mube.';
+
+    return Container(
+      key: const Key('edit_profile_readiness_card'),
+      padding: const EdgeInsets.all(AppSpacing.s16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppRadius.all16,
+        border: Border.all(
+          color: isPublicable
+              ? AppColors.success.withValues(alpha: 0.28)
+              : AppColors.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: (isPublicable ? AppColors.success : AppColors.warning)
+                      .withValues(alpha: 0.14),
+                  borderRadius: AppRadius.all12,
+                ),
+                child: Icon(
+                  isPublicable
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.info_outline_rounded,
+                  color: isPublicable ? AppColors.success : AppColors.warning,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s4),
+                    Text(
+                      subtitle,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s10,
+                  vertical: AppSpacing.s4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: AppRadius.pill,
+                ),
+                child: Text(
+                  '${completion.percent}%',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s14),
+          Divider(
+            height: 1,
+            color: AppColors.textPrimary.withValues(alpha: 0.07),
+          ),
+          const SizedBox(height: AppSpacing.s14),
+          Text(
+            actions.isEmpty ? 'Perfil forte' : 'Próximas melhorias',
+            style: AppTypography.labelLarge.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s10),
+          if (actions.isEmpty)
+            Row(
+              children: [
+                const Icon(
+                  Icons.done_all_rounded,
+                  color: AppColors.success,
+                  size: 18,
+                ),
+                const SizedBox(width: AppSpacing.s8),
+                Expanded(
+                  child: Text(
+                    'Foto, bio e mídia já ajudam seu perfil a passar confiança.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              children: [
+                for (final action in actions.take(4))
+                  _buildProfileImprovementAction(action),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileImprovementAction(_ProfileImprovementAction action) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: AppRadius.all12,
+        onTap: () => _handleProfileImprovementAction(action),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+          child: Row(
+            children: [
+              Icon(action.icon, color: AppColors.primary, size: 18),
+              const SizedBox(width: AppSpacing.s10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      action.title,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      action.description,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.s8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<_ProfileImprovementAction> _buildProfileImprovementActions(
+    AppUser user,
+    ProfileCompletionResult completion,
+  ) {
+    final missing = completion.missingRequirements.toSet();
+    final actions = <_ProfileImprovementAction>[];
+
+    if (missing.contains('Foto de perfil')) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.add_a_photo_outlined,
+          title: 'Adicionar foto de perfil',
+          description: 'Ajuda outras pessoas a reconhecerem seu perfil.',
+          tabIndex: 0,
+        ),
+      );
+    }
+
+    if (missing.contains('Bio')) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.short_text_rounded,
+          title: 'Escrever uma bio curta',
+          description: 'Conte em poucas linhas o que você faz na cena.',
+          tabIndex: 0,
+        ),
+      );
+    }
+
+    if (missing.contains('Galeria de fotos')) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.photo_library_outlined,
+          title: 'Adicionar fotos na mídia',
+          description: 'Mostre palco, estúdio, bastidores ou trabalhos reais.',
+          tabIndex: 1,
+        ),
+      );
+    }
+
+    if (missing.contains('Galeria de videos')) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.play_circle_outline_rounded,
+          title: 'Adicionar vídeo',
+          description: 'Vídeo dá contexto rápido para quem está avaliando.',
+          tabIndex: 1,
+        ),
+      );
+    }
+
+    if (missing.contains('Localizacao')) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.location_on_outlined,
+          title: 'Revisar localização',
+          description: 'A busca usa localização para aproximar oportunidades.',
+          route: RoutePaths.addresses,
+        ),
+      );
+    }
+
+    final technicalMissing = missing.difference(const {
+      'Cadastro concluido',
+      'Tipo de perfil',
+      'Nome',
+      'Foto de perfil',
+      'Localizacao',
+      'Bio',
+      'Galeria de fotos',
+      'Galeria de videos',
+    });
+    for (final label in technicalMissing.take(2)) {
+      actions.add(
+        _ProfileImprovementAction(
+          icon: Icons.tune_rounded,
+          title: 'Revisar $label',
+          description: 'Atualize este dado para melhorar a leitura do perfil.',
+          tabIndex: 0,
+        ),
+      );
+    }
+
+    if (user.tipoPerfil != AppUserType.contractor && !_hasAnyMusicLink(user)) {
+      actions.add(
+        const _ProfileImprovementAction(
+          icon: Icons.link_rounded,
+          title: 'Adicionar link musical',
+          description: 'Leve contratantes e parceiros para seu som publicado.',
+          tabIndex: 2,
+        ),
+      );
+    }
+
+    return actions;
+  }
+
+  void _handleProfileImprovementAction(_ProfileImprovementAction action) {
+    final route = action.route;
+    if (route != null) {
+      context.push(route);
+      return;
+    }
+
+    final tabIndex = action.tabIndex;
+    final tabController = _activeTabController;
+    if (tabIndex == null) return;
+    if (tabIndex >= tabController.length) return;
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    tabController.animateTo(tabIndex);
+  }
+
+  bool _hasPublicableMinimum(AppUser user) {
+    final type = user.tipoPerfil;
+    if (!user.isCadastroConcluido ||
+        type == null ||
+        user.registrationName.isEmpty ||
+        !_hasValidLocation(user.location)) {
+      return false;
+    }
+
+    final data = _activeProfileData(user, type);
+    return switch (type) {
+      AppUserType.professional =>
+        _hasText(data['nomeArtistico']) &&
+            _hasText(data['celular']) &&
+            _asStringList(data['categorias']).isNotEmpty &&
+            _asStringList(data['funcoes']).isNotEmpty,
+      AppUserType.band =>
+        (_hasText(data['nomeBanda']) ||
+                _hasText(data['nomeArtistico']) ||
+                _hasText(data['nome'])) &&
+            _asStringList(data['generosMusicais']).isNotEmpty,
+      AppUserType.studio =>
+        (_hasText(data['nomeEstudio']) ||
+                _hasText(data['nomeArtistico']) ||
+                _hasText(data['nome'])) &&
+            _hasText(data['celular']) &&
+            _hasText(data['studioType']) &&
+            (_asStringList(data['servicosOferecidos']).isNotEmpty ||
+                _asStringList(data['services']).isNotEmpty),
+      AppUserType.contractor => _hasText(data['celular']),
+    };
+  }
+
+  Map<String, dynamic> _activeProfileData(AppUser user, AppUserType type) {
+    return switch (type) {
+      AppUserType.professional =>
+        user.dadosProfissional ?? const <String, dynamic>{},
+      AppUserType.band => user.dadosBanda ?? const <String, dynamic>{},
+      AppUserType.studio =>
+        (user.dadosEstudio != null && user.dadosEstudio!.isNotEmpty)
+            ? user.dadosEstudio!
+            : user.dadosProfissional ?? const <String, dynamic>{},
+      AppUserType.contractor =>
+        user.dadosContratante ?? const <String, dynamic>{},
+    };
+  }
+
+  bool _hasValidLocation(Map<String, dynamic>? location) {
+    if (location == null) return false;
+    final lat = location['lat'];
+    final lng = location['lng'];
+    if (lat is! num || lng is! num) return false;
+    return lat != 0 || lng != 0;
+  }
+
+  bool _hasAnyMusicLink(AppUser user) {
+    return user.musicLinks.values.any((value) => value.trim().isNotEmpty);
+  }
+
+  bool _hasText(dynamic value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    return value.toString().trim().isNotEmpty;
+  }
+
+  List<String> _asStringList(dynamic value) {
+    if (value is! Iterable) return const [];
+    return value
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Widget _buildUsernameField(AppUser user) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,4 +856,20 @@ class _EditProfileScreenSkeleton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileImprovementAction {
+  const _ProfileImprovementAction({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.tabIndex,
+    this.route,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final int? tabIndex;
+  final String? route;
 }

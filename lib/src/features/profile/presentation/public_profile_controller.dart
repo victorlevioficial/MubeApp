@@ -11,6 +11,7 @@ import '../../../utils/public_username.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_type.dart';
+import '../../bands/domain/band_activation_rules.dart';
 import '../../chat/data/chat_repository.dart';
 import '../../moderation/data/moderation_repository.dart';
 import '../domain/media_item.dart';
@@ -143,6 +144,14 @@ class PublicProfileController extends _$PublicProfileController {
   }
 
   bool _canViewerAccessProfile(AppUser user, AppUser? viewer) {
+    if (viewer?.uid == user.uid) {
+      return true;
+    }
+
+    if (user.status != profileActiveStatus) {
+      return false;
+    }
+
     if (user.tipoPerfil != AppUserType.contractor) {
       return true;
     }
@@ -153,7 +162,7 @@ class PublicProfileController extends _$PublicProfileController {
       return true;
     }
 
-    return viewer?.uid == user.uid;
+    return false;
   }
 
   bool _looksLikePermissionDenied(Object error) {
@@ -233,12 +242,13 @@ class PublicProfileController extends _$PublicProfileController {
         final memberOrder = {
           for (int i = 0; i < memberIds.length; i++) memberIds[i]: i,
         };
-        members.sort(
-          (a, b) => (memberOrder[a.uid] ?? memberIds.length).compareTo(
-            memberOrder[b.uid] ?? memberIds.length,
-          ),
-        );
-        state = AsyncData(currentState.copyWith(bandMembers: members));
+        final orderedMembers = [...members]
+          ..sort(
+            (a, b) => (memberOrder[a.uid] ?? memberIds.length).compareTo(
+              memberOrder[b.uid] ?? memberIds.length,
+            ),
+          );
+        state = AsyncData(currentState.copyWith(bandMembers: orderedMembers));
       },
     );
   }

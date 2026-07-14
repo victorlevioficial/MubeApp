@@ -27,6 +27,7 @@ import '../../../utils/instagram_utils.dart';
 import '../../../utils/public_username.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/domain/app_user.dart';
+import '../../auth/domain/profile_completion_evaluator.dart';
 import '../../auth/domain/user_type.dart';
 import '../domain/music_link_validator.dart';
 import 'edit_profile/controllers/edit_profile_controller.dart';

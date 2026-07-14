@@ -24,7 +24,8 @@ void main() {
     tipoPerfil: AppUserType.contractor,
     nome: 'Victor Levi',
     username: 'victorlevi',
-    dadosContratante: <String, dynamic>{},
+    location: {'lat': -22.9, 'lng': -43.2},
+    dadosContratante: <String, dynamic>{'celular': '(21) 99999-9999'},
   );
 
   Finder usernameField() => find.byWidgetPredicate(
@@ -174,5 +175,19 @@ void main() {
     expect(find.text('Nome de Exibicao'), findsOneWidget);
     expect(find.text('Tipo de Local'), findsOneWidget);
     expect(find.text('Comodidades'), findsOneWidget);
+  });
+
+  testWidgets('shows profile readiness and suggested improvements', (
+    tester,
+  ) async {
+    await pumpScreen(tester);
+
+    expect(
+      find.byKey(const Key('edit_profile_readiness_card')),
+      findsOneWidget,
+    );
+    expect(find.text('Conta liberada'), findsOneWidget);
+    expect(find.text('Adicionar foto de perfil'), findsOneWidget);
+    expect(find.text('Escrever uma bio curta'), findsOneWidget);
   });
 }
