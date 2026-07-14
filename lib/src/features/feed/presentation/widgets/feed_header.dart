@@ -180,13 +180,12 @@ class _FeedHeaderState extends ConsumerState<FeedHeader> {
       final missingMembers = missingBandMembersForActivation(acceptedMembers);
       alerts.add(
         _HeaderAlert(
-          icon: Icons.groups_rounded,
-          accentColor: AppColors.badgeBand,
-          title:
-              '$acceptedMembers de $minimumBandMembersForActivation integrantes confirmados',
+          icon: Icons.visibility_off_outlined,
+          accentColor: AppColors.warning,
+          title: 'Banda em rascunho',
           message: missingMembers == 1
-              ? 'Falta 1 integrante aceitar o convite para liberar a visibilidade da banda.'
-              : 'Faltam $missingMembers integrantes aceitarem o convite para liberar a visibilidade da banda.',
+              ? '$acceptedMembers de $minimumBandMembersForActivation integrantes confirmados. Falta 1 integrante aceitar o convite para liberar a visibilidade.'
+              : '$acceptedMembers de $minimumBandMembersForActivation integrantes confirmados. Faltam $missingMembers integrantes aceitarem o convite para liberar a visibilidade.',
           actionLabel: 'Gerenciar integrantes',
           route: RoutePaths.manageMembers,
         ),

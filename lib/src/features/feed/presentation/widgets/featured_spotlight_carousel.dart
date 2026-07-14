@@ -27,20 +27,72 @@ class FeaturedSpotlightCarousel extends StatefulWidget {
       _FeaturedSpotlightCarouselState();
 }
 
-class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
+class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel>
+    with WidgetsBindingObserver {
+  /// Maximum number of profiles shown in the carousel window.
+  static const int _maxVisible = 5;
+
+  /// Interval between automatic page advances.
+  static const Duration _autoScrollInterval = Duration(seconds: 5);
+
+  /// Duration of the slide animation between pages.
+  static const Duration _slideDuration = Duration(milliseconds: 450);
+
   late final PageController _pageController;
-  int _currentPage = 0;
+
+  /// Logical index of the active card, in `[0, _visibleCount)`. Drives the dots.
+  int _activeIndex = 0;
+
+  /// Current raw page of the (infinitely looping) [PageView]. `raw % count`
+  /// gives the logical index. Tracking the raw page lets auto-advance always
+  /// move forward and wrap seamlessly instead of rewinding back to the start.
+  int _currentRawPage = 0;
+
   int _visibleCount = 0;
   int _itemsFingerprint = 0;
   List<FeedItem> _spotlightItems = const <FeedItem>[];
+
   Timer? _autoScrollTimer;
+  bool _isUserInteracting = false;
+  bool _autoScrollAllowed = true;
+
+  /// The carousel can only loop/auto-advance with more than one card.
+  bool get _canLoop => _visibleCount > 1;
+
+  /// A raw page far enough from 0 that the user can also swipe backwards
+  /// through the loop. Always a multiple of [_visibleCount] so it maps to
+  /// logical index 0.
+  int get _loopAnchorPage => _canLoop ? _visibleCount * 1000 : 0;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.92);
     _syncVisibleItems();
+    _currentRawPage = _loopAnchorPage;
+    _activeIndex = 0;
+    _pageController = PageController(
+      viewportFraction: 0.9,
+      initialPage: _currentRawPage,
+    );
+    WidgetsBinding.instance.addObserver(this);
     _startAutoScroll();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Honor the OS "reduce motion" accessibility setting.
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final allowed = !disableAnimations;
+    if (allowed == _autoScrollAllowed) return;
+
+    _autoScrollAllowed = allowed;
+    if (allowed) {
+      _startAutoScroll();
+    } else {
+      _autoScrollTimer?.cancel();
+    }
   }
 
   @override
@@ -49,33 +101,53 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
 
     final previousCount = _visibleCount;
     final previousFingerprint = _itemsFingerprint;
-    final didClampPage = _syncVisibleItems();
+    _syncVisibleItems();
 
     if (_visibleCount == 0) {
       _autoScrollTimer?.cancel();
       return;
     }
 
-    if (didClampPage) {
+    final countChanged = previousCount != _visibleCount;
+    final contentChanged = previousFingerprint != _itemsFingerprint;
+
+    if (countChanged) {
+      // The loop math depends on _visibleCount, so realign to a clean anchor
+      // and reset to the first card whenever the window size changes.
+      _activeIndex = 0;
+      _currentRawPage = _loopAnchorPage;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pageController.hasClients) return;
-        _pageController.jumpToPage(_currentPage);
+        _pageController.jumpToPage(_currentRawPage);
       });
+    } else if (_activeIndex >= _visibleCount) {
+      _activeIndex = _visibleCount - 1;
     }
 
-    if (_visibleCount <= 1) {
+    if (!_canLoop) {
       _autoScrollTimer?.cancel();
       return;
     }
 
-    final hasContentChanged = previousFingerprint != _itemsFingerprint;
-    if (previousCount != _visibleCount || hasContentChanged) {
+    // Only re-arm the timer when the data actually changed; plain rebuilds
+    // (the parent rebuilds a fresh list every frame) must not reset it.
+    if ((countChanged || contentChanged) && !_isUserInteracting) {
       _startAutoScroll();
     }
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startAutoScroll();
+    } else {
+      _autoScrollTimer?.cancel();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoScrollTimer?.cancel();
     _pageController.dispose();
     super.dispose();
@@ -83,33 +155,63 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    if (_visibleCount <= 1) return;
+    if (!_canLoop || !_autoScrollAllowed || _isUserInteracting) return;
 
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (_visibleCount <= 1 || !_pageController.hasClients) return;
-
-      final nextPage = (_currentPage + 1) % _visibleCount;
-      _pageController.animateToPage(
-        nextPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+    _autoScrollTimer = Timer.periodic(_autoScrollInterval, (_) {
+      if (!_canLoop || _isUserInteracting || !_pageController.hasClients) {
+        return;
+      }
+      // Always advance forward; the infinite loop makes the wrap seamless.
+      _pageController.nextPage(
+        duration: _slideDuration,
+        curve: Curves.easeOutCubic,
       );
     });
   }
 
-  bool _syncVisibleItems() {
-    final previousPage = _currentPage;
-    _visibleCount = math.min(widget.items.length, 5);
+  void _syncVisibleItems() {
+    _visibleCount = math.min(widget.items.length, _maxVisible);
     _spotlightItems = widget.items.take(_visibleCount).toList(growable: false);
     _itemsFingerprint = Object.hashAll(_spotlightItems.map((item) => item.uid));
+  }
 
-    if (_visibleCount == 0) {
-      _currentPage = 0;
-    } else if (_currentPage >= _visibleCount) {
-      _currentPage = _visibleCount - 1;
+  void _handlePageChanged(int rawPage) {
+    _currentRawPage = rawPage;
+    final logical = _canLoop ? rawPage % _visibleCount : 0;
+    if (_activeIndex != logical) {
+      setState(() => _activeIndex = logical);
     }
+  }
 
-    return previousPage != _currentPage;
+  void _onUserInteractionStart() {
+    _isUserInteracting = true;
+    _autoScrollTimer?.cancel();
+  }
+
+  void _onUserInteractionEnd() {
+    if (!_isUserInteracting) return;
+    _isUserInteracting = false;
+    _startAutoScroll();
+  }
+
+  void _goToIndex(int targetIndex) {
+    if (!_canLoop || !_pageController.hasClients) return;
+
+    var delta = targetIndex - _activeIndex;
+    // Take the shortest path around the loop instead of sweeping across pages.
+    final half = _visibleCount / 2;
+    if (delta > half) {
+      delta -= _visibleCount;
+    } else if (delta < -half) {
+      delta += _visibleCount;
+    }
+    if (delta == 0) return;
+
+    _pageController.animateToPage(
+      _currentRawPage + delta,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -151,48 +253,44 @@ class _FeaturedSpotlightCarouselState extends State<FeaturedSpotlightCarousel> {
         const SizedBox(height: AppSpacing.s16),
         SizedBox(
           height: 200,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              if (_currentPage != index) {
-                setState(() => _currentPage = index);
-              }
-              if (_visibleCount > 1) {
-                _startAutoScroll();
-              }
-            },
-            itemCount: _visibleCount,
-            itemBuilder: (context, index) {
-              final item = _spotlightItems[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.s12),
-                child: _SpotlightCard(
-                  item: item,
-                  onTap: () => widget.onItemTap(item),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: AppSpacing.s16),
-        Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(
-              _visibleCount,
-              (index) => _PageIndicator(
-                isActive: index == _currentPage,
-                onTap: () {
-                  _pageController.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
-                },
-              ),
+          child: Listener(
+            onPointerDown: (_) => _onUserInteractionStart(),
+            onPointerUp: (_) => _onUserInteractionEnd(),
+            onPointerCancel: (_) => _onUserInteractionEnd(),
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: _handlePageChanged,
+              itemCount: _canLoop ? null : _visibleCount,
+              itemBuilder: (context, index) {
+                final item = _spotlightItems[index % _visibleCount];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s8,
+                  ),
+                  child: _SpotlightCard(
+                    item: item,
+                    onTap: () => widget.onItemTap(item),
+                  ),
+                );
+              },
             ),
           ),
         ),
+        if (_visibleCount > 1) ...[
+          const SizedBox(height: AppSpacing.s16),
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                _visibleCount,
+                (index) => _PageIndicator(
+                  isActive: index == _activeIndex,
+                  onTap: () => _goToIndex(index),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -236,125 +334,129 @@ class _SpotlightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: _cardDecoration,
-        child: ClipRRect(
-          borderRadius: AppRadius.all20,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (item.foto != null)
-                OptimizedImage(
-                  imageUrl: item.foto!,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0.0, -0.5),
-                  fadeInDuration: Duration.zero,
-                )
-              else
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.surface, AppColors.surface2],
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.person,
-                      size: 64,
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ),
-              Container(decoration: _overlayDecoration),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.s20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ProfileTypeBadge(
-                      tipoPerfil: item.tipoPerfil,
-                      subCategories: item.subCategories,
-                    ),
-                    const SizedBox(height: AppSpacing.s8),
-                    Text(
-                      item.displayName,
-                      style: AppTypography.titleLarge.copyWith(
-                        fontSize: 20,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
+    return Semantics(
+      button: true,
+      label: 'Perfil em destaque: ${item.displayName}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: _cardDecoration,
+          child: ClipRRect(
+            borderRadius: AppRadius.all20,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (item.foto != null)
+                  OptimizedImage(
+                    imageUrl: item.foto!,
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0.0, -0.5),
+                    fadeInDuration: const Duration(milliseconds: 250),
+                  )
+                else
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.surface, AppColors.surface2],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppSpacing.s4),
-                    Row(
-                      children: [
-                        if (item.distanceText.isNotEmpty) ...[
-                          const Icon(
-                            Icons.location_on,
-                            size: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: AppSpacing.s4),
-                          Text(
-                            item.distanceText,
-                            style: AppTypography.bodySmall.copyWith(
+                    child: const Center(
+                      child: Icon(
+                        Icons.person,
+                        size: 64,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ),
+                Container(decoration: _overlayDecoration),
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.s20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ProfileTypeBadge(
+                        tipoPerfil: item.tipoPerfil,
+                        subCategories: item.subCategories,
+                      ),
+                      const SizedBox(height: AppSpacing.s8),
+                      Text(
+                        item.displayName,
+                        style: AppTypography.titleLarge.copyWith(
+                          fontSize: 20,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.s4),
+                      Row(
+                        children: [
+                          if (item.distanceText.isNotEmpty) ...[
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
                               color: AppColors.textSecondary,
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.s8),
-                        ],
-                        if (item.formattedGenres.isNotEmpty)
-                          Expanded(
-                            child: Text(
-                              item.formattedGenres.take(2).join(' - '),
+                            const SizedBox(width: AppSpacing.s4),
+                            Text(
+                              item.distanceText,
                               style: AppTypography.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                top: AppSpacing.s16,
-                right: AppSpacing.s16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s12,
-                    vertical: AppSpacing.s8,
-                  ),
-                  decoration: _ctaDecoration,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.visibility,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: AppSpacing.s4),
-                      Text(
-                        'Ver perfil',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                            const SizedBox(width: AppSpacing.s8),
+                          ],
+                          if (item.formattedGenres.isNotEmpty)
+                            Expanded(
+                              child: Text(
+                                item.formattedGenres.take(2).join(' - '),
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                Positioned(
+                  top: AppSpacing.s16,
+                  right: AppSpacing.s16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s12,
+                      vertical: AppSpacing.s8,
+                    ),
+                    decoration: _ctaDecoration,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.visibility,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.s4),
+                        Text(
+                          'Ver perfil',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

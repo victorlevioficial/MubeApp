@@ -346,14 +346,32 @@ extension _FeedHeaderUi on _FeedHeaderState {
               ),
               const SizedBox(width: AppSpacing.s12),
               Expanded(
-                child: Text(
-                  _compactAlertLabel(alerts),
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _compactAlertLabel(alerts),
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (alerts.length == 1) ...[
+                      const SizedBox(height: AppSpacing.s2),
+                      Text(
+                        firstAlert.message,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.25,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
                 ),
               ),
               if (alerts.length > 1) ...[

@@ -288,7 +288,11 @@ void main() {
         find.byKey(const Key('feed_header_alerts_compact')),
         findsOneWidget,
       );
-      expect(find.text('1 de 2 integrantes confirmados'), findsOneWidget);
+      expect(find.text('Banda em rascunho'), findsOneWidget);
+      expect(
+        find.textContaining('1 de 2 integrantes confirmados'),
+        findsOneWidget,
+      );
 
       await tester.tap(
         find.byKey(const Key('feed_header_alerts_expand_button')),

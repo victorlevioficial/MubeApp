@@ -257,69 +257,83 @@ void main() {
       );
     });
 
-    test('classic fallback excludes hidden and inactive profiles', () async {
-      final firestore = FakeFirebaseFirestore();
-      final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
-      const currentUserId = 'current-user';
-      const userLat = 0.0;
-      const userLong = 0.0;
+    test(
+      'classic fallback excludes hidden, draft, and inactive profiles',
+      () async {
+        final firestore = FakeFirebaseFirestore();
+        final repository = FeedRepository(FeedRemoteDataSourceImpl(firestore));
+        const currentUserId = 'current-user';
+        const userLat = 0.0;
+        const userLong = 0.0;
 
-      await firestore
-          .collection(FirestoreCollections.users)
-          .doc(currentUserId)
-          .set({
-            FirestoreFields.registrationStatus: RegistrationStatus.complete,
-            FirestoreFields.name: 'Current User',
-            FirestoreFields.location: {'lat': userLat, 'lng': userLong},
-            FirestoreFields.geohash: 's0000',
-          });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc(currentUserId)
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.name: 'Current User',
+              FirestoreFields.location: {'lat': userLat, 'lng': userLong},
+              FirestoreFields.geohash: 's0000',
+            });
 
-      await firestore
-          .collection(FirestoreCollections.users)
-          .doc('artist-1')
-          .set({
-            FirestoreFields.registrationStatus: RegistrationStatus.complete,
-            FirestoreFields.profileType: ProfileType.professional,
-            FirestoreFields.name: 'Artist 1',
-            FirestoreFields.location: {'lat': 0.02, 'lng': 0.02},
-            'status': 'ativo',
-          });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('artist-1')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.professional,
+              FirestoreFields.name: 'Artist 1',
+              FirestoreFields.location: {'lat': 0.02, 'lng': 0.02},
+              'status': 'ativo',
+            });
 
-      await firestore
-          .collection(FirestoreCollections.users)
-          .doc('hidden-1')
-          .set({
-            FirestoreFields.registrationStatus: RegistrationStatus.complete,
-            FirestoreFields.profileType: ProfileType.studio,
-            FirestoreFields.name: 'Hidden 1',
-            FirestoreFields.location: {'lat': 0.01, 'lng': 0.01},
-            'status': 'ativo',
-            'privacy_settings': {'visible_in_home': false},
-          });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('hidden-1')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.studio,
+              FirestoreFields.name: 'Hidden 1',
+              FirestoreFields.location: {'lat': 0.01, 'lng': 0.01},
+              'status': 'ativo',
+              'privacy_settings': {'visible_in_home': false},
+            });
 
-      await firestore
-          .collection(FirestoreCollections.users)
-          .doc('inactive-1')
-          .set({
-            FirestoreFields.registrationStatus: RegistrationStatus.complete,
-            FirestoreFields.profileType: ProfileType.band,
-            FirestoreFields.name: 'Inactive 1',
-            FirestoreFields.location: {'lat': 0.03, 'lng': 0.03},
-            'status': 'suspenso',
-          });
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('inactive-1')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.band,
+              FirestoreFields.name: 'Inactive 1',
+              FirestoreFields.location: {'lat': 0.03, 'lng': 0.03},
+              'status': 'suspenso',
+            });
 
-      final result = await repository.getDiscoverFeedPoolSorted(
-        currentUserId: currentUserId,
-        userLat: userLat,
-        userLong: userLong,
-      );
+        await firestore
+            .collection(FirestoreCollections.users)
+            .doc('draft-band-1')
+            .set({
+              FirestoreFields.registrationStatus: RegistrationStatus.complete,
+              FirestoreFields.profileType: ProfileType.band,
+              FirestoreFields.name: 'Draft Band 1',
+              FirestoreFields.location: {'lat': 0.04, 'lng': 0.04},
+              'status': 'rascunho',
+            });
 
-      expect(result.isRight(), true);
-      result.fold(
-        (_) => fail('Expected discovery pool items'),
-        (items) => expect(items.map((item) => item.uid), ['artist-1']),
-      );
-    });
+        final result = await repository.getDiscoverFeedPoolSorted(
+          currentUserId: currentUserId,
+          userLat: userLat,
+          userLong: userLong,
+        );
+
+        expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected discovery pool items'),
+          (items) => expect(items.map((item) => item.uid), ['artist-1']),
+        );
+      },
+    );
 
     test(
       'loads center and neighbor geohashes without compound whereIn',
