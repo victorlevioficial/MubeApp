@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/providers/firebase_providers.dart';
@@ -27,7 +28,7 @@ class FeaturedProfilesRepository {
   Future<List<String>> getFeaturedUids() async {
     try {
       final doc = await _firestore
-          .collection('config')
+          .collection(FirestoreCollections.config)
           .doc('featuredProfiles')
           .get();
 
@@ -66,7 +67,10 @@ class FeaturedProfilesRepository {
 
     for (final uid in uids) {
       try {
-        final doc = await _firestore.collection('users').doc(uid).get();
+        final doc = await _firestore
+            .collection(FirestoreCollections.users)
+            .doc(uid)
+            .get();
         AppLogger.debug('Featured user $uid exists: ${doc.exists}');
         if (!doc.exists) continue;
 

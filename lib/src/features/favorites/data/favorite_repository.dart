@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/errors/firestore_resilience.dart';
@@ -38,9 +39,9 @@ class FavoriteRepository {
   Future<Set<String>> loadFavorites() async {
     try {
       final snapshot = await _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(_uid)
-          .collection('favorites')
+          .collection(FirestoreCollections.favorites)
           .get();
 
       return snapshot.docs.map((doc) => doc.id).toSet();
@@ -58,9 +59,9 @@ class FavoriteRepository {
   }) async {
     try {
       var query = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(_uid)
-          .collection('favorites')
+          .collection(FirestoreCollections.favorites)
           .orderBy('favoritedAt', descending: true)
           .limit(limit);
 
@@ -102,7 +103,7 @@ class FavoriteRepository {
 
     try {
       final snapshot = await _firestore
-          .collectionGroup('favorites')
+          .collectionGroup(FirestoreCollections.favorites)
           .where('target_user_id', isEqualTo: _uid)
           .get();
       completedSources += 1;
@@ -131,7 +132,7 @@ class FavoriteRepository {
 
     try {
       final snapshot = await _firestore
-          .collection('interactions')
+          .collection(FirestoreCollections.interactions)
           .where('target_user_id', isEqualTo: _uid)
           .get();
       completedSources += 1;
@@ -147,7 +148,7 @@ class FavoriteRepository {
 
     try {
       final snapshot = await _firestore
-          .collection('interactions')
+          .collection(FirestoreCollections.interactions)
           .where('receiverId', isEqualTo: _uid)
           .get();
       completedSources += 1;
@@ -192,7 +193,10 @@ class FavoriteRepository {
   /// Source of truth is `users/{targetId}`.
   Future<int> getLikeCount(String targetId) async {
     try {
-      final userDoc = await _firestore.collection('users').doc(targetId).get();
+      final userDoc = await _firestore
+          .collection(FirestoreCollections.users)
+          .doc(targetId)
+          .get();
       if (userDoc.exists) {
         return _readLikeCount(userDoc.data());
       }
@@ -209,9 +213,9 @@ class FavoriteRepository {
   /// Global counters are updated by backend triggers.
   Future<void> addFavorite(String targetId) async {
     final userRef = _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(_uid)
-        .collection('favorites')
+        .collection(FirestoreCollections.favorites)
         .doc(targetId);
 
     await _firestoreResilience.run(
@@ -231,9 +235,9 @@ class FavoriteRepository {
   /// Global counters are updated by backend triggers.
   Future<void> removeFavorite(String targetId) async {
     final userRef = _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(_uid)
-        .collection('favorites')
+        .collection(FirestoreCollections.favorites)
         .doc(targetId);
 
     await _firestoreResilience.run(
@@ -313,7 +317,7 @@ class FavoriteRepository {
 
     while (byUser.length < desiredCount) {
       Query<Map<String, dynamic>> query = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .orderBy(FieldPath.documentId)
           .limit(usersPageSize);
 
@@ -342,9 +346,9 @@ class FavoriteRepository {
         final checks = await Future.wait(
           batch.map((sourceUserId) async {
             final favoriteDoc = await _firestore
-                .collection('users')
+                .collection(FirestoreCollections.users)
                 .doc(sourceUserId)
-                .collection('favorites')
+                .collection(FirestoreCollections.favorites)
                 .doc(_uid)
                 .get();
 

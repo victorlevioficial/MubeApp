@@ -333,7 +333,7 @@ class _ChatRepositoryBase {
 
   Future<_UserPreviewInfo> _getUserPreviewInfo(String uid) async {
     final snapshot = await _runWithSecurityContextRecovery(
-      () => _firestore.collection('users').doc(uid).get(),
+      () => _firestore.collection(FirestoreCollections.users).doc(uid).get(),
       operationLabel: 'load_user_preview',
     );
     final data = _asMap(snapshot.data());

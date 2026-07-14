@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/errors/firestore_resilience.dart';
@@ -221,7 +222,7 @@ class InvitesRepository {
   Stream<List<Map<String, dynamic>>> getIncomingInvites(String uid) {
     return _watchQuery(
       _firestore
-          .collection('invites')
+          .collection(FirestoreCollections.invites)
           .where('target_uid', isEqualTo: uid)
           .where('status', isEqualTo: 'pendente')
           .orderBy('created_at', descending: true),
@@ -233,7 +234,7 @@ class InvitesRepository {
   Stream<List<Map<String, dynamic>>> getSentInvites(String bandId) {
     return _watchQuery(
       _firestore
-          .collection('invites')
+          .collection(FirestoreCollections.invites)
           .where('band_id', isEqualTo: bandId)
           .where('status', isEqualTo: 'pendente')
           .orderBy('created_at', descending: true),
@@ -245,7 +246,7 @@ class InvitesRepository {
   Stream<List<Map<String, dynamic>>> getUserBands(String uid) {
     return _watchQuery(
       _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .where('members', arrayContains: uid)
           .limit(50),
       operationLabel: 'watch_user_bands',

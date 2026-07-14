@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 
 import '../../../core/errors/firestore_resilience.dart';
 import '../../../core/providers/firebase_providers.dart';
@@ -23,9 +24,9 @@ class NotificationRepository {
 
   CollectionReference<Map<String, dynamic>> _notifications(String userId) {
     return _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(userId)
-        .collection('notifications');
+        .collection(FirestoreCollections.notifications);
   }
 
   /// Returns a stream of notifications for a user, ordered by creation date.

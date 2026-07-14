@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:mube/src/core/errors/failure_mapper.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/errors/firestore_resilience.dart';
@@ -14,6 +15,7 @@ import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/utils/app_logger.dart';
 import 'package:mube/src/utils/category_normalizer.dart';
 import 'package:mube/src/utils/professional_profile_utils.dart';
+
 import '../../../constants/venue_type_constants.dart';
 import '../../../utils/text_utils.dart';
 import '../../feed/domain/feed_item.dart';
@@ -382,7 +384,9 @@ class SearchRepository {
     int limit = SearchConfig.batchSize,
     String? searchToken,
   }) {
-    Query<Map<String, dynamic>> query = _firestore.collection('users');
+    Query<Map<String, dynamic>> query = _firestore.collection(
+      FirestoreCollections.users,
+    );
 
     // Scope filter inferred from explicit category and type-specific filters.
     if (scope != _SearchProfileScope.any) {

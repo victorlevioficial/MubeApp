@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/errors/failure_mapper.dart';
@@ -23,7 +24,7 @@ class SupportRepository {
   SupportRepository(this._firestore);
 
   CollectionReference<Map<String, dynamic>> get _ticketsCollection =>
-      _firestore.collection('tickets');
+      _firestore.collection(FirestoreCollections.tickets);
 
   Future<void> createTicket(Ticket ticket) async {
     await _firestoreResilience.run(

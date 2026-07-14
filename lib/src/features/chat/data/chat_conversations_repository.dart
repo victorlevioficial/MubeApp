@@ -26,7 +26,7 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
     try {
       final conversationId = getConversationId(myUid, otherUid);
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
       var hasCreatedConversation = false;
 
@@ -35,15 +35,15 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
           final snapshot = await transaction.get(conversationRef);
 
           final myPreviewRef = _firestore
-              .collection('users')
+              .collection(FirestoreCollections.users)
               .doc(myUid)
-              .collection('conversationPreviews')
+              .collection(FirestoreCollections.conversationPreviews)
               .doc(conversationId);
 
           final otherPreviewRef = _firestore
-              .collection('users')
+              .collection(FirestoreCollections.users)
               .doc(otherUid)
-              .collection('conversationPreviews')
+              .collection(FirestoreCollections.conversationPreviews)
               .doc(conversationId);
 
           final conversationData = _asMap(snapshot.data());
@@ -152,9 +152,9 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
   /// Stream de previews de conversas do usuario (ultimas 100).
   Stream<List<ConversationPreview>> getUserConversations(String userId) {
     final query = _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(userId)
-        .collection('conversationPreviews')
+        .collection(FirestoreCollections.conversationPreviews)
         .orderBy('lastMessageAt', descending: true)
         .limit(100);
 
@@ -200,7 +200,10 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
   /// Obtem document snapshot da conversa (para acessar readUntil).
   Future<DocumentSnapshot?> getConversationDoc(String conversationId) async {
     final doc = await _runWithSecurityContextRecovery(
-      () => _firestore.collection('conversations').doc(conversationId).get(),
+      () => _firestore
+          .collection(FirestoreCollections.conversations)
+          .doc(conversationId)
+          .get(),
       operationLabel: 'get_conversation_doc',
     );
     if (!doc.exists) return null;
@@ -211,7 +214,7 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
   Stream<DocumentSnapshot> getConversationStream(String conversationId) {
     return _watchWithSecurityContextRecovery(
       () => _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId)
           .snapshots(),
       operationLabel: 'watch_conversation_doc',
@@ -228,12 +231,12 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
   }) async {
     try {
       final previewRef = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
 
       final conversationSnapshot = await _runWithSecurityContextRecovery(
@@ -290,9 +293,9 @@ mixin _ChatConversationsRepository on _ChatRepositoryBase {
   }) async {
     try {
       final myPreviewRef = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       await _commitBatchWithSecurityContextRecovery((batch) {
         batch.delete(myPreviewRef);

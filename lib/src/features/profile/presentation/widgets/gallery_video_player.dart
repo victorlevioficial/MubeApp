@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../core/providers/firebase_providers.dart';
@@ -381,7 +382,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     try {
       final jobDoc = await ref
           .read(firebaseFirestoreProvider)
-          .collection('mediaTranscodeJobs')
+          .collection(FirestoreCollections.mediaTranscodeJobs)
           .doc('${ids.userId}_${ids.mediaId}')
           .get();
       final data = jobDoc.data();

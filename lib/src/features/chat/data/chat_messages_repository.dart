@@ -11,17 +11,17 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
     required Map<String, dynamic> requestFields,
   }) async {
     final conversationRef = _firestore
-        .collection('conversations')
+        .collection(FirestoreCollections.conversations)
         .doc(conversationId);
     final myPreviewRef = _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(myUid)
-        .collection('conversationPreviews')
+        .collection(FirestoreCollections.conversationPreviews)
         .doc(conversationId);
     final otherPreviewRef = _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(otherUid)
-        .collection('conversationPreviews')
+        .collection(FirestoreCollections.conversationPreviews)
         .doc(conversationId);
 
     final requestStatus =
@@ -113,7 +113,7 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
       final normalizedText = text.trim();
 
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
       final myInfoFuture = _getUserPreviewInfoSafe(myUid);
       final otherInfoFuture = _getUserPreviewInfoSafe(otherUid);
@@ -212,7 +212,9 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
         );
       }
 
-      final messageRef = conversationRef.collection('messages').doc();
+      final messageRef = conversationRef
+          .collection(FirestoreCollections.messages)
+          .doc();
       final messageData = <String, dynamic>{
         'senderId': myUid,
         'text': normalizedText,
@@ -238,15 +240,15 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
       }
 
       final myPreviewRef = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
 
       final otherPreviewRef = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(otherUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
 
       await _commitBatchWithSecurityContextRecovery((batch) {
@@ -337,13 +339,13 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
   }) async {
     try {
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
 
       final myPreviewRef = _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       await _commitBatchWithSecurityContextRecovery((batch) {
         batch.update(conversationRef, {
@@ -364,9 +366,9 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
 
   Query<Map<String, dynamic>> _messagesQuery(String conversationId) {
     return _firestore
-        .collection('conversations')
+        .collection(FirestoreCollections.conversations)
         .doc(conversationId)
-        .collection('messages')
+        .collection(FirestoreCollections.messages)
         .orderBy('createdAt', descending: true);
   }
 

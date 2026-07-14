@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:diacritic/diacritic.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../constants/app_constants.dart' as fallback;
@@ -27,7 +28,10 @@ class AppConfigRepository {
   Future<AppConfig> fetchConfig() async {
     try {
       // 1. Tentar buscar do Firestore
-      final doc = await _firestore.collection('config').doc('app_data').get();
+      final doc = await _firestore
+          .collection(FirestoreCollections.config)
+          .doc('app_data')
+          .get();
 
       if (doc.exists && doc.data() != null) {
         final config = _normalizeConfig(AppConfig.fromJson(doc.data()!));

@@ -177,7 +177,7 @@ class ChatAccessResolver {
       final favoriteDoc = await _firestore
           .collection(FirestoreCollections.users)
           .doc(recipientId)
-          .collection('favorites')
+          .collection(FirestoreCollections.favorites)
           .doc(senderId)
           .get();
       return favoriteDoc.exists;

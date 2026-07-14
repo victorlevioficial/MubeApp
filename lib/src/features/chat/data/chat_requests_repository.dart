@@ -8,17 +8,17 @@ mixin _ChatRequestsRepository on _ChatRepositoryBase {
   }) async {
     try {
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
       final myPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       final otherPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(otherUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
 
       final conversationSnapshot = await _runWithSecurityContextRecovery(
@@ -60,17 +60,17 @@ mixin _ChatRequestsRepository on _ChatRepositoryBase {
   }) async {
     try {
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
       final senderPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(otherUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       final recipientPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(myUid)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
 
       final conversationSnapshot = await _runWithSecurityContextRecovery(
@@ -116,7 +116,7 @@ mixin _ChatRequestsRepository on _ChatRepositoryBase {
   }) async {
     try {
       final conversationRef = _firestore
-          .collection('conversations')
+          .collection(FirestoreCollections.conversations)
           .doc(conversationId);
       final snapshot = await _runWithSecurityContextRecovery(
         () => conversationRef.get(),
@@ -145,12 +145,12 @@ mixin _ChatRequestsRepository on _ChatRepositoryBase {
       final senderPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(requestSenderId)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
       final recipientPreviewRef = _firestore
           .collection(FirestoreCollections.users)
           .doc(requestRecipientId)
-          .collection('conversationPreviews')
+          .collection(FirestoreCollections.conversationPreviews)
           .doc(conversationId);
 
       await _commitBatchWithSecurityContextRecovery((batch) {
@@ -209,7 +209,7 @@ mixin _ChatRequestsRepository on _ChatRepositoryBase {
         () => _firestore
             .collection(FirestoreCollections.users)
             .doc(recipientId)
-            .collection('conversationPreviews')
+            .collection(FirestoreCollections.conversationPreviews)
             .where('isPending', isEqualTo: true)
             .get(),
         operationLabel: 'reevaluate_pending_conversations_for_recipient',

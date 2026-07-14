@@ -12,6 +12,16 @@ class FirestoreCollections {
   static const String gigs = 'gigs';
   static const String gigApplications = 'gig_applications';
   static const String gigReviews = 'gig_reviews';
+  static const String config = 'config';
+  static const String conversations = 'conversations';
+  static const String conversationPreviews = 'conversationPreviews';
+  static const String messages = 'messages';
+  static const String favorites = 'favorites';
+  static const String notifications = 'notifications';
+  static const String invites = 'invites';
+  static const String tickets = 'tickets';
+  static const String hashtagRanking = 'hashtagRanking';
+  static const String mediaTranscodeJobs = 'mediaTranscodeJobs';
 }
 
 class FirestoreFields {

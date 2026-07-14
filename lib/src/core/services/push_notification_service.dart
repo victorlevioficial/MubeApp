@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 
 import '../../routing/notification_navigation_resolver.dart';
 import '../../utils/app_logger.dart';
@@ -388,10 +389,13 @@ class PushNotificationService {
       final user = _auth.currentUser;
       if (user == null) return;
 
-      await _firestore.collection('users').doc(user.uid).update({
-        'fcm_token': token,
-        'fcm_updated_at': FieldValue.serverTimestamp(),
-      });
+      await _firestore
+          .collection(FirestoreCollections.users)
+          .doc(user.uid)
+          .update({
+            'fcm_token': token,
+            'fcm_updated_at': FieldValue.serverTimestamp(),
+          });
       _lastTokenSyncUserId = user.uid;
       AppLogger.info('FCM Token saved to Firestore for user ${user.uid}');
     } catch (e) {

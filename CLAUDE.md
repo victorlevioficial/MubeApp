@@ -104,7 +104,7 @@ Features live under `lib/src/features/` and typically follow `data/` → `domain
 - **Language**: English for code, comments, commits. Portuguese for UI strings.
 - **Logging**: Use `AppLogger`, never `print`.
 - **Route references**: Use `RoutePaths` constants and helpers (`publicProfileById`, `conversationById`, `legalDetail`).
-- **Firestore fields**: Use `FirestoreConstants`, not inline strings.
+- **Firestore collections/fields**: Use the constants in `lib/src/constants/firestore_constants.dart` (`FirestoreCollections`, `FirestoreFields`, `GigFields`), never inline strings.
 - **Design system**: Reuse existing tokens and components from `lib/src/design_system/` before creating feature-local UI.
 - **Generated files**: Never hand-edit `*.g.dart` or `*.freezed.dart`. Run `build_runner` after changing annotated models.
 - **Public identity**: Don't expose registration names for professional/band/studio profiles on public surfaces. Contractors may.

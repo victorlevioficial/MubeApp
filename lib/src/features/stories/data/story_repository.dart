@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -449,7 +450,10 @@ class StoryRepository {
     // Resolve the viewer's display identity once per session instead of
     // re-reading the full user document on every single story view.
     if (_cachedViewerUid != uid) {
-      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final userDoc = await _firestore
+          .collection(FirestoreCollections.users)
+          .doc(uid)
+          .get();
       final userData = userDoc.data() ?? const <String, dynamic>{};
       _cachedViewerName = _resolveDisplayName(userData);
       _cachedViewerPhoto =
@@ -772,7 +776,7 @@ class StoryRepository {
   Future<Set<String>> _loadPublicOwnerIdsFromUserState() async {
     try {
       final snapshot = await _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .where('story_state.has_active_story', isEqualTo: true)
           .orderBy('story_state.latest_story_at', descending: true)
           .limit(_publicTrayOwnerLimit * 3)
@@ -905,7 +909,7 @@ class StoryRepository {
       final batchIds = ids.sublist(i, end);
       batchFutures.add(
         _firestore
-            .collection('users')
+            .collection(FirestoreCollections.users)
             .where(FieldPath.documentId, whereIn: batchIds)
             .get(),
       );
@@ -917,7 +921,7 @@ class StoryRepository {
 
   Future<Map<String, DateTime>> _loadSeenAuthorTimestamps(String uid) async {
     final snapshot = await _firestore
-        .collection('users')
+        .collection(FirestoreCollections.users)
         .doc(uid)
         .collection(StoryConstants.storySeenAuthorsSubcollection)
         .get();
@@ -938,9 +942,9 @@ class StoryRepository {
   Future<Set<String>> _loadBlockedIds(String uid) async {
     try {
       final snapshot = await _firestore
-          .collection('users')
+          .collection(FirestoreCollections.users)
           .doc(uid)
-          .collection('blocked')
+          .collection(FirestoreCollections.blocked)
           .get();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (error, stackTrace) {

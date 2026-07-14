@@ -694,7 +694,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     // eliminates the Cloud Function Pigeon call entirely.
     AppLogger.breadcrumb('mp:hashtag_rank:fetch_start');
     final snapshot = await _firestore
-        .collection('hashtagRanking')
+        .collection(FirestoreCollections.hashtagRanking)
         .orderBy('use_count', descending: true)
         .limit(limit)
         .get();
@@ -716,7 +716,7 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
     if (normalized.length < 2) return [];
 
     final snapshot = await _firestore
-        .collection('hashtagRanking')
+        .collection(FirestoreCollections.hashtagRanking)
         .where('hashtag', isGreaterThanOrEqualTo: normalized)
         .where('hashtag', isLessThanOrEqualTo: '$normalized\uf8ff')
         .orderBy('hashtag')

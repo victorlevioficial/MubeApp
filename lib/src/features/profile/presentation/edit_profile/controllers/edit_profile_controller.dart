@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:mube/src/constants/firestore_constants.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -741,7 +742,7 @@ class EditProfileController extends _$EditProfileController {
       final docId = '${userId}_${item.id}';
       final transcodeDoc = await ref
           .read(firebaseFirestoreProvider)
-          .collection('mediaTranscodeJobs')
+          .collection(FirestoreCollections.mediaTranscodeJobs)
           .doc(docId)
           .get();
 
@@ -1037,7 +1038,7 @@ class EditProfileController extends _$EditProfileController {
       }
       try {
         final snapshot = await firestore
-            .collection('mediaTranscodeJobs')
+            .collection(FirestoreCollections.mediaTranscodeJobs)
             .doc(transcodeDocId)
             .get();
         final jobState = parseVideoTranscodeJobState(snapshot.data());
