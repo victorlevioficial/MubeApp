@@ -195,3 +195,7 @@ third_party/**/.gradle/
 # AUTO_MAP.md
 # CODE_INDEX.md
 # PROJECT_MAP.md
+
+# Local tooling artifacts
+outputs/
+.impeccable/
