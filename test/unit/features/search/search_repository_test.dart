@@ -109,6 +109,39 @@ void main() {
     });
 
     test(
+      'should match via server-side search_terms index by surname prefix',
+      () async {
+        await fakeFirestore.collection('users').doc('server-1').set({
+          'nome': 'Registro Oculto',
+          'tipo_perfil': 'profissional',
+          'cadastro_status': 'concluido',
+          'status': 'ativo',
+          // Denormalized name tokens maintained by the Cloud Function trigger.
+          'search_terms': ['an', 'ana', 'be', 'bea', 'beat', 'beatriz'],
+          'profissional': {
+            'nomeArtistico': 'Ana Beatriz',
+            'categorias': ['singer'],
+          },
+          'created_at': Timestamp.now(),
+        });
+
+        // Querying by the surname prefix exercises the array-contains path.
+        const filters = SearchFilters(term: 'beat');
+
+        final result = await repository.searchUsers(
+          filters: filters,
+          requestId: 50,
+          getCurrentRequestId: () => 50,
+        );
+
+        expect(result.isRight(), true);
+        result.fold((l) => fail('Should not fail'), (r) {
+          expect(r.items.map((item) => item.uid), contains('server-1'));
+        });
+      },
+    );
+
+    test(
       'should match common musician search aliases against profile skills',
       () async {
         await fakeFirestore.collection('users').doc('guitar-1').set({
