@@ -324,7 +324,12 @@ class _GigDetailHeader extends StatelessWidget {
                 ),
                 if (creator != null) ...[
                   const SizedBox(height: AppSpacing.s16),
-                  GigCreatorPreview(creator: creator!),
+                  GigCreatorPreview(
+                    creator: creator!,
+                    onTap: () => context.push(
+                      RoutePaths.publicProfileById(creator!.uid),
+                    ),
+                  ),
                 ],
               ],
             ),

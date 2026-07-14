@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mube/src/core/domain/app_config.dart';
 import 'package:mube/src/core/providers/app_config_provider.dart';
 import 'package:mube/src/design_system/components/buttons/app_button.dart';
@@ -18,6 +19,7 @@ import 'package:mube/src/features/gigs/domain/gig_status.dart';
 import 'package:mube/src/features/gigs/domain/gig_type.dart';
 import 'package:mube/src/features/gigs/presentation/providers/gig_streams.dart';
 import 'package:mube/src/features/gigs/presentation/screens/gig_detail_screen.dart';
+import 'package:mube/src/routing/route_paths.dart';
 
 import '../../../../helpers/test_fakes.dart';
 
@@ -52,6 +54,7 @@ void main() {
     required AsyncValue<GigApplication?> myApplicationState,
     required Stream<firebase_auth.User?> authUserStream,
     Future<AppConfig> Function()? appConfigLoader,
+    GoRouter? router,
   }) {
     final creatorIdsKey = encodeGigUserIdsKey([creatorId]);
     final creatorsById = <String, AppUser>{
@@ -78,7 +81,9 @@ void main() {
           (ref) => appConfigLoader?.call() ?? Future.value(const AppConfig()),
         ),
       ],
-      child: const MaterialApp(home: GigDetailScreen(gigId: gigId)),
+      child: router != null
+          ? MaterialApp.router(routerConfig: router)
+          : const MaterialApp(home: GigDetailScreen(gigId: gigId)),
     );
   }
 
@@ -94,11 +99,48 @@ void main() {
 
     expect(find.text('Produtora Aurora'), findsOneWidget);
     expect(find.text('Contratante'), findsOneWidget);
-    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    // Creator preview is tappable (opens the public profile) and shows a
+    // trailing chevron as an affordance.
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Candidatar-se'), 300);
     await tester.pumpAndSettle();
     expect(find.text('7 pessoas já se candidataram.'), findsOneWidget);
     expect(find.text('Candidatar-se'), findsOneWidget);
+  });
+
+  testWidgets('tapping the creator opens their public profile', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: '/gig',
+      routes: [
+        GoRoute(
+          path: '/gig',
+          builder: (context, state) => const GigDetailScreen(gigId: gigId),
+        ),
+        GoRoute(
+          path: '${RoutePaths.publicProfile}/:uid',
+          builder: (context, state) => Scaffold(
+            body: Text('public-profile:${state.pathParameters['uid']}'),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      createSubject(
+        gigStream: Stream.value(sampleGig),
+        myApplicationState: const AsyncValue.data(null),
+        authUserStream: Stream.value(candidateAuthUser),
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Produtora Aurora'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('public-profile:$creatorId'), findsOneWidget);
   });
 
   testWidgets('shows refreshed apply dialog UI', (tester) async {

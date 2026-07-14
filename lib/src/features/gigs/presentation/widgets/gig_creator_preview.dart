@@ -13,10 +13,15 @@ class GigCreatorPreview extends StatelessWidget {
     super.key,
     required this.creator,
     this.compact = false,
+    this.onTap,
   });
 
   final AppUser creator;
   final bool compact;
+
+  /// When provided, the preview becomes tappable (e.g. to open the creator's
+  /// public profile) and shows a trailing chevron as an affordance.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -24,67 +29,79 @@ class GigCreatorPreview extends StatelessWidget {
     final categoryLabel = _categoryLabel(creator);
     final avatarSize = compact ? 36.0 : 44.0;
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? AppSpacing.s10 : AppSpacing.s12,
-        vertical: compact ? AppSpacing.s8 : AppSpacing.s10,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceHighlight,
-        borderRadius: AppRadius.all12,
-      ),
-      child: Row(
-        children: [
-          UserAvatar(
-            size: avatarSize,
-            photoUrl: creator.foto,
-            name: name,
-            showBorder: false,
+    return Material(
+      color: AppColors.surfaceHighlight,
+      borderRadius: AppRadius.all12,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? AppSpacing.s10 : AppSpacing.s12,
+            vertical: compact ? AppSpacing.s8 : AppSpacing.s10,
           ),
-          const SizedBox(width: AppSpacing.s10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  compact ? 'Publicado por' : 'Criado por',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s2),
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: compact
-                      ? AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        )
-                      : AppTypography.titleSmall.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                ),
-                if (categoryLabel.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.s2),
-                  Text(
-                    categoryLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+          child: Row(
+            children: [
+              UserAvatar(
+                size: avatarSize,
+                photoUrl: creator.foto,
+                name: name,
+                showBorder: false,
+              ),
+              const SizedBox(width: AppSpacing.s10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      compact ? 'Publicado por' : 'Criado por',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.s2),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: compact
+                          ? AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            )
+                          : AppTypography.titleSmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                    ),
+                    if (categoryLabel.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.s2),
+                      Text(
+                        categoryLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: AppSpacing.s8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
               ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
