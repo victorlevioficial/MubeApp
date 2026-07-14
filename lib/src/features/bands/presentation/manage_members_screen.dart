@@ -55,7 +55,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
           ? null
           : _InviteActionBar(
               hasMembers: currentUser.members.isNotEmpty,
-              onPressed: () => _showSearchModal(context, currentUser.uid),
+              onPressed: () => _showSearchModal(context, currentUser),
             ),
       body: SafeArea(
         top: false,
@@ -150,7 +150,7 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
               color: AppColors.textPrimary,
             ),
             isFullWidth: true,
-            onPressed: () => _showSearchModal(context, user.uid),
+            onPressed: () => _showSearchModal(context, user),
           ),
         ),
       );
@@ -189,14 +189,15 @@ class _ManageMembersScreenState extends ConsumerState<ManageMembersScreen> {
     );
   }
 
-  void _showSearchModal(BuildContext context, String myUid) {
+  void _showSearchModal(BuildContext context, AppUser band) {
     AppOverlay.bottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.background,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
-      builder: (context) => _SearchMembersModal(bandId: myUid),
+      builder: (context) =>
+          _SearchMembersModal(bandId: band.uid, currentMemberIds: band.members),
     );
   }
 }

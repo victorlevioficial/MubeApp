@@ -74,6 +74,11 @@ class _BandManagementIntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final missingMembers = missingBandMembersForActivation(acceptedMembers);
     final isBandReady = isBandEligibleForActivation(acceptedMembers);
+    final statusLabel = isBandReady ? 'Ativa' : 'Rascunho';
+    final statusColor = isBandReady ? AppColors.success : AppColors.warning;
+    final statusIcon = isBandReady
+        ? Icons.check_circle_outline_rounded
+        : Icons.visibility_off_outlined;
     final subtitle = isBandReady
         ? 'A formação mínima já foi concluída. Acompanhe convites e ajuste integrantes quando precisar.'
         : missingMembers == 1
@@ -113,6 +118,12 @@ class _BandManagementIntroCard extends StatelessWidget {
                   'Formação e convites',
                   style: AppTypography.titleLarge,
                 ),
+              ),
+              const SizedBox(width: AppSpacing.s12),
+              _StatusBadge(
+                label: statusLabel,
+                color: statusColor,
+                icon: statusIcon,
               ),
             ],
           ),
@@ -641,11 +652,28 @@ class _MemberCard extends ConsumerWidget {
     WidgetRef ref,
     String memberName,
   ) async {
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null) return;
+
+    final remainingMembers = currentUser.members.length - 1;
+    final remainingMemberCount = remainingMembers < 0 ? 0 : remainingMembers;
+    final willReturnToDraft = !isBandEligibleForActivation(
+      remainingMemberCount,
+    );
+    final remainingMembersLabel = remainingMemberCount == 1
+        ? '1 integrante confirmado'
+        : '$remainingMemberCount integrantes confirmados';
+    final message = willReturnToDraft
+        ? 'Tem certeza que deseja remover $memberName da banda?\n\n'
+              'Com essa remoção, a banda ficará com $remainingMembersLabel '
+              'e voltará para rascunho até outro integrante aceitar.'
+        : 'Tem certeza que deseja remover $memberName da banda?';
+
     final confirm = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) => AppConfirmationDialog(
         title: 'Remover Integrante',
-        message: 'Tem certeza que deseja remover $memberName da banda?',
+        message: message,
         confirmText: 'Remover',
         isDestructive: true,
       ),
@@ -653,9 +681,6 @@ class _MemberCard extends ConsumerWidget {
 
     if (confirm == true && context.mounted) {
       try {
-        final currentUser = ref.read(currentUserProfileProvider).value;
-        if (currentUser == null) return;
-
         final message = await ref
             .read(invitesRepositoryProvider)
             .leaveBand(bandId: currentUser.uid, uid: member.uid);

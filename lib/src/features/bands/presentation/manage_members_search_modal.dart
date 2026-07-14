@@ -1,9 +1,13 @@
 part of 'manage_members_screen.dart';
 
 class _SearchMembersModal extends ConsumerStatefulWidget {
-  const _SearchMembersModal({required this.bandId});
+  const _SearchMembersModal({
+    required this.bandId,
+    required this.currentMemberIds,
+  });
 
   final String bandId;
+  final List<String> currentMemberIds;
 
   @override
   ConsumerState<_SearchMembersModal> createState() =>
@@ -17,6 +21,7 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
   bool _isLoading = false;
   String? _invitingUid;
   int _searchRequestId = 0;
+  final Set<String> _locallyInvitedUids = <String>{};
 
   @override
   void dispose() {
@@ -88,8 +93,10 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
             targetInstrument: item.skills.isNotEmpty ? item.skills.first : '',
           );
       if (mounted) {
+        setState(() {
+          _locallyInvitedUids.add(uid);
+        });
         AppSnackBar.success(context, message);
-        Navigator.pop(context);
       }
     } catch (e, stack) {
       AppLogger.error('Falha ao enviar convite para ${item.uid}', e, stack);
@@ -104,8 +111,12 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
   }
 
   Widget _buildResultItem(FeedItem item, List<String> pendingInviteUids) {
-    final isInvited = pendingInviteUids.contains(item.uid);
+    final isMember = widget.currentMemberIds.contains(item.uid);
+    final isInvited =
+        pendingInviteUids.contains(item.uid) ||
+        _locallyInvitedUids.contains(item.uid);
     final isInviting = _invitingUid == item.uid;
+    final isBusy = _invitingUid != null;
     final skills = item.skills.isNotEmpty
         ? item.skills.take(3).join(', ')
         : 'Perfil profissional';
@@ -158,14 +169,20 @@ class _SearchMembersModalState extends ConsumerState<_SearchMembersModal> {
           const SizedBox(width: AppSpacing.s12),
           SizedBox(
             width: 104,
-            child: isInvited
+            child: isMember
+                ? const AppButton.secondary(
+                    onPressed: null,
+                    text: 'Integrante',
+                    size: AppButtonSize.small,
+                  )
+                : isInvited
                 ? const AppButton.secondary(
                     onPressed: null,
                     text: 'Pendente',
                     size: AppButtonSize.small,
                   )
                 : AppButton.primary(
-                    onPressed: isInviting ? null : () => _invite(item),
+                    onPressed: isBusy ? null : () => _invite(item),
                     text: isInviting ? 'Enviando' : 'Convidar',
                     size: AppButtonSize.small,
                     isLoading: isInviting,

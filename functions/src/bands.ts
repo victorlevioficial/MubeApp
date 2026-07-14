@@ -15,6 +15,7 @@ import * as admin from "firebase-admin";
 import {Timestamp} from "firebase-admin/firestore";
 import {
   MIN_ACTIVE_BAND_MEMBERS,
+  STATUS_ACTIVE,
   getBandStatusForMemberCount,
   buildBandAcceptedMessage,
   buildBandMemberRemovalMessage,
@@ -113,13 +114,16 @@ function canBandManageInvites(data: Record<string, unknown>): boolean {
 }
 
 /**
- * Verifica se o alvo do convite e um perfil individual.
+ * Verifica se o alvo do convite e um perfil individual ativo.
  *
  * @param {Record<string, unknown>} data - Documento do usuario alvo.
- * @return {boolean} True quando o perfil e profissional.
+ * @return {boolean} True quando o perfil e profissional, ativo e concluido.
  */
 function isEligibleInviteTarget(data: Record<string, unknown>): boolean {
-  return data.tipo_perfil === PROFESSIONAL_PROFILE_TYPE;
+  const accountStatus = firstNonEmptyString([data.status], STATUS_ACTIVE);
+  return data.tipo_perfil === PROFESSIONAL_PROFILE_TYPE &&
+      data.cadastro_status === REGISTRATION_COMPLETE &&
+      accountStatus === STATUS_ACTIVE;
 }
 
 /**

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
+import 'package:mube/src/features/bands/domain/band_activation_rules.dart';
 import 'package:mube/src/features/onboarding/providers/notification_permission_prompt_provider.dart';
 import 'package:mube/src/features/splash/providers/splash_provider.dart';
 import 'package:mube/src/routing/auth_guard.dart';
@@ -375,6 +376,80 @@ void main() {
         expect(redirect, isNull);
       },
     );
+
+    test(
+      'starts completed draft bands on member setup after onboarding',
+      () async {
+        final fakeUser = FakeFirebaseUser(
+          uid: 'band-1',
+          email: 'band@mube.app',
+        );
+        final band = TestData.bandUser(uid: 'band-1').copyWith(
+          email: 'band@mube.app',
+          status: profileDraftStatus,
+          members: const ['member-1'],
+        );
+        final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+          ..emitUser(fakeUser);
+        final container = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(fakeUser),
+            ),
+            currentUserProfileProvider.overrideWithValue(AsyncValue.data(band)),
+          ],
+        );
+
+        addTearDown(() {
+          fakeAuthRepository.dispose();
+          container.dispose();
+        });
+
+        container.read(splashFinishedProvider.notifier).finish();
+        final guard = container.read(_authGuardProvider);
+
+        final redirect = await guard.redirect(
+          _FakeBuildContext(),
+          _stateForPath(RoutePaths.onboardingForm),
+        );
+
+        expect(redirect, RoutePaths.manageMembers);
+      },
+    );
+
+    test('allows draft bands to open feed outside onboarding', () async {
+      final fakeUser = FakeFirebaseUser(uid: 'band-1', email: 'band@mube.app');
+      final band = TestData.bandUser(uid: 'band-1').copyWith(
+        email: 'band@mube.app',
+        status: profileDraftStatus,
+        members: const ['member-1'],
+      );
+      final fakeAuthRepository = FakeAuthRepository(initialUser: fakeUser)
+        ..emitUser(fakeUser);
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+          authStateChangesProvider.overrideWithValue(AsyncValue.data(fakeUser)),
+          currentUserProfileProvider.overrideWithValue(AsyncValue.data(band)),
+        ],
+      );
+
+      addTearDown(() {
+        fakeAuthRepository.dispose();
+        container.dispose();
+      });
+
+      container.read(splashFinishedProvider.notifier).finish();
+      final guard = container.read(_authGuardProvider);
+
+      final redirect = await guard.redirect(
+        _FakeBuildContext(),
+        _stateForPath(RoutePaths.feed),
+      );
+
+      expect(redirect, isNull);
+    });
 
     test(
       'refreshes security context instead of signing out on permission-related profile stream error',

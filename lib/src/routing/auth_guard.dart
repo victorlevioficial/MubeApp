@@ -9,7 +9,10 @@ import 'package:go_router/go_router.dart';
 import '../core/errors/failures.dart';
 import '../core/typedefs.dart';
 import '../features/auth/data/auth_repository.dart';
+import '../features/auth/domain/app_user.dart';
+import '../features/auth/domain/user_type.dart';
 import '../features/auth/presentation/account_deletion_provider.dart';
+import '../features/bands/domain/band_activation_rules.dart';
 import '../features/splash/providers/splash_provider.dart';
 import '../utils/app_logger.dart';
 import '../utils/app_performance_tracker.dart';
@@ -99,7 +102,7 @@ class AuthGuard {
   /// Handles redirect logic for authenticated users based on profile status.
   Future<String?> _handleAuthenticated(
     String currentPath,
-    AsyncValue<dynamic> userProfileAsync,
+    AsyncValue<AppUser?> userProfileAsync,
   ) async {
     final isDeletingAccount = _ref.read(accountDeletionInProgressProvider);
     final authRepository = _ref.read(authRepositoryProvider);
@@ -230,7 +233,10 @@ class AuthGuard {
     if (currentPath == RoutePaths.splash) {
       if (user.isTipoPendente) return RoutePaths.onboarding;
       if (user.isPerfilPendente) return RoutePaths.onboardingForm;
-      final completedRedirect = await _guardCompletedUser(RoutePaths.splash);
+      final completedRedirect = await _guardCompletedUser(
+        RoutePaths.splash,
+        user,
+      );
       if (completedRedirect == RoutePaths.feed || completedRedirect == null) {
         final deferredPublicPath = _consumeDeferredPublicPathIfAny();
         if (deferredPublicPath != null) {
@@ -254,7 +260,7 @@ class AuthGuard {
     }
 
     if (user.isCadastroConcluido) {
-      return await _guardCompletedUser(currentPath);
+      return await _guardCompletedUser(currentPath, user);
     }
 
     return null;
@@ -410,7 +416,7 @@ class AuthGuard {
   }
 
   /// User completed registration - redirect away from auth/onboarding screens.
-  Future<String?> _guardCompletedUser(String currentPath) async {
+  Future<String?> _guardCompletedUser(String currentPath, AppUser user) async {
     final isLegalRoute =
         currentPath == RoutePaths.legal ||
         currentPath.startsWith('${RoutePaths.legal}/');
@@ -420,11 +426,22 @@ class AuthGuard {
         _isAuthFlowRoute(currentPath) ||
         currentPath == RoutePaths.splash;
 
+    if (_shouldStartDraftBandFormation(user, currentPath)) {
+      _log('Draft band completed onboarding - redirecting to member setup');
+      return RoutePaths.manageMembers;
+    }
+
     if (shouldRedirectToFeed && !isLegalRoute) {
       _log('Completed user on restricted route - redirecting to feed');
       return RoutePaths.feed;
     }
     return null;
+  }
+
+  bool _shouldStartDraftBandFormation(AppUser user, String currentPath) {
+    return currentPath.startsWith(RoutePaths.onboarding) &&
+        user.tipoPerfil == AppUserType.band &&
+        !isBandEligibleForActivation(user.members.length);
   }
 
   /// Debug-only logging.
