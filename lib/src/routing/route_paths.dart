@@ -12,6 +12,7 @@ abstract final class RoutePaths {
   // Onboarding routes
   static const String onboarding = '/onboarding';
   static const String onboardingForm = '/onboarding/form';
+  static const String onboardingFormSegment = 'form';
 
   // Main app routes (inside shell)
   static const String feed = '/feed';
@@ -31,6 +32,13 @@ abstract final class RoutePaths {
   static const String matchpointHistory = '/matchpoint/history';
   static const String legal = '/legal';
   static const String support = '/settings/support';
+  static const String settingsMyGigsSegment = 'my-gigs';
+  static const String settingsMyApplicationsSegment = 'my-applications';
+  static const String addressesSegment = 'addresses';
+  static const String privacySettingsSegment = 'privacy';
+  static const String blockedUsersSegment = 'blocked-users';
+  static const String receivedFavoritesSegment = 'received-favorites';
+  static const String supportSegment = 'support';
   static const String supportCreate = 'create-ticket'; // relative to support
   static const String supportTickets = 'my-tickets'; // relative to support
   static const String supportDropdownCompare =
@@ -47,6 +55,7 @@ abstract final class RoutePaths {
 
   static const String gallery = '/gallery';
   static const String feedList = '/feed/list';
+  static const String feedListSegment = 'list';
 
   /// Routes that don't require authentication.
   static const Set<String> publicRoutes = {
@@ -76,9 +85,21 @@ abstract final class RoutePaths {
   static const String conversation = '/conversation';
   static const String notifications = '/notifications';
   static const String gigCreate = '/gigs/create';
+  static const String gigCreateSegment = 'create';
+  static const String gigIdSegment = ':gigId';
+  static const String gigApplicantsSegment = 'applicants';
+  static const String gigReviewSegment = 'review/:userId';
   static const String storyCreate = '/stories/create';
   static const String storyViewer = '/stories/viewer';
   static const String storyViewers = '/stories/viewers';
+  static const String matchpointHistorySegment = 'history';
+
+  static const String publicProfileByIdRoute = '$publicProfile/:uid';
+  static const String conversationByIdRoute = '$conversation/:conversationId';
+  static const String publicProfileShareRoute = '$profile/:uid';
+  static const String storyViewerByIdRoute = '$storyViewer/:storyId';
+  static const String storyViewersByIdRoute = '$storyViewers/:storyId';
+  static const String legalDetailRoute = '$legal/:type';
 
   static String publicProfileById(String uid) => '$publicProfile/$uid';
   static String publicProfileByUsername(String username) =>
@@ -190,9 +211,9 @@ abstract final class RoutePaths {
   static bool _isPublicGigPath(String path) {
     final segments = Uri.parse(path).pathSegments;
     if (segments.length != 2) return false;
-    if (segments.first != 'gigs') return false;
+    if (segments.first != gigs.replaceFirst('/', '')) return false;
     // Reject known non-public sub-routes.
-    if (segments.last == 'create') return false;
+    if (segments.last == gigCreateSegment) return false;
     return segments.last.isNotEmpty;
   }
 }

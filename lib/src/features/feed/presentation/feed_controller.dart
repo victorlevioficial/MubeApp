@@ -1,8 +1,5 @@
-// ignore_for_file: directives_ordering
-
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../constants/firestore_constants.dart';
@@ -19,11 +16,10 @@ import '../data/feed_cache_store.dart';
 import '../data/feed_repository.dart';
 import '../domain/feed_item.dart';
 import '../domain/feed_section.dart';
-import '../domain/paginated_feed_response.dart';
 import '../domain/spotlight_rotation.dart';
 import 'feed_state.dart';
-import 'providers/feed_main_provider.dart';
 import 'providers/featured_profiles_provider.dart';
+import 'providers/feed_main_provider.dart';
 
 export 'feed_state.dart';
 
@@ -435,61 +431,6 @@ class FeedController extends _$FeedController {
     });
   }
 
-  // ignore: unused_element
-  FutureResult<PaginatedFeedResponse> _loadMainPage({
-    required AppUser user,
-    required List<String> blockedIds,
-    required String filter,
-    required DocumentSnapshot? startAfter,
-    required int limit,
-  }) {
-    final repository = ref.read(feedRepositoryProvider);
-    final userLat = (user.location?['lat'] as num?)?.toDouble();
-    final userLong = (user.location?['lng'] as num?)?.toDouble();
-
-    switch (filter) {
-      case 'Profissionais':
-        return repository.getUsersByTypePaginated(
-          type: ProfileType.professional,
-          currentUserId: user.uid,
-          excludedIds: blockedIds,
-          userLat: userLat,
-          userLong: userLong,
-          limit: limit,
-          startAfter: startAfter,
-        );
-      case 'Bandas':
-        return repository.getUsersByTypePaginated(
-          type: ProfileType.band,
-          currentUserId: user.uid,
-          excludedIds: blockedIds,
-          userLat: userLat,
-          userLong: userLong,
-          limit: limit,
-          startAfter: startAfter,
-        );
-      case 'Estúdios':
-        return repository.getUsersByTypePaginated(
-          type: ProfileType.studio,
-          currentUserId: user.uid,
-          excludedIds: blockedIds,
-          userLat: userLat,
-          userLong: userLong,
-          limit: limit,
-          startAfter: startAfter,
-        );
-      default:
-        return repository.getMainFeedPaginated(
-          currentUserId: user.uid,
-          excludedIds: blockedIds,
-          userLat: userLat,
-          userLong: userLong,
-          limit: limit,
-          startAfter: startAfter,
-        );
-    }
-  }
-
   /// Loads more items for the main feed.
   Future<void> loadMoreMainFeed() async {
     final currentState = state.value ?? const FeedState();
@@ -548,26 +489,6 @@ class FeedController extends _$FeedController {
     );
     state = AsyncValue.data(mergedState);
     unawaited(_saveFeedCache(user.uid, mergedState, refreshedAt));
-  }
-
-  // ignore: unused_element
-  List<FeedItem> _mergeUniqueItems(
-    List<FeedItem> existingItems,
-    List<FeedItem> incomingItems,
-  ) {
-    final merged = <FeedItem>[];
-    final seenIds = <String>{};
-    for (final item in existingItems) {
-      if (seenIds.add(item.uid)) {
-        merged.add(item);
-      }
-    }
-    for (final item in incomingItems) {
-      if (seenIds.add(item.uid)) {
-        merged.add(item);
-      }
-    }
-    return merged;
   }
 
   /// Updates filter and reloads main feed.

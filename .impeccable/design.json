@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-11T21:53:13.7380725-03:00",
+  "title": "Design System: Mube",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Stage Signal Pink",
+        "canonical": "#E8466C",
+        "tonalRamp": [
+          "oklch(18% 0.08 12)",
+          "oklch(28% 0.12 12)",
+          "oklch(38% 0.16 12)",
+          "oklch(50% 0.19 12)",
+          "oklch(60% 0.21 12)",
+          "oklch(72% 0.16 12)",
+          "oklch(84% 0.10 12)",
+          "oklch(94% 0.04 12)"
+        ]
+      },
+      "primary-pressed": {
+        "role": "primary",
+        "displayName": "Pressed Stage Pink",
+        "canonical": "#D13F61",
+        "tonalRamp": [
+          "oklch(16% 0.07 12)",
+          "oklch(26% 0.11 12)",
+          "oklch(36% 0.15 12)",
+          "oklch(47% 0.18 12)",
+          "oklch(57% 0.20 12)",
+          "oklch(69% 0.15 12)",
+          "oklch(82% 0.09 12)",
+          "oklch(93% 0.04 12)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Deep Stage Black",
+        "canonical": "#0A0A0A",
+        "tonalRamp": [
+          "#0A0A0A",
+          "#101010",
+          "#171717",
+          "#1F1F1F",
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Quiet Surface",
+        "canonical": "#141414",
+        "tonalRamp": [
+          "#0A0A0A",
+          "#141414",
+          "#1F1F1F",
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Raised Surface",
+        "canonical": "#1F1F1F",
+        "tonalRamp": [
+          "#0A0A0A",
+          "#141414",
+          "#1F1F1F",
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373"
+        ]
+      },
+      "surface-highlight": {
+        "role": "neutral",
+        "displayName": "Hover Surface",
+        "canonical": "#292929",
+        "tonalRamp": [
+          "#0A0A0A",
+          "#141414",
+          "#1F1F1F",
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Working Border",
+        "canonical": "#383838",
+        "tonalRamp": [
+          "#141414",
+          "#1F1F1F",
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373",
+          "#8A8A8A"
+        ]
+      },
+      "text-primary": {
+        "role": "neutral",
+        "displayName": "Primary Text",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#737373",
+          "#8A8A8A",
+          "#9A9A9A",
+          "#B3B3B3",
+          "#C8C8C8",
+          "#DCDCDC",
+          "#F0F0F0",
+          "#FFFFFF"
+        ]
+      },
+      "text-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "canonical": "#B3B3B3",
+        "tonalRamp": [
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373",
+          "#8A8A8A",
+          "#9A9A9A",
+          "#B3B3B3",
+          "#DCDCDC"
+        ]
+      },
+      "text-tertiary": {
+        "role": "neutral",
+        "displayName": "Tertiary Text",
+        "canonical": "#8A8A8A",
+        "tonalRamp": [
+          "#292929",
+          "#383838",
+          "#4A4A4A",
+          "#5E5E5E",
+          "#737373",
+          "#8A8A8A",
+          "#B3B3B3",
+          "#DCDCDC"
+        ]
+      },
+      "error": {
+        "role": "semantic",
+        "displayName": "Error Red",
+        "canonical": "#EF4444",
+        "tonalRamp": [
+          "oklch(18% 0.08 28)",
+          "oklch(28% 0.12 28)",
+          "oklch(40% 0.17 28)",
+          "oklch(52% 0.21 28)",
+          "oklch(63% 0.23 28)",
+          "oklch(74% 0.16 28)",
+          "oklch(86% 0.09 28)",
+          "oklch(95% 0.04 28)"
+        ]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Success Green",
+        "canonical": "#22C55E",
+        "tonalRamp": [
+          "oklch(18% 0.07 150)",
+          "oklch(30% 0.10 150)",
+          "oklch(42% 0.14 150)",
+          "oklch(55% 0.18 150)",
+          "oklch(68% 0.20 150)",
+          "oklch(78% 0.14 150)",
+          "oklch(88% 0.08 150)",
+          "oklch(96% 0.04 150)"
+        ]
+      },
+      "info": {
+        "role": "semantic",
+        "displayName": "Info Blue",
+        "canonical": "#3B82F6",
+        "tonalRamp": [
+          "oklch(18% 0.08 260)",
+          "oklch(30% 0.12 260)",
+          "oklch(42% 0.16 260)",
+          "oklch(55% 0.20 260)",
+          "oklch(68% 0.18 260)",
+          "oklch(78% 0.12 260)",
+          "oklch(88% 0.07 260)",
+          "oklch(96% 0.03 260)"
+        ]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Warning Amber",
+        "canonical": "#F59E0B",
+        "tonalRamp": [
+          "oklch(18% 0.06 72)",
+          "oklch(30% 0.10 72)",
+          "oklch(43% 0.14 72)",
+          "oklch(56% 0.18 72)",
+          "oklch(70% 0.20 72)",
+          "oklch(80% 0.14 72)",
+          "oklch(90% 0.08 72)",
+          "oklch(96% 0.04 72)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Screen-level headlines, onboarding moments, and rare high-emphasis product moments."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings, app bar titles, empty state titles, and compact screen headers."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card titles, list item names, form group titles, and component headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Main UI text, descriptions, empty state copy, form text, and support content."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, chips, nav labels, helper labels, counters, profile type labels, and metadata."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-shadow",
+        "value": "0 4px 12px rgba(10,10,10,0.5)",
+        "purpose": "Sparse card separation when tonal layers are not enough."
+      },
+      {
+        "name": "floating-shadow",
+        "value": "0 12px 32px rgba(10,10,10,0.6)",
+        "purpose": "Floating navigation, popups, overlays, and elevated surfaces."
+      },
+      {
+        "name": "subtle-shadow",
+        "value": "0 2px 8px rgba(10,10,10,0.3)",
+        "purpose": "Low elevation for interactive elements."
+      },
+      {
+        "name": "button-glow",
+        "value": "0 2px 8px rgba(232,70,108,0.3)",
+        "purpose": "Extra emphasis for primary buttons when fill alone is not enough."
+      }
+    ],
+    "motion": [
+      {
+        "name": "short",
+        "value": "100ms ease-out-cubic",
+        "purpose": "Touch feedback and micro-interactions."
+      },
+      {
+        "name": "medium",
+        "value": "200ms ease-out-cubic",
+        "purpose": "Simple state changes, fades, and button transitions."
+      },
+      {
+        "name": "standard",
+        "value": "300ms ease-out-cubic",
+        "purpose": "Navigation, dialogs, expanding cards, and selection transitions."
+      },
+      {
+        "name": "long",
+        "value": "500ms ease-in-out-cubic",
+        "purpose": "Complex transitions over larger distances."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "0px"
+      },
+      {
+        "name": "wide-navigation",
+        "value": "600px"
+      },
+      {
+        "name": "readable-content",
+        "value": "600px max content width"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main screen action with loading support and pill shape.",
+      "html": "<button class=\"ds-btn-primary\">Salvar</button>",
+      "css": ".ds-btn-primary{height:48px;padding:0 24px;border:0;border-radius:999px;background:#E8466C;color:#FFFFFF;font-family:Poppins,Inter,sans-serif;font-size:16px;font-weight:700;letter-spacing:0;transition:background-color 200ms ease-out,transform 100ms ease-out,box-shadow 200ms ease-out}.ds-btn-primary:hover{box-shadow:0 2px 8px rgba(232,70,108,.3)}.ds-btn-primary:active{background:#D13F61;transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid rgba(232,70,108,.65);outline-offset:2px}.ds-btn-primary:disabled{background:rgba(232,70,108,.3);color:rgba(255,255,255,.5)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action with quiet surface-highlight fill.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary{height:48px;padding:0 24px;border:0;border-radius:999px;background:#292929;color:#FFFFFF;font-family:Poppins,Inter,sans-serif;font-size:14px;font-weight:600;letter-spacing:0;transition:background-color 200ms ease-out,transform 100ms ease-out}.ds-btn-secondary:hover{background:#383838}.ds-btn-secondary:active{transform:scale(.97)}.ds-btn-secondary:focus-visible{outline:2px solid rgba(255,255,255,.35);outline-offset:2px}.ds-btn-secondary:disabled{opacity:.5}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Standard filled input with label, hint, focus, and error vocabulary.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" placeholder=\"Digite seu email\" /></label>",
+      "css": ".ds-field{display:grid;gap:8px;font-family:Inter,system-ui,sans-serif;color:#FFFFFF}.ds-field-label{font-size:14px;font-weight:500}.ds-input{height:48px;border:1px solid #383838;border-radius:12px;background:#141414;color:#FFFFFF;padding:14px 16px;font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:500;outline:none;transition:border-color 200ms ease-out,box-shadow 200ms ease-out}.ds-input::placeholder{color:#8A8A8A}.ds-input:hover{border-color:#4A4A4A}.ds-input:focus{border-color:#E8466C;border-width:1.5px;box-shadow:0 0 0 3px rgba(232,70,108,.12)}.ds-input[aria-invalid='true']{border-color:#EF4444}"
+    },
+    {
+      "name": "Filter Chip Selected",
+      "kind": "chip",
+      "refersTo": "chip-filter-selected",
+      "description": "Selected filter pill for search, feed, and profile filtering.",
+      "html": "<button class=\"ds-chip-selected\">Perto de mim</button>",
+      "css": ".ds-chip-selected{max-width:72vw;border:1px solid rgba(232,70,108,.5);border-radius:999px;background:rgba(232,70,108,.3);color:#FFFFFF;padding:8px 16px;font-family:Inter,system-ui,sans-serif;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background-color 200ms ease-out,transform 100ms ease-out}.ds-chip-selected:hover{background:rgba(232,70,108,.38)}.ds-chip-selected:active{transform:scale(.97)}.ds-chip-selected:focus-visible{outline:2px solid rgba(232,70,108,.65);outline-offset:2px}"
+    },
+    {
+      "name": "Surface Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Default quiet container for grouped product decisions.",
+      "html": "<section class=\"ds-card\"><h3>Perfil pronto</h3><p>Complete instrumentos, cidade e links para aparecer melhor na busca.</p></section>",
+      "css": ".ds-card{border:1px solid #383838;border-radius:16px;background:#141414;color:#FFFFFF;padding:16px;font-family:Inter,system-ui,sans-serif}.ds-card h3{margin:0 0 8px;font-family:Poppins,Inter,sans-serif;font-size:18px;font-weight:600;letter-spacing:-.2px}.ds-card p{margin:0;color:#B3B3B3;font-size:14px;font-weight:500;line-height:1.4}.ds-card:hover{border-color:#4A4A4A}"
+    },
+    {
+      "name": "Full Width Selection Card",
+      "kind": "card",
+      "refersTo": "card-surface",
+      "description": "Signature onboarding decision card with selected border and icon well.",
+      "html": "<button class=\"ds-selection-card\"><span class=\"ds-selection-icon\">M</span><span class=\"ds-selection-copy\"><strong>Profissional</strong><small>Musico, cantor, DJ, tecnico</small></span><span class=\"ds-selection-check\">OK</span></button>",
+      "css": ".ds-selection-card{display:flex;align-items:center;width:100%;gap:16px;border:2px solid #E8466C;border-radius:16px;background:#1F1F1F;color:#FFFFFF;padding:20px;text-align:left;font-family:Inter,system-ui,sans-serif;transition:border-color 200ms ease-out,background-color 200ms ease-out,transform 100ms ease-out}.ds-selection-card:hover{background:#292929}.ds-selection-card:active{transform:scale(.99)}.ds-selection-card:focus-visible{outline:2px solid rgba(232,70,108,.65);outline-offset:2px}.ds-selection-icon{display:grid;place-items:center;width:64px;height:64px;flex:0 0 64px;border-radius:999px;background:rgba(232,70,108,.15);color:#E8466C;font-family:Poppins,Inter,sans-serif;font-size:28px;font-weight:700}.ds-selection-copy{display:grid;gap:4px;min-width:0;flex:1}.ds-selection-copy strong{font-family:Poppins,Inter,sans-serif;font-size:18px;font-weight:700}.ds-selection-copy small{color:#B3B3B3;font-size:14px;line-height:1.4}.ds-selection-check{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:#E8466C;color:#FFFFFF;font-size:9px;font-weight:800}"
+    },
+    {
+      "name": "Mobile Navigation Bar",
+      "kind": "nav",
+      "refersTo": "card-surface",
+      "description": "Floating dark bottom navigation with pink active state.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-item ds-active\">Feed</button><button class=\"ds-nav-item\">Busca</button><button class=\"ds-nav-item\">Gigs</button><button class=\"ds-nav-item\">Chat</button><button class=\"ds-nav-item\">Conta</button></nav>",
+      "css": ".ds-nav{display:flex;gap:4px;align-items:center;justify-content:space-around;border:1px solid rgba(255,255,255,.08);border-radius:24px;background:linear-gradient(180deg,#141414,#141414fa);box-shadow:0 8px 24px rgba(10,10,10,.6),0 4px 16px rgba(232,70,108,.05);padding:4px 8px;font-family:Inter,system-ui,sans-serif}.ds-nav-item{min-width:52px;border:0;border-radius:16px;background:transparent;color:rgba(179,179,179,.6);padding:8px 4px;font-size:11px;font-weight:500;letter-spacing:.2px;transition:color 200ms ease-out,background-color 200ms ease-out,transform 100ms ease-out}.ds-nav-item:hover{color:#B3B3B3}.ds-nav-item:active{transform:scale(.96)}.ds-nav-item:focus-visible{outline:2px solid rgba(232,70,108,.65);outline-offset:2px}.ds-nav-item.ds-active{background:rgba(232,70,108,.12);color:#E8466C;font-weight:700}"
+    },
+    {
+      "name": "Snackbar",
+      "kind": "custom",
+      "refersTo": "card-surface",
+      "description": "Semantic transient feedback with icon, border, and fixed dark surface.",
+      "html": "<div class=\"ds-snackbar\"><span class=\"ds-snackbar-icon\">!</span><span>Erro de conexao. Verifique sua internet</span></div>",
+      "css": ".ds-snackbar{display:flex;align-items:center;gap:12px;border:1px solid rgba(239,68,68,.5);border-radius:12px;background:#141414;color:#FFFFFF;padding:14px 16px;font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:500;box-shadow:0 4px 12px rgba(10,10,10,.5)}.ds-snackbar-icon{display:grid;place-items:center;width:20px;height:20px;border-radius:999px;color:#EF4444;font-weight:800}"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "card-surface",
+      "description": "Centered state that teaches the next step without leaving the task.",
+      "html": "<div class=\"ds-empty\"><div class=\"ds-empty-icon\">?</div><h3>Nenhum resultado</h3><p>Ajuste os filtros para encontrar mais musicos perto de voce.</p></div>",
+      "css": ".ds-empty{display:grid;justify-items:center;text-align:center;gap:8px;padding:48px 32px;color:#FFFFFF;font-family:Inter,system-ui,sans-serif}.ds-empty-icon{display:grid;place-items:center;width:80px;height:80px;border-radius:999px;background:#141414;color:#8A8A8A;font-size:40px;margin-bottom:16px}.ds-empty h3{margin:0;font-family:Poppins,Inter,sans-serif;font-size:18px;font-weight:600}.ds-empty p{margin:0;color:#B3B3B3;font-size:14px;line-height:1.4;max-width:34ch}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Backstage Control Room",
+    "overview": "Mube is a dark, focused product interface for people actively making music work happen. The system should feel like a practical backstage control room: low glare, quick to scan, direct in tone, and built around the next useful action. The app is not a poster, a social feed clone, or a corporate dashboard. It is a working surface for finding people, evaluating credibility, applying to gigs, saving profiles, and starting conversations.\n\nThe visual system uses restrained dark surfaces, a rare pink primary action, compact sans typography, and pill-shaped controls. Energy comes from the user's content, profile media, avatars, stories, and state feedback. The UI itself stays organized and avoids spectacle unless the moment is genuinely celebratory, such as a match or completion event.\n\nMube explicitly rejects the PRODUCT.md anti-references: generic social network, corporate SaaS dashboard, nightlife flyer, dating app clone, decorative card grids, generic hero-metric layouts, vague \"community\" messaging, excessive gradients, overused glass effects, and UI that hides practical information behind spectacle.",
+    "keyCharacteristics": [
+      "Dark-only product shell with low glare and high content contrast.",
+      "Primary pink is a working signal for action, selection, progress, and current state.",
+      "Surfaces are mostly tonal, not shadow-heavy.",
+      "Components are familiar, dense enough for mobile workflows, and consistent across features.",
+      "Portuguese UI copy stays direct, specific, and tied to music work."
+    ],
+    "rules": [
+      {
+        "name": "The One Signal Rule",
+        "body": "Stage Signal Pink is rare and functional. If everything is pink, nothing is actionable.",
+        "section": "colors"
+      },
+      {
+        "name": "The State Must Speak Rule",
+        "body": "Success, error, warning, and info must include text or an icon. Color alone is forbidden.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scene Is The Content Rule",
+        "body": "Use user photos, media, names, roles, instruments, locations, and gigs for character. Do not decorate the chrome to compensate for weak content.",
+        "section": "colors"
+      },
+      {
+        "name": "The Product Type Rule",
+        "body": "Do not use display styling for controls, dense metadata, or labels. UI labels must stay compact and predictable.",
+        "section": "typography"
+      },
+      {
+        "name": "The Scan First Rule",
+        "body": "Names, roles, location, instruments, and availability need a clearer hierarchy than decorative headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Until Needed Rule",
+        "body": "Surfaces are flat at rest. Add elevation only when it clarifies layering, floating position, or interaction state.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Glass Is Not The Brand Rule",
+        "body": "Blur and glass tokens exist, but overused glass effects are prohibited. Use solid surfaces first.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use existing Flutter tokens: AppColors, AppTypography, AppSpacing, AppRadius, AppMotion, and AppEffects.",
+      "Do keep Stage Signal Pink for primary actions, selected state, active navigation, progress, and meaningful feedback.",
+      "Do make role, location, genre, instrument, media, availability, and social proof easy to scan in profile and gig surfaces.",
+      "Do use skeleton states when the final content shape is known.",
+      "Do pair semantic colors with icons or text.",
+      "Do preserve the dark-only shell unless a product decision explicitly changes the theme strategy.",
+      "Do write UI copy in Portuguese, direct and specific to the music-scene task."
+    ],
+    "donts": [
+      "Don't make Mube look like a generic social network, a corporate SaaS dashboard, a nightlife flyer, or a dating app clone.",
+      "Don't use decorative card grids, generic hero-metric layouts, vague \"community\" messaging, excessive gradients, overused glass effects, or UI that hides practical information behind spectacle.",
+      "Don't use startup-deck or creator-economy language when a music-scene term is clearer.",
+      "Don't hardcode color, spacing, radius, typography, or motion when a token exists.",
+      "Don't use border-left or border-right greater than 1px as a colored card accent.",
+      "Don't use gradient text.",
+      "Don't use glassmorphism as the default surface treatment.",
+      "Don't invent a new button, field, chip, app bar, loading, empty, or snackbar pattern when the design system has one.",
+      "Don't rely on color alone for state, selection, validation, or severity."
+    ]
+  }
+}

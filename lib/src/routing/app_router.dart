@@ -93,7 +93,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: authGuard.redirect,
     observers: [analyticsObserver],
-    routes: _buildRoutes(ref),
+    routes: _buildRoutes(),
   );
 });
 
@@ -130,8 +130,8 @@ Page<void> _buildPublicProfilePage(BuildContext context, GoRouterState state) {
   final username = state.pathParameters['username'];
   final profileRef = username != null ? '@$username' : uid!;
   String? avatarHeroTag;
-  final extra = state.extra;
-  if (extra is Map<Object?, Object?>) {
+  final extra = _stringMapExtra(state.extra);
+  if (extra != null) {
     final rawTag = extra[RoutePaths.avatarHeroTagExtraKey];
     if (rawTag is String && rawTag.isNotEmpty) {
       avatarHeroTag = rawTag;
@@ -148,7 +148,7 @@ Page<void> _buildPublicProfilePage(BuildContext context, GoRouterState state) {
 }
 
 /// Builds the route tree. Separated for readability.
-List<RouteBase> _buildRoutes(Ref ref) {
+List<RouteBase> _buildRoutes() {
   return [
     // Root alias route indicating the initial app loading.
     GoRoute(
@@ -192,7 +192,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       ),
       routes: [
         GoRoute(
-          path: 'form',
+          path: RoutePaths.onboardingFormSegment,
           pageBuilder: (context, state) => NoTransitionPage(
             key: state.pageKey,
             child: const OnboardingFormScreen(),
@@ -218,9 +218,9 @@ List<RouteBase> _buildRoutes(Ref ref) {
               ),
               routes: [
                 GoRoute(
-                  path: 'list',
+                  path: RoutePaths.feedListSegment,
                   pageBuilder: (context, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
+                    final extra = _stringMapExtra(state.extra);
                     final type =
                         extra?['type'] as FeedSectionType? ??
                         FeedSectionType.artists;
@@ -255,7 +255,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   const NoTransitionPage(child: GigsHubScreen()),
               routes: [
                 GoRoute(
-                  path: 'create',
+                  path: RoutePaths.gigCreateSegment,
                   pageBuilder: (context, state) {
                     final initialGig = state.extra;
                     return slideTransitionPage(
@@ -267,7 +267,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   },
                 ),
                 GoRoute(
-                  path: ':gigId',
+                  path: RoutePaths.gigIdSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: GigDetailScreen(
@@ -276,7 +276,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   ),
                   routes: [
                     GoRoute(
-                      path: 'applicants',
+                      path: RoutePaths.gigApplicantsSegment,
                       pageBuilder: (context, state) => slideTransitionPage(
                         key: state.pageKey,
                         child: GigApplicantsScreen(
@@ -285,9 +285,9 @@ List<RouteBase> _buildRoutes(Ref ref) {
                       ),
                     ),
                     GoRoute(
-                      path: 'review/:userId',
+                      path: RoutePaths.gigReviewSegment,
                       pageBuilder: (context, state) {
-                        final extra = state.extra as Map<String, dynamic>?;
+                        final extra = _stringMapExtra(state.extra);
                         return slideTransitionPage(
                           key: state.pageKey,
                           child: GigReviewScreen(
@@ -315,7 +315,6 @@ List<RouteBase> _buildRoutes(Ref ref) {
                 key: state.pageKey,
                 child: const ConversationsScreen(),
               ),
-              routes: const [],
             ),
           ],
         ),
@@ -330,7 +329,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
               ),
               routes: [
                 GoRoute(
-                  path: 'my-gigs',
+                  path: RoutePaths.settingsMyGigsSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const GigsHubScreen(
@@ -340,7 +339,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   ),
                 ),
                 GoRoute(
-                  path: 'my-applications',
+                  path: RoutePaths.settingsMyApplicationsSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const GigsHubScreen(
@@ -350,35 +349,35 @@ List<RouteBase> _buildRoutes(Ref ref) {
                   ),
                 ),
                 GoRoute(
-                  path: 'addresses',
+                  path: RoutePaths.addressesSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const AddressesScreen(),
                   ),
                 ),
                 GoRoute(
-                  path: 'privacy',
+                  path: RoutePaths.privacySettingsSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const PrivacySettingsScreen(),
                   ),
                 ),
                 GoRoute(
-                  path: 'blocked-users',
+                  path: RoutePaths.blockedUsersSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const BlockedUsersScreen(),
                   ),
                 ),
                 GoRoute(
-                  path: 'received-favorites',
+                  path: RoutePaths.receivedFavoritesSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const ReceivedFavoritesScreen(),
                   ),
                 ),
                 GoRoute(
-                  path: 'support',
+                  path: RoutePaths.supportSegment,
                   pageBuilder: (context, state) => slideTransitionPage(
                     key: state.pageKey,
                     child: const SupportScreen(),
@@ -409,7 +408,9 @@ List<RouteBase> _buildRoutes(Ref ref) {
                           path: RoutePaths.supportTicketDetail,
                           pageBuilder: (context, state) {
                             final ticketId = state.pathParameters['ticketId']!;
-                            final ticket = state.extra as Ticket?;
+                            final ticket = state.extra is Ticket
+                                ? state.extra! as Ticket
+                                : null;
                             return slideTransitionPage(
                               key: state.pageKey,
                               child: TicketDetailScreen(
@@ -444,13 +445,13 @@ List<RouteBase> _buildRoutes(Ref ref) {
       pageBuilder: _buildPublicProfilePage,
     ),
     GoRoute(
-      path: '${RoutePaths.publicProfile}/:uid',
+      path: RoutePaths.publicProfileByIdRoute,
       pageBuilder: _buildPublicProfilePage,
     ),
 
     // Chat Conversation Screen (Top-level to hide bottom bar)
     GoRoute(
-      path: '${RoutePaths.conversation}/:conversationId',
+      path: RoutePaths.conversationByIdRoute,
       pageBuilder: (context, state) {
         final conversationId = state.pathParameters['conversationId']!;
         final extra = _stringMapExtra(state.extra);
@@ -509,7 +510,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
 
     // Shared public profile alias used by mubeapp.com.br/profile/:uid links.
     GoRoute(
-      path: '${RoutePaths.profile}/:uid',
+      path: RoutePaths.publicProfileShareRoute,
       pageBuilder: _buildPublicProfilePage,
     ),
 
@@ -537,7 +538,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       ),
       routes: [
         GoRoute(
-          path: 'history',
+          path: RoutePaths.matchpointHistorySegment,
           pageBuilder: (context, state) => slideTransitionPage(
             key: state.pageKey,
             child: const SwipeHistoryScreen(),
@@ -563,7 +564,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       ),
     ),
     GoRoute(
-      path: '${RoutePaths.storyViewer}/:storyId',
+      path: RoutePaths.storyViewerByIdRoute,
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) {
         final extra = state.extra;
@@ -578,7 +579,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       },
     ),
     GoRoute(
-      path: '${RoutePaths.storyViewers}/:storyId',
+      path: RoutePaths.storyViewersByIdRoute,
       parentNavigatorKey: rootNavigatorKey,
       pageBuilder: (context, state) => slideTransitionPage(
         key: state.pageKey,
@@ -586,7 +587,7 @@ List<RouteBase> _buildRoutes(Ref ref) {
       ),
     ),
     GoRoute(
-      path: '${RoutePaths.legal}/:type',
+      path: RoutePaths.legalDetailRoute,
       pageBuilder: (context, state) {
         final typeStr = state.pathParameters['type'];
         final type = LegalDocumentType.values.firstWhere(

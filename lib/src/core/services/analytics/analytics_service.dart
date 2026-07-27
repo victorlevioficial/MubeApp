@@ -4,6 +4,11 @@ import 'package:flutter/widgets.dart';
 
 import '../../../utils/app_logger.dart';
 
+const bool enableFirebaseAnalyticsInDebug = bool.fromEnvironment(
+  'MUBE_ENABLE_ANALYTICS_IN_DEBUG',
+  defaultValue: false,
+);
+
 /// Interface for Analytics Service to allow mocking
 abstract class AnalyticsService {
   Future<void> logEvent({
@@ -78,13 +83,9 @@ class NoopAnalyticsService implements AnalyticsService {
 class FirebaseAnalyticsService implements AnalyticsService {
   final FirebaseAnalytics _analytics;
   final bool _isEnabled;
-  static const bool _enableInDebug = bool.fromEnvironment(
-    'MUBE_ENABLE_ANALYTICS_IN_DEBUG',
-    defaultValue: true,
-  );
 
   FirebaseAnalyticsService(this._analytics)
-    : _isEnabled = kReleaseMode || _enableInDebug;
+    : _isEnabled = kReleaseMode || enableFirebaseAnalyticsInDebug;
 
   @override
   Future<void> logEvent({

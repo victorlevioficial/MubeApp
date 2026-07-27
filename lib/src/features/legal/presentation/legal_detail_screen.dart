@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';

@@ -8,7 +8,7 @@ import 'app_back_button.dart';
 /// AppBar padronizada do Design System Mube.
 class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// Titulo da AppBar (String ou Widget).
-  final dynamic title;
+  final Object? title;
 
   /// Acoes da AppBar (lado direito).
   final List<Widget>? actions;
@@ -45,7 +45,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.bottom,
     this.backgroundColor,
     this.elevation = 0,
-  });
+  }) : assert(title == null || title is String || title is Widget);
 
   @override
   Size get preferredSize =>
@@ -84,7 +84,3 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
-
-/// Alias deprecado para backward compatibility
-@Deprecated('Use AppAppBar instead')
-typedef MubeAppBar = AppAppBar;

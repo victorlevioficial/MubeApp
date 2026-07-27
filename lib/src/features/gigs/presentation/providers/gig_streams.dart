@@ -1,11 +1,10 @@
-// ignore_for_file: directives_ordering
-
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/services/offline_mutation_queue.dart';
+import '../../../../utils/app_performance_tracker.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../data/gig_repository.dart';
@@ -14,7 +13,6 @@ import '../../domain/gig.dart';
 import '../../domain/gig_application.dart';
 import '../../domain/gig_review.dart';
 import '../../domain/gig_review_opportunity.dart';
-import '../../../../utils/app_performance_tracker.dart';
 import 'gig_filters_controller.dart';
 
 part 'gig_streams.g.dart';

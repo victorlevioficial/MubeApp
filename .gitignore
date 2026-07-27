@@ -104,6 +104,7 @@ vendor/
 # =========================
 node_modules/
 package-lock.json
+!functions/package-lock.json
 
 # =========================
 # FVM

@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,20 +6,9 @@ import 'package:mube/src/design_system/components/buttons/app_like_button.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
-import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 
 import '../../../../helpers/test_data.dart';
 import '../../../../helpers/test_fakes.dart';
-
-class _StubFeedController extends FeedController {
-  @override
-  FutureOr<FeedState> build() => const FeedState();
-
-  @override
-  void updateLikeCount(String targetId, {required bool isLiked}) {
-    // no-op for button widget tests
-  }
-}
 
 void main() {
   late FakeAuthRepository fakeAuthRepo;
@@ -39,7 +26,6 @@ void main() {
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
         favoriteRepositoryProvider.overrideWithValue(fakeFavoriteRepo),
-        feedControllerProvider.overrideWith(_StubFeedController.new),
       ],
     );
   });

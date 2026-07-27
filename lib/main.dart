@@ -11,10 +11,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
+import 'src/core/services/favorite_integration_effects.dart';
 import 'src/core/services/image_cache_config.dart';
 import 'src/core/services/performance/app_performance_monitoring.dart';
 import 'src/design_system/components/feedback/error_boundary.dart';
 import 'src/design_system/foundations/tokens/app_spacing.dart';
+import 'src/features/favorites/domain/favorite_effects.dart';
 import 'src/features/splash/providers/app_bootstrap_provider.dart';
 import 'src/utils/app_logger.dart';
 import 'src/utils/app_performance_tracker.dart';
@@ -80,7 +82,6 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   bool _firebaseReady = false;
   bool _nativeSplashRemoved = false;
   bool _postBootstrapServicesScheduled = false;
-  bool _deferredServicesScheduled = false;
 
   @override
   void initState() {
@@ -207,12 +208,6 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         postBootstrapStopwatch,
         data: {'status': 'error', 'error_type': error.runtimeType.toString()},
       );
-    } finally {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _deferredServicesScheduled) return;
-        _deferredServicesScheduled = true;
-        unawaited(_initializeDeferredServices());
-      });
     }
   }
 
@@ -220,6 +215,11 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   Widget build(BuildContext context) {
     if (_firebaseReady) {
       return ProviderScope(
+        overrides: [
+          favoriteEffectsProvider.overrideWith(
+            (ref) => FavoriteIntegrationEffects(ref),
+          ),
+        ],
         child: MubeApp(onInitialRouteReady: _removeNativeSplashIfNeeded),
       );
     }
@@ -230,7 +230,7 @@ class _BootstrapHostState extends State<_BootstrapHost> {
         color: _bootstrapBackgroundColor,
         child: SizedBox.expand(
           child: _bootstrapError == null
-              ? const _BootstrapLaunchView()
+              ? const SizedBox.expand()
               : Center(
                   child: Padding(
                     padding: AppSpacing.h24,
@@ -243,47 +243,6 @@ class _BootstrapHostState extends State<_BootstrapHost> {
                 ),
         ),
       ),
-    );
-  }
-}
-
-class _BootstrapLaunchView extends StatelessWidget {
-  const _BootstrapLaunchView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.expand();
-  }
-}
-
-Future<void> _initializeDeferredServices() async {
-  final deferredServicesStopwatch = AppPerformanceTracker.startSpan(
-    'bootstrap.deferred_services',
-  );
-  try {
-    await Future<void>.delayed(const Duration(milliseconds: 2100));
-    final fontWarmupStopwatch = AppPerformanceTracker.startSpan(
-      'bootstrap.font_preload',
-    );
-    AppPerformanceTracker.finishSpan(
-      'bootstrap.font_preload',
-      fontWarmupStopwatch,
-      data: {
-        'status': 'skipped',
-        'reason': 'avoid_runtime_google_fonts_warmup',
-      },
-    );
-    AppLogger.info('Services initialized');
-    AppPerformanceTracker.finishSpan(
-      'bootstrap.deferred_services',
-      deferredServicesStopwatch,
-    );
-  } catch (e, stack) {
-    AppLogger.error('Erro ao inicializar servicos em background', e, stack);
-    AppPerformanceTracker.finishSpan(
-      'bootstrap.deferred_services',
-      deferredServicesStopwatch,
-      data: {'status': 'error', 'error_type': e.runtimeType.toString()},
     );
   }
 }

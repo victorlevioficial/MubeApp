@@ -7,8 +7,8 @@ import 'package:mube/src/core/services/offline_mutation_queue.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/favorite_controller.dart';
+import 'package:mube/src/features/favorites/domain/favorite_effects.dart';
 import 'package:mube/src/features/favorites/domain/favorite_state.dart';
-import 'package:mube/src/features/feed/presentation/feed_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../helpers/test_data.dart';
@@ -36,20 +36,28 @@ class _TestFavoriteRepository extends FakeFavoriteRepository {
   }
 }
 
-/// Stub FeedController used only to satisfy provider dependency.
-class _StubFeedController extends FeedController {
-  @override
-  FutureOr<FeedState> build() => const FeedState();
+class _FakeFavoriteEffects implements FavoriteEffects {
+  final List<({String targetId, bool isFavorite})> localChanges = [];
+  final List<({String currentUserId, String targetId})> addedFavorites = [];
 
   @override
-  void updateLikeCount(String targetId, {required bool isLiked}) {
-    // No-op in tests.
+  void onLocalStatusChanged(String targetId, {required bool isFavorite}) {
+    localChanges.add((targetId: targetId, isFavorite: isFavorite));
+  }
+
+  @override
+  Future<void> onFavoriteAdded({
+    required String currentUserId,
+    required String targetId,
+  }) async {
+    addedFavorites.add((currentUserId: currentUserId, targetId: targetId));
   }
 }
 
 void main() {
   late FakeAuthRepository fakeAuthRepo;
   late _TestFavoriteRepository fakeFavRepo;
+  late _FakeFavoriteEffects fakeEffects;
   late ProviderContainer container;
 
   setUp(() {
@@ -57,6 +65,7 @@ void main() {
 
     fakeAuthRepo = FakeAuthRepository();
     fakeFavRepo = _TestFavoriteRepository();
+    fakeEffects = _FakeFavoriteEffects();
 
     final firebaseUser = FakeFirebaseUser(uid: 'u1', email: 'a@b.com');
     fakeAuthRepo.emitUser(firebaseUser);
@@ -65,8 +74,11 @@ void main() {
     container = ProviderContainer(
       overrides: [
         authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+        authStateChangesProvider.overrideWithValue(
+          AsyncValue.data(firebaseUser),
+        ),
         favoriteRepositoryProvider.overrideWithValue(fakeFavRepo),
-        feedControllerProvider.overrideWith(_StubFeedController.new),
+        favoriteEffectsProvider.overrideWithValue(fakeEffects),
         isOnlineProvider.overrideWith((ref) => true),
         connectivityProvider.overrideWith(
           (ref) => Stream.value(ConnectivityStatus.online),
@@ -85,6 +97,16 @@ void main() {
   Future<void> pumpAsync() async {
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
+  }
+
+  Future<void> waitForCondition(bool Function() condition) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 1));
+    while (!condition()) {
+      if (DateTime.now().isAfter(deadline)) {
+        fail('Timed out waiting for asynchronous favorite effect');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
   }
 
   /// Waits for auth user profile to become available.
@@ -171,8 +193,11 @@ void main() {
         final loggedOutContainer = ProviderContainer(
           overrides: [
             authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+            authStateChangesProvider.overrideWithValue(
+              const AsyncValue.data(null),
+            ),
             favoriteRepositoryProvider.overrideWithValue(fakeFavRepo),
-            feedControllerProvider.overrideWith(_StubFeedController.new),
+            favoriteEffectsProvider.overrideWithValue(fakeEffects),
             isOnlineProvider.overrideWith((ref) => true),
             connectivityProvider.overrideWith(
               (ref) => Stream.value(ConnectivityStatus.online),
@@ -219,6 +244,13 @@ void main() {
         await pumpAsync();
 
         expect(getState().serverFavorites, contains('target-1'));
+        await waitForCondition(() => fakeEffects.addedFavorites.isNotEmpty);
+        expect(fakeEffects.localChanges, [
+          (targetId: 'target-1', isFavorite: true),
+        ]);
+        expect(fakeEffects.addedFavorites, [
+          (currentUserId: 'u1', targetId: 'target-1'),
+        ]);
       });
 
       test('keeps optimistic favorite queued while offline', () async {
@@ -231,8 +263,11 @@ void main() {
         final offlineContainer = ProviderContainer(
           overrides: [
             authRepositoryProvider.overrideWithValue(offlineAuthRepo),
+            authStateChangesProvider.overrideWithValue(
+              AsyncValue.data(firebaseUser),
+            ),
             favoriteRepositoryProvider.overrideWithValue(offlineFavRepo),
-            feedControllerProvider.overrideWith(_StubFeedController.new),
+            favoriteEffectsProvider.overrideWithValue(_FakeFavoriteEffects()),
             isOnlineProvider.overrideWith((ref) => false),
             connectivityProvider.overrideWith(
               (ref) => Stream.value(ConnectivityStatus.offline),
@@ -291,6 +326,12 @@ void main() {
 
         expect(getState().localFavorites, isNot(contains('target-1')));
         expect(getState().serverFavorites, isNot(contains('target-1')));
+        await waitForCondition(() => fakeEffects.localChanges.length == 2);
+        expect(fakeEffects.localChanges, [
+          (targetId: 'target-1', isFavorite: true),
+          (targetId: 'target-1', isFavorite: false),
+        ]);
+        expect(fakeEffects.addedFavorites, isEmpty);
       });
 
       test('rolls back on remove failure', () async {

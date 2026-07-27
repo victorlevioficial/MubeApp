@@ -3,6 +3,7 @@
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -39,15 +40,21 @@ def extract_version(text: str) -> str:
 
 
 def read_current_flutter_version() -> str:
+    flutter_executable = (
+        shutil.which("flutter")
+        or shutil.which("flutter.bat")
+        or shutil.which("flutter.cmd")
+    )
+    if flutter_executable is None:
+        raise SystemExit("Flutter is not available on PATH")
+
     try:
         result = subprocess.run(
-            ["flutter", "--version"],
+            [flutter_executable, "--version"],
             check=True,
             capture_output=True,
             text=True,
         )
-    except FileNotFoundError as error:
-        raise SystemExit("Flutter is not available on PATH") from error
     except subprocess.CalledProcessError as error:
         raise SystemExit(error.stderr.strip() or error.stdout.strip()) from error
 

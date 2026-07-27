@@ -240,7 +240,9 @@ Future<void> initializeAppCheck(app_check.FirebaseAppCheck appCheck) async {
     );
   }
 
-  await _warmDebugTokenLogging(appCheck);
+  // Fetching a debug token can involve a network exchange and must not delay
+  // the first usable frame. The helper handles and logs its own failures.
+  unawaited(_warmDebugTokenLogging(appCheck));
 }
 
 @visibleForTesting

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import 'core/providers/app_display_preferences_provider.dart';
 import 'core/providers/app_update_provider.dart';
 import 'core/providers/connectivity_provider.dart';
 import 'core/services/analytics/meta_analytics_service.dart';

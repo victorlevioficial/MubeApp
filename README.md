@@ -208,12 +208,13 @@ Fonte de verdade atual:
 
 Idioma ativo na interface:
 
-- `pt` (padrao)
+- `pt` (fixo na superficie de producao)
+- a infraestrutura `en` permanece no projeto, mas ainda nao e oferecida ao usuario
 
 ## Projeto
 
 - Pacote: `mube`
-- Versao atual: `1.1.3+12`
+- Versao atual: `1.7.1+199`
 - Repositorio privado
 
-Ultima revisao: 2026-03-04
+Ultima revisao: 2026-07-25

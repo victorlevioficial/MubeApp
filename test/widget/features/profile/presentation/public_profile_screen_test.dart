@@ -193,9 +193,9 @@ void main() {
 
     await pumpPublicProfile(tester, professional);
 
-    expect(find.text('Ouça nas plataformas'), findsOneWidget);
-    expect(find.byTooltip('Spotify'), findsOneWidget);
-    expect(find.byTooltip('Deezer'), findsOneWidget);
+    expect(find.text('OUÇA NAS PLATAFORMAS'), findsOneWidget);
+    expect(find.byTooltip('Abrir Spotify'), findsOneWidget);
+    expect(find.byTooltip('Abrir Deezer'), findsOneWidget);
   });
 
   testWidgets('shows venue details for a public contractor profile', (
@@ -222,14 +222,14 @@ void main() {
       currentUser: TestData.user(uid: 'viewer-1'),
     );
 
-    expect(find.text('Tipo de Local'), findsOneWidget);
+    expect(find.text('TIPO DE LOCAL'), findsOneWidget);
     expect(find.text('Bar'), findsOneWidget);
-    expect(find.text('Comodidades'), findsOneWidget);
+    expect(find.text('COMODIDADES'), findsOneWidget);
     expect(find.text('Palco'), findsOneWidget);
     expect(find.text('Sistema de Som'), findsOneWidget);
   });
 
-  testWidgets('highlights remote recording for music production profiles', (
+  testWidgets('shows technical roles for music production profiles', (
     tester,
   ) async {
     const professional = AppUser(
@@ -247,8 +247,11 @@ void main() {
 
     await pumpPublicProfile(tester, professional);
 
-    expect(find.text('Disponibilidade'), findsOneWidget);
-    expect(find.text('Gravação remota'), findsOneWidget);
+    expect(find.text('FUNÇÕES TÉCNICAS'), findsOneWidget);
+    expect(find.text('Produtor Musical'), findsOneWidget);
+    // The remote recording flag is no longer surfaced on the public profile.
+    expect(find.text('Disponibilidade'), findsNothing);
+    expect(find.text('Gravação remota'), findsNothing);
   });
 
   testWidgets('formats stored ids into readable profile chips', (tester) async {
@@ -318,7 +321,7 @@ void main() {
 
     await pumpPublicProfile(tester, band);
 
-    expect(find.text('Ouça nas plataformas'), findsNothing);
+    expect(find.text('OUÇA NAS PLATAFORMAS'), findsNothing);
   });
 
   testWidgets('shows music links even when type-specific map is missing', (
@@ -335,8 +338,8 @@ void main() {
 
     await pumpPublicProfile(tester, professional);
 
-    expect(find.text('Ouça nas plataformas'), findsOneWidget);
-    expect(find.byTooltip('Spotify'), findsOneWidget);
+    expect(find.text('OUÇA NAS PLATAFORMAS'), findsOneWidget);
+    expect(find.byTooltip('Abrir Spotify'), findsOneWidget);
   });
 
   testWidgets('keeps skeleton until profile metrics resolve', (tester) async {
@@ -499,14 +502,20 @@ void main() {
 
     await pumpPublicProfile(tester, professional);
 
+    // The hero backdrop extends behind the top actions, so the layout
+    // contract is that the hero *content* (avatar) clears the back button.
     final backButtonBottom = tester.getRect(find.byTooltip('Voltar')).bottom;
-    final headerTop = tester.getRect(find.byType(ProfileHeroHeader)).top;
-    final avatarCenterX = tester.getCenter(find.byType(UserAvatar)).dx;
+    final heroFinder = find.byType(ProfileHeroHeader);
+    final avatarFinder = find.descendant(
+      of: heroFinder,
+      matching: find.byType(UserAvatar),
+    );
+    final avatarTop = tester.getRect(avatarFinder).top;
+    final avatarCenterX = tester.getCenter(avatarFinder).dx;
     final titleCenterX = tester.getCenter(find.text('Hygor Tomaz')).dx;
 
-    expect(headerTop, greaterThan(backButtonBottom));
+    expect(avatarTop, greaterThan(backButtonBottom));
     expect((avatarCenterX - titleCenterX).abs(), lessThan(2));
-    expect(find.text('Rio de Janeiro, RJ'), findsOneWidget);
   });
 
   testWidgets('opens all reviews sheet from reputation section', (

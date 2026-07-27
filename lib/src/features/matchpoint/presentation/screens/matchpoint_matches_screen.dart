@@ -7,7 +7,6 @@ import 'package:mube/src/design_system/foundations/tokens/app_colors.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_radius.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_spacing.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
-import 'package:mube/src/features/matchpoint/domain/match_info.dart'; // ignore: unused_import
 import 'package:mube/src/features/matchpoint/presentation/controllers/matchpoint_controller.dart';
 import 'package:mube/src/routing/route_paths.dart';
 import 'package:mube/src/utils/app_logger.dart';

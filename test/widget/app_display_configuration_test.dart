@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/app.dart';
-import 'package:mube/src/core/providers/app_display_preferences_provider.dart';
 import 'package:mube/src/core/providers/app_update_provider.dart';
 import 'package:mube/src/core/providers/connectivity_provider.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
@@ -22,12 +21,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('MubeApp display configuration', () {
-    testWidgets('uses generated locales and persisted display preferences', (
+    testWidgets('keeps the production surface in Portuguese and dark mode', (
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({
-        appLocaleCodePreferenceKey: 'en',
-        appThemeModePreferenceKey: 'dark',
+        'app_locale_code': 'en',
+        'app_theme_mode': 'system',
       });
 
       final harness = _DisplayConfigurationHarness();
@@ -38,7 +37,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-      expect(app.locale, const Locale('en'));
+      expect(app.locale, const Locale('pt'));
       expect(app.themeMode, ThemeMode.dark);
       expect(app.supportedLocales, isNotEmpty);
       expect(app.supportedLocales, contains(const Locale('pt')));

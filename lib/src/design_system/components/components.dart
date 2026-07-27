@@ -43,7 +43,6 @@ export 'interactions/app_animated_press.dart';
 // =============================================================================
 // LOADING
 // =============================================================================
-export 'loading/app_loading.dart';
 export 'loading/app_loading_indicator.dart';
 export 'loading/app_shimmer.dart';
 export 'loading/app_skeleton.dart';

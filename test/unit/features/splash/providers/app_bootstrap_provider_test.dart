@@ -17,6 +17,7 @@ class _RecordingFirebaseAppCheck extends Fake
   WebProvider? providerWeb;
   app_check.AndroidAppCheckProvider? providerAndroid;
   app_check.AppleAppCheckProvider? providerApple;
+  Completer<String?>? tokenCompleter;
   final StreamController<String?> _tokenChanges =
       StreamController<String?>.broadcast();
 
@@ -42,7 +43,9 @@ class _RecordingFirebaseAppCheck extends Fake
   }
 
   @override
-  Future<String?> getToken([bool? forceRefresh]) async => null;
+  Future<String?> getToken([bool? forceRefresh]) {
+    return tokenCompleter?.future ?? Future<String?>.value();
+  }
 
   @override
   Future<void> setTokenAutoRefreshEnabled(
@@ -101,6 +104,20 @@ void main() {
         expect(appCheck.tokenAutoRefreshEnabled, isFalse);
       },
     );
+
+    test('does not block activation while warming the debug token', () async {
+      final appCheck = _RecordingFirebaseAppCheck();
+      final tokenCompleter = Completer<String?>();
+      appCheck.tokenCompleter = tokenCompleter;
+
+      await initializeAppCheck(appCheck).timeout(const Duration(seconds: 1));
+
+      expect(appCheck.activateCalls, 1);
+      expect(tokenCompleter.isCompleted, isFalse);
+
+      tokenCompleter.complete(null);
+      await Future<void>.delayed(Duration.zero);
+    });
   });
 
   group('resolveAppCheckWebProviderConfig', () {

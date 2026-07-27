@@ -3,21 +3,12 @@ import 'package:mube/src/core/services/image_cache_config.dart';
 
 void main() {
   group('ImageCacheConfig', () {
-    test('deve ter constantes definidas corretamente', () {
+    test('deve expor apenas limites aplicados pelo cache de imagens', () {
       expect(ImageCacheConfig.maxMemoryCacheCount, 200);
-      expect(ImageCacheConfig.maxDiskCacheSize, 100 * 1024 * 1024);
-      expect(ImageCacheConfig.maxFileSize, 10 * 1024 * 1024);
+      expect(ImageCacheConfig.maxMemoryCacheSizeBytes, 120 * 1024 * 1024);
+      expect(ImageCacheConfig.minDecodeDimensionPx, 64);
+      expect(ImageCacheConfig.feedPrecacheMaxDimension, 720);
       expect(ImageCacheConfig.cacheDuration, const Duration(days: 7));
-    });
-  });
-
-  group('ImageCacheType', () {
-    test('deve ter todos os valores', () {
-      expect(ImageCacheType.values.length, 4);
-      expect(ImageCacheType.values, contains(ImageCacheType.thumbnail));
-      expect(ImageCacheType.values, contains(ImageCacheType.profile));
-      expect(ImageCacheType.values, contains(ImageCacheType.general));
-      expect(ImageCacheType.values, contains(ImageCacheType.default_));
     });
   });
 }

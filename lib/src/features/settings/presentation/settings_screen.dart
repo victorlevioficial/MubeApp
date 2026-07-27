@@ -4,12 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../core/providers/app_display_preferences_provider.dart';
 import '../../../core/services/store_review_service.dart';
 import '../../../design_system/components/feedback/app_confirmation_dialog.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
 import '../../../design_system/components/feedback/app_snackbar.dart';
-import '../../../design_system/components/inputs/app_selection_modal.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
 import '../../../design_system/foundations/tokens/app_radius.dart';
@@ -33,8 +31,6 @@ class SettingsScreen extends ConsumerWidget {
         ref.watch(authStateChangesProvider).value ??
         ref.read(authRepositoryProvider).currentUser;
     final canChangePassword = _supportsPasswordReset(authUser);
-    final displayPreferences = ref.watch(appDisplayPreferencesProvider);
-    final selectedLanguageId = _languageOptionIdFor(displayPreferences.locale);
     final userType = ref.watch(
       currentUserProfileProvider.select((s) => s.value?.tipoPerfil),
     );
@@ -132,19 +128,6 @@ class SettingsScreen extends ConsumerWidget {
             _SettingsCard(
               children: [
                 _SettingsTile(
-                  icon: Icons.language_rounded,
-                  title: l10n.settings_app_language,
-                  valueText: _labelForLanguageOptionId(
-                    l10n,
-                    selectedLanguageId,
-                  ),
-                  onTap: () => _selectLanguage(
-                    context,
-                    ref,
-                    selectedLanguageId: selectedLanguageId,
-                  ),
-                ),
-                _SettingsTile(
                   icon: Icons.help_outline_rounded,
                   title: l10n.settings_help,
                   onTap: () => context.push(RoutePaths.support),
@@ -236,75 +219,6 @@ class SettingsScreen extends ConsumerWidget {
         );
       }
     }
-  }
-
-  Future<void> _selectLanguage(
-    BuildContext context,
-    WidgetRef ref, {
-    required String selectedLanguageId,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final selected = await _openPreferenceSelectionSheet(
-      context,
-      title: l10n.settings_app_language,
-      items: _languageOptionIds,
-      selectedItem: selectedLanguageId,
-      itemLabelBuilder: (id) => _labelForLanguageOptionId(l10n, id),
-    );
-
-    if (!context.mounted ||
-        selected == null ||
-        selected == selectedLanguageId) {
-      return;
-    }
-
-    final notifier = ref.read(appDisplayPreferencesProvider.notifier);
-    switch (selected) {
-      case _languageOptionPortuguese:
-        await notifier.setLocaleOverride(const Locale('pt'));
-        break;
-      case _languageOptionEnglish:
-        await notifier.setLocaleOverride(const Locale('en'));
-        break;
-    }
-
-    await WidgetsBinding.instance.endOfFrame;
-    if (!context.mounted) return;
-    final updatedL10n = AppLocalizations.of(context)!;
-    AppSnackBar.success(
-      context,
-      updatedL10n.settings_language_updated(
-        _labelForLanguageOptionId(updatedL10n, selected),
-      ),
-    );
-  }
-
-  Future<String?> _openPreferenceSelectionSheet(
-    BuildContext context, {
-    required String title,
-    required List<String> items,
-    required String selectedItem,
-    required String Function(String) itemLabelBuilder,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final selected = await AppOverlay.bottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.transparent,
-      shape: const RoundedRectangleBorder(borderRadius: AppRadius.top24),
-      builder: (context) => AppSelectionModal(
-        title: title,
-        items: items,
-        selectedItems: [selectedItem],
-        allowMultiple: false,
-        showSearch: false,
-        confirmButtonText: l10n.settings_apply_preference,
-        itemLabelBuilder: itemLabelBuilder,
-      ),
-    );
-
-    if (selected == null || selected.isEmpty) return null;
-    return selected.first;
   }
 
   Future<void> _requestStoreReview(BuildContext context, WidgetRef ref) async {
@@ -524,34 +438,6 @@ bool _supportsPasswordReset(User? user) {
   return providerIds.contains('password');
 }
 
-const String _languageOptionPortuguese = 'pt';
-const String _languageOptionEnglish = 'en';
-const List<String> _languageOptionIds = <String>[
-  _languageOptionPortuguese,
-  _languageOptionEnglish,
-];
-
-String _languageOptionIdFor(Locale? localeOverride) {
-  switch (localeOverride?.languageCode) {
-    case 'en':
-      return _languageOptionEnglish;
-    case 'pt':
-    default:
-      return _languageOptionPortuguese;
-  }
-}
-
-String _labelForLanguageOptionId(AppLocalizations l10n, String id) {
-  switch (id) {
-    case _languageOptionPortuguese:
-      return l10n.settings_language_portuguese_brazil;
-    case _languageOptionEnglish:
-      return l10n.settings_language_english;
-    default:
-      return l10n.settings_language_portuguese_brazil;
-  }
-}
-
 /// Uppercase section label rendered above each [_SettingsCard].
 class _SectionLabel extends StatelessWidget {
   final String label;
@@ -636,16 +522,13 @@ class _CardDivider extends StatelessWidget {
 
 /// Single row inside a [_SettingsCard].
 ///
-/// Layout: [icon container] [title + subtitle] [valueText?] [chevron?]
+/// Layout: [icon container] [title + subtitle] [chevron?]
 class _SettingsTile extends StatelessWidget {
   static const double _iconSize = 36.0;
 
   final IconData icon;
   final String title;
   final String? subtitle;
-
-  /// Optional right-side value text (e.g. current language name).
-  final String? valueText;
 
   final VoidCallback onTap;
 
@@ -657,7 +540,6 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.subtitle,
-    this.valueText,
     this.showChevron = true,
   });
 
@@ -714,16 +596,6 @@ class _SettingsTile extends StatelessWidget {
                 ],
               ),
             ),
-
-            if (valueText != null) ...[
-              const SizedBox(width: AppSpacing.s8),
-              Text(
-                valueText!,
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ],
 
             if (showChevron) ...[
               const SizedBox(width: AppSpacing.s4),

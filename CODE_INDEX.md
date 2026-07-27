@@ -5,7 +5,7 @@ Quick map of the current implementation. Use this file as an index, not as a rep
 ## Root
 
 - `lib/main.dart`
-  - Runtime bootstrap: Firebase init, splash handling, error handling, deferred services, `ProviderScope`.
+  - Runtime bootstrap: Firebase init, splash handling, error handling, integration overrides, `ProviderScope`.
 - `lib/firebase_options.dart`
   - Generated FlutterFire options.
 - `ARCHITECTURE.md`
@@ -22,7 +22,7 @@ Quick map of the current implementation. Use this file as an index, not as a rep
 - `app_pt.arb`
   - Portuguese strings.
 - `app_en.arb`
-  - English strings.
+  - English localization infrastructure; not currently exposed in production UI.
 - `generated/`
   - Generated localization delegates.
 
@@ -133,10 +133,6 @@ Feature-first modules. Confirm the local structure before editing because not al
 
 - Address search and confirmation flow.
 
-### `admin/`
-
-- Maintenance and admin-only tools.
-
 ### `auth/`
 
 - Sign-in, registration, password reset, email verification.
@@ -168,10 +164,6 @@ Key files:
 - `lib/src/features/chat/data/chat_providers.dart`
 - `lib/src/features/chat/data/chat_unread_provider.dart`
 
-### `developer/`
-
-- Developer tools screen.
-
 ### `favorites/`
 
 - Favorite state and favorite list flows.
@@ -186,9 +178,8 @@ Key files:
 - `lib/src/features/feed/presentation/feed_list_screen.dart`
 - `lib/src/features/feed/presentation/feed_controller.dart`
 - `lib/src/features/feed/presentation/feed_view_controller.dart`
-- `lib/src/features/feed/presentation/controllers/feed_main_controller.dart`
-- `lib/src/features/feed/presentation/controllers/feed_sections_controller.dart`
-- `lib/src/features/feed/presentation/controllers/featured_profiles_controller.dart`
+- `lib/src/features/feed/presentation/providers/feed_main_provider.dart`
+- `lib/src/features/feed/presentation/providers/featured_profiles_provider.dart`
 - `lib/src/features/feed/data/feed_repository.dart`
 - `lib/src/features/feed/data/feed_remote_data_source.dart`
 - `lib/src/features/feed/data/featured_profiles_repository.dart`
@@ -231,7 +222,6 @@ Key files:
 
 Key files:
 
-- `lib/src/features/profile/presentation/profile_screen.dart`
 - `lib/src/features/profile/presentation/edit_profile_screen.dart`
 - `lib/src/features/profile/presentation/profile_controller.dart`
 - `lib/src/features/profile/presentation/public_profile_screen.dart`
@@ -313,4 +303,4 @@ Useful files:
 - Upload/media issue: `lib/src/features/storage/`, `lib/src/features/profile/`, `lib/src/shared/services/content_moderation_service.dart`
 - Push/notification issue: `lib/src/core/services/push_notification_service.dart`, `lib/src/features/notifications/`, `functions/src/index.ts`
 
-Last reviewed: 2026-03-04
+Last reviewed: 2026-07-25

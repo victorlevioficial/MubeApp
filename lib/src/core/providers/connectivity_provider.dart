@@ -12,14 +12,20 @@ import '../../utils/app_logger.dart';
 /// Provider que monitora o estado de conectividade da rede
 final connectivityProvider = StreamProvider<ConnectivityStatus>((ref) {
   final controller = StreamController<ConnectivityStatus>.broadcast();
+  var isDisposed = false;
+
+  void addIfActive(ConnectivityStatus status) {
+    if (isDisposed || controller.isClosed) return;
+    controller.add(status);
+  }
 
   // Estado inicial
-  controller.add(ConnectivityStatus.checking);
+  addIfActive(ConnectivityStatus.checking);
 
   // Monitora mudanças de conectividade
   final subscription = Connectivity().onConnectivityChanged.listen((result) {
     final status = _mapResultToStatus(result);
-    controller.add(status);
+    addIfActive(status);
 
     if (status == ConnectivityStatus.offline) {
       AppLogger.warning('📴 App ficou offline');
@@ -30,12 +36,15 @@ final connectivityProvider = StreamProvider<ConnectivityStatus>((ref) {
 
   // Verifica estado inicial
   Connectivity().checkConnectivity().then((result) {
-    controller.add(_mapResultToStatus(result));
+    addIfActive(_mapResultToStatus(result));
   });
 
   ref.onDispose(() {
-    subscription.cancel();
-    controller.close();
+    isDisposed = true;
+    unawaited(() async {
+      await subscription.cancel();
+      await controller.close();
+    }());
   });
 
   return controller.stream;

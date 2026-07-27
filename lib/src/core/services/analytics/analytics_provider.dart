@@ -1,5 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'analytics_service.dart';
 
 /// Provider for the raw FirebaseAnalytics instance
@@ -9,6 +11,12 @@ final firebaseAnalyticsProvider = Provider<FirebaseAnalytics>((ref) {
 
 /// Provider for our wrapper AnalyticsService
 final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
+  // Debug/test analytics is opt-in. Apart from avoiding noisy development
+  // data, this keeps widget and integration tests independent of Firebase.
+  if (!kReleaseMode && !enableFirebaseAnalyticsInDebug) {
+    return const NoopAnalyticsService();
+  }
+
   final analytics = ref.watch(firebaseAnalyticsProvider);
   return FirebaseAnalyticsService(analytics);
 });

@@ -30,21 +30,15 @@ class _ProfessionalDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final professionalData =
-        user.dadosProfissional ?? const <String, dynamic>{};
     final instrumentos = instrumentDisplayLabels(user.professionalInstruments);
     final funcoes = professionalRoleDisplayLabels(user.professionalRoles);
     final generos = genreDisplayLabels(user.professionalGenres);
-    final offersRemoteRecording = professionalOffersRemoteRecording(
-      professionalData,
-    );
     final musicLinks = MusicLinkValidator.validLinks(user.musicLinks);
     final color = ProfileHeroHeader.profileTypeColor(user.tipoPerfil);
 
     if (instrumentos.isEmpty &&
         funcoes.isEmpty &&
         generos.isEmpty &&
-        !offersRemoteRecording &&
         musicLinks.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -52,23 +46,10 @@ class _ProfessionalDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (offersRemoteRecording) ...[
-          _InfoCard(
-            icon: Icons.language_rounded,
-            title: 'Disponibilidade',
-            accentColor: color,
-            child: _ChipWrap(
-              items: const [professionalRemoteRecordingLabel],
-              accentColor: color,
-              isSkill: true,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s12),
-        ],
         if (instrumentos.isNotEmpty) ...[
           _InfoCard(
             icon: Icons.piano_rounded,
-            title: 'Instrumentos',
+            title: 'INSTRUMENTOS',
             accentColor: color,
             child: _ChipWrap(
               items: instrumentos,
@@ -81,7 +62,7 @@ class _ProfessionalDetails extends StatelessWidget {
         if (funcoes.isNotEmpty) ...[
           _InfoCard(
             icon: Icons.engineering_rounded,
-            title: 'Fun\u00E7\u00F5es T\u00E9cnicas',
+            title: 'FUN\u00C7\u00D5ES T\u00C9CNICAS',
             accentColor: color,
             child: _ChipWrap(items: funcoes, accentColor: color, isSkill: true),
           ),
@@ -90,7 +71,7 @@ class _ProfessionalDetails extends StatelessWidget {
         if (generos.isNotEmpty)
           _InfoCard(
             icon: Icons.queue_music_rounded,
-            title: 'G\u00EAneros Musicais',
+            title: 'G\u00CANEROS MUSICAIS',
             accentColor: color,
             child: _ChipWrap(items: generos, accentColor: color),
           ),
@@ -126,7 +107,7 @@ class _BandDetails extends StatelessWidget {
       children: [
         _InfoCard(
           icon: Icons.people_rounded,
-          title: 'Integrantes',
+          title: 'INTEGRANTES',
           accentColor: color,
           count: members.isNotEmpty ? members.length : null,
           child: BandMembersSection(members: members, accentColor: color),
@@ -135,7 +116,7 @@ class _BandDetails extends StatelessWidget {
           const SizedBox(height: AppSpacing.s12),
           _InfoCard(
             icon: Icons.queue_music_rounded,
-            title: 'G\u00EAneros Musicais',
+            title: 'G\u00CANEROS MUSICAIS',
             accentColor: color,
             child: _ChipWrap(items: generos, accentColor: color),
           ),
@@ -183,7 +164,7 @@ class _StudioDetails extends StatelessWidget {
         if (studioTypeLabel != null) ...[
           _InfoCard(
             icon: Icons.home_work_rounded,
-            title: 'Tipo de Est\u00FAdio',
+            title: 'TIPO DE EST\u00DADIO',
             accentColor: color,
             child: _ChipWrap(
               items: [studioTypeLabel],
@@ -196,7 +177,7 @@ class _StudioDetails extends StatelessWidget {
         if (services.isNotEmpty)
           _InfoCard(
             icon: Icons.graphic_eq_rounded,
-            title: 'Servi\u00E7os Oferecidos',
+            title: 'SERVI\u00C7OS OFERECIDOS',
             accentColor: color,
             child: _ChipWrap(
               items: services,
@@ -240,7 +221,7 @@ class _ContractorDetails extends StatelessWidget {
         if (venueType != null && venueType.isNotEmpty) ...[
           _InfoCard(
             icon: Icons.storefront_rounded,
-            title: 'Tipo de Local',
+            title: 'TIPO DE LOCAL',
             accentColor: color,
             child: _ChipWrap(
               items: [venueType],
@@ -253,7 +234,7 @@ class _ContractorDetails extends StatelessWidget {
         if (amenityLabels.isNotEmpty)
           _InfoCard(
             icon: Icons.check_circle_outline_rounded,
-            title: 'Comodidades',
+            title: 'COMODIDADES',
             accentColor: color,
             child: _ChipWrap(
               items: amenityLabels,
@@ -279,7 +260,7 @@ class _MusicLinksSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _InfoCard(
       icon: Icons.headphones_rounded,
-      title: 'Ouça nas plataformas',
+      title: 'OUÇA NAS PLATAFORMAS',
       accentColor: accentColor,
       child: Wrap(
         spacing: AppSpacing.s12,
@@ -332,7 +313,7 @@ class _MusicLinkButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: platform.label,
+      message: 'Abrir ${platform.label}',
       child: Semantics(
         button: true,
         label: 'Abrir ${platform.label}',

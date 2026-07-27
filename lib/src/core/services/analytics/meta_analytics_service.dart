@@ -7,6 +7,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../utils/app_logger.dart';
 
+const bool enableMetaAnalyticsInDebug = bool.fromEnvironment(
+  'MUBE_ENABLE_META_ANALYTICS_IN_DEBUG',
+  defaultValue: false,
+);
+
+@visibleForTesting
+bool shouldEnableMetaAnalytics({
+  required bool isReleaseMode,
+  required bool isSupportedPlatform,
+  bool enableInDebug = enableMetaAnalyticsInDebug,
+}) {
+  return isSupportedPlatform && (isReleaseMode || enableInDebug);
+}
+
 abstract class MetaAnalyticsService {
   Future<void> initialize();
   Future<void> setUserId(String? userId);
@@ -127,7 +141,11 @@ class FacebookMetaAnalyticsService implements MetaAnalyticsService {
 
 final metaAnalyticsServiceProvider = Provider<MetaAnalyticsService>((ref) {
   if (kIsWeb) return const NoopMetaAnalyticsService();
-  if (!Platform.isAndroid && !Platform.isIOS) {
+  final isSupportedPlatform = Platform.isAndroid || Platform.isIOS;
+  if (!shouldEnableMetaAnalytics(
+    isReleaseMode: kReleaseMode,
+    isSupportedPlatform: isSupportedPlatform,
+  )) {
     return const NoopMetaAnalyticsService();
   }
   return FacebookMetaAnalyticsService();

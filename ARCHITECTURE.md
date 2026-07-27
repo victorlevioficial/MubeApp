@@ -24,7 +24,7 @@ Bootstraps the runtime:
 - enables Firestore persistence and unlimited cache
 - installs global Flutter and zone error handlers
 - initializes logging
-- schedules deferred services such as analytics, remote config, and font preload
+- schedules post-frame observability and App Check initialization
 - removes native splash only after bootstrap finishes or fails
 - shows a real loading surface during bootstrap instead of a blank frame
 - mounts `ProviderScope(child: MubeApp())`
@@ -95,14 +95,13 @@ Shared UI primitives and theme system:
 Feature modules own most business behavior. Current feature set includes:
 
 - `address`
-- `admin`
 - `auth`
 - `bands`
 - `chat`
-- `developer`
 - `favorites`
 - `feed`
 - `gallery`
+- `gigs`
 - `legal`
 - `matchpoint`
 - `moderation`
@@ -113,6 +112,7 @@ Feature modules own most business behavior. Current feature set includes:
 - `settings`
 - `splash`
 - `storage`
+- `stories`
 - `support`
 
 ### `lib/src/routing/`
