@@ -73,6 +73,27 @@ void main() {
     }
 
     group('Renderização', () {
+      testWidgets('checks verification immediately when the app resumes', (
+        tester,
+      ) async {
+        when(
+          mockAuthRepository.isEmailVerified(),
+        ).thenAnswer((_) async => false);
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        clearInteractions(mockAuthRepository);
+
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+
+        verify(mockAuthRepository.isEmailVerified()).called(1);
+      });
+
       testWidgets('renderiza tela com título correto', (tester) async {
         // Arrange
         when(

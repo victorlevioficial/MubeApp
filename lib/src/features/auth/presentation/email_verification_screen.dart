@@ -97,6 +97,15 @@ class EmailVerificationController extends _$EmailVerificationController {
     _startCountdownTimer();
   }
 
+  Future<void> checkAfterAppResume() async {
+    _checkTimer?.cancel();
+    _currentIntervalIndex = 0;
+    await _silentCheckVerificationStatus();
+    if (!state.isVerified) {
+      _scheduleNextPoll();
+    }
+  }
+
   void _scheduleNextPoll() {
     _checkTimer?.cancel();
     final interval = _pollIntervals[_currentIntervalIndex];
@@ -273,7 +282,7 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
 
 class _EmailVerificationScreenState
     extends ConsumerState<EmailVerificationScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   ProviderSubscription<EmailVerificationState>? _errorSubscription;
@@ -283,6 +292,7 @@ class _EmailVerificationScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Setup pulsing animation for email icon
     _pulseController = AnimationController(
       vsync: this,
@@ -316,10 +326,21 @@ class _EmailVerificationScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _errorSubscription?.close();
     _verificationSubscription?.close();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(
+      ref
+          .read(emailVerificationControllerProvider.notifier)
+          .checkAfterAppResume(),
+    );
   }
 
   void _handleVerifiedNavigation() {
