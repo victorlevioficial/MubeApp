@@ -793,7 +793,7 @@ class _ActionPanel extends StatelessWidget {
       );
     }
 
-    final canApply = gig.status == GigStatus.open && !gig.isFull;
+    final canApply = gig.isOpenForApplications;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -805,7 +805,11 @@ class _ActionPanel extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.s12),
         AppButton.primary(
-          text: canApply ? 'Candidatar-se' : 'Sem vagas disponíveis',
+          text: canApply
+              ? 'Candidatar-se'
+              : gig.isExpiredByDate
+              ? 'Gig encerrada'
+              : 'Sem vagas disponíveis',
           isFullWidth: true,
           isLoading: pendingAction == _GigDetailPendingAction.apply,
           onPressed: isBusy ? null : (canApply ? onApply : null),

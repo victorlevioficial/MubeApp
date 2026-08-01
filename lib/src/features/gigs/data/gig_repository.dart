@@ -472,6 +472,9 @@ class GigRepository {
     if (draft.requiresFixedDate && draft.gigDate == null) {
       throw Exception('Selecione a data da gig.');
     }
+    if (draft.requiresFixedDate && !draft.gigDate!.isAfter(DateTime.now())) {
+      throw Exception('A data da gig precisa estar no futuro.');
+    }
 
     final doc = _gigs.doc();
     await _setDocument(doc, {
@@ -563,6 +566,22 @@ class GigRepository {
       throw Exception(
         'Depois da primeira candidatura, apenas a descricao pode ser editada.',
       );
+    }
+
+    final changesDate =
+        update.dateMode != null ||
+        update.gigDate != null ||
+        update.clearGigDate;
+    if (changesDate) {
+      final effectiveDateMode = update.dateMode ?? gig.dateMode;
+      final effectiveGigDate = update.clearGigDate
+          ? null
+          : update.gigDate ?? gig.gigDate;
+      if (effectiveDateMode == GigDateMode.fixedDate &&
+          (effectiveGigDate == null ||
+              !effectiveGigDate.isAfter(DateTime.now()))) {
+        throw Exception('A data da gig precisa estar no futuro.');
+      }
     }
 
     final payload = <String, dynamic>{
@@ -685,6 +704,9 @@ class GigRepository {
     }
     if (gig.isFull) {
       throw Exception('As vagas desta gig ja foram preenchidas.');
+    }
+    if (gig.isExpiredByDate) {
+      throw Exception('A data desta gig já passou.');
     }
 
     final applicationRef = _applications(gigId).doc(_uid);

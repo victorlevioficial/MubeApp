@@ -3,7 +3,10 @@ part of 'create_gig_screen.dart';
 extension _CreateGigScreenActions on _CreateGigScreenState {
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
-    final initial = _gigDate ?? now.add(const Duration(days: 1));
+    final selectedDate = _gigDate;
+    final initial = selectedDate != null && selectedDate.isAfter(now)
+        ? selectedDate
+        : now.add(const Duration(days: 1));
     final date = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -54,10 +57,11 @@ extension _CreateGigScreenActions on _CreateGigScreenState {
       );
       return;
     }
-    if (_dateMode == GigDateMode.fixedDate && _gigDate == null) {
+    if (_dateMode == GigDateMode.fixedDate &&
+        (_gigDate == null || !_gigDate!.isAfter(DateTime.now()))) {
       await _scrollToDateField();
       if (!mounted) return;
-      AppSnackBar.error(context, 'Selecione a data da gig.');
+      AppSnackBar.error(context, 'Selecione uma data e horário futuros.');
       return;
     }
 

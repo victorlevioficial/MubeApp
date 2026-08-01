@@ -5,6 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/gigs/data/gig_repository.dart';
+import 'package:mube/src/features/gigs/domain/compensation_type.dart';
+import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
+import 'package:mube/src/features/gigs/domain/gig_draft.dart';
+import 'package:mube/src/features/gigs/domain/gig_location_type.dart';
+import 'package:mube/src/features/gigs/domain/gig_type.dart';
 
 import '../../../helpers/firebase_mocks.dart';
 
@@ -98,6 +103,32 @@ void main() {
     });
   }
 
+  group('GigRepository.createGig', () {
+    test('rejects a fixed date in the past', () async {
+      final draft = GigDraft(
+        title: 'Gig expirada',
+        description: 'Uma descrição suficientemente detalhada para a vaga.',
+        gigType: GigType.liveShow,
+        dateMode: GigDateMode.fixedDate,
+        gigDate: DateTime.now().subtract(const Duration(minutes: 1)),
+        locationType: GigLocationType.onsite,
+        slotsTotal: 1,
+        compensationType: CompensationType.negotiable,
+      );
+
+      await expectLater(
+        repository.createGig(draft),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('A data da gig precisa estar no futuro.'),
+          ),
+        ),
+      );
+    });
+  });
+
   group('GigRepository.watchLatestOpenGigs', () {
     test('skips gigs that are full or expired and keeps valid ones', () async {
       await fakeFirestore.collection('gigs').doc(gigId).delete();
@@ -143,6 +174,26 @@ void main() {
   });
 
   group('GigRepository.applyToGig', () {
+    test('rejects applications after the fixed gig date', () async {
+      await fakeFirestore.collection('gigs').doc(gigId).update({
+        'date_mode': 'fixed_date',
+        'gig_date': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(minutes: 1)),
+        ),
+      });
+
+      await expectLater(
+        repository.applyToGig(gigId, 'Ainda tenho interesse.'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('A data desta gig já passou.'),
+          ),
+        ),
+      );
+    });
+
     test('creates a pending application for the current user', () async {
       await repository.applyToGig(gigId, 'Tenho experiencia com palco.');
 
