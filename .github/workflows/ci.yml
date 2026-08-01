@@ -361,6 +361,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get --enforce-lockfile
 
+      - name: Update CocoaPods specs
+        run: pod repo update
+
       - name: Restore iOS Firebase config
         env:
           IOS_GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.IOS_GOOGLE_SERVICE_INFO_PLIST }}
