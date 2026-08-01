@@ -185,6 +185,46 @@ void main() {
       expect(find.text('Limpar'), findsOneWidget);
     });
 
+    testWidgets('keeps a notification visible when swipe deletion fails', (
+      tester,
+    ) async {
+      final notifications = [
+        TestData.notification(id: 'notif-1', title: 'Falha protegida'),
+      ];
+      fakeNotificationRepo.throwDeleteError = true;
+
+      await tester.pumpWidget(createSubject(notifications: notifications));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.text('Falha protegida'), const Offset(-500, 0));
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Falha protegida'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('removes a notification after swipe deletion succeeds', (
+      tester,
+    ) async {
+      final notifications = [
+        TestData.notification(id: 'notif-1', title: 'Excluir com sucesso'),
+      ];
+
+      await tester.pumpWidget(createSubject(notifications: notifications));
+      await tester.pumpAndSettle();
+
+      await tester.fling(
+        find.text('Excluir com sucesso'),
+        const Offset(-800, 0),
+        1500,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('Excluir com sucesso'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('marks notification as read when tapped', (tester) async {
       final notifications = [
         TestData.notification(

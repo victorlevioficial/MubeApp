@@ -53,7 +53,7 @@ class NotificationListScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.s24),
             child: EmptyStateWidget(
               icon: Icons.notifications_off_outlined,
-              title: 'Nao foi possivel carregar notificacoes',
+              title: 'Não foi possível carregar notificações',
               subtitle: resolveErrorMessage(error),
               actionButton: AppButton.secondary(
                 text: 'Tentar novamente',
@@ -81,17 +81,16 @@ class NotificationListScreen extends ConsumerWidget {
                   color: AppColors.error,
                   child: const Icon(Icons.delete, color: AppColors.textPrimary),
                 ),
-                onDismissed: (_) {
-                  if (userId != null) {
-                    unawaited(
-                      _deleteNotification(
+                confirmDismiss: userId == null
+                    ? (_) async => false
+                    : (_) => _deleteNotification(
                         context,
                         ref,
                         userId,
                         notification.id,
                       ),
-                    );
-                  }
+                onDismissed: (_) {
+                  ref.invalidate(notificationsStreamProvider);
                 },
                 child: _NotificationTile(
                   notification: notification,
@@ -196,7 +195,7 @@ class NotificationListScreen extends ConsumerWidget {
     unawaited(router.push(route, extra: extra));
   }
 
-  Future<void> _deleteNotification(
+  Future<bool> _deleteNotification(
     BuildContext context,
     WidgetRef ref,
     String userId,
@@ -206,10 +205,12 @@ class NotificationListScreen extends ConsumerWidget {
       await ref
           .read(notificationRepositoryProvider)
           .deleteNotification(userId, notificationId);
+      return true;
     } catch (error) {
       if (context.mounted) {
         AppSnackBar.error(context, resolveErrorMessage(error));
       }
+      return false;
     }
   }
 
