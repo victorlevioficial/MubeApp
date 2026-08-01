@@ -141,6 +141,7 @@ flutter:
   generate: true  # Enable localization code generation
   
   assets:
+    - google_fonts/
     - assets/images/logos_svg/logo_horizontal.svg
     - assets/images/logos_png/logo_vertical.png
     - assets/images/logos_png/logo_vertical_splash_small.png

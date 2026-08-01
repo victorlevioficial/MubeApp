@@ -4,10 +4,12 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
@@ -28,6 +30,18 @@ void main() {
   runZonedGuarded(
     () async {
       final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      // Poppins/Inter ship bundled in assets/google_fonts; never hit the
+      // network for fonts (offline-first + consistent first paint).
+      GoogleFonts.config.allowRuntimeFetching = false;
+      LicenseRegistry.addLicense(() async* {
+        for (final licenseAsset in const [
+          'google_fonts/OFL_Poppins.txt',
+          'google_fonts/OFL_Inter.txt',
+        ]) {
+          final license = await rootBundle.loadString(licenseAsset);
+          yield LicenseEntryWithLineBreaks(const ['google_fonts'], license);
+        }
+      });
       // Android 15+ targeting SDK 35 renders edge-to-edge by default; enabling
       // it explicitly keeps the contract consistent on older versions too.
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
