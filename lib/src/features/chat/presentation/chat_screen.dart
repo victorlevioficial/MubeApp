@@ -27,6 +27,7 @@ import '../data/chat_providers.dart';
 import '../data/chat_repository.dart';
 import '../data/chat_safety_repository.dart';
 import '../domain/chat_content_analyzer.dart';
+import '../domain/chat_message_window.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
 
@@ -53,6 +54,7 @@ class _PendingMessage {
   final String? replyToSenderId;
   final String? replyToText;
   final String? replyToType;
+  final String? failureMessage;
 
   const _PendingMessage({
     required this.localId,
@@ -62,7 +64,26 @@ class _PendingMessage {
     this.replyToSenderId,
     this.replyToText,
     this.replyToType,
+    this.failureMessage,
   });
+
+  _PendingMessage copyWith({
+    String? failureMessage,
+    bool clearFailure = false,
+  }) {
+    return _PendingMessage(
+      localId: localId,
+      text: text,
+      createdAt: createdAt,
+      replyToMessageId: replyToMessageId,
+      replyToSenderId: replyToSenderId,
+      replyToText: replyToText,
+      replyToType: replyToType,
+      failureMessage: clearFailure
+          ? null
+          : failureMessage ?? this.failureMessage,
+    );
+  }
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
@@ -628,14 +649,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             final nextSnapshot = next.asData?.value;
             if (nextSnapshot == null) return;
 
-            _syncPaginationStateFromLatestSnapshot(nextSnapshot);
+            final previousSnapshot = previous?.asData?.value;
+            _syncPaginationStateFromLatestSnapshot(
+              nextSnapshot,
+              previousSnapshot: previousSnapshot,
+            );
 
             final nextMessages = _messagesFromSnapshot(nextSnapshot);
             if (nextMessages.isEmpty) return;
             final latestMessage = nextMessages.first;
             if (latestMessage.senderId == myUid) return;
 
-            final previousSnapshot = previous?.asData?.value;
             final previousMessages = previousSnapshot == null
                 ? null
                 : _messagesFromSnapshot(previousSnapshot);
@@ -669,10 +693,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _syncPaginationStateFromLatestSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-  ) {
+    QuerySnapshot<Map<String, dynamic>> snapshot, {
+    QuerySnapshot<Map<String, dynamic>>? previousSnapshot,
+  }) {
     if (!mounted) return;
-    if (_olderServerMessages.isNotEmpty) return;
+
+    if (_olderServerMessages.isNotEmpty) {
+      final previousLatest = previousSnapshot == null
+          ? const <Message>[]
+          : _messagesFromSnapshot(previousSnapshot);
+      final nextLatest = _messagesFromSnapshot(snapshot);
+      final preserved = preserveShiftedChatWindow(
+        previousLatest: previousLatest,
+        nextLatest: nextLatest,
+        olderMessages: _olderServerMessages,
+      );
+      if (preserved.length != _olderServerMessages.length) {
+        setState(() {
+          _olderServerMessages
+            ..clear()
+            ..addAll(preserved);
+        });
+      }
+      return;
+    }
 
     if (snapshot.docs.isEmpty) {
       if (_oldestServerMessageDoc != null || _hasMoreOlderMessages) {
@@ -888,23 +932,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return false;
   }
 
-  String _addPendingMessage(String text, {Message? replyToMessage}) {
+  _PendingMessage _addPendingMessage(String text, {Message? replyToMessage}) {
     final localId = 'local_${DateTime.now().microsecondsSinceEpoch}';
+    final pendingMessage = _PendingMessage(
+      localId: localId,
+      text: text,
+      createdAt: DateTime.now(),
+      replyToMessageId: replyToMessage?.id,
+      replyToSenderId: replyToMessage?.senderId,
+      replyToText: replyToMessage?.text,
+      replyToType: replyToMessage?.type,
+    );
     setState(() {
-      _pendingMessages.insert(
-        0,
-        _PendingMessage(
-          localId: localId,
-          text: text,
-          createdAt: DateTime.now(),
-          replyToMessageId: replyToMessage?.id,
-          replyToSenderId: replyToMessage?.senderId,
-          replyToText: replyToMessage?.text,
-          replyToType: replyToMessage?.type,
-        ),
-      );
+      _pendingMessages.insert(0, pendingMessage);
     });
-    return localId;
+    return pendingMessage;
   }
 
   void _removePendingMessage(String localId) {
@@ -914,18 +956,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
-  void _restoreDraftIfInputEmpty(String text, {Message? replyToMessage}) {
-    if (_textController.text.trim().isNotEmpty) return;
-    if (mounted) {
-      setState(() {
-        _replyingToMessage = replyToMessage;
-      });
-    } else {
-      _replyingToMessage = replyToMessage;
-    }
-    _textController.text = text;
-    _textController.selection = TextSelection.collapsed(
-      offset: _textController.text.length,
+  void _markPendingMessageFailed(String localId, String failureMessage) {
+    if (!mounted) return;
+    final index = _pendingMessages.indexWhere(
+      (message) => message.localId == localId,
+    );
+    if (index < 0) return;
+
+    setState(() {
+      _pendingMessages[index] = _pendingMessages[index].copyWith(
+        failureMessage: failureMessage,
+      );
+    });
+  }
+
+  Future<void> _retryPendingMessage(String localId) async {
+    final index = _pendingMessages.indexWhere(
+      (message) => message.localId == localId,
+    );
+    if (index < 0 || _pendingMessages[index].failureMessage == null) return;
+
+    final myUid =
+        ref.read(currentUserIdProvider) ??
+        ref.read(authRepositoryProvider).currentUser?.uid;
+    if (myUid == null || !await _canSendMessageWithVerifiedEmail()) return;
+
+    final otherUid = _resolveOtherUid(myUid);
+    if (otherUid.isEmpty) return;
+
+    final pendingMessage = _pendingMessages[index].copyWith(clearFailure: true);
+    setState(() => _pendingMessages[index] = pendingMessage);
+
+    await _sendMessageInBackground(
+      pendingMessage: pendingMessage,
+      myUid: myUid,
+      otherUid: otherUid,
+      previousRequestStatus: _currentRequestStatus,
+      previousRequestCycle: _currentRequestCycle,
+      previousRequestSenderId: _currentRequestSenderId,
     );
   }
 
@@ -1227,7 +1295,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final previousRequestCycle = _currentRequestCycle;
     final previousRequestSenderId = _currentRequestSenderId;
     final replyToMessage = _replyingToMessage;
-    final localMessageId = _addPendingMessage(
+    final pendingMessage = _addPendingMessage(
       text,
       replyToMessage: replyToMessage,
     );
@@ -1245,41 +1313,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     unawaited(
       _sendMessageInBackground(
-        localMessageId: localMessageId,
-        text: text,
+        pendingMessage: pendingMessage,
         myUid: myUid,
         otherUid: otherUid,
         previousRequestStatus: previousRequestStatus,
         previousRequestCycle: previousRequestCycle,
         previousRequestSenderId: previousRequestSenderId,
-        replyToMessage: replyToMessage,
       ),
     );
   }
 
   Future<void> _sendMessageInBackground({
-    required String localMessageId,
-    required String text,
+    required _PendingMessage pendingMessage,
     required String myUid,
     required String otherUid,
     required String previousRequestStatus,
     required int previousRequestCycle,
     required String? previousRequestSenderId,
-    required Message? replyToMessage,
   }) async {
     try {
       final repository = ref.read(chatRepositoryProvider);
       Future<String?> attemptSend() async {
         final result = await repository.sendMessage(
           conversationId: widget.conversationId,
-          text: text,
+          text: pendingMessage.text,
           myUid: myUid,
           otherUid: otherUid,
-          clientMessageId: localMessageId,
-          replyToMessageId: replyToMessage?.id,
-          replyToSenderId: replyToMessage?.senderId,
-          replyToText: replyToMessage?.text,
-          replyToType: replyToMessage?.type,
+          clientMessageId: pendingMessage.localId,
+          replyToMessageId: pendingMessage.replyToMessageId,
+          replyToSenderId: pendingMessage.replyToSenderId,
+          replyToText: pendingMessage.replyToText,
+          replyToType: pendingMessage.replyToType,
           conversationType: _conversationType,
         );
         return result.fold((failure) => failure.message, (_) => null);
@@ -1295,7 +1359,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (!mounted) return;
 
       if (failureMessage == null) {
-        _removePendingMessage(localMessageId);
+        _removePendingMessage(pendingMessage.localId);
         await _maybeShowPendingRequestSnackbarAfterSend(
           repository: repository,
           myUid: myUid,
@@ -1306,15 +1370,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return;
       }
 
-      _removePendingMessage(localMessageId);
-      _restoreDraftIfInputEmpty(text, replyToMessage: replyToMessage);
+      _markPendingMessageFailed(pendingMessage.localId, failureMessage);
       AppSnackBar.error(context, 'Erro ao enviar mensagem: $failureMessage');
     } catch (e) {
       if (!mounted) return;
 
-      _removePendingMessage(localMessageId);
-      _restoreDraftIfInputEmpty(text, replyToMessage: replyToMessage);
-
+      _markPendingMessageFailed(pendingMessage.localId, e.toString());
       AppSnackBar.error(context, 'Erro ao enviar mensagem: $e');
     }
   }

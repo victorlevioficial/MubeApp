@@ -59,6 +59,10 @@ extension _ChatScreenWidgets on _ChatScreenState {
                           ),
                         )
                         .toList(growable: false);
+                    final pendingById = {
+                      for (final pending in _pendingMessages)
+                        pending.localId: pending,
+                    };
                     final mergedMessages = <Message>[
                       ...pendingMessages,
                       ...serverMessages,
@@ -120,6 +124,8 @@ extension _ChatScreenWidgets on _ChatScreenState {
                         final message = mergedMessages[index];
                         final isMe = message.senderId == currentUserId;
                         final isPending = message.id.startsWith('local_');
+                        final failedPending = pendingById[message.id];
+                        final isFailed = failedPending?.failureMessage != null;
                         final canReply =
                             _canReadConversation &&
                             !isPendingRecipient &&
@@ -154,6 +160,7 @@ extension _ChatScreenWidgets on _ChatScreenState {
                               message: message,
                               isMe: isMe,
                               isPending: isPending,
+                              isFailed: isFailed,
                               isRead: isRead,
                               replyAuthorLabel: message.replyToText == null
                                   ? null
@@ -161,6 +168,9 @@ extension _ChatScreenWidgets on _ChatScreenState {
                                   ? 'Voce'
                                   : _otherUserName,
                               onReply: canReply ? _setReplyTarget : null,
+                              onRetry: isFailed
+                                  ? () => _retryPendingMessage(message.id)
+                                  : null,
                             ),
                           ],
                         );
@@ -239,16 +249,20 @@ extension _ChatScreenWidgets on _ChatScreenState {
       itemCount: pendingMessages.length,
       itemBuilder: (context, index) {
         final message = pendingMessages[index];
+        final pending = _pendingMessages[index];
+        final isFailed = pending.failureMessage != null;
         return _MessageBubble(
           message: message,
           isMe: true,
           isPending: true,
+          isFailed: isFailed,
           isRead: false,
           replyAuthorLabel: message.replyToText == null
               ? null
               : message.replyToSenderId == currentUserId
               ? 'Voce'
               : _otherUserName,
+          onRetry: isFailed ? () => _retryPendingMessage(message.id) : null,
         );
       },
     );
@@ -575,17 +589,21 @@ class _MessageBubble extends StatefulWidget {
   final Message message;
   final bool isMe;
   final bool isPending;
+  final bool isFailed;
   final bool isRead;
   final String? replyAuthorLabel;
   final ValueChanged<Message>? onReply;
+  final VoidCallback? onRetry;
 
   const _MessageBubble({
     required this.message,
     required this.isMe,
     this.isPending = false,
+    this.isFailed = false,
     required this.isRead,
     this.replyAuthorLabel,
     this.onReply,
+    this.onRetry,
   });
 
   @override
@@ -714,7 +732,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                 ),
                                 if (widget.isMe) ...[
                                   const SizedBox(width: AppSpacing.s4),
-                                  if (widget.isPending)
+                                  if (widget.isFailed)
+                                    const Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 14,
+                                      color: AppColors.error,
+                                    )
+                                  else if (widget.isPending)
                                     Icon(
                                       Icons.schedule,
                                       size: 14,
@@ -740,6 +764,15 @@ class _MessageBubbleState extends State<_MessageBubble> {
                           ],
                         ),
                       ),
+                      if (widget.isFailed && widget.onRetry != null) ...[
+                        const SizedBox(height: AppSpacing.s4),
+                        TextButton.icon(
+                          key: ValueKey('retry-${widget.message.id}'),
+                          onPressed: widget.onRetry,
+                          icon: const Icon(Icons.refresh_rounded, size: 16),
+                          label: const Text('Tentar novamente'),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -754,7 +787,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
   String _buildSemanticLabel(bool showReplyPreview) {
     final segments = <String>[
       widget.isMe ? 'Sua mensagem' : 'Mensagem recebida',
-      if (widget.isPending)
+      if (widget.isFailed)
+        'falha no envio'
+      else if (widget.isPending)
         'pendente de envio'
       else if (widget.isMe)
         widget.isRead ? 'lida' : 'enviada',

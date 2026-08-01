@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/app.dart' show scaffoldMessengerKey;
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/design_system/components/feedback/app_confirmation_dialog.dart';
 import 'package:mube/src/design_system/foundations/tokens/app_typography.dart';
@@ -111,6 +112,32 @@ class _ReadyChatRepository extends FakeChatRepository {
     lastReplyToText = replyToText;
     lastReplyToType = replyToType;
     return const Right(unit);
+  }
+}
+
+class _FailingSendChatRepository extends _ReadyChatRepository {
+  final Completer<Either<Failure, Unit>> sendCompleter = Completer();
+
+  _FailingSendChatRepository({
+    required super.conversationId,
+    required super.participants,
+  });
+
+  @override
+  FutureResult<Unit> sendMessage({
+    required String conversationId,
+    required String text,
+    required String myUid,
+    required String otherUid,
+    String? clientMessageId,
+    String? replyToMessageId,
+    String? replyToSenderId,
+    String? replyToText,
+    String? replyToType,
+    String conversationType = 'direct',
+  }) {
+    sendCalls += 1;
+    return sendCompleter.future;
   }
 }
 
@@ -445,6 +472,41 @@ void main() {
 
     expect(find.byTooltip('Enviar mensagem'), findsOneWidget);
     expect(find.bySemanticsLabel('Enviar mensagem'), findsOneWidget);
+  });
+
+  testWidgets('keeps a failed message when a new draft was already typed', (
+    tester,
+  ) async {
+    fakeAuthRepo = FakeAuthRepository(
+      initialUser: FakeFirebaseUser(uid: 'user-1', emailVerified: true),
+    );
+    fakeAuthRepo.appUser = user;
+    final repository = _FailingSendChatRepository(
+      conversationId: 'user-1_user-2',
+      participants: const ['user-1', 'user-2'],
+    );
+    fakeChatRepo = repository;
+
+    profileController.add(user);
+    await tester.pumpWidget(createSubject());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(EditableText), 'Primeira mensagem');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.send_rounded));
+    await tester.pumpAndSettle();
+    expect(repository.sendCalls, 1);
+    expect(find.text('Primeira mensagem'), findsOneWidget);
+    await tester.enterText(find.byType(EditableText), 'Novo rascunho');
+
+    repository.sendCompleter.complete(
+      const Left(ServerFailure(message: 'Falha de rede')),
+    );
+    await tester.pump();
+
+    expect(find.text('Primeira mensagem'), findsOneWidget);
+    expect(find.text('Novo rascunho'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsOneWidget);
   });
 
   testWidgets('prepares conversation after delayed user profile load', (
