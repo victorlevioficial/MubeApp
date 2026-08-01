@@ -529,12 +529,8 @@ class StorageRepository {
 
   /// Deleta uma imagem dada sua URL (útil para cleanup)
   Future<void> deleteImage(String imageUrl) async {
-    try {
-      final ref = _storage.refFromURL(imageUrl);
-      await ref.delete();
-    } catch (e) {
-      // Ignore if not found or already deleted
-    }
+    final ref = _storage.refFromURL(imageUrl);
+    await _deleteIfExists(ref);
   }
 
   /// Deleta todos os arquivos de um item de galeria (todas as resoluções)
@@ -543,90 +539,72 @@ class StorageRepository {
     required String mediaId,
     required bool isVideo,
   }) async {
-    try {
-      if (isVideo) {
-        // Deletar vídeo
-        final videoRef = _storage.ref().child(
-          'gallery_videos/$userId/$mediaId.mp4',
-        );
-        await videoRef.delete();
-
-        // Deletar versão transcodificada (pipeline server-side)
-        try {
-          final transcodedVideoRef = _storage.ref().child(
-            'gallery_videos_transcoded/$userId/$mediaId/master.mp4',
-          );
-          await transcodedVideoRef.delete();
-        } catch (e) {
-          // Ignora se não encontrar a versão transcodificada
-        }
-
-        // Deletar thumbnail
-        final thumbRef = _storage.ref().child(
-          'gallery_thumbnails/$userId/$mediaId.webp',
-        );
-        await thumbRef.delete();
-      } else {
-        // Deletar todas as resoluções da imagem
-        final resolutions = ['thumbnail', 'medium', 'large', 'full'];
-        for (final resolution in resolutions) {
-          try {
-            final ref = _storage.ref().child(
-              'gallery_photos/$userId/$mediaId/$resolution.webp',
-            );
-            await ref.delete();
-          } catch (e) {
-            // Ignora se não encontrar uma resolução específica
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore if not found
+    if (isVideo) {
+      await _deleteAll([
+        _storage.ref().child('gallery_videos/$userId/$mediaId.mp4'),
+        _storage.ref().child(
+          'gallery_videos_transcoded/$userId/$mediaId/master.mp4',
+        ),
+        _storage.ref().child('gallery_thumbnails/$userId/$mediaId.webp'),
+      ]);
+      return;
     }
+
+    const resolutions = ['thumbnail', 'medium', 'large', 'full'];
+    await _deleteAll(
+      resolutions.map(
+        (resolution) => _storage.ref().child(
+          'gallery_photos/$userId/$mediaId/$resolution.webp',
+        ),
+      ),
+    );
   }
 
   /// Deleta todas as imagens de perfil de um usuário
   Future<void> deleteProfileImages(String userId) async {
-    try {
-      // Deletar thumbnail
+    await _deleteAll([
+      _storage.ref().child('profile_photos/$userId/thumbnail.webp'),
+      _storage.ref().child('profile_photos/$userId/large.webp'),
+      _storage.ref().child('profile_photos/$userId.webp'),
+      _storage.ref().child('profile_photos/$userId.jpg'),
+    ]);
+  }
+
+  Future<void> _deleteAll(Iterable<Reference> references) async {
+    Object? firstError;
+    StackTrace? firstStackTrace;
+
+    for (final reference in references) {
       try {
-        final thumbRef = _storage.ref().child(
-          'profile_photos/$userId/thumbnail.webp',
+        await _deleteIfExists(reference);
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+        AppLogger.warning(
+          'Falha ao excluir arquivo do Storage: ${reference.fullPath}',
+          error,
+          stackTrace,
+          false,
         );
-        await thumbRef.delete();
-      } catch (e) {
-        // Ignora se não existir
       }
+    }
 
-      // Deletar large
-      try {
-        final largeRef = _storage.ref().child(
-          'profile_photos/$userId/large.webp',
-        );
-        await largeRef.delete();
-      } catch (e) {
-        // Ignora se não existir
-      }
-
-      // Deletar versão antiga (compatibilidade)
-      try {
-        final oldRef = _storage.ref().child('profile_photos/$userId.webp');
-        await oldRef.delete();
-      } catch (e) {
-        // Ignora se não existir
-      }
-
-      // Deletar versão muito antiga (jpg)
-      try {
-        final veryOldRef = _storage.ref().child('profile_photos/$userId.jpg');
-        await veryOldRef.delete();
-      } catch (e) {
-        // Ignora se não existir
-      }
-    } catch (e) {
-      // Ignore errors
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
     }
   }
+
+  Future<void> _deleteIfExists(Reference reference) async {
+    try {
+      await reference.delete();
+    } on FirebaseException catch (error) {
+      if (_isMissingStorageObject(error)) return;
+      rethrow;
+    }
+  }
+
+  bool _isMissingStorageObject(FirebaseException error) =>
+      error.code == 'object-not-found' || error.code == 'not-found';
 
   /// Faz upload de um anexo de suporte
   Future<String> uploadSupportAttachment({
@@ -652,6 +630,20 @@ class StorageRepository {
       path: 'support_tickets/${currentUser.uid}/$ticketId/$fileName',
       contentType: 'image/webp',
     );
+  }
+
+  /// Removes every attachment uploaded for a ticket that was not created.
+  Future<void> deleteSupportAttachments({required String ticketId}) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Você precisa estar logado para excluir anexos.');
+    }
+
+    final folder = _storage.ref().child(
+      'support_tickets/${currentUser.uid}/$ticketId',
+    );
+    final result = await folder.listAll();
+    await _deleteAll(result.items);
   }
 }
 

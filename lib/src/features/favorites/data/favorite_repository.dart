@@ -45,9 +45,8 @@ class FavoriteRepository {
 
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e, stackTrace) {
-      // Keep UI resilient while offline/intermittent.
       _logReadWarning('Erro ao carregar favoritos', e, stackTrace);
-      return {};
+      rethrow;
     }
   }
 
@@ -80,7 +79,7 @@ class FavoriteRepository {
       );
     } catch (e, stackTrace) {
       _logReadWarning('Erro ao carregar favoritos paginados', e, stackTrace);
-      return const PaginatedFavoritesResponse.empty();
+      rethrow;
     }
   }
 

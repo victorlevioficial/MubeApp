@@ -283,7 +283,7 @@ class FakeFavoriteRepository extends Fake implements FavoriteRepository {
     int limit = 20,
   }) async {
     if (throwError) {
-      return const PaginatedFavoritesResponse.empty();
+      throw Exception('Favorite loading failed');
     }
     final favoriteIds = favorites.toList();
     return PaginatedFavoritesResponse(
@@ -878,6 +878,7 @@ class FakeNotificationRepository extends Fake
     implements NotificationRepository {
   List<AppNotification> _notifications = [];
   bool throwError = false;
+  bool throwDeleteError = false;
   int watchNotificationsCalls = 0;
   int watchUnreadNotificationCountCalls = 0;
 
@@ -917,7 +918,7 @@ class FakeNotificationRepository extends Fake
 
   @override
   Future<void> deleteNotification(String userId, String notificationId) async {
-    if (throwError) throw Exception('Failed');
+    if (throwError || throwDeleteError) throw Exception('Failed');
     _notifications.removeWhere((n) => n.id == notificationId);
   }
 
@@ -1157,6 +1158,7 @@ class FakeChatRepository extends Fake implements ChatRepository {
 class FakeStorageRepository extends Fake implements StorageRepository {
   bool throwError = false;
   String downloadUrl = 'http://fake.url/image.jpg';
+  int deleteSupportAttachmentsCalls = 0;
 
   @override
   Future<String> uploadSupportAttachment({
@@ -1165,6 +1167,11 @@ class FakeStorageRepository extends Fake implements StorageRepository {
   }) async {
     if (throwError) throw Exception('Upload failed');
     return downloadUrl;
+  }
+
+  @override
+  Future<void> deleteSupportAttachments({required String ticketId}) async {
+    deleteSupportAttachmentsCalls++;
   }
 }
 

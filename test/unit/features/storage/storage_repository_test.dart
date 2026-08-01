@@ -1,8 +1,107 @@
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
 import 'package:mube/src/features/storage/data/storage_repository.dart';
 import 'package:mube/src/features/storage/domain/image_compressor.dart';
 
+import '../../../helpers/firebase_mocks.dart';
+
+class _RecordingFirebaseStorage extends Mock implements FirebaseStorage {
+  final Map<String, FirebaseException> failures;
+  final List<String> deletionAttempts = [];
+
+  _RecordingFirebaseStorage({this.failures = const {}});
+
+  @override
+  Reference ref([String? path]) =>
+      _RecordingReference(storage: this, path: path ?? '');
+}
+
+class _RecordingReference extends Mock implements Reference {
+  @override
+  final _RecordingFirebaseStorage storage;
+  final String path;
+
+  _RecordingReference({required this.storage, required this.path});
+
+  @override
+  String get fullPath => path;
+
+  @override
+  Reference child(String childPath) => _RecordingReference(
+    storage: storage,
+    path: path.isEmpty ? childPath : '$path/$childPath',
+  );
+
+  @override
+  Future<void> delete() async {
+    storage.deletionAttempts.add(path);
+    final failure = storage.failures[path];
+    if (failure != null) throw failure;
+  }
+}
+
 void main() {
+  group('StorageRepository deletion', () {
+    test(
+      'continues video cleanup when the original file is already absent',
+      () async {
+        final storage = _RecordingFirebaseStorage(
+          failures: {
+            'gallery_videos/user-1/media-1.mp4': FirebaseException(
+              plugin: 'firebase_storage',
+              code: 'object-not-found',
+            ),
+          },
+        );
+        final repository = StorageRepository(storage, auth: MockFirebaseAuth());
+
+        await repository.deleteGalleryItem(
+          userId: 'user-1',
+          mediaId: 'media-1',
+          isVideo: true,
+        );
+
+        expect(storage.deletionAttempts, [
+          'gallery_videos/user-1/media-1.mp4',
+          'gallery_videos_transcoded/user-1/media-1/master.mp4',
+          'gallery_thumbnails/user-1/media-1.webp',
+        ]);
+      },
+    );
+
+    test(
+      'propagates permission failures after attempting every video file',
+      () async {
+        final storage = _RecordingFirebaseStorage(
+          failures: {
+            'gallery_videos/user-1/media-1.mp4': FirebaseException(
+              plugin: 'firebase_storage',
+              code: 'unauthorized',
+            ),
+          },
+        );
+        final repository = StorageRepository(storage, auth: MockFirebaseAuth());
+
+        await expectLater(
+          repository.deleteGalleryItem(
+            userId: 'user-1',
+            mediaId: 'media-1',
+            isVideo: true,
+          ),
+          throwsA(
+            isA<FirebaseException>().having(
+              (error) => error.code,
+              'code',
+              'unauthorized',
+            ),
+          ),
+        );
+        expect(storage.deletionAttempts, hasLength(3));
+      },
+    );
+  });
+
   group('ImageUrls', () {
     const urls = ImageUrls(
       thumbnail: 'https://example.com/thumb.jpg',

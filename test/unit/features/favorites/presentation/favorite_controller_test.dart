@@ -186,6 +186,26 @@ void main() {
         expect(state.isSyncing, isFalse);
       });
 
+      test(
+        'preserves previously loaded favorites after a refresh error',
+        () async {
+          fakeFavRepo.favorites = {'favorite-1'};
+          await waitForUser();
+
+          final ctrl = getController();
+          await ctrl.loadFavorites();
+          expect(getState().localFavorites, {'favorite-1'});
+
+          fakeFavRepo.throwError = true;
+          await ctrl.loadFavorites();
+
+          final state = getState();
+          expect(state.localFavorites, {'favorite-1'});
+          expect(state.serverFavorites, {'favorite-1'});
+          expect(state.isSyncing, isFalse);
+        },
+      );
+
       test('returns early when user is null', () async {
         fakeAuthRepo.emitUser(null);
         fakeAuthRepo.appUser = null;

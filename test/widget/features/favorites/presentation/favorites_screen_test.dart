@@ -157,5 +157,18 @@ void main() {
       expect(find.text('Erro ao carregar favoritos'), findsOneWidget);
       expect(find.text('Tentar novamente'), findsOneWidget);
     });
+
+    testWidgets('does not show an empty state when favorite loading fails', (
+      tester,
+    ) async {
+      fakeFavoriteRepo.throwError = true;
+
+      await tester.pumpWidget(createSubject());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(find.text('Erro ao carregar favoritos'), findsOneWidget);
+      expect(find.text('Você ainda não tem favoritos.'), findsNothing);
+    });
   });
 }
