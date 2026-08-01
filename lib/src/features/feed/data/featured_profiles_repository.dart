@@ -23,7 +23,7 @@ class FeaturedProfilesRepository {
 
   /// Retorna os UIDs dos perfis em destaque definidos pelo admin.
   ///
-  /// Retorna lista vazia se não houver configuração ou se houver erro.
+  /// Retorna lista vazia somente quando não houver configuração.
   Future<List<String>> getFeaturedUids() async {
     try {
       final doc = await _firestore
@@ -49,7 +49,7 @@ class FeaturedProfilesRepository {
       return result;
     } catch (e, stack) {
       AppLogger.error('Erro ao buscar featured profiles', e, stack);
-      return [];
+      rethrow;
     }
   }
 

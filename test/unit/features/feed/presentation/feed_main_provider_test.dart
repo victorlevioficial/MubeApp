@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:mube/src/constants/firestore_constants.dart';
+import 'package:mube/src/core/errors/failures.dart';
 import 'package:mube/src/core/mixins/pagination_mixin.dart';
+import 'package:mube/src/core/typedefs.dart';
 import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
+import 'package:mube/src/features/feed/domain/feed_discovery.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
 import 'package:mube/src/features/feed/presentation/feed_state.dart';
 import 'package:mube/src/features/feed/presentation/providers/feed_main_provider.dart';
@@ -304,6 +310,71 @@ void main() {
       expect(fakeFeedRepository.discoverFeedPoolCallHistory, hasLength(2));
     });
 
+    test(
+      'an obsolete request cannot replace the latest discovery pool',
+      () async {
+        final controlledRepository = _ControlledFeedRepository();
+        final localContainer = ProviderContainer(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(fakeAuthRepository),
+            feedRepositoryProvider.overrideWithValue(controlledRepository),
+          ],
+        );
+        addTearDown(localContainer.dispose);
+        final notifier = localContainer.read(feedMainProvider.notifier);
+
+        final firstRequest = notifier.fetch(
+          currentState: const FeedState(),
+          user: user0(),
+          blockedIds: const [],
+          reset: true,
+          forceInvalidatePool: true,
+          batchSize: 20,
+        );
+        await controlledRepository.waitForCalls(1);
+
+        final secondRequest = notifier.fetch(
+          currentState: const FeedState(),
+          user: user0(),
+          blockedIds: const [],
+          reset: true,
+          forceInvalidatePool: true,
+          batchSize: 20,
+        );
+        await controlledRepository.waitForCalls(2);
+        controlledRepository.complete(
+          1,
+          const FeedItem(
+            uid: 'latest-item',
+            nome: 'Latest',
+            tipoPerfil: ProfileType.band,
+          ),
+        );
+        final latestResult = await secondRequest;
+        expect(latestResult.items.map((item) => item.uid), ['latest-item']);
+
+        controlledRepository.complete(
+          0,
+          const FeedItem(
+            uid: 'obsolete-item',
+            nome: 'Obsolete',
+            tipoPerfil: ProfileType.band,
+          ),
+        );
+        await firstRequest;
+
+        final cachedResult = await notifier.fetch(
+          currentState: const FeedState(),
+          user: user0(),
+          blockedIds: const [],
+          reset: true,
+          forceInvalidatePool: false,
+          batchSize: 20,
+        );
+        expect(cachedResult.items.map((item) => item.uid), ['latest-item']);
+      },
+    );
+
     test('reuses cached pool when no invalidation is needed', () async {
       fakeFeedRepository.discoverFeedPool = [
         const FeedItem(
@@ -453,4 +524,42 @@ void main() {
       expect(secondResult.items.map((e) => e.uid), ['item-2']);
     });
   });
+}
+
+class _ControlledFeedRepository extends FakeFeedRepository {
+  final List<Completer<Either<Failure, DiscoverFeedPoolResult>>> _requests = [];
+
+  Future<void> waitForCalls(int count) async {
+    while (_requests.length < count) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  void complete(int index, FeedItem item) {
+    _requests[index].complete(
+      Right(
+        DiscoverFeedPoolResult(
+          items: [item],
+          scannedDocs: 1,
+          source: 'test',
+          isExhaustive: true,
+        ),
+      ),
+    );
+  }
+
+  @override
+  FutureResult<DiscoverFeedPoolResult> getDiscoverFeedPool({
+    required String currentUserId,
+    required double? userLat,
+    required double? userLong,
+    List<String> excludedIds = const [],
+    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
+    int? targetResults,
+    int? fastPartialThreshold,
+  }) {
+    final completer = Completer<Either<Failure, DiscoverFeedPoolResult>>();
+    _requests.add(completer);
+    return completer.future;
+  }
 }

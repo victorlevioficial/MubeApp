@@ -29,6 +29,7 @@ class FeedMain extends _$FeedMain {
   double? _userLong;
   String? _poolUserId;
   String _poolBlockedKey = '';
+  int _requestGeneration = 0;
 
   @override
   FeedState build() {
@@ -43,6 +44,7 @@ class FeedMain extends _$FeedMain {
     required bool forceInvalidatePool,
     required int batchSize,
   }) async {
+    final requestGeneration = ++_requestGeneration;
     final mainFeedStopwatch = AppPerformanceTracker.startSpan(
       'feed.main_fetch',
       data: {'reset': reset, 'filter': currentState.currentFilter},
@@ -87,7 +89,10 @@ class FeedMain extends _$FeedMain {
           targetResults: _initialPoolTarget(batchSize),
           fastPartialThreshold: batchSize,
           markName: 'feed.main_pool.ready',
+          requestGeneration: requestGeneration,
         );
+
+        if (requestGeneration != _requestGeneration) return currentState;
 
         if (failureMessage != null) {
           AppPerformanceTracker.finishSpan(
@@ -121,7 +126,9 @@ class FeedMain extends _$FeedMain {
           blockedIds: blockedIds,
           targetResults: nextTarget,
           markName: 'feed.main_pool.expanded',
+          requestGeneration: requestGeneration,
         );
+        if (requestGeneration != _requestGeneration) return currentState;
         if (failureMessage != null) {
           AppPerformanceTracker.finishSpan(
             'feed.main_fetch',
@@ -244,6 +251,7 @@ class FeedMain extends _$FeedMain {
     required List<String> blockedIds,
     required int targetResults,
     required String markName,
+    required int requestGeneration,
     int? fastPartialThreshold,
   }) async {
     final repository = ref.read(feedRepositoryProvider);
@@ -257,6 +265,8 @@ class FeedMain extends _$FeedMain {
     );
 
     String? failureMessage;
+    if (requestGeneration != _requestGeneration) return null;
+
     poolResult.fold((error) => failureMessage = error.message, (pool) {
       _allSortedUsers.clear();
       _allSortedUsers.addAll(_filterMainDiscoveryItems(pool.items));

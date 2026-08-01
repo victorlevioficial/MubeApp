@@ -37,6 +37,10 @@ class FeedController extends _$FeedController {
   Timer? _favoritesSyncTimer;
   Future<void>? _activeLoadAllData;
   Future<void>? _activeRefresh;
+  int _mainFeedRequestGeneration = 0;
+
+  bool _isCurrentMainFeedRequest(int generation) =>
+      ref.mounted && generation == _mainFeedRequestGeneration;
 
   FeedState _withSpotlightItems(FeedState currentState) {
     _spotlightItems = SpotlightRotation.build(
@@ -142,6 +146,7 @@ class FeedController extends _$FeedController {
   }
 
   Future<void> _loadData({required bool showFullSkeleton}) async {
+    final requestGeneration = ++_mainFeedRequestGeneration;
     final loadStopwatch = AppPerformanceTracker.startSpan(
       'feed.load_all_data',
       data: {'full_skeleton': showFullSkeleton},
@@ -152,6 +157,7 @@ class FeedController extends _$FeedController {
       showFullSkeleton: showFullSkeleton,
       currentState: currentState,
     );
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
     if (cachedState != null) {
       currentState = cachedState;
     }
@@ -174,7 +180,7 @@ class FeedController extends _$FeedController {
 
     try {
       final resolvedUser = await _resolveFeedUser();
-      if (!ref.mounted) return;
+      if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
       if (resolvedUser == null) {
         state = AsyncValue.data(
@@ -194,7 +200,7 @@ class FeedController extends _$FeedController {
       _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
 
       final blockedIds = await _resolveBlockedIds(user: user);
-      if (!ref.mounted) return;
+      if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
       final sectionsFuture = _loadHomeSections(
         user: user,
@@ -211,7 +217,7 @@ class FeedController extends _$FeedController {
             batchSize: FeedDataConstants.mainFeedBatchSize,
           );
       final sections = await sectionsFuture;
-      if (!ref.mounted) return;
+      if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
       final canRenderSectionsEarly =
           showFullSkeleton &&
@@ -232,7 +238,7 @@ class FeedController extends _$FeedController {
       }
 
       final mainFeedState = await mainFeedFuture;
-      if (!ref.mounted) return;
+      if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
       if (mainFeedState.status == PaginationStatus.error) {
         final shouldKeepCachedContent = _hasRenderableFeedContent(currentState);
@@ -295,7 +301,7 @@ class FeedController extends _$FeedController {
         loadStopwatch,
         data: {'status': 'error', 'error_type': error.runtimeType.toString()},
       );
-      if (!ref.mounted) return;
+      if (!_isCurrentMainFeedRequest(requestGeneration)) return;
       final latestState = state.value ?? currentState;
       final hasRenderableContent = _hasRenderableFeedContent(latestState);
       state = AsyncValue.data(
@@ -439,6 +445,7 @@ class FeedController extends _$FeedController {
         !currentState.hasMore) {
       return;
     }
+    final requestGeneration = ++_mainFeedRequestGeneration;
 
     state = AsyncValue.data(
       currentState.copyWithFeed(
@@ -448,7 +455,7 @@ class FeedController extends _$FeedController {
     );
 
     final resolvedUser = await _resolveFeedUser();
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
     if (resolvedUser == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
@@ -462,7 +469,7 @@ class FeedController extends _$FeedController {
     final user = resolvedUser.user;
     _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
     final blockedIds = await _resolveBlockedIds(user: user);
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
     final nextState = await ref
         .read(feedMainProvider.notifier)
@@ -474,7 +481,7 @@ class FeedController extends _$FeedController {
           forceInvalidatePool: false,
           batchSize: FeedDataConstants.mainFeedBatchSize,
         );
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
     final refreshedAt = DateTime.now();
     final mergedState = _withSpotlightItems(
@@ -495,6 +502,7 @@ class FeedController extends _$FeedController {
   Future<void> onFilterChanged(String filter) async {
     final currentState = state.value;
     if (currentState == null || currentState.currentFilter == filter) return;
+    final requestGeneration = ++_mainFeedRequestGeneration;
 
     state = AsyncValue.data(
       currentState.copyWithFeed(
@@ -509,7 +517,7 @@ class FeedController extends _$FeedController {
     );
 
     final resolvedUser = await _resolveFeedUser();
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
     if (resolvedUser == null) {
       state = AsyncValue.data(
         currentState.copyWithFeed(
@@ -527,7 +535,7 @@ class FeedController extends _$FeedController {
     final user = resolvedUser.user;
     _pendingProfileHydrationRefresh = resolvedUser.usedAuthFallback;
     final blockedIds = await _resolveBlockedIds(user: user);
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
     final baseState = currentState.copyWithFeed(
       currentFilter: filter,
@@ -548,7 +556,7 @@ class FeedController extends _$FeedController {
           forceInvalidatePool: false,
           batchSize: FeedDataConstants.mainFeedBatchSize,
         );
-    if (!ref.mounted) return;
+    if (!_isCurrentMainFeedRequest(requestGeneration)) return;
 
     final refreshedAt = DateTime.now();
     final filteredState = _withSpotlightItems(
