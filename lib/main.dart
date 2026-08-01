@@ -80,6 +80,7 @@ class _BootstrapHost extends StatefulWidget {
 class _BootstrapHostState extends State<_BootstrapHost> {
   Object? _bootstrapError;
   bool _firebaseReady = false;
+  bool _isBootstrapping = false;
   bool _nativeSplashRemoved = false;
   bool _postBootstrapServicesScheduled = false;
 
@@ -98,6 +99,12 @@ class _BootstrapHostState extends State<_BootstrapHost> {
   }
 
   Future<void> _bootstrapFirebase() async {
+    if (_isBootstrapping) return;
+    _isBootstrapping = true;
+    if (_bootstrapError != null && mounted) {
+      setState(() => _bootstrapError = null);
+    }
+
     final bootstrapStopwatch = AppPerformanceTracker.startSpan(
       'bootstrap.firebase',
     );
@@ -149,6 +156,8 @@ class _BootstrapHostState extends State<_BootstrapHost> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _removeNativeSplashIfNeeded();
       });
+    } finally {
+      _isBootstrapping = false;
     }
   }
 
@@ -224,20 +233,33 @@ class _BootstrapHostState extends State<_BootstrapHost> {
       );
     }
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: ColoredBox(
-        color: _bootstrapBackgroundColor,
+    return Material(
+      color: _bootstrapBackgroundColor,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
         child: SizedBox.expand(
           child: _bootstrapError == null
-              ? const SizedBox.expand()
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                )
               : Center(
                   child: Padding(
                     padding: AppSpacing.h24,
-                    child: Text(
-                      'Erro ao iniciar o app.\n${_bootstrapError.runtimeType}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Erro ao iniciar o app.\n${_bootstrapError.runtimeType}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: AppSpacing.s16),
+                        FilledButton(
+                          key: const ValueKey('bootstrap_retry_button'),
+                          onPressed: _bootstrapFirebase,
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
