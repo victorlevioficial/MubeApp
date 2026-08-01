@@ -196,3 +196,6 @@ third_party/**/.gradle/
 # AUTO_MAP.md
 # CODE_INDEX.md
 # PROJECT_MAP.md
+
+# Claude Code skills lockfile (local tooling)
+skills-lock.json
