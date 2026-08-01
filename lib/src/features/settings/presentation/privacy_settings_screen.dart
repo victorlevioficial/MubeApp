@@ -63,8 +63,19 @@ class PrivacySettingsScreen extends ConsumerWidget {
                       ...user.privacySettings,
                       'visible_in_home': val,
                     };
-                    await notifier.updateUser(
+                    final result = await notifier.updateUser(
                       user.copyWith(privacySettings: updatedPrivacy),
+                    );
+                    if (!context.mounted) return;
+                    result.fold(
+                      (failure) => AppSnackBar.error(
+                        context,
+                        l10n.settings_privacy_update_error(failure.message),
+                      ),
+                      (_) => AppSnackBar.success(
+                        context,
+                        l10n.settings_privacy_updated,
+                      ),
                     );
                   },
                 ),
@@ -79,8 +90,19 @@ class PrivacySettingsScreen extends ConsumerWidget {
                       ...user.matchpointProfile ?? {},
                       'is_active': val,
                     };
-                    await notifier.updateUser(
+                    final result = await notifier.updateUser(
                       user.copyWith(matchpointProfile: updatedMatchpoint),
+                    );
+                    if (!context.mounted) return;
+                    result.fold(
+                      (failure) => AppSnackBar.error(
+                        context,
+                        l10n.settings_privacy_update_error(failure.message),
+                      ),
+                      (_) => AppSnackBar.success(
+                        context,
+                        l10n.settings_privacy_updated,
+                      ),
                     );
                   },
                 ),

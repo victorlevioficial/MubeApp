@@ -449,6 +449,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'If disabled, nobody will see you in MatchPoint and you won\'t receive new matches.';
 
   @override
+  String settings_privacy_update_error(Object error) {
+    return 'Error updating privacy setting: $error';
+  }
+
+  @override
+  String get settings_privacy_updated => 'Privacy setting updated.';
+
+  @override
   String get settings_privacy_public_profile_title => 'Public profile';
 
   @override

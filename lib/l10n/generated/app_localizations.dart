@@ -932,6 +932,18 @@ abstract class AppLocalizations {
   /// **'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.'**
   String get settings_privacy_matchpoint_subtitle;
 
+  /// No description provided for @settings_privacy_update_error.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar configuração de privacidade: {error}'**
+  String settings_privacy_update_error(Object error);
+
+  /// No description provided for @settings_privacy_updated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configuração de privacidade atualizada.'**
+  String get settings_privacy_updated;
+
   /// No description provided for @settings_privacy_public_profile_title.
   ///
   /// In pt, this message translates to:

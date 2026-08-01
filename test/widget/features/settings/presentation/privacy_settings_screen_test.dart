@@ -36,6 +36,17 @@ void main() {
     );
   }
 
+  AppUser buildProfessionalUser() {
+    return TestData.user(
+      uid: 'professional-1',
+      nome: 'Musicista',
+      tipoPerfil: AppUserType.professional,
+    ).copyWith(
+      privacySettings: const {'visible_in_home': true, 'chat_open': false},
+      matchpointProfile: const {'is_active': true},
+    );
+  }
+
   Widget createSubject({
     required AppUser user,
     List<String> blockedIds = const ['remote-blocked-user'],
@@ -117,6 +128,28 @@ void main() {
         isTrue,
       );
       expect(find.text('Perfil p\u00FAblico atualizado.'), findsOneWidget);
+    });
+
+    testWidgets('shows a failure when home visibility cannot be saved', (
+      tester,
+    ) async {
+      fakeAuthRepository.shouldThrow = true;
+
+      await tester.pumpWidget(createSubject(user: buildProfessionalUser()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.widgetWithText(SwitchListTile, 'Aparecer na Home e Busca'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Erro ao atualizar configura\u00E7\u00E3o de privacidade: Update failed',
+        ),
+        findsOneWidget,
+      );
+      expect(fakeAuthRepository.lastUpdatedUser, isNull);
     });
   });
 }

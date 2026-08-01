@@ -451,6 +451,15 @@ class AppLocalizationsPt extends AppLocalizations {
       'Se desativado, você não aparecerá para ninguém no MatchPoint e não receberá novos matches.';
 
   @override
+  String settings_privacy_update_error(Object error) {
+    return 'Erro ao atualizar configuração de privacidade: $error';
+  }
+
+  @override
+  String get settings_privacy_updated =>
+      'Configuração de privacidade atualizada.';
+
+  @override
   String get settings_privacy_public_profile_title => 'Perfil público';
 
   @override
