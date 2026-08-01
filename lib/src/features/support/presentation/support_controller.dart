@@ -32,24 +32,27 @@ class SupportController extends _$SupportController {
       final ticketId = const Uuid().v4();
       final List<String> imageUrls = [];
 
-      // Upload attachments — skip individual failures so the ticket is
-      // created with whichever images succeed.
       if (attachments.isNotEmpty) {
         final storage = ref.read(storageRepositoryProvider);
-        for (final file in attachments) {
-          try {
+        try {
+          for (final file in attachments) {
             final url = await storage.uploadSupportAttachment(
               ticketId: ticketId,
               file: file,
             );
             imageUrls.add(url);
-          } catch (e, stack) {
+          }
+        } catch (error, stack) {
+          try {
+            await storage.deleteSupportAttachments(ticketId: ticketId);
+          } catch (cleanupError, cleanupStack) {
             AppLogger.warning(
-              'Failed to upload support attachment, skipping',
-              e,
-              stack,
+              'Failed to clean up support attachments after upload error',
+              cleanupError,
+              cleanupStack,
             );
           }
+          Error.throwWithStackTrace(error, stack);
         }
       }
 

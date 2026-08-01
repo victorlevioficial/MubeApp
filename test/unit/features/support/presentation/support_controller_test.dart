@@ -122,32 +122,34 @@ void main() {
         expect(container.read(supportControllerProvider), isA<AsyncError>());
       });
 
-      test('creates ticket without images when storage upload fails', () async {
-        final user = TestData.user(uid: 'user-1');
-        fakeAuthRepository.emitUser(
-          FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
-        );
-        fakeAuthRepository.appUser = user;
-        fakeAuthRepository.appUser = user;
-        await waitForUser(container);
+      test(
+        'does not create a ticket when an attachment upload fails',
+        () async {
+          final user = TestData.user(uid: 'user-1');
+          fakeAuthRepository.emitUser(
+            FakeFirebaseUser(uid: 'user-1', email: 't@t.com'),
+          );
+          fakeAuthRepository.appUser = user;
+          fakeAuthRepository.appUser = user;
+          await waitForUser(container);
 
-        fakeStorageRepository.throwError = true;
+          fakeStorageRepository.throwError = true;
 
-        final controller = container.read(supportControllerProvider.notifier);
-        final file = File('path/to/file.jpg');
+          final controller = container.read(supportControllerProvider.notifier);
+          final file = File('path/to/file.jpg');
 
-        await controller.submitTicket(
-          title: 'Upload Fail',
-          description: '...',
-          category: 'bug',
-          attachments: [file],
-        );
+          await controller.submitTicket(
+            title: 'Upload Fail',
+            description: '...',
+            category: 'bug',
+            attachments: [file],
+          );
 
-        // Ticket is still created — failed attachments are skipped gracefully
-        expect(container.read(supportControllerProvider), isA<AsyncData>());
-        expect(fakeSupportRepository.tickets.length, 1);
-        expect(fakeSupportRepository.tickets.first.imageUrls, isEmpty);
-      });
+          expect(container.read(supportControllerProvider), isA<AsyncError>());
+          expect(fakeSupportRepository.tickets, isEmpty);
+          expect(fakeStorageRepository.deleteSupportAttachmentsCalls, 1);
+        },
+      );
 
       test('sets state to AsyncError on ticket creation failure', () async {
         final user = TestData.user(uid: 'user-1');

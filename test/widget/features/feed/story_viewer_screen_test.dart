@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mube/src/app.dart' show scaffoldMessengerKey;
 import 'package:mube/src/features/stories/data/story_repository.dart';
 import 'package:mube/src/features/stories/domain/story_constants.dart';
 import 'package:mube/src/features/stories/domain/story_item.dart';
@@ -18,9 +19,10 @@ import 'package:mube/src/features/stories/presentation/services/story_media_pick
 import 'package:network_image_mock/network_image_mock.dart';
 
 class _FakeStoryRepository extends Fake implements StoryRepository {
-  _FakeStoryRepository({this.routeArgs});
+  _FakeStoryRepository({this.routeArgs, this.throwOnDelete = false});
 
   final StoryViewerRouteArgs? routeArgs;
+  final bool throwOnDelete;
   final List<String> deletedStoryIds = <String>[];
 
   @override
@@ -28,6 +30,9 @@ class _FakeStoryRepository extends Fake implements StoryRepository {
 
   @override
   Future<void> deleteStory(StoryItem story) async {
+    if (throwOnDelete) {
+      throw StoryRepositoryException.deleteFailed();
+    }
     deletedStoryIds.add(story.id);
   }
 
@@ -113,7 +118,10 @@ void main() {
             overrides: [
               storyRepositoryProvider.overrideWithValue(_FakeStoryRepository()),
             ],
-            child: MaterialApp(home: StoryViewerScreen(args: args)),
+            child: MaterialApp(
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              home: StoryViewerScreen(args: args),
+            ),
           ),
         );
         await tester.pump();
@@ -196,6 +204,55 @@ void main() {
         expect(find.text('Story para excluir'), findsNothing);
       },
     );
+
+    testWidgets('keeps the current story visible when deletion fails', (
+      tester,
+    ) async {
+      final story = _story(
+        id: 'story-delete-failure',
+        caption: 'Story preservado',
+        createdAt: DateTime(2026, 4, 10, 8),
+      );
+      final args = StoryViewerRouteArgs(
+        bundles: [
+          _bundle([story], isCurrentUser: true),
+        ],
+        initialOwnerUid: 'owner-user',
+        initialStoryId: story.id,
+      );
+
+      await mockNetworkImagesFor(() async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              storyRepositoryProvider.overrideWithValue(
+                _FakeStoryRepository(throwOnDelete: true),
+              ),
+            ],
+            child: MaterialApp(
+              scaffoldMessengerKey: scaffoldMessengerKey,
+              home: StoryViewerScreen(args: args),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+      });
+
+      await tester.tap(find.byIcon(Icons.delete_outline_rounded));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.text('Excluir'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Story preservado'), findsOneWidget);
+      expect(
+        find.text('Não foi possível excluir o story. Tente novamente.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
 
     testWidgets(
       'resumes image timer when the image becomes ready while paused',

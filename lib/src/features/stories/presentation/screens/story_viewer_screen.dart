@@ -257,6 +257,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
 
   Future<void> _confirmDeleteCurrentStory() async {
     final story = _currentStory;
+    _pauseStory();
     final shouldDelete = await AppOverlay.dialog<bool>(
       context: context,
       builder: (context) {
@@ -288,9 +289,25 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       },
     );
 
-    if (shouldDelete != true || !mounted) return;
+    if (!mounted) return;
+    if (shouldDelete != true) {
+      _resumeStory();
+      return;
+    }
 
-    await ref.read(storyViewerControllerProvider).deleteStory(story);
+    try {
+      await ref.read(storyViewerControllerProvider).deleteStory(story);
+    } catch (error, stackTrace) {
+      AppLogger.error('Falha ao excluir story na interface', error, stackTrace);
+      if (mounted) {
+        _resumeStory();
+        AppSnackBar.error(
+          context,
+          'Não foi possível excluir o story. Tente novamente.',
+        );
+      }
+      return;
+    }
 
     final updatedBundles = <StoryTrayBundle>[];
     for (final bundle in _bundles) {

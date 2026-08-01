@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/services/image_cache_config.dart';
+import '../../../design_system/components/buttons/app_button.dart';
 import '../../../design_system/components/feedback/app_overlay.dart';
+import '../../../design_system/components/feedback/empty_state_widget.dart';
 import '../../../design_system/components/loading/app_loading_indicator.dart';
 import '../../../design_system/components/navigation/app_app_bar.dart';
 import '../../../design_system/foundations/tokens/app_colors.dart';
@@ -22,27 +25,78 @@ class TicketDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If ticket object is passed, use it. Otherwise, try to find it in the provider.
-    Ticket? ticket = ticketObj;
-
-    if (ticket == null) {
-      final ticketsAsync = ref.watch(userTicketsProvider);
-      ticket = ticketsAsync.asData?.value.cast<Ticket?>().firstWhere(
-        (t) => t?.id == ticketId,
-        orElse: () => null,
-      );
+    final initialTicket = ticketObj;
+    if (initialTicket != null) {
+      return _buildTicket(context, initialTicket);
     }
 
-    if (ticket == null) {
-      return const Scaffold(
+    final ticketsAsync = ref.watch(userTicketsProvider);
+    return ticketsAsync.when(
+      loading: () => const Scaffold(
         appBar: AppAppBar(title: 'Detalhes do Chamado'),
         body: Center(child: AppLoadingIndicator()),
-      );
-    }
+      ),
+      error: (error, _) => _buildUnavailable(
+        title: 'Não foi possível carregar o chamado',
+        subtitle: resolveErrorMessage(error),
+        onRetry: () => ref.invalidate(userTicketsProvider),
+      ),
+      data: (tickets) {
+        Ticket? resolvedTicket;
+        for (final candidate in tickets) {
+          if (candidate.id == ticketId) {
+            resolvedTicket = candidate;
+            break;
+          }
+        }
 
+        if (resolvedTicket == null) {
+          return _buildUnavailable(
+            title: 'Chamado não encontrado',
+            subtitle:
+                'Ele pode ter sido removido ou não estar mais disponível.',
+          );
+        }
+
+        return _buildTicket(context, resolvedTicket);
+      },
+    );
+  }
+
+  Widget _buildUnavailable({
+    required String title,
+    required String subtitle,
+    VoidCallback? onRetry,
+  }) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppAppBar(title: '#${ticket.id.substring(0, 8)}'),
+      appBar: const AppAppBar(title: 'Detalhes do Chamado'),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.s24),
+          child: EmptyStateWidget(
+            icon: Icons.support_agent_outlined,
+            title: title,
+            subtitle: subtitle,
+            actionButton: onRetry == null
+                ? null
+                : AppButton.secondary(
+                    text: 'Tentar novamente',
+                    onPressed: onRetry,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTicket(BuildContext context, Ticket ticket) {
+    final shortId = ticket.id.length <= 8
+        ? ticket.id
+        : ticket.id.substring(0, 8);
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppAppBar(title: '#$shortId'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(
@@ -76,7 +130,7 @@ class TicketDetailScreen extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
-                        _showFullScreenImage(context, ticket!.imageUrls[index]);
+                        _showFullScreenImage(context, ticket.imageUrls[index]);
                       },
                       child: Container(
                         width: 120,
@@ -85,7 +139,7 @@ class TicketDetailScreen extends ConsumerWidget {
                           border: Border.all(color: AppColors.surfaceHighlight),
                           image: DecorationImage(
                             image: CachedNetworkImageProvider(
-                              ticket!.imageUrls[index],
+                              ticket.imageUrls[index],
                               cacheManager:
                                   ImageCacheConfig.optimizedCacheManager,
                               maxWidth: 640,

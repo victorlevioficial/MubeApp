@@ -111,7 +111,7 @@ class _TicketCard extends StatelessWidget {
         color: AppColors.transparent,
         child: InkWell(
           onTap: () {
-            context.go(
+            context.push(
               RoutePaths.supportTicketDetailById(ticket.id),
               extra: ticket,
             );
