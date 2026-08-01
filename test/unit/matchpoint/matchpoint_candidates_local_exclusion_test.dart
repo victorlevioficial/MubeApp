@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -80,6 +82,74 @@ void main() {
       ),
     );
 
+    final container = ProviderContainer(
+      overrides: [
+        authRepositoryProvider.overrideWithValue(authRepository),
+        currentUserProfileProvider.overrideWithValue(
+          const AsyncData(
+            AppUser(
+              uid: 'user-1',
+              email: 'user-1@mube.app',
+              nome: 'User 1',
+              matchpointProfile: {
+                'musicalGenres': ['rock'],
+              },
+              privacySettings: {},
+              blockedUsers: [],
+            ),
+          ),
+        ),
+        appConfigProvider.overrideWith((ref) async => const AppConfig()),
+        blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+        matchpointFeedRepositoryProvider.overrideWithValue(
+          _FakeMatchpointFeedRepository(),
+        ),
+        matchpointSwipeOutboxStoreProvider.overrideWithValue(outboxStore),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(authRepository.dispose);
+
+    final candidates = await container.read(
+      matchpointCandidatesProvider.future,
+    );
+
+    expect(candidates.map((candidate) => candidate.uid).toList(), ['target-2']);
+  });
+
+  test('MatchpointCandidates excludes users already swiped locally', () async {
+    SharedPreferences.setMockInitialValues({
+      'swipe_history_user-1': jsonEncode([
+        {
+          'targetUserId': 'target-1',
+          'targetUserName': 'Target 1',
+          'targetUserPhoto': null,
+          'action': 'dislike',
+          'timestamp': DateTime(2026, 4, 9, 1).toIso8601String(),
+        },
+      ]),
+    });
+
+    final authRepository =
+        FakeAuthRepository(
+            initialUser: FakeFirebaseUser(
+              uid: 'user-1',
+              email: 'user-1@mube.app',
+            ),
+          )
+          ..appUser = const AppUser(
+            uid: 'user-1',
+            email: 'user-1@mube.app',
+            nome: 'User 1',
+            matchpointProfile: {
+              'musicalGenres': ['rock'],
+            },
+            privacySettings: {},
+            blockedUsers: [],
+          );
+    final outboxStore = MatchpointSwipeOutboxStore(
+      SharedPreferences.getInstance,
+    );
     final container = ProviderContainer(
       overrides: [
         authRepositoryProvider.overrideWithValue(authRepository),

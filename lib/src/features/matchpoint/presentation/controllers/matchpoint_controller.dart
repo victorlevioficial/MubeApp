@@ -950,6 +950,9 @@ class MatchpointCandidates extends _$MatchpointCandidates {
     final pendingOutboxTargetIds = await _loadPendingOutboxTargetIds(
       currentUser.uid,
     );
+    final swipedTargetIds = await ref
+        .read(swipeHistoryProvider.notifier)
+        .loadTargetIdsForUser(currentUser.uid);
 
     final repo = ref.read(matchpointFeedRepositoryProvider);
     AppLogger.breadcrumb('mp:cand:repo_call');
@@ -970,14 +973,16 @@ class MatchpointCandidates extends _$MatchpointCandidates {
       (snapshot) {
         final locallyFilteredCandidates = snapshot.candidates
             .where(
-              (candidate) => !pendingOutboxTargetIds.contains(candidate.uid),
+              (candidate) =>
+                  !pendingOutboxTargetIds.contains(candidate.uid) &&
+                  !swipedTargetIds.contains(candidate.uid),
             )
             .toList(growable: false);
         if (locallyFilteredCandidates.length != snapshot.candidates.length) {
           AppLogger.info(
             'MatchPoint local exclusion filtered '
             '${snapshot.candidates.length - locallyFilteredCandidates.length} '
-            'pending outbox candidates',
+            'already swiped or pending outbox candidates',
           );
         }
         AppLogger.info(
@@ -1175,30 +1180,51 @@ class SwipeHistory extends _$SwipeHistory {
 
   Future<void> _loadFromStorage(String userId) async {
     try {
-      final prefs = await ref.read(sharedPreferencesLoaderProvider)();
-      if (!ref.mounted) return;
-      final jsonStr =
-          prefs.getString(_storageKeyForUser(userId)) ??
-          prefs.getString(_legacyStorageKey);
-      if (jsonStr == null) return;
-
-      final list = (jsonDecode(jsonStr) as List)
-          .map((e) => SwipeHistoryEntry.fromJson(e as Map<String, dynamic>))
-          .toList();
-
-      final seenTargets = <String>{};
-      final normalized = list
-          .where((item) => seenTargets.add(item.targetUserId))
-          .toList();
-
+      final list = await _readStoredHistory(userId);
       if (!ref.mounted) return;
       final currentUserId = ref.read(authRepositoryProvider).currentUser?.uid;
       if (currentUserId != null && currentUserId != userId) return;
 
-      state = normalized;
+      state = list;
     } catch (e, st) {
       AppLogger.warning('Failed to load swipe history', e, st);
     }
+  }
+
+  Future<Set<String>> loadTargetIdsForUser(String userId) async {
+    try {
+      final history = await _readStoredHistory(userId);
+      return history
+          .map((item) => item.targetUserId.trim())
+          .where((targetId) => targetId.isNotEmpty)
+          .toSet();
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to load swiped MatchPoint users for local exclusion',
+        error,
+        stackTrace,
+        false,
+      );
+      return const <String>{};
+    }
+  }
+
+  Future<List<SwipeHistoryEntry>> _readStoredHistory(String userId) async {
+    final prefs = await ref.read(sharedPreferencesLoaderProvider)();
+    final jsonStr =
+        prefs.getString(_storageKeyForUser(userId)) ??
+        prefs.getString(_legacyStorageKey);
+    if (jsonStr == null) return const [];
+
+    final list = (jsonDecode(jsonStr) as List)
+        .map(
+          (entry) => SwipeHistoryEntry.fromJson(entry as Map<String, dynamic>),
+        )
+        .toList();
+    final seenTargets = <String>{};
+    return list
+        .where((item) => seenTargets.add(item.targetUserId))
+        .toList(growable: false);
   }
 
   Future<void> _saveToStorage() async {
