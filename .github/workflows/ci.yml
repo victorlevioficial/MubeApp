@@ -362,7 +362,11 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       - name: Update CocoaPods specs
-        run: pod repo update
+        # The committed Podfile.lock is refreshed from a Mac; drop it here so
+        # this build-check job resolves pods against the current plugin set.
+        run: |
+          pod repo update
+          rm -f ios/Podfile.lock
 
       - name: Restore iOS Firebase config
         env:
