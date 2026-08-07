@@ -100,10 +100,14 @@ class OfflineIndicator extends ConsumerWidget {
                   color: AppColors.textPrimary,
                 ),
                 const SizedBox(width: AppSpacing.s8),
-                Text(
-                  'Sem conexão com a internet',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textPrimary,
+                Flexible(
+                  child: Text(
+                    'Sem conexão com a internet',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],

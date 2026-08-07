@@ -18,12 +18,17 @@ class OrDivider extends StatelessWidget {
             thickness: 1,
           ),
         ),
-        Padding(
-          padding: AppSpacing.h16,
-          child: Text(
-            text,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+        Flexible(
+          child: Padding(
+            padding: AppSpacing.h16,
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         ),

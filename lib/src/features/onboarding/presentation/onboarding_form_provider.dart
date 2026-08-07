@@ -252,6 +252,7 @@ class OnboardingFormState {
 class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   static const _storageKey = 'onboarding_form_state';
   static const _persistDebounce = Duration(milliseconds: 350);
+  static const _authRestoreTimeout = Duration(seconds: 8);
   static const _storageUidKey = 'uid';
   static const _storageStateKey = 'state';
 
@@ -280,21 +281,31 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     final prefs = await _getPrefs();
     if (!ref.mounted) return;
     final jsonStr = prefs.getString(_storageKey);
-    if (jsonStr != null) {
-      try {
-        final restoredState = _decodePersistedState(jsonStr);
-        if (restoredState != null) {
-          state = restoredState;
-        } else {
-          await prefs.remove(_storageKey);
-        }
-      } catch (error, stackTrace) {
-        AppLogger.warning(
-          'Falha ao restaurar estado do onboarding',
-          error,
-          stackTrace,
-        );
+    if (jsonStr == null) return;
+
+    final currentUserId = await _awaitCurrentUserId();
+    if (!ref.mounted) return;
+    if (currentUserId == null || currentUserId.isEmpty) {
+      // Identity still unknown: keep the draft untouched so a later load can
+      // restore it. Dropping it here is what used to wipe a half-finished
+      // signup whenever the app restarted mid-onboarding.
+      return;
+    }
+
+    try {
+      final restoredState = _decodePersistedState(jsonStr, currentUserId);
+      if (restoredState != null) {
+        state = restoredState;
+      } else {
+        // Corrupt payload, or a draft belonging to another account.
+        await prefs.remove(_storageKey);
       }
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Falha ao restaurar estado do onboarding',
+        error,
+        stackTrace,
+      );
     }
   }
 
@@ -303,7 +314,8 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     if (!ref.mounted) return;
     final currentUserId = _currentUserIdOrNull();
     if (currentUserId == null || currentUserId.isEmpty) {
-      await prefs.remove(_storageKey);
+      // Never delete on an unknown identity — the draft may belong to a
+      // session Firebase Auth has not finished restoring.
       return;
     }
 
@@ -314,14 +326,31 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     await prefs.setString(_storageKey, payload);
   }
 
-  OnboardingFormState? _decodePersistedState(String rawJson) {
-    final decoded = json.decode(rawJson);
-    if (decoded is! Map) {
+  /// Resolves the signed-in uid, waiting for Firebase Auth to restore the
+  /// session when it has not settled yet.
+  Future<String?> _awaitCurrentUserId() async {
+    final immediate = _currentUserIdOrNull();
+    if (immediate != null && immediate.isNotEmpty) return immediate;
+    if (Firebase.apps.isEmpty) return null;
+
+    try {
+      final user = await ref
+          .read(authRepositoryProvider)
+          .authStateChanges()
+          .firstWhere((user) => user != null)
+          .timeout(_authRestoreTimeout, onTimeout: () => null);
+      return user?.uid;
+    } catch (_) {
       return null;
     }
+  }
 
-    final currentUserId = _currentUserIdOrNull();
-    if (currentUserId == null || currentUserId.isEmpty) {
+  OnboardingFormState? _decodePersistedState(
+    String rawJson,
+    String currentUserId,
+  ) {
+    final decoded = json.decode(rawJson);
+    if (decoded is! Map) {
       return null;
     }
 

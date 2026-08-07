@@ -60,10 +60,14 @@ class SocialLoginButton extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.s12),
-            Text(
-              text,
-              style: AppTypography.buttonSecondary.copyWith(
-                color: Theme.of(context).colorScheme.onSurface,
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.buttonSecondary.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
             ),
           ],
