@@ -18,7 +18,11 @@ class OrDivider extends StatelessWidget {
             thickness: 1,
           ),
         ),
+        // High flex with the default loose fit: the label takes only the width
+        // it needs and the rules split what is left, but on a narrow screen it
+        // can still shrink instead of overflowing the row.
         Flexible(
+          flex: 100,
           child: Padding(
             padding: AppSpacing.h16,
             child: Text(
