@@ -8,41 +8,51 @@ class OrDivider extends StatelessWidget {
 
   const OrDivider({super.key, this.text = 'Ou'});
 
+  /// Share of the row the label may take before it starts truncating. Leaves
+  /// room for a visible rule on each side.
+  static const double _maxLabelWidthFactor = 0.7;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Divider(
-            color: Theme.of(context).colorScheme.outline,
-            thickness: 1,
-          ),
-        ),
-        // High flex with the default loose fit: the label takes only the width
-        // it needs and the rules split what is left, but on a narrow screen it
-        // can still shrink instead of overflowing the row.
-        Flexible(
-          flex: 100,
-          child: Padding(
-            padding: AppSpacing.h16,
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          children: [
+            Expanded(
+              child: Divider(
+                color: Theme.of(context).colorScheme.outline,
+                thickness: 1,
               ),
             ),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            color: Theme.of(context).colorScheme.outline,
-            thickness: 1,
-          ),
-        ),
-      ],
+            // Natural width up to a cap: keeps the label intact on normal
+            // screens and lets it ellipsize on narrow ones instead of
+            // overflowing the row.
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth * _maxLabelWidthFactor,
+              ),
+              child: Padding(
+                padding: AppSpacing.h16,
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: Theme.of(context).colorScheme.outline,
+                thickness: 1,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
