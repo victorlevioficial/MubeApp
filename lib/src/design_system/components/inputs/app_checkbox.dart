@@ -21,6 +21,7 @@ class AppCheckbox extends StatelessWidget {
       onTap: () => onChanged(!value),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 24,
@@ -34,10 +35,14 @@ class AppCheckbox extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.s8),
-          Text(
-            label,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+          // Labels here are full sentences ("Tenho 18 anos ou mais"), which
+          // overflow a narrow row once the font scale grows. Let them wrap.
+          Flexible(
+            child: Text(
+              label,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
         ],
