@@ -104,7 +104,7 @@ void main() {
 
   group('StoryRepository', () {
     test('resolveImageUploadTarget preserves jpeg fallback metadata', () {
-      final target = StoryRepository.resolveImageUploadTarget(
+      final target = StoryMediaUploader.resolveImageUploadTarget(
         file: File('story_photo.jpg'),
         basePathWithoutExtension: 'stories_images/user/story/full',
       );
@@ -114,7 +114,7 @@ void main() {
     });
 
     test('resolveImageUploadTarget keeps webp uploads as webp', () {
-      final target = StoryRepository.resolveImageUploadTarget(
+      final target = StoryMediaUploader.resolveImageUploadTarget(
         file: File('story_photo.webp'),
         basePathWithoutExtension: 'stories_images/user/story/full',
       );
@@ -126,7 +126,7 @@ void main() {
     test(
       'resolveOriginalImageUploadTarget falls back to jpeg for unknown extensions',
       () {
-        final target = StoryRepository.resolveOriginalImageUploadTarget(
+        final target = StoryMediaUploader.resolveOriginalImageUploadTarget(
           file: File('IMG_1234.HEIC'),
           basePathWithoutExtension: 'stories_images/user/story/full',
         );
@@ -139,7 +139,7 @@ void main() {
     test(
       'resolveOriginalImageUploadTarget preserves explicit webp uploads',
       () {
-        final target = StoryRepository.resolveOriginalImageUploadTarget(
+        final target = StoryMediaUploader.resolveOriginalImageUploadTarget(
           file: File('story_photo.webp'),
           basePathWithoutExtension: 'stories_images/user/story/full',
         );
