@@ -157,13 +157,14 @@ class _GalleryItem extends StatelessWidget {
                           maxWidthDiskCache: diskWidth,
                           placeholder: (context, url) =>
                               AppShimmer.box(borderRadius: AppRadius.r8),
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.surface,
-                            child: const Icon(
-                              Icons.broken_image,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                          errorWidget: (context, url, error) =>
+                              const ColoredBox(
+                                color: AppColors.surface,
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                           errorListener: (error) =>
                               AppLogger.logHandledImageError(
                                 source: 'PublicGalleryGrid.item',
@@ -173,9 +174,9 @@ class _GalleryItem extends StatelessWidget {
                         );
                       },
                     )
-                  : Container(
+                  : const ColoredBox(
                       color: AppColors.surface,
-                      child: const Icon(
+                      child: Icon(
                         Icons.videocam_outlined,
                         color: AppColors.textSecondary,
                       ),

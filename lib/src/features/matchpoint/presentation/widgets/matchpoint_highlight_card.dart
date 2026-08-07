@@ -39,7 +39,7 @@ class MatchpointHighlightCard extends StatelessWidget {
     final content = _MatchpointHighlightContent.fromState(state);
     final isCompactWidth = MediaQuery.sizeOf(context).width < 380;
 
-    return Container(
+    return DecoratedBox(
       key: const ValueKey('matchpoint_highlight_card'),
       decoration: BoxDecoration(
         gradient: LinearGradient(

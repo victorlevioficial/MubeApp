@@ -63,7 +63,7 @@ class LegalDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.all16,
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: AppRadius.all16,

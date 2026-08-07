@@ -24,7 +24,7 @@ import '../../helpers/test_fakes.dart';
 /// - Conversation list renders with preview text for the other user.
 /// - Tapping a conversation routes to the chat screen for that id.
 void main() {
-  setUpAll(() async => await setupFirebaseCoreMocks());
+  setUpAll(() async => setupFirebaseCoreMocks());
 
   group('Chat Flow Integration Tests', () {
     late FakeAuthRepository fakeAuthRepo;

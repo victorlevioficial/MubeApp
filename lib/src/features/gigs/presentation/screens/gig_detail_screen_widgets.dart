@@ -877,7 +877,7 @@ class _GigDetailSkeleton extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         // Header skeleton with accent bar
-        Container(
+        DecoratedBox(
           decoration: const BoxDecoration(color: AppColors.surface),
           child: Column(
             children: [

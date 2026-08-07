@@ -56,7 +56,7 @@ class _ConfettiOverlayState extends State<ConfettiOverlay>
         return AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            for (var p in _particles) {
+            for (final p in _particles) {
               p.update(width, height);
             }
             return CustomPaint(
@@ -126,7 +126,7 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var p in particles) {
+    for (final p in particles) {
       final paint = Paint()..color = p.color;
       canvas.save();
       canvas.translate(p.x % size.width, p.y);

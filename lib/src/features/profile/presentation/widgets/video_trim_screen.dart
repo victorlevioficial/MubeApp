@@ -441,7 +441,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
                       ),
                       const SizedBox(height: AppSpacing.s16),
                       Expanded(
-                        child: Container(
+                        child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: AppColors.surface,
                             borderRadius: AppRadius.all16,
@@ -566,7 +566,7 @@ class _VideoTrimScreenState extends State<VideoTrimScreen> {
                 ),
               ),
             if (_isExporting)
-              Container(
+              ColoredBox(
                 color: AppColors.background.withValues(alpha: 0.6),
                 child: const Center(child: CircularProgressIndicator()),
               ),

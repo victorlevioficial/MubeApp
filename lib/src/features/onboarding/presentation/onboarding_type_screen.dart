@@ -263,7 +263,7 @@ class _OnboardingTypeScreenState extends ConsumerState<OnboardingTypeScreen>
                   ),
                   SafeArea(
                     top: false,
-                    child: Container(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         border: const Border(

@@ -316,7 +316,7 @@ class _FooterIconButton extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             borderRadius: AppRadius.all16,
-            child: Container(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: AppRadius.all16,
                 border: Border.all(

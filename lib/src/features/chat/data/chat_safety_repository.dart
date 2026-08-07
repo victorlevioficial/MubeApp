@@ -80,7 +80,7 @@ class ChatSafetyRepository {
         '$functionName retornou ${error.code}. Atualizando contexto e tentando novamente.',
       );
       await _refreshFunctionSecurityContext();
-      return await callable.call(data);
+      return callable.call(data);
     }
   }
 

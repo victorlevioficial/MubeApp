@@ -196,7 +196,7 @@ class SearchController extends Notifier<SearchPaginationState> {
         effectiveFilters: nextFilters,
         items: shouldRunSearch ? state.items : const [],
         status: shouldRunSearch ? state.status : PaginationStatus.initial,
-        hasMore: shouldRunSearch ? state.hasMore : false,
+        hasMore: shouldRunSearch && state.hasMore,
         currentPage: shouldRunSearch ? state.currentPage : 0,
         clearError: true,
         clearLastDocument: !shouldRunSearch,

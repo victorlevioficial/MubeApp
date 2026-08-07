@@ -407,7 +407,7 @@ class _FilledSlot extends StatelessWidget {
           if (isProcessing)
             ClipRRect(
               borderRadius: AppRadius.all12,
-              child: Container(
+              child: ColoredBox(
                 color: AppColors.background.withValues(alpha: 0.5),
                 child: Center(
                   child: SizedBox(
@@ -455,9 +455,9 @@ class _FilledSlot extends StatelessWidget {
       return Image.file(
         File(item.localPath!),
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
+        errorBuilder: (context, error, stackTrace) => const ColoredBox(
           color: AppColors.surface,
-          child: const Icon(Icons.error, color: AppColors.error),
+          child: Icon(Icons.error, color: AppColors.error),
         ),
       );
     }
@@ -472,9 +472,9 @@ class _FilledSlot extends StatelessWidget {
       memCacheWidth: 300,
       maxWidthDiskCache: 600,
       placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
-      errorWidget: (context, url, error) => Container(
+      errorWidget: (context, url, error) => const ColoredBox(
         color: AppColors.surface,
-        child: const Icon(Icons.error, color: AppColors.error),
+        child: Icon(Icons.error, color: AppColors.error),
       ),
       errorListener: (error) => AppLogger.logHandledImageError(
         source: 'GalleryGrid.photoSlot',
@@ -514,7 +514,7 @@ class _VideoCard extends StatelessWidget {
           if (isProcessing)
             ClipRRect(
               borderRadius: AppRadius.all12,
-              child: Container(
+              child: ColoredBox(
                 color: AppColors.background.withValues(alpha: 0.5),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -590,9 +590,9 @@ class _VideoCard extends StatelessWidget {
       return Image.file(
         File(item.localThumbnailPath!),
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
+        errorBuilder: (context, error, stackTrace) => const ColoredBox(
           color: AppColors.surface,
-          child: const Icon(Icons.videocam_off, color: AppColors.textSecondary),
+          child: Icon(Icons.videocam_off, color: AppColors.textSecondary),
         ),
       );
     }
@@ -608,9 +608,9 @@ class _VideoCard extends StatelessWidget {
         memCacheWidth: 300,
         maxWidthDiskCache: 600,
         placeholder: (context, url) => AppShimmer.box(borderRadius: 12),
-        errorWidget: (context, url, error) => Container(
+        errorWidget: (context, url, error) => const ColoredBox(
           color: AppColors.surface,
-          child: const Icon(Icons.videocam_off, color: AppColors.textSecondary),
+          child: Icon(Icons.videocam_off, color: AppColors.textSecondary),
         ),
         errorListener: (error) => AppLogger.logHandledImageError(
           source: 'GalleryGrid.videoSlot',
@@ -620,9 +620,9 @@ class _VideoCard extends StatelessWidget {
       );
     }
 
-    return Container(
+    return const ColoredBox(
       color: AppColors.surface,
-      child: const Center(
+      child: Center(
         child: Icon(Icons.videocam, color: AppColors.textSecondary),
       ),
     );

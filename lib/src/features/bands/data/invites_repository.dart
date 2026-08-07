@@ -98,7 +98,7 @@ class InvitesRepository {
         '$functionName retornou ${error.code}. Atualizando contexto de seguranca e tentando novamente.',
       );
       await _refreshFunctionSecurityContext();
-      return await callable.call(data);
+      return callable.call(data);
     }
   }
 

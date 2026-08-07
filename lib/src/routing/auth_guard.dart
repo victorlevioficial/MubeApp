@@ -254,7 +254,7 @@ class AuthGuard {
     }
 
     if (user.isCadastroConcluido) {
-      return await _guardCompletedUser(currentPath);
+      return _guardCompletedUser(currentPath);
     }
 
     return null;

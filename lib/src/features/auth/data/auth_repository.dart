@@ -362,7 +362,7 @@ class AuthRepository {
   }
 
   Future<bool> isEmailVerified() async {
-    return await _dataSource.isEmailVerified();
+    return _dataSource.isEmailVerified();
   }
 
   /// Verifica o claim `email_verified` presente no ID token usado pelas Rules.

@@ -300,7 +300,7 @@ class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
     final displayName = widget.user?.appDisplayName ?? 'Usuário';
     final categoryLabel = _categoryLabel(widget.user);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
@@ -583,7 +583,7 @@ class _ApplicantCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,

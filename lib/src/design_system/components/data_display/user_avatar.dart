@@ -72,7 +72,7 @@ class UserAvatar extends StatelessWidget {
                 : null,
           ),
           child: ClipOval(
-            child: Container(
+            child: ColoredBox(
               color: AppColors.surface, // Background for the image area
               child: _buildContent(context),
             ),
@@ -144,7 +144,7 @@ class UserAvatar extends StatelessWidget {
     // Calculate font size based on avatar size
     final fontSize = size * 0.38;
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: bgColor,
         gradient: LinearGradient(

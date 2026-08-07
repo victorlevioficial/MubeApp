@@ -34,7 +34,7 @@ class MatchCard extends StatelessWidget {
       hint: onTap != null ? 'Toque para ver mais detalhes' : null,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: AppRadius.all24,
             color: AppColors.surface,
@@ -55,9 +55,9 @@ class MatchCard extends StatelessWidget {
                     fadeOutDuration: Duration.zero,
                     useOldImageOnUrlChange: false,
                     cacheManager: ImageCacheConfig.profileCacheManager,
-                    placeholder: (context, url) => Container(
+                    placeholder: (context, url) => const ColoredBox(
                       color: AppColors.surfaceHighlight,
-                      child: const Center(
+                      child: Center(
                         child: CircularProgressIndicator(
                           color: AppColors.primary,
                         ),

@@ -72,3 +72,15 @@ linter:
     - use_build_context_synchronously
     - avoid_function_literals_in_foreach_calls
     - prefer_const_literals_to_create_immutables
+    # Widget efficiency & modern syntax
+    - use_super_parameters
+    - unnecessary_await_in_return
+    - prefer_final_in_for_each
+    - unnecessary_parenthesis
+    - avoid_bool_literals_in_conditional_expressions
+    - join_return_with_assignment
+    - no_leading_underscores_for_local_identifiers
+    - prefer_null_aware_method_calls
+    - sized_box_shrink_expand
+    - use_colored_box
+    - use_decorated_box

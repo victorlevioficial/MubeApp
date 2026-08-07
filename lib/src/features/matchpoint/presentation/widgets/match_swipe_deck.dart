@@ -160,7 +160,7 @@ class _MatchSwipeDeckState extends State<MatchSwipeDeck> {
                       // Swipe Overlay
                       if (opacity > 0.05)
                         Positioned.fill(
-                          child: Container(
+                          child: DecoratedBox(
                             decoration: BoxDecoration(
                               borderRadius: AppRadius.all16,
                               color:

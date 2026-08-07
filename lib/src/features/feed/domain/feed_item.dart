@@ -57,7 +57,7 @@ sealed class FeedItem with _$FeedItem {
   }
 
   /// Whether the profile has an avatar photo configured.
-  bool get hasAvatarPhoto => (foto?.trim().isNotEmpty ?? false);
+  bool get hasAvatarPhoto => foto?.trim().isNotEmpty ?? false;
 
   /// Formatted genres (converts snake_case IDs to readable labels)
   List<String> get formattedGenres =>

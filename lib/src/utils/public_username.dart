@@ -14,11 +14,9 @@ String normalizePublicUsername(String raw) {
     normalized = normalized.substring(1);
   }
 
-  normalized = normalized
+  return normalized
       .replaceAll(RegExp(r'\s+'), '')
       .replaceAll(RegExp(r'[^a-z0-9._]'), '');
-
-  return normalized;
 }
 
 String? normalizedPublicUsernameOrNull(String? raw) {

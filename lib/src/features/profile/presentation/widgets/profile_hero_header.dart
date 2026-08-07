@@ -131,7 +131,7 @@ class ProfileHeroHeader extends StatelessWidget {
         user.avatarPreviewUrl != null && user.avatarPreviewUrl!.isNotEmpty;
     final metadata = _buildMetadata(typeColor);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,

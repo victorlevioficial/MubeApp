@@ -101,7 +101,7 @@ class _TicketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(ticket.createdAt);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all12,

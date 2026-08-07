@@ -51,7 +51,7 @@ Gig _buildOpenGig({
 }
 
 void main() {
-  setUpAll(() async => await setupFirebaseCoreMocks());
+  setUpAll(() async => setupFirebaseCoreMocks());
 
   group('Gigs Flow Integration Tests', () {
     late FakeAuthRepository fakeAuthRepo;

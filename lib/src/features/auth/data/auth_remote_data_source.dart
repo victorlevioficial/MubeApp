@@ -473,7 +473,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         '$functionName retornou ${error.code}. Atualizando contexto de seguranca e tentando novamente.',
       );
       await _refreshFunctionSecurityContext();
-      return await _invokeCallable(targetFunctions, functionName, data: data);
+      return _invokeCallable(targetFunctions, functionName, data: data);
     }
   }
 

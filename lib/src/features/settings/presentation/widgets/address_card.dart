@@ -61,7 +61,7 @@ class AddressCard extends StatelessWidget {
         ),
     ];
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

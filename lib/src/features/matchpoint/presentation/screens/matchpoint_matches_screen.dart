@@ -140,7 +140,7 @@ class _MatchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppAnimatedPress(
       onPressed: onTap,
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: AppRadius.all16,

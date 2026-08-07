@@ -269,7 +269,7 @@ class _ApplicationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _statusColor(application.status);
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,
@@ -461,7 +461,7 @@ class _MyApplicationCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: AppRadius.all16,

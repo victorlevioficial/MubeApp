@@ -238,7 +238,7 @@ class _SpotlightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: DecoratedBox(
         decoration: _cardDecoration,
         child: ClipRRect(
           borderRadius: AppRadius.all20,
@@ -253,15 +253,15 @@ class _SpotlightCard extends StatelessWidget {
                   fadeInDuration: Duration.zero,
                 )
               else
-                Container(
-                  decoration: const BoxDecoration(
+                const DecoratedBox(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [AppColors.surface, AppColors.surface2],
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.person,
                       size: 64,

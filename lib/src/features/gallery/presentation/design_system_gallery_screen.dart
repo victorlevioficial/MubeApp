@@ -393,7 +393,7 @@ class _DesignSystemGalleryScreenState extends State<DesignSystemGalleryScreen> {
         ),
         const Spacer(),
         // Example visualization
-        Container(
+        DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.surfaceHighlight),
             borderRadius: AppRadius.all4,

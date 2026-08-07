@@ -47,7 +47,7 @@ class MatchProfilePreviewSheet extends StatelessWidget {
       builder: (context, scrollController) {
         final bottomPadding =
             MediaQuery.viewPaddingOf(context).bottom + AppSpacing.s24;
-        return Container(
+        return DecoratedBox(
           decoration: const BoxDecoration(
             color: AppColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

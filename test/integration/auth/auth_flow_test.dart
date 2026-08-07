@@ -18,7 +18,7 @@ import '../../helpers/firebase_test_config.dart';
 import 'auth_flow_test.mocks.dart';
 
 void main() {
-  setUpAll(() async => await setupFirebaseCoreMocks());
+  setUpAll(() async => setupFirebaseCoreMocks());
 
   group('Auth Flow Integration Tests', () {
     late MockAuthRemoteDataSource mockDataSource;

@@ -703,7 +703,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
 
         return GestureDetector(
           onTap: _showControlsWithTimer,
-          child: Container(
+          child: ColoredBox(
             color: AppColors.background,
             child: Center(
               child: AspectRatio(
@@ -879,9 +879,9 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
     final aspectRatio = _thumbnailAspectRatio ?? (16 / 9);
     final isWaitingForActivePlayback = !widget.isActive;
 
-    Widget background = Container(
+    Widget background = const ColoredBox(
       color: AppColors.surface,
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.videocam_outlined,
           color: AppColors.textSecondary,
@@ -901,9 +901,9 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
         memCacheWidth: 900,
         maxWidthDiskCache: 1400,
         placeholder: (context, url) => Container(color: AppColors.surface),
-        errorWidget: (context, url, error) => Container(
+        errorWidget: (context, url, error) => const ColoredBox(
           color: AppColors.surface,
-          child: const Center(
+          child: Center(
             child: Icon(
               Icons.videocam_off,
               color: AppColors.textSecondary,
@@ -919,7 +919,7 @@ class _GalleryVideoPlayerState extends ConsumerState<GalleryVideoPlayer>
       );
     }
 
-    return Container(
+    return ColoredBox(
       color: AppColors.background,
       child: Center(
         child: AspectRatio(

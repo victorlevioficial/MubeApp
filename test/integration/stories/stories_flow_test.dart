@@ -25,7 +25,7 @@ import '../../helpers/test_data.dart';
 /// - Tapping another user's avatar invokes `onOpenStoryBundle` with that
 ///   user's bundle.
 void main() {
-  setUpAll(() async => await setupFirebaseCoreMocks());
+  setUpAll(() async => setupFirebaseCoreMocks());
 
   group('Stories Flow Integration Tests', () {
     setUp(() {

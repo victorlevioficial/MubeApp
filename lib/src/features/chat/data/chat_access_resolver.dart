@@ -64,7 +64,7 @@ class ChatAccessResolver {
 
     final inFlightDecision = _inFlightDecisions[cacheKey];
     if (inFlightDecision != null) {
-      return await inFlightDecision;
+      return inFlightDecision;
     }
 
     final decisionFuture = _resolveDeliveryFresh(

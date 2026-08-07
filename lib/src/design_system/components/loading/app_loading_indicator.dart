@@ -127,7 +127,7 @@ class AppLoadingOverlay extends StatelessWidget {
           Semantics(
             liveRegion: true,
             label: message ?? 'Carregando',
-            child: Container(
+            child: ColoredBox(
               color: AppColors.background.withValues(alpha: 0.7),
               child: Center(
                 child: AppLoadingIndicator.medium(message: message),

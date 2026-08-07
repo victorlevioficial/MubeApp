@@ -680,7 +680,7 @@ class _MemberCard extends ConsumerWidget {
         ? (member.dadosProfissional!['skills'] as List).first as String
         : 'Membro';
 
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.55),
         borderRadius: AppRadius.all16,

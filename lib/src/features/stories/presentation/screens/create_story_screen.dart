@@ -409,7 +409,7 @@ class _SelectedStoryPreview extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 280),
               child: AspectRatio(
                 aspectRatio: StoryConstants.targetAspectRatio,
-                child: Container(
+                child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceHighlight,
                     borderRadius: AppRadius.all16,

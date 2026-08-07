@@ -28,7 +28,7 @@ class GeohashHelper {
         // longitude
         final mid = (lngRange[0] + lngRange[1]) / 2;
         if (lng > mid) {
-          ch |= (1 << (4 - bit));
+          ch |= 1 << (4 - bit);
           lngRange[0] = mid;
         } else {
           lngRange[1] = mid;
@@ -37,7 +37,7 @@ class GeohashHelper {
         // latitude
         final mid = (latRange[0] + latRange[1]) / 2;
         if (lat > mid) {
-          ch |= (1 << (4 - bit));
+          ch |= 1 << (4 - bit);
           latRange[0] = mid;
         } else {
           latRange[1] = mid;

@@ -341,7 +341,7 @@ class StoryRepository {
         operationLabel: 'retry de $functionName',
         forceAuthRefresh: true,
       );
-      return await callable.call(data);
+      return callable.call(data);
     }
   }
 

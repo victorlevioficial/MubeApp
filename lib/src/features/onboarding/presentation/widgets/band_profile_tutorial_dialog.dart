@@ -48,7 +48,7 @@ class BandProfileTutorialDialog extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return Container(
+            return DecoratedBox(
               decoration: BoxDecoration(
                 border: Border.all(color: AppColors.border),
               ),
