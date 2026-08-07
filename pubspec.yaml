@@ -38,7 +38,7 @@ dependencies:
   firebase_messaging: ^16.1.0
   
   # UI & Assets
-  google_fonts: ^6.2.1
+  google_fonts: ^8.2.1
   flutter_svg: ^2.2.3
   cupertino_icons: ^1.0.8
   intl: ^0.20.2
@@ -51,19 +51,19 @@ dependencies:
   shared_preferences: ^2.5.4
   mask_text_input_formatter: ^2.9.0
   http: ^1.6.0
-  font_awesome_flutter: ^10.12.0
+  font_awesome_flutter: ^10.12.0 # v11 muda FaIconData (nao estende IconData); migrar exige refactor de tipagem
   firebase_storage: ^13.0.5
   image_picker: ^1.2.1
   shimmer: ^3.0.0
   cached_network_image: ^3.4.1
-  image_cropper: ^11.0.0
+  image_cropper: ^12.2.1
   flutter_image_compress: ^2.4.0
   video_compress: ^3.1.4
   video_player: ^2.11.0
   flutter_reorderable_grid_view: ^5.5.2
   flutter_native_splash: ^2.4.7
   url_launcher: ^6.3.2
-  package_info_plus: ^8.3.1
+  package_info_plus: ^10.2.1
 
   path: ^1.9.1
   path_provider: ^2.1.5
@@ -83,7 +83,7 @@ dependencies:
 
   flutter_markdown_plus: ^1.0.12
   printing: ^5.14.2
-  share_plus: ^12.0.1
+  share_plus: ^13.3.0
   pdf: ^3.11.3
   in_app_review: ^2.0.11
   firebase_analytics: ^12.1.2
@@ -93,7 +93,7 @@ dependencies:
   flutter_native_video_trimmer: ^1.1.9
 
   # Meta (Facebook) Ads attribution
-  facebook_app_events: ^0.20.1
+  facebook_app_events: ^0.30.3
   app_tracking_transparency: ^2.0.6+1
 
 dev_dependencies:

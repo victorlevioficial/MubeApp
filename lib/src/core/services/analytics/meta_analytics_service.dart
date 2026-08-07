@@ -70,7 +70,7 @@ class FacebookMetaAnalyticsService implements MetaAnalyticsService {
       if (Platform.isIOS) {
         await _requestTrackingAuthorization();
       }
-      await _client.setAdvertiserTracking(enabled: true);
+      await _client.setAdvertiserIdCollectionEnabled(true);
       await _client.setAutoLogAppEventsEnabled(true);
       AppLogger.info('MetaAnalytics initialized');
     } catch (e, stack) {
