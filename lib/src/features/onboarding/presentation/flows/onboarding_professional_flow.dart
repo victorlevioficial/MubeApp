@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -149,11 +151,6 @@ class _OnboardingProfessionalFlowState
     ref.listenManual(onboardingFormProvider, (previous, next) {
       if (previous?.isHydrated == true || !next.isHydrated || !mounted) return;
       setState(() => _restoreFromDraft(next));
-    });
-
-    // Fetch location preview
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });
   }
 

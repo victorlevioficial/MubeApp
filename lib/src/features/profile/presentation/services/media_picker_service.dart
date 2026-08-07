@@ -107,6 +107,14 @@ class MediaPickerService {
           toolbarWidgetColor: AppColors.textPrimary,
           backgroundColor: AppColors.background,
           activeControlsWidgetColor: AppColors.primary,
+          // Matches the story cropper: uCrop otherwise renders its chrome
+          // light, which flashes white inside this dark-only app.
+          dimmedLayerColor: AppColors.background.withValues(alpha: 0.92),
+          cropFrameColor: AppColors.primary.withValues(alpha: 0.7),
+          cropGridColor: AppColors.textPrimary.withValues(alpha: 0.12),
+          statusBarLight: false,
+          navBarLight: false,
+          hideBottomControls: true,
           lockAspectRatio: lockAspectRatio,
           initAspectRatio: CropAspectRatioPreset.square,
           aspectRatioPresets: lockAspectRatio

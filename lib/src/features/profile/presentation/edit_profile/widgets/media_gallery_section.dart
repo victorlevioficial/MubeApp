@@ -51,12 +51,9 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
     }
 
     try {
-      if (mounted) {
-        setState(() {
-          _isPickingPhoto = true;
-        });
-      }
-
+      // Busy state starts only after a source is chosen: showing
+      // "Carregando..." on the empty slot while the user is still picking
+      // suggested work was already happening.
       final source = await MediaPickerService.showMediaSourcePicker(
         context,
         title: 'Adicionar Foto',
@@ -67,6 +64,10 @@ class _MediaGallerySectionState extends ConsumerState<MediaGallerySection> {
       );
 
       if (source == null || !mounted) return;
+
+      setState(() {
+        _isPickingPhoto = true;
+      });
 
       final selectedFiles = await _mediaPickerService.pickPhotos(
         source: source,

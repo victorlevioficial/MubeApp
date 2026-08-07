@@ -57,11 +57,9 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
     final controller = ref.read(profileControllerProvider.notifier);
 
     try {
-      setState(() {
-        _isProcessingAvatar = true;
-      });
-
-      // Show source picker bottom sheet
+      // Show source picker bottom sheet. No busy state yet: nothing is being
+      // prepared while the user is still deciding, and showing "Preparando
+      // foto..." here made the avatar look stuck during the whole selection.
       final source = await MediaPickerService.showMediaSourcePicker(
         context,
         title: 'Foto de Perfil',
@@ -72,6 +70,10 @@ class _EditProfileHeaderState extends ConsumerState<EditProfileHeader> {
       );
 
       if (source == null || !mounted) return;
+
+      setState(() {
+        _isProcessingAvatar = true;
+      });
 
       final file = await _mediaPickerService.pickAndCropPhoto(
         context,

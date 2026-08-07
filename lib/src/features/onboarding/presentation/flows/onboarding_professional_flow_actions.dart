@@ -141,6 +141,15 @@ extension _OnboardingProfessionalFlowActions
   void _setCurrentStep(int nextStep) {
     _updateState(() => _currentStep = nextStep);
 
+    // Ask for location only once the address step is on screen. Requesting it
+    // on step 1 shows a system permission dialog with no visible reason, which
+    // people tend to deny.
+    if (nextStep == _OnboardingProfessionalFlowState._totalSteps) {
+      unawaited(
+        ref.read(onboardingFormProvider.notifier).fetchInitialLocation(),
+      );
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.jumpTo(0);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
@@ -169,7 +171,6 @@ class _OnboardingContractorFlowState
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(onboardingFormProvider.notifier);
-      notifier.fetchInitialLocation();
       notifier.updateContractorWantsVenueSetup(_wantsVenueSetup);
       if (_selectedVenueType.isNotEmpty) {
         notifier.updateContractorVenueType(_selectedVenueType);
@@ -218,6 +219,16 @@ class _OnboardingContractorFlowState
 
   void _setCurrentStep(int nextStep) {
     setState(() => _currentStep = nextStep);
+
+    // Ask for location only once the address step is on screen. Requesting it
+    // on step 1 shows a system permission dialog with no visible reason, which
+    // people tend to deny.
+    if (nextStep == _totalSteps) {
+      unawaited(
+        ref.read(onboardingFormProvider.notifier).fetchInitialLocation(),
+      );
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.jumpTo(0);
