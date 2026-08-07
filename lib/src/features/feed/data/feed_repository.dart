@@ -12,11 +12,12 @@ import '../../../core/typedefs.dart';
 
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
-import '../../../utils/distance_calculator.dart';
 import '../../../utils/geohash_helper.dart';
 import '../domain/feed_discovery.dart';
 import '../domain/feed_item.dart';
 import '../domain/paginated_feed_response.dart';
+import 'feed_item_mappers.dart';
+import 'feed_pool_diagnostics.dart';
 import 'feed_remote_data_source.dart';
 
 /// Provider for FeedRepository
@@ -88,7 +89,7 @@ class FeedRepository {
       data: {'filter': filter.name},
     );
     try {
-      final diagnostics = _FeedPoolDiagnostics();
+      final diagnostics = FeedPoolDiagnostics();
       final effectiveTargetResults = targetResults ?? _targetResultsFor(filter);
       final maxScannedDocs = _maxScannedDocsFor(filter);
       final discoverPool = await _loadDiscoverPool(
@@ -138,7 +139,7 @@ class FeedRepository {
     required int targetResults,
     required int maxScannedDocs,
     required int? fastPartialThreshold,
-    required _FeedPoolDiagnostics diagnostics,
+    required FeedPoolDiagnostics diagnostics,
   }) async {
     if (userLat == null || userLong == null) {
       return _loadDiscoverPoolFromBoundedScan(
@@ -190,7 +191,10 @@ class FeedRepository {
     );
 
     return DiscoverFeedPoolResult(
-      items: _mergeUniqueItems(nearbyPool.items, backfillPool.items),
+      items: FeedItemMappers.mergeUniqueItems(
+        nearbyPool.items,
+        backfillPool.items,
+      ),
       scannedDocs: nearbyPool.scannedDocs + backfillPool.scannedDocs,
       source: backfillPool.items.isEmpty
           ? nearbyPool.source
@@ -231,7 +235,7 @@ class FeedRepository {
     required List<String> excludedIds,
     required FeedDiscoveryFilter filter,
     required int targetResults,
-    required _FeedPoolDiagnostics diagnostics,
+    required FeedPoolDiagnostics diagnostics,
   }) async {
     final nearbyResult = await getNearbyUsersOptimized(
       currentUserId: currentUserId,
@@ -273,7 +277,7 @@ class FeedRepository {
     required FeedDiscoveryFilter filter,
     required int targetResults,
     required int maxScannedDocs,
-    required _FeedPoolDiagnostics diagnostics,
+    required FeedPoolDiagnostics diagnostics,
   }) async {
     final items = <FeedItem>[];
     DocumentSnapshot<Map<String, dynamic>>? cursor;
@@ -300,7 +304,7 @@ class FeedRepository {
       cursor = snapshot.docs.last;
 
       for (final doc in snapshot.docs) {
-        final item = _buildVisibleFeedItem(
+        final item = FeedItemMappers.buildVisibleFeedItem(
           data: doc.data(),
           docId: doc.id,
           currentUserId: currentUserId,
@@ -379,7 +383,7 @@ class FeedRepository {
         limit: limit + excludedIds.length, // Fetch more to compensate
         startAfter: startAfter,
       );
-      final allItems = _processSnapshot(
+      final allItems = FeedItemMappers.processSnapshot(
         snapshot,
         currentUserId,
         userLat,
@@ -415,7 +419,7 @@ class FeedRepository {
         limit: limit,
         startAfter: startAfter,
       );
-      final items = _processSnapshot(
+      final items = FeedItemMappers.processSnapshot(
         snapshot,
         currentUserId,
         userLat,
@@ -493,7 +497,7 @@ class FeedRepository {
         cursor = snapshot.docs.last;
         hasMoreCandidates = snapshot.docs.length >= limit * candidateMultiplier;
 
-        final candidateItems = _processPublicContractorsSnapshot(
+        final candidateItems = FeedItemMappers.processPublicContractorsSnapshot(
           snapshot,
           currentUserId,
           userLat,
@@ -538,7 +542,7 @@ class FeedRepository {
         limit: limit + excludedIds.length,
         startAfter: startAfter,
       );
-      final allItems = _processSnapshot(
+      final allItems = FeedItemMappers.processSnapshot(
         snapshot,
         currentUserId,
         userLat,
@@ -625,7 +629,7 @@ class FeedRepository {
         cursor = snapshot.docs.last;
         hasMoreCandidates = snapshot.docs.length >= limit * candidateMultiplier;
 
-        final candidateItems = _processSnapshot(
+        final candidateItems = FeedItemMappers.processSnapshot(
           snapshot,
           currentUserId,
           userLat,
@@ -682,7 +686,7 @@ class FeedRepository {
           limit: limit * 4,
         );
         return result.map(
-          (items) => _filterProfessionals(
+          (items) => FeedItemMappers.filterProfessionals(
             items,
             techniciansOnly: techniciansOnly,
           ).take(limit).toList(),
@@ -696,230 +700,26 @@ class FeedRepository {
         startAfter: null,
       );
 
-      var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+      var items = FeedItemMappers.processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
+      );
 
       // Apply filters
       if (excludedIds.isNotEmpty) {
         items = items.where((i) => !excludedIds.contains(i.uid)).toList();
       }
-      items = _filterProfessionals(items, techniciansOnly: techniciansOnly);
+      items = FeedItemMappers.filterProfessionals(
+        items,
+        techniciansOnly: techniciansOnly,
+      );
 
       return Right(items.take(limit).toList());
     } catch (e) {
       return Left(mapExceptionToFailure(e));
     }
-  }
-
-  List<FeedItem> _processSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-    String currentUserId,
-    double? userLat,
-    double? userLong,
-  ) {
-    final items = <FeedItem>[];
-
-    for (final doc in snapshot.docs) {
-      if (doc.id == currentUserId) continue;
-
-      var item = FeedItem.fromFirestore(doc.data(), doc.id);
-
-      // Calculate distance if we have user location
-      if (userLat != null && userLong != null && item.location != null) {
-        final itemLat = (item.location!['lat'] as num?)?.toDouble();
-        final itemLng = (item.location!['lng'] as num?)?.toDouble();
-
-        if (itemLat != null && itemLng != null) {
-          item = item.copyWith(
-            distanceKm: DistanceCalculator.haversine(
-              fromLat: userLat,
-              fromLng: userLong,
-              toLat: itemLat,
-              toLng: itemLng,
-            ),
-          );
-        }
-      }
-
-      items.add(item);
-    }
-
-    return items;
-  }
-
-  List<FeedItem> _processPublicContractorsSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-    String currentUserId,
-    double? userLat,
-    double? userLong,
-    List<String> excludedIds,
-  ) {
-    final items = <FeedItem>[];
-
-    for (final doc in snapshot.docs) {
-      final item = _buildVisiblePublicContractorFeedItem(
-        data: doc.data(),
-        docId: doc.id,
-        currentUserId: currentUserId,
-        userLat: userLat,
-        userLong: userLong,
-        excludedIds: excludedIds,
-      );
-      if (item != null) {
-        items.add(item);
-      }
-    }
-
-    return items;
-  }
-
-  FeedItem? _buildVisibleFeedItem({
-    required Map<String, dynamic> data,
-    required String docId,
-    required String currentUserId,
-    required double? userLat,
-    required double? userLong,
-    required List<String> excludedIds,
-    _FeedPoolDiagnostics? diagnostics,
-  }) {
-    if (docId == currentUserId) {
-      diagnostics?.skippedSelf++;
-      return null;
-    }
-    if (excludedIds.contains(docId)) {
-      diagnostics?.skippedBlocked++;
-      return null;
-    }
-
-    final tipoPerfil = data[FirestoreFields.profileType] as String?;
-    if (tipoPerfil != ProfileType.professional &&
-        tipoPerfil != ProfileType.band &&
-        tipoPerfil != ProfileType.studio) {
-      diagnostics?.skippedType++;
-      return null;
-    }
-
-    final cadastroStatus = data[FirestoreFields.registrationStatus] as String?;
-    if (cadastroStatus != RegistrationStatus.complete) {
-      diagnostics?.skippedIncomplete++;
-      return null;
-    }
-
-    final status = data['status'] as String? ?? 'ativo';
-    if (status != 'ativo') {
-      diagnostics?.skippedInactive++;
-      return null;
-    }
-
-    final privacy = data['privacy_settings'] as Map<String, dynamic>?;
-    if (privacy != null && privacy['visible_in_home'] == false) {
-      diagnostics?.skippedHidden++;
-      return null;
-    }
-
-    var item = FeedItem.fromFirestore(data, docId);
-
-    if (userLat != null && userLong != null && item.location != null) {
-      final itemLat = (item.location!['lat'] as num?)?.toDouble();
-      final itemLng = (item.location!['lng'] as num?)?.toDouble();
-      if (itemLat != null && itemLng != null) {
-        item = item.copyWith(
-          distanceKm: DistanceCalculator.haversine(
-            fromLat: userLat,
-            fromLng: userLong,
-            toLat: itemLat,
-            toLng: itemLng,
-          ),
-        );
-      } else {
-        diagnostics?.resultsWithoutDistance++;
-      }
-    } else {
-      diagnostics?.resultsWithoutDistance++;
-    }
-
-    return item;
-  }
-
-  FeedItem? _buildVisiblePublicContractorFeedItem({
-    required Map<String, dynamic> data,
-    required String docId,
-    required String currentUserId,
-    required double? userLat,
-    required double? userLong,
-    required List<String> excludedIds,
-  }) {
-    if (docId == currentUserId || excludedIds.contains(docId)) {
-      return null;
-    }
-
-    final tipoPerfil = data[FirestoreFields.profileType] as String?;
-    if (tipoPerfil != ProfileType.contractor) {
-      return null;
-    }
-
-    final cadastroStatus = data[FirestoreFields.registrationStatus] as String?;
-    if (cadastroStatus != RegistrationStatus.complete) {
-      return null;
-    }
-
-    final status = data['status'] as String? ?? 'ativo';
-    if (status != 'ativo') {
-      return null;
-    }
-
-    final contractorData =
-        data[FirestoreFields.contractor] as Map<String, dynamic>? ?? {};
-    if (contractorData['isPublic'] != true) {
-      return null;
-    }
-
-    var item = FeedItem.fromFirestore(data, docId);
-
-    if (userLat != null && userLong != null && item.location != null) {
-      final itemLat = (item.location!['lat'] as num?)?.toDouble();
-      final itemLng = (item.location!['lng'] as num?)?.toDouble();
-
-      if (itemLat != null && itemLng != null) {
-        item = item.copyWith(
-          distanceKm: DistanceCalculator.haversine(
-            fromLat: userLat,
-            fromLng: userLong,
-            toLat: itemLat,
-            toLng: itemLng,
-          ),
-        );
-      }
-    }
-
-    return item;
-  }
-
-  List<FeedItem> _filterProfessionals(
-    List<FeedItem> items, {
-    required bool techniciansOnly,
-  }) {
-    return items.where((item) {
-      final pureTechnician = _isPureTechnician(item);
-      return techniciansOnly ? pureTechnician : !pureTechnician;
-    }).toList();
-  }
-
-  bool _isPureTechnician(FeedItem item) {
-    return FeedDiscovery.isPureTechnician(item);
-  }
-
-  List<FeedItem> _mergeUniqueItems(
-    List<FeedItem> primaryItems,
-    List<FeedItem> secondaryItems,
-  ) {
-    final uniqueItems = <String, FeedItem>{};
-    for (final item in primaryItems) {
-      uniqueItems[item.uid] = item;
-    }
-    for (final item in secondaryItems) {
-      uniqueItems[item.uid] = item;
-    }
-    return uniqueItems.values.toList(growable: false);
   }
 
   FutureResult<List<FeedItem>> getAllUsersSortedByDistance({
@@ -1110,7 +910,7 @@ class FeedRepository {
 
     final items = <FeedItem>[];
     for (final doc in snapshot.docs) {
-      final item = _buildVisibleFeedItem(
+      final item = FeedItemMappers.buildVisibleFeedItem(
         data: doc.data(),
         docId: doc.id,
         currentUserId: currentUserId,
@@ -1159,7 +959,12 @@ class FeedRepository {
         startAfter: startAfter,
       );
 
-      var items = _processSnapshot(snapshot, currentUserId, userLat, userLong);
+      var items = FeedItemMappers.processSnapshot(
+        snapshot,
+        currentUserId,
+        userLat,
+        userLong,
+      );
       if (excludedIds.isNotEmpty) {
         items.removeWhere((item) => excludedIds.contains(item.uid));
       }
@@ -1203,7 +1008,7 @@ class FeedRepository {
         final batchIds = ids.sublist(i, end);
 
         final snapshot = await _dataSource.getUsersByIds(batchIds);
-        final batchItems = _processSnapshot(
+        final batchItems = FeedItemMappers.processSnapshot(
           snapshot,
           currentUserId,
           userLat,
@@ -1455,7 +1260,7 @@ class FeedRepository {
   ) {
     for (final doc in snapshot.docs) {
       if (seenUids.contains(doc.id)) continue;
-      final item = _buildVisibleFeedItem(
+      final item = FeedItemMappers.buildVisibleFeedItem(
         data: doc.data(),
         docId: doc.id,
         currentUserId: currentUserId,
@@ -1468,57 +1273,6 @@ class FeedRepository {
       seenUids.add(doc.id);
       results.add(item);
     }
-  }
-}
-
-final class _FeedPoolDiagnostics {
-  int skippedSelf = 0;
-  int skippedBlocked = 0;
-  int skippedType = 0;
-  int skippedIncomplete = 0;
-  int skippedInactive = 0;
-  int skippedHidden = 0;
-  int professionals = 0;
-  int bands = 0;
-  int studios = 0;
-  int technicians = 0;
-  int artists = 0;
-  int resultsWithoutDistance = 0;
-
-  void countAdded(FeedItem item) {
-    switch (item.tipoPerfil) {
-      case ProfileType.professional:
-        professionals++;
-        if (FeedDiscovery.isPureTechnician(item)) {
-          technicians++;
-        } else {
-          artists++;
-        }
-        break;
-      case ProfileType.band:
-        bands++;
-        break;
-      case ProfileType.studio:
-        studios++;
-        break;
-    }
-  }
-
-  Map<String, Object> toMap() {
-    return {
-      'skipped_self': skippedSelf,
-      'skipped_blocked': skippedBlocked,
-      'skipped_type': skippedType,
-      'skipped_incomplete': skippedIncomplete,
-      'skipped_inactive': skippedInactive,
-      'skipped_hidden': skippedHidden,
-      'pool_professionals': professionals,
-      'pool_artists': artists,
-      'pool_technicians': technicians,
-      'pool_bands': bands,
-      'pool_studios': studios,
-      'results_without_distance': resultsWithoutDistance,
-    };
   }
 }
 
