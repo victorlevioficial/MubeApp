@@ -199,3 +199,6 @@ third_party/**/.gradle/
 
 # Claude Code skills lockfile (local tooling)
 skills-lock.json
+
+# Local IDE launch config (contains API keys via --dart-define)
+.vscode/launch.json

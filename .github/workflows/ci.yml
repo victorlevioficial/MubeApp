@@ -434,10 +434,22 @@ jobs:
 
       - name: Check for API keys in code
         run: |
-          matches=$(rg -n "AIzaSy" lib scripts --glob "*.dart" --glob "!lib/firebase_options.dart" || true)
+          # Scans every tracked file, not just Dart under lib/scripts: a Maps
+          # key once leaked through .vscode/launch.json, which the old
+          # lib+scripts scope never looked at.
+          # Firebase client identifiers are public by design and stay excluded.
+          matches=$(rg -n "AIzaSy" \
+            --glob "!lib/firebase_options.dart" \
+            --glob "!**/google-services.json" \
+            --glob "!**/GoogleService-Info*.plist" \
+            --glob "!admin_panel/**" \
+            --glob "!landing_page/**" \
+            --glob "!.github/workflows/ci.yml" \
+            --glob "!scripts/preflight.sh" \
+            || true)
           if [ -n "$matches" ]; then
-            echo "Potential API keys found in non-generated Dart code:"
+            echo "Potential API keys found in tracked files:"
             echo "$matches"
             exit 1
           fi
-          echo "No hardcoded API keys found outside generated Firebase config."
+          echo "No hardcoded API keys found outside public Firebase config."
