@@ -147,6 +147,11 @@ class _BootstrapHostState extends State<_BootstrapHost> {
       });
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Hand off to the Flutter splash screen, which paints the same logo.
+        // Waiting for the initial route instead keeps the native splash on top
+        // of the splash screen's timeout/retry UI whenever bootstrap stalls
+        // (no connectivity), leaving the user with a frozen logo.
+        _removeNativeSplashIfNeeded();
         if (!mounted || _postBootstrapServicesScheduled) return;
         _postBootstrapServicesScheduled = true;
         unawaited(_initializePostBootstrapServices());
