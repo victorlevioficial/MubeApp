@@ -143,10 +143,55 @@ class _OnboardingProfessionalFlowState
     _instrumentalistBackingVocal = formState.instrumentalistBackingVocal;
     _offersRemoteRecording = formState.offersRemoteRecording;
 
+    // The saved draft is read from storage asynchronously, so it can land
+    // after this screen was built with empty fields. Re-apply it when it
+    // arrives, without clobbering anything already typed.
+    ref.listenManual(onboardingFormProvider, (previous, next) {
+      if (previous?.isHydrated == true || !next.isHydrated || !mounted) return;
+      setState(() => _restoreFromDraft(next));
+    });
+
     // Fetch location preview
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });
+  }
+
+  void _restoreFromDraft(OnboardingFormState formState) {
+    if (_nomeController.text.isEmpty) {
+      _nomeController.text = formState.nome ?? widget.user.nome ?? '';
+    }
+    if (_nomeArtisticoController.text.isEmpty) {
+      _nomeArtisticoController.text = formState.nomeArtistico ?? '';
+    }
+    if (_dataNascimentoController.text.isEmpty) {
+      _dataNascimentoController.text = formState.dataNascimento ?? '';
+    }
+    if (_generoController.text.isEmpty) {
+      _generoController.text = normalizeGenderValue(formState.genero);
+    }
+    if (_celularController.text.isEmpty) {
+      _celularController.text = formState.celular ?? '';
+    }
+    if (_instagramController.text.isEmpty) {
+      _instagramController.text = normalizeInstagramHandle(formState.instagram);
+    }
+
+    if (_selectedCategories.isEmpty) {
+      _selectedCategories = List.from(formState.selectedCategories);
+    }
+    if (_selectedGenres.isEmpty) {
+      _selectedGenres = List.from(formState.selectedGenres);
+    }
+    if (_selectedInstruments.isEmpty) {
+      _selectedInstruments = List.from(formState.selectedInstruments);
+    }
+    if (_selectedRoles.isEmpty) {
+      _selectedRoles = _normalizeRoleIds(formState.selectedRoles);
+    }
+    _backingVocalMode = formState.backingVocalMode;
+    _instrumentalistBackingVocal = formState.instrumentalistBackingVocal;
+    _offersRemoteRecording = formState.offersRemoteRecording;
   }
 
   @override

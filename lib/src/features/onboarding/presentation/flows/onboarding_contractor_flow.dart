@@ -133,6 +133,40 @@ class _OnboardingContractorFlowState
           .updateContractorDisplayName(_nomeExibicaoController.text.trim()),
     );
 
+    // The saved draft loads asynchronously and can arrive after this screen
+    // was built empty; re-apply it without clobbering anything typed since.
+    ref.listenManual(onboardingFormProvider, (previous, next) {
+      if (previous?.isHydrated == true || !next.isHydrated || !mounted) return;
+      setState(() {
+        if (_nomeController.text.isEmpty) {
+          _nomeController.text = next.nome ?? '';
+        }
+        if (_celularController.text.isEmpty) {
+          _celularController.text = next.celular ?? '';
+        }
+        if (_dataNascimentoController.text.isEmpty) {
+          _dataNascimentoController.text = next.dataNascimento ?? '';
+        }
+        if (_generoController.text.isEmpty) {
+          _generoController.text = normalizeGenderValue(next.genero);
+        }
+        if (_instagramController.text.isEmpty) {
+          _instagramController.text = normalizeInstagramHandle(next.instagram);
+        }
+        if (_nomeExibicaoController.text.isEmpty) {
+          _nomeExibicaoController.text = next.contractorDisplayName;
+        }
+        if (_selectedVenueType.isEmpty) {
+          _selectedVenueType = _normalizeVenueTypeId(next.contractorVenueType);
+        }
+        if (_selectedAmenities.isEmpty) {
+          _selectedAmenities = _normalizeAmenityIds(
+            List<String>.from(next.contractorAmenities),
+          );
+        }
+      });
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final notifier = ref.read(onboardingFormProvider.notifier);
       notifier.fetchInitialLocation();

@@ -48,7 +48,13 @@ class OnboardingFormState {
   final double? selectedLng;
   final String? initialLocationLabel;
 
+  /// True once the persisted draft has been read from storage. Screens build
+  /// before that async read finishes, so they use this to know when a restored
+  /// draft is available to populate their controllers with.
+  final bool isHydrated;
+
   const OnboardingFormState({
+    this.isHydrated = false,
     this.nome,
     this.nomeArtistico,
     this.celular,
@@ -80,6 +86,7 @@ class OnboardingFormState {
   });
 
   OnboardingFormState copyWith({
+    bool? isHydrated,
     String? nome,
     String? nomeArtistico,
     String? celular,
@@ -110,6 +117,7 @@ class OnboardingFormState {
     String? initialLocationLabel,
   }) {
     return OnboardingFormState(
+      isHydrated: isHydrated ?? this.isHydrated,
       nome: nome ?? this.nome,
       nomeArtistico: nomeArtistico ?? this.nomeArtistico,
       celular: celular ?? this.celular,
@@ -295,7 +303,7 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
     try {
       final restoredState = _decodePersistedState(jsonStr, currentUserId);
       if (restoredState != null) {
-        state = restoredState;
+        state = restoredState.copyWith(isHydrated: true);
       } else {
         // Corrupt payload, or a draft belonging to another account.
         await prefs.remove(_storageKey);

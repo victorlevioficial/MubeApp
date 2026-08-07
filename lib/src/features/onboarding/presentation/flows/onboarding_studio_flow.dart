@@ -97,6 +97,30 @@ class _OnboardingStudioFlowState extends ConsumerState<OnboardingStudioFlow> {
           .updateInstagram(_instagramController.text),
     );
 
+    // The saved draft loads asynchronously and can arrive after this screen
+    // was built empty; re-apply it without clobbering anything typed since.
+    ref.listenManual(onboardingFormProvider, (previous, next) {
+      if (previous?.isHydrated == true || !next.isHydrated || !mounted) return;
+      setState(() {
+        if (_nomeCompletoController.text.isEmpty) {
+          _nomeCompletoController.text = next.nome ?? '';
+        }
+        if (_nomeEstudioController.text.isEmpty) {
+          _nomeEstudioController.text = next.nomeArtistico ?? '';
+        }
+        if (_celularController.text.isEmpty) {
+          _celularController.text = next.celular ?? '';
+        }
+        if (_instagramController.text.isEmpty) {
+          _instagramController.text = normalizeInstagramHandle(next.instagram);
+        }
+        _studioType ??= next.studioType;
+        if (_selectedServices.isEmpty) {
+          _selectedServices = List.from(next.selectedServices);
+        }
+      });
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });

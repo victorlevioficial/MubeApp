@@ -95,6 +95,29 @@ class _OnboardingBandFlowState extends ConsumerState<OnboardingBandFlow> {
           .updateInstagram(_instagramController.text),
     );
 
+    // The saved draft loads asynchronously and can arrive after this screen
+    // was built empty; re-apply it without clobbering anything typed since.
+    ref.listenManual(onboardingFormProvider, (previous, next) {
+      if (previous?.isHydrated == true || !next.isHydrated || !mounted) return;
+      setState(() {
+        if (_nomeCompletoController.text.isEmpty) {
+          _nomeCompletoController.text = next.nome ?? '';
+        }
+        if (_nomeBandaController.text.isEmpty) {
+          _nomeBandaController.text = next.nomeArtistico ?? '';
+        }
+        if (_celularController.text.isEmpty) {
+          _celularController.text = next.celular ?? '';
+        }
+        if (_instagramController.text.isEmpty) {
+          _instagramController.text = normalizeInstagramHandle(next.instagram);
+        }
+        if (_selectedGenres.isEmpty) {
+          _selectedGenres = List.from(next.selectedGenres);
+        }
+      });
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(onboardingFormProvider.notifier).fetchInitialLocation();
     });
