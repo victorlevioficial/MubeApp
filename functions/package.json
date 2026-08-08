@@ -8,6 +8,7 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "test": "jest",
+    "test:emulator": "jest --runInBand test/account_deletion_emulator.test.ts",
     "deploy": "firebase deploy --config ../firebase.deploy.json --only functions",
     "logs": "firebase functions:log"
   },

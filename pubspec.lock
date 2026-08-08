@@ -429,10 +429,10 @@ packages:
     dependency: "direct main"
     description:
       name: facebook_app_events
-      sha256: "2c08c3ad67114b2303c604619f23186b76d93c912a0e47d5afadd6a0b4f744e9"
+      sha256: "422a94108edc53106298739182d2c5002eb60f209ca87ee20e4c69fd4b9a3bc7"
       url: "https://pub.dev"
     source: hosted
-    version: "0.30.3"
+    version: "0.30.5"
   fake_async:
     dependency: transitive
     description:

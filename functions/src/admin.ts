@@ -2174,6 +2174,10 @@ export const getUserAdminDetail = onCall(
         `gallery_videos/${uid}/`,
         `gallery_videos_transcoded/${uid}/`,
         `gallery_thumbnails/${uid}/`,
+        `stories_images/${uid}/`,
+        `stories_videos_source/${uid}/`,
+        `stories_videos_master/${uid}/`,
+        `stories_videos_thumbs/${uid}/`,
         `support_tickets/${uid}/`,
       ],
     };

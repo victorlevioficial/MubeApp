@@ -84,6 +84,8 @@ class GigFields {
   static const String createdAt = 'created_at';
   static const String updatedAt = 'updated_at';
   static const String expiresAt = 'expires_at';
+  static const String searchGrams = 'search_grams';
+  static const String searchSchemaVersion = 'search_schema_version';
 
   static const String applicantId = 'applicant_id';
   static const String message = 'message';

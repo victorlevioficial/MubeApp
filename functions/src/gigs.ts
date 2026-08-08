@@ -7,6 +7,11 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import {FieldValue, Timestamp} from "firebase-admin/firestore";
 
+import {
+  buildGigSearchGrams,
+  GIG_SEARCH_SCHEMA_VERSION,
+} from "./gig_search_index";
+
 const db = admin.firestore();
 const REGION = "southamerica-east1";
 const GIGS_COLLECTION = "gigs";
@@ -104,6 +109,27 @@ function normalizeToken(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function hasCurrentGigSearchIndex(data: Record<string, unknown>): boolean {
+  if (data.search_schema_version !== GIG_SEARCH_SCHEMA_VERSION) return false;
+  const storedGrams = data.search_grams;
+  if (!Array.isArray(storedGrams)) return false;
+  const expected = buildGigSearchGrams(data);
+  if (expected.length !== storedGrams.length) return false;
+  return expected.every((value, index) => storedGrams[index] === value);
+}
+
+async function syncGigSearchIndex(
+  ref: FirebaseFirestore.DocumentReference,
+  data: Record<string, unknown>
+): Promise<boolean> {
+  if (hasCurrentGigSearchIndex(data)) return false;
+  await ref.set({
+    search_grams: buildGigSearchGrams(data),
+    search_schema_version: GIG_SEARCH_SCHEMA_VERSION,
+  }, {merge: true});
+  return true;
 }
 
 function createCanonicalizer(items: ConfigItem[]): (values: string[]) => Set<string> {
@@ -688,6 +714,7 @@ export const onGigCreated = onDocumentCreated(
     const results = await Promise.allSettled([
       syncCreatorOpenGigCount(creatorId),
       notifyGigOpportunities(event.params.gigId as string, gigData),
+      syncGigSearchIndex(snapshot.ref, gigData),
     ]);
     for (const r of results) {
       if (r.status === "rejected") {
@@ -711,7 +738,12 @@ export const onGigUpdated = onDocumentUpdated(
       beforeData.creator_id,
     ]);
 
-    await syncCreatorOpenGigCount(creatorId);
+    await Promise.all([
+      syncCreatorOpenGigCount(creatorId),
+      event.data?.after.exists ?
+        syncGigSearchIndex(event.data.after.ref, afterData) :
+        Promise.resolve(false),
+    ]);
 
     const beforeStatus = firstNonEmptyString([beforeData.status]);
     const afterStatus = firstNonEmptyString([afterData.status]);
@@ -840,5 +872,56 @@ export const expireFixedDateGigs = onSchedule(
       await batch.commit();
       hasMore = snapshot.size == 200;
     }
+  }
+);
+
+export const backfillGigSearchIndex = onSchedule(
+  {
+    schedule: "15 * * * *",
+    region: REGION,
+    memory: "256MiB",
+    timeoutSeconds: 540,
+  },
+  async () => {
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
+    let scanned = 0;
+    let updated = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = db.collection(GIGS_COLLECTION)
+        .orderBy(admin.firestore.FieldPath.documentId())
+        .limit(300);
+      if (cursor) query = query.startAfter(cursor);
+
+      const snapshot = await query.get();
+      if (snapshot.empty) {
+        hasMore = false;
+        continue;
+      }
+      const batch = db.batch();
+      let batchWrites = 0;
+      for (const doc of snapshot.docs) {
+        scanned += 1;
+        const data = doc.data();
+        if (hasCurrentGigSearchIndex(data)) continue;
+        batch.set(doc.ref, {
+          search_grams: buildGigSearchGrams(data),
+          search_schema_version: GIG_SEARCH_SCHEMA_VERSION,
+        }, {merge: true});
+        batchWrites += 1;
+        updated += 1;
+      }
+      if (batchWrites > 0) await batch.commit();
+      cursor = snapshot.docs[snapshot.docs.length - 1];
+      hasMore = snapshot.size === 300;
+    }
+
+    await db.collection(APP_CONFIG_COLLECTION).doc(APP_CONFIG_DOC).set({
+      gig_search_schema_version: GIG_SEARCH_SCHEMA_VERSION,
+      gig_search_backfilled_at: FieldValue.serverTimestamp(),
+      gig_search_backfill_scanned: scanned,
+      gig_search_backfill_updated: updated,
+    }, {merge: true});
   }
 );

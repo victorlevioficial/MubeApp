@@ -25,6 +25,7 @@ import '../domain/gig_review_opportunity.dart';
 import '../domain/gig_status.dart';
 import '../domain/gig_type.dart';
 import '../domain/review_type.dart';
+import 'gig_search_index.dart';
 
 part 'gig_repository.g.dart';
 
@@ -305,8 +306,28 @@ class GigRepository {
     }
   }
 
-  Stream<List<Gig>> watchGigs(GigFilters filters) {
+  Stream<List<Gig>> watchGigs(GigFilters filters) async* {
     var query = _gigs.orderBy(GigFields.createdAt, descending: true);
+
+    final normalizedTerm = normalizeGigSearchText(filters.term);
+    var canUseSearchIndex = false;
+    if (normalizedTerm.isNotEmpty) {
+      try {
+        final config = await _getDocument(
+          _firestore.collection('config').doc('app_data'),
+          operationLabel: 'load_gig_search_index_version',
+        );
+        final version = config.data()?['gig_search_schema_version'];
+        canUseSearchIndex = version is num && version >= gigSearchSchemaVersion;
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Gig search index readiness check failed; using complete fallback.',
+          error,
+          stackTrace,
+          false,
+        );
+      }
+    }
 
     final statuses = filters.statuses;
     if (statuses.length == 1) {
@@ -337,12 +358,14 @@ class GigRepository {
       query = query.where(GigFields.creatorId, isEqualTo: _uid);
     }
 
-    // Limit server-side fetch to avoid downloading unbounded collections.
-    // Client-side _matchesFilters handles criteria that Firestore cannot
-    // express (full-text search, array-contains across multiple fields).
-    query = query.limit(200);
+    if (canUseSearchIndex) {
+      query = query.where(
+        GigFields.searchGrams,
+        arrayContains: gigSearchLookupGram(normalizedTerm),
+      );
+    }
 
-    return _watchQuery(query, operationLabel: 'watch_gigs').map((snapshot) {
+    yield* _watchQuery(query, operationLabel: 'watch_gigs').map((snapshot) {
       final gigs = snapshot.docs.map(Gig.fromFirestore).toList(growable: false);
       return gigs
           .where((gig) => _matchesFilters(gig, filters))
@@ -376,13 +399,13 @@ class GigRepository {
       return false;
     }
 
-    final term = filters.term.trim().toLowerCase();
+    final term = normalizeGigSearchText(filters.term);
     if (term.isNotEmpty) {
-      final haystack = [
-        gig.title,
-        gig.description,
-        gig.location?['label']?.toString() ?? '',
-      ].join(' ').toLowerCase();
+      final haystack = buildGigSearchText(
+        title: gig.title,
+        description: gig.description,
+        location: gig.location,
+      );
       if (!haystack.contains(term)) return false;
     }
 
@@ -457,6 +480,14 @@ class GigRepository {
   Future<String> createGig(GigDraft draft) async {
     await _ensureCanInteract();
 
+    if (draft.title.trim().length < 6 || draft.title.trim().length > 120) {
+      throw Exception('O título deve ter entre 6 e 120 caracteres.');
+    }
+    if (draft.description.trim().length < 20 ||
+        draft.description.trim().length > 2000) {
+      throw Exception('A descrição deve ter entre 20 e 2000 caracteres.');
+    }
+
     final openCount = await _getAggregateSnapshot(
       _gigs
           .where(GigFields.creatorId, isEqualTo: _uid)
@@ -506,6 +537,12 @@ class GigRepository {
       GigFields.expiresAt: draft.gigDate == null
           ? null
           : Timestamp.fromDate(draft.gigDate!),
+      GigFields.searchGrams: buildGigSearchGrams(
+        title: draft.title,
+        description: draft.description,
+        location: draft.location,
+      ),
+      GigFields.searchSchemaVersion: gigSearchSchemaVersion,
     }, operationLabel: 'create_gig_set');
 
     unawaited(
@@ -531,6 +568,16 @@ class GigRepository {
 
   Future<void> updateGig(String gigId, GigUpdate update) async {
     await _ensureCanInteract();
+    if (update.title != null &&
+        (update.title!.trim().length < 6 ||
+            update.title!.trim().length > 120)) {
+      throw Exception('O título deve ter entre 6 e 120 caracteres.');
+    }
+    if (update.description != null &&
+        (update.description!.trim().length < 20 ||
+            update.description!.trim().length > 2000)) {
+      throw Exception('A descrição deve ter entre 20 e 2000 caracteres.');
+    }
     final snapshot = await _getDocument(
       _gigs.doc(gigId),
       operationLabel: 'update_gig_get',
@@ -645,6 +692,18 @@ class GigRepository {
       payload[GigFields.compensationValue] = null;
     } else if (update.compensationValue != null) {
       payload[GigFields.compensationValue] = update.compensationValue;
+    }
+
+    if (update.title != null ||
+        update.description != null ||
+        update.location != null ||
+        update.clearLocation) {
+      payload[GigFields.searchGrams] = buildGigSearchGrams(
+        title: update.title ?? gig.title,
+        description: update.description ?? gig.description,
+        location: update.clearLocation ? null : update.location ?? gig.location,
+      );
+      payload[GigFields.searchSchemaVersion] = gigSearchSchemaVersion;
     }
 
     await _updateDocument(

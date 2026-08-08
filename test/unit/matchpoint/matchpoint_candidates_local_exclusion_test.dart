@@ -184,4 +184,78 @@ void main() {
 
     expect(candidates.map((candidate) => candidate.uid).toList(), ['target-2']);
   });
+
+  test(
+    'MatchpointCandidates ignores unscoped history from another account',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'swipe_history': jsonEncode([
+          {
+            'targetUserId': 'target-1',
+            'targetUserName': 'Target 1',
+            'targetUserPhoto': null,
+            'action': 'dislike',
+            'timestamp': DateTime(2026, 4, 9, 1).toIso8601String(),
+          },
+        ]),
+      });
+
+      final authRepository =
+          FakeAuthRepository(
+              initialUser: FakeFirebaseUser(
+                uid: 'user-2',
+                email: 'user-2@mube.app',
+              ),
+            )
+            ..appUser = const AppUser(
+              uid: 'user-2',
+              email: 'user-2@mube.app',
+              nome: 'User 2',
+              matchpointProfile: {
+                'musicalGenres': ['rock'],
+              },
+              privacySettings: {},
+              blockedUsers: [],
+            );
+      final outboxStore = MatchpointSwipeOutboxStore(
+        SharedPreferences.getInstance,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(authRepository),
+          currentUserProfileProvider.overrideWithValue(
+            const AsyncData(
+              AppUser(
+                uid: 'user-2',
+                email: 'user-2@mube.app',
+                nome: 'User 2',
+                matchpointProfile: {
+                  'musicalGenres': ['rock'],
+                },
+                privacySettings: {},
+                blockedUsers: [],
+              ),
+            ),
+          ),
+          appConfigProvider.overrideWith((ref) async => const AppConfig()),
+          blockedUsersProvider.overrideWith((ref) => Stream.value(const [])),
+          matchpointFeedRepositoryProvider.overrideWithValue(
+            _FakeMatchpointFeedRepository(),
+          ),
+          matchpointSwipeOutboxStoreProvider.overrideWithValue(outboxStore),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+
+      final candidates = await container.read(
+        matchpointCandidatesProvider.future,
+      );
+
+      expect(candidates.map((candidate) => candidate.uid).toList(), [
+        'target-1',
+        'target-2',
+      ]);
+    },
+  );
 }

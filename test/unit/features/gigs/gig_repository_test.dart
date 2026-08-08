@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mube/src/core/services/analytics/analytics_service.dart';
 import 'package:mube/src/features/gigs/data/gig_repository.dart';
+import 'package:mube/src/features/gigs/data/gig_search_index.dart';
 import 'package:mube/src/features/gigs/domain/compensation_type.dart';
 import 'package:mube/src/features/gigs/domain/gig_date_mode.dart';
 import 'package:mube/src/features/gigs/domain/gig_draft.dart';
+import 'package:mube/src/features/gigs/domain/gig_filters.dart';
 import 'package:mube/src/features/gigs/domain/gig_location_type.dart';
 import 'package:mube/src/features/gigs/domain/gig_type.dart';
 
@@ -100,6 +102,11 @@ void main() {
       'applicant_count': 0,
       'created_at': Timestamp.fromDate(createdAt ?? DateTime(2026, 3, 9)),
       'updated_at': Timestamp.fromDate(createdAt ?? DateTime(2026, 3, 9)),
+      'search_grams': buildGigSearchGrams(
+        title: title,
+        description: 'Gig de teste com detalhes suficientes para candidatura.',
+      ),
+      'search_schema_version': gigSearchSchemaVersion,
     });
   }
 
@@ -126,6 +133,64 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('GigRepository.watchGigs', () {
+    test(
+      'does not hide an older match behind newer nonmatching gigs',
+      () async {
+        await fakeFirestore.collection('gigs').doc(gigId).delete();
+        await Future.wait(
+          List.generate(
+            201,
+            (index) => seedGig(
+              'newer-$index',
+              title: 'Gig sem o termo $index',
+              createdAt: DateTime(2026, 4, 1).add(Duration(minutes: index)),
+            ),
+          ),
+        );
+        await seedGig(
+          'older-match',
+          title: 'Compatível antiga',
+          createdAt: DateTime(2026, 3, 1),
+        );
+
+        final gigs = await repository
+            .watchGigs(const GigFilters(term: 'compatível antiga'))
+            .first;
+
+        expect(gigs.map((gig) => gig.id), ['older-match']);
+      },
+    );
+
+    test('uses the ready search index without losing older matches', () async {
+      await fakeFirestore.collection('config').doc('app_data').set({
+        'gig_search_schema_version': gigSearchSchemaVersion,
+      });
+      await fakeFirestore.collection('gigs').doc(gigId).delete();
+      await Future.wait(
+        List.generate(
+          201,
+          (index) => seedGig(
+            'newer-indexed-$index',
+            title: 'Vaga comum $index',
+            createdAt: DateTime(2026, 4, 1).add(Duration(minutes: index)),
+          ),
+        ),
+      );
+      await seedGig(
+        'older-sax',
+        title: 'Procura-se saxofonista',
+        createdAt: DateTime(2026, 3, 1),
+      );
+
+      final gigs = await repository
+          .watchGigs(const GigFilters(term: 'SAXOFONÍSTA'))
+          .first;
+
+      expect(gigs.map((gig) => gig.id), ['older-sax']);
     });
   });
 

@@ -5,7 +5,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <application>
+    <application android:networkSecurityConfig="@xml/debug_network_security_config">
         <!-- Prevent native Meta traffic before the no-op debug provider loads. -->
         <meta-data
             android:name="com.facebook.sdk.AutoLogAppEventsEnabled"

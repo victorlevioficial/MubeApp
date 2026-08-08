@@ -48,6 +48,7 @@ extension _CreateGigScreenUi on _CreateGigScreenState {
                       label: 'Título',
                       hint: 'Ex: Procuro baterista para show de pop/rock',
                       textCapitalization: TextCapitalization.words,
+                      maxLength: 120,
                       readOnly: !_canEditAllFields,
                       validator: (value) {
                         if ((value ?? '').trim().length < 6) {
@@ -83,6 +84,7 @@ extension _CreateGigScreenUi on _CreateGigScreenState {
                           'Explique contexto, repertório, expectativa e detalhes.',
                       maxLines: 5,
                       minLines: 5,
+                      maxLength: 2000,
                       textCapitalization: TextCapitalization.sentences,
                       validator: (value) {
                         if ((value ?? '').trim().length < 20) {

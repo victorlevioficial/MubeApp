@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mube/src/utils/app_logger.dart';
 
+import '../../../core/config/firebase_emulator_config.dart';
 import '../../../core/errors/error_message_resolver.dart';
 import '../../../core/mixins/pagination_mixin.dart';
 import '../../../core/services/image_cache_config.dart';
@@ -101,6 +102,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   Future<void> _requestNotificationPermissionOnce() async {
+    if (firebaseEmulatorsEnabled) return;
+
     try {
       final promptNotifier = ref.read(
         notificationPermissionPromptProvider.notifier,

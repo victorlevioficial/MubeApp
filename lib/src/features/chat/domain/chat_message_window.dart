@@ -20,7 +20,12 @@ List<Message> preserveShiftedChatWindow({
           return false;
         }
 
-        return message.createdAt.compareTo(nextOldestTimestamp) < 0;
+        final timestampOrder = message.createdAt.compareTo(nextOldestTimestamp);
+        if (timestampOrder != 0) return timestampOrder < 0;
+
+        // The Firestore query uses document id as the deterministic secondary
+        // descending order, so a smaller id sits beyond the current boundary.
+        return message.id.compareTo(nextLatest.last.id) < 0;
       })
       .toList(growable: false);
 

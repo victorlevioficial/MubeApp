@@ -100,6 +100,23 @@ void main() {
         expect(storage.deletionAttempts, hasLength(3));
       },
     );
+
+    test('removes every current and legacy profile photo path', () async {
+      final storage = _RecordingFirebaseStorage();
+      final repository = StorageRepository(storage, auth: MockFirebaseAuth());
+
+      await repository.deleteProfileImages('user-1');
+
+      expect(storage.deletionAttempts, [
+        'profile_photos/user-1/thumbnail.webp',
+        'profile_photos/user-1/large.webp',
+        'profile_photos/user-1',
+        'profile_photos/user-1.webp',
+        'profile_photos/user-1.jpg',
+        'profile_photos/user-1.jpeg',
+        'profile_photos/user-1.png',
+      ]);
+    });
   });
 
   group('ImageUrls', () {

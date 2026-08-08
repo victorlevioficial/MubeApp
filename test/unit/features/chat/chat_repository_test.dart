@@ -622,6 +622,37 @@ void main() {
         expect(messages.docs.first.data()['text'], 'Hello!');
       });
 
+      test('does not send messages to a closed conversation', () async {
+        await fakeFirestore.collection('conversations').doc(conversationId).set(
+          {
+            'participants': [myUid, otherUid],
+            'requestStatus': 'accepted',
+            'is_closed': true,
+            'closed_reason': 'participant_deleted',
+          },
+        );
+
+        final result = await repository.sendMessage(
+          conversationId: conversationId,
+          text: 'Ainda está aí?',
+          myUid: myUid,
+          otherUid: otherUid,
+        );
+
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure.debugMessage, 'chat-conversation-closed'),
+          (_) => fail('Expected a closed-conversation failure'),
+        );
+
+        final messages = await fakeFirestore
+            .collection('conversations')
+            .doc(conversationId)
+            .collection('messages')
+            .get();
+        expect(messages.docs, isEmpty);
+      });
+
       test('should persist reply metadata when sending a reply', () async {
         await repository.getOrCreateConversation(
           myUid: myUid,

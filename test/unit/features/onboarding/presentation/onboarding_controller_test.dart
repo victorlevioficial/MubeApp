@@ -302,7 +302,7 @@ void main() {
 
           expect(
             container.read(onboardingFormProvider),
-            const OnboardingFormState(),
+            const OnboardingFormState(isHydrated: true),
           );
         },
       );

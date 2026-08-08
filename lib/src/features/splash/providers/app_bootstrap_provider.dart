@@ -4,6 +4,7 @@ import 'package:firebase_app_check/firebase_app_check.dart' as app_check;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/firebase_emulator_config.dart';
 import '../../../core/providers/firebase_providers.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_performance_tracker.dart';
@@ -43,6 +44,7 @@ class AppCheckWebProviderConfig {
 typedef AppCheckBootstrapper = Future<void> Function();
 
 final appCheckBootstrapperProvider = Provider<AppCheckBootstrapper>((ref) {
+  if (firebaseEmulatorsEnabled) return () async {};
   final appCheck = ref.watch(firebaseAppCheckProvider);
   return () => ensureAppCheckActivated(appCheck);
 });

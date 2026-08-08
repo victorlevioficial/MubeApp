@@ -122,36 +122,38 @@ final class StoryMediaUploader {
             basePathWithoutExtension: 'stories_images/$userId/$storyId/thumb',
           );
 
-    final fullUrl = await _uploadFile(
-      file: fullFile,
-      path: fullUploadTarget.path,
-      contentType: fullUploadTarget.contentType,
-      onProgress: (progress) {
-        emitStoryPublishProgress(
-          onProgress,
-          _progressBetween(progress, start: 0.18, end: 0.78),
-          'Enviando foto',
-        );
-      },
-    );
-    final thumbUrl = await _uploadFile(
-      file: thumbFile,
-      path: thumbUploadTarget.path,
-      contentType: thumbUploadTarget.contentType,
-      onProgress: (progress) {
-        emitStoryPublishProgress(
-          onProgress,
-          _progressBetween(progress, start: 0.78, end: 0.9),
-          'Enviando preview',
-        );
-      },
-    );
+    try {
+      final fullUrl = await _uploadFile(
+        file: fullFile,
+        path: fullUploadTarget.path,
+        contentType: fullUploadTarget.contentType,
+        onProgress: (progress) {
+          emitStoryPublishProgress(
+            onProgress,
+            _progressBetween(progress, start: 0.18, end: 0.78),
+            'Enviando foto',
+          );
+        },
+      );
+      final thumbUrl = await _uploadFile(
+        file: thumbFile,
+        path: thumbUploadTarget.path,
+        contentType: thumbUploadTarget.contentType,
+        onProgress: (progress) {
+          emitStoryPublishProgress(
+            onProgress,
+            _progressBetween(progress, start: 0.78, end: 0.9),
+            'Enviando preview',
+          );
+        },
+      );
 
-    // Clean up the compressed temp files we created (never the user's original).
-    await _deleteTempFileIfNeeded(fullFile, keep: media.file);
-    await _deleteTempFileIfNeeded(thumbFile, keep: media.file);
-
-    return StoryMediaUploadResult(mediaUrl: fullUrl, thumbnailUrl: thumbUrl);
+      return StoryMediaUploadResult(mediaUrl: fullUrl, thumbnailUrl: thumbUrl);
+    } finally {
+      // Clean up generated files even when either upload fails.
+      await _deleteTempFileIfNeeded(fullFile, keep: media.file);
+      await _deleteTempFileIfNeeded(thumbFile, keep: media.file);
+    }
   }
 
   Future<StoryMediaUploadResult> _uploadVideoStory({
@@ -179,8 +181,9 @@ final class StoryMediaUploader {
 
     String? thumbUrl;
     if (thumbFile != null) {
+      File? webpThumb;
       try {
-        final webpThumb = await _ensureWebpThumbnail(thumbFile);
+        webpThumb = await _ensureWebpThumbnail(thumbFile);
         // Upload the thumbnail before the source video. The Storage trigger
         // starts as soon as source.mp4 is finalized, so this keeps the preview
         // available when the transcode worker activates the story.
@@ -196,13 +199,17 @@ final class StoryMediaUploader {
             );
           },
         );
-        await _deleteTempFileIfNeeded(webpThumb, keep: media.thumbnailFile);
       } catch (e, stack) {
         AppLogger.warning(
           'Falha ao upload thumbnail, continuando sem',
           e,
           stack,
         );
+      } finally {
+        if (webpThumb != null) {
+          await _deleteTempFileIfNeeded(webpThumb, keep: media.thumbnailFile);
+        }
+        await _deleteTempFileIfNeeded(thumbFile, keep: media.thumbnailFile);
       }
     }
 

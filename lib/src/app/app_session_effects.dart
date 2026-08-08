@@ -4,13 +4,17 @@ extension _MubeAppSessionEffects on _MubeAppState {
   void _initializeSessionEffects() {
     ref.read(offlineMutationCoordinatorProvider);
     _goRouter.routerDelegate.addListener(_handleRouterStateChanged);
-    _setupPushListeners();
+    if (!firebaseEmulatorsEnabled) {
+      _setupPushListeners();
+    }
     _setupAuthStateListener();
     _setupProfileBootstrapListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleRouterStateChanged();
     });
-    _scheduleMetaAnalyticsInit();
+    if (!firebaseEmulatorsEnabled) {
+      _scheduleMetaAnalyticsInit();
+    }
   }
 
   void _scheduleMetaAnalyticsInit() {
@@ -88,6 +92,7 @@ extension _MubeAppSessionEffects on _MubeAppState {
   }
 
   void _handlePushBootstrapForAuthState(User? user) {
+    if (firebaseEmulatorsEnabled) return;
     if (user == null) {
       _pushBootstrapTimer?.cancel();
       _hasBootstrappedPushForSession = false;
