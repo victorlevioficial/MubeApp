@@ -565,8 +565,11 @@ class StorageRepository {
     await _deleteAll([
       _storage.ref().child('profile_photos/$userId/thumbnail.webp'),
       _storage.ref().child('profile_photos/$userId/large.webp'),
+      _storage.ref().child('profile_photos/$userId'),
       _storage.ref().child('profile_photos/$userId.webp'),
       _storage.ref().child('profile_photos/$userId.jpg'),
+      _storage.ref().child('profile_photos/$userId.jpeg'),
+      _storage.ref().child('profile_photos/$userId.png'),
     ]);
   }
 

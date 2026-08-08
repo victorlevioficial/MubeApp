@@ -286,21 +286,21 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
   }
 
   Future<void> _loadState() async {
-    final prefs = await _getPrefs();
-    if (!ref.mounted) return;
-    final jsonStr = prefs.getString(_storageKey);
-    if (jsonStr == null) return;
-
-    final currentUserId = await _awaitCurrentUserId();
-    if (!ref.mounted) return;
-    if (currentUserId == null || currentUserId.isEmpty) {
-      // Identity still unknown: keep the draft untouched so a later load can
-      // restore it. Dropping it here is what used to wipe a half-finished
-      // signup whenever the app restarted mid-onboarding.
-      return;
-    }
-
     try {
+      final prefs = await _getPrefs();
+      if (!ref.mounted) return;
+      final jsonStr = prefs.getString(_storageKey);
+      if (jsonStr == null) return;
+
+      final currentUserId = await _awaitCurrentUserId();
+      if (!ref.mounted) return;
+      if (currentUserId == null || currentUserId.isEmpty) {
+        // Identity still unknown: keep the draft untouched so a later load can
+        // restore it. Dropping it here is what used to wipe a half-finished
+        // signup whenever the app restarted mid-onboarding.
+        return;
+      }
+
       final restoredState = _decodePersistedState(jsonStr, currentUserId);
       if (restoredState != null) {
         state = restoredState.copyWith(isHydrated: true);
@@ -314,6 +314,10 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
         error,
         stackTrace,
       );
+    } finally {
+      if (ref.mounted && !state.isHydrated) {
+        state = state.copyWith(isHydrated: true);
+      }
     }
   }
 
@@ -396,7 +400,7 @@ class OnboardingFormNotifier extends Notifier<OnboardingFormState> {
 
   Future<void> clearState() async {
     _persistTimer?.cancel();
-    state = const OnboardingFormState();
+    state = const OnboardingFormState(isHydrated: true);
     final prefs = await _getPrefs();
     await prefs.remove(_storageKey);
   }

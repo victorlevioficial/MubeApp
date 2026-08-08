@@ -1162,7 +1162,6 @@ Future<List<HashtagRanking>> hashtagSearch(Ref ref, String query) async {
 @Riverpod(keepAlive: true)
 class SwipeHistory extends _$SwipeHistory {
   static const _storageKeyPrefix = 'swipe_history_';
-  static const _legacyStorageKey = 'swipe_history';
   static const _maxEntries = 200;
 
   @override
@@ -1211,9 +1210,7 @@ class SwipeHistory extends _$SwipeHistory {
 
   Future<List<SwipeHistoryEntry>> _readStoredHistory(String userId) async {
     final prefs = await ref.read(sharedPreferencesLoaderProvider)();
-    final jsonStr =
-        prefs.getString(_storageKeyForUser(userId)) ??
-        prefs.getString(_legacyStorageKey);
+    final jsonStr = prefs.getString(_storageKeyForUser(userId));
     if (jsonStr == null) return const [];
 
     final list = (jsonDecode(jsonStr) as List)
@@ -1237,8 +1234,6 @@ class SwipeHistory extends _$SwipeHistory {
       if (userId != null) {
         await prefs.setString(_storageKeyForUser(userId), jsonStr);
       }
-
-      await prefs.setString(_legacyStorageKey, jsonStr);
     } catch (e, st) {
       AppLogger.warning('Failed to save swipe history', e, st);
     }

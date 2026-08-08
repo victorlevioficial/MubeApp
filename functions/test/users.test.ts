@@ -80,11 +80,34 @@ const firestoreMock = {
 
     return handler(transaction);
   }),
+  recursiveDelete: jest.fn(async (docRef: ReturnType<typeof createDocRef>) => {
+    const prefix = `${docRef.path}/`;
+    for (const path of [...store.keys()]) {
+      if (path === docRef.path || path.startsWith(prefix)) {
+        applyDelete(path);
+      }
+    }
+  }),
 };
 
 const authMock = {
   deleteUser: jest.fn().mockResolvedValue(undefined),
 };
+
+const storageFileDeleteMock = jest.fn().mockResolvedValue(undefined);
+const storageBucketMock = {
+  deleteFiles: jest.fn().mockResolvedValue(undefined),
+  file: jest.fn((path: string) => ({
+    delete: (options?: unknown) => storageFileDeleteMock(path, options),
+  })),
+};
+
+const cleanupUserFirestoreDataMock = jest.fn().mockResolvedValue({
+  deletedDocuments: 0,
+  recursivelyDeletedDocuments: 0,
+  anonymizedDocuments: 0,
+  detachedReferences: 0,
+});
 
 jest.mock("firebase-admin", () => ({
   initializeApp: jest.fn(),
@@ -94,6 +117,14 @@ jest.mock("firebase-admin", () => ({
     },
   }),
   auth: jest.fn(() => authMock),
+  storage: jest.fn(() => ({
+    bucket: jest.fn(() => storageBucketMock),
+  })),
+}));
+
+jest.mock("../src/account_deletion", () => ({
+  cleanupUserFirestoreData: (...args: unknown[]) =>
+    cleanupUserFirestoreDataMock(...args),
 }));
 
 import {deleteAccount, setPublicUsername} from "../src/users";
@@ -106,6 +137,15 @@ describe("users Cloud Functions", () => {
     store.clear();
     writeLog.sets = [];
     writeLog.deletes = [];
+    authMock.deleteUser.mockResolvedValue(undefined);
+    storageBucketMock.deleteFiles.mockResolvedValue(undefined);
+    storageFileDeleteMock.mockResolvedValue(undefined);
+    cleanupUserFirestoreDataMock.mockResolvedValue({
+      deletedDocuments: 0,
+      recursivelyDeletedDocuments: 0,
+      anonymizedDocuments: 0,
+      detachedReferences: 0,
+    });
   });
 
   afterAll(() => {
@@ -217,7 +257,7 @@ describe("users Cloud Functions", () => {
       );
     });
 
-    test("backs up, releases username, deletes firestore data and auth user", async () => {
+    test("redacts personal data, releases username and deletes the auth user", async () => {
       store.set("users/user123", {
         nome: "Test User",
         email: "test@example.com",
@@ -226,6 +266,9 @@ describe("users Cloud Functions", () => {
       store.set("publicUsernames/mube.oficial", {
         uid: "user123",
         username: "mube.oficial",
+      });
+      store.set("users/user123/favorites/favorite-1", {
+        createdAt: "mock-timestamp",
       });
 
       const wrapped = testEnv.wrap(deleteAccount);
@@ -236,13 +279,46 @@ describe("users Cloud Functions", () => {
 
       expect(result).toEqual({success: true});
       expect(store.get("deletedUsers/user123")).toEqual({
-        nome: "Test User",
-        email: "test@example.com",
-        username: "mube.oficial",
+        deletion_status: "firestore_complete",
+        policy_version: 2,
         deleted_at: "mock-timestamp",
       });
+      expect(cleanupUserFirestoreDataMock).toHaveBeenCalledWith(
+        firestoreMock,
+        "user123"
+      );
       expect(store.has("users/user123")).toBe(false);
+      expect(store.has("users/user123/favorites/favorite-1")).toBe(false);
       expect(store.has("publicUsernames/mube.oficial")).toBe(false);
+      expect(writeLog.deletes).toEqual([
+        "users/user123",
+        "users/user123/favorites/favorite-1",
+        "publicUsernames/mube.oficial",
+      ]);
+      expect(firestoreMock.recursiveDelete).toHaveBeenCalledWith(
+        expect.objectContaining({path: "users/user123"})
+      );
+      expect(
+        storageBucketMock.deleteFiles.mock.calls.map(([options]) => options)
+      ).toEqual([
+        {prefix: "profile_photos/user123/", force: true},
+        {prefix: "gallery_photos/user123/", force: true},
+        {prefix: "gallery_videos/user123/", force: true},
+        {prefix: "gallery_videos_transcoded/user123/", force: true},
+        {prefix: "gallery_thumbnails/user123/", force: true},
+        {prefix: "stories_images/user123/", force: true},
+        {prefix: "stories_videos_source/user123/", force: true},
+        {prefix: "stories_videos_master/user123/", force: true},
+        {prefix: "stories_videos_thumbs/user123/", force: true},
+        {prefix: "support_tickets/user123/", force: true},
+      ]);
+      expect(storageFileDeleteMock.mock.calls).toEqual([
+        ["profile_photos/user123", {ignoreNotFound: true}],
+        ["profile_photos/user123.webp", {ignoreNotFound: true}],
+        ["profile_photos/user123.jpg", {ignoreNotFound: true}],
+        ["profile_photos/user123.jpeg", {ignoreNotFound: true}],
+        ["profile_photos/user123.png", {ignoreNotFound: true}],
+      ]);
       expect(authMock.deleteUser).toHaveBeenCalledWith("user123");
     });
 
@@ -254,7 +330,90 @@ describe("users Cloud Functions", () => {
       } as never);
 
       expect(result).toEqual({success: true});
+      expect(firestoreMock.recursiveDelete).toHaveBeenCalledWith(
+        expect.objectContaining({path: "users/user456"})
+      );
       expect(authMock.deleteUser).toHaveBeenCalledWith("user456");
+    });
+
+    test("releases the backed-up username when a retry has no profile", async () => {
+      store.set("deletedUsers/user-retry", {
+        email: "retry@example.com",
+        username: "retry.handle",
+      });
+      store.set("publicUsernames/retry.handle", {uid: "user-retry"});
+
+      const wrapped = testEnv.wrap(deleteAccount);
+      const result = await wrapped({
+        data: {},
+        auth: {uid: "user-retry"},
+      } as never);
+
+      expect(result).toEqual({success: true});
+      expect(store.has("publicUsernames/retry.handle")).toBe(false);
+      expect(store.get("deletedUsers/user-retry")).toEqual({
+        deletion_status: "firestore_complete",
+        policy_version: 2,
+        deleted_at: "mock-timestamp",
+      });
+      expect(authMock.deleteUser).toHaveBeenCalledWith("user-retry");
+    });
+
+    test("keeps firestore and auth retryable when storage cleanup fails", async () => {
+      store.set("users/user-storage-failure", {
+        email: "retry@example.com",
+        username: "retry.user",
+      });
+      store.set("publicUsernames/retry.user", {
+        uid: "user-storage-failure",
+      });
+      storageBucketMock.deleteFiles.mockRejectedValueOnce(
+        new Error("Storage unavailable")
+      );
+
+      const wrapped = testEnv.wrap(deleteAccount);
+
+      await expect(
+        wrapped({
+          data: {},
+          auth: {uid: "user-storage-failure"},
+        } as never)
+      ).rejects.toThrow(
+        /An error occurred while attempting to delete the account/
+      );
+
+      expect(store.has("users/user-storage-failure")).toBe(true);
+      expect(store.has("publicUsernames/retry.user")).toBe(true);
+      expect(firestoreMock.recursiveDelete).not.toHaveBeenCalled();
+      expect(authMock.deleteUser).not.toHaveBeenCalled();
+    });
+
+    test("keeps the public username reserved when firestore cleanup fails", async () => {
+      store.set("users/user-firestore-failure", {
+        email: "retry@example.com",
+        username: "retry.firestore",
+      });
+      store.set("publicUsernames/retry.firestore", {
+        uid: "user-firestore-failure",
+      });
+      firestoreMock.recursiveDelete.mockRejectedValueOnce(
+        new Error("Firestore unavailable")
+      );
+
+      const wrapped = testEnv.wrap(deleteAccount);
+
+      await expect(
+        wrapped({
+          data: {},
+          auth: {uid: "user-firestore-failure"},
+        } as never)
+      ).rejects.toThrow(
+        /An error occurred while attempting to delete the account/
+      );
+
+      expect(store.has("users/user-firestore-failure")).toBe(true);
+      expect(store.has("publicUsernames/retry.firestore")).toBe(true);
+      expect(authMock.deleteUser).not.toHaveBeenCalled();
     });
 
     test("throws internal error on unexpected failures", async () => {

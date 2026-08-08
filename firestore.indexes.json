@@ -99,6 +99,42 @@
                                    ]
                     },
                     {
+                        "collectionGroup":  "gig_applications",
+                        "queryScope":  "COLLECTION_GROUP",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "applicant_id",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "applied_at",
+                                           "order":  "DESCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "__name__",
+                                           "order":  "DESCENDING"
+                                       }
+                                   ]
+                    },
+                    {
+                        "collectionGroup":  "gig_applications",
+                        "queryScope":  "COLLECTION_GROUP",
+                        "fields":  [
+                                       {
+                                           "fieldPath":  "applicant_id",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "status",
+                                           "order":  "ASCENDING"
+                                       },
+                                       {
+                                           "fieldPath":  "__name__",
+                                           "order":  "ASCENDING"
+                                       }
+                                   ]
+                    },
+                    {
                         "collectionGroup":  "gig_reviews",
                         "queryScope":  "COLLECTION",
                         "fields":  [
@@ -195,6 +231,90 @@
                                            "order":  "DESCENDING"
                                        }
                                    ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "status", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "gig_type", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "creator_id", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "status", "order": "ASCENDING"},
+                            {"fieldPath": "gig_type", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "status", "order": "ASCENDING"},
+                            {"fieldPath": "creator_id", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "gig_type", "order": "ASCENDING"},
+                            {"fieldPath": "creator_id", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
+                    },
+                    {
+                        "collectionGroup": "gigs",
+                        "queryScope": "COLLECTION",
+                        "fields": [
+                            {"fieldPath": "status", "order": "ASCENDING"},
+                            {"fieldPath": "gig_type", "order": "ASCENDING"},
+                            {"fieldPath": "creator_id", "order": "ASCENDING"},
+                            {"fieldPath": "search_grams", "arrayConfig": "CONTAINS"},
+                            {"fieldPath": "created_at", "order": "DESCENDING"},
+                            {"fieldPath": "__name__", "order": "DESCENDING"}
+                        ]
                     },
                     {
                         "collectionGroup":  "hashtagRanking",
@@ -894,6 +1014,131 @@
                     }
                 ],
     "fieldOverrides":  [
-
+                           {
+                               "collectionGroup":  "views",
+                               "fieldPath":  "viewer_uid",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "favorites",
+                               "fieldPath":  "target_user_id",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "blocked",
+                               "fieldPath":  "blockedUserId",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "notifications",
+                               "fieldPath":  "senderId",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "story_seen_authors",
+                               "fieldPath":  "owner_uid",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "messages",
+                               "fieldPath":  "senderId",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "messages",
+                               "fieldPath":  "replyToSenderId",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "conversationPreviews",
+                               "fieldPath":  "otherUserId",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           },
+                           {
+                               "collectionGroup":  "gig_applications",
+                               "fieldPath":  "applicant_id",
+                               "indexes":  [
+                                               {
+                                                   "order":  "ASCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               },
+                                               {
+                                                   "order":  "DESCENDING",
+                                                   "queryScope":  "COLLECTION_GROUP"
+                                               }
+                                           ]
+                           }
                        ]
 }

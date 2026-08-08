@@ -22,22 +22,19 @@ class OnboardingHeader extends StatelessWidget {
       children: [
         // Back Button aligned to the left edge of the content
         SizedBox(
-          width: 40, // Fixed width to match right spacer
+          width: AppSpacing.s48,
           child: Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
+              tooltip: 'Voltar',
               icon: const Icon(
                 Icons.arrow_back_ios,
                 size: 20,
                 color: AppColors.textPrimary,
               ),
               onPressed: onBack,
-              padding: EdgeInsets.zero, // Remove internal padding
-              alignment: Alignment.centerLeft, // Align icon to the left
-              constraints: const BoxConstraints(), // Shrink wrap if needed
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
             ),
           ),
         ),
@@ -56,7 +53,7 @@ class OnboardingHeader extends StatelessWidget {
         ),
 
         // Counter-balance for the back button to ensure perfect centering
-        const SizedBox(width: AppSpacing.s40),
+        const SizedBox(width: AppSpacing.s48),
       ],
     );
   }

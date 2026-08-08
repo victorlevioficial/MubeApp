@@ -126,6 +126,15 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
       final myInfo = await myInfoFuture;
       final otherInfo = await otherInfoFuture;
       final conversationData = _asMap(conversationSnapshot.data());
+      if (conversationData?['is_closed'] == true) {
+        return const Left(
+          PermissionFailure(
+            message:
+                'Esta conversa foi encerrada porque uma das contas não está mais disponível.',
+            debugMessage: 'chat-conversation-closed',
+          ),
+        );
+      }
       final requestedConversationType = _normalizeConversationType(
         conversationType,
       );
@@ -367,7 +376,8 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
         .collection('conversations')
         .doc(conversationId)
         .collection('messages')
-        .orderBy('createdAt', descending: true);
+        .orderBy('createdAt', descending: true)
+        .orderBy(FieldPath.documentId, descending: true);
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(

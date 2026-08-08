@@ -53,4 +53,25 @@ void main() {
 
     expect(result, isEmpty);
   });
+
+  test('preserves the boundary when messages share a timestamp', () {
+    final previous = <Message>[
+      message('message-c', 1),
+      message('message-b', 1),
+      message('message-a', 1),
+    ];
+    final next = <Message>[
+      message('message-d', 1),
+      message('message-c', 1),
+      message('message-b', 1),
+    ];
+
+    final result = preserveShiftedChatWindow(
+      previousLatest: previous,
+      nextLatest: next,
+      olderMessages: const [],
+    );
+
+    expect(result.map((item) => item.id), ['message-a']);
+  });
 }

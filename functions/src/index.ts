@@ -120,6 +120,7 @@ export {
   onGigApplicationUpdated,
   onGigApplicationDeleted,
   expireFixedDateGigs,
+  backfillGigSearchIndex,
 } from "./gigs";
 
 // Export Video transcode functions

@@ -13,6 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'firebase_options.dart';
 import 'src/app.dart';
+import 'src/core/config/firebase_emulator_config.dart';
 import 'src/core/services/favorite_integration_effects.dart';
 import 'src/core/services/image_cache_config.dart';
 import 'src/core/services/performance/app_performance_monitoring.dart';
@@ -129,6 +130,7 @@ class _BootstrapHostState extends State<_BootstrapHost> {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      await configureFirebaseEmulatorsIfEnabled();
       AppPerformanceTracker.finishSpan(
         'firebase.initialize_app',
         firebaseInitStopwatch,
@@ -186,6 +188,14 @@ class _BootstrapHostState extends State<_BootstrapHost> {
     );
 
     try {
+      if (firebaseEmulatorsEnabled) {
+        AppPerformanceTracker.finishSpan(
+          'bootstrap.post_frame_services',
+          postBootstrapStopwatch,
+          data: {'status': 'skipped_for_firebase_emulators'},
+        );
+        return;
+      }
       final appLoggerInitStopwatch = AppPerformanceTracker.startSpan(
         'bootstrap.app_logger_initialize',
       );

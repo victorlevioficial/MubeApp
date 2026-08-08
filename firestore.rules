@@ -518,7 +518,12 @@ service cloud.firestore {
       // Update: user must be participant, participants list is immutable.
       allow update: if isAuthenticated()
         && request.auth.uid in resource.data.participants
-        && request.resource.data.participants == resource.data.participants;
+        && request.resource.data.participants == resource.data.participants
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'is_closed',
+          'closed_reason',
+          'closed_at'
+        ]);
       
       match /messages/{messageId} {
         // Only participants can read messages
@@ -531,6 +536,8 @@ service cloud.firestore {
           isEmailVerified() &&
           exists(/databases/$(database)/documents/conversations/$(conversationId)) &&
           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+          (!('is_closed' in get(/databases/$(database)/documents/conversations/$(conversationId)).data) ||
+            get(/databases/$(database)/documents/conversations/$(conversationId)).data.is_closed != true) &&
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string &&
           request.resource.data.text.size() > 0 &&
@@ -705,8 +712,10 @@ service cloud.firestore {
         request.resource.data.creator_id == request.auth.uid &&
         request.resource.data.title is string &&
         request.resource.data.title.size() >= 6 &&
+        request.resource.data.title.size() <= 120 &&
         request.resource.data.description is string &&
         request.resource.data.description.size() >= 20 &&
+        request.resource.data.description.size() <= 2000 &&
         isAllowedGigType(request.resource.data.gig_type) &&
         isAllowedGigDateMode(request.resource.data.date_mode) &&
         isAllowedGigLocationType(request.resource.data.location_type) &&
@@ -720,6 +729,12 @@ service cloud.firestore {
       allow update: if isGigCreator(gigId) &&
         isCompletedProfile(request.auth.uid) &&
         request.resource.data.creator_id == resource.data.creator_id &&
+        request.resource.data.title is string &&
+        request.resource.data.title.size() >= 6 &&
+        request.resource.data.title.size() <= 120 &&
+        request.resource.data.description is string &&
+        request.resource.data.description.size() >= 20 &&
+        request.resource.data.description.size() <= 2000 &&
         request.resource.data.slots_filled == resource.data.slots_filled &&
         request.resource.data.applicant_count == resource.data.applicant_count &&
         request.resource.data.created_at == resource.data.created_at &&
@@ -730,7 +745,9 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'description',
             'status',
-            'updated_at'
+            'updated_at',
+            'search_grams',
+            'search_schema_version'
           ])
         );
 

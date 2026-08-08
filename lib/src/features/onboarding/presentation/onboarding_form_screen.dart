@@ -229,6 +229,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(onboardingControllerProvider);
+    final formState = ref.watch(onboardingFormProvider);
     final userAsync = ref.watch(currentUserProfileProvider);
 
     return userAsync.when(
@@ -239,6 +240,9 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
         if (user == null) return const SizedBox();
         if (user.tipoPerfil == null) {
           return const Scaffold(body: Center(child: Text('Tipo indefinido')));
+        }
+        if (!formState.isHydrated) {
+          return const _OnboardingFormSkeleton();
         }
 
         // Delegate to Contractor Flow if applicable

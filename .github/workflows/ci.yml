@@ -43,10 +43,10 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test scripts
+        run: dart format --output=none --set-exit-if-changed lib test integration_test scripts
 
       - name: Analyze project source
-        run: flutter analyze --fatal-infos lib test
+        run: flutter analyze --fatal-infos lib test integration_test
 
   backend:
     name: Functions Quality Gate
@@ -77,6 +77,107 @@ jobs:
       - name: Test functions
         run: npm test -- --runInBand
 
+  firebase-rules:
+    name: Firebase Rules Emulator Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: firebase_rules
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: firebase_rules/package-lock.json
+
+      - name: Setup Java for Firebase emulators
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Install rule-test dependencies
+        run: npm ci
+
+      - name: Install functions dependencies for cleanup integration test
+        run: npm ci --prefix ../functions
+
+      - name: Test Firestore and Storage rules
+        run: npm test
+
+  android-e2e:
+    name: Android Authenticated E2E
+    runs-on: ubuntu-latest
+    needs: [analyze, backend, firebase-rules, test]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Flutter
+        uses: ./.github/actions/setup-flutter
+        with:
+          channel: stable
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: firebase_rules/package-lock.json
+
+      - name: Setup Java for Android and Firebase emulators
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+
+      - name: Get dependencies
+        run: |
+          flutter pub get --enforce-lockfile
+          npm ci --prefix firebase_rules
+
+      - name: Restore Android Firebase config
+        env:
+          ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON }}
+          ANDROID_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.ANDROID_GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          elif [ -n "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" ]; then
+            printf '%s' "$ANDROID_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          else
+            echo "Missing Android Firebase config secret."
+            exit 1
+          fi
+
+      - name: Enable KVM group access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run authenticated app flow against Firebase emulators
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: >-
+            ./firebase_rules/node_modules/.bin/firebase emulators:exec
+            --config firebase.json
+            --project mube-63a93
+            --only auth,firestore,storage
+            "flutter test integration_test/authenticated_emulator_flow_test.dart
+            -d emulator-5554
+            --dart-define=USE_FIREBASE_EMULATORS=true
+            --dart-define=FIREBASE_EMULATOR_HOST=10.0.2.2"
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest
@@ -98,17 +199,18 @@ jobs:
       - name: Verify text encoding (mojibake guard)
         run: flutter test test/unit/quality/mojibake_guard_test.dart
 
-      - name: Run stable tests (unit + widget + routing + src)
-        run: flutter test test/unit test/widget test/routing test/src --coverage
+      - name: Run all unit, widget, routing and integration tests
+        run: flutter test --coverage
 
-      - name: Run integration tests (informative on PR)
-        if: github.event_name == 'pull_request'
-        run: flutter test test/integration
-        continue-on-error: true
-
-      - name: Run integration tests (blocking on push)
-        if: github.event_name == 'push'
-        run: flutter test test/integration
+      - name: Enforce line coverage floor
+        run: |
+          lines_found=$(awk -F: '/^LF:/{sum += $2} END{print sum + 0}' coverage/lcov.info)
+          lines_hit=$(awk -F: '/^LH:/{sum += $2} END{print sum + 0}' coverage/lcov.info)
+          awk -v hit="$lines_hit" -v found="$lines_found" 'BEGIN {
+            coverage = found == 0 ? 0 : (hit * 100 / found)
+            printf "Line coverage: %.2f%% (%d/%d)\n", coverage, hit, found
+            if (coverage < 55) exit 1
+          }'
 
       - name: Install Codecov CLI
         if: github.event_name == 'pull_request' || env.CODECOV_TOKEN != ''
@@ -140,8 +242,8 @@ jobs:
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
-    needs: [analyze, backend, test]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [analyze, backend, firebase-rules, test, android-e2e]
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -347,8 +449,8 @@ jobs:
   build-ios:
     name: Build iOS (No Codesign)
     runs-on: macos-latest
-    needs: [analyze, backend, test]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [analyze, backend, firebase-rules, test, android-e2e]
+    if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
@@ -442,8 +544,8 @@ jobs:
             --glob "!lib/firebase_options.dart" \
             --glob "!**/google-services.json" \
             --glob "!**/GoogleService-Info*.plist" \
-            --glob "!admin_panel/**" \
-            --glob "!landing_page/**" \
+            --glob "!admin_panel/app.js" \
+            --glob "!landing_page/suporte/index.html" \
             --glob "!.github/workflows/ci.yml" \
             --glob "!scripts/preflight.sh" \
             || true)

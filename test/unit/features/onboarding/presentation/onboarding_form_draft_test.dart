@@ -51,6 +51,19 @@ void main() {
   }
 
   group('onboarding draft persistence', () {
+    test('marks a new form as hydrated when there is no draft', () async {
+      SharedPreferences.setMockInitialValues({});
+      final authRepository = FakeAuthRepository(
+        initialUser: _FakeUser('user-1'),
+      );
+      final container = await buildContainer(authRepository);
+
+      container.read(onboardingFormProvider);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      expect(container.read(onboardingFormProvider).isHydrated, isTrue);
+    });
+
     test(
       'keeps the draft when auth has not restored the session yet',
       () async {
@@ -87,6 +100,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 300));
 
       expect(container.read(onboardingFormProvider).nome, 'Maria Guitarrista');
+      expect(container.read(onboardingFormProvider).isHydrated, isTrue);
     });
 
     test('discards a draft that belongs to a different account', () async {
@@ -104,6 +118,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getString(storageKey), isNull);
       expect(container.read(onboardingFormProvider).nome, isNull);
+      expect(container.read(onboardingFormProvider).isHydrated, isTrue);
     });
   });
 }

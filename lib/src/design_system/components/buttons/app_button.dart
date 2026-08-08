@@ -211,7 +211,7 @@ class AppButton extends StatelessWidget {
   double _getHeight() {
     switch (size) {
       case AppButtonSize.small:
-        return 32;
+        return 44;
       case AppButtonSize.medium:
         return 48;
       case AppButtonSize.large:

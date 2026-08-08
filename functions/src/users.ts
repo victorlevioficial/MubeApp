@@ -4,6 +4,8 @@ import {defineSecret} from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import type {Request, Response} from "express";
 
+import {cleanupUserFirestoreData} from "./account_deletion";
+
 const db = admin.firestore();
 const CONTRACTOR_PROFILE_TYPE = "contratante";
 const NAME_CONNECTORS = new Set(["de", "da", "do", "dos", "das", "e"]);
@@ -14,6 +16,48 @@ const PUBLIC_USERNAME_PATTERN = /^[a-z0-9](?:[a-z0-9._]{1,22}[a-z0-9])$/;
 const migrationToken = defineSecret("MIGRATION_TOKEN");
 const BACKFILL_PAGE_SIZE = 400;
 const BACKFILL_BATCH_SIZE = 400;
+const ACCOUNT_STORAGE_PREFIXES = [
+  "profile_photos",
+  "gallery_photos",
+  "gallery_videos",
+  "gallery_videos_transcoded",
+  "gallery_thumbnails",
+  "stories_images",
+  "stories_videos_source",
+  "stories_videos_master",
+  "stories_videos_thumbs",
+  "support_tickets",
+] as const;
+const LEGACY_PROFILE_PHOTO_SUFFIXES = [
+  "",
+  ".webp",
+  ".jpg",
+  ".jpeg",
+  ".png",
+] as const;
+
+/**
+ * Deletes every Storage namespace owned exclusively by a user.
+ *
+ * Account deletion must fail when this cleanup fails. Reporting success and
+ * deleting Auth while personal media remains would leave the user unable to
+ * retry the operation.
+ *
+ * @param {string} uid Auth uid that owns the objects.
+ */
+async function deleteUserStorage(uid: string): Promise<void> {
+  const bucket = admin.storage().bucket();
+  const prefixDeletes = ACCOUNT_STORAGE_PREFIXES.map((root) =>
+    bucket.deleteFiles({prefix: `${root}/${uid}/`, force: true})
+  );
+  const legacyProfileDeletes = LEGACY_PROFILE_PHOTO_SUFFIXES.map(
+    (suffix) => bucket
+      .file(`profile_photos/${uid}${suffix}`)
+      .delete({ignoreNotFound: true})
+  );
+
+  await Promise.all([...prefixDeletes, ...legacyProfileDeletes]);
+}
 
 /**
  * Normalizes unknown values into a safe object map.
@@ -755,9 +799,11 @@ export const setPublicUsername = onCall(
  * Flow:
  * 1. Ensure the user is authenticated.
  * 2. Fetch all user data from the `users` collection.
- * 3. Store the user data in a backup collection `deletedUsers`.
- * 4. Remove the user data from the `users` collection.
- * 5. Delete the user from Firebase Authentication.
+ * 3. Store a minimal retry marker in `deletedUsers` (never a profile backup).
+ * 4. Remove every user-owned Storage object.
+ * 5. Delete private Firestore data and anonymize shared records.
+ * 6. Recursively remove the user document and its subcollections.
+ * 7. Delete the user from Firebase Authentication.
  */
 export const deleteAccount = onCall(
   {
@@ -781,55 +827,69 @@ export const deleteAccount = onCall(
     try {
       const userRef = db.collection("users").doc(uid);
       const userDoc = await userRef.get();
+      const deletedUserRef = db.collection("deletedUsers").doc(uid);
+      let normalizedUsername = "";
 
-      // If user profile exists, back it up
+      // Keep only the public handle needed to make a partial deletion retryable.
+      // Copying the full profile here would defeat the user's deletion request.
       if (userDoc.exists) {
         const userData = userDoc.data() || {};
-        const normalizedUsername = normalizedPublicUsername(userData.username);
-
-        // Add exact deletion timestamp metadata to the backup
-        userData.deleted_at = admin.firestore.FieldValue.serverTimestamp();
-
-        // 3. Keep a backup in "deletedUsers"
-        await db.collection("deletedUsers").doc(uid).set(userData);
-
-        if (normalizedUsername) {
-          const usernameRef = db
-            .collection(PUBLIC_USERNAMES_COLLECTION)
-            .doc(normalizedUsername);
-          const usernameDoc = await usernameRef.get();
-          const usernameData = asRecord(usernameDoc.data());
-          const usernameOwnerUid = firstNonEmptyString([usernameData.uid]);
-
-          if (!usernameOwnerUid || usernameOwnerUid === uid) {
-            await usernameRef.delete();
-          }
-        }
-
-        // 4. Delete from Main Users collection
-        await userRef.delete();
-      }
-
-      // 5. Best-effort: delete user-owned Storage objects (avatars, gallery,
-      // videos) under the users/{uid}/ prefix. Don't block account deletion
-      // if this fails — log and move on so Auth is still cleaned up.
-      try {
-        await admin
-          .storage()
-          .bucket()
-          .deleteFiles({prefix: `users/${uid}/`});
-      } catch (storageError) {
-        console.warn(
-          `Failed to clean up Storage for user ${uid}. ` +
-            "Account deletion will continue.",
-          storageError
+        normalizedUsername = normalizedPublicUsername(userData.username);
+        await deletedUserRef.set({
+          username: normalizedUsername || null,
+          deletion_status: "in_progress",
+          policy_version: 2,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        // A previous attempt may already have removed users/{uid}. Recover
+        // the handle from the minimal retry marker so retries
+        // still release it.
+        const deletedUserDoc = await deletedUserRef.get();
+        normalizedUsername = normalizedPublicUsername(
+          deletedUserDoc.data()?.username
         );
       }
 
-      // 6. Delete from Firebase Authentication
+      // Remove personal media before Auth so cleanup failures remain
+      // retryable by the authenticated user.
+      await deleteUserStorage(uid);
+
+      const cleanupSummary = await cleanupUserFirestoreData(db, uid);
+
+      // Remove all profile subcollections before releasing the public handle.
+      // If recursive deletion fails, the account remains internally coherent
+      // and the authenticated user can retry.
+      await db.recursiveDelete(userRef);
+
+      if (normalizedUsername) {
+        const usernameRef = db
+          .collection(PUBLIC_USERNAMES_COLLECTION)
+          .doc(normalizedUsername);
+        const usernameDoc = await usernameRef.get();
+        const usernameData = asRecord(usernameDoc.data());
+        const usernameOwnerUid = firstNonEmptyString([usernameData.uid]);
+
+        if (!usernameOwnerUid || usernameOwnerUid === uid) {
+          await usernameRef.delete();
+        }
+      }
+
+      // Redact any legacy full-profile backup and leave only an audit marker.
+      // This happens before Auth deletion so a failed write remains retryable.
+      await deletedUserRef.set({
+        deletion_status: "firestore_complete",
+        policy_version: 2,
+        deleted_at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 7. Delete from Firebase Authentication
       await admin.auth().deleteUser(uid);
 
-      console.log(`User ${uid} successfully backed up and deleted.`);
+      console.log(
+        `User ${uid} successfully deleted. ` +
+        `Firestore cleanup: ${JSON.stringify(cleanupSummary)}`
+      );
       return {success: true};
     } catch (error) {
       console.error(`Error deleting user account with uid: ${uid}`, error);
