@@ -105,6 +105,7 @@ vendor/
 node_modules/
 package-lock.json
 !functions/package-lock.json
+!firebase_rules/package-lock.json
 
 # =========================
 # FVM
