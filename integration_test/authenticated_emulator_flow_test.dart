@@ -227,6 +227,7 @@ void main() {
 
         await tester.tap(find.text('Saxofonista para festival E2E').first);
         await _pumpUntil(tester, find.byType(GigDetailScreen));
+        await _pumpUntil(tester, find.text('Saxofonista para festival E2E'));
         expect(find.text('Saxofonista para festival E2E'), findsWidgets);
         await tester.tap(find.byType(AppBackButton));
         await _pumpUntil(tester, find.byType(GigsHubScreen));
