@@ -40,12 +40,6 @@ class _FakeMatchpointRemoteDataSource implements MatchpointRemoteDataSource {
   }
 
   @override
-  Future<List<String>> fetchExistingInteractions(String currentUserId) async {
-    fetchExistingInteractionsCalls += 1;
-    return fetchExistingInteractionsResult;
-  }
-
-  @override
   Future<List<Map<String, dynamic>>> fetchMatches(String currentUserId) {
     throw UnimplementedError();
   }

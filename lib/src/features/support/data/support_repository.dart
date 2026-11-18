@@ -48,17 +48,4 @@ class SupportRepository {
       onFinalError: (error) => mapExceptionToFailure(error),
     );
   }
-
-  Future<List<Ticket>> getUserTickets(String userId) async {
-    final snapshot = await _firestoreResilience.run(
-      () => _ticketsCollection
-          .where('userId', isEqualTo: userId)
-          .orderBy('updatedAt', descending: true)
-          .get(),
-      operationLabel: 'get_user_tickets',
-      onFinalError: (error) => mapExceptionToFailure(error),
-    );
-
-    return snapshot.docs.map((doc) => Ticket.fromJson(doc.data())).toList();
-  }
 }

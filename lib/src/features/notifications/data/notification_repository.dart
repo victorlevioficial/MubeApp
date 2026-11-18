@@ -64,29 +64,6 @@ class NotificationRepository {
     );
   }
 
-  /// Marks all notifications as read.
-  Future<void> markAllAsRead(String userId) async {
-    await _runBatchedNotificationMutation(
-      operationLabel: 'mark_all_notifications_as_read',
-      buildQuery: (cursor) {
-        var query = _notifications(
-          userId,
-        ).where('isRead', isEqualTo: false).orderBy(FieldPath.documentId);
-
-        if (cursor != null) {
-          query = query.startAfterDocument(cursor);
-        }
-
-        return query;
-      },
-      applyBatch: (batch, docs) {
-        for (final doc in docs) {
-          batch.update(doc.reference, {'isRead': true});
-        }
-      },
-    );
-  }
-
   /// Deletes a specific notification.
   Future<void> deleteNotification(String userId, String notificationId) async {
     await _firestoreResilience.run(

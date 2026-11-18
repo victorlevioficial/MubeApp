@@ -130,17 +130,6 @@ class ChatAccessResolver {
     return '$senderId->$recipientId';
   }
 
-  Future<bool> hasAuthorizationLink({
-    required String senderId,
-    required String recipientId,
-  }) async {
-    final decision = await resolveDelivery(
-      senderId: senderId,
-      recipientId: recipientId,
-    );
-    return decision.isAccepted;
-  }
-
   Future<bool> _isRecipientChatOpen(String recipientId) async {
     try {
       final snapshot = await _firestore

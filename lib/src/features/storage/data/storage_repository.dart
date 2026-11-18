@@ -158,31 +158,6 @@ class StorageRepository {
     }
   }
 
-  /// Método legado - faz upload de uma imagem de perfil simples.
-  /// Retorna a download URL.
-  ///
-  /// Throws [UploadValidationException] if file is invalid.
-  @Deprecated('Use uploadProfileImageWithSizes para melhor performance')
-  Future<String> uploadProfileImage({
-    required String userId,
-    required File file,
-  }) async {
-    // Validar arquivo antes do upload
-    await UploadValidator.validateImage(file);
-
-    // Comprimir imagem antes do upload (agora em WebP)
-    final compressedFile = await ImageCompressor.compressProfilePhoto(
-      file,
-      format: ImageFormat.webp,
-    );
-
-    return _uploadSingleImage(
-      file: compressedFile,
-      path: 'profile_photos/$userId.webp',
-      contentType: 'image/webp',
-    );
-  }
-
   /// Faz upload de uma mídia de galeria com múltiplas resoluções.
   ///
   /// Para imagens: gera thumbnail, medium, large e full.
@@ -389,84 +364,6 @@ class StorageRepository {
     }
   }
 
-  /// Método legado - faz upload de uma mídia de galeria simples.
-  ///
-  /// Throws [UploadValidationException] if file is invalid.
-  @Deprecated('Use uploadGalleryMediaWithSizes para melhor performance')
-  Future<String> uploadGalleryMedia({
-    required String userId,
-    required File file,
-    required String mediaId,
-    required bool isVideo,
-    void Function(double progress)? onProgress,
-  }) async {
-    // NOVO: Verificar autenticação antes de iniciar upload
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception(
-        'Você precisa estar logado para fazer upload. '
-        'Tente fazer logout e login novamente.',
-      );
-    }
-
-    if (currentUser.uid != userId) {
-      throw Exception(
-        'Erro de autenticação: O usuário atual não corresponde '
-        'ao perfil. Tente fazer logout e login novamente.',
-      );
-    }
-
-    // Validar arquivo antes do upload
-    await UploadValidator.validateMedia(file, isVideo: isVideo);
-
-    // Comprimir imagem antes do upload (vídeos não são comprimidos aqui)
-    final fileToUpload = isVideo
-        ? file
-        : await ImageCompressor.compressGalleryPhoto(
-            file,
-            format: ImageFormat.webp,
-          );
-
-    try {
-      final folder = isVideo ? 'gallery_videos' : 'gallery_photos';
-      final ext = isVideo ? 'mp4' : 'webp';
-      final contentType = isVideo ? 'video/mp4' : 'image/webp';
-      final ref = _storage.ref().child('$folder/$userId/$mediaId.$ext');
-      final metadata = SettableMetadata(contentType: contentType);
-
-      AppLogger.info('📤 Iniciando upload: $folder/$userId/$mediaId.$ext');
-
-      final uploadTask = ref.putFile(fileToUpload, metadata);
-
-      // Listen to progress updates
-      if (onProgress != null) {
-        uploadTask.snapshotEvents.listen((snapshot) {
-          final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-          onProgress(progress);
-        });
-      }
-
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-
-      AppLogger.info('✅ Upload concluído: $downloadUrl');
-
-      return downloadUrl;
-    } on FirebaseException catch (e) {
-      AppLogger.error('❌ Erro Firebase: ${e.code}', e);
-
-      if (e.code == 'permission-denied' || e.code == 'unauthorized') {
-        throw Exception(
-          'Erro de permissão: Você não tem autorização para fazer upload. '
-          'Tente fazer logout e login novamente. '
-          'Detalhes técnicos: ${e.code}',
-        );
-      }
-
-      throw Exception('Erro ao fazer upload da mídia: ${e.message}');
-    }
-  }
-
   /// Faz upload de um thumbnail de vídeo.
   ///
   /// Throws [UploadValidationException] if file is invalid.
@@ -527,12 +424,6 @@ class StorageRepository {
     }
   }
 
-  /// Deleta uma imagem dada sua URL (útil para cleanup)
-  Future<void> deleteImage(String imageUrl) async {
-    final ref = _storage.refFromURL(imageUrl);
-    await _deleteIfExists(ref);
-  }
-
   /// Deleta todos os arquivos de um item de galeria (todas as resoluções)
   Future<void> deleteGalleryItem({
     required String userId,
@@ -558,16 +449,6 @@ class StorageRepository {
         ),
       ),
     );
-  }
-
-  /// Deleta todas as imagens de perfil de um usuário
-  Future<void> deleteProfileImages(String userId) async {
-    await _deleteAll([
-      _storage.ref().child('profile_photos/$userId/thumbnail.webp'),
-      _storage.ref().child('profile_photos/$userId/large.webp'),
-      _storage.ref().child('profile_photos/$userId.webp'),
-      _storage.ref().child('profile_photos/$userId.jpg'),
-    ]);
   }
 
   Future<void> _deleteAll(Iterable<Reference> references) async {

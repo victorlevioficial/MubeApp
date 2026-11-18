@@ -52,11 +52,6 @@ class _ReadyChatRepository extends FakeChatRepository {
   }
 
   @override
-  Stream<List<Message>> getMessages(String conversationId) {
-    return Stream.value(_message == null ? const [] : [_message]);
-  }
-
-  @override
   Stream<QuerySnapshot<Map<String, dynamic>>> getMessagesSnapshot(
     String conversationId, {
     int limit = 50,
@@ -171,20 +166,6 @@ class _DraftChatRepository extends FakeChatRepository {
   }
 
   @override
-  FutureResult<String> getOrCreateConversation({
-    required String myUid,
-    required String otherUid,
-    required String otherUserName,
-    String? otherUserPhoto,
-    required String myName,
-    String? myPhoto,
-    String type = 'direct',
-  }) async {
-    getOrCreateCalls += 1;
-    return Right(getConversationId(myUid, otherUid));
-  }
-
-  @override
   FutureResult<Unit> sendMessage({
     required String conversationId,
     required String text,
@@ -274,11 +255,6 @@ class _PendingRecipientChatRepository extends FakeChatRepository {
   @override
   Stream<DocumentSnapshot> getConversationStream(String conversationId) {
     return Stream.value(_conversationDoc);
-  }
-
-  @override
-  Stream<List<Message>> getMessages(String conversationId) {
-    return Stream.value(_message == null ? const [] : [_message]);
   }
 
   @override

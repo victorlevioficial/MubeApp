@@ -47,11 +47,11 @@ void main() {
               });
         }
 
-        final result = await repository.getDiscoverFeedPoolSorted(
+        final result = (await repository.getDiscoverFeedPool(
           currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
-        );
+        )).map((pool) => pool.items);
 
         expect(result.isRight(), true);
         result.fold((_) => fail('Expected discovery pool items'), (items) {
@@ -127,11 +127,11 @@ void main() {
               });
         }
 
-        final result = await repository.getDiscoverFeedPoolSorted(
+        final result = (await repository.getDiscoverFeedPool(
           currentUserId: currentUserId,
           userLat: userLat,
           userLong: userLong,
-        );
+        )).map((pool) => pool.items);
 
         expect(result.isRight(), true);
         result.fold((_) => fail('Expected discovery pool items'), (items) {
@@ -243,12 +243,12 @@ void main() {
             });
       }
 
-      final result = await repository.getDiscoverFeedPoolSorted(
+      final result = (await repository.getDiscoverFeedPool(
         currentUserId: currentUserId,
         userLat: null,
         userLong: null,
         filter: FeedDiscoveryFilter.bands,
-      );
+      )).map((pool) => pool.items);
 
       expect(result.isRight(), true);
       result.fold(
@@ -308,11 +308,11 @@ void main() {
             'status': 'suspenso',
           });
 
-      final result = await repository.getDiscoverFeedPoolSorted(
+      final result = (await repository.getDiscoverFeedPool(
         currentUserId: currentUserId,
         userLat: userLat,
         userLong: userLong,
-      );
+      )).map((pool) => pool.items);
 
       expect(result.isRight(), true);
       result.fold(

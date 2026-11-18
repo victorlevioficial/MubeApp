@@ -186,22 +186,6 @@ class FavoriteRepository {
     return entries.map((entry) => entry.key).toList();
   }
 
-  /// Reads global like count for a target user.
-  ///
-  /// Source of truth is `users/{targetId}`.
-  Future<int> getLikeCount(String targetId) async {
-    try {
-      final userDoc = await _firestore.collection('users').doc(targetId).get();
-      if (userDoc.exists) {
-        return _readLikeCount(userDoc.data());
-      }
-
-      return 0;
-    } catch (_) {
-      return 0;
-    }
-  }
-
   /// Adds a favorite for the current user.
   ///
   /// Client only writes to `users/{me}/favorites/{targetId}`.
@@ -240,20 +224,6 @@ class FavoriteRepository {
       operationLabel: 'remove_favorite',
       onFinalError: recoverableFirestoreFinalError,
     );
-  }
-
-  int _readLikeCount(Map<String, dynamic>? data) {
-    final likeCount = data?['likeCount'];
-    if (likeCount is num) {
-      return likeCount.toInt();
-    }
-
-    final favoritesCount = data?['favorites_count'];
-    if (favoritesCount is num) {
-      return favoritesCount.toInt();
-    }
-
-    return 0;
   }
 
   int _readMillis(dynamic raw) {

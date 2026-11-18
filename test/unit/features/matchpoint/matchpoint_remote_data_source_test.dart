@@ -247,43 +247,6 @@ void main() {
     );
   });
 
-  group('MatchpointRemoteDataSource.fetchExistingInteractions', () {
-    test(
-      'keeps likes and active dislikes but ignores expired dislikes',
-      () async {
-        final firestore = FakeFirebaseFirestore();
-        final dataSource = _buildDataSource(firestore, _FakeFunctions());
-
-        await firestore.collection('interactions').doc('like').set({
-          'source_user_id': 'current',
-          'target_user_id': 'liked',
-          'type': 'like',
-        });
-        await firestore.collection('interactions').doc('active_dislike').set({
-          'source_user_id': 'current',
-          'target_user_id': 'recent_dislike',
-          'type': 'dislike',
-          'expires_at': Timestamp.fromDate(
-            DateTime.now().add(const Duration(days: 10)),
-          ),
-        });
-        await firestore.collection('interactions').doc('expired_dislike').set({
-          'source_user_id': 'current',
-          'target_user_id': 'expired_dislike',
-          'type': 'dislike',
-          'expires_at': Timestamp.fromDate(
-            DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        });
-
-        final result = await dataSource.fetchExistingInteractions('current');
-
-        expect(result, containsAll(<String>['liked', 'recent_dislike']));
-        expect(result, isNot(contains('expired_dislike')));
-      },
-    );
-  });
-
   group('MatchpointRemoteDataSource callable access', () {
     test('getRemainingLikes forwards directly to the callable', () async {
       final firestore = FakeFirebaseFirestore();

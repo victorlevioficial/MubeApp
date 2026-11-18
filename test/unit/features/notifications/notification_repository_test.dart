@@ -80,36 +80,6 @@ void main() {
       });
     });
 
-    group('markAllAsRead', () {
-      test('should mark all unread notifications as read', () async {
-        // Arrange
-        await seedNotification(id: 'notif-1', isRead: false);
-        await seedNotification(id: 'notif-2', isRead: false);
-        await seedNotification(id: 'notif-3', isRead: true);
-
-        // Act
-        await repository.markAllAsRead(tUserId);
-
-        // Assert
-        final docs = await fakeFirestore
-            .collection('users')
-            .doc(tUserId)
-            .collection('notifications')
-            .get();
-        for (final doc in docs.docs) {
-          expect(doc.data()['isRead'], true);
-        }
-      });
-
-      test('should handle no unread notifications gracefully', () async {
-        // Arrange
-        await seedNotification(id: 'notif-1', isRead: true);
-
-        // Act & Assert — should not throw
-        await repository.markAllAsRead(tUserId);
-      });
-    });
-
     group('deleteNotification', () {
       test('should delete specific notification', () async {
         // Arrange

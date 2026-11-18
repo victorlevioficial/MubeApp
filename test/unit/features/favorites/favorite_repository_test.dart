@@ -253,35 +253,5 @@ void main() {
 
       expect(favoriteDoc.exists, isFalse);
     });
-
-    test('getLikeCount reads likeCount from users collection', () async {
-      await fakeFirestore.collection('users').doc(tTargetId).set({
-        'likeCount': 7,
-      });
-
-      final count = await repository.getLikeCount(tTargetId);
-
-      expect(count, 7);
-    });
-
-    test('getLikeCount falls back to favorites_count in users', () async {
-      await fakeFirestore.collection('users').doc(tTargetId).set({
-        'favorites_count': 3,
-      });
-
-      final count = await repository.getLikeCount(tTargetId);
-
-      expect(count, 3);
-    });
-
-    test('getLikeCount ignores legacy profiles collection', () async {
-      await fakeFirestore.collection('profiles').doc(tTargetId).set({
-        'likeCount': 5,
-      });
-
-      final count = await repository.getLikeCount(tTargetId);
-
-      expect(count, 0);
-    });
   });
 }

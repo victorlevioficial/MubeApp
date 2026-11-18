@@ -650,11 +650,14 @@ void main() {
         // Arrange
 
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
           ),
-        ).thenAnswer((_) async => 'https://example.com/new-photo.jpg');
+        ).thenAnswer(
+          (_) async =>
+              const ImageUrls(full: 'https://example.com/new-photo.jpg'),
+        );
         when(
           mockAuthDataSource.updateUserProfile(any),
         ).thenAnswer((_) async {});
@@ -682,7 +685,7 @@ void main() {
       testWidgets('should handle image upload error', (tester) async {
         // Arrange
         when(
-          mockStorageRepository.uploadProfileImage(
+          mockStorageRepository.uploadProfileImageWithSizes(
             userId: anyNamed('userId'),
             file: anyNamed('file'),
           ),

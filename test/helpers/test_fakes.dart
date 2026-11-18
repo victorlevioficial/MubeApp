@@ -16,7 +16,6 @@ import 'package:mube/src/features/auth/data/auth_repository.dart';
 import 'package:mube/src/features/auth/domain/app_user.dart';
 import 'package:mube/src/features/chat/data/chat_repository.dart';
 import 'package:mube/src/features/chat/domain/conversation_preview.dart';
-import 'package:mube/src/features/chat/domain/message.dart';
 import 'package:mube/src/features/favorites/data/favorite_repository.dart';
 import 'package:mube/src/features/favorites/domain/paginated_favorites_response.dart';
 import 'package:mube/src/features/feed/data/feed_repository.dart';
@@ -275,9 +274,6 @@ class FakeFavoriteRepository extends Fake implements FavoriteRepository {
   }
 
   @override
-  Future<int> getLikeCount(String userId) async => 0;
-
-  @override
   Future<PaginatedFavoritesResponse> loadFavoritesPage({
     DocumentSnapshot? startAfter,
     int limit = 20,
@@ -424,11 +420,6 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     );
   }
 
-  PaginatedFeedResponse? _dequeueMainFeedResponse() {
-    if (mainFeedResponses.isEmpty) return null;
-    return mainFeedResponses.removeAt(0);
-  }
-
   PaginatedFeedResponse? _dequeueTypePaginatedResponse(String type) {
     final queue = typePaginatedResponses[type];
     if (queue == null || queue.isEmpty) return null;
@@ -448,23 +439,6 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   Future<void> _maybeWait() async {
     if (throwError) throw Exception('Connection failed');
     if (requestCompleter != null) await requestCompleter!.future;
-  }
-
-  @override
-  FutureResult<List<FeedItem>> getNearbyUsers({
-    required double lat,
-    required double long,
-    required double radiusKm,
-    required String currentUserId,
-    List<String> excludedIds = const [],
-    int limit = 10,
-  }) async {
-    await _maybeWait();
-    final filtered = nearbyUsers
-        .where((item) => !excludedIds.contains(item.uid))
-        .take(limit)
-        .toList(growable: false);
-    return Either.right(filtered);
   }
 
   @override
@@ -595,28 +569,6 @@ class FakeFeedRepository extends Fake implements FeedRepository {
   }
 
   @override
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
-    required String currentUserId,
-    required double? userLat,
-    required double? userLong,
-    List<String> excludedIds = const [],
-    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
-    int? targetResults,
-    int? fastPartialThreshold,
-  }) async {
-    final poolResult = await getDiscoverFeedPool(
-      currentUserId: currentUserId,
-      userLat: userLat,
-      userLong: userLong,
-      excludedIds: excludedIds,
-      filter: filter,
-      targetResults: targetResults,
-      fastPartialThreshold: fastPartialThreshold,
-    );
-    return poolResult.map((pool) => pool.items);
-  }
-
-  @override
   FutureResult<List<FeedItem>> getUsersByIds({
     required List<String> ids,
     required String currentUserId,
@@ -639,38 +591,6 @@ class FakeFeedRepository extends Fake implements FeedRepository {
     ];
     final result = allItems.where((item) => ids.contains(item.uid)).toList();
     return Either.right(result);
-  }
-
-  @override
-  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
-    required String currentUserId,
-    String? filterType,
-    List<String> excludedIds = const [],
-    double? userLat,
-    double? userLong,
-    int limit = 10,
-    DocumentSnapshot? startAfter,
-  }) async {
-    await _maybeWait();
-    if (throwError) return Either.left(const ServerFailure(message: ''));
-    mainFeedStartAfterHistory.add(startAfter);
-    final queuedResponse = _dequeueMainFeedResponse();
-    if (queuedResponse != null) {
-      return Either.right(
-        _filterPaginatedResponse(queuedResponse, excludedIds),
-      );
-    }
-    return Either.right(
-      _filterPaginatedResponse(
-        mainFeedResponse ??
-            const PaginatedFeedResponse(
-              items: [],
-              hasMore: false,
-              lastDocument: null,
-            ),
-        excludedIds,
-      ),
-    );
   }
 
   @override
@@ -909,14 +829,6 @@ class FakeNotificationRepository extends Fake
   }
 
   @override
-  Future<void> markAllAsRead(String userId) async {
-    if (throwError) throw Exception('Failed');
-    _notifications = _notifications
-        .map((n) => n.copyWith(isRead: true))
-        .toList();
-  }
-
-  @override
   Future<void> deleteNotification(String userId, String notificationId) async {
     if (throwError || throwDeleteError) throw Exception('Failed');
     _notifications.removeWhere((n) => n.id == notificationId);
@@ -950,12 +862,6 @@ class FakeSupportRepository extends Fake implements SupportRepository {
   Stream<List<Ticket>> watchUserTickets(String userId) {
     if (throwError) return Stream.error(Exception('Failed'));
     return Stream.value(_tickets.where((t) => t.userId == userId).toList());
-  }
-
-  @override
-  Future<List<Ticket>> getUserTickets(String userId) async {
-    if (throwError) throw Exception('Failed');
-    return _tickets.where((t) => t.userId == userId).toList();
   }
 }
 
@@ -1017,11 +923,6 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }
 
   @override
-  Stream<List<Message>> getMessages(String conversationId) {
-    return Stream.value([]);
-  }
-
-  @override
   Future<ChatParticipantPreview> getConversationParticipantPreview(
     String uid,
   ) async {
@@ -1056,20 +957,6 @@ class FakeChatRepository extends Fake implements ChatRepository {
   }) async {
     if (throwError) return const Left(ServerFailure(message: 'Failed'));
     return const Right(unit);
-  }
-
-  @override
-  FutureResult<String> getOrCreateConversation({
-    required String myUid,
-    required String otherUid,
-    required String otherUserName,
-    String? otherUserPhoto,
-    required String myName,
-    String? myPhoto,
-    String type = 'direct',
-  }) async {
-    if (throwError) return const Left(ServerFailure(message: 'Failed'));
-    return Right(getConversationId(myUid, otherUid));
   }
 
   @override
