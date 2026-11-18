@@ -34,7 +34,10 @@ extension _ChatScreenWidgets on _ChatScreenState {
                     final latestMessages = _messagesFromSnapshot(
                       messagesSnapshot,
                     );
-                    final serverMessages = _mergeServerMessages(latestMessages);
+                    final serverMessages = mergeChatMessageWindows(
+                      latestMessages: latestMessages,
+                      olderMessages: _olderServerMessages,
+                    );
                     final serverClientMessageIds = serverMessages
                         .map((message) => message.clientMessageId)
                         .whereType<String>()
@@ -132,12 +135,12 @@ extension _ChatScreenWidgets on _ChatScreenState {
                             !isPending &&
                             message.type == 'text' &&
                             message.text.trim().isNotEmpty;
-                        final showDateSeparator = _shouldShowDateSeparator(
+                        final showDateSeparator = shouldShowChatDateSeparator(
                           mergedMessages,
                           index,
                         );
                         final dateLabel = showDateSeparator
-                            ? _formatDateSeparatorLabel(
+                            ? formatChatDateSeparatorLabel(
                                 message.createdAt.toDate().toLocal(),
                               )
                             : null;
@@ -307,7 +310,8 @@ extension _ChatScreenWidgets on _ChatScreenState {
         ref.read(authRepositoryProvider).currentUser?.uid ??
         '';
     final canInteract =
-        _canReadConversation && !_isPendingRecipient(currentUserId);
+        _canReadConversation &&
+        !_requestState.isPendingRecipient(currentUserId);
     final replyTarget = _replyingToMessage;
     final replyAuthorLabel = replyTarget == null
         ? null
