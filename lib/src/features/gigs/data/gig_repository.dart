@@ -1043,10 +1043,6 @@ class GigRepository {
     return sum / snapshot.docs.length;
   }
 
-  Future<List<GigReviewOpportunity>> getPendingReviewsForCurrentUser() async {
-    return getPendingReviewsForUser(_uid);
-  }
-
   Future<List<GigReviewOpportunity>> getPendingReviewsForUser(
     String uid,
   ) async {

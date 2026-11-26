@@ -264,12 +264,6 @@ class OfflineMutationStore extends Notifier<List<OfflineMutation>> {
     return null;
   }
 
-  List<OfflineMutation> pendingGigApplies() {
-    return state
-        .where((entry) => entry.type == OfflineMutationType.gigApply)
-        .toList(growable: false);
-  }
-
   Future<void> upsertFavoriteDesiredState({
     required String targetId,
     required bool isFavorite,

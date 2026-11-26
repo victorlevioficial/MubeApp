@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/services/push_notification_service.dart';
 import '../../../design_system/components/data_display/user_avatar.dart';
@@ -27,9 +26,11 @@ import '../data/chat_providers.dart';
 import '../data/chat_repository.dart';
 import '../data/chat_safety_repository.dart';
 import '../domain/chat_content_analyzer.dart';
+import '../domain/chat_conversation_rules.dart';
 import '../domain/chat_message_window.dart';
 import '../domain/conversation_preview.dart';
 import '../domain/message.dart';
+import 'controllers/chat_email_send_gate.dart';
 
 part 'chat_screen_widgets.dart';
 
@@ -87,9 +88,6 @@ class _PendingMessage {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  static const String _requestStatusAccepted = 'accepted';
-  static const String _requestStatusPending = 'pending';
-  static const String _requestStatusRejected = 'rejected';
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final List<_PendingMessage> _pendingMessages = [];
@@ -108,12 +106,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _hasOptimisticAcceptedRequest = false;
   _ConversationAccessState _accessState = _ConversationAccessState.checking;
   String? _conversationAccessMessage;
-  String _currentRequestStatus = _requestStatusAccepted;
-  int _currentRequestCycle = 0;
-  String? _currentRequestSenderId;
-  String? _currentRequestRecipientId;
-  bool? _cachedEmailSendAllowed;
-  DateTime? _cachedEmailCheckAt;
+  ChatRequestState _requestState = ChatRequestState.accepted;
+  late final ChatEmailSendGate _emailSendGate = ChatEmailSendGate(
+    ref.read(authRepositoryProvider),
+  );
   DateTime? _lastSendAttemptAt;
   DocumentSnapshot<Map<String, dynamic>>? _oldestServerMessageDoc;
   bool _isHydratingOtherUserPreview = false;
@@ -129,8 +125,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   bool get _hasPersistedConversation => _conversationExists;
 
-  static const Duration _verifiedEmailCacheTtl = Duration(minutes: 5);
-  static const Duration _unverifiedEmailCacheTtl = Duration(seconds: 8);
   static const int _messagesPageSize = 50;
   static const double _paginationTriggerDistance = 240;
   late final Stopwatch _firstMessagesFrameStopwatch;
@@ -218,7 +212,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         extra?['conversationType'] ?? cachedPreview?.type ?? 'direct';
 
     if (_otherUserId.isEmpty && currentUserId != null) {
-      _otherUserId = _deriveOtherUidFromConversationId(currentUserId);
+      _otherUserId = deriveOtherUidFromConversationId(
+        widget.conversationId,
+        currentUserId,
+      );
     }
   }
 
@@ -228,14 +225,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             .value
             ?.any((preview) => preview.id == widget.conversationId) ??
         false;
-  }
-
-  String _deriveOtherUidFromConversationId(String myUid) {
-    final parts = widget.conversationId.split('_');
-    if (parts.length != 2) return '';
-    if (parts[0] == myUid) return parts[1];
-    if (parts[1] == myUid) return parts[0];
-    return '';
   }
 
   bool _needsOtherUserPreviewHydration() {
@@ -355,7 +344,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       final resolvedOtherUid = _otherUserId.isNotEmpty
           ? _otherUserId
-          : _deriveOtherUidFromConversationId(currentUserId);
+          : deriveOtherUidFromConversationId(
+              widget.conversationId,
+              currentUserId,
+            );
       if (resolvedOtherUid.isNotEmpty) {
         if (mounted && resolvedOtherUid != _otherUserId) {
           setState(() {
@@ -393,7 +385,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         );
 
-        if (!_isUserParticipant(existingDoc, currentUserId)) {
+        if (!isConversationParticipant(existingDoc.data(), currentUserId)) {
           outcome = 'forbidden_not_participant';
           setState(() {
             _accessState = _ConversationAccessState.forbidden;
@@ -404,8 +396,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           return;
         }
 
-        final otherUid = _resolveConversationParticipant(
-          existingDoc,
+        final otherUid = resolveOtherParticipant(
+          existingDoc.data(),
           currentUserId,
         );
         if (otherUid.isEmpty) {
@@ -593,32 +585,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  bool _isUserParticipant(DocumentSnapshot doc, String uid) {
-    final data = doc.data();
-    if (data is! Map<String, dynamic>) return false;
-
-    final participantsRaw = data['participants'];
-    if (participantsRaw is! List) return false;
-
-    return participantsRaw.any((participant) => participant == uid);
-  }
-
-  String _resolveConversationParticipant(DocumentSnapshot doc, String myUid) {
-    final data = doc.data();
-    if (data is! Map<String, dynamic>) return '';
-
-    final participantsRaw = data['participants'];
-    if (participantsRaw is! List) return '';
-
-    for (final participant in participantsRaw) {
-      if (participant is String && participant != myUid) {
-        return participant;
-      }
-    }
-
-    return '';
-  }
-
   Future<void> _markConversationAsRead(
     ChatRepository repository,
     String myUid,
@@ -678,18 +644,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     QuerySnapshot<Map<String, dynamic>> snapshot,
   ) {
     return snapshot.docs
-        .where(_isVisibleMessageDoc)
+        .where((doc) => isVisibleChatMessage(doc.data()))
         .map((doc) => Message.fromFirestore(doc))
         .toList(growable: false);
-  }
-
-  bool _isVisibleMessageDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
-    if (data == null) return false;
-
-    return data['hidden'] != true &&
-        data['rate_limited'] != true &&
-        data['moderation_state'] != 'rate_limited';
   }
 
   void _syncPaginationStateFromLatestSnapshot(
@@ -799,136 +756,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  List<Message> _mergeServerMessages(List<Message> latestMessages) {
-    final merged = <Message>[];
-    final seenIds = <String>{};
-
-    for (final message in latestMessages) {
-      if (seenIds.add(message.id)) {
-        merged.add(message);
-      }
-    }
-
-    for (final message in _olderServerMessages) {
-      if (seenIds.add(message.id)) {
-        merged.add(message);
-      }
-    }
-
-    return merged;
-  }
-
-  bool _shouldShowDateSeparator(List<Message> messages, int index) {
-    if (index >= messages.length) return false;
-    if (index == messages.length - 1) return true;
-
-    final currentDate = messages[index].createdAt.toDate().toLocal();
-    final olderDate = messages[index + 1].createdAt.toDate().toLocal();
-    return !_isSameDay(currentDate, olderDate);
-  }
-
-  String _formatDateSeparatorLabel(DateTime dateTime) {
-    final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final dayDiff = today.difference(target).inDays;
-
-    if (dayDiff == 0) return 'Hoje';
-    if (dayDiff == 1) return 'Ontem';
-
-    return DateFormat('dd/MM/yyyy').format(target);
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   Future<bool> _canSendMessageWithVerifiedEmail() async {
-    final now = DateTime.now();
-    if (_cachedEmailSendAllowed != null && _cachedEmailCheckAt != null) {
-      final ttl = _cachedEmailSendAllowed == true
-          ? _verifiedEmailCacheTtl
-          : _unverifiedEmailCacheTtl;
-      final isCacheValid = now.difference(_cachedEmailCheckAt!) < ttl;
-      if (isCacheValid) {
-        if (_cachedEmailSendAllowed == true) return true;
+    switch (await _emailSendGate.check()) {
+      case ChatEmailSendCheck.allowed:
+        return true;
+      case ChatEmailSendCheck.needsVerification:
         _showNeedEmailVerificationSnackbar();
-        return false;
-      }
+      case ChatEmailSendCheck.syncPending:
+        _showEmailSyncPendingSnackbar();
+      case ChatEmailSendCheck.checkFailed:
+        if (mounted) {
+          AppSnackBar.error(
+            context,
+            'Nao foi possivel validar seu email agora. Tente novamente.',
+          );
+        }
     }
-
-    final authRepository = ref.read(authRepositoryProvider);
-
-    if (authRepository.isCurrentUserEmailVerified) {
-      _cacheEmailSendPermission(true);
-      return true;
-    }
-
-    bool isEmailVerified;
-    try {
-      isEmailVerified = await authRepository.isEmailVerified();
-    } catch (e) {
-      AppLogger.error('Erro ao validar verificacao de email no chat', e);
-      if (mounted) {
-        AppSnackBar.error(
-          context,
-          'Nao foi possivel validar seu email agora. Tente novamente.',
-        );
-      }
-      return false;
-    }
-
-    _cacheEmailSendPermission(isEmailVerified);
-    if (isEmailVerified) return true;
-
-    _showNeedEmailVerificationSnackbar();
     return false;
   }
 
-  void _cacheEmailSendPermission(bool allowed) {
-    _cachedEmailSendAllowed = allowed;
-    _cachedEmailCheckAt = DateTime.now();
-  }
-
-  void _clearEmailSendCache() {
-    _cachedEmailSendAllowed = null;
-    _cachedEmailCheckAt = null;
-  }
-
-  bool _isPermissionDeniedFailure(String message) {
-    return message.toLowerCase().contains('permission-denied');
-  }
-
   Future<bool> _tryRefreshEmailTokenForRetry() async {
-    final authRepository = ref.read(authRepositoryProvider);
-
-    bool emailVerified = authRepository.isCurrentUserEmailVerified;
-    if (!emailVerified) {
-      try {
-        emailVerified = await authRepository.isEmailVerified();
-      } catch (e) {
-        AppLogger.warning('Falha ao recarregar status de email para retry', e);
-        return false;
-      }
+    switch (await _emailSendGate.refreshForRetry()) {
+      case ChatEmailSendCheck.allowed:
+        return true;
+      case ChatEmailSendCheck.needsVerification:
+        _showNeedEmailVerificationSnackbar();
+      case ChatEmailSendCheck.syncPending:
+        _showEmailSyncPendingSnackbar();
+      case ChatEmailSendCheck.checkFailed:
+        break;
     }
-
-    if (!emailVerified) {
-      _cacheEmailSendPermission(false);
-      _showNeedEmailVerificationSnackbar();
-      return false;
-    }
-
-    try {
-      final tokenSynced = await authRepository.hasVerifiedEmailTokenClaim(
-        forceRefresh: true,
-      );
-      _cacheEmailSendPermission(tokenSynced);
-      if (tokenSynced) return true;
-    } catch (e) {
-      AppLogger.warning('Falha ao atualizar token verificado para retry', e);
-    }
-
-    _showEmailSyncPendingSnackbar();
     return false;
   }
 
@@ -991,9 +848,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       pendingMessage: pendingMessage,
       myUid: myUid,
       otherUid: otherUid,
-      previousRequestStatus: _currentRequestStatus,
-      previousRequestCycle: _currentRequestCycle,
-      previousRequestSenderId: _currentRequestSenderId,
+      previousRequestState: _requestState,
     );
   }
 
@@ -1048,7 +903,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         context.push(RoutePaths.emailVerification).whenComplete(() {
           if (!mounted) return;
 
-          _clearEmailSendCache();
+          _emailSendGate.invalidate();
           setState(() {
             _isNavigatingToEmailVerification = false;
           });
@@ -1070,63 +925,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_otherUserId.isNotEmpty && _otherUserId != myUid) {
       return _otherUserId;
     }
-    return _deriveOtherUidFromConversationId(myUid);
-  }
-
-  String _readRequestStatus(Map<String, dynamic>? conversationMap) {
-    final value = conversationMap?['requestStatus'];
-    if (value is String &&
-        (value == _requestStatusAccepted ||
-            value == _requestStatusPending ||
-            value == _requestStatusRejected)) {
-      return value;
-    }
-    return _requestStatusAccepted;
-  }
-
-  int _readRequestCycle(Map<String, dynamic>? conversationMap) {
-    final value = conversationMap?['requestCycle'];
-    if (value is num) return value.toInt();
-    return 0;
-  }
-
-  String? _readOptionalString(dynamic value) {
-    if (value is! String) return null;
-    final normalized = value.trim();
-    return normalized.isEmpty ? null : normalized;
+    return deriveOtherUidFromConversationId(widget.conversationId, myUid);
   }
 
   void _syncConversationRequestState(Map<String, dynamic>? conversationMap) {
-    final backendStatus = _readRequestStatus(conversationMap);
-    final backendCycle = _readRequestCycle(conversationMap);
-    final backendSenderId = _readOptionalString(
-      conversationMap?['requestSenderId'],
-    );
-    final backendRecipientId = _readOptionalString(
-      conversationMap?['requestRecipientId'],
-    );
-
+    final backendState = ChatRequestState.fromConversation(conversationMap);
     if (_hasOptimisticAcceptedRequest) {
-      _currentRequestStatus = _requestStatusAccepted;
-      _currentRequestCycle = backendCycle;
-      _currentRequestSenderId = null;
-      _currentRequestRecipientId = null;
-
-      if (backendStatus == _requestStatusAccepted) {
+      _requestState = backendState.asAccepted();
+      if (backendState.status == ChatRequestStatus.accepted) {
         _hasOptimisticAcceptedRequest = false;
       }
       return;
     }
-
-    _currentRequestStatus = backendStatus;
-    _currentRequestCycle = backendCycle;
-    _currentRequestSenderId = backendSenderId;
-    _currentRequestRecipientId = backendRecipientId;
-  }
-
-  bool _isPendingRecipient(String currentUserId) {
-    return _currentRequestStatus == _requestStatusPending &&
-        _currentRequestRecipientId == currentUserId;
+    _requestState = backendState;
   }
 
   void _invalidateConversationProviders() {
@@ -1138,14 +949,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _maybeShowPendingRequestSnackbarAfterSend({
     required ChatRepository repository,
     required String myUid,
-    required String previousRequestStatus,
-    required int previousRequestCycle,
-    required String? previousRequestSenderId,
+    required ChatRequestState previousRequestState,
   }) async {
-    final alreadyPendingOutgoing =
-        previousRequestStatus == _requestStatusPending &&
-        previousRequestSenderId == myUid;
-    if (alreadyPendingOutgoing) return;
+    if (previousRequestState.isPendingSender(myUid)) return;
 
     try {
       final snapshot = await repository.getConversationDoc(
@@ -1153,16 +959,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
       final data = snapshot?.data();
       final conversationMap = data is Map<String, dynamic> ? data : null;
-      final requestStatus = _readRequestStatus(conversationMap);
-      final requestCycle = _readRequestCycle(conversationMap);
-      final requestSenderId = _readOptionalString(
-        conversationMap?['requestSenderId'],
-      );
+      final requestState = ChatRequestState.fromConversation(conversationMap);
 
       if (!mounted) return;
-      if (requestStatus == _requestStatusPending &&
-          requestSenderId == myUid &&
-          requestCycle != previousRequestCycle) {
+      if (requestState.isPendingSender(myUid) &&
+          requestState.cycle != previousRequestState.cycle) {
         AppSnackBar.info(context, 'Mensagem enviada para Solicitacoes.');
       }
     } catch (e, stack) {
@@ -1213,9 +1014,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _isAcceptingConversationRequest = false;
       if (accepted) {
         _hasOptimisticAcceptedRequest = true;
-        _currentRequestStatus = _requestStatusAccepted;
-        _currentRequestSenderId = null;
-        _currentRequestRecipientId = null;
+        _requestState = _requestState.asAccepted();
       }
     });
 
@@ -1263,7 +1062,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ref.read(authRepositoryProvider).currentUser?.uid;
     if (myUid == null) return;
 
-    if (_isPendingRecipient(myUid)) {
+    if (_requestState.isPendingRecipient(myUid)) {
       if (mounted) {
         AppSnackBar.warning(
           context,
@@ -1291,9 +1090,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     _lastSendAttemptAt = now;
 
-    final previousRequestStatus = _currentRequestStatus;
-    final previousRequestCycle = _currentRequestCycle;
-    final previousRequestSenderId = _currentRequestSenderId;
+    final previousRequestState = _requestState;
     final replyToMessage = _replyingToMessage;
     final pendingMessage = _addPendingMessage(
       text,
@@ -1316,9 +1113,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         pendingMessage: pendingMessage,
         myUid: myUid,
         otherUid: otherUid,
-        previousRequestStatus: previousRequestStatus,
-        previousRequestCycle: previousRequestCycle,
-        previousRequestSenderId: previousRequestSenderId,
+        previousRequestState: previousRequestState,
       ),
     );
   }
@@ -1327,9 +1122,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     required _PendingMessage pendingMessage,
     required String myUid,
     required String otherUid,
-    required String previousRequestStatus,
-    required int previousRequestCycle,
-    required String? previousRequestSenderId,
+    required ChatRequestState previousRequestState,
   }) async {
     try {
       final repository = ref.read(chatRepositoryProvider);
@@ -1351,7 +1144,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
       var failureMessage = await attemptSend();
       if (failureMessage != null &&
-          _isPermissionDeniedFailure(failureMessage) &&
+          isPermissionDeniedFailure(failureMessage) &&
           await _tryRefreshEmailTokenForRetry()) {
         failureMessage = await attemptSend();
       }
@@ -1363,9 +1156,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         await _maybeShowPendingRequestSnackbarAfterSend(
           repository: repository,
           myUid: myUid,
-          previousRequestStatus: previousRequestStatus,
-          previousRequestCycle: previousRequestCycle,
-          previousRequestSenderId: previousRequestSenderId,
+          previousRequestState: previousRequestState,
         );
         return;
       }
@@ -1461,7 +1252,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? conversationData
         : null;
     _syncConversationRequestState(conversationMap);
-    final isPendingRecipient = _isPendingRecipient(currentUserId);
+    final isPendingRecipient = _requestState.isPendingRecipient(currentUserId);
 
     final participants = List<String>.from(
       conversationMap?['participants'] ?? const <String>[],

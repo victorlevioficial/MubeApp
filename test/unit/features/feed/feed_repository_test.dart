@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mube/src/features/feed/domain/feed_item.dart';
-import 'package:mube/src/features/feed/domain/paginated_feed_response.dart';
 
 import '../../../helpers/test_fakes.dart';
 
@@ -22,24 +21,6 @@ void main() {
   });
 
   group('FeedRepository', () {
-    test('getNearbyUsers returns list of FeedItem on success', () async {
-      repository.nearbyUsers = [tFeedItem];
-
-      final result = await repository.getNearbyUsers(
-        lat: 0.0,
-        long: 0.0,
-        radiusKm: 10,
-        currentUserId: tUserId,
-      );
-
-      expect(result.isRight(), true);
-      result.fold((l) => fail('Should not return failure'), (r) {
-        expect(r, isA<List<FeedItem>>());
-        expect(r.length, 1);
-        expect(r.first.uid, tFeedItem.uid);
-      });
-    });
-
     test('getUsersByType returns list of FeedItem on success', () async {
       repository.bands = [tFeedItem];
 
@@ -56,50 +37,11 @@ void main() {
       });
     });
 
-    test('getMainFeedPaginated returns PaginatedFeedResponse', () async {
-      const response = PaginatedFeedResponse(
-        items: [tFeedItem],
-        hasMore: false,
-        lastDocument: null,
-      );
-      repository.mainFeedResponse = response;
-
-      final result = await repository.getMainFeedPaginated(
-        currentUserId: tUserId,
-      );
-
-      expect(result.isRight(), true);
-      result.fold((l) => fail('Should not return failure'), (r) {
-        expect(r.items.length, 1);
-        expect(r.hasMore, false);
-      });
-    });
-
-    test('getNearbyUsers returns empty list when no data', () async {
-      final result = await repository.getNearbyUsers(
-        lat: 0.0,
-        long: 0.0,
-        radiusKm: 10,
-        currentUserId: tUserId,
-      );
-
-      expect(result.isRight(), true);
-      result.fold(
-        (l) => fail('Should not return failure'),
-        (r) => expect(r, isEmpty),
-      );
-    });
-
     test('methods throw when throwError is true', () async {
       repository.throwError = true;
 
       expect(
-        () => repository.getNearbyUsers(
-          lat: 0.0,
-          long: 0.0,
-          radiusKm: 10,
-          currentUserId: tUserId,
-        ),
+        () => repository.getArtists(currentUserId: tUserId),
         throwsException,
       );
     });

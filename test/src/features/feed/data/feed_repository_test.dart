@@ -45,21 +45,6 @@ void main() {
       });
     });
 
-    test('getNearbyUsers should return list of users', () async {
-      final result = await repository.getNearbyUsers(
-        lat: 0.0,
-        long: 0.0,
-        radiusKm: 50.0,
-        currentUserId: myUid,
-      );
-
-      expect(result.isRight(), true);
-      result.fold((l) => fail('Should not fail: $l'), (r) {
-        expect(r.length, 1);
-        expect(r.first.uid, otherUid);
-      });
-    });
-
     test('getUsersByType should filter by type', () async {
       final result = await repository.getUsersByType(
         type: 'profissional',
@@ -74,7 +59,7 @@ void main() {
     });
 
     test(
-      'getDiscoverFeedPoolSorted scans visible profiles and sorts by distance',
+      'getDiscoverFeedPool scans visible profiles and sorts by distance',
       () async {
         await fakeFirestore.collection('users').doc('band-1').set({
           'uid': 'band-1',
@@ -109,12 +94,12 @@ void main() {
           'location': {'lat': 0.05, 'lng': 0.05},
         });
 
-        final result = await repository.getDiscoverFeedPoolSorted(
+        final result = (await repository.getDiscoverFeedPool(
           currentUserId: myUid,
           userLat: 0.0,
           userLong: 0.0,
           filter: FeedDiscoveryFilter.all,
-        );
+        )).map((pool) => pool.items);
 
         expect(result.isRight(), true);
         result.fold((l) => fail('Should not fail: $l'), (r) {

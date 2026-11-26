@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart';
+
+import 'chat_conversation_rules.dart';
 import 'message.dart';
 
 /// Preserves messages that left a fixed-size live window after newer
@@ -26,4 +29,43 @@ List<Message> preserveShiftedChatWindow({
 
   if (shiftedOut.isEmpty) return olderMessages;
   return <Message>[...shiftedOut, ...olderMessages];
+}
+
+/// Joins the live window with older pages, newest first, without duplicates.
+List<Message> mergeChatMessageWindows({
+  required List<Message> latestMessages,
+  required List<Message> olderMessages,
+}) {
+  final merged = <Message>[];
+  final seenIds = <String>{};
+  for (final message in [...latestMessages, ...olderMessages]) {
+    if (seenIds.add(message.id)) merged.add(message);
+  }
+  return merged;
+}
+
+/// Whether a date separator goes above [messages] at [index].
+///
+/// [messages] is ordered newest first, so the separator shows when the next
+/// (older) message is from another day, and always above the oldest message.
+bool shouldShowChatDateSeparator(List<Message> messages, int index) {
+  if (index >= messages.length) return false;
+  if (index == messages.length - 1) return true;
+
+  final currentDate = messages[index].createdAt.toDate().toLocal();
+  final olderDate = messages[index + 1].createdAt.toDate().toLocal();
+  return !isSameCalendarDay(currentDate, olderDate);
+}
+
+/// "Hoje", "Ontem" or `dd/MM/yyyy` for a date separator.
+String formatChatDateSeparatorLabel(DateTime dateTime, {DateTime? now}) {
+  final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
+  final reference = now ?? DateTime.now();
+  final today = DateTime(reference.year, reference.month, reference.day);
+  final dayDiff = today.difference(target).inDays;
+
+  if (dayDiff == 0) return 'Hoje';
+  if (dayDiff == 1) return 'Ontem';
+
+  return DateFormat('dd/MM/yyyy').format(target);
 }

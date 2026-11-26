@@ -502,37 +502,6 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
           as _i5.Future<_i2.ImageUrls>);
 
   @override
-  _i5.Future<String> uploadProfileImage({
-    required String? userId,
-    required _i11.File? file,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#uploadProfileImage, [], {
-              #userId: userId,
-              #file: file,
-            }),
-            returnValue: _i5.Future<String>.value(
-              _i9.dummyValue<String>(
-                this,
-                Invocation.method(#uploadProfileImage, [], {
-                  #userId: userId,
-                  #file: file,
-                }),
-              ),
-            ),
-            returnValueForMissingStub: _i5.Future<String>.value(
-              _i9.dummyValue<String>(
-                this,
-                Invocation.method(#uploadProfileImage, [], {
-                  #userId: userId,
-                  #file: file,
-                }),
-              ),
-            ),
-          )
-          as _i5.Future<String>);
-
-  @override
   _i5.Future<_i2.GalleryMediaUrls> uploadGalleryMediaWithSizes({
     required String? userId,
     required _i11.File? file,
@@ -574,49 +543,6 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
             ),
           )
           as _i5.Future<_i2.GalleryMediaUrls>);
-
-  @override
-  _i5.Future<String> uploadGalleryMedia({
-    required String? userId,
-    required _i11.File? file,
-    required String? mediaId,
-    required bool? isVideo,
-    void Function(double)? onProgress,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#uploadGalleryMedia, [], {
-              #userId: userId,
-              #file: file,
-              #mediaId: mediaId,
-              #isVideo: isVideo,
-              #onProgress: onProgress,
-            }),
-            returnValue: _i5.Future<String>.value(
-              _i9.dummyValue<String>(
-                this,
-                Invocation.method(#uploadGalleryMedia, [], {
-                  #userId: userId,
-                  #file: file,
-                  #mediaId: mediaId,
-                  #isVideo: isVideo,
-                  #onProgress: onProgress,
-                }),
-              ),
-            ),
-            returnValueForMissingStub: _i5.Future<String>.value(
-              _i9.dummyValue<String>(
-                this,
-                Invocation.method(#uploadGalleryMedia, [], {
-                  #userId: userId,
-                  #file: file,
-                  #mediaId: mediaId,
-                  #isVideo: isVideo,
-                  #onProgress: onProgress,
-                }),
-              ),
-            ),
-          )
-          as _i5.Future<String>);
 
   @override
   _i5.Future<String> uploadVideoThumbnail({
@@ -673,15 +599,6 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
           as _i5.Future<String?>);
 
   @override
-  _i5.Future<void> deleteImage(String? imageUrl) =>
-      (super.noSuchMethod(
-            Invocation.method(#deleteImage, [imageUrl]),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
   _i5.Future<void> deleteGalleryItem({
     required String? userId,
     required String? mediaId,
@@ -693,15 +610,6 @@ class MockStorageRepository extends _i1.Mock implements _i2.StorageRepository {
               #mediaId: mediaId,
               #isVideo: isVideo,
             }),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> deleteProfileImages(String? userId) =>
-      (super.noSuchMethod(
-            Invocation.method(#deleteProfileImages, [userId]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

@@ -70,53 +70,6 @@ void main() {
       });
     });
 
-    group('getUserTickets', () {
-      test('should return tickets for specific user', () async {
-        // Arrange
-        await repository.createTicket(tTicket);
-        await repository.createTicket(
-          Ticket(
-            id: 'ticket-2',
-            userId: 'user-1',
-            title: 'Outro bug',
-            description: 'Descrição',
-            category: 'feedback',
-            status: TicketStatus.open,
-            createdAt: DateTime(2025, 1, 2),
-            updatedAt: DateTime(2025, 1, 2),
-          ),
-        );
-        // Ticket from another user
-        await repository.createTicket(
-          Ticket(
-            id: 'ticket-3',
-            userId: 'user-2',
-            title: 'Ticket do outro',
-            description: 'Outro',
-            category: 'other',
-            status: TicketStatus.open,
-            createdAt: DateTime(2025, 1, 3),
-            updatedAt: DateTime(2025, 1, 3),
-          ),
-        );
-
-        // Act
-        final result = await repository.getUserTickets('user-1');
-
-        // Assert
-        expect(result.length, 2);
-        expect(result.every((t) => t.userId == 'user-1'), true);
-      });
-
-      test('should return empty list when user has no tickets', () async {
-        // Act
-        final result = await repository.getUserTickets('nonexistent');
-
-        // Assert
-        expect(result, isEmpty);
-      });
-    });
-
     group('watchUserTickets', () {
       test('should emit ticket list for user', () async {
         // Arrange

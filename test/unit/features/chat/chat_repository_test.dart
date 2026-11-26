@@ -15,34 +15,6 @@ import 'package:mube/src/features/chat/data/chat_repository.dart';
 @GenerateNiceMocks([MockSpec<AnalyticsService>()])
 import 'chat_repository_test.mocks.dart';
 
-class _SpyChatRepository extends ChatRepository {
-  int getOrCreateConversationCalls = 0;
-
-  _SpyChatRepository(super.firestore, {super.analytics});
-
-  @override
-  FutureResult<String> getOrCreateConversation({
-    required String myUid,
-    required String otherUid,
-    required String otherUserName,
-    String? otherUserPhoto,
-    required String myName,
-    String? myPhoto,
-    String type = 'direct',
-  }) async {
-    getOrCreateConversationCalls += 1;
-    return super.getOrCreateConversation(
-      myUid: myUid,
-      otherUid: otherUid,
-      otherUserName: otherUserName,
-      otherUserPhoto: otherUserPhoto,
-      myName: myName,
-      myPhoto: myPhoto,
-      type: type,
-    );
-  }
-}
-
 class _RefreshingAuthRepository extends Fake implements AuthRepository {
   int refreshCalls = 0;
 
@@ -423,75 +395,17 @@ void main() {
     const myName = 'Jane Doe';
     const conversationId = 'user1_user2';
 
-    group('getOrCreateConversation', () {
-      test('should create new conversation when it does not exist', () async {
-        final result = await repository.getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
-        );
-
-        expect(result.isRight(), true);
-        result.fold(
-          (failure) => fail('Expected Right'),
-          (id) => expect(id, conversationId),
-        );
-
-        final conversationDoc = await fakeFirestore
-            .collection('conversations')
-            .doc(conversationId)
-            .get();
-        expect(conversationDoc.exists, true);
-        expect(
-          conversationDoc.data()?['participants'],
-          containsAll([myUid, otherUid]),
-        );
-        expect(conversationDoc.data()?['requestStatus'], 'accepted');
-        expect(conversationDoc.data()?['requestCycle'], 0);
-
-        final myPreview = await fakeFirestore
-            .collection('users')
-            .doc(myUid)
-            .collection('conversationPreviews')
-            .doc(conversationId)
-            .get();
-        expect(myPreview.exists, true);
-        expect(myPreview.data()?['otherUserId'], otherUid);
-        expect(myPreview.data()?['isPending'], false);
+    Future<void> seedParticipants() async {
+      await fakeFirestore.collection('users').doc(myUid).set({'nome': myName});
+      await fakeFirestore.collection('users').doc(otherUid).set({
+        'nome': otherUserName,
       });
-
-      test('should log chat_initiated only on first creation', () async {
-        await repository.getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
-        );
-        await repository.getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
-        );
-
-        verify(
-          mockAnalytics.logEvent(
-            name: 'chat_initiated',
-            parameters: anyNamed('parameters'),
-          ),
-        ).called(1);
-      });
-    });
+    }
 
     group('sendMessage', () {
       test(
         'should create conversation metadata on first message when conversation does not exist',
         () async {
-          final spyRepository = _SpyChatRepository(
-            fakeFirestore,
-            analytics: mockAnalytics,
-          );
           await fakeFirestore.collection('users').doc(myUid).set({
             'nome': myName,
           });
@@ -499,7 +413,7 @@ void main() {
             'nome': otherUserName,
           });
 
-          final result = await spyRepository.sendMessage(
+          final result = await repository.sendMessage(
             conversationId: conversationId,
             text: 'Primeira mensagem',
             myUid: myUid,
@@ -507,7 +421,6 @@ void main() {
           );
 
           expect(result.isRight(), true);
-          expect(spyRepository.getOrCreateConversationCalls, 0);
 
           final conversationDoc = await fakeFirestore
               .collection('conversations')
@@ -597,12 +510,7 @@ void main() {
       );
 
       test('should send message successfully', () async {
-        await repository.getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
-        );
+        await seedParticipants();
 
         final result = await repository.sendMessage(
           conversationId: conversationId,
@@ -623,12 +531,7 @@ void main() {
       });
 
       test('should persist reply metadata when sending a reply', () async {
-        await repository.getOrCreateConversation(
-          myUid: myUid,
-          otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
-        );
+        await seedParticipants();
 
         final result = await repository.sendMessage(
           conversationId: conversationId,
@@ -931,11 +834,12 @@ void main() {
 
     group('deleteConversation', () {
       test('should delete only my preview and keep conversation', () async {
-        await repository.getOrCreateConversation(
+        await seedParticipants();
+        await repository.sendMessage(
+          conversationId: conversationId,
+          text: 'Oi',
           myUid: myUid,
           otherUid: otherUid,
-          otherUserName: otherUserName,
-          myName: myName,
         );
 
         final result = await repository.deleteConversation(

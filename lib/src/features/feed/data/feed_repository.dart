@@ -44,32 +44,6 @@ class FeedRepository {
 
   FeedRepository(this._dataSource);
 
-  /// Loads a bounded visible discovery pool and sorts it deterministically.
-  ///
-  /// This keeps pagination deterministic without scanning the entire `users`
-  /// collection on every load. With location available we prioritize the
-  /// optimized nearby query; otherwise we fall back to a bounded Firestore scan.
-  FutureResult<List<FeedItem>> getDiscoverFeedPoolSorted({
-    required String currentUserId,
-    required double? userLat,
-    required double? userLong,
-    List<String> excludedIds = const [],
-    FeedDiscoveryFilter filter = FeedDiscoveryFilter.all,
-    int? targetResults,
-    int? fastPartialThreshold,
-  }) async {
-    final poolResult = await getDiscoverFeedPool(
-      currentUserId: currentUserId,
-      userLat: userLat,
-      userLong: userLong,
-      excludedIds: excludedIds,
-      filter: filter,
-      targetResults: targetResults,
-      fastPartialThreshold: fastPartialThreshold,
-    );
-    return poolResult.map((pool) => pool.items);
-  }
-
   /// Loads a deterministic discovery pool with optional fast partial mode.
   ///
   /// When [fastPartialThreshold] is provided, the repository may return a
@@ -335,38 +309,6 @@ class FeedRepository {
     );
   }
 
-  /// Fetches users near a location. Returns [Right(List<FeedItem>)] or [Left(Failure)].
-  ///
-  /// Uses Geohash-based query when available for efficient server-side filtering.
-  FutureResult<List<FeedItem>> getNearbyUsers({
-    required double lat,
-    required double long,
-    required double radiusKm,
-    required String currentUserId,
-    List<String> excludedIds = const [],
-    int limit = 10,
-  }) async {
-    try {
-      // Get user's geohash for optimized query
-      final userDoc = await _dataSource.getUser(currentUserId);
-      final userGeohash = userDoc.data()?[FirestoreFields.geohash] as String?;
-
-      // Use the optimized geohash-based query
-      final result = await getAllUsersSortedByDistance(
-        currentUserId: currentUserId,
-        userLat: lat,
-        userLong: long,
-        userGeohash: userGeohash,
-        excludedIds: excludedIds,
-        radiusKm: radiusKm,
-      );
-
-      return result.map((items) => items.take(limit).toList());
-    } catch (e) {
-      return Left(mapExceptionToFailure(e));
-    }
-  }
-
   /// Fetches users by profile type.
   FutureResult<List<FeedItem>> getUsersByType({
     required String type,
@@ -521,41 +463,6 @@ class FeedRepository {
           hasMore: hasMoreCandidates,
         ),
       );
-    } catch (e) {
-      return Left(mapExceptionToFailure(e));
-    }
-  }
-
-  /// Fetches professional users by category.
-  FutureResult<List<FeedItem>> getUsersByCategory({
-    required String category,
-    required String currentUserId,
-    List<String> excludedIds = const [],
-    double? userLat,
-    double? userLong,
-    int limit = 10,
-    DocumentSnapshot? startAfter,
-  }) async {
-    try {
-      final snapshot = await _dataSource.getUsersByCategory(
-        category: category,
-        limit: limit + excludedIds.length,
-        startAfter: startAfter,
-      );
-      final allItems = FeedItemMappers.processSnapshot(
-        snapshot,
-        currentUserId,
-        userLat,
-        userLong,
-      );
-      allItems.sort(FeedDiscovery.compareByDistance);
-
-      final filteredItems = allItems
-          .where((item) => !excludedIds.contains(item.uid))
-          .take(limit)
-          .toList();
-
-      return Right(filteredItems);
     } catch (e) {
       return Left(mapExceptionToFailure(e));
     }
@@ -941,51 +848,6 @@ class FeedRepository {
     items.sort((a, b) => (a.distanceKm ?? 999).compareTo(b.distanceKm ?? 999));
 
     return Right(items);
-  }
-
-  FutureResult<PaginatedFeedResponse> getMainFeedPaginated({
-    required String currentUserId,
-    String? filterType,
-    List<String> excludedIds = const [],
-    double? userLat,
-    double? userLong,
-    int limit = 10,
-    DocumentSnapshot? startAfter,
-  }) async {
-    try {
-      final snapshot = await _dataSource.getMainFeed(
-        filterType: filterType,
-        limit: limit,
-        startAfter: startAfter,
-      );
-
-      var items = FeedItemMappers.processSnapshot(
-        snapshot,
-        currentUserId,
-        userLat,
-        userLong,
-      );
-      if (excludedIds.isNotEmpty) {
-        items.removeWhere((item) => excludedIds.contains(item.uid));
-      }
-
-      if (filterType == 'Perto de mim' && userLat != null && userLong != null) {
-        items = items
-            .where((i) => i.distanceKm != null && i.distanceKm! <= 50)
-            .toList();
-      }
-      items.sort(FeedDiscovery.compareByDistance);
-
-      return Right(
-        PaginatedFeedResponse(
-          items: items,
-          lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
-          hasMore: snapshot.docs.length >= limit,
-        ),
-      );
-    } catch (e) {
-      return Left(mapExceptionToFailure(e));
-    }
   }
 
   /// Fetches users by a list of IDs (for Favorites).

@@ -33,8 +33,6 @@ abstract class MatchpointRemoteDataSource {
 
   Future<MatchpointActionResult> undoSwipe(String targetUserId);
 
-  Future<List<String>> fetchExistingInteractions(String currentUserId);
-
   Future<LikesQuotaInfo> getRemainingLikes();
 
   Future<List<Map<String, dynamic>>> fetchMatches(String currentUserId);
@@ -534,39 +532,6 @@ class MatchpointRemoteDataSourceImpl implements MatchpointRemoteDataSource {
       );
       rethrow;
     }
-  }
-
-  @override
-  Future<List<String>> fetchExistingInteractions(String currentUserId) async {
-    final snapshot = await _firestore
-        .collection(FirestoreCollections.interactions)
-        .where('source_user_id', isEqualTo: currentUserId)
-        .where('type', whereIn: ['like', 'dislike'])
-        .get();
-
-    final now = Timestamp.now();
-
-    final result = <String>[];
-    for (final doc in snapshot.docs) {
-      final data = doc.data();
-      final type = data['type'] as String?;
-      final targetUserId = data['target_user_id'];
-
-      if (targetUserId is! String || targetUserId.isEmpty) continue;
-
-      if (type == 'like') {
-        result.add(targetUserId);
-        continue;
-      }
-      if (type != 'dislike') continue;
-
-      final expiresAt = data['expires_at'];
-      if (expiresAt is! Timestamp) continue;
-      if (expiresAt.compareTo(now) > 0) {
-        result.add(targetUserId);
-      }
-    }
-    return result;
   }
 
   @override

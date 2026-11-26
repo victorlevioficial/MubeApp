@@ -487,16 +487,6 @@ mixin _ChatMessagesRepository on _ChatRepositoryBase {
     }
   }
 
-  /// Stream de mensagens de uma conversa (ultimas 50).
-  Stream<List<Message>> getMessages(String conversationId) {
-    return getMessagesSnapshot(conversationId).map(
-      (snapshot) => snapshot.docs
-          .where(_isVisibleMessageDoc)
-          .map((doc) => Message.fromFirestore(doc))
-          .toList(),
-    );
-  }
-
   Future<MessagesPage> getMessagesPage({
     required String conversationId,
     DocumentSnapshot<Map<String, dynamic>>? startAfterDoc,
